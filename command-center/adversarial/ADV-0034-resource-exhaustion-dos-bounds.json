@@ -1,0 +1,420 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0034",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0034:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW 4 capped exhaustion vectors run under a proven Job commit cap + out-of-process commit-charge observer: huge-array parser CONFIRMED (no size cap; 1e7->MemoryError@503MiB), decompression-bomb reader CONFIRMED (no max_length; 256MiB->MemoryError@318MiB), recursive-subworkflow walker CONFIRMED (no depth guard; RecursionError at depth ~500), fan-out CONFIRMED (no arrival cap; only the external Job ACTIVE_PROCESS limit stopped the spawn loop). All controls recorded incl. the cap both-states proof. SUCCESS withheld: mandated cross-vendor refuter not in tool_permissions, receipt not manifest-registered, owner_approval_required for the DoS defects.",
+  "spec_anchor": "_USER-PROMPTS.md:11327,11049",
+  "min_bytes_threshold": 8192,
+  "profile": "exploit-proof",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "security-exploit-engineer",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0034-resource-exhaustion-dos-bounds.json",
+      "bytes": 33222,
+      "sha256": "7a5774fbe72011caccafd90a2b1c235138bb5bd43bd719944b284836ba41945e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Vector A (10^7-element artifact array): the artifact parser completion_predicate.load_receipt has NO element/size bound. It reads the whole file (read_text) then json.loads the whole structure; measured peak COMMIT (PrivateUsage) scaled ~linearly 14.0->68.7->503.1 MiB for 100->1e6->1e7 elements, and 1e7 (170MB file) hit the 512MiB Job commit cap => MemoryError. Only the external cap stopped it. The reducer (coordination/reducer.py) and evaluate() c4 reach the same uncapped json.loads.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/completion_predicate.py:262-264 (load_receipt), :550 (evaluate c4); platform/coordination/reducer.py:257-272",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python run.py (A_ctrl_100,A_1e6,A_1e7) -- Probe 1: capped run, own_bound",
+          "raw_output": "in-child under a 512MiB Job commit cap; terminal outcome + own_bound (did completion_predicate.load_receipt enforce its OWN size/element limit before the cap tripped?):\n  A_ctrl_100: outcome=completed own_bound=False parsed_elements=100\n  A_1e6:      outcome=completed own_bound=False parsed_elements=1000000\n  A_1e7:      outcome=MemoryError own_bound=False exception=MemoryError json_file=170000001B\n=> NO self-limit: load_receipt raised no size guard; the 1e7 array ran headlong into the external cap (MemoryError).",
+          "fingerprint": "3c0397e857bd45f2",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "python run.py observer -- Probe 2: out-of-process PrivateUsage (commit) + handle count",
+          "raw_output": "out-of-process sampling of the child (PROCESS_MEMORY_COUNTERS_EX.PrivateUsage = COMMIT charge, NOT working set) + handle count:\n  A_ctrl_100: peak_commit=14.0MiB handles=119 (baseline 0.5MiB)\n  A_1e6:      peak_commit=68.7MiB handles=120\n  A_1e7:      peak_commit=503.1MiB handles=120 (hit 512MiB cap)\n  system commit_limit≈175.6GiB. commit scales ~linearly with element count (14.0->68.7->503.1MiB for 100->1e6->1e7).",
+          "fingerprint": "18abda2e3a56f412"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read platform/lib/completion_predicate.py:262-264 + :550",
+          "raw_output": "platform/lib/completion_predicate.py:262-264  def load_receipt(path): return json.loads(Path(path).read_text(encoding='utf-8')).  read_text() pulls the WHOLE file into a str; json.loads() materialises the WHOLE structure. No size/element/max-length parameter. Same shape at evaluate() c4 (:550 json.loads(p.read_text())) and wfdsl/schemas.py:151 load_json. The reducer (coordination/reducer.py) delegates to this load_receipt. No cap anywhere on the parse path.",
+          "fingerprint": "d9e34bc085cd5e31"
+        }
+      ]
+    },
+    {
+      "claim": "Vector B (decompression bomb): the archive reader plugin.packager.unpack has NO uncompressed-size cap. packager.py:185 does atomic_write_bytes(target, zf.read(info)) with no max_length, fully materialising each member in memory. A 261,030-byte zip (256MiB member, ratio ~1028:1) drove peak COMMIT to 318.3 MiB then MemoryError at the 512MiB cap; at that exhaustion point commit (318MiB) exceeded working-set (279MiB), so a working-set observer under-reports. Independently re-derived from ADV-0027-D1.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/plugin/packager.py:185 (zf.read, no max_length); unpack() :169-187",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python run.py (B_ctrl_benign,B_bomb_256MiB) -- Probe 1: capped unpack, own_bound",
+          "raw_output": "in-child under a 512MiB Job commit cap; outcome + own_bound (did plugin.packager.unpack cap uncompressed size?):\n  B_ctrl_benign: outcome=completed own_bound=False wrote=29B\n  B_bomb_256MiB: outcome=MemoryError own_bound=False exception=MemoryError zip=261030B(member 268435456B, ratio ~1028:1)\n=> NO self-limit: the 256MiB member is fully decompressed into one bytes object (zf.read, no max_length); it ran into the cap.",
+          "fingerprint": "2743cc33b1b87039",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "python run.py + wsvscommit.py -- Probe 2: out-of-process commit vs working-set",
+          "raw_output": "out-of-process COMMIT sampling (PrivateUsage) + working-set contrast (from wsvscommit.json):\n  B_ctrl_benign: peak_commit=16.0MiB handles=120\n  B_bomb_256MiB: peak_commit=318.3MiB handles=121\n  commit-vs-working-set at exhaustion: bomb peak_commit=318.3MiB > peak_working_set=279.2MiB (commit exceeds WS by 39.1MiB => a working-set observer UNDER-reports the exhaustion by ~12%).",
+          "fingerprint": "025a6e38ff2bb933"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read platform/plugin/packager.py:169-187",
+          "raw_output": "platform/plugin/packager.py:185  atomic_write_bytes(target, zf.read(info)).  zf.read(info) has NO max_length arg => the entire member is decompressed into one bytes object before the write. No per-member or cumulative uncompressed budget in unpack() (packager.py:169-187). Independently matches ADV-0027-D1 (re-derived here via commit-charge, a different observer).",
+          "fingerprint": "ef5ec8d32dad0b63"
+        }
+      ]
+    },
+    {
+      "claim": "Vector C (recursive subworkflows): the subworkflow expander / stage walker wfdsl.semantics.check_workflow (iter_stages/_collect_expressions/check_scope/check_acyclic) has NO depth guard. A workflow nested only ~500 levels deep via 'body' crashes check_workflow with RecursionError; the parser load_receipt/json.loads itself tolerates ~5000 then RecursionErrors at >=20000. Both rely solely on Python's implicit recursion limit (measured 1000). DSL-SEM-006 resolves subworkflow references but does NOT detect subworkflow-reference cycles, and no in-repo code expands them.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/wfdsl/semantics.py:506-522 (iter_stages), :531-547 (_collect_expressions), :605-622 (check_acyclic), :658-675 (DSL-SEM-006 no cycle check)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python run.py + deepsweep.py (deep_walk/deep_parse depth sweeps) -- Probe 1: capped run, crash outcome",
+          "raw_output": "in-child under the cap; outcome + own_bound for the recursive walker/parser at increasing nesting depth:\n  C2_ctrl_depth5 (walker): outcome=completed own_bound=False iter_stages_count=6\n  C2_depth3000 (walker):   outcome=RecursionError own_bound=False exception=RecursionError\n  walker depth sweep: d500->RecursionError(stages=501); d900->RecursionError(stages=901); d1500->RecursionError(stages=None)\n  parser depth sweep: d5000->completed(parsed=4999); d20000->RecursionError(parsed=None); d100000->RecursionError(parsed=None); d500000->RecursionError(parsed=None)\n=> NO self-limit: check_workflow RecursionErrors at depth ~500; load_receipt/json.loads tolerates ~5000 then RecursionError >=20000. All guarded (exit 0), never a host crash.",
+          "fingerprint": "0337fa490a460754",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "python run.py observer -- Probe 2: out-of-process commit (shows stack-crash, not commit blowup)",
+          "raw_output": "out-of-process COMMIT sampling shows the recursion vector is a STACK/crash DoS, not a commit blowup:\n  C2_ctrl_depth5: peak_commit=13.7MiB handles=113\n  C2_depth3000:   peak_commit=15.8MiB handles=113 (RecursionError)\n  => commit stays tiny (~13-16MiB) at the crash; a memory-only observer would miss this class entirely, which is why the crash outcome (Probe 1) is the load-bearing signal here.",
+          "fingerprint": "ef9fe723e73588e7"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read platform/lib/wfdsl/semantics.py:502-547,605-675",
+          "raw_output": "platform/lib/wfdsl/semantics.py: iter_stages.walk (:506-522) recurses on 'body' lists; _collect_expressions.visit (:531-547) recurses on EVERY nested mapping/list; check_scope (:578-596) and check_acyclic (:605-622) recurse on 'body'. check_workflow (:550) drives all of them. No max-depth guard on any; the only bound is Python's implicit recursion limit (sys.getrecursionlimit()==1000 measured). DSL-SEM-006 (:658-675) resolves a subworkflow reference to a declared name but does NOT detect subworkflow-reference CYCLES, and no in-repo code EXPANDS subworkflow references.",
+          "fingerprint": "8c0d926ecbdb8e8a"
+        }
+      ]
+    },
+    {
+      "claim": "Vector D (fan-out with no arrival cap): no arrival cap exists on the in-repo fan-out surface. The wfdsl fanout check DSL-SEM-012 only verifies over.ref names a declared param (no width cap). A capped process-spawn proxy with no program arrival cap spawned processes until the EXTERNAL Job ACTIVE_PROCESS=6 limit refused the 6th with WinError 1816. The true runtime scheduler is the external Claude Workflow harness (agent()/parallel()); dispatch.py is a static conformance linter, not a spawner.",
+      "verdict": "CONFIRMED",
+      "confidence": "likely",
+      "anchor": "platform/lib/wfdsl/semantics.py:796-811 (DSL-SEM-012, no width cap); platform/coordination/dispatch.py (conformance linter, not a scheduler)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python run.py (D_ctrl_3,D_attack_24) -- Probe 1: uncapped spawn loop under Job ACTIVE_PROCESS cap",
+          "raw_output": "in-child under a 128MiB Job commit cap + ACTIVE_PROCESS=6; the spawn loop has no program arrival cap:\n  D_ctrl_3:    requested=3 spawned_before_failure=3 spawn_error=None outcome=completed own_bound=False\n  D_attack_24: requested=24 spawned_before_failure=5 spawn_error=OSError: [WinError 1816] Not enough quota is available to process this command outcome=external_cap_stopped_spawn\n=> NO arrival cap in the loop; only the external Job ACTIVE_PROCESS=6 limit stopped it.",
+          "fingerprint": "780447e1ef6907df",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "python run.py observer -- Probe 2: out-of-process PROCESS count / spawn-refusal (WinError 1816)",
+          "raw_output": "out-of-process PROCESS count is the axis here: the Job ACTIVE_PROCESS limit (6) refused the 6th process (child+5=6) with WinError 1816 'Not enough quota'. D_attack_24 spawned 5 then failed; D_ctrl_3 spawned 3 silently. child commit stayed low (attack peak_commit=10.4MiB, handles=123) - fan-out exhausts PROCESS/handle budget, not the child's own commit.",
+          "fingerprint": "a723224046fd9e43"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read platform/lib/wfdsl/semantics.py:796-811 + platform/coordination/dispatch.py",
+          "raw_output": "platform/lib/wfdsl/semantics.py:796-811 DSL-SEM-012 checks only that a fanout's over.ref names a declared param -- NO width/arrival cap. There is no runtime fan-out scheduler in-repo: platform/coordination/dispatch.py is a static dispatch-CONFORMANCE linter (validates a dispatch record against cross-vendor-dispatch.md), not a process spawner. The real fan-out is the EXTERNAL Claude Workflow harness (agent()/parallel()), out of this repo.",
+          "fingerprint": "556acedff5829a78"
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "Drive the real external Claude Workflow harness with a fanout over a 10^7-item param on a disposable host and observe agent/process arrival vs any harness-level arrival cap; that materialisation is external to this repo and owner-gated, so it was NOT run here."
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-hard-prohibition-cap-proven",
+      "name": "hard prohibition: every vector ran under an ENFORCED cap, proven real (both-states) before any unbounded run",
+      "command": "python child.py capfire (1GiB vs 64MiB under 512MiB Job commit cap)",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "NC (cap both-states): capfire allocates a bytearray under a 512MiB Job commit cap.\n  nc_cap_fires (alloc 1GiB): peak_commit=10.9MiB outcome=MemoryError (cap FIRES = MemoryError)\n  nc_cap_silent (alloc 64MiB): peak_commit=74.5MiB outcome=completed (cap SILENT = completes)\n  cap flags=0x2200 (JOB_OBJECT_LIMIT_JOB_MEMORY|KILL_ON_JOB_CLOSE), job_bytes=536870912"
+    },
+    {
+      "id": "T2-control-normal-input-inside-cap",
+      "name": "control: a normal-size input completes well inside the cap (required test)",
+      "command": "python run.py cases A_ctrl_100, B_ctrl_benign, C1_ctrl_depth5, C2_ctrl_depth5, D_ctrl_3",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "A_ctrl_100 peak_commit=14.0MiB completed(parsed 100); B_ctrl_benign peak_commit=16.0MiB completed(wrote 29B); C1_ctrl_depth5 peak_commit=14.5MiB completed; C2_ctrl_depth5 peak_commit=13.7MiB completed(6 stages); D_ctrl_3 spawned 3, no error. All << cap; observer commit low."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-commit-observer-both-states",
+      "kind": "other",
+      "description": "The out-of-process COMMIT-charge observer (PrivateUsage, not working set) must FIRE (high commit) on an attack input and be SILENT (low commit) on a normal input, proving the instrument discriminates and is not measurement noise.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A_1e7 peak_commit=503.1MiB; B_bomb peak_commit=318.3MiB (both to the cap)",
+      "good_state_output": "A_ctrl_100 peak_commit=14.0MiB; B_ctrl_benign peak_commit=16.0MiB (both tiny)"
+    },
+    {
+      "id": "NC2-job-commit-cap-both-states",
+      "kind": "known-broken-fixture",
+      "description": "The enforced Job commit cap (the hard-prohibition mechanism) must FIRE (MemoryError) on an allocation above it and be SILENT (completes) below it. Without this the whole capped-run premise is unproven.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "alloc 1GiB under 512MiB cap -> MemoryError, peak_commit 10.9MiB",
+      "good_state_output": "alloc 64MiB under 512MiB cap -> completed, peak_commit 74.5MiB"
+    },
+    {
+      "id": "NC3-walker-recursion-both-states",
+      "kind": "adversarial-payload",
+      "description": "The RecursionError crash detector for the subworkflow walker must FIRE on a deeply-nested workflow and be SILENT on a shallow one, proving the crash is depth-driven and not spurious.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "check_workflow depth3000 -> RecursionError; deepsweep depth500 -> RecursionError",
+      "good_state_output": "check_workflow depth5 -> completed (iter_stages_count=6)"
+    },
+    {
+      "id": "NC4-fanout-arrival-cap-both-states",
+      "kind": "adversarial-payload",
+      "description": "The external Job ACTIVE_PROCESS cap must FIRE (spawn refused) on an over-target fan-out and be SILENT (all spawn) on an under-target one, proving the loop itself imposes no arrival cap.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "target 24 -> spawned 5 then OSError: [WinError 1816] Not enough quota is available to process this command",
+      "good_state_output": "target 3 -> spawned 3, spawn_error=None"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "<none>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The catalog mandates 'one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact'. The unit is catalog-assigned to openai/gpt-5-codex but was in fact executed by anthropic/claude-opus-5, so an Anthropic reviewer is SAME-vendor and does not qualify; a qualifying independent refuter is openai/gpt-5-codex (mcp__codex__codex) re-deriving from %TEMP%/adv0034/{run.py,child.py,winmem.py,deepsweep.py,wsvscommit.py,results.json,deepsweep.json,wsvscommit.json}. Not run: no cross-vendor dispatch tool is in this unit's tool_permissions, and the in-session peers (main, bleed-audit, retire-crux, routing-hermetic) are all anthropic. Self-certification is the exact failure this program prevents, so SUCCESS is withheld."
+  },
+  "defects": [
+    {
+      "id": "ADV-0034-D1",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Unbounded artifact parser (CWE-400/789). completion_predicate.load_receipt (completion_predicate.py:264) = json.loads(Path(path).read_text()) with no size or element cap; the shared reducer (coordination/reducer.py) and evaluate() c4 reach it. A hostile receipt with a ~10^7-element array (measured 170MB file -> 503MiB commit -> MemoryError at a 512MiB cap) exhausts memory. INLINE ESCALATION: on THIS host commit exhaustion freezes the box (RAM+pagefile), not a clean OOM (estate precedent), so operationally this trends P1 for availability; owner sets the final severity (owner_approval_required). Fix: cap read size (stat/st_size preflight) and/or reject artifacts above a declared byte/element budget before json.loads."
+    },
+    {
+      "id": "ADV-0034-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Unbounded archive reader / decompression bomb (CWE-409). plugin.packager.unpack (packager.py:185) atomic_write_bytes(target, zf.read(info)) has no max_length and no per-member/cumulative uncompressed budget; a 261KB zip expands to a 256MiB member fully in memory (peak 318MiB -> MemoryError at cap). Same defect ADV-0027-D1 records; re-confirmed here independently via commit-charge. Fix: compare zi.file_size to a budget and stream zf.open(info) with a bounded read."
+    },
+    {
+      "id": "ADV-0034-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Unbounded recursion in the workflow validator/walker (CWE-674). wfdsl.semantics.check_workflow and its helpers (iter_stages, _collect_expressions, check_scope, check_acyclic) recurse on nested 'body'/mappings with no depth guard; a workflow nested ~500 deep crashes the validator with RecursionError (a DoS of the validation gate). DSL-SEM-006 also does NOT detect subworkflow-reference cycles, a latent unbounded-expansion risk if a subworkflow expander is ever built. Fix: add an explicit max-depth check in iter_stages/_collect_expressions and a cycle check on the subworkflow-reference graph."
+    },
+    {
+      "id": "ADV-0034-D4",
+      "severity": "P3",
+      "status": "open",
+      "summary": "No fan-out arrival cap in the workflow DSL. DSL-SEM-012 (semantics.py:796-811) permits a fanout of arbitrary width (only checks the param is declared). The runtime materialisation is the external Claude Workflow harness (not in this repo), so in-repo impact is latent; but a workflow may declare an unbounded fanout with nothing flagging it. Fix: add a DSL rule bounding fanout width / requiring a declared arrival cap."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0034"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only + independent jsonschema(exploit-proof.schema.json)",
+      "artifact_path": "command-center/adversarial/ADV-0034-resource-exhaustion-dos-bounds.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py <OUT> --schema-only ; jsonschema(exploit-proof.schema.json, kind==exploit-proof enforced)",
+        "raw_output": "gate --schema-only: SCHEMA-VALID:ADV-0034 (layer 1 only - this is NOT a completion verdict) (exit 0) | independent jsonschema(exploit-proof.schema.json, kind==exploit-proof enforced): VALID (0 errors), state=BLOCKED",
+        "fingerprint": "f6e6c227199bdf39"
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-12T00:05:00Z",
+    "ended_at": "2026-08-12T01:05:00Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "NO automatic retry (owner-gated destructive drill): every vector produced a terminal measurement on first attempt; no hypothesis failed twice."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-cross-vendor-review",
+      "platform-portability",
+      "uncontrolled-silence",
+      "resource-exhaustion-dos"
+    ],
+    "reason": "Measurement is COMPLETE: 4 exhaustion vectors (huge-array parser, decompression-bomb reader, recursive-subworkflow walker, uncapped fan-out) each driven under a PROVEN Job commit cap (NC2 both-states) with an out-of-process COMMIT-charge observer (Probe 2), plus a normal-input control (T2) and 4 both-states negative controls. Every vector is CONFIRMED to have NO program-level bound; only the external OS/interpreter limit the drill supplied stopped each. SUCCESS is withheld because the receipt-schema SUCCESS branch is structurally unreachable for this unit: (a) the mandated independent cross-vendor refuter has not run (no cross-vendor dispatch tool in tool_permissions), (b) this unit may write only its own output_path so it cannot register in ARTIFACT-MANIFEST.json, and (c) owner_approval_required is true for the DoS defects. All 4 defects are P2/P3 (input-driven DoS, no RCE/escape/data-loss), which the SUCCESS branch would permit; the block is the reviewer/manifest/owner gate, not a defect severity.",
+    "blocked_on": "openai/gpt-5-codex refuter re-deriving the 4 verdicts from %TEMP%/adv0034/{run.py,child.py,winmem.py,deepsweep.py,wsvscommit.py,results.json,deepsweep.json,wsvscommit.json} (NOT from this report); manifest registration by the orchestrator; and an owner decision on defects D1-D4 (add size/depth/arrival caps to the parser, archive reader, workflow walker, and fan-out DSL).",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "read reviewer + manifest_registration blocks of this receipt",
+        "raw_output": "reviewer.verdict=='NOT-REVIEWED', reviewer.independent==false, manifest_registration.registered==false",
+        "fingerprint": "08b50e9688d3a3a8",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "platform/schema/receipt.schema.json $defs.receipt_core SUCCESS branch",
+        "raw_output": "SUCCESS requires reviewer{verdict:PASS,independent:true} + manifest_registration.registered:true + executed downstream_consumers; this receipt meets none of the three, so BLOCKED is the honest state.",
+        "fingerprint": "e6f1eef40ac246ae"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "artifacts[0].sha256 is the DIGEST BASIS (sha256 of this file's bytes with the 64-hex sha value replaced by 64 '0'), not the raw self-hash; artifacts[0].bytes is the true on-disk size. The gate's raw re-hash condition will therefore mismatch by construction -- expected for a self-describing receipt and one reason this is BLOCKED, not SUCCESS.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "b=OUT.read_bytes(); basis=b.replace(sha.encode(),b'0'*64,1); assert sha256(basis).hexdigest()==sha and len(b)==bytes."
+    },
+    {
+      "claim": "Vectors A and B were bounded at the 512MiB Job commit cap, not driven to a real host freeze: the CONFIRMED part is the measured mechanism (no program cap; commit scales 1:1 with attacker-chosen size until the external cap trips). The host-freeze-at-scale is a linear extrapolation from the estate precedent, not executed.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "On a disposable VM, feed load_receipt a ~4GB-array artifact / packager.unpack a ~8GB-member bomb with NO job cap and observe commit-driven freeze; do NOT run on the live host."
+    },
+    {
+      "claim": "Vector D's runtime exhaustion is the EXTERNAL Claude Workflow harness (agent()/parallel()), which is not in this repo and was not driven (owner-gated). The in-repo evidence is (i) the DSL validator imposes no arrival cap and (ii) an uncapped spawn loop is stopped only by an external OS cap.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Drive the real harness with a 10^7-wide fanout on a disposable host; observe whether any harness arrival cap intervenes."
+    },
+    {
+      "claim": "Recursion crashes (C) are guarded RecursionError at the default limit (1000), contained to the child (exit 0), not a host crash. A framework that RAISES sys.setrecursionlimit could convert these into a true C-stack overflow (hard crash). Commit-vs-working-set divergence was measured only at the bomb exhaustion point (commit 318 > WS 279 MiB); for the smaller A_1e6 case working-set was 7.7MiB HIGHER, so the divergence is exhaustion-specific, not uniform.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run deep_walk/deep_parse after sys.setrecursionlimit(50000) under the memory cap and observe whether a C-stack access-violation replaces the guarded RecursionError; and sample commit vs WS across a sustained-pressure allocation to quantify the divergence."
+    }
+  ],
+  "report": {
+    "kind": "exploit-proof",
+    "question": "What input causes unbounded memory, disk or process growth - a 10^7-element artifact array, a decompression bomb, recursive subworkflows, or a fan-out with no arrival cap - and does any bound exist?",
+    "answer": "ALL FOUR inputs cause unbounded growth and NO program-level bound exists for any of them. (A) A 10^7-element array fed to completion_predicate.load_receipt is fully materialised (commit scaled 14->69->503 MiB for 100->1e6->1e7; 1e7 hit the 512MiB cap => MemoryError) - no size/element cap. (B) A 261KB decompression bomb (256MiB member) is fully decompressed in memory by packager.unpack's zf.read (no max_length) => 318MiB commit => MemoryError, and at that point commit (318MiB) exceeded working-set (279MiB) so a working-set observer under-reports - no uncompressed-size cap. (C) A workflow nested ~500 deep crashes wfdsl.semantics.check_workflow with RecursionError (json.loads itself survives to ~5000) - no depth guard, and no subworkflow-reference cycle check. (D) The fan-out DSL (DSL-SEM-012) imposes no arrival cap and an uncapped spawn loop is stopped only by an external OS process cap. Each vector was stopped ONLY by an external limit the drill itself supplied (a Job commit cap proven real in NC2, the interpreter recursion limit, or a Job ACTIVE_PROCESS cap) - never by the program.",
+    "control_ids": [
+      "NC1-commit-observer-both-states",
+      "NC2-job-commit-cap-both-states",
+      "NC3-walker-recursion-both-states",
+      "NC4-fanout-arrival-cap-both-states"
+    ],
+    "observations": [
+      {
+        "name": "huge_array (artifact parser, 10^7 elems)",
+        "measured": "CONFIRMED",
+        "method": "capped Job commit run of load_receipt + out-of-process PrivateUsage; 1e7->MemoryError@503MiB, linear scaling",
+        "anchor": "platform/lib/completion_predicate.py:264"
+      },
+      {
+        "name": "decompression_bomb (archive reader)",
+        "measured": "CONFIRMED",
+        "method": "capped packager.unpack of a 256MiB member; ->MemoryError@318MiB commit (> 279MiB working-set)",
+        "anchor": "platform/plugin/packager.py:185"
+      },
+      {
+        "name": "recursive_subworkflow (walker/expander)",
+        "measured": "CONFIRMED",
+        "method": "in-memory nested workflow through check_workflow; RecursionError at depth ~500",
+        "anchor": "platform/lib/wfdsl/semantics.py:506-547"
+      },
+      {
+        "name": "fanout_no_arrival_cap (scheduler)",
+        "measured": "CONFIRMED",
+        "method": "DSL-SEM-012 static (no width cap) + capped spawn proxy stopped only by Job ACTIVE_PROCESS (WinError 1816)",
+        "anchor": "platform/lib/wfdsl/semantics.py:796-811"
+      },
+      {
+        "name": "enforced-cap hard prohibition (proven)",
+        "measured": "CONFIRMED",
+        "method": "NC2 both-states: 1GiB->MemoryError, 64MiB->completes under a 512MiB Job commit cap",
+        "anchor": "%TEMP%/adv0034/winmem.py apply_self_commit_cap"
+      },
+      {
+        "name": "commit-vs-working-set (Probe 2 rationale)",
+        "measured": "CONFIRMED",
+        "method": "at bomb exhaustion commit 318.3MiB > working-set 279.2MiB (WS under-reports by 39MiB); Probe 2 samples PrivateUsage (commit), the signal that trips the cap",
+        "anchor": "%TEMP%/adv0034/wsvscommit.json"
+      }
+    ]
+  },
+  "extensions": {
+    "digest_basis": "artifacts[0].sha256 = SHA-256 over this file's bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters (a file cannot contain its own digest). artifacts[0].bytes is the true on-disk size. See residual_unknowns[0].",
+    "verdict_per_target": {
+      "huge_array_10e7_artifact_parser": "CONFIRMED",
+      "decompression_bomb_archive_reader": "CONFIRMED",
+      "recursive_subworkflow_expander_walker": "CONFIRMED",
+      "fanout_no_arrival_cap_scheduler": "CONFIRMED"
+    },
+    "does_any_bound_exist": "NO program-level bound for any of the four vectors; the only bounds are EXTERNAL (OS Job commit cap, OS Job ACTIVE_PROCESS cap, Python interpreter recursion limit) - i.e. exactly the limits this drill supplied to protect the host.",
+    "named_probes": {
+      "probe_1": "role=source method=command: feed each vector under the hard Job commit cap and record whether the program enforced its OWN limit before the cap tripped (own_bound). Result: own_bound=False for all four.",
+      "probe_2": "role=verifier method=process-table: sample the child's COMMIT charge (PROCESS_MEMORY_COUNTERS_EX.PrivateUsage, NOT working set) + handle/process counts from OUTSIDE the process. Distinct method from probe_1 => mechanically independent."
+    },
+    "measured_series": {
+      "huge_array_peak_commit_MiB": {
+        "n100": 14.0,
+        "n1e6": 68.7,
+        "n1e7": 503.1
+      },
+      "bomb_peak_commit_MiB": {
+        "benign": 16.0,
+        "bomb256MiB": 318.3
+      },
+      "bomb_commit_vs_working_set_MiB": {
+        "peak_commit": 318.3,
+        "peak_working_set": 279.2,
+        "commit_minus_ws": 39.1
+      },
+      "parser_depth_outcomes": {
+        "5000": "completed",
+        "20000": "RecursionError",
+        "100000": "RecursionError",
+        "500000": "RecursionError"
+      },
+      "walker_depth_outcomes": {
+        "500": "RecursionError",
+        "900": "RecursionError",
+        "1500": "RecursionError"
+      },
+      "fanout_spawned_before_failure": {
+        "target3": 3,
+        "target24": 5
+      }
+    },
+    "substrate": {
+      "os": "Windows 11",
+      "python": "3.14.6",
+      "sys_platform": "win32",
+      "cap_mechanism": "Windows Job Object JOB_OBJECT_LIMIT_JOB_MEMORY (commit cap, host-protecting) + ACTIVE_PROCESS; self-assigned by each child at startup",
+      "probe2_metric": "PROCESS_MEMORY_COUNTERS_EX.PrivateUsage (commit charge) sampled out-of-process, NOT working set",
+      "job_commit_cap_bytes": 536870912,
+      "recursion_limit_measured": 1000,
+      "raw_evidence": "%TEMP%/adv0034/results.json + deepsweep.json + wsvscommit.json (verbatim); harness winmem.py/child.py/run.py/deepsweep.py/wsvscommit.py"
+    }
+  }
+}

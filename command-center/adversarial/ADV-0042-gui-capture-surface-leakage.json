@@ -1,0 +1,1057 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0042",
+  "state": "BLOCKED",
+  "sentinel": "FAILED:ADV-0042 investigation COMPLETE and independently verified twice (cross-vendor openai refuter PASS + a second-instance re-derivation that reproduced the leak live), but the receipt predicate is unsatisfiable by this unit: condition 11 needs a write to the shared ARTIFACT-MANIFEST.json, condition 10 is contradicted by the unit's own P1 finding, and condition 3 requires a file to contain its own hash. Orchestrator owns all three.",
+  "spec_anchor": "_USER-PROMPTS.md:11050, 11023",
+  "min_bytes_threshold": 4096,
+  "profile": "privacy-dataflow",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "privacy-analyst",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json",
+      "bytes": 107150,
+      "sha256": "8f9a7a1ef6708073281bcf030acafd67f6423a051c602ef35d57c6d90aaeda30",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The Windows capture path resolves -ActiveWindow/-WindowHandle to a screen RECTANGLE and then reads that rectangle from the desktop compositor, so under occlusion it stores the occluding window's pixels instead of the named window's: at 100% occlusion the real repo script produced an image that was 0.0 target and 1.0 foreign-window content.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "skills/screenshot/scripts/take_screenshot.ps1:136-143,156",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%/adv0042/probe1_occlusion.ps1  (dynamic: GDI+ pixel histogram over live captures of a synthetic target under 3 occlusion states)",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%\\adv0042\\probe1_occlusion.ps1\ntarget_color=#FF00FF  occluder_color=#00FFFF  tolerance=24  total_px=256000 per capture\n\nstate                        method                          target_frac occluder_frac other_frac assertion_pass target_focused\nS0_control_no_occlusion      A-screen-scoped-CopyFromScreen   1.0         0.0           0.0        True           True\nS0_control_no_occlusion      B-window-scoped-PrintWindow      1.0         0.0           0.0        True           True\nS1_partial_occlusion_50pct   A-screen-scoped-CopyFromScreen   0.5         0.5           0.0        False          False\nS1_partial_occlusion_50pct   B-window-scoped-PrintWindow      1.0         0.0           0.0        True           False\nS2_full_occlusion_100pct     A-screen-scoped-CopyFromScreen   0.0         1.0           0.0        False          False\nS2_full_occlusion_100pct     B-window-scoped-PrintWindow      1.0         0.0           0.0        True           False\n\nrepo_real_codepath:\n  script     = C:\\Users\\Prekzursil\\source\\ast-integrate\\skills\\screenshot\\scripts\\take_screenshot.ps1\n  invocation = -WindowHandle <synthetic target hwnd> -Path <temp>   (state S2, target fully occluded)\n  exists     = True   error = \"\"\n  histogram  = {\"total\":256000,\"target_px\":0,\"occluder_px\":256000,\"other_px\":0,\n                \"target_frac\":0.0,\"occluder_frac\":1.0}\n  default_destination_path = \"ERROR: Cannot overwrite variable HOME because it is read-only or constant.\"\n",
+          "fingerprint": "8f224d2a4b4588898e6c66c8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read skills/screenshot/scripts/take_screenshot.ps1:135-157 + python %TEMP%/adv0042/probe3_callsites.py (static call-site sweep over 7120 files; PrintWindow count = 0, matcher proven live n=5)",
+          "raw_output": "skills/screenshot/scripts/take_screenshot.ps1  (verbatim, lines 135-157)\n\n135  } elseif ($ActiveWindow -or $WindowHandle) {\n136    $handle = if ($WindowHandle) { [IntPtr]$WindowHandle } else { [NativeMethods]::GetForegroundWindow() }\n137    $rect = New-Object NativeMethods+RECT\n138    if (-not [NativeMethods]::GetWindowRect($handle, [ref]$rect)) {\n139      throw \"Failed to get window bounds\"\n140    }\n141    $width = $rect.Right - $rect.Left\n142    $height = $rect.Bottom - $rect.Top\n143    $bounds = New-Object System.Drawing.Rectangle($rect.Left, $rect.Top, $width, $height)\n144  } else {\n145    $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen\n146    $bounds = New-Object System.Drawing.Rectangle($vs.Left, $vs.Top, $vs.Width, $vs.Height)\n147  }\n...\n152  try {\n153    $source = New-Object System.Drawing.Point($bounds.Left, $bounds.Top)\n154    $target = [System.Drawing.Point]::Empty\n155    $size = New-Object System.Drawing.Size($bounds.Width, $bounds.Height)\n156    $graphics.CopyFromScreen($source, $target, $size)\n157    $bitmap.Save($outputPath, $imageFormat)\n\nThe window handle is used ONLY to derive a RECTANGLE (GetWindowRect, line 138). The pixels\nthen come from CopyFromScreen (line 156) -- the desktop compositor's front buffer for that\nscreen region. No window-scoped API (PrintWindow / BitBlt from the window DC / the\nWGC/DWM thumbnail path) is used anywhere.\n\n$ python %TEMP%\\adv0042\\probe3_callsites.py\nfiles_scanned = 7120   (repo tree, node_modules/.git/corpus excluded)\n\ndetector_control:\n  fires_on_known_bad_fixture   = True   (\"graphics.CopyFromScreen(src, dst, size);\")\n  silent_on_known_good_fixture = True   (\"ok = PrintWindow(hwnd, hdc, 2);\")\n  silent_on_unrelated_fixture  = True   (\"def add(a, b): return a + b\")\n\npattern id            scope_class                            count\nrenderer-scoped-pw    RENDERER-SCOPED (occlusion-immune)     55\nscreen-scoped-x11     SCREEN-SCOPED (occlusion-vulnerable)   36\na11y-tree             RENDERER-SCOPED                        14\nscreen-scoped-macos   SCREEN-SCOPED (occlusion-vulnerable)    6\nclipboard-read        GLOBAL-SHARED-SURFACE                   5\nwindow-rect-probe     GEOMETRY-ONLY                           4\nforeground-probe      GEOMETRY-ONLY                           4\nwindow-scoped-x11     WINDOW-SCOPED (occlusion-immune)        4\nscreen-scoped-gdi     SCREEN-SCOPED (occlusion-vulnerable)    2   <- skills/screenshot/scripts/take_screenshot.ps1:156\nwindow-scoped-macos   WINDOW-SCOPED (occlusion-immune)        2\nwindow-scoped-win32   WINDOW-SCOPED (occlusion-immune)        0   <- ZERO. No PrintWindow anywhere.\n\nABSENCE PROOF for window-scoped-win32 (rule: verify the detector before trusting a zero):\n$ python -c \"...re.search(r'\\bPrintWindow\\b', probe1_occlusion.ps1)\"\n  PrintWindow matcher fires on known-present file: True | n= 5\n$ python -c \"...re.search(r'Clipboard\\]::GetImage|Get-Clipboard', use-image-clipboard/SKILL.md)\"\n  clipboard matcher fires on known-present file: True | n= 2\n",
+          "fingerprint": "56da3a2b1cfc01464b089864",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The occlusion measurement is not an artifact of the .NET imaging stack: a pure-Python PNG decoder re-reading the same files on disk reproduces every fraction exactly (repo_real_codepath_S2.png = 0.0 target / 1.0 occluder; S0 control = 1.0 target).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042/verify_independent.json#images",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "System.Drawing Bitmap.LockBits histogram inside probe1_occlusion.ps1 (.NET GDI+ decode of the in-memory bitmap)",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%\\adv0042\\probe1_occlusion.ps1\ntarget_color=#FF00FF  occluder_color=#00FFFF  tolerance=24  total_px=256000 per capture\n\nstate                        method                          target_frac occluder_frac other_frac assertion_pass target_focused\nS0_control_no_occlusion      A-screen-scoped-CopyFromScreen   1.0         0.0           0.0        True           True\nS0_control_no_occlusion      B-window-scoped-PrintWindow      1.0         0.0           0.0        True           True\nS1_partial_occlusion_50pct   A-screen-scoped-CopyFromScreen   0.5         0.5           0.0        False          False\nS1_partial_occlusion_50pct   B-window-scoped-PrintWindow      1.0         0.0           0.0        True           False\nS2_full_occlusion_100pct     A-screen-scoped-CopyFromScreen   0.0         1.0           0.0        False          False\nS2_full_occlusion_100pct     B-window-scoped-PrintWindow      1.0         0.0           0.0        True           False\n\nrepo_real_codepath:\n  script     = C:\\Users\\Prekzursil\\source\\ast-integrate\\skills\\screenshot\\scripts\\take_screenshot.ps1\n  invocation = -WindowHandle <synthetic target hwnd> -Path <temp>   (state S2, target fully occluded)\n  exists     = True   error = \"\"\n  histogram  = {\"total\":256000,\"target_px\":0,\"occluder_px\":256000,\"other_px\":0,\n                \"target_frac\":0.0,\"occluder_frac\":1.0}\n  default_destination_path = \"ERROR: Cannot overwrite variable HOME because it is read-only or constant.\"\n",
+          "fingerprint": "5e86b2de0672948cb635d5ec",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python %TEMP%/adv0042/verify_independent.py  (zlib/struct PNG decode of the saved files; no GDI+ involved)",
+          "raw_output": "$ python %TEMP%\\adv0042\\verify_independent.py\ndecoder = \"pure-python zlib/struct PNG (independent of .NET GDI+)\"\nrepo_real_codepath_S2.png          640x400 total=256000 target_px=0      occluder_px=256000 target_frac=0.0\ncap_S0_control_no_occlusion_A.png  640x400 total=256000 target_px=256000 occluder_px=0      target_frac=1.0\ncap_S1_partial_occlusion_50pct_A.png 640x400 total=256000 target_px=128000 occluder_px=128000 target_frac=0.5\ncap_S2_full_occlusion_100pct_A.png 640x400 total=256000 target_px=0      occluder_px=256000 target_frac=0.0\ncap_S2_full_occlusion_100pct_B.png 640x400 total=256000 target_px=256000 occluder_px=0      target_frac=1.0\n",
+          "fingerprint": "9ea6d3e43e7504f87a95c8ff",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "With no occlusion BOTH capture methods score target_frac = 1.0 and the assertion passes, so the colour-histogram identity check is not an always-failing detector; it fires only on the occluded states.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042/probe1_result.json#results[0..1] (S0_control_no_occlusion)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "probe1_occlusion.ps1 state S0_control_no_occlusion, methods A and B",
+          "raw_output": "S0_control_no_occlusion A-screen-scoped-CopyFromScreen target_frac=1.0 assertion_pass=True\nS0_control_no_occlusion B-window-scoped-PrintWindow   target_frac=1.0 assertion_pass=True\nS2_full_occlusion_100pct A-screen-scoped-CopyFromScreen target_frac=0.0 assertion_pass=False\nS2_full_occlusion_100pct B-window-scoped-PrintWindow   target_frac=1.0 assertion_pass=True",
+          "fingerprint": "ece6db8a267712840eb03dda",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "pure-Python PNG re-decode of cap_S0_control_no_occlusion_A.png and cap_S2_full_occlusion_100pct_B.png",
+          "raw_output": "cap_S0_control_no_occlusion_A.png   target_px=256000/256000 target_frac=1.0\ncap_S2_full_occlusion_100pct_B.png target_px=256000/256000 target_frac=1.0\ncap_S2_full_occlusion_100pct_A.png target_px=0/256000      target_frac=0.0",
+          "fingerprint": "6a0b444d437d9d07d2902b70",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Focus is irrelevant to the defect and does not rescue it: in S1 and S2 the foreground window was the occluder (foreground_hwnd 178523628 != target_hwnd 163450970), yet the window-scoped method still returned 1.0 target while the screen-scoped method returned 0.5 and 0.0 respectively.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042/probe1_result.json#results[2..5].target_is_focused=false",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "GetForegroundWindow() sampled immediately before each capture inside probe1_occlusion.ps1",
+          "raw_output": "S1 target_hwnd=163450970 foreground_hwnd=178523628 target_is_focused=False\nS2 target_hwnd=163450970 foreground_hwnd=178523628 target_is_focused=False\nS1 B-window-scoped target_frac=1.0 | S1 A-screen-scoped target_frac=0.5\nS2 B-window-scoped target_frac=1.0 | S2 A-screen-scoped target_frac=0.0",
+          "fingerprint": "e674fc463408e1cd487450b3",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "pure-Python decode of cap_S1_partial_occlusion_50pct_A.png (unfocused target, screen-scoped)",
+          "raw_output": "cap_S1_partial_occlusion_50pct_A.png target_px=128000 occluder_px=128000 target_frac=0.5",
+          "fingerprint": "1a04560f0ce84d20600d6052",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "There is no retention limit on captured images anywhere in the capture destinations: the skill's documented default destination holds 845 PNGs / 94,183,329 bytes spanning 837.1 days (2024-04-08 to 2026-07-24), and no configured policy reaps it. Re-measured by a second instance with a mechanically different enumerator: the two personal directories reproduce EXACTLY (845 files/94,183,329 B and 23/19,768,500 B), while .playwright-mcp has grown 283->290 files in ~4h, which corroborates unbounded retention rather than contradicting it.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042/probe2_result.json#aggregate_capture_dirs",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "powershell -File %TEMP%/adv0042/probe2_retention.ps1  (Get-ChildItem metadata enumeration + StorageSense registry read; image bytes never opened)",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%\\adv0042\\probe2_retention.ps1\nprobe_mechanism = \"filesystem metadata enumeration + Get-Acl + registry read; NO image bytes opened\"\n\nlabel                                                     file_count total_bytes  oldest_mtime_utc              newest_mtime_utc\nuser Pictures/Screenshots (skill DEFAULT destination)     845        94183329     2024-04-08T13:56:12.1829420Z  2026-07-24T15:40:09.7099040Z\nuser Pictures (skill fallback destination)                 23        19768500     2024-04-16T15:32:29.7669305Z  2026-05-29T23:21:48.0382584Z\nplaywright-mcp output root (~/.playwright-mcp, recursive) 283         3325141     2026-03-31T21:41:00.0565267Z  2026-08-11T20:33:51.9941054Z\nwindows-temp all *.png                                     39          858135     2026-08-09T16:22:38.6672392Z  2026-08-11T22:38:05.2851431Z\nwindows-temp codex-shot-*.png                               0               0     -                             -\n\ndir_acl  C:\\Users\\Prekzursil\\Pictures\\Screenshots   owner=BUILTIN\\Administrators\n  DESKTOP-A60S9GP\\CodexSandboxUsers : ReadAndExecute, Synchronize                   : Allow\n  DESKTOP-A60S9GP\\CodexSandboxUsers : DeleteSubdirectoriesAndFiles, Modify, Synchronize : Allow\n  S-1-5-21-1838525764-1127316684-2374434444-3170517000 : DeleteSubdirectoriesAndFiles, Modify, Synchronize : Allow\n  NT AUTHORITY\\SYSTEM : FullControl : Allow\n  BUILTIN\\Administrators : FullControl : Allow\n  DESKTOP-A60S9GP\\Prekzursil : FullControl : Allow\n\ndir_acl  %TEMP%\\adv0042  (CONTROL - a directory that should NOT carry the sandbox grant)\n  NT AUTHORITY\\SYSTEM : FullControl : Allow\n  BUILTIN\\Administrators : FullControl : Allow\n  DESKTOP-A60S9GP\\Prekzursil : FullControl : Allow\n\nstorage_sense_policy = {\"01\":1,\"04\":1,\"08\":1,\"32\":0,\"256\":30,\"2048\":0}\n  (01 StorageSense on; 08 delete unused TEMP files on; 256 Downloads age 30d; 2048 recycle-bin cleanup off.\n   No key covers ~/Pictures/Screenshots -- corroborated directly by the 837-day accumulation above.)\n",
+          "fingerprint": "f1ae024b1350e0a50f6df6aa",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python %TEMP%/adv0042_v2/retention_verify.py  (os.scandir/os.stat metadata walk through the CRT -- no shell, no Get-ChildItem; ships its own populated/empty/decoy counter control)",
+          "raw_output": "$ python %TEMP%/adv0042_v2/retention_verify.py\nDETECTOR CONTROL: fires_on_populated=True  silent_on_empty=True  decoy_excluded=True\n   expected n=3 bytes=3566 | measured {'file_count': 3, 'total_bytes': 3566}\n\nuser Pictures/Screenshots (screenshot skill DEFAULT destin n=845    bytes=94183329     oldest=2024-04-08 newest=2026-07-24\n      icacls CodexSandboxUsers lines: ['C:\\\\Users\\\\Prekzursil\\\\Pictures\\\\Screenshots DESKTOP-A60S9GP\\\\CodexSandboxUsers:(I)(OI)(CI)(RX)', 'DESKTOP-A60S9GP\\\\CodexSandboxUsers:(I)(OI)(CI)(M,DC)']\n      pywin32: available=True owner=BUILTIN\\Administrators\nuser Pictures (screenshot skill fallback destination)      n=23     bytes=19768500     oldest=2024-04-16 newest=2026-05-29\n      icacls CodexSandboxUsers lines: ['C:\\\\Users\\\\Prekzursil\\\\Pictures DESKTOP-A60S9GP\\\\CodexSandboxUsers:(OI)(CI)(RX)', 'DESKTOP-A60S9GP\\\\CodexSandboxUsers:(I)(OI)(CI)(M,DC)']\n      pywin32: available=True owner=DESKTOP-A60S9GP\\Prekzursil\nplaywright-mcp output root                                 n=290    bytes=3329438      oldest=2026-03-31 newest=2026-08-12\n\nMETADATA ONLY -- os.scandir/os.stat; no image byte was opened. The two personal\ndirectories reproduce the first instance's PowerShell numbers EXACTLY\n(845/94,183,329 and 23/19,768,500). .playwright-mcp has GROWN 283 -> 290 files\nand 3,325,141 -> 3,329,438 bytes in the ~4h between the two instances.",
+          "fingerprint": "6200ad6d8f3cd9ef7d5d97a7",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The capture destination is readable and writable by principals other than the owner: C:/Users/Prekzursil/Pictures carries an EXPLICIT (IsInherited=False) ACE granting DESKTOP-A60S9GP\\CodexSandboxUsers ReadAndExecute with (OI)(CI) propagation, so the two sandbox service accounts CodexSandboxOffline and CodexSandboxOnline can read all 845 archived screenshots.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042/probe2_result.json#aggregate_capture_dirs[1].dir_acl",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "Get-Acl (.NET System.Security.AccessControl) over the capture destinations inside probe2_retention.ps1",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%\\adv0042\\probe2_retention.ps1\nprobe_mechanism = \"filesystem metadata enumeration + Get-Acl + registry read; NO image bytes opened\"\n\nlabel                                                     file_count total_bytes  oldest_mtime_utc              newest_mtime_utc\nuser Pictures/Screenshots (skill DEFAULT destination)     845        94183329     2024-04-08T13:56:12.1829420Z  2026-07-24T15:40:09.7099040Z\nuser Pictures (skill fallback destination)                 23        19768500     2024-04-16T15:32:29.7669305Z  2026-05-29T23:21:48.0382584Z\nplaywright-mcp output root (~/.playwright-mcp, recursive) 283         3325141     2026-03-31T21:41:00.0565267Z  2026-08-11T20:33:51.9941054Z\nwindows-temp all *.png                                     39          858135     2026-08-09T16:22:38.6672392Z  2026-08-11T22:38:05.2851431Z\nwindows-temp codex-shot-*.png                               0               0     -                             -\n\ndir_acl  C:\\Users\\Prekzursil\\Pictures\\Screenshots   owner=BUILTIN\\Administrators\n  DESKTOP-A60S9GP\\CodexSandboxUsers : ReadAndExecute, Synchronize                   : Allow\n  DESKTOP-A60S9GP\\CodexSandboxUsers : DeleteSubdirectoriesAndFiles, Modify, Synchronize : Allow\n  S-1-5-21-1838525764-1127316684-2374434444-3170517000 : DeleteSubdirectoriesAndFiles, Modify, Synchronize : Allow\n  NT AUTHORITY\\SYSTEM : FullControl : Allow\n  BUILTIN\\Administrators : FullControl : Allow\n  DESKTOP-A60S9GP\\Prekzursil : FullControl : Allow\n\ndir_acl  %TEMP%\\adv0042  (CONTROL - a directory that should NOT carry the sandbox grant)\n  NT AUTHORITY\\SYSTEM : FullControl : Allow\n  BUILTIN\\Administrators : FullControl : Allow\n  DESKTOP-A60S9GP\\Prekzursil : FullControl : Allow\n\nstorage_sense_policy = {\"01\":1,\"04\":1,\"08\":1,\"32\":0,\"256\":30,\"2048\":0}\n  (01 StorageSense on; 08 delete unused TEMP files on; 256 Downloads age 30d; 2048 recycle-bin cleanup off.\n   No key covers ~/Pictures/Screenshots -- corroborated directly by the 837-day accumulation above.)\n",
+          "fingerprint": "14382612ad8d8b9ff178d595",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "other",
+          "command": "pywin32 win32security.GetFileSecurity(path, DACL|OWNER) -- a direct Win32 security-descriptor API read from Python, not a shell utility; cross-checked against icacls.exe in the same run",
+          "raw_output": "pywin32 available=True\n  C:/Users/Prekzursil/Pictures/Screenshots  owner=BUILTIN\\Administrators\n  C:/Users/Prekzursil/Pictures             owner=DESKTOP-A60S9GP\\Prekzursil\n  C:/Users/Prekzursil/.playwright-mcp      owner=BUILTIN\\Administrators\nicacls agreement on the same paths:\n  Screenshots: CodexSandboxUsers:(I)(OI)(CI)(RX) and (I)(OI)(CI)(M,DC)\n  Pictures   : CodexSandboxUsers:(OI)(CI)(RX)    and (I)(OI)(CI)(M,DC)\nTwo independent ACL readers (Win32 API vs icacls.exe) agree that a non-owner\nlocal group holds read AND modify on the capture destinations.",
+          "fingerprint": "1aa4ec5f7dc71a2aec6f68bd",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Two ACEs on the capture destination are ORPHANED inherited grants - CodexSandboxUsers Modify/DeleteSubdirectoriesAndFiles and an UNRESOLVABLE deleted principal S-1-5-21-1838525764-1127316684-2374434444-3170517000 with the same rights are both flagged inherited=True, yet the parent C:/Users/Prekzursil carries neither when read with the same API.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042/probe2_result.json + icacls %USERPROFILE%",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "(Get-Acl \"%USERPROFILE%\\Pictures\").Access | select IdentityReference,FileSystemRights,IsInherited",
+          "raw_output": "$ icacls \"%USERPROFILE%\\Pictures\\Screenshots\"      (Win32 ACL API -- NOT .NET Get-Acl)\nC:\\Users\\Prekzursil\\Pictures\\Screenshots DESKTOP-A60S9GP\\CodexSandboxUsers:(I)(OI)(CI)(RX)\n                                         DESKTOP-A60S9GP\\CodexSandboxUsers:(I)(OI)(CI)(M,DC)\n                                         S-1-5-21-1838525764-1127316684-2374434444-3170517000:(I)(OI)(CI)(M,DC)\n                                         NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F)\n                                         BUILTIN\\Administrators:(I)(OI)(CI)(F)\n                                         DESKTOP-A60S9GP\\Prekzursil:(I)(OI)(CI)(F)\nSuccessfully processed 1 files; Failed processing 0 files\n\n$ icacls \"%TEMP%\\adv0042\"                                   (CONTROL - detector must stay silent)\nC:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0042 NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F)\n                                             BUILTIN\\Administrators:(I)(OI)(CI)(F)\n                                             DESKTOP-A60S9GP\\Prekzursil:(I)(OI)(CI)(F)\nSuccessfully processed 1 files; Failed processing 0 files\n\n$ Get-LocalGroupMember -Group 'CodexSandboxUsers'\nMEMBER: DESKTOP-A60S9GP\\CodexSandboxOffline [User]\nMEMBER: DESKTOP-A60S9GP\\CodexSandboxOnline  [User]\n\n$ (New-Object SecurityIdentifier('S-1-5-21-1838525764-...-3170517000')).Translate([NTAccount])\nUNRESOLVABLE (orphaned/deleted principal): \"Some or all identity references could not be translated.\"\n\n$ icacls \"%USERPROFILE%\"                       (the claimed inheritance PARENT)\nC:\\Users\\Prekzursil NT AUTHORITY\\SYSTEM:(OI)(CI)(F)\n                    BUILTIN\\Administrators:(OI)(CI)(F)\n                    DESKTOP-A60S9GP\\Prekzursil:(OI)(CI)(F)\n                    S-1-15-3-65536-599108337-...-230526575:(S,X)\n-> the parent carries NEITHER CodexSandboxUsers ACE, so the (I)-flagged ACEs on Pictures are\n   ORPHANED inherited ACEs: still fully effective, but no longer removable by editing the parent.\n\n$ (Get-Acl \"%USERPROFILE%\\Pictures\").Access                 (same .NET API on parent and child)\nDESKTOP-A60S9GP\\CodexSandboxUsers | ReadAndExecute, Synchronize | inherited=False   <- EXPLICIT grant\nDESKTOP-A60S9GP\\CodexSandboxUsers | DeleteSubdirectoriesAndFiles, Modify | inherited=True\nS-1-5-21-...-3170517000            | DeleteSubdirectoriesAndFiles, Modify | inherited=True\n",
+          "fingerprint": "cafdcb398d7ad2a4e772a423",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "other",
+          "command": "icacls on the capture destination AND on a control directory with a plain inherited ACL, parsed for unresolvable S-1-5-21-* ACEs (both-states)",
+          "raw_output": "$ icacls C:\\Users\\Prekzursil\\Pictures\nC:\\Users\\Prekzursil\\Pictures DESKTOP-A60S9GP\\CodexSandboxUsers:(OI)(CI)(RX)\n                             DESKTOP-A60S9GP\\CodexSandboxUsers:(I)(OI)(CI)(M,DC)\n                             S-1-5-21-1838525764-1127316684-2374434444-3170517000:(I)(OI)(CI)(M,DC)\n                             NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F)\n                             BUILTIN\\Administrators:(I)(OI)(CI)(F)\n                             DESKTOP-A60S9GP\\Prekzursil:(I)(OI)(CI)(F)\nSuccessfully processed 1 files; Failed processing 0 files\n\nCONTROL -- same binary, same parser, on a directory with a plain inherited ACL:\n$ icacls %TEMP%\\adv0042_v2\n  NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F) / BUILTIN\\Administrators:(I)(OI)(CI)(F) /\n  DESKTOP-A60S9GP\\Prekzursil:(I)(OI)(CI)(F)\n  unresolvable_sid_aces = []   <- detector silent on the good state\nPictures: unresolvable_sid_aces = ['S-1-5-21-...-3170517000:(I)(OI)(CI)(M,DC)']  <- fires on the bad state",
+          "fingerprint": "455fa6b3171cf9dd1619e8aa",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The documented DEFAULT destination path is dead code: take_screenshot.ps1:18 assigns to $home, which is a ReadOnly,AllScope automatic variable, so under the script's own Set-StrictMode -Version Latest and $ErrorActionPreference='Stop' the no-flag invocation throws and exits -1; only -Path and -Mode temp actually work.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "skills/screenshot/scripts/take_screenshot.ps1:10-11,18",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "powershell -NoProfile -ExecutionPolicy Bypass -File skills/screenshot/scripts/take_screenshot.ps1   (no arguments)",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File skills\\screenshot\\scripts\\take_screenshot.ps1\nCannot overwrite variable HOME because it is read-only or constant.\nAt C:\\Users\\Prekzursil\\source\\ast-integrate\\skills\\screenshot\\scripts\\take_screenshot.ps1:18 char:3\n+   $home = [Environment]::GetFolderPath(\"UserProfile\")\n+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nEXIT=-1\n\n$ ... -File take_screenshot.ps1 -Mode temp\nC:\\Users\\Prekzursil\\AppData\\Local\\Temp\\codex-shot-2026-08-12_01-35-54.png\nEXIT=0\n",
+          "fingerprint": "f4efcd9e45a0999f8c4dc3ca",
+          "exit_code": -1
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python %TEMP%/adv0042_v2/final_checks.py -- reads take_screenshot.ps1 line 18 as bytes and regex-tests the assignment target, WITHOUT executing the script (so it cannot be an artefact of shell state), with line 19 as the negative control",
+          "raw_output": "$ python %TEMP%/adv0042_v2/final_checks.py   (file-read, script NOT executed)\nline_18_verbatim :   $home = [Environment]::GetFolderPath(\"UserProfile\")\nline_19_verbatim :   $pictures = Join-Path $home \"Pictures\"\nline_18_assigns_dollar_home            = True\ncontrol_line_19_assigns_dollar_home    = False   <- matcher discriminates\nskill_md_documents_pictures_screenshots_default = False\n\nDETECTOR WEAKNESS, disclosed: that last False is MY probe being too literal --\nit required the substrings \"Pictures\" AND \"Screenshots\" in SKILL.md. A grep\nshows the default IS documented, in different words:\n  skills/screenshot/SKILL.md:12  \"save to the OS default screenshot location\"\n  skills/screenshot/SKILL.md:61  \"Default location (user asked for 'a screenshot')\"\nSo the documented default exists and the code path implementing it is dead.",
+          "fingerprint": "12d426e1afcf90008826b6a9",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "With no scoping flag the tool captures the ENTIRE VirtualScreen and persists it, storing content far outside any intended target surface - demonstrated unintentionally when a -Mode temp probe wrote a 256,900-byte full-desktop image of the owner's live session, which this unit deleted unread.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "skills/screenshot/scripts/take_screenshot.ps1:144-147",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "read skills/screenshot/scripts/take_screenshot.ps1:144-147 -- the else branch sets bounds to SystemInformation.VirtualScreen with no scoping requirement",
+          "raw_output": "skills/screenshot/scripts/take_screenshot.ps1  (verbatim, lines 135-157)\n\n135  } elseif ($ActiveWindow -or $WindowHandle) {\n136    $handle = if ($WindowHandle) { [IntPtr]$WindowHandle } else { [NativeMethods]::GetForegroundWindow() }\n137    $rect = New-Object NativeMethods+RECT\n138    if (-not [NativeMethods]::GetWindowRect($handle, [ref]$rect)) {\n139      throw \"Failed to get window bounds\"\n140    }\n141    $width = $rect.Right - $rect.Left\n142    $height = $rect.Bottom - $rect.Top\n143    $bounds = New-Object System.Drawing.Rectangle($rect.Left, $rect.Top, $width, $height)\n144  } else {\n145    $vs = [System.Windows.Forms.SystemInformation]::VirtualScreen\n146    $bounds = New-Object System.Drawing.Rectangle($vs.Left, $vs.Top, $vs.Width, $vs.Height)\n147  }\n...\n152  try {\n153    $source = New-Object System.Drawing.Point($bounds.Left, $bounds.Top)\n154    $target = [System.Drawing.Point]::Empty\n155    $size = New-Object System.Drawing.Size($bounds.Width, $bounds.Height)\n156    $graphics.CopyFromScreen($source, $target, $size)\n157    $bitmap.Save($outputPath, $imageFormat)\n\nThe window handle is used ONLY to derive a RECTANGLE (GetWindowRect, line 138). The pixels\nthen come from CopyFromScreen (line 156) -- the desktop compositor's front buffer for that\nscreen region. No window-scoped API (PrintWindow / BitBlt from the window DC / the\nWGC/DWM thumbnail path) is used anywhere.\n",
+          "fingerprint": "a1c6a1db34ba5b5d89434b6c",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "Get-ChildItem \"$env:TEMP\\codex-shot-*.png\" immediately after the -Mode temp invocation, then Remove-Item and re-enumerate",
+          "raw_output": "SELF-INFLICTED CAPTURE INCIDENT (disclosed in full).\nWhile measuring the exit status of the default-destination path I invoked the repo script as\n`-Mode temp` with NO scoping flag. Per take_screenshot.ps1:144-147 that branch captures the\nENTIRE VirtualScreen, so it wrote a full-desktop image of the owner's live session:\n\n$ Get-ChildItem \"$env:TEMP\\codex-shot-*.png\"\nFOUND: C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\codex-shot-2026-08-12_01-35-54.png bytes=256900\n$ Remove-Item ... ; Get-ChildItem \"$env:TEMP\\codex-shot-*.png\"\nREMAINING_AFTER_DELETE=0\nNOTE: file was never opened or read; deleted unread ~3 minutes after creation.\n\nThis partially violates the unit's test constraint \"captures are taken against a synthetic\ntarget window; no personal application is captured\": the six occlusion captures and the\nrepo_real_codepath capture were all correctly window-scoped to the synthetic target, but this\none probe was not. It is reported rather than suppressed because it is also the most direct\npossible demonstration of the finding: an operator running the documented command with no\nscoping flag silently produced a persistent full-desktop image, and nothing in the tool asked,\nwarned, scoped, or reaped it.\n",
+          "fingerprint": "5dac1d060bdc60993731ef5e",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Browser-mediated capture surfaces are structurally immune to this defect: 55 page.screenshot() sites and 14 accessibility-snapshot sites read the renderer's own tree rather than the desktop compositor, so an occluding native window cannot contaminate them.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "skills/ui-audit/capture.mjs:179,183",
+      "unverified": true,
+      "settling_experiment": "Run skills/ui-audit/capture.mjs against a fixed page while a native TopMost window covers the browser viewport, and assert the resulting PNG histogram is byte-identical to the unoccluded run. UNVERIFIED: this claim rests on reading the call sites plus documented Playwright semantics, NOT on an executed occlusion test.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python %TEMP%/adv0042/probe3_callsites.py -- renderer-scoped-pw count=55, a11y-tree count=14, screen-scoped-gdi count=2",
+          "raw_output": "$ python %TEMP%\\adv0042\\probe3_callsites.py\nfiles_scanned = 7120   (repo tree, node_modules/.git/corpus excluded)\n\ndetector_control:\n  fires_on_known_bad_fixture   = True   (\"graphics.CopyFromScreen(src, dst, size);\")\n  silent_on_known_good_fixture = True   (\"ok = PrintWindow(hwnd, hdc, 2);\")\n  silent_on_unrelated_fixture  = True   (\"def add(a, b): return a + b\")\n\npattern id            scope_class                            count\nrenderer-scoped-pw    RENDERER-SCOPED (occlusion-immune)     55\nscreen-scoped-x11     SCREEN-SCOPED (occlusion-vulnerable)   36\na11y-tree             RENDERER-SCOPED                        14\nscreen-scoped-macos   SCREEN-SCOPED (occlusion-vulnerable)    6\nclipboard-read        GLOBAL-SHARED-SURFACE                   5\nwindow-rect-probe     GEOMETRY-ONLY                           4\nforeground-probe      GEOMETRY-ONLY                           4\nwindow-scoped-x11     WINDOW-SCOPED (occlusion-immune)        4\nscreen-scoped-gdi     SCREEN-SCOPED (occlusion-vulnerable)    2   <- skills/screenshot/scripts/take_screenshot.ps1:156\nwindow-scoped-macos   WINDOW-SCOPED (occlusion-immune)        2\nwindow-scoped-win32   WINDOW-SCOPED (occlusion-immune)        0   <- ZERO. No PrintWindow anywhere.\n\nABSENCE PROOF for window-scoped-win32 (rule: verify the detector before trusting a zero):\n$ python -c \"...re.search(r'\\bPrintWindow\\b', probe1_occlusion.ps1)\"\n  PrintWindow matcher fires on known-present file: True | n= 5\n$ python -c \"...re.search(r'Clipboard\\]::GetImage|Get-Clipboard', use-image-clipboard/SKILL.md)\"\n  clipboard matcher fires on known-present file: True | n= 2\n",
+          "fingerprint": "dda1cd9b85ccf5e0bc013b5a",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "read skills/ui-audit/capture.mjs:175-190 -- page.screenshot({path, fullPage:true}) and page.accessibility.snapshot() are both page-object methods; no screen/desktop API appears in the file",
+          "raw_output": "175  let screenshotPath = null;\n176  if (outDir) {\n177    mkdirSync(outDir, { recursive: true });\n178    screenshotPath = join(outDir, `${screenName}.png`);\n179    try { await page.screenshot({ path: screenshotPath, fullPage: true }); } catch { screenshotPath = null; }\n180  }\n182  let a11ySnapshot = null;\n183  try { a11ySnapshot = await page.accessibility.snapshot(); } catch { /* optional */ }",
+          "fingerprint": "0ebfb9913f476580736a5550",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The clipboard capture surface reads a GLOBALLY SHARED buffer with no identity check: the only guard is ContainsImage(), so whatever the owner last copied - not what they intended to hand the agent - is written to %TEMP%/cli_screenshot.png.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "skills/use-image-clipboard/SKILL.md:39-52",
+      "unverified": true,
+      "settling_experiment": "Place a KNOWN synthetic image on the clipboard, run the documented one-liner, and assert the written PNG's histogram matches the synthetic image and that no scoping or consent check exists on the path. UNVERIFIED: this unit deliberately did NOT execute a clipboard read, because doing so would capture the owner's real clipboard and violate this unit's 'no personal application is captured' constraint.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python %TEMP%/adv0042/probe3_callsites.py -- clipboard-read pattern count=5, matcher proven live (n=2 on a known-present file)",
+          "raw_output": "$ python %TEMP%\\adv0042\\probe3_callsites.py\nfiles_scanned = 7120   (repo tree, node_modules/.git/corpus excluded)\n\ndetector_control:\n  fires_on_known_bad_fixture   = True   (\"graphics.CopyFromScreen(src, dst, size);\")\n  silent_on_known_good_fixture = True   (\"ok = PrintWindow(hwnd, hdc, 2);\")\n  silent_on_unrelated_fixture  = True   (\"def add(a, b): return a + b\")\n\npattern id            scope_class                            count\nrenderer-scoped-pw    RENDERER-SCOPED (occlusion-immune)     55\nscreen-scoped-x11     SCREEN-SCOPED (occlusion-vulnerable)   36\na11y-tree             RENDERER-SCOPED                        14\nscreen-scoped-macos   SCREEN-SCOPED (occlusion-vulnerable)    6\nclipboard-read        GLOBAL-SHARED-SURFACE                   5\nwindow-rect-probe     GEOMETRY-ONLY                           4\nforeground-probe      GEOMETRY-ONLY                           4\nwindow-scoped-x11     WINDOW-SCOPED (occlusion-immune)        4\nscreen-scoped-gdi     SCREEN-SCOPED (occlusion-vulnerable)    2   <- skills/screenshot/scripts/take_screenshot.ps1:156\nwindow-scoped-macos   WINDOW-SCOPED (occlusion-immune)        2\nwindow-scoped-win32   WINDOW-SCOPED (occlusion-immune)        0   <- ZERO. No PrintWindow anywhere.\n\nABSENCE PROOF for window-scoped-win32 (rule: verify the detector before trusting a zero):\n$ python -c \"...re.search(r'\\bPrintWindow\\b', probe1_occlusion.ps1)\"\n  PrintWindow matcher fires on known-present file: True | n= 5\n$ python -c \"...re.search(r'Clipboard\\]::GetImage|Get-Clipboard', use-image-clipboard/SKILL.md)\"\n  clipboard matcher fires on known-present file: True | n= 2\n",
+          "fingerprint": "e6eea3fa30a32fe6db9b43ad",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "read skills/use-image-clipboard/SKILL.md:39-52",
+          "raw_output": "39  if ([System.Windows.Forms.Clipboard]::ContainsImage()) {\n40      $img = [System.Windows.Forms.Clipboard]::GetImage()\n52  powershell -Command \"... if ([System.Windows.Forms.Clipboard]::ContainsImage()) { $img = [System.Windows.Forms.Clipboard]::GetImage(); $p = [System.IO.Path]::Combine($env:TEMP, 'cli_screenshot.png'); $img.Save($p, ...); Write-Output $p } ...\"\n71  | Running when no image is in clipboard | `ContainsImage()` guards against crashes - copy an image first |\n-> ContainsImage() is a presence guard, not an identity or provenance guard.",
+          "fingerprint": "cbfb004b7108b224e8c882a6",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "SECOND-INSTANCE LIVE RE-DERIVATION: a fresh occlusion experiment, with different marker colours (#7F00FF/#00FF7F), different geometry and a different harness, reproduces the leak against the real repo script -- under 100% occlusion take_screenshot.ps1 -WindowHandle returned 0.0000 of the requested window and 1.0000 of the occluding window, while the unoccluded control returned 1.0000 of the requested window.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042_v2/live_recapture2.json + decode_v2b_result.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%/adv0042_v2/live_recapture2.ps1  (drives synthetic target+occluder, invokes ONLY the real repo script, classifies nothing itself)",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%/adv0042_v2/live_recapture2.ps1\nstate                  interlock_pass exists hwnd_at_target_centre expected_hwnd\n-----                  -------------- ------ --------------------- -------------\nG_control_no_occlusion          False  False              15993610     174986146\nB_full_occlusion                 True   True             422515830     422515830\nG2_control_recovered             True   True             174986146     174986146\n\n$ python (Pillow/numpy classification of the frames that were written)\nfile                             status                        target_f    occl_f   other_f   ncol\nv2b_control_no_occlusion.png     NOT-WRITTEN (interlock abort)\nv2b_full_occlusion.png           written                         0.0000    1.0000    0.0000      1\nv2b_control_recovered.png        written                         1.0000    0.0000    0.0000      1\n\ntarget=#7F00FF  occluder=#00FF7F  (deliberately DIFFERENT markers and geometry\nfrom the first instance's #FF00FF/#00FFFF, so a stale file cannot be mistaken\nfor a fresh measurement).",
+          "fingerprint": "847cf27d7790a5ca03c03cad",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "Pillow/libpng decode + numpy exact-RGB reduction over the produced PNG bytes (classification deliberately performed OUTSIDE the capturing process so the capturer cannot bias its own histogram)",
+          "raw_output": "v2b_full_occlusion.png     target_frac=0.0000 occluder_frac=1.0000 distinct_colours=1\nv2b_control_recovered.png  target_frac=1.0000 occluder_frac=0.0000 distinct_colours=1\nv2b_control_no_occlusion.png  NOT WRITTEN (interlock abort)",
+          "fingerprint": "190302e25c0b82da4ee6a3c0",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The first instance's PowerShell GDI+ histogram is reproduced exactly by an independent decoder: re-decoding all seven stored capture PNGs with Pillow/libpng + numpy yields identical fractions to four decimal places, including the headline repo_real_codepath_S2.png at 0.0000 target / 1.0000 occluder.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042_v2/redecode_result.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "%TEMP%/adv0042/probe1_occlusion.ps1 -- first instance, System.Drawing GDI+ GetPixel histogram",
+          "raw_output": "repo_real_codepath.histogram: total=256000 target_px=0 occluder_px=256000 other_px=0\nS0 A/B target_frac=1.0 ; S1 A target_frac=0.5 ; S2 A target_frac=0.0",
+          "fingerprint": "6814679bcbcbd98ddc04012f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python %TEMP%/adv0042_v2/redecode.py -- Pillow/libpng decode, numpy reduction, plus a per-file sha256 so the bytes measured are provably the bytes the first instance wrote",
+          "raw_output": "$ python %TEMP%/adv0042_v2/redecode.py\nfile                                        target_f    occl_f   other_f   black   ncol\n---------------------------------------------------------------------------------------\ncap_S0_control_no_occlusion_A.png             1.0000    0.0000    0.0000       0      1\ncap_S0_control_no_occlusion_B.png             1.0000    0.0000    0.0000       0      1\ncap_S1_partial_occlusion_50pct_A.png          0.5000    0.5000    0.0000       0      2\ncap_S1_partial_occlusion_50pct_B.png          1.0000    0.0000    0.0000       0      1\ncap_S2_full_occlusion_100pct_A.png            0.0000    1.0000    0.0000       0      1\ncap_S2_full_occlusion_100pct_B.png            1.0000    0.0000    0.0000       0      1\nrepo_real_codepath_S2.png                     0.0000    1.0000    0.0000       0      1\ndecoder: Pillow 12.2.0 / numpy 2.4.4 (libpng)  -- every value identical to the\nfirst instance's PowerShell GDI+ histogram, to 4 decimal places.",
+          "fingerprint": "86f69a4f1e065e54a339b02b",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The leak recurred LIVE inside this unit's own second-instance harness: attempt 1 had no visibility interlock, the OS refused its SetForegroundWindow call, and the repo script -- asked for a specific window handle -- silently wrote two images containing real desktop pixels of unrelated applications (0.0000 target; 42,313 and 48,130 distinct colours) with exit code 0 and no warning. Both frames were destroyed within the same session and their colour data scrubbed.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0042_v2/live_recapture.ps1 (attempt 1) + decode_v2_result.json (scrubbed)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "powershell -File %TEMP%/adv0042_v2/live_recapture.ps1  (attempt 1, foreground-activation strategy -- FAILED)",
+          "raw_output": "$ powershell -NoProfile -ExecutionPolicy Bypass -File %TEMP%/adv0042_v2/live_recapture.ps1\nstate                  exists target_focused foreground_hwnd target_hwnd err\n-----                  ------ -------------- --------------- ----------- ---\nG_control_no_occlusion   True          False        15993610   248452550\nB_full_occlusion         True          False        15993610   248452550\nG2_control_recovered     True          False        15993610   248452550\n\n$ python (Pillow/numpy classification)\nfile                               dims  target_f    occl_f   other_f   ncol\nv2_control_no_occlusion.png     560x360    0.0000    0.0000    1.0000  42313\nv2_full_occlusion.png           560x360    0.0000    1.0000    0.0000      1\nv2_control_recovered.png        560x360    0.0000    0.0000    1.0000  48130\n\nSetForegroundWindow was refused (foreground_hwnd never became the target), so\nthe synthetic target was never on top. The repo script still returned exit 0\nand wrote two files -- 42,313 and 48,130 distinct colours, 0.0000 of the\nrequested window. Those are REAL DESKTOP PIXELS of unrelated applications.\nBoth frames were destroyed immediately (os.remove) and their colour histograms\nscrubbed; only the non-identifying counts above were retained.",
+          "fingerprint": "07fa2f97a74a5af383461f69",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "Pillow/numpy colour-cardinality reduction on the two frames before deletion; only non-identifying aggregates retained",
+          "raw_output": "v2_control_no_occlusion.png : target_frac=0.000000 distinct_colours=42313\nv2_control_recovered.png    : target_frac=0.000000 distinct_colours=48130\nv2_full_occlusion.png       : target_frac=0.000000 occluder_frac=1.000000 distinct_colours=1\n\nA synthetic solid-colour window has ONE distinct colour. 42,313 and 48,130\ndistinct colours in a 560x360 frame is photographic/real-UI content, so those\ntwo frames were not the synthetic target. DELETED v2_control_no_occlusion.png\nDELETED v2_control_recovered.png -- remaining pngs: ['v2_full_occlusion.png'].",
+          "fingerprint": "42c2c1f191769b77da9df9c8",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The cross-vendor refuter's one PARTIAL (an unchecked second PrintWindow return in the first instance's harness) is a genuine code-hygiene defect but does NOT invalidate the window-scoped measurement it qualifies, because the failure mode it enables is an unpainted GDI+ bitmap, which is all-zero black, whereas every B-path capture measured black_px=0 and exactly ONE distinct colour equal to the target colour.",
+      "verdict": "CONFIRMED",
+      "confidence": "likely",
+      "anchor": "%TEMP%/adv0042/probe1_occlusion.ps1:100-108 vs %TEMP%/adv0042_v2/redecode_result.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "read %TEMP%/adv0042/probe1_occlusion.ps1:100-108",
+          "raw_output": "  if (-not $ok) {\n    $bmp.Dispose()\n    $bmp = New-Object System.Drawing.Bitmap($w,$h)\n    $gfx = [System.Drawing.Graphics]::FromImage($bmp)\n    $hdc = $gfx.GetHdc()\n    $ok  = [Nm]::PrintWindow($hwnd,$hdc,0)\n    $gfx.ReleaseHdc($hdc); $gfx.Dispose()\n  }\n  return $bmp\n-> the fallback assigns $ok and never tests it; $bmp is returned regardless.",
+          "fingerprint": "ceec819ceebafa1bca2f3e7f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "Pillow/numpy: black-pixel count and distinct-colour cardinality of every B-path capture",
+          "raw_output": "cap_S0_..._B.png  black_px=0  distinct_colours=1  target_frac=1.0000\ncap_S1_..._B.png  black_px=0  distinct_colours=1  target_frac=1.0000\ncap_S2_..._B.png  black_px=0  distinct_colours=1  target_frac=1.0000\nA GDI+ bitmap that PrintWindow never painted is all-zero (black). Zero black\npixels and a single colour equal to the target rule that failure mode out.\nSCOPE: this rescues the RECORDED B measurements only. It is NOT a general\nclaim that PrintWindow is occlusion-immune on all windows -- the second\ninstance did not exercise the B path at all (see residual unknowns).",
+          "fingerprint": "48c921d561c01a2e69314c15",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The absence of any window-scoped capture in the repository is a real absence and not a broken matcher: an independent ripgrep sweep finds CopyFromScreen at exactly 2 code sites and PrintWindow at 0 code sites, with every PrintWindow hit in the tree being a MENTION inside this unit's own report rather than a call.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "skills/screenshot/scripts/take_screenshot.ps1:156 (CopyFromScreen); no PrintWindow call site exists",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/adv0042/probe3_callsites.py -- first instance, 7120-file python regex census with a known-bad/known-good fixture control",
+          "raw_output": "screen-scoped-gdi: 2 sites (skills/ + .agents/skills/ take_screenshot.ps1:156)\nwindow-scoped (PrintWindow): 0 sites\ndetector_control: fires_on_known_bad_fixture=True silent_on_known_good_fixture=True",
+          "fingerprint": "8781ff40f33c5bc46f80d36c",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ripgrep 'CopyFromScreen|PrintWindow|BitBlt|GetForegroundWindow|GetWindowRect' over the repo -- a different engine, different pattern syntax, run by the second instance",
+          "raw_output": "$ rg -n \"CopyFromScreen|PrintWindow|BitBlt|GetForegroundWindow|GetWindowRect\" <repo>\nskills\\screenshot\\scripts\\take_screenshot.ps1:122:  public static extern IntPtr GetForegroundWindow();\nskills\\screenshot\\scripts\\take_screenshot.ps1:125:  public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);\nskills\\screenshot\\scripts\\take_screenshot.ps1:136:  $handle = if ($WindowHandle) { [IntPtr]$WindowHandle } else { [NativeMethods]::GetForegroundWindow() }\nskills\\screenshot\\scripts\\take_screenshot.ps1:138:  if (-not [NativeMethods]::GetWindowRect($handle, [ref]$rect)) {\nskills\\screenshot\\scripts\\take_screenshot.ps1:156:  $graphics.CopyFromScreen($source, $target, $size)\n.agents\\skills\\screenshot\\scripts\\take_screenshot.ps1:  (identical, lines 122/125/136/138/156)\n\nCopyFromScreen: 2 CODE sites (the deployed copy and its .agents twin).\nPrintWindow   : 0 CODE sites. Every PrintWindow hit in the tree is inside\n                command-center/adversarial/ADV-0042-*.json -- i.e. this report\n                MENTIONING it, not any stage CALLING it (use-vs-mention).",
+          "fingerprint": "90bc34ae8cc72e68afaf9b3c",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-control-no-occlusion",
+      "name": "control: with no occlusion the same assertion must pass (proves the histogram check is not simply always failing)",
+      "command": "powershell -File %TEMP%/adv0042/probe1_occlusion.ps1 :: state S0_control_no_occlusion, methods A and B",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "S0 A-screen-scoped target_frac=1.0 assertion_pass=True\nS0 B-window-scoped target_frac=1.0 assertion_pass=True"
+    },
+    {
+      "id": "T2-synthetic-target-only",
+      "name": "captures are taken against a synthetic target window; no personal application is captured",
+      "command": "probe1_occlusion.ps1 :: two TopMost borderless synthetic forms (#FF00FF target, #00FFFF occluder); every capture scoped to the target's rect; other_frac asserted",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "other_frac = 0.0 on all 6 occlusion captures and on repo_real_codepath_S2.png (0 foreign pixels of any third colour, so no third window entered any captured rect).\nPARTIAL EXCEPTION, disclosed: one separate -Mode temp probe captured the full desktop (256,900 B); deleted unread. See evidence item 9 and defect ADV-0042-D7."
+    },
+    {
+      "id": "T3-occlusion-fires",
+      "name": "the assertion must FAIL when the target is occluded (both-states, bad half)",
+      "command": "probe1_occlusion.ps1 :: states S1_partial_occlusion_50pct and S2_full_occlusion_100pct, method A",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "S1 A target_frac=0.5 assertion_pass=False\nS2 A target_frac=0.0 assertion_pass=False"
+    },
+    {
+      "id": "T4-window-scoped-immune",
+      "name": "a window-scoped API must survive the same occlusion (proves the defect is fixable, not inherent)",
+      "command": "probe1_occlusion.ps1 :: PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2) under S1 and S2",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "S1 B target_frac=1.0 assertion_pass=True\nS2 B target_frac=1.0 assertion_pass=True"
+    },
+    {
+      "id": "T5-independent-decoder",
+      "name": "an independent decoder must reproduce the histograms from the files on disk",
+      "command": "python %TEMP%/adv0042/verify_independent.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "5/5 images reproduced to 6 decimal places by a pure-Python zlib/struct PNG decoder."
+    },
+    {
+      "id": "T6-acl-two-tools",
+      "name": "the ACL finding must reproduce under a second, mechanically different ACL reader",
+      "command": "Get-Acl (.NET) vs icacls (Win32) on %USERPROFILE%/Pictures/Screenshots and on the control dir",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "Both tools report CodexSandboxUsers RX + M,DC on the capture destination and NEITHER reports it on the control dir."
+    },
+    {
+      "id": "T7-recount",
+      "name": "the retention counts must reproduce under a second enumeration API",
+      "command": "Get-ChildItem vs python os.walk/os.stat on Pictures/Screenshots and .playwright-mcp",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "845/94183329 and 283/3325141 identical under both APIs."
+    },
+    {
+      "id": "T8-second-instance-live-occlusion",
+      "name": "second instance reproduces the leak live",
+      "command": "powershell -File %TEMP%/adv0042_v2/live_recapture2.ps1 && python (Pillow decode)",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "B_full_occlusion target_frac=0.0000 occluder_frac=1.0000 ; G2 control target_frac=1.0000 ; interlock aborted 1 unsafe capture"
+    },
+    {
+      "id": "T9-independent-decoder-parity",
+      "name": "Pillow/libpng reproduces the GDI+ histogram",
+      "command": "python %TEMP%/adv0042_v2/redecode.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "7/7 stored frames match the first instance to 4 dp; repo_real_codepath_S2.png = 0.0000 target / 1.0000 occluder"
+    },
+    {
+      "id": "T10-retention-recount-second-enumerator",
+      "name": "os.scandir recount of the personal capture dirs",
+      "command": "python %TEMP%/adv0042_v2/retention_verify.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "Screenshots 845/94,183,329 and Pictures 23/19,768,500 reproduce EXACTLY; .playwright-mcp 283->290 (live growth); counter control fires/silent/decoy-excluded"
+    },
+    {
+      "id": "T11-receipt-gate-consumer",
+      "name": "the repo's own receipt reducer can read this artifact",
+      "command": "python platform/lib/receipt_schema_gate.py --repo-root . command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "condition 4 (artifact parses against its schema) = ok. The gate is used here as a downstream CONSUMER; its other conditions are reported honestly in failure/residual_unknowns, not suppressed."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-histogram-both-states",
+      "kind": "known-broken-fixture",
+      "description": "Both-states test of the colour-histogram identity detector. BAD state = target occluded (S1 50%, S2 100%). GOOD state = target unoccluded (S0), and the window-scoped method in every state.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "S1 A target_frac=0.5 assertion_pass=False ; S2 A target_frac=0.0 assertion_pass=False",
+      "good_state_output": "S0 A target_frac=1.0 assertion_pass=True ; S0 B / S1 B / S2 B all target_frac=1.0 assertion_pass=True"
+    },
+    {
+      "id": "NC2-static-matcher-fixtures",
+      "kind": "malformed-input",
+      "description": "Both-states test of the static screen-scoped-capture matcher against synthetic fixtures before trusting any repo count.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "fires_on_known_bad_fixture=True  ('graphics.CopyFromScreen(src, dst, size);')",
+      "good_state_output": "silent_on_known_good_fixture=True ('ok = PrintWindow(hwnd, hdc, 2);'), silent_on_unrelated_fixture=True ('def add(a, b): return a + b')"
+    },
+    {
+      "id": "NC3-absence-detector-proof",
+      "kind": "absent-input",
+      "description": "The claim 'PrintWindow appears 0 times in 7120 files' is an ABSENCE claim, so the matcher was first proven able to find a known-present instance. Same treatment applied to the clipboard matcher.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "PrintWindow matcher on %TEMP%/adv0042/probe1_occlusion.ps1 -> True, n=5 ; clipboard matcher on skills/use-image-clipboard/SKILL.md -> True, n=2",
+      "good_state_output": "Same PrintWindow matcher over the 7120-file repo tree -> 0 hits, and it did not fire on the 55 renderer-scoped or 2 screen-scoped GDI sites."
+    },
+    {
+      "id": "NC4-acl-detector-control",
+      "kind": "known-broken-fixture",
+      "description": "The ACL detector must not report CodexSandboxUsers everywhere. Control directory = %TEMP%/adv0042, created by this unit, expected to carry only the three default principals.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "icacls %USERPROFILE%/Pictures/Screenshots -> CodexSandboxUsers:(I)(OI)(CI)(RX) and (M,DC) present under BOTH Get-Acl and icacls",
+      "good_state_output": "icacls %TEMP%/adv0042 -> SYSTEM(F), Administrators(F), Prekzursil(F) only; no CodexSandboxUsers ACE under either tool"
+    },
+    {
+      "id": "NC6-visibility-interlock-both-states",
+      "kind": "known-broken-fixture",
+      "description": "A fail-closed pre-capture interlock (WindowFromPoint at the target-rect centre + GetAncestor(GA_ROOT) must equal the expected owner) was added in attempt 2. It must REFUSE the capture when a foreign window owns the rect and ALLOW it when the target does. This is simultaneously the control for the second instance and a working demonstration that the missing guard costs ~10 lines.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "state G_control_no_occlusion: hwnd_at_target_centre=15993610, expected 174986146 -> interlock_pass=False, exists=False. INTERLOCK-ABORT: capture SKIPPED, no file written. (Attempt 1, which lacked the interlock, wrote a real-desktop frame in this exact situation.)",
+      "good_state_output": "state G2_control_recovered: hwnd_at_target_centre=174986146 == expected -> interlock_pass=True, file written, target_frac=1.0000. state B_full_occlusion: centre owned by the synthetic occluder as expected -> allowed, target_frac=0.0000."
+    },
+    {
+      "id": "NC7-occlusion-assertion-both-states",
+      "kind": "known-broken-fixture",
+      "description": "Second-instance both-states proof that the identity assertion (target_frac >= 0.99) is not simply always-failing: it must FAIL under occlusion and PASS without it, on frames produced by the same real repo script in the same session.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "v2b_full_occlusion.png -> target_frac=0.0000 (assertion FAILS, leak detected)",
+      "good_state_output": "v2b_control_recovered.png -> target_frac=1.0000 (assertion PASSES). Required by the unit's tests_required control clause."
+    },
+    {
+      "id": "NC8-retention-counter-control",
+      "kind": "known-broken-fixture",
+      "description": "The file/byte counter used for the retention claim was proven on a synthetic fixture before being pointed at the owner's directories: it must report an exactly-known populated directory, report zero for an empty one, and exclude a large non-matching decoy file.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "fixture with 3 PNGs of 11+222+3333 B plus a 999,999 B decoy.txt -> measured file_count=3, total_bytes=3566 (exact), decoy_excluded=True",
+      "good_state_output": "empty directory -> file_count=0, total_bytes=0 (silent). A counter that could not do both would not be trusted for the 845-file result."
+    },
+    {
+      "id": "NC9-orphan-sid-detector-control",
+      "kind": "known-broken-fixture",
+      "description": "The unresolvable-SID ACE detector was run against a directory known to carry only plain inherited ACEs, to prove the orphan finding on ~/Pictures is not an artefact of the parser.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "icacls C:/Users/Prekzursil/Pictures -> ['S-1-5-21-1838525764-1127316684-2374434444-3170517000:(I)(OI)(CI)(M,DC)']",
+      "good_state_output": "icacls %TEMP%/adv0042_v2 -> unresolvable_sid_aces = [] (SYSTEM/Administrators/Prekzursil only)"
+    },
+    {
+      "id": "NC10-declared-schema-validator-control",
+      "kind": "mutation",
+      "description": "The claim 'this artifact validates against its declared output_schema' is only meaningful if the validator can reject something. A mutated copy (report.kind flipped to another artifact class, negative_controls emptied) was validated with the identical code path.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "schema: https://ast-integrate.invalid/command-center/schema/privacy-dataflow.schema.json\nx-artifact-class: privacy-dataflow\nerrors: 1\n  - report/kind : 'privacy-dataflow' was expected",
+      "good_state_output": "schema: https://ast-integrate.invalid/command-center/schema/privacy-dataflow.schema.json\nx-artifact-class: privacy-dataflow\nerrors: 0"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "codex-exec-cli refuter (ADV-0042), re-derived from raw artifacts only",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "reviewed_at": "2026-08-11T23:26:00Z",
+    "notes": "CROSS-VENDOR REFUTER (openai / codex exec CLI), verbatim. Given the RAW artifacts only\n(take_screenshot.ps1, probe1/2/3_result.json, probe1_occlusion.ps1) and explicitly NOT this report;\nbriefed to try to REFUTE.\n\nQ1. CONFIRMED - take_screenshot.ps1:135-156 obtains the window rectangle, then CopyFromScreen\n    captures whatever screen pixels occupy it, not the window renderer.\nQ2. CONFIRMED - probe1_result.json, repo_real_codepath.histogram: target_frac=0, occluder_frac=1.\nQ3. CONFIRMED - S0 rows both pass with target_frac=1, while S1/S2 screen-scoped rows fail at 0.5\n    and 0; therefore the detector is not always-failing.\nQ4. PARTIAL - probe1_occlusion.ps1:120-129 fails to check the second PrintWindow result and returns\n    its bitmap regardless, a real B-path bug; however DPI awareness, separated RGB tolerances, event\n    pumping plus 500 ms delay, and the 640x400 padding-free histogram support the reported A/repo\n    measurements.\nQ5. CONFIRMED - no retention limit is evidenced: Pictures/Screenshots row has file_count=845,\n    total_bytes=94,183,329, spanning 2024-04-08T13:56:12Z-2026-07-24T15:40:09Z.\nQ6. CONFIRMED - ACL grants DESKTOP-A60S9GP\\CodexSandboxUsers ReadAndExecute, Synchronize (and\n    separately Modify).\nQ7. CONFIRMED - zero scanned-tree PrintWindow call sites; the absence is trustworthy because\n    detector_control.fires_on_known_bad_fixture=true and it recognizes the known-good PrintWindow\n    fixture as good.\nQ8. REFUTED - the strongest counterargument is that rectangle capture is ordinary screenshot\n    semantics and the synthetic run exposed no personal content; it does not survive because the\n    controlled occluder changed the real repo output from 100% target to 100% pixels belonging to\n    another window.\nREFUTER-VERDICT: PASS\n\nAUTHOR RESPONSE to Q4 (the one PARTIAL): the refuter is CORRECT and the bug is real - see defect\nADV-0042-D8. It is scoped, not dismissed: an unchecked PrintWindow return can only MASK a failure,\nand a failed PrintWindow leaves the bitmap black. The histogram counts black separately and\nblack_px = 0 on every B-path row while target_frac = 1.0, so no B-path capture silently failed in\nthis run. The A-path and repo-codepath numbers - which carry the finding - do not touch that code.\n\nTRANSPORT NOTE (cross-vendor-dispatch.md 2): exit code 0 was NOT accepted as completion. The\ncontracted output file %TEMP%/adv0042/refuter_out.txt was confirmed to exist and be non-empty\n(1732 bytes) and to carry a parseable REFUTER-VERDICT line before this verdict was recorded.\n\nREFUTER RUN PROVENANCE (verified by the second instance from the raw stream log,\n%TEMP%/adv0042/refuter_stream.log, 79,850 B): OpenAI Codex v0.145.0, model gpt-5.6-sol,\nprovider openai, sandbox read-only, session id 019ff325-ac03-7631-b950-5c2aac6828e4,\nfirst log timestamp 2026-08-11T23:26:00Z. The reviewed_at field originally read 23:02:00Z,\nwhich PRECEDED the run; it has been corrected to the log's own first timestamp.\nDETECTOR WEAKNESS in that provenance check, disclosed: a naive max() over timestamps in the\nlog returns 2026-07-24 because the log embeds quoted probe JSON containing older dates, so\nonly the FIRST timestamp is used and the end time is left UNKNOWN.\n\nSECOND-INSTANCE DISPOSITION OF THE REFUTER'S ONE PARTIAL (Q4): upheld as a real defect\n(kept open as ADV-0042-D8) but shown NOT to invalidate the measurement it qualifies -- see\nthe evidence item on the black-pixel discriminator. The refuter's other seven answers were\nindependently re-derived by the second instance and all held."
+  },
+  "defects": [
+    {
+      "id": "ADV-0042-D1",
+      "severity": "P1",
+      "status": "open",
+      "summary": "skills/screenshot/scripts/take_screenshot.ps1:136-156 - window capture is screen-scoped. -ActiveWindow/-WindowHandle derive a rect via GetWindowRect and then CopyFromScreen it, so any occluding window is silently captured in place of the named window (measured 0.0 target / 1.0 foreign at full occlusion). Fix: PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT) - measured 1.0 target under identical occlusion - or the Windows.Graphics.Capture item API, with a post-capture identity assertion."
+    },
+    {
+      "id": "ADV-0042-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "take_screenshot.ps1:144-147 - the no-flag default captures the entire VirtualScreen and persists it with no consent prompt, no scoping requirement and no redaction, so an agent asking for one window can silently archive the whole desktop."
+    },
+    {
+      "id": "ADV-0042-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "No retention bound on any capture destination. Measured: 845 PNGs / 94,183,329 B spanning 837.1 days in ~/Pictures/Screenshots and 283 files in ~/.playwright-mcp. StorageSense covers TEMP and Downloads only; nothing reaps the capture archive."
+    },
+    {
+      "id": "ADV-0042-D4",
+      "severity": "P2",
+      "status": "open",
+      "summary": "C:/Users/Prekzursil/Pictures carries an EXPLICIT (OI)(CI) ReadAndExecute grant to DESKTOP-A60S9GP\\CodexSandboxUsers (members CodexSandboxOffline, CodexSandboxOnline), propagating to all 845 archived screenshots. A sandboxed agent account can read the owner's entire capture history."
+    },
+    {
+      "id": "ADV-0042-D5",
+      "severity": "P3",
+      "status": "open",
+      "summary": "Two ORPHANED inherited ACEs on the same path (CodexSandboxUsers Modify/DC, and unresolvable SID S-1-5-21-1838525764-1127316684-2374434444-3170517000 Modify/DC) are flagged inherited=True while the parent carries neither, so they cannot be removed by editing the parent and will survive a naive ACL cleanup."
+    },
+    {
+      "id": "ADV-0042-D6",
+      "severity": "P2",
+      "status": "open",
+      "summary": "take_screenshot.ps1:18 assigns to the ReadOnly,AllScope automatic variable $home, so under the script's own Set-StrictMode/-ErrorActionPreference='Stop' the documented DEFAULT destination throws and exits -1. Only -Path and -Mode temp work. Fix: rename the local to $userHome. Second instance re-verified by file-read without executing the script (line 18 assigns $home; line 19 is the negative control). The default IS documented -- skills/screenshot/SKILL.md:12 'save to the OS default screenshot location' and :61 'Default location' -- so a documented behaviour is unreachable."
+    },
+    {
+      "id": "ADV-0042-D7",
+      "severity": "P3",
+      "status": "resolved",
+      "summary": "Self-inflicted: this unit's own -Mode temp exit-status probe captured the owner's full desktop (256,900 B) to %TEMP%. Detected within the same run, deleted unread ~3 minutes later, verified absent (REMAINING_AFTER_DELETE=0). Disclosed rather than suppressed; it is also the sharpest demonstration of ADV-0042-D2."
+    },
+    {
+      "id": "ADV-0042-D8",
+      "severity": "P3",
+      "status": "open",
+      "summary": "FOUND BY THE CROSS-VENDOR REFUTER, in this unit's own probe harness: probe1_occlusion.ps1 Capture-WindowScoped does not check the return value of the second (flag 0) PrintWindow fallback and returns the bitmap regardless, so a total PrintWindow failure could be reported as a measurement. Scoped impact: an unchecked failure yields a BLACK bitmap, the histogram counts black separately, and black_px=0 with target_frac=1.0 on every B-path row - so nothing silently failed in this run, and the A-path/repo-codepath numbers that carry the finding never execute that code. Fix: throw when the fallback also returns false."
+    },
+    {
+      "id": "ADV-0042-D9",
+      "severity": "P3",
+      "status": "resolved",
+      "summary": "Self-inflicted, second instance: attempt 1 of the live re-capture relied on SetForegroundWindow, the OS refused it, and the repo script consequently stored two frames of the owner's real desktop (unrelated applications) under %TEMP%/adv0042_v2. Detected by colour-cardinality (42,313 and 48,130 distinct colours where a synthetic target has 1), both files deleted in the same session, colour histograms scrubbed from the result JSON, and attempt 2 rebuilt fail-closed behind a WindowFromPoint interlock so the harness can no longer do this. Retained as evidence because it is an unplanned live reproduction of the very defect under test."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0042"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py (the repo's own 12-condition receipt reducer)",
+      "artifact_path": "command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 1,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "python platform/lib/receipt_schema_gate.py --repo-root . --no-fs command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json   [--no-fs is used so the transcript is byte-stable and can be re-verified against the finalized file; the full-fs run additionally reports condition 2 as ok and condition 3 as a sha mismatch, for the self-hash reason documented in extensions.self_digest_recipe -- bytes themselves are exact]",
+        "raw_output": "FAILED:ADV-0042 predicate-unsatisfied c1=UNSATISFIED,c2=NOT-CHECKED,c3=NOT-CHECKED,c5=UNSATISFIED,c10=UNSATISFIED,c11=UNSATISFIED\n  [FAIL]  1. process/task reached a valid terminal state\n           -> state=BLOCKED is terminal but not a completion\n  [  ??]  2. expected artifact exists\n           -> filesystem verification disabled; a path in text is not proof\n  [  ??]  3. artifact is non-empty and exceeds a meaningful minimum size\n           -> declared sizes accepted but not measured off disk\n  [  ok]  4. artifact parses against its schema\n  [FAIL]  5. required sentinel is present\n           -> sentinel is a FAILED marker\n  [  ok]  6. required evidence anchors exist\n  [  ok]  7. required tests ran and passed\n  [  ok]  8. negative controls or mutations fail as expected\n  [  ok]  9. independent reviewer status is PASS\n  [FAIL] 10. no unresolved P0/P1 defect is attached\n           -> open P0/P1 defect(s): ['ADV-0042-D1']\n  [FAIL] 11. output was registered in the artifact manifest\n           -> manifest_registration.registered is not true\n  [  ok] 12. downstream consumers can read it",
+        "fingerprint": "51d9a3729e4f4b90dcf2c1c5",
+        "exit_code": 1
+      }
+    },
+    {
+      "consumer": "jsonschema Draft202012Validator against the DECLARED output_schema (command-center/schema/privacy-dataflow.schema.json, $ref-resolved to platform/schema/artifact-class-profiles.schema.json and receipt.schema.json)",
+      "artifact_path": "command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python %TEMP%/adv0042_v2/validate_declared.py command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json",
+        "raw_output": "schema: https://ast-integrate.invalid/command-center/schema/privacy-dataflow.schema.json\nx-artifact-class: privacy-dataflow\nerrors: 0\n\nDETECTOR CONTROL (both-states) -- the same validator on a mutated copy\n(report.kind flipped to 'security-report' and negative_controls emptied):\nschema: https://ast-integrate.invalid/command-center/schema/privacy-dataflow.schema.json\nx-artifact-class: privacy-dataflow\nerrors: 1\n  - report/kind : 'privacy-dataflow' was expected\n-> fires on the bad state, silent on the good state, so 'errors: 0'\n   above is a measurement and not an inert validator.",
+        "fingerprint": "6395b6373f9416ea91e2162b",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T22:20:00Z",
+    "ended_at": "2026-08-12T06:07:00Z",
+    "duration_seconds": 28020.0
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "codex-mcp-timeout-600s",
+        "outcome": "TIMEOUT",
+        "started_at": "2026-08-11T22:45:00Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "codex-exec-cli-prompt-by-stdin",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-11T22:56:00Z"
+      },
+      {
+        "attempt": 3,
+        "error_fingerprint": "win32-setforegroundwindow-denied-target-never-on-top",
+        "outcome": "FAILED",
+        "started_at": "2026-08-12T02:33:00Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "PIVOT A (used): SetWindowPos(HWND_TOPMOST, SWP_NOACTIVATE) -- places the window in the topmost z-order band without requesting the foreground right that the OS actually denied.",
+      "PIVOT B (used, additive): a fail-closed WindowFromPoint(centre)+GetAncestor(GA_ROOT) interlock that SKIPS the capture unless the expected window owns the rect, so a denied activation can never again be recorded as a capture.",
+      "PIVOT C (not needed): drive the capture from an interactive session where foreground rights are granted, or use a dedicated virtual desktop / second display so no owner-owned window can occupy the target rectangle."
+    ]
+  },
+  "failure": {
+    "classification": [
+      "privacy-leak",
+      "detector-failure",
+      "manifest-registration-out-of-scope",
+      "predicate-unsatisfiable-for-finding-unit"
+    ],
+    "reason": "The INVESTIGATION is complete and has now been verified TWICE by mechanically independent means. First instance: both named probes ran, controls fired both-states, every enumerated target carries exactly one verdict, and a cross-vendor (openai / Codex v0.145.0, gpt-5.6-sol, session 019ff325-ac03-7631-b950-5c2aac6828e4) refuter re-derived the counterexample from the raw artifacts and returned PASS. Second instance: re-derived every load-bearing claim with different colours, geometry, decoder, enumerator and ACL reader, reproduced the leak live, and additionally reproduced it ACCIDENTALLY against its own uninstrumented first attempt. The RECEIPT PREDICATE is nonetheless UNSATISFIED, on grounds that are structural rather than evidentiary: condition 11 requires registering this artifact in command-center/ARTIFACT-MANIFEST.json, a shared file this unit is explicitly forbidden to write (measured: the manifest holds 14 entries and none of the 40 adversarial receipts is among them); condition 10 is unsatisfiable by construction for a finding unit, because the finding IS an open P1 (D1); and condition 3 is unsatisfiable because a file cannot contain its own hash. Emitting SUCCESS with those unmet would be exactly the self-certification the substrate exists to prevent, so the state is BLOCKED and the orchestrator owns registration and defect disposition. No finding below depends on any of them.",
+    "blocked_on": "manifest registration in command-center/ARTIFACT-MANIFEST.json by the orchestrator - a shared file outside this unit's declared write scope (condition 11). No finding below depends on it.",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "python -c \"json.load(open('command-center/ARTIFACT-MANIFEST.json')); any('ADV-0042' in json.dumps(e) for e in d['artifacts'])\"",
+        "raw_output": "keys ['artifacts','contract','derivation','expected','present','schema_version','verified_on_disk']\nn entries 14\nADV-0042 present: False",
+        "fingerprint": "99e6e132272c730d7a08819b",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "manual-inspection",
+        "command": "spawn-prompt HARD CONSTRAINTS, quoted verbatim",
+        "raw_output": "\"Write ONLY your unit's output_path (plus scratch under %TEMP%). Do NOT edit shared files, do NOT edit WORK-UNIT-CATALOG.json, do NOT commit, do NOT push, do NOT touch any credential.\"\n-> command-center/ARTIFACT-MANIFEST.json is a shared file; registration is therefore structurally impossible from inside this unit, not merely skipped.",
+        "fingerprint": "23d6dfdcf16dc91100562eed",
+        "exit_code": 0
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether the renderer-scoped browser capture path (page.screenshot, page.accessibility.snapshot) is ACTUALLY occlusion-immune in this environment.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run skills/ui-audit/capture.mjs against a fixed URL twice - once clean, once with a TopMost native window covering the viewport - and byte-compare the two PNGs. Identical bytes confirm renderer-scoping."
+    },
+    {
+      "claim": "Whether the clipboard path returns content the user did not intend to share.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Place a known synthetic image on the clipboard, run the documented one-liner, and assert the written PNG matches the synthetic image. Deliberately not executed here: reading the live clipboard would capture the owner's real content and violate this unit's test constraint."
+    },
+    {
+      "claim": "Whether any of the 845 archived screenshots or 290 playwright artifacts (recounted by the second instance; was 283 ~4h earlier) actually CONTAIN sensitive content.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Out of scope by construction - this unit audited paths, sizes, mtimes and ACLs and never opened an image byte. A content sweep is ADV-0040's channel (text/PII) and would need explicit owner authorization for images."
+    },
+    {
+      "claim": "Whether the orphaned inherited ACEs came from a since-reverted parent grant or from a direct SetSecurityInfo write.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Correlate the object's USN/security-descriptor change time with Security event log 4670 (permissions changed) for the Pictures path."
+    },
+    {
+      "claim": "The sha256 recorded for this artifact cannot be the hash of its own final bytes - that is a fixed point of SHA-256 and is not constructible.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "The recorded digest is REPRODUCIBLE as follows: take this file, replace the 64 hex characters of artifacts[0].sha256 with 64 '0' characters, and SHA-256 the result. `bytes` IS exact (the substitution is length-preserving). platform/lib/receipt_schema_gate.py re-hashes the raw file and will therefore report a mismatch BY CONSTRUCTION for any self-describing receipt; that gate output is recorded verbatim in downstream_consumers rather than hidden."
+    },
+    {
+      "claim": "macOS and X11 capture rails were classified statically only.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "The sweep found 6 screen-scoped macOS sites (screencapture -x without -l) and 36 screen-scoped X11 sites (scrot / import -window root) against 2 and 4 window-scoped ones. Re-run probe1_occlusion.ps1's logic natively on each platform. This box is Windows-only, so those rails were never executed."
+    },
+    {
+      "claim": "Whether a DPI-scaling mismatch between GetWindowRect and CopyFromScreen could manufacture a false leak. It was ruled out on the GOOD state only (LOGPIXELSX=96, VERTRES==DESKTOPVERTRES=1080, DPI_MISMATCH=False, and the unoccluded control returning exactly 256000/256000 target pixels), but no BAD state could be induced without changing the owner's display scaling. It was previously recorded as a negative control with fired_on_bad_state=false; that is an inert detector by the estate's own both-states rule, so it has been demoted from a control to this residual.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Set the primary display to 150% scaling, re-run the unoccluded control, and confirm target_frac stays 1.0. If it drops, the rect maths -- not occlusion -- is producing foreign pixels."
+    },
+    {
+      "claim": "Whether PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT) is occlusion-immune in general. The recorded first-instance B-path results (target_frac=1.0 in all three states) are trustworthy for THOSE captures, but the second instance did not exercise the B path at all, and PrintWindow is known to fail on some GPU-composited/hardware-accelerated surfaces.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run the B path against a hardware-accelerated window (a Chromium or Electron window) under full occlusion and assert both target_frac>=0.99 AND that the PrintWindow return value was checked; the remediation for D1 must not be shipped on the untested assumption that it always works."
+    },
+    {
+      "claim": "Whether the second instance's own two contaminated frames were the ONLY unintended captures it produced. Deletion was verified by directory listing, and no codex-shot-*.png or cli_screenshot.png remains in TEMP (detector proven live: 39 other .png files were found by the same glob).",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Enumerate every file created under %TEMP% during the unit's wall-clock window by ctime and classify each; the current check is pattern-based and would miss a capture written under an unexpected name."
+    },
+    {
+      "claim": "timestamps.ended_at is the instant the last probe completed and the receipt was serialized; it necessarily precedes the file's own mtime by the few seconds the final write and its re-verification take. Like artifacts[0].sha256 this is a self-reference a file cannot close on itself.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Compare os.stat(artifact).st_mtime against timestamps.ended_at; a gap of seconds is expected and correct, a gap of many minutes would mean the receipt was edited after its probes ran."
+    }
+  ],
+  "report": {
+    "kind": "privacy-dataflow",
+    "question": "When a stage captures a screenshot, a window handle, a clipboard value or an accessibility tree, does it capture only the intended surface - and what happens when the intended window is occluded or not focused?",
+    "answer": "NO for the Windows screenshot rail, and the failure is silent and total. take_screenshot.ps1 uses the window handle ONLY to compute a rectangle (GetWindowRect, line 138) and then reads that rectangle off the desktop compositor (CopyFromScreen, line 156), so the window's IDENTITY never reaches the pixel read. Measured against a synthetic target: unoccluded 1.00 target; 50% occluded 0.50 target / 0.50 foreign; fully occluded 0.00 target / 1.00 foreign - the real repo script, invoked exactly as documented with -WindowHandle, returned an image containing none of the requested window and all of an unrelated one, with exit code 0 and no warning. Focus is irrelevant: the target was unfocused in both failing states, and the window-scoped PrintWindow alternative returned 1.00 target in every state, so the defect is a missing capture-API flag, not an OS limitation. PrintWindow appears ZERO times in 7,120 scanned files (matcher proven live), so no window-scoped path exists anywhere on the Windows rail. Browser-mediated capture (55 page.screenshot sites, 14 a11y-snapshot sites) is renderer-scoped and structurally immune, though not executed under occlusion here. The clipboard rail reads a globally shared buffer guarded only by ContainsImage(). On storage: nothing outside the target surface is prevented from being stored, nothing is reaped (845 PNGs / 94,183,329 B / 837.1 days in the documented default destination), and the destination grants two Codex sandbox service accounts ReadAndExecute over the whole archive.\n\nSECOND-INSTANCE VERIFICATION (independent re-derivation, 2026-08-12). Every load-bearing claim above was re-measured by a second instance that did not reuse the first instance's harness. (1) A fresh live occlusion experiment with different marker colours, different geometry and a different driver reproduced the leak exactly: 0.0000 target / 1.0000 foreign under full occlusion, 1.0000 target on the unoccluded control. (2) All seven stored frames re-decoded with Pillow/libpng+numpy match the original PowerShell GDI+ histogram to four decimal places. (3) The retention figures reproduce EXACTLY under a second enumerator (os.scandir vs Get-ChildItem), and .playwright-mcp grew 283->290 files in four hours, which strengthens rather than weakens the unbounded-retention finding. (4) Two independent ACL readers (Win32 GetFileSecurity and icacls.exe) agree, and the orphaned-SID detector was proven silent on a clean control directory. (5) The cross-vendor refuter's single PARTIAL was upheld as a real harness defect but shown not to invalidate the measurement it qualifies, because an unpainted bitmap is black and the frames have zero black pixels.\n\nThe sharpest new datum is unplanned: attempt 1 of the second instance had NO visibility interlock, the OS refused its window-activation call, and the repo script then wrote two images of the owner's real desktop -- unrelated applications -- while being asked for a specific window handle, with exit code 0 and no warning. Those frames were destroyed immediately. That is the estate precedent reproducing itself, live, inside the audit of itself, and it raises the practical severity of D1: the failure does not require an adversary or an unusual desktop, only a capture issued while the requested window is not on top -- the normal condition for an automated agent that cannot take the foreground.",
+    "control_ids": [
+      "NC1-histogram-both-states",
+      "NC2-static-matcher-fixtures",
+      "NC3-absence-detector-proof",
+      "NC4-acl-detector-control",
+      "NC6-visibility-interlock-both-states",
+      "NC7-occlusion-assertion-both-states",
+      "NC8-retention-counter-control",
+      "NC9-orphan-sid-detector-control",
+      "NC10-declared-schema-validator-control"
+    ],
+    "targets": [
+      {
+        "target": "screenshot capture stages (visual review / ui-audit / cockpit / design stages)",
+        "verdict": "REFUTED",
+        "finding": "The claim 'a capture stage captures only the intended surface' is REFUTED for the Windows/GDI rail and UPHELD for the browser rail. take_screenshot.ps1:156 is screen-scoped: under occlusion it stored 0% of the named window and 100% of a foreign window. The 55 page.screenshot() sites are renderer-scoped and unaffected (PARTIAL - not executed under occlusion)."
+      },
+      {
+        "target": "window-handle probe stages (GetWindowRect / GetForegroundWindow)",
+        "verdict": "CONFIRMED",
+        "finding": "The handle probes themselves leak nothing - they return geometry only (4 + 4 sites, all inside take_screenshot.ps1). The defect is that the handle is used ONLY to derive a rectangle and is then discarded, so the window identity never reaches the pixel read."
+      },
+      {
+        "target": "clipboard capture (use-image-clipboard)",
+        "verdict": "PARTIAL",
+        "finding": "Statically the path reads a globally shared buffer guarded only by ContainsImage(), with no provenance check - so the surface is 'whatever was last copied', not 'what the user offered'. NOT executed: reading the live clipboard would itself capture personal content."
+      },
+      {
+        "target": "accessibility-tree capture",
+        "verdict": "PARTIAL",
+        "finding": "All 14 sites are renderer-scoped (page.accessibility.snapshot / browser_snapshot), which cannot see other applications. No UIA / desktop-wide a11y capture exists in the tree. NOT executed under occlusion."
+      },
+      {
+        "target": "the estate precedent that a fullscreen capture recorded an unrelated application instead of the target",
+        "verdict": "CONFIRMED",
+        "finding": "Reproduced executably and on demand. The real repo script, invoked exactly as documented with -WindowHandle, produced target_frac=0.0 / occluder_frac=1.0 against a fully occluded target. The precedent is not an anecdote; it is the deterministic behaviour of the code path."
+      },
+      {
+        "target": "the storage location and retention of captured images",
+        "verdict": "REFUTED",
+        "finding": "The claim 'captured images are retained appropriately' is REFUTED. No retention bound exists anywhere: 845 files / 94,183,329 B over 837.1 days in the documented default destination; 283 files in ~/.playwright-mcp. The destination additionally grants two sandbox service accounts ReadAndExecute plus an orphaned Modify ACE and an unresolvable deleted principal."
+      }
+    ],
+    "observations": [
+      {
+        "name": "occluded_capture_target_fraction_repo_codepath",
+        "measured": 0.0,
+        "method": "GDI+ pixel histogram over the PNG the real repo script wrote, re-verified by a pure-Python PNG decoder",
+        "anchor": "skills/screenshot/scripts/take_screenshot.ps1:156 ; %TEMP%/adv0042/probe1_result.json#repo_real_codepath.histogram"
+      },
+      {
+        "name": "occluded_capture_foreign_fraction_repo_codepath",
+        "measured": 1.0,
+        "method": "same histogram, occluder colour class",
+        "anchor": "%TEMP%/adv0042/probe1_result.json#repo_real_codepath.histogram.occluder_frac"
+      },
+      {
+        "name": "control_unoccluded_target_fraction",
+        "measured": 1.0,
+        "method": "same assertion, occluder hidden - proves the detector is not always-failing",
+        "anchor": "%TEMP%/adv0042/probe1_result.json#results[0]"
+      },
+      {
+        "name": "window_scoped_target_fraction_under_full_occlusion",
+        "measured": 1.0,
+        "method": "PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2) under identical occlusion",
+        "anchor": "%TEMP%/adv0042/probe1_result.json#results[5]"
+      },
+      {
+        "name": "printwindow_occurrences_in_tree",
+        "measured": 0,
+        "method": "regex sweep over 7120 files with the matcher first proven to fire on a known-present file (n=5)",
+        "anchor": "%TEMP%/adv0042/probe3_result.json#call_sites (window-scoped-win32 absent)"
+      },
+      {
+        "name": "screen_scoped_gdi_callsites",
+        "measured": 2,
+        "method": "same sweep, CopyFromScreen matcher, both-states controlled",
+        "anchor": "skills/screenshot/scripts/take_screenshot.ps1:156 and .agents/skills/screenshot/scripts/take_screenshot.ps1:156"
+      },
+      {
+        "name": "target_focused_during_failing_captures",
+        "measured": false,
+        "method": "GetForegroundWindow() sampled immediately before each capture",
+        "anchor": "%TEMP%/adv0042/probe1_result.json#results[2..5].target_is_focused"
+      },
+      {
+        "name": "default_destination_archive_file_count",
+        "measured": 845,
+        "method": "Get-ChildItem metadata enumeration, recounted with python os.walk/os.stat",
+        "anchor": "%TEMP%/adv0042/probe2_result.json#aggregate_capture_dirs[1].file_count"
+      },
+      {
+        "name": "default_destination_archive_bytes",
+        "measured": 94183329,
+        "method": "same, two independent APIs agree exactly",
+        "anchor": "%TEMP%/adv0042/verify_independent.json#recount_os_scandir[0]"
+      },
+      {
+        "name": "default_destination_retention_span_days",
+        "measured": 837.1,
+        "method": "oldest vs newest mtime across the archive - the direct measurement that nothing reaps it",
+        "anchor": "2024-04-08T13:56:12Z .. 2026-07-24T15:40:09Z"
+      },
+      {
+        "name": "playwright_artifact_count",
+        "measured": 283,
+        "method": "recursive enumeration of ~/.playwright-mcp",
+        "anchor": "%TEMP%/adv0042/probe2_result.json#aggregate_capture_dirs[3]"
+      },
+      {
+        "name": "non_owner_principals_with_read_on_capture_destination",
+        "measured": 1,
+        "method": "Get-Acl and icacls agreeing; control directory shows neither",
+        "anchor": "DESKTOP-A60S9GP\\CodexSandboxUsers : ReadAndExecute, Synchronize : Allow (explicit, IsInherited=False, (OI)(CI))"
+      },
+      {
+        "name": "orphaned_inherited_aces_on_capture_destination",
+        "measured": 2,
+        "method": "child ACEs flagged inherited=True whose parent, read with the same API, carries neither",
+        "anchor": "CodexSandboxUsers M,DC + unresolvable SID S-1-5-21-1838525764-1127316684-2374434444-3170517000 M,DC"
+      },
+      {
+        "name": "default_destination_codepath_exit_code",
+        "measured": -1,
+        "method": "invoke the repo script with no arguments; reproduced standalone by a one-liner",
+        "anchor": "skills/screenshot/scripts/take_screenshot.ps1:18 ($home is ReadOnly,AllScope)"
+      },
+      {
+        "name": "unintended_full_desktop_capture_bytes",
+        "measured": 256900,
+        "method": "self-inflicted during the exit-status probe; deleted unread, absence re-verified",
+        "anchor": "skills/screenshot/scripts/take_screenshot.ps1:144-147 ; defect ADV-0042-D7"
+      },
+      {
+        "name": "files_scanned_static_sweep",
+        "measured": 7120,
+        "method": "os.walk over the repo excluding node_modules/.git/corpus",
+        "anchor": "%TEMP%/adv0042/probe3_result.json#files_scanned"
+      },
+      {
+        "name": "second_instance_live_occluded_target_frac",
+        "measured": 0.0,
+        "method": "fresh live capture by the real repo script under a synthetic 100% occluder (#00FF7F), classified out-of-process by Pillow/numpy",
+        "anchor": "%TEMP%/adv0042_v2/decode_v2b_result.json :: v2b_full_occlusion.png"
+      },
+      {
+        "name": "second_instance_control_target_frac",
+        "measured": 1.0,
+        "method": "same script, same session, interlock-verified unoccluded target",
+        "anchor": "%TEMP%/adv0042_v2/decode_v2b_result.json :: v2b_control_recovered.png"
+      },
+      {
+        "name": "independent_decoder_parity_frames",
+        "measured": 7,
+        "method": "Pillow/libpng + numpy re-decode of all stored first-instance frames; 7/7 identical to the GDI+ histogram to 4 dp",
+        "anchor": "%TEMP%/adv0042_v2/redecode_result.json"
+      },
+      {
+        "name": "unintended_real_desktop_frames_written_by_this_unit",
+        "measured": 2,
+        "method": "colour-cardinality test (42,313 and 48,130 distinct colours vs 1 for a synthetic solid window); both destroyed same-session",
+        "anchor": "%TEMP%/adv0042_v2/decode_v2_result.json (scrubbed)"
+      },
+      {
+        "name": "interlock_aborted_unsafe_captures",
+        "measured": 1,
+        "method": "WindowFromPoint(centre)+GetAncestor(GA_ROOT) mismatch -> capture skipped instead of written",
+        "anchor": "%TEMP%/adv0042_v2/live_recapture2.json :: G_control_no_occlusion.interlock_pass=false"
+      },
+      {
+        "name": "screenshots_dir_recount_files",
+        "measured": 845,
+        "method": "python os.scandir/os.stat metadata walk (second enumerator); identical to the first instance's Get-ChildItem count",
+        "anchor": "%TEMP%/adv0042_v2/retention_verify.json"
+      },
+      {
+        "name": "playwright_artifacts_growth_files",
+        "measured": 7,
+        "method": "283 -> 290 files between the two instances (~4h), no expiry mechanism observed",
+        "anchor": "%TEMP%/adv0042_v2/retention_verify.json"
+      },
+      {
+        "name": "printwindow_call_sites_in_repo",
+        "measured": 0,
+        "method": "independent ripgrep sweep; all hits are mentions inside this report (use-vs-mention discriminated)",
+        "anchor": "rg CopyFromScreen|PrintWindow over the repo"
+      },
+      {
+        "name": "sibling_receipts_with_identical_self_hash_impossibility",
+        "measured": 38,
+        "method": "sha256 of each of the 40 command-center/adversarial receipts vs the sha256 each declares for itself",
+        "anchor": "command-center/adversarial/*.json"
+      }
+    ]
+  },
+  "extensions": {
+    "probe_harness_paths": {
+      "preflight": "%TEMP%/adv0042/preflight.ps1",
+      "probe1_occlusion": "%TEMP%/adv0042/probe1_occlusion.ps1",
+      "probe1_result": "%TEMP%/adv0042/probe1_result.json",
+      "probe2_retention": "%TEMP%/adv0042/probe2_retention.ps1",
+      "probe2_result": "%TEMP%/adv0042/probe2_result.json",
+      "probe3_callsites": "%TEMP%/adv0042/probe3_callsites.py",
+      "probe3_result": "%TEMP%/adv0042/probe3_result.json",
+      "independent_verifier": "%TEMP%/adv0042/verify_independent.py",
+      "independent_verifier_result": "%TEMP%/adv0042/verify_independent.json",
+      "refuter_prompt": "%TEMP%/adv0042/refuter_prompt.txt",
+      "note": "Scratch harness lives under %TEMP% because this unit's write scope is its single output_path plus %TEMP%. The harness is fully re-runnable and every number above is reproducible from it."
+    },
+    "environment_preflight": "SESSIONNAME=Console UserInteractive=True PSVersion=7.6.4 OSVersion=Microsoft Windows NT 10.0.29639.0 VirtualScreen=0,0,1920x1080 LOGPIXELSX=96 VERTRES=1080 DESKTOPVERTRES=1080 DPI_MISMATCH=False",
+    "privacy_posture_of_this_unit": "Six occlusion captures plus one repo-codepath capture were scoped to a synthetic TopMost 640x400 window filled with #FF00FF, overlapped by a synthetic #00FFFF window; other_frac = 0.0 on all seven, proving no third window entered any captured rect. Probe 2 read filesystem metadata and ACLs only and never opened an image byte; directories that may hold personal captures are reported in aggregate, never by filename. ONE deviation is disclosed in full as defect ADV-0042-D7.",
+    "recommended_remediation_order": [
+      "D1 first: swap CopyFromScreen for PrintWindow(hwnd, hdc, 2) on the -ActiveWindow/-WindowHandle branch and add a post-capture assertion that the captured rect still belongs to the requested hwnd.",
+      "D6 next (one-line): rename $home to $userHome at take_screenshot.ps1:18 so the documented default destination stops throwing.",
+      "D2: require an explicit --allow-fullscreen for the VirtualScreen branch instead of making it the default.",
+      "D3: give every capture destination a TTL and a documented reaper.",
+      "D4/D5: remove the CodexSandboxUsers ReadAndExecute grant from ~/Pictures and purge the two orphaned ACEs with icacls /remove on the CHILD (editing the parent will not clear them)."
+    ],
+    "second_instance": {
+      "ran_utc": {
+        "started_at": "2026-08-12T02:27:00Z",
+        "ended_at": "2026-08-12T06:07:00Z"
+      },
+      "why": "The artifact already existed from a first instance. Rather than overwrite it (destroying irreplaceable raw transcripts) or trust it (a single signal), the second instance independently re-derived every load-bearing claim and repaired the receipt defects that platform/lib/receipt_schema_gate.py reports.",
+      "what_changed": [
+        "added 5 evidence items carrying the second instance's own probes",
+        "repaired 4 evidence items whose source and verifier both declared method=command and were therefore not mechanically independent under the reducer",
+        "removed NC5 (fired_on_bad_state=false -- an inert detector) and demoted it to a residual unknown; added NC6-NC9, all genuinely both-states",
+        "added 4 tests and 2 executed downstream consumers (condition 12 was previously empty)",
+        "corrected reviewer.reviewed_at, which preceded the refuter's actual run",
+        "recorded defect D9 (self-inflicted contaminated frames, resolved) and 3 new residual unknowns"
+      ],
+      "harness_paths": {
+        "live_recapture_attempt1_failed": "%TEMP%/adv0042_v2/live_recapture.ps1",
+        "live_recapture_attempt2_interlocked": "%TEMP%/adv0042_v2/live_recapture2.ps1",
+        "independent_decoder": "%TEMP%/adv0042_v2/redecode.py",
+        "retention_recount": "%TEMP%/adv0042_v2/retention_verify.py",
+        "final_checks": "%TEMP%/adv0042_v2/final_checks.py"
+      },
+      "scratch_is_ephemeral": "UNVERIFIED that these scratch paths survive to any later reader: they are under %TEMP% and Storage Sense is configured with a 30-day rule. The findings do not depend on them -- every raw output is inlined verbatim in this receipt."
+    },
+    "self_digest_recipe": {
+      "problem": "artifacts[0].sha256 is required to be the sha256 of this file's own bytes, which is a fixed point of SHA-256 and cannot be constructed. Measured: 38 of the 40 receipts in command-center/adversarial declare a self-hash that does not match their bytes on disk, and 2 omit the self entry; no sibling has solved it.",
+      "what_is_recorded_instead": "sha256 of this file after artifacts[0].sha256 is replaced by 64 '0' characters, leaving every other byte untouched.",
+      "recompute": "python -c \"import json,hashlib,io,re; p='command-center/adversarial/ADV-0042-gui-capture-surface-leakage.json'; b=io.open(p,encoding='utf-8').read(); d=json.loads(b); h=d['artifacts'][0]['sha256']; print(hashlib.sha256(b.replace(h,'0'*64).encode('utf-8')).hexdigest())\"",
+      "honesty_note": "This value is therefore NOT the literal on-disk digest the schema description asks for. It is recorded because it is the strongest digest a self-describing file CAN carry, and unlike the sibling receipts' values it is exactly recomputable by a third party. The reducer will still report condition 3 as a mismatch; that is disclosed, not suppressed."
+    }
+  }
+}

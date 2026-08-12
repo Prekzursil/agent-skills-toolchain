@@ -1,0 +1,556 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0032",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0032:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW egress/SSRF review of the research and fetch stages is COMPLETE - 209 call sites enumerated, 5 stages driven live against a local redirect fixture with out-of-process socket observation, 6 controls run (2 fired and forced a fix); 4 stages CONFIRMED inducible, 1 REFUTED; SUCCESS withheld only because the catalog demands two independent reviewers from different vendors and owner approval, neither of which this run can supply",
+  "spec_anchor": "_USER-PROMPTS.md:11049, 10681-10700",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "security-threat-modeler",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json",
+      "bytes": 51562,
+      "sha256": "fd5a8030783df7f411411875cf2f9e6318cf53c3691900795d6642cbdccf7cf7",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The MCP liveness hook, pointed at a configured endpoint that answers 302, follows the redirect into the loopback range and issues the request there; pointed at a 302 to the cloud metadata address it emits a real TCP SYN to 169.254.169.254:80. It has no allowlist, no private-range block, and no redirect cap of its own.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "hooks/mcp-liveness/liveness.py:153-164",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python %TEMP%/adv0032/driver.py liveness_ok ; python %TEMP%/adv0032/driver.py liveness_loopback   # real stage = hooks/mcp-liveness/liveness.py::handshake_detail",
+          "raw_output": "--- sink lines before: 0\n{\"entry_url\": \"http://127.0.0.1:18732/mcp\", \"client_report\": {\"spoke_mcp\": true, \"obj\": {\"jsonrpc\": \"2.0\", \"id\": 1, \"result\": {\"serverInfo\": {\"name\": \"fixture\"}}}}, \"exception\": null, \"stage\": \"liveness_ok\"}\n--- sink lines after ok: 0            <- GOOD state: observer silent\n{\"entry_url\": \"http://127.0.0.1:18732/redir-loopback\", \"client_report\": {\"spoke_mcp\": true, \"obj\": null}, \"exception\": null, \"stage\": \"liveness_loopback\"}\n--- sink lines after loopback: 1      <- BAD state: observer fired\n=== SINK LOG (written by the observer PROCESS, not by the client) ===\n{\"listener\": \"sink\", \"peer\": \"127.0.0.1:53480\", \"method\": \"GET\", \"raw_path\": \"/latest/meta-data/\", \"is_proxy_request\": false, \"host_header\": \"127.0.0.1:18733\", \"user_agent\": \"Python-urllib/3.14\", \"has_authorization\": false, \"has_cookie\": false, \"body_prefix\": \"\", \"ts\": \"2026-08-11T22:05:28Z\"}\n",
+          "fingerprint": "driver.py:liveness_*:client-library-self-report",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "pwsh -File %TEMP%/adv0032/tcpwatch.ps1 -OutFile tcp_liveness_linklocal.json -Seconds 16   (background)  && python %TEMP%/adv0032/driver.py liveness_linklocal   # Get-NetTCPConnection -RemoteAddress 169.254.169.254",
+          "raw_output": "{\"entry_url\": \"http://127.0.0.1:18732/redir-linklocal\", \"client_report\": {\"spoke_mcp\": null, \"obj\": null}, \"exception\": null, \"stage\": \"liveness_linklocal\"}\nTCPWATCH done remote=169.254.169.254 hits=4\n{\n  \"remote_address\": \"169.254.169.254\",\n  \"window_seconds\": 16,\n  \"sample_hits\": 4,\n  \"hits\": [\n    {\"ts\":\"2026-08-12T01:07:53.6244216+03:00\",\"LocalPort\":48723,\"RemoteAddress\":\"169.254.169.254\",\"RemotePort\":80,\"State\":\"SynSent\",\"OwningProcess\":83884,\"ProcName\":\"python\"},\n    {\"ts\":\"2026-08-12T01:07:55.3194417+03:00\",\"LocalPort\":48723,\"RemoteAddress\":\"169.254.169.254\",\"RemotePort\":80,\"State\":\"SynSent\",\"OwningProcess\":83884,\"ProcName\":\"python\"},\n    {\"ts\":\"2026-08-12T01:07:58.2204668+03:00\",\"LocalPort\":48723,\"RemoteAddress\":\"169.254.169.254\",\"RemotePort\":80,\"State\":\"SynSent\",\"OwningProcess\":83884,\"ProcName\":\"python\"},\n    {\"ts\":\"2026-08-12T01:08:00.7763511+03:00\",\"LocalPort\":48723,\"RemoteAddress\":\"169.254.169.254\",\"RemotePort\":80,\"State\":\"SynSent\",\"OwningProcess\":83884,\"ProcName\":null}\n  ]\n}\nNOTE: the client's OWN report was spoke_mcp=null ('unreachable'). Only the out-of-process\nTCP table shows that a SYN to the cloud-metadata address was actually emitted.\n",
+          "fingerprint": "pwsh:Get-NetTCPConnection:169.254.169.254:kernel-tcp-table",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The omniaudit sitelint crawler follows a redirect into the loopback range TWICE per page - once with httpx and once with a real headless Chromium - and bakes the internal response into a PNG artifact on disk, while its own report still labels the row with the entry URL.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/omniaudit-mcp/packages/omniaudit/modules/sitelint/scanner.py:177",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python %TEMP%/adv0032/driver.py sitelint_ok ; python %TEMP%/adv0032/driver.py sitelint_loopback   # real stage = tools/omniaudit-mcp/packages/omniaudit/modules/sitelint/scanner.py::run_sitelint_scan",
+          "raw_output": "sink before=1\nsitelint_ok pages: [{\"url\": \"http://127.0.0.1:18732/ok/\", \"status_code\": 200, \"response_time_ms\": 1114, \"content_length\": 17, \"title\": \"\", \"screenshot\": \"...page-1.png\"}]\nSINK delta after GOOD-state sitelint_ok = 0        <- observer silent\nsitelint_loopback pages: [{\"url\": \"http://127.0.0.1:18732/redir-loopback/\", \"status_code\": 200, \"response_time_ms\": 541, \"content_length\": 25, \"title\": \"\", \"screenshot\": \"...sitelint-sitelint_loopback\\\\page-1.png\", \"findings\": [...]}]\nSINK delta after BAD-state sitelint_loopback = 2   <- observer fired TWICE\n--- new sink lines:\n{\"listener\":\"sink\",\"peer\":\"127.0.0.1:18182\",\"method\":\"GET\",\"raw_path\":\"/latest/meta-data/\",\"host_header\":\"127.0.0.1:18733\",\"user_agent\":\"python-httpx/0.28.1\",\"ts\":\"2026-08-11T22:17:29Z\"}\n{\"listener\":\"sink\",\"peer\":\"127.0.0.1:39260\",\"method\":\"GET\",\"raw_path\":\"/latest/meta-data/\",\"host_header\":\"127.0.0.1:18733\",\"user_agent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.7827.55 Safari/537.36\",\"ts\":\"2026-08-11T22:17:32Z\"}\n\n$ ls -la sitelint-sitelint_loopback/\n-rw-r--r-- 1 Prekzursil 197611 5366 Aug 12 01:17 page-1.png\ncontent_length 25 == len('ADV0032-SSRF-SINK-REACHED'): the scanner's own report shows the SINK body\nlength while still labelling the row with the ENTRY url.\n",
+          "fingerprint": "driver.py:sitelint_*:scanner-return-value",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "observer.py sink listener on 127.0.0.1:18733 - separate process, appends one JSON line per accepted connection to %TEMP%/adv0032/sink_log.jsonl",
+          "raw_output": "--- sink lines before: 0\n{\"entry_url\": \"http://127.0.0.1:18732/mcp\", \"client_report\": {\"spoke_mcp\": true, \"obj\": {\"jsonrpc\": \"2.0\", \"id\": 1, \"result\": {\"serverInfo\": {\"name\": \"fixture\"}}}}, \"exception\": null, \"stage\": \"liveness_ok\"}\n--- sink lines after ok: 0            <- GOOD state: observer silent\n{\"entry_url\": \"http://127.0.0.1:18732/redir-loopback\", \"client_report\": {\"spoke_mcp\": true, \"obj\": null}, \"exception\": null, \"stage\": \"liveness_loopback\"}\n--- sink lines after loopback: 1      <- BAD state: observer fired\n\n[sink_log.jsonl lines for the sitelint run]\n{\"listener\":\"sink\",\"peer\":\"127.0.0.1:18182\",\"raw_path\":\"/latest/meta-data/\",\"user_agent\":\"python-httpx/0.28.1\"}\n{\"listener\":\"sink\",\"peer\":\"127.0.0.1:39260\",\"raw_path\":\"/latest/meta-data/\",\"user_agent\":\"...HeadlessChrome/149.0.7827.55...\"}\n",
+          "fingerprint": "observer.py:sink:18733:socket-accept-log",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "scholarly-access download_oa_pdf can be induced to request a link-local address: its allowlist admits any host whose name merely CONTAINS 'repository', 'dspace', 'eprints', '.edu' or '.ac.uk', and the allowlist is applied only to the entry URL - the redirect destination is never re-validated.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/scholarly-access-mcp/scholarly_access/logic.py:449-460 and policy.py:123-137",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python %TEMP%/adv0032/driver.py scholarly_policy   # pure call into tools/scholarly-access-mcp/scholarly_access/policy.py::is_allowed_host, zero I/O",
+          "raw_output": "ALLOW  http://arxiv.org/pdf/2401.00001.pdf                  <- control: a real OA host IS allowed\nrefuse http://169.254.169.254/latest/meta-data/\nrefuse http://127.0.0.1:18733/x.pdf\nrefuse http://[::1]/x.pdf\nrefuse http://10.0.0.5/x.pdf\nALLOW  http://repository.attacker.example/x.pdf             <- attacker-chosen host\nALLOW  http://anything.edu.attacker.example/x.pdf           <- attacker-chosen host\nALLOW  http://dspace.evil.invalid/x.pdf                     <- attacker-chosen host\nrefuse http://arxiv.org.attacker.example/x.pdf              <- suffix rule IS anchored\nALLOW  http://169.254.169.254.repository.invalid/x.pdf      <- attacker-chosen host\nrefuse http://93.184.216.34/x.pdf\n",
+          "fingerprint": "driver.py:scholarly_policy:pure-function-return-values",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "python %TEMP%/adv0032/driver.py scholarly_fetch_allowlisted   # real stage = scholarly_access/logic.py::download_oa_pdf, driven through the local fixture as HTTP_PROXY",
+          "raw_output": "{\"entry_url\": \"http://repository.adv0032-fixture.invalid/paper.pdf\", \"client_report\": {\"ok\": false, \"error\": \"not a PDF (status 200, magic b'PROXI') \\u2014 likely a bot-wall/landing page; refusing to save. Open the page in a browser instead.\", \"url\": \"http://repository.adv0032-fixture.invalid/paper.pdf\"}, \"exception\": null, \"stage\": \"scholarly_fetch_allowlisted\"}\nFIXTURE delta = 2\n--- what the client actually asked the proxy for (out-of-process record) ---\n  GET http://repository.adv0032-fixture.invalid/paper.pdf   host_hdr=repository.adv0032-fixture.invalid ua=scholarly-access-mcp/0.1 (mail...\n  GET http://169.254.169.254/latest/meta-data/              host_hdr=169.254.169.254 ua=scholarly-access-mcp/0.1 (mail...\n\n-- guard good-state control: a DIRECT private entry URL is refused before any I/O --\n{\"entry_url\": \"http://169.254.169.254/latest/meta-data/\", \"exception\": \"PermissionError: Refused: host of 'http://169.254.169.254/latest/meta-data/' is not on the legitimate OA allowlist...\"}\n   -> fixture delta=0 sink delta=0\n{\"entry_url\": \"http://127.0.0.1:18733/latest/meta-data/\", \"exception\": \"PermissionError: Refused: host of 'http://127.0.0.1:18733/latest/meta-data/' is not on the legitimate OA allowlist...\"}\n   -> fixture delta=0 sink delta=0\n",
+          "fingerprint": "observer.py:fixture:18732:proxy-absolute-uri-accept-log",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Not one of the 106 repo files that contain a fetch/search/crawl call site contains a private/loopback/link-local range check, and only 3 carry a host allowlist in code; the redirect caps that do exist (10/20/30) are library defaults inherited by accident, not program controls.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "%TEMP%/adv0032/census.json - 209 call sites over 2,282 py + 129 ps + 311 js files",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python %TEMP%/adv0032/census.py C:/Users/Prekzursil/source/ast-integrate %TEMP%/adv0032/census.json   # AST census of every fetch/search/crawl call site",
+          "raw_output": "CENSUS files_py=2282 ps=129 js=311 call_sites=209 files_with_hits=106 undefended=200\n\n-- aggregate over the 106 files that hold a fetch/search/crawl call site --\nfiles with private_range_block(strict) = 0\nfiles with private_range_block(loose)  = 0      <- loose counts comments+strings too\nfiles with allowlist(strict)           = 5      <- 2 are PowerShell prose (see control C5)\nfiles with redirect_control(strict)    = 2\nfiles with redirects_explicitly_on     = 5\n\n-- the only files carrying a defense token in CODE --\n  skills/gtfobins-lookup/scripts/gtfobins-lookup.ps1            A=True  R=False P=False  (prose FP)\n  .agents/skills/gtfobins-lookup/scripts/gtfobins-lookup.ps1    A=True  R=False P=False  (prose FP)\n  tools/crcp/crcp/http_secure.py                                A=True  R=True  P=False\n  tools/crcp/tests/test_credential_egress_transport.py          A=True  R=False P=False\n  tools/mcp/patent-search-mcp/patent_api.py                     A=False R=True  P=False\n  tools/scholarly-access-mcp/scholarly_access/logic.py          A=True  R=False P=False\n\n-- client mix over the 209 call sites --\nurllib 69 | requests 53 | session 48 | fetch(js) 12 | httpx 11 | Invoke-WebRequest 9 |\naiohttp 3 | http.client 2 | HttpClient 1 | Invoke-RestMethod 1\n-- URL construction --\nvariable 96 | literal 47 | regex-not-analyzed 23 | none 16 | fstring 14 | call 10 | attribute 3\n",
+          "fingerprint": "census.py:ast-walk+token-stripped-regex:whole-repo",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "python %TEMP%/adv0032/driver.py liveness_chain ; ... sitelint_chain ; requests.get(fixture /chain/0)",
+          "raw_output": "urllib   (hooks/mcp-liveness): FIXTURE chain hops = 11  -> cap 10 redirects\n  POST /chain/0 ; GET /chain/1 ... GET /chain/10\n  client_report {\"spoke_mcp\": false} -- the redirect-loop error is misreported as\n  'TCP up but does not speak MCP'\nhttpx    (omniaudit sitelint):  httpx chain requests to fixture = 21 -> cap 20 redirects\nrequests (scholarly download):  requests raised: TooManyRedirects Exceeded 30 redirects.\n                                requests chain requests to fixture = 31 -> cap 30 redirects\nAll three caps are the LIBRARY DEFAULT. No stage sets a cap of its own; grep for a cap token\nreturns 2 files repo-wide (crcp/http_secure.py MAX_REDIRECTS=5, patent_api.py).\n",
+          "fingerprint": "observer.py:fixture:/chain/N:arrival-counting",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "tools/crcp/crcp/http_secure.py::open_url is NOT inducible: an exact-host allowlist, an https-and-port-443 rule and a stage-owned MAX_REDIRECTS=5 are re-applied to every redirect target before the next connection, so all three fixture URLs were refused with zero bytes on the wire.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "tools/crcp/crcp/http_secure.py:64-81, 92-124, 145-167",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python %TEMP%/adv0032/driver.py crcp_fixture ; ... crcp_linklocal ; ... crcp_allowlisted_http   # real hardened stage = tools/crcp/crcp/http_secure.py::open_url",
+          "raw_output": "{\"entry_url\": \"http://127.0.0.1:18732/ok\", \"client_report\": null, \"exception\": \"URLSecurityError: outbound host is not in the CRCP allowlist\", \"stage\": \"crcp_fixture\"}\n   -> fixture delta=0\n{\"entry_url\": \"http://169.254.169.254/latest/meta-data/\", \"client_report\": null, \"exception\": \"URLSecurityError: outbound host is not in the CRCP allowlist\", \"stage\": \"crcp_linklocal\"}\n   -> fixture delta=0\n{\"entry_url\": \"http://chatgpt.com/x\", \"client_report\": null, \"exception\": \"URLSecurityError: OpenAI and ChatGPT requests require HTTPS\", \"stage\": \"crcp_allowlisted_http\"}\n   -> fixture delta=0\nThe third line is the not-blocked-everything control for THIS stage: the refusal is the SCHEME\nrule, i.e. chatgpt.com IS a live allowlist member, so the guard is selective, not a blanket deny.\n",
+          "fingerprint": "driver.py:crcp_*:URLSecurityError-return",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "wc -l on %TEMP%/adv0032/fixture_log.jsonl and sink_log.jsonl before and after each crcp_* stage (observer process accept logs)",
+          "raw_output": "crcp_fixture      -> fixture delta=0\ncrcp_linklocal    -> fixture delta=0\ncrcp_allowlisted_http -> fixture delta=0\nsink_log.jsonl unchanged across all three (4 lines before, 4 after)\nContrast: the same observer recorded 4 sink arrivals and 77 fixture arrivals from the other stages, so a zero here is a measured silence, not an inert detector.",
+          "fingerprint": "observer.py:accept-log-delta:crcp",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "hooks/semantic-router/embed.py sends its full prompt body to whatever host SEMROUTER_OLLAMA_URL names, with no allowlist and no private-range block; the destination is config-controlled rather than remote-content-controlled, so this is a weaker vector than the other three.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "hooks/semantic-router/embed.py:20, 44-50",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "SEMROUTER_OLLAMA_URL=http://127.0.0.1:18733 python -c \"<load hooks/semantic-router/embed.py>; embed('adv0032')\"",
+          "raw_output": "SEMROUTER hit (fixture): POST /api/embed ua= Python-urllib/3.14 body= {\"model\": \"nomic-embed-text\", \"input\": [\"adv0032 probe\"], \"keep_alive\"...\nOLLAMA_URL= http://127.0.0.1:18733 embed-> None\nSINK delta (semrouter env-pointed at private sink) = 1\n{\"listener\":\"sink\",\"peer\":\"127.0.0.1:19737\",\"method\":\"POST\",\"raw_path\":\"/api/embed\",\"host_header\":\"127.0.0.1:18733\",\"user_agent\":\"Python-urllib/3.14\",\"body_prefix\":\"{\\\"model\\\": \\\"nomic-embed-text\\\", \\\"input\\\": [\\\"adv0032\\\"], \\\"keep_alive\\\": \\\"60m\\\"}\",\"ts\":\"2026-08-11T22:24:15Z\"}\nThe client returned None (its own report shows nothing); the observer shows the full prompt\nbody arriving at the operator-chosen destination.\n",
+          "fingerprint": "driver.py:semrouter:embed-return-value",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "tail -1 %TEMP%/adv0032/sink_log.jsonl after the env-pointed run",
+          "raw_output": "{\"listener\":\"sink\",\"peer\":\"127.0.0.1:19737\",\"method\":\"POST\",\"raw_path\":\"/api/embed\",\"host_header\":\"127.0.0.1:18733\",\"user_agent\":\"Python-urllib/3.14\",\"body_prefix\":\"{\\\"model\\\": \\\"nomic-embed-text\\\", \\\"input\\\": [\\\"adv0032\\\"], \\\"keep_alive\\\": \\\"60m\\\"}\"}\nSINK delta = 1",
+          "fingerprint": "observer.py:sink:18733:socket-accept-log:semrouter",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Two research scripts re-fetch a URL that was regex-captured out of a previously fetched response body, with no validation of any kind - the destination is chosen by whatever the upstream returned. UNVERIFIED: this one is static only; the scripts were NOT driven against the fixture, so the reachability of that branch on this box is unmeasured.",
+      "verdict": "PARTIAL",
+      "anchor": "skills/consensus-tooluniverse-research/scripts/resolve_and_download.py:215-221 and resolve_v3_extra_sources.py:118-123",
+      "unverified": true,
+      "settling_experiment": "Stand up a fixture that answers the PMC oa.fcgi shape with href=\"https://169.254.169.254/x.pdf\", point the script's base URLs at it, and check the observer log for an arrival at the injected host - the same harness used for the other four stages.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "sed -n '212,232p' skills/consensus-tooluniverse-research/scripts/resolve_and_download.py",
+          "raw_output": "            m = re.search(r'href=\"(ftp://[^\"]+\\.pdf[^\"]*)\"', oa) or re.search(\n                r'href=\"(https?://[^\"]+\\.pdf[^\"]*)\"', oa\n            )\n            if m:\n                r = requests.get(\n                    m.group(1).replace(\"ftp://\", \"https://\"), headers=UA, timeout=60\n                )\n                if is_pdf(r.content):\n                    return \"pdf\", \"pdf\", r.content\n",
+          "fingerprint": "sed:resolve_and_download.py:212-232",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-control-normal-url-fetched",
+      "name": "control: a normal (non-redirecting) URL is fetched successfully by every client under test, so a blocked-everything network cannot masquerade as a safe design",
+      "command": "python %TEMP%/adv0032/driver.py liveness_ok ; python %TEMP%/adv0032/driver.py sitelint_ok ; python -c \"urllib.request.urlopen('http://127.0.0.1:18732/ok')\"",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "smoke -> b'PUBLIC-CONTROL-OK'\nliveness_ok  -> {\"spoke_mcp\": true, \"obj\": {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{...}}}\nsitelint_ok  -> {\"url\":\"http://127.0.0.1:18732/ok/\",\"status_code\":200,\"content_length\":17}\n"
+    },
+    {
+      "id": "T2-all-targets-local",
+      "name": "no request is issued to any third-party system: every destination is 127.0.0.1, plus one deliberate SYN to the non-routable link-local metadata address that nothing answers",
+      "command": "review of %TEMP%/adv0032/fixture_log.jsonl (77 records) and sink_log.jsonl (4 records) + the tcpwatch captures",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "every fixture/sink peer is 127.0.0.1; the only non-loopback destination is 169.254.169.254:80, which stayed in SynSent (nothing on this box answers it) and which the unit's own inputs name as a required fixture target."
+    },
+    {
+      "id": "T3-census-detector-selftest",
+      "name": "the census detector discriminates known-bad from known-good before its repo-wide count is trusted",
+      "command": "python %TEMP%/adv0032/census.py %TEMP%/adv0032/control %TEMP%/adv0032/census_control.json",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "control_vuln.py UNDEFENDED=True ; control_safe.py UNDEFENDED=False"
+    },
+    {
+      "id": "T4-observer-detector-selftest",
+      "name": "both out-of-process observers (HTTP sink, kernel TCP table) fire on a known connection and stay silent with no client",
+      "command": "pwsh -File %TEMP%/adv0032/tcpwatch.ps1 (idle window, then a deliberate connect) + sink-log deltas around every good-state stage",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "tcpwatch idle=0 hits, deliberate connect=5 SynSent hits; sink delta 0 on all good-state runs, 1-2 on bad-state runs"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "C1-census-both-states",
+      "kind": "known-broken-fixture",
+      "description": "The census detector was run against a purpose-built known-VULNERABLE fetch (urlopen of a caller-supplied URL, no guards) and a known-SAFE fetch (exact-host allowlist + allow_redirects=False + ipaddress private/loopback/link-local check). It must flag the first and stay silent on the second. FIRST RUN FAILED: the known-bad fixture scored allowlist=True because the word 'allowlist' appears in its docstring (use-vs-mention). Fixed by dropping COMMENT and STRING tokens before matching; re-run discriminates correctly.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "# BEFORE the fix (detector was broken):\ncontrol_safe.py 25 requests undefended=False A/R/P= True True True\ncontrol_vuln.py  8 urllib   undefended=False A/R/P= True False False   <-- WRONG: no allowlist\n  root cause: the word 'allowlist' appears in the fixture's DOCSTRING ('no allowlist'), and the\n  regex ran over raw text. Classic use-vs-mention. Fixed by tokenising and dropping COMMENT and\n  STRING tokens before applying the defense regexes.\n\n# AFTER the fix:\nCENSUS files_py=2 call_sites=2 undefended=1\ncontrol_safe.py 25 requests url_kind=call     UNDEFENDED=False A/R/P= True True True\ncontrol_vuln.py  8 urllib   url_kind=variable UNDEFENDED=True  A/R/P= False False False\n",
+      "good_state_output": "control_safe.py 25 requests url_kind=call UNDEFENDED=False A/R/P= True True True"
+    },
+    {
+      "id": "C2-sink-both-states",
+      "kind": "known-broken-fixture",
+      "description": "The out-of-process SINK is the whole basis of the 'it chased the redirect' claim, so it was controlled on both states for every stage: the same stage pointed at a NON-redirecting fixture path (good state) must leave the sink log unchanged, and pointed at the redirecting path (bad state) must add a line. Measured for liveness (0 -> then +1) and for sitelint (0 -> then +2).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "SINK delta after BAD-state liveness_loopback = 1 ; SINK delta after BAD-state sitelint_loopback = 2",
+      "good_state_output": "SINK delta after GOOD-state liveness_ok = 0 ; SINK delta after GOOD-state sitelint_ok = 0"
+    },
+    {
+      "id": "C3-tcp-table-both-states",
+      "kind": "known-broken-fixture",
+      "description": "A '0 hits' reading from the TCP-table observer would otherwise be indistinguishable from a broken matcher, so it was proven on both states BEFORE the real measurement: an idle 4s window returned 0 hits, and a deliberate raw socket connect to 169.254.169.254:80 during a 12s window returned 5 SynSent hits naming the owning process.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "# CONTROL A - good state, 4s window, nothing connecting:\nTCPWATCH done remote=169.254.169.254 hits=0\n{\"remote_address\":\"169.254.169.254\",\"window_seconds\":4,\"sample_hits\":0,\"hits\":[]}\n\n# CONTROL B - bad state, a deliberate raw socket connect during the window:\nconnect_ex -> 10035\nTCPWATCH done remote=169.254.169.254 hits=5\n{\"remote_address\":\"169.254.169.254\",\"window_seconds\":12,\"sample_hits\":5,\"hits\":[\n  {\"LocalPort\":18203,\"RemoteAddress\":\"169.254.169.254\",\"RemotePort\":80,\"State\":\"SynSent\",\"OwningProcess\":53268,\"ProcName\":\"python\"}, ... x5 ]}\n",
+      "good_state_output": "{\"remote_address\":\"169.254.169.254\",\"window_seconds\":4,\"sample_hits\":0,\"hits\":[]}"
+    },
+    {
+      "id": "C4-public-url-fetch-succeeds",
+      "kind": "other",
+      "description": "The unit's required control: a normal URL must be fetched successfully, so a blocked-everything network cannot masquerade as a safe design. Satisfied at two levels. (a) NETWORK: the fixture's plain 200 path was fetched successfully by urllib (liveness_ok -> spoke_mcp=true), by httpx (sitelint_ok -> status_code 200) and by headless Chromium, so nothing is blanket-blocking outbound HTTP. (b) POLICY: each guarded stage still ADMITS a real public host - scholarly's allowlist returns True for arxiv.org, and crcp's refusal of http://chatgpt.com is the https-only rule (chatgpt.com is a live allowlist member), so neither guard is a blanket deny. RESIDUAL, stated inline: no request was issued to any third-party system, because the unit's own tests_required forbids it - so 'the box can reach the public internet right now' is NOT-CHECKED.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "guards DO refuse when they should: crcp refused 3/3 off-allowlist targets with 0 fixture I/O; scholarly refused both direct private entry URLs with 0 fixture and 0 sink I/O",
+      "good_state_output": "urllib GET /ok -> b'PUBLIC-CONTROL-OK' ; httpx GET /ok/ -> 200 ; policy.is_allowed_host('http://arxiv.org/pdf/2401.00001.pdf') -> True"
+    },
+    {
+      "id": "C5-fixture-false-safe-caught",
+      "kind": "malformed-input",
+      "description": "A control on the FIXTURE rather than the stage. The first sitelint run reported SINK delta 0, which reads as 'this stage does not follow redirects'. It was a fixture defect: omniaudit normalises the URL with a trailing slash, the fixture 404'd, and the redirect was never served. Recorded here because an uncontrolled harness would have shipped that as a SAFE verdict.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "# The fixture's FIRST sitelint run produced a false SAFE and was caught:\nsitelint_loopback pages: [{\"url\": \"http://127.0.0.1:18732/redir-loopback/\", \"status_code\": 404, ...}]\nSINK delta (sitelint_loopback) = 0     <-- would have read as 'stage does not follow redirects'\n  root cause: omniaudit's _build_scan_urls appends a trailing slash, so the request path was\n  /redir-loopback/ and the fixture 404'd. The fixture, not the stage, was the failure.\n  Fixed by normalising a trailing slash in the fixture; re-run then produced SINK delta = 2.\n",
+      "good_state_output": "after the fixture fix: sitelint_ok (non-redirecting path) still SINK delta 0, so the fix did not make the observer over-fire"
+    },
+    {
+      "id": "C7-schema-validator-both-states",
+      "kind": "mutation",
+      "description": "The downstream-consumer probe reports 'errors=0' for this receipt, which is worthless from an unproven validator. Six known-bad mutations of the SAME instance were fed to the SAME validator and every one was rejected. M2 and M4 matter most: they show that a fabricated SUCCESS state on this receipt - with the reviewer still NOT-REVIEWED, or with a control marked inert - is schema-INVALID, so BLOCKED is not merely the honest state, it is the only valid one.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "M1 drop required spec_anchor              : errors=1\nM2 claim SUCCESS with reviewer NOT-REVIEWED: errors=4\nM3 CONFIRMED verdict with no verifier probe: errors=2\nM4 SUCCESS with an inert control           : errors=5\nM5 wrong artifact class kind               : errors=1\nM6 zero-byte artifact (MSYS truncation)    : errors=1",
+      "good_state_output": "GOOD state (the receipt as written): errors=0"
+    },
+    {
+      "id": "C6-real-code-known-good",
+      "kind": "other",
+      "description": "The strongest form of the both-states rule: instead of only a synthetic safe fixture, a REAL hardened stage in the same repo (tools/crcp/crcp/http_secure.py::open_url) was driven with the identical fixture URLs. It refused all three with zero I/O at the observer, so the harness is not simply flagging everything it touches.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "the same harness fired on 4 other real stages in this repo (liveness, sitelint, scholarly, semantic-router)",
+      "good_state_output": "{\"entry_url\": \"http://127.0.0.1:18732/ok\", \"client_report\": null, \"exception\": \"URLSecurityError: outbound host is not in the CRCP allowlist\", \"stage\": \"crcp_fixture\"}\n   -> fixture delta=0\n{\"entry_url\": \"http://169.254.169.254/latest/meta-data/\", \"client_report\": null, \"exception\": \"URLSecurityError: outbound host is not in the CRCP allowlist\", \"stage\": \"crcp_linklocal\"}\n   -> fixture delta=0\n{\"entry_url\": \"http://chatgpt.com/x\", \"client_report\": null, \"exception\": \"URLSecurityError: OpenAI and ChatGPT requests require HTTPS\", \"stage\": \"crcp_allowlisted_http\"}\n   -> fixture delta=0\nThe third line is the not-blocked-everything control for THIS stage: the refusal is the SCHEME\nrule, i.e. chatgpt.com IS a live allowlist member, so the guard is selective, not a blanket deny.\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "<none>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The catalog reviewer_requirement is 'two reviewers from DIFFERENT vendors must each independently reproduce the counterexample'. This run is a single Anthropic agent and cannot satisfy it, so the receipt is BLOCKED rather than SUCCESS. Everything a reviewer needs to reproduce is self-contained: %TEMP%/adv0032/{observer.py,driver.py,census.py,tcpwatch.ps1} plus the stage names, and the expected result per stage is stated as an accept-log delta."
+  },
+  "defects": [
+    {
+      "id": "ADV0032-D1",
+      "severity": "P1",
+      "status": "open",
+      "summary": "hooks/mcp-liveness/liveness.py follows a config-supplied endpoint's redirect into the loopback range and emits a SYN to 169.254.169.254. An untrusted repo that ships an MCP config chooses the destination (AGENTS.md 9). Fix: resolve the host and reject private/loopback/link-local before connecting, and disable redirect following on a liveness probe."
+    },
+    {
+      "id": "ADV0032-D2",
+      "severity": "P1",
+      "status": "open",
+      "summary": "scholarly_access/policy.ALLOW_HOST_FRAGMENTS is matched with 'frag in host', so any attacker-registered host containing 'repository', 'dspace', 'eprints', '.edu' or '.ac.uk' passes; download_oa_pdf then never re-validates the redirect target. Fix: anchor the fragment match to a label boundary, re-run assert_lawful on every hop, and block private ranges after DNS resolution."
+    },
+    {
+      "id": "ADV0032-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "omniaudit sitelint crawls a caller-supplied URL with httpx follow_redirects=True and then screenshots the redirected page with headless Chromium, writing an internal response into a durable PNG. Fix: a private-range block before both the httpx fetch and the browser navigation."
+    },
+    {
+      "id": "ADV0032-D4",
+      "severity": "P2",
+      "status": "open",
+      "summary": "download_oa_pdf returns the first 5 bytes plus the status of the fetched internal response to its caller, converting a blind SSRF into a small read oracle."
+    },
+    {
+      "id": "ADV0032-D5",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Repo-wide: 0 of 106 files with a fetch call site perform any private/link-local range check. The defense exists nowhere, so every future fetch stage starts undefended. Fix: one shared guarded client (http_secure.py is the working model) that every stage is required to use."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0032"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.load + jsonschema validation against command-center/schema/exploit-proof.schema.json (which $refs platform/schema/artifact-class-profiles.schema.json#/$defs/exploit-proof)",
+      "artifact_path": "command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python %TEMP%/adv0032/validate.py   # json.load + jsonschema over the $ref chain, then python %TEMP%/adv0032/validate_control.py for the mutation control",
+        "raw_output": "json.load OK: unit_id=ADV-0032 state=BLOCKED keys=20\njsonschema 4.25.1 | Draft202012 | errors=0\nEXIT=0\n-- validator mutation control (same instance, six known-bad edits) --\nGOOD state (the receipt as written)        : errors=0\nM1 drop required spec_anchor               : errors=1\nM2 claim SUCCESS with reviewer NOT-REVIEWED: errors=4\nM3 CONFIRMED verdict with no verifier probe: errors=2\nM4 SUCCESS with an inert control           : errors=5\nM5 wrong artifact class kind               : errors=1\nM6 zero-byte artifact (MSYS truncation)    : errors=1\nNOTE: this run was performed against the byte-identical receipt content minus the artifacts[0].sha256 self-reference; see the residual on the self-hash limit.",
+        "fingerprint": "jsonschema:exploit-proof:ADV-0032:refchain+mutation-control",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T21:35:00Z",
+    "ended_at": "2026-08-11T22:40:00Z",
+    "duration_seconds": 3900
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b). No hypothesis needed a second attempt: the two failures that occurred were DETECTOR failures (census use-vs-mention, fixture trailing-slash 404), both diagnosed and fixed on the first re-run, and both are recorded as controls C1 and C5 rather than hidden."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-cross-vendor-review",
+      "owner-approval-required",
+      "privacy-leak",
+      "sandbox-escape"
+    ],
+    "reason": "The measurement is COMPLETE: both named probes ran with raw output recorded, every enumerated target carries exactly one verdict, and all seven controls ran (two of them FIRED and forced a detector fix before any verdict was trusted). SUCCESS is withheld for two reasons the run cannot resolve on its own: (1) the catalog requires two independent reviewers from DIFFERENT vendors to each reproduce the counterexample, and this is a single-vendor run; (2) the unit is owner_approval_required and the receipt is not registered in ARTIFACT-MANIFEST.json, which this run is not permitted to edit.",
+    "blocked_on": "two cross-vendor independent reviewers + owner approval + manifest registration",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "python -c \"json.load(WORK-UNIT-CATALOG.json)['work_units'] -> ADV-0032\"",
+        "raw_output": "\"reviewer_requirement\": \"two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count\"\n\"owner_approval_required\": true",
+        "fingerprint": "catalog:ADV-0032:reviewer_requirement",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python -c \"receipt.schema.json #/$defs/receipt_core allOf[state==SUCCESS]\"",
+        "raw_output": "SUCCESS requires reviewer.verdict == \"PASS\" AND reviewer.independent == true AND manifest_registration.registered == true AND every downstream_consumer executed. With reviewer NOT-REVIEWED and registered=false, a SUCCESS state would be schema-invalid as well as untrue.",
+        "fingerprint": "receipt.schema.json:receipt_core:success-branch",
+        "exit_code": 0
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "101 of the 106 files holding a fetch/search/crawl call site were enumerated but NOT driven against the fixture, so they carry no per-stage verdict here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Extend %TEMP%/adv0032/driver.py with one stage entry per remaining module and re-run against the same observer; the per-stage verdict is then the sink/fixture accept-log delta, exactly as for the five measured stages."
+    },
+    {
+      "claim": "Whether this box can currently reach a real third-party host over HTTP was not measured, so the 'not a blocked-everything network' control rests on local fixtures plus the two policy admissions (arxiv.org, chatgpt.com) rather than on a live public fetch.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "One HTTPS HEAD to a public host. Deliberately NOT run: this unit's tests_required states 'all targets are local fixtures; no request is issued to any third-party system', and that constraint outranks the completeness of the control."
+    },
+    {
+      "claim": "The DNS half of the scholarly bypass - an attacker registering a name containing 'repository' with an A record pointing at 169.254.169.254 - was proven only at the policy layer (is_allowed_host returns True for such a host) and by the absence of any post-resolution IP check in the code. No such name was registered or resolved.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Run the stage with a local resolver that answers oa-repository.test with A 127.0.0.1, and check the sink accept log. Not done here because it requires changing system DNS."
+    },
+    {
+      "claim": "The census defense-token scan strips comments and string literals for Python only. For PowerShell and JavaScript it strips line comments but not string literals, which is exactly how 2 of the 5 strict allowlist hits turned out to be prose inside gtfobins-lookup.ps1.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Add a PowerShell/JS tokenizer pass. The direction of the error is known and safe for the headline: it can only OVER-count defenses, and the headline claim is that defenses are ABSENT (0 private-range blocks under both strict and loose scans)."
+    },
+    {
+      "claim": "The sha256 recorded for this artifact is the digest measured at receipt-finalisation time, not of the final bytes: a receipt cannot contain the digest of its own final content.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "An external reducer re-hashes the file after write and records the digest out-of-band; the byte count in this receipt IS the on-disk count and can be checked directly."
+    }
+  ],
+  "report": {
+    "kind": "exploit-proof",
+    "observations": [
+      {
+        "name": "COVERAGE",
+        "measured": "2 of 2 named probes RUN. 7 of 7 controls RUN (2 of them FIRED and forced a detector fix). 209 fetch/search/crawl call sites enumerated mechanically across 106 files; 5 stages driven live against the local fixture; the remaining 101 files are ENUMERATED but NOT DRIVEN and carry no per-stage verdict.",
+        "method": "static-analysis",
+        "anchor": "%TEMP%/adv0032/census.json"
+      },
+      {
+        "name": "private_range_block_repo_wide",
+        "measured": "0 of 106 files that contain a fetch/search/crawl call site contain any private/loopback/link-local range check - 0 under the strict (code-only) scan AND 0 under the loose scan that also counts comments and string literals, so the count cannot be an under-detection artifact",
+        "method": "static-analysis",
+        "anchor": "%TEMP%/adv0032/census.json#file_defense"
+      },
+      {
+        "name": "allowlist_coverage",
+        "measured": "3 of 106 files carry a host allowlist in CODE (crcp/http_secure.py, its test, scholarly_access/logic.py). 2 further strict hits are PowerShell prose inside gtfobins-lookup.ps1 and are false positives disclosed by control C5.",
+        "method": "static-analysis",
+        "anchor": "tools/crcp/crcp/http_secure.py:17-24"
+      },
+      {
+        "name": "redirect_cap_source",
+        "measured": "urllib 10 / httpx 20 / requests 30 - all three measured by counting arrivals at the fixture, and all three are the LIBRARY DEFAULT. Only 2 files repo-wide set a cap of their own (crcp/http_secure.py MAX_REDIRECTS=5, patent_api.py).",
+        "method": "http",
+        "anchor": "%TEMP%/adv0032/fixture_log.jsonl"
+      },
+      {
+        "name": "loopback_sink_arrivals",
+        "measured": "4 arrivals at 127.0.0.1:18733 across the run, from 3 distinct user agents: Python-urllib/3.14 (liveness), python-httpx/0.28.1 and HeadlessChrome/149.0.7827.55 (sitelint), Python-urllib/3.14 POST /api/embed (semantic-router). 0 arrivals during every good-state run.",
+        "method": "http",
+        "anchor": "%TEMP%/adv0032/sink_log.jsonl"
+      },
+      {
+        "name": "linklocal_syn_emitted",
+        "measured": "4 Get-NetTCPConnection samples in state SynSent to 169.254.169.254:80 from the liveness client process (pid 83884, LocalPort 48723) while the same client reported only 'unreachable'",
+        "method": "process-table",
+        "anchor": "%TEMP%/adv0032/tcp_liveness_linklocal.json"
+      },
+      {
+        "name": "allowlist_substring_bypass",
+        "measured": "4 of 11 policy cases are attacker-chosen hosts that the OA allowlist ACCEPTS: repository.attacker.example, anything.edu.attacker.example, dspace.evil.invalid, 169.254.169.254.repository.invalid - because ALLOW_HOST_FRAGMENTS is matched with 'frag in host'",
+        "method": "test-run",
+        "anchor": "tools/scholarly-access-mcp/scholarly_access/policy.py:123-137"
+      },
+      {
+        "name": "screenshot_amplification",
+        "measured": "the sitelint stage rendered the redirected internal response with headless Chromium and wrote it to a 5,366-byte PNG artifact (page-1.png), so an internal body reached durable storage, not just memory",
+        "method": "file-read",
+        "anchor": "%TEMP%/adv0032/sitelint-sitelint_loopback/page-1.png"
+      },
+      {
+        "name": "response_oracle_leak",
+        "measured": "download_oa_pdf returns the first 5 bytes of the fetched internal response to its caller in the error string (\"magic b'PROXI'\"), which turns a blind SSRF into a 5-byte read oracle plus a status code",
+        "method": "test-run",
+        "anchor": "tools/scholarly-access-mcp/scholarly_access/logic.py:465-472"
+      },
+      {
+        "name": "untrusted_url_from_fetched_content",
+        "measured": "2 research scripts re-fetch a URL regex-captured out of a previously fetched response body with no validation at all: requests.get(m.group(1).replace('ftp://','https://')) - the exact shape AGENTS.md 9 forbids (fetched content is untrusted DATA)",
+        "method": "static-analysis",
+        "anchor": "skills/consensus-tooluniverse-research/scripts/resolve_and_download.py:219"
+      }
+    ],
+    "control_ids": [
+      "C1-census-both-states",
+      "C2-sink-both-states",
+      "C3-tcp-table-both-states",
+      "C4-public-url-fetch-succeeds",
+      "C5-fixture-false-safe-caught",
+      "C7-schema-validator-both-states",
+      "C6-real-code-known-good"
+    ],
+    "question": "Which stages can be induced to issue a request to an attacker-chosen host or a link-local/internal address, and is there an allowlist, a redirect cap and a private-range block?",
+    "answer": "Four of the five stages driven live can be induced; the fifth cannot. Repo-wide there is NO private-range block anywhere (0 of 106 files), an allowlist in only 3 files, and every redirect cap in the tree except two is the library default rather than a program control. The single strongest vector is the pair 'allowlist checked once on the entry URL' + 'client follows redirects by default': it converts a one-time host check into no check at all.",
+    "stage_matrix": [
+      {
+        "stage": "hooks/mcp-liveness/liveness.py::handshake_detail",
+        "anchor": "hooks/mcp-liveness/liveness.py:153-164",
+        "client": "urllib.request.urlopen (stdlib default opener)",
+        "url_origin": "critical.json / MCP config spec['url'] (liveness.py:82-85, 229) - a cloned or untrusted repo can ship this config (AGENTS.md 9)",
+        "allowlist": "ABSENT",
+        "redirect_cap": "10 (stdlib default, not set by the stage)",
+        "private_range_block": "ABSENT",
+        "reached_loopback_sink": true,
+        "emitted_linklocal_syn": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "stage": "tools/omniaudit-mcp/.../modules/sitelint/scanner.py::run_sitelint_scan",
+        "anchor": "tools/omniaudit-mcp/packages/omniaudit/modules/sitelint/scanner.py:177",
+        "client": "httpx.get(follow_redirects=True) + a real headless Chromium for the screenshot",
+        "url_origin": "the scan target argument (tool/user input)",
+        "allowlist": "ABSENT",
+        "redirect_cap": "20 (httpx default, not set by the stage)",
+        "private_range_block": "ABSENT",
+        "reached_loopback_sink": true,
+        "emitted_linklocal_syn": "NOT-CHECKED (loopback variant measured instead)",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "stage": "tools/scholarly-access-mcp/scholarly_access/logic.py::download_oa_pdf",
+        "anchor": "tools/scholarly-access-mcp/scholarly_access/logic.py:449-460",
+        "client": "requests.get(allow_redirects=True)",
+        "url_origin": "a URL argument, gated by policy.assert_lawful",
+        "allowlist": "PRESENT but bypassable by substring, and applied ONLY to the entry URL",
+        "redirect_cap": "30 (requests default, not set by the stage)",
+        "private_range_block": "ABSENT",
+        "reached_loopback_sink": "N/A - driven through the local proxy so the entry host never resolves",
+        "emitted_linklocal_syn": "the client EMITTED GET http://169.254.169.254/latest/meta-data/ (observed in the proxy accept log); no packet was sent to the address itself",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "stage": "hooks/semantic-router/embed.py::embed",
+        "anchor": "hooks/semantic-router/embed.py:20, 44-50",
+        "client": "urllib.request.urlopen",
+        "url_origin": "env SEMROUTER_OLLAMA_URL (operator/config controlled, not remote-content controlled)",
+        "allowlist": "ABSENT",
+        "redirect_cap": "10 (stdlib default, not set by the stage)",
+        "private_range_block": "ABSENT",
+        "reached_loopback_sink": true,
+        "emitted_linklocal_syn": "NOT-CHECKED",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "stage": "tools/crcp/crcp/http_secure.py::open_url",
+        "anchor": "tools/crcp/crcp/http_secure.py:17-24, 64-81, 92-124, 145-167",
+        "client": "urllib with a _NoRedirectHandler and explicit per-hop re-validation",
+        "url_origin": "CRCP request construction",
+        "allowlist": "PRESENT - exact-host frozenset, https-only, port 443 only, no userinfo",
+        "redirect_cap": "5, enforced by the stage itself (MAX_REDIRECTS)",
+        "private_range_block": "ABSENT as an IP check, but unreachable: the exact-host allowlist is re-applied to every redirect target before the next connection",
+        "reached_loopback_sink": false,
+        "emitted_linklocal_syn": false,
+        "verdict": "REFUTED (this stage is NOT inducible - it is the known-good reference)"
+      }
+    ],
+    "harness": {
+      "observer": "%TEMP%/adv0032/observer.py - separate process, fixture 127.0.0.1:18732 + sink 127.0.0.1:18733, one JSON line per accepted connection",
+      "driver": "%TEMP%/adv0032/driver.py - one real repo stage per invocation, records only the client library's own report",
+      "census": "%TEMP%/adv0032/census.py - AST call-site census + token-stripped defense scan",
+      "socket_observer": "%TEMP%/adv0032/tcpwatch.ps1 - Get-NetTCPConnection sampler",
+      "independence_note": "The source probe is always the client's own return value; the verifier is always an accept log or a kernel TCP table produced by a DIFFERENT process. In three of the four CONFIRMED stages the client's own report did NOT reveal the egress - liveness reported 'unreachable', semantic-router returned None, and scholarly reported only 'not a PDF' - so a source-only run would have produced a false SAFE."
+    }
+  }
+}

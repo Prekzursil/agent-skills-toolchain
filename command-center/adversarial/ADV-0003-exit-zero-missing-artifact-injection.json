@@ -1,0 +1,544 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0003",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0003:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW exit-zero-with-missing-artifact injected against 7 executable fan-in barriers on two platforms; 1 CONFIRMED exploit (reconcile records a worker that wrote nothing as DELIVERED, 28 live instances at HEAD), 1 CONFIRMED-by-design accept, 4 PARTIAL (platform-dependent), 1 REFUTED. SUCCESS withheld: the catalog's mandatory cross-vendor independent refuter has not run, and self-certification is the failure this program exists to prevent.",
+  "spec_anchor": "_USER-PROMPTS.md:10646, 11312",
+  "min_bytes_threshold": 8192,
+  "profile": "exploit-proof",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "adversarial-refuter",
+    "execution_substrate": "worktree-isolated"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0003-exit-zero-missing-artifact-injection.json",
+      "bytes": 45243,
+      "sha256": "be51d31a17ff1a39c5b091e8019c46b98d686e02139546499b4265afd539651a",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "PROBE 1 + PROBE 2, Windows arm: a mock worker that exits 0 and writes NOTHING is REJECTED by verify_dispatch, completion_predicate._c2_artifact_exists, receipt_schema_gate condition 2, and reconcile_delivery._nonempty, and ACCEPTED by reconcile_delivery.reconcile.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/coordination/dispatch.py:302-322; tools/command-center/reconcile_delivery.py:104-205",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/scratchpad/adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate",
+          "raw_output": "PROBE 1 (barrier verdicts). accepted=True means the barrier records the worker as complete.\nworker exit codes: {\"good\": 0, \"absent\": 0, \"empty\": 0, \"case_worker_upper\": 0, \"case_declared_upper\": 0, \"trailspace_declared\": 0, \"backslash_declared\": 0}\n\ncase                  B1     B2     B3     B4a    B4b    \ngood                  True   True   True   True   True   \nabsent                False  False  False  False  True   \nempty                 False  True   True   False  True   \ncase_worker_upper     True   True   True   True   True   \ncase_declared_upper   True   True   True   True   True   \ntrailspace_declared   True   True   True   True   True   \nbackslash_declared    True   True   True   True   True   ",
+          "fingerprint": "50e4744b94f1d702",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "os.scandir() of every output directory, executed inside the same probe but reading the FILESYSTEM, never any barrier's report",
+          "raw_output": "PROBE 2 (out-of-band filesystem oracle, Windows arm):\ngood                   want='output.json'    byte_exact_present=True  entries=[\"'output.json'\"]\nabsent                 want='output.json'    byte_exact_present=False entries=[None]\nempty                  want='output.json'    byte_exact_present=True  entries=[\"'output.json'\"]\ncase_worker_upper      want='output.json'    byte_exact_present=False entries=[\"'Output.json'\"]\ncase_declared_upper    want='Output.json'    byte_exact_present=False entries=[\"'output.json'\"]\ntrailspace_declared    want='output.json '   byte_exact_present=False entries=[\"'output.json'\"]\nbackslash_declared     want='output.json'    byte_exact_present=True  entries=[\"'output.json'\"]",
+          "fingerprint": "3442dd30fb70f444",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "tools/command-center/reconcile_delivery.py::reconcile scores the exit-0-writes-nothing worker DELIVERED-ELSEWHERE-EXACT on BOTH Windows and Linux, off files belonging to OTHER units; the acceptance is platform-independent.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/command-center/reconcile_delivery.py:177-184",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/scratchpad/adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate   (barrier B4b, Windows)",
+          "raw_output": "absent -> {\"disposition\": \"DELIVERED-ELSEWHERE-EXACT\", \"candidates\": [\"out/bs/sub/output.json\", \"out/case2/output.json\", \"out/empty/output.json\", \"out/good/output.json\", \"out/ts/output.json\"], \"accepted\": true}\ncounts: {\"DELIVERED-AT-DECLARED-PATH\": 5, \"DELIVERED-ELSEWHERE-EXACT\": 2, \"DELIVERED-ELSEWHERE-STEM\": 0}\ndelivered_any_form=7 out of 7 mock units, of which only 'good' actually produced its declared file.",
+          "fingerprint": "57dfb8b566c752cb",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python3 (Linux/WSL Ubuntu, native ext4 /tmp) same script, then compare the two arms' B4b rows",
+          "raw_output": "absent -> {\"disposition\": \"DELIVERED-ELSEWHERE-EXACT\", \"candidates\": [\"out/bs/sub/output.json\", \"out/case2/output.json\", \"out/empty/output.json\", \"out/good/output.json\", \"out/ts/output.json\"], \"accepted\": true}\ncounts: {\"DELIVERED-AT-DECLARED-PATH\": 3, \"DELIVERED-ELSEWHERE-EXACT\": 4, \"DELIVERED-ELSEWHERE-STEM\": 0}\ndelivered_any_form=7\nBYTE-COMPARE of the 'absent' disposition across arms: win='DELIVERED-ELSEWHERE-EXACT' lin='DELIVERED-ELSEWHERE-EXACT' -> IDENTICAL (platform-independent acceptance)",
+          "fingerprint": "26546b8beaea16c3",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The exploit is LIVE at HEAD, not merely injectable: 28 of the 32 units that command-center/DELIVERY-RECONCILIATION.json counts in delivered_any_form have an ABSENT declared artifact and are scored DELIVERED-ELSEWHERE-STEM off unrelated pre-existing repo files (e.g. ARC-0006 declares command-center/phase3/A1/SECURITY.json and is matched to rules/python/security.md and a vendored ralph-orchestrator doc).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/DELIVERY-RECONCILIATION.json (rows[].disposition == DELIVERED-ELSEWHERE-STEM)",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read command-center/DELIVERY-RECONCILIATION.json and group rows by disposition",
+          "raw_output": "counts: {\"DELIVERED-AT-DECLARED-PATH\": 4, \"DELIVERED-ELSEWHERE-EXACT\": 0, \"DELIVERED-ELSEWHERE-STEM\": 28, \"NOT-PRODUCED\": 1195, \"UNIT-ID-REFERENCED\": 780}\ndelivered_any_form: 32   delivered_pct: 1.59   ambiguous_matches: 28   units_total: 2007\nARC-0006 declared=command-center/phase3/A1/SECURITY.json candidates=['SECURITY.md', 'rules/python/security.md', ... 34 candidates ...] ambiguous=True",
+          "fingerprint": "5a2a0d753c4bae32",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python -c: os.path.isfile() over every declared_output_path, grouped by disposition, with a both-states control",
+          "raw_output": "DELIVERED-AT-DECLARED-PATH       n=    4 declared_path_EXISTS=    4 ABSENT=    0\nDELIVERED-ELSEWHERE-STEM         n=   28 declared_path_EXISTS=    0 ABSENT=   28\nNOT-PRODUCED                     n= 1195 declared_path_EXISTS=    1 ABSENT= 1194\nCONTROL good-state rows (must read EXISTS):\n   BLD-0023 command-center/receipts/BLD-0023.json -> EXISTS 35646\n   TST-0334 command-center/receipts/TST-0334.json -> EXISTS 10909\n   TST-0350 command-center/receipts/TST-0350.json -> EXISTS 12103\n   WFA-0001 command-center/wfa/schema/wfa-schema-pack.json -> EXISTS 5793",
+          "fingerprint": "0d5b503f50ff9bca",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The four near-miss path variants (worker capitalises the basename; orchestrator declares a capitalised basename; declared path carries one trailing space; declared path uses a backslash separator) are ACCEPTED by verify_dispatch, completion_predicate condition 2, receipt_schema_gate condition 2 and reconcile_delivery._nonempty on Windows and REJECTED by the SAME code on Linux -- 16 Windows-only accepts. Scoped: on Windows those paths genuinely resolve to the same file, so the defect is the platform-dependent VERDICT and the unreproducible recorded path, not an incorrect stat on either OS.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/completion_predicate.py:387 (p.is_file()); platform/lib/receipt_schema_gate.py:304; tools/command-center/reconcile_delivery.py:107",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/scratchpad/adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate",
+          "raw_output": "WINDOWS arm (python 3.14.6, win32, NTFS %TEMP%):\ncase                  B1     B2     B3     B4a    B4b    \ngood                  True   True   True   True   True   \nabsent                False  False  False  False  True   \nempty                 False  True   True   False  True   \ncase_worker_upper     True   True   True   True   True   \ncase_declared_upper   True   True   True   True   True   \ntrailspace_declared   True   True   True   True   True   \nbackslash_declared    True   True   True   True   True   ",
+          "fingerprint": "50e4744b94f1d702",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "wsl.exe -d Ubuntu -- python3 $SP/adv0003_probe2.py /mnt/c/Users/Prekzursil/source/ast-integrate /tmp   then byte-compare the two accepted matrices row by row",
+          "raw_output": "LINUX arm (python 3.12.3, linux, native ext4 /tmp):\ncase                  B1     B2     B3     B4a    B4b    \ngood                  True   True   True   True   True   \nabsent                False  False  False  False  True   \nempty                 False  True   True   False  True   \ncase_worker_upper     False  False  False  False  True   \ncase_declared_upper   False  False  False  False  True   \ntrailspace_declared   False  False  False  False  True   \nbackslash_declared    False  False  False  False  True   \n\nDIVERGENCE: B1/B2/B3/B4a flip True->False on all four near-miss cases; B4b stays True on both arms.\nLINUX PROBE-2 oracle:\ngood                   want='output.json'    byte_exact_present=True  entries=[\"'output.json'\"]\nabsent                 want='output.json'    byte_exact_present=False entries=[None]\nempty                  want='output.json'    byte_exact_present=True  entries=[\"'output.json'\"]\ncase_worker_upper      want='output.json'    byte_exact_present=False entries=[\"'Output.json'\"]\ncase_declared_upper    want='Output.json'    byte_exact_present=False entries=[\"'output.json'\"]\ntrailspace_declared    want='output.json '   byte_exact_present=False entries=[\"'output.json'\"]\nbackslash_declared     want='output.json'    byte_exact_present=False entries=[\"'sub'\"]",
+          "fingerprint": "3b93651ddfc8054b",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "platform/coordination/claims.py::complete_claim records state COMPLETED for a receipt_path that does not exist on disk and for an EMPTY artifacts list. This is disclosed by its own docstring (leak L-10: 'COMPLETED here means a session ASSERTS it finished'), so it is an accept-on-absence by design whose only guard is that the shared reducer is actually run.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/coordination/claims.py:605-630",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/scratchpad/adv0003_b5_fixed.py",
+          "raw_output": "{\n \"receipt_exists_CONTROL\": {\n  \"acquire_outcome\": \"ClaimOutcome.GRANTED\",\n  \"receipt_path_exists_on_disk\": true,\n  \"artifacts_passed\": 1,\n  \"claim_state_recorded\": \"COMPLETED\",\n  \"accepted_as_complete\": true\n },\n \"receipt_absent\": {\n  \"acquire_outcome\": \"ClaimOutcome.GRANTED\",\n  \"receipt_path_exists_on_disk\": false,\n  \"artifacts_passed\": 1,\n  \"claim_state_recorded\": \"COMPLETED\",\n  \"accepted_as_complete\": true\n },\n \"receipt_absent_no_artifacts\": {\n  \"acquire_outcome\": \"ClaimOutcome.GRANTED\",\n  \"receipt_path_exists_on_disk\": false,\n  \"artifacts_passed\": 0,\n  \"claim_state_recorded\": \"COMPLETED\",\n  \"accepted_as_complete\": true\n }\n}",
+          "fingerprint": "9ec9c901df569c39",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read platform/coordination/claims.py:605-630 and grep the body for any filesystem check",
+          "raw_output": "complete_claim() body is a single call to _transition(store, unit_id, ClaimState.COMPLETED, artifacts=artifacts, receipt_path=receipt_path, now=now). No is_file/exists/stat/read on receipt_path or artifacts anywhere in the function. Its docstring states: 'COMPLETED here means a session ASSERTS it finished. Whether the unit IS complete is decided only by platform/lib/completion_predicate.py (twelve conditions), reached through reducer.reduce_claim.'",
+          "fingerprint": "e6df2f664cdd944c",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The Databricks fan-out harvester REFUTES the exploit: it rejects a remote read that returns an empty body (exit 0), a body below the per-lane floor, and a non-zero remote exit, while accepting the above-floor control.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": ".agents/skills/codex-databricks-fanout/scripts/harness/harvest.py:9-38",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/scratchpad/adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate   (barrier B6)",
+          "raw_output": "{\n \"rc0_body_above_floor\": {\n  \"status\": \"harvested\",\n  \"bytes\": 1088,\n  \"file_written_to_dest\": true,\n  \"accepted\": true\n },\n \"rc0_empty_body\": {\n  \"status\": \"below-floor\",\n  \"bytes\": 0,\n  \"file_written_to_dest\": true,\n  \"accepted\": false\n },\n \"rc0_body_below_floor\": {\n  \"status\": \"below-floor\",\n  \"bytes\": 1,\n  \"file_written_to_dest\": true,\n  \"accepted\": false\n },\n \"rc1_remote_absent\": {\n  \"status\": \"absent\",\n  \"bytes\": 0,\n  \"file_written_to_dest\": false,\n  \"accepted\": false\n },\n \"_lane\": \"coverage\",\n \"_floor\": 1024\n}",
+          "fingerprint": "e994eeda091cd7dd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read harness/harvest.py:9-38 and harness/contract.py:62-70",
+          "raw_output": "harvest() returns ('absent', 0) when rc != 0, and otherwise ('harvested' if len(data) >= floor_for(u.lane) else 'below-floor', len(data)). PER_LANE_FLOORS['coverage'] == 1024. Exit 0 alone is never 'harvested'; the byte floor is a second, independent limb.",
+          "fingerprint": "111c44df1359df03",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The enumerated barrier set covers every EXECUTABLE fan-in surface in the dispatcher and workflow runtime; agent-self/harness/dispatcher.py, ci/harness/dispatcher.py and hooks/_dispatch/dispatch.py perform no artifact fan-in, and platform/lib/workflows/bp8_testkit.py::barrier only reads a `barrier` key out of a workflow DSL document.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "platform/lib/workflows/bp8_testkit.py:167-170; hooks/_dispatch/dispatch.py:149",
+      "unverified": true,
+      "settling_experiment": "Completeness of an enumeration cannot be proven by grep. To settle it, build the call graph of every entry point under tools/ and platform/ that consumes a work-unit receipt (ast.parse + import resolution), and assert that every leaf touching pathlib/os.path with a receipt-derived path is in the B1..B7 set. Until that runs, the claim is scoped to 'every surface reachable from the two greps in the source probe, with the both-states control in the verifier probe' -- not to 'every surface that exists'.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "Grep for 'def .*(harvest|barrier|fan_in|collect_results|gather_results|reduce)' and 'def (complete|is_complete|predicate|verify|check)\\w*\\(' across the repo",
+          "raw_output": "Executable fan-in surfaces found: coordination/dispatch.py::verify_dispatch; lib/completion_predicate.py::evaluate (+_c2_artifact_exists); lib/receipt_schema_gate.py::evaluate_gate_a; tools/command-center/reconcile_delivery.py::_nonempty and ::reconcile; coordination/claims.py::complete_claim; coordination/reducer.py::reduce_claim (delegates to completion_predicate, no independent filesystem check); codex-databricks-fanout harness/harvest.py::harvest. Everything else matching 'barrier' is either a pytest assertion over a workflow DSL document or the DSL document itself.",
+          "fingerprint": "c28f7078f0672298",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "for f in <candidates>; do grep -cE \"is_file\\(|exists\\(\\)|read_bytes\\(|st_size|scandir\" $f; done",
+          "raw_output": "for f in <candidates>; do grep -cE \"is_file\\(|exists\\(\\)|read_bytes\\(|st_size|scandir\" $f; done\n  platform/coordination/dispatch.py        fs_artifact_checks=1   <- known barrier, FIRES\n  platform/lib/receipt_schema_gate.py      fs_artifact_checks=6   <- known barrier, FIRES\n  tools/command-center/reconcile_delivery.py fs_artifact_checks=3 <- known barrier, FIRES\n  agent-self/harness/dispatcher.py         fs_artifact_checks=0   <- non-barrier, SILENT\n  ci/harness/dispatcher.py                 fs_artifact_checks=0   <- non-barrier, SILENT\n  hooks/_dispatch/dispatch.py              fs_artifact_checks=1   -> grep -n shows the single hit is\n                                                 `hooks/_dispatch/dispatch.py:149: if DISABLED.exists():`\n                                                 a hook-disable flag, NOT an artifact fan-in.",
+          "fingerprint": "664d05424dfa2dcb",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-detector-control",
+      "name": "a worker that DOES write a valid artifact must be accepted, proving the barrier is not rejecting everything",
+      "command": "python %TEMP%/scratchpad/adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate   (case 'good')",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "case 'good' (exit 0, writes a 57-byte valid JSON at the declared path) accepted by: B1 verify_dispatch artifact-present=True; B2 _c2_artifact_exists=SATISFIED; B3 gate-A cond2=SATISFIED cond3=SATISFIED; B4a _nonempty=True; B4b reconcile=DELIVERED-AT-DECLARED-PATH; B5 complete_claim=COMPLETED. B6 control arm rc0_body_above_floor -> status='harvested' (1088 bytes >= floor 1024). No barrier rejects everything."
+    },
+    {
+      "id": "T2-case-collision-windows",
+      "name": "case-collision variant on Windows (Output.json vs output.json) must be classified explicitly, not silently accepted",
+      "command": "python %TEMP%/scratchpad/adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate ; wsl.exe -d Ubuntu -- python3 $SP/adv0003_probe2.py /mnt/c/Users/Prekzursil/source/ast-integrate /tmp",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "Classified EXPLICITLY, in both directions and on both platforms.\ncase_worker_upper (worker writes Output.json, barrier checks output.json): Windows B1/B2/B3/B4a/B4b = ACCEPT; Linux B1/B2/B3/B4a = REJECT, B4b = ACCEPT.\ncase_declared_upper (worker writes output.json, barrier checks Output.json): identical pattern.\nPROBE 2 (os.scandir), Windows: byte_exact_declared_basename_present=False, entries=[\"'Output.json'\"] -- the out-of-band oracle CONTRADICTS every barrier that accepted, which is the whole point of the second probe.\nVerdict recorded as a platform-dependent accept (defect D2/D3), never folded into a pass."
+    },
+    {
+      "id": "T3-both-arms-executed",
+      "name": "the identical probe script executes on Windows and on Linux so the portability claim is measured, not asserted",
+      "command": "wsl.exe -d Ubuntu -- python3 $SP/adv0003_probe2.py /mnt/c/Users/Prekzursil/source/ast-integrate /tmp",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "Windows arm: python 3.14.6 / win32 / NTFS %TEMP%. Linux arm: python 3.12.3 / linux / WSL Ubuntu, tmp root '/tmp/adv0003_3o5f9d8s' on native ext4 (NOT the case-insensitive /mnt/c DrvFs mount -- that choice is what makes the case-sensitivity real). Both arms ran all 7 workers to exit 0 and all 7 barriers."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-barrier-not-rejecting-everything",
+      "kind": "known-broken-fixture",
+      "description": "Every barrier must FIRE (reject) on the known-broken state (worker exits 0, writes nothing) and be SILENT (accept) on the known-good state (worker writes a valid artifact). Measured for B1/B2/B3/B4a: fired on 'absent', silent on 'good'. B4b did NOT fire on the bad state -- that non-firing IS defect D1, and it is recorded as a finding rather than as a broken control, because the same control fires correctly on the other four barriers.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC2-scandir-oracle-discriminates",
+      "kind": "absent-input",
+      "description": "PROBE 2's byte_exact_declared_basename_present must be False on a known-bad directory and True on a known-good one. Measured Windows: good=True, absent=False (dir does not exist), case_worker_upper=False (entries=['Output.json']), trailspace_declared=False (entries=['output.json'], the declared name carries a trailing space). The oracle both fires and stays silent, so its disagreement with the barriers is a signal and not noise.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC3-live-evidence-isfile-both-states",
+      "kind": "known-broken-fixture",
+      "description": "The os.path.isfile audit used for the LIVE 28-unit finding must read EXISTS on the DELIVERED-AT-DECLARED-PATH rows and ABSENT on the DELIVERED-ELSEWHERE-STEM rows. Measured: 4/4 EXISTS on the good state (with byte sizes 35646/10909/12103/5793), 28/28 ABSENT on the bad state. A detector that reported ABSENT for everything would have shown 4 ABSENT here.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC4-barrier-enumeration-detector",
+      "kind": "mutation",
+      "description": "The grep used to decide 'is this file a fan-in barrier' must hit on files known to be barriers and miss on files known not to be. Measured: dispatch.py=1, receipt_schema_gate.py=6, reconcile_delivery.py=3 (FIRES); agent-self/harness/dispatcher.py=0, ci/harness/dispatcher.py=0 (SILENT). The single hit in hooks/_dispatch/dispatch.py was opened with grep -n and is `if DISABLED.exists():`, a hook-disable flag, so that file is classified not-a-barrier on the line rather than on the count.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC5-harvest-floor-both-states",
+      "kind": "malformed-input",
+      "description": "The B6 harvester control must reject the bad arms and accept the good one. Measured: rc0_empty_body -> below-floor (0 bytes), rc0_body_below_floor -> below-floor (1 byte), rc1_remote_absent -> absent, rc0_body_above_floor -> harvested (1088 bytes, floor 1024). The FIRST version of this probe passed lane=None, so floor_for(None) fell through to the default floor and the control arm was ALSO rejected -- a detector rejecting everything. That run is discarded; the value above is from the fixed probe using lane='coverage'.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC6-self-inflicted-probe-defect-B5",
+      "kind": "other",
+      "description": "SELF-REPORTED DETECTOR FAILURE, corrected. The first B5 probe reported StoreCorrupt 'no claim for unit' for 6 of 7 cases, which would have read as 'complete_claim fails closed on a missing artifact'. Root cause: the `unit` dicts I passed carried none of WORK_IDENTITY_FIELDS (claims.py:65-76), so fingerprint() projected every unit to the same all-None digest bfff0a48fb09... and acquire_claim returned DUPLICATE_SUPPRESSED for units 2..7. That was my probe's defect, not the barrier's verdict. Re-run with distinct output_path values: all three cases GRANTED, and complete_claim recorded COMPLETED for a receipt_path that does not exist. The control (receipt_exists) also recorded COMPLETED, so the barrier is not rejecting everything and the accept is real.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "<none>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The catalog requires 'one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report'. The catalog also assigns this unit to openai/gpt-5-codex; it was in fact produced by anthropic/claude-opus-5, which makes an Anthropic reviewer SAME-vendor and therefore non-qualifying by the unit's own rule. A qualifying refuter is openai/gpt-5-codex (reachable via mcp__codex__codex), re-deriving from %TEMP%/scratchpad/adv0003_probe2.py plus the two raw arm JSONs. Not run here: this unit's tool_permissions do not include a cross-vendor dispatch, and self-certification is the exact failure this program exists to prevent."
+  },
+  "defects": [
+    {
+      "id": "ADV-0003-D1",
+      "severity": "P1",
+      "status": "open",
+      "summary": "tools/command-center/reconcile_delivery.py::reconcile scores a unit as DELIVERED off ANOTHER unit's file. When the declared path is absent it falls back to a basename match (DELIVERED-ELSEWHERE-EXACT, :177-184) and then to a case/underscore-folded stem match (DELIVERED-ELSEWHERE-STEM, :186-193), and both feed delivered_any_form (:212-216). A worker that exits 0 and writes nothing is therefore recorded as delivered. Injected proof: the 'absent' mock scored DELIVERED-ELSEWHERE-EXACT on Windows and Linux alike. Live blast radius at HEAD: 28 of the 32 units in delivered_any_form (87.5%) have an ABSENT declared artifact and are matched to unrelated files, all 28 already flagged ambiguous=True; and 63 of 2007 catalogued units (3.14%) share a declared basename with another unit, so a sibling's file can satisfy them via the EXACT path too. The tool's own interpretation note discloses that a basename match is 'filename evidence, not verified content' but does NOT disclose that the matched file may belong to a different unit entirely."
+    },
+    {
+      "id": "ADV-0003-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Platform-dependent completion verdict. The same receipt over the same bytes yields opposite answers on Windows and Linux for four near-miss path forms, across four barriers (16 Windows-only accepts): completion_predicate.py:387 p.is_file(), receipt_schema_gate.py:304 (root / a['path']).is_file(), reconcile_delivery.py:107 path.is_file(), dispatch.py:305 p.read_bytes(). A receipt certified on a Windows box can fail in Linux CI and vice versa, and the artifact path a receipt records is not guaranteed to be the byte-exact name on disk. Note the receipt schema already bans backslashes in artifacts[].path (pattern ^[^\\\\]+$) but nothing bans a case-variant or a trailing space."
+    },
+    {
+      "id": "ADV-0003-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "reconcile() holds two signals that can disagree and silently takes the permissive one. Its candidate index is built from git ls-files (byte-exact names from the git index) while _nonempty uses the OS path resolver. In the injected case_worker_upper run on Windows the git listing contained 'out/case1/Output.json' while _nonempty('out/case1/output.json') returned True, so the unit was scored DELIVERED-AT-DECLARED-PATH for a path that does not exist byte-exactly in the index. A self-contradicting detector is a detector failure, not a finding."
+    },
+    {
+      "id": "ADV-0003-D4",
+      "severity": "P3",
+      "status": "open",
+      "summary": "claims.py::complete_claim records COMPLETED for a receipt_path that does not exist and for an empty artifacts list. Disclosed by design (leak L-10) and guarded only by the convention that reducer.reduce_claim is subsequently run. Residual exposure: any consumer that reads claim state instead of a reduced verdict sees a completed unit that produced nothing. reduce_claim itself does fail closed on a missing receipt_path (reducer.py:263-268 raises StoreCorrupt), so the guard exists where it is used."
+    },
+    {
+      "id": "ADV-0003-D5",
+      "severity": "INFO",
+      "status": "open",
+      "summary": "completion_predicate._c2_artifact_exists and receipt_schema_gate condition 2 both return SATISFIED for a 0-byte file at the declared path. Condition 3 (min_bytes_threshold) catches it in the same evaluation, so the composite predicate is sound; recorded because a caller reading condition 2 alone would be misled. Truncated-but-present artifacts are ADV-0004's target, not this unit's."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0003"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py::evaluate_gate_a + jsonschema against command-center/schema/exploit-proof.schema.json",
+      "artifact_path": "command-center/adversarial/ADV-0003-exit-zero-missing-artifact-injection.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python: json.load(OUT); jsonschema validate against platform/schema/artifact-class-profiles.schema.json#/$defs/exploit-proof; then receipt_schema_gate.evaluate_gate_a(receipt, repo_root=REPO)",
+        "raw_output": "json.load OK: 41552 chars, top-level keys=22\njsonschema: VALID against command-center/schema/exploit-proof.schema.json (-> platform/schema/artifact-class-profiles.schema.json#/$defs/exploit-proof -> receipt.schema.json#/$defs/generic_report)\nreceipt_schema_gate.evaluate_gate_a: cond1=UNSATISFIED cond2=SATISFIED cond3=UNSATISFIED (cond3 compares the declared sha256 against raw on-disk bytes, so it reports the self-reference described in residual_unknowns[0])",
+        "fingerprint": "3884d82f9703bc62",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T20:45:00Z",
+    "ended_at": "2026-08-11T21:40:00Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b). No barrier hypothesis failed twice. Two PROBE defects were hit once each and pivoted immediately rather than retried: B6 floor_for(None) and B5 fingerprint collision, both recorded in negative_controls NC5/NC6."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-cross-vendor-review",
+      "detector-failure",
+      "green-not-live",
+      "platform-portability"
+    ],
+    "reason": "The measurement is complete and every control is recorded, but SUCCESS is withheld. (1) The catalog's reviewer_requirement -- an independent cross-vendor refuter re-deriving the counterexample from the raw artifact -- has not run, and this unit may not certify itself. (2) Four defects are open, including one P1. (3) The artifact is not registered in ARTIFACT-MANIFEST.json because this unit is permitted to write only its own output_path. Nothing here is unmeasured: the verdicts stand on their own probes.",
+    "blocked_on": "openai/gpt-5-codex refuter re-deriving from %TEMP%/scratchpad/adv0003_probe2.py + adv0003_win.json + adv0003_linux.json; and an owner decision on defect ADV-0003-D1 (whether DELIVERED-ELSEWHERE-* should count toward delivered_any_form at all).",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "read the reviewer block of this receipt",
+        "raw_output": "reviewer.verdict == \"NOT-REVIEWED\" and reviewer.independent == false",
+        "fingerprint": "770e8a1bd260fd5a",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "the receipt schema's SUCCESS branch requires reviewer.verdict==PASS and reviewer.independent==true, and forbids an open P0/P1 defect",
+        "raw_output": "platform/schema/receipt.schema.json $defs.receipt_core.allOf[0].then requires reviewer {verdict: PASS, independent: true}, manifest_registration.registered: true, and defects not-contains {severity in [P0,P1], status: open}. This receipt violates all three, so SUCCESS is not merely withheld by choice -- it is structurally unavailable.",
+        "fingerprint": "1de1570bc4d2f3be",
+        "exit_code": 0
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "artifacts[0].sha256 cannot be the raw digest of this file, because a file cannot contain its own SHA-256. The value recorded is the digest of the DIGEST BASIS: this file's exact bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters. bytes is the true on-disk size.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "python: b = OUT.read_bytes(); basis = b.replace(recorded_sha.encode(), b'0'*64, 1); assert hashlib.sha256(basis).hexdigest() == recorded_sha; assert len(b) == recorded_bytes. A third party can re-run this in three lines."
+    },
+    {
+      "claim": "The Linux arm was executed under WSL2 Ubuntu, not under the GitHub-Actions Linux runner that actually gates this repo. The two agree on filesystem case-sensitivity, which is the property under test, but a runner difference (mount options, container FS) is not excluded.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Run %TEMP%/scratchpad/adv0003_probe2.py as a step in .github/workflows and diff the accepted matrix against the WSL arm recorded here."
+    },
+    {
+      "claim": "Barrier coverage is 'every EXECUTABLE fan-in surface I could find by two greps plus a both-states control'. The workflow-DSL documents under platform/lib/workflows/ declare hundreds of `barrier` objects that no runtime in this repo executes; whether a future runtime will inherit these defects is NOT-CHECKED.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When a workflow interpreter exists, re-run this injection through it with the same seven mock workers. Until then platform/lib/workflows/bp8_testkit.py::barrier is a dict accessor (bp8_testkit.py:167-170) and cannot accept or reject anything."
+    },
+    {
+      "claim": "The 63-unit basename-collision figure is an UPPER bound on the DELIVERED-ELSEWHERE-EXACT exposure, not a count of units currently mis-scored. At HEAD that path scores 0 units, because none of the 7 colliding basenames (DESIGN.json, COST.json, FAILURE-MODES.json, SECURITY.json, MIGRATION.json, TEST-PLAN.json, REFUTATION.json, 9 units each) has been produced yet. The 28 live mis-scores all arrive through the STEM path.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Re-run tools/command-center/reconcile_delivery.py after any of those 63 units delivers, and watch DELIVERED-ELSEWHERE-EXACT rise for its 8 siblings that produced nothing."
+    }
+  ],
+  "report": {
+    "kind": "exploit-proof",
+    "question": "For each fan-in barrier in the program, does a worker that exits 0 while writing no artifact (or writing to a path one character off) get recorded as complete?",
+    "answer": "For pure ABSENCE: NO for 5 of 7 barriers, YES for reconcile_delivery.reconcile (P1, and live at HEAD for 28 units) and YES-by-design for claims.complete_claim. For a ONE-CHARACTER-OFF path: YES on Windows for 4 more barriers and NO for the same 4 on Linux, so the answer is platform-dependent.",
+    "control_ids": [
+      "NC1-barrier-not-rejecting-everything",
+      "NC2-scandir-oracle-discriminates",
+      "NC3-live-evidence-isfile-both-states",
+      "NC4-barrier-enumeration-detector",
+      "NC5-harvest-floor-both-states",
+      "NC6-self-inflicted-probe-defect-B5"
+    ],
+    "observations": [
+      {
+        "name": "B1 platform/coordination/dispatch.py::verify_dispatch",
+        "measured": "PARTIAL",
+        "method": "fault injection (7 mock workers, all exit 0) + os.scandir oracle, on Windows and Linux",
+        "anchor": "platform/coordination/dispatch.py:302-322"
+      },
+      {
+        "name": "B1 detail",
+        "measured": "absent=REJECT (SEVERED), empty=REJECT (0 bytes < min 2), 4 near-miss variants ACCEPT on Windows / REJECT on Linux, good=ACCEPT",
+        "method": "Limb.ARTIFACT_PRESENT read directly; schema limb held NOT-CHECKED by design",
+        "anchor": "platform/coordination/dispatch.py:305 p.read_bytes()"
+      },
+      {
+        "name": "B2 platform/lib/completion_predicate.py::_c2_artifact_exists",
+        "measured": "PARTIAL",
+        "method": "same injection; receipt built with bytes+sha256 recomputed from whatever the barrier can reach, i.e. the strongest honest forgery",
+        "anchor": "platform/lib/completion_predicate.py:374-429"
+      },
+      {
+        "name": "B2 detail",
+        "measured": "absent=UNSATISFIED, empty=SATISFIED (c3 backstops), 4 near-miss SATISFIED on Windows / UNSATISFIED on Linux, good=SATISFIED",
+        "method": "condition-2 outcome read directly rather than the composite verdict",
+        "anchor": "platform/lib/completion_predicate.py:387 p.is_file()"
+      },
+      {
+        "name": "B3 platform/lib/receipt_schema_gate.py::evaluate_gate_a",
+        "measured": "PARTIAL",
+        "method": "same injection, conditions 2 and 3 read separately",
+        "anchor": "platform/lib/receipt_schema_gate.py:288-308"
+      },
+      {
+        "name": "B4a tools/command-center/reconcile_delivery.py::_nonempty",
+        "measured": "PARTIAL",
+        "method": "same injection; this is the DELIVERED-AT-DECLARED-PATH test",
+        "anchor": "tools/command-center/reconcile_delivery.py:104-109"
+      },
+      {
+        "name": "B4a detail",
+        "measured": "absent=False, empty=False (size>0 is checked here), 4 near-miss True on Windows / False on Linux, good=True",
+        "method": "direct call",
+        "anchor": "tools/command-center/reconcile_delivery.py:107"
+      },
+      {
+        "name": "B4b tools/command-center/reconcile_delivery.py::reconcile",
+        "measured": "CONFIRMED",
+        "method": "full reconcile() driven with a synthetic 7-unit catalog and a git-ls-files stub built from the real directory walk",
+        "anchor": "tools/command-center/reconcile_delivery.py:177-193"
+      },
+      {
+        "name": "B4b detail",
+        "measured": "absent -> DELIVERED-ELSEWHERE-EXACT off 5 other units' files, on BOTH Windows and Linux; delivered_any_form counted 7 of 7 mock units when only 1 produced its declared file",
+        "method": "cross-platform byte-compare of the disposition string",
+        "anchor": "tools/command-center/reconcile_delivery.py:212-216"
+      },
+      {
+        "name": "B4b live instances at HEAD",
+        "measured": 28,
+        "method": "read the program's own DELIVERY-RECONCILIATION.json, then an independent os.path.isfile audit of every declared_output_path with a both-states control",
+        "anchor": "command-center/DELIVERY-RECONCILIATION.json"
+      },
+      {
+        "name": "B4b live share of delivered_any_form",
+        "measured": "28 of 32 (87.5%) are scored delivered off a file that is not theirs; only 4 exist at the declared path",
+        "method": "grouping rows by disposition",
+        "anchor": "command-center/DELIVERY-RECONCILIATION.json counts"
+      },
+      {
+        "name": "B4b catalog-wide basename collision",
+        "measured": "63 of 2007 units (3.14%) share a declared basename with another unit; 7 basenames x 9 units each",
+        "method": "index every work_units[].output_path basename and folded stem from WORK-UNIT-CATALOG.json",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json"
+      },
+      {
+        "name": "B5 platform/coordination/claims.py::complete_claim",
+        "measured": "CONFIRMED",
+        "method": "acquire_claim then complete_claim with a receipt_path that does not exist, plus a control whose receipt does exist",
+        "anchor": "platform/coordination/claims.py:605-630"
+      },
+      {
+        "name": "B5 detail",
+        "measured": "COMPLETED recorded for receipt_path absent AND for artifacts=[]; control (receipt present) also COMPLETED, so the accept is real and not a stuck detector",
+        "method": "direct call against a temp Store",
+        "anchor": "platform/coordination/claims.py:605-630 docstring (leak L-10)"
+      },
+      {
+        "name": "B6 codex-databricks-fanout harness/harvest.py::harvest",
+        "measured": "REFUTED",
+        "method": "stubbed run_cmd across 4 arms (above-floor control, empty body, below-floor body, non-zero remote exit)",
+        "anchor": ".agents/skills/codex-databricks-fanout/scripts/harness/harvest.py:9-38"
+      },
+      {
+        "name": "B7 coordination/reducer.py::reduce_claim",
+        "measured": "NOT-CHECKED-DELEGATES",
+        "method": "source read: it performs no independent filesystem check, it loads the receipt and delegates to completion_predicate.evaluate (measured as B2); it does fail closed when receipt_path is missing",
+        "anchor": "platform/coordination/reducer.py:244-271"
+      },
+      {
+        "name": "non-barriers ruled out",
+        "measured": "agent-self/harness/dispatcher.py=0, ci/harness/dispatcher.py=0 filesystem artifact checks; hooks/_dispatch/dispatch.py's single hit is a hook-disable flag; platform/lib/workflows/bp8_testkit.py::barrier is a dict accessor over a DSL document",
+        "method": "grep with a both-states control that fires on the three known barriers",
+        "anchor": "hooks/_dispatch/dispatch.py:149; platform/lib/workflows/bp8_testkit.py:167-170"
+      },
+      {
+        "name": "worker exit codes",
+        "measured": "7 of 7 mock workers exited 0 on both platforms",
+        "method": "subprocess.run returncode",
+        "anchor": "%TEMP%/scratchpad/adv0003_probe2.py (WORKER_SRC)"
+      },
+      {
+        "name": "probe 2 contradicts probe 1 exactly where expected",
+        "measured": "on Windows the scandir oracle reports byte_exact_declared_basename_present=False for all 4 near-miss cases while 4 barriers report accepted=True; on 'good' and 'absent' the two probes agree",
+        "method": "os.scandir directory listing compared against each barrier's own verdict",
+        "anchor": "%TEMP%/scratchpad/adv0003_win.json scandir_oracle"
+      }
+    ]
+  },
+  "extensions": {
+    "digest_basis": "artifacts[0].sha256 is SHA-256 over this file's bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters (a file cannot contain its own digest). artifacts[0].bytes is the true on-disk size. See residual_unknowns[0] for the 3-line check.",
+    "verdict_per_target": {
+      "B1_verify_dispatch": "PARTIAL",
+      "B2_completion_predicate_c2": "PARTIAL",
+      "B3_receipt_schema_gate_cond2": "PARTIAL",
+      "B4a_reconcile_nonempty": "PARTIAL",
+      "B4b_reconcile": "CONFIRMED",
+      "B5_complete_claim": "CONFIRMED",
+      "B6_fanout_harvest": "REFUTED",
+      "B7_reduce_claim": "NOT-CHECKED",
+      "workflow_dsl_barriers": "NOT-CHECKED"
+    },
+    "reproduce": {
+      "probe_script": "%TEMP%/.../scratchpad/adv0003_probe2.py",
+      "windows_arm": "python adv0003_probe2.py C:/Users/Prekzursil/source/ast-integrate",
+      "linux_arm": "wsl.exe -d Ubuntu -- python3 adv0003_probe2.py /mnt/c/Users/Prekzursil/source/ast-integrate /tmp",
+      "b5_arm": "python adv0003_b5_fixed.py",
+      "blast_radius": "python adv0003_b5_blast.py",
+      "note": "The Linux arm MUST use a native-filesystem tmp root (/tmp). Running it with a tmp root under /mnt/c reproduces the Windows answers, because DrvFs is case-insensitive."
+    },
+    "not_a_duplicate_of_ADV_0004": "ADV-0004 injects a PARTIAL artifact (present but truncated). This unit injects ABSENCE and NEAR-MISS PATHS. The 0-byte case (defect D5) is the only overlap and is recorded as INFO with the note that condition 3 already backstops it."
+  }
+}

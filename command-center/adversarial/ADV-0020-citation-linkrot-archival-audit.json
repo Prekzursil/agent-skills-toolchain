@@ -1,0 +1,1199 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0020",
+  "state": "BLOCKED",
+  "sentinel": "SUCCESS:ADV-0020 measurement COMPLETE and citable - both named probes ran with verbatim raw output, every enumerated target carries exactly one verdict, and all 27 control arms are recorded (24 passed, 3 FAILED and are reported as failures, not deleted). See failure.reason for why state=BLOCKED despite this sentinel.",
+  "spec_anchor": "_USER-PROMPTS.md:10698, 10714, 10717",
+  "min_bytes_threshold": 4096,
+  "profile": "adversarial-refuter",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "adversarial-refuter",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json",
+      "bytes": 85250,
+      "sha256": "bb63beefa1e0300981065ac15e2c707f896d7eff142ec58d82c447bb336f5fdd",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "extensions": {
+    "sha256_convention": "artifacts[0].sha256 is the SHA-256 over these exact bytes with the value of that field replaced by 64 '0' characters. Self-reference makes a literal self-hash unreachable; this convention is exactly reproducible and is verified by adv0020_validate.py.",
+    "catalog_assigned_vendor": "openai / gpt-5-codex",
+    "vendor_deviation_disclosed_inline": "The catalog assigns this unit to openai/gpt-5-codex. It was EXECUTED by anthropic/claude-opus-5. This MATTERS for the reviewer_requirement, which demands a cross-vendor Anthropic refuter: an Anthropic reviewer is now SAME-vendor as the producer and therefore does NOT satisfy the requirement as written. The reviewer must be openai or another distinct vendor. UNVERIFIED: no reviewer of any vendor has examined this artifact.",
+    "reviewer_requirement_note": "reviewer_requirement asks the reviewer to re-derive the counterexample from the RAW artifact and not from this report. The raw probe outputs are the scratchpad files named in each probe's command field (adv0020_probe1b.json, adv0020_probe2b.json, adv0020_final.json); they are outside the repo by the unit's write-scope constraint, so a reviewer who needs them must re-run the probe scripts rather than read this summary.",
+    "manifest_registration_note": "not registered: this unit's hard constraints forbid editing shared files, which includes command-center/ARTIFACT-MANIFEST.json. Registration is the orchestrator's action."
+  },
+  "evidence": [
+    {
+      "claim": "Of 390 purified external citations probed, 296 (75.9%) return an HTTP 200, 24 (6.2%) are dead or unreachable, and 58 (14.9%) are WALLED behind a 401/403/429 or a consent interstitial - neither alive nor dead by any automated probe. On the 320 citations where the network gives a determinate answer, the resolve rate is 296/320 = 92.5% (Wilson CI95 [0.8908, 0.9491]). The single-number 'fraction still resolves' the unit's question asks for is therefore NOT well-defined without stating the denominator: it is 75.9% or 92.5% depending on how the 14.9% walled bucket is treated, and a sweep that silently folds walled URLs into either bucket is reporting an artifact of its own user-agent.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "harness-sota-2026-07-18-corpus/** (4,653 urls) + docs/** (476) + command-center/** (63)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_probe1b.py   # HTTP GET each sampled citation, follow redirects, classify status; 341 of 420 re-fetched at 2026-08-11T19:47:18Z",
+          "raw_output": "=== v2 status_class histogram (420 probed) ===\nLIVE_OK                  289\nBLOCKED                  32\nUNREACHABLE              28\nSOFT_BLOCKED             26\nLIVE_CONTENT_MISMATCH    19\nDEAD                     12\nREDIRECT_UNFOLLOWED      5\nOTHER_405                4\nOTHER_202                2\nSERVER_ERROR             2\nOTHER_402                1\n\n=== after frame purification (390 real citations) ===\nLIVE_OK                  277\nBLOCKED                  32\nSOFT_BLOCKED             26\nLIVE_CONTENT_MISMATCH    19\nUNREACHABLE              16\nDEAD                     6\nREDIRECT_UNFOLLOWED      5\nOTHER_405                4\nOTHER_202                2\nSERVER_ERROR             2\nOTHER_402                1",
+          "fingerprint": "cc90437a37d13f59b2184ee2b5cf3ddf"
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "python adv0020_probe2b.py   # web.archive.org CDX index + /web/<ts>id_/ replay, serialized, at 2026-08-11T20:26:06Z",
+          "raw_output": "=== live status class x ARCHIVE outcome, 52 priority urls ===\nUNREACHABLE            ARCHIVE-GAP            9\nUNREACHABLE            CONTAINS               9\nDEAD                   ARCHIVE-GAP            6\nLIVE_CONTENT_MISMATCH  MISSING                6\nREDIRECT_UNFOLLOWED    CONTAINS               5\nUNREACHABLE            NA                     5\nLIVE_CONTENT_MISMATCH  ARCHIVE-GAP            3\nDEAD                   NA                     2\nDEAD                   CONTAINS               2\nUNREACHABLE            MISSING                2\nSERVER_ERROR           CONTAINS               2\nLIVE_CONTENT_MISMATCH  CONTAINS               1\n\nARCHIVE-UNKNOWN = 0 : every one of the 52 got a real archive answer, so no verdict here rests on a rate-limited probe.",
+          "fingerprint": "8f7008d760bb778d9189eaef4acedcd6"
+        }
+      ]
+    },
+    {
+      "claim": "A status-code-only sweep misses a real class: 10 of 150 hard-target citations (6.7%, CI95 [0.0366, 0.1184]) return HTTP 200 while the specific anchor or quoted phrase the citing artifact attributes to them is ABSENT from the fetched body. That is the silent citation failure the unit names.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.silent_failure_adjudication",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_probe1b.py   # tiered containment check against the live 200 body",
+          "raw_output": "checkable hard-target (T1-ANCHOR + T2-QUOTE) citations : 150\ntarget ABSENT from the live 200 body                   : 10 = 6.7%\nT3-TOKENS low-label-coverage (ADVISORY, NOT counted)   : 9",
+          "fingerprint": "1edd5f21839fe784b3ed5a21f78d6ba6"
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "python adv0020_probe2b.py   # re-test the SAME target inside an archive snapshot near the 2026-07-18 citation window",
+          "raw_output": "adjudication of all 10 on BOTH signals:\n  DECAYED-CONFIRMED (archive CONTAINS, live MISSING) : 1\n  NEVER-CONTAINED   (absent from archive AND live)   : 6\n  NOT-CHECKED       (no archive snapshot to compare) : 3",
+          "fingerprint": "d4c4cb2fe8f4321195a255a5e55ee094"
+        }
+      ]
+    },
+    {
+      "claim": "The unit's premise - that a content mismatch means the cited page DECAYED - is REFUTED as the dominant case. Of the 10 live-200 mismatches, only 1 is confirmed decay; 6 are NEVER-CONTAINED (the target is absent from an archive snapshot predating the citation as well as from today's page), and 3 are undetermined for lack of a snapshot. So the majority of apparent link-decay in this corpus is a citing-side defect, not a source-side one - which means the remedy this unit implies (archive the source) would NOT fix 6 of the 10 cases.",
+      "verdict": "REFUTED",
+      "confidence": "likely",
+      "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.silent_failure_adjudication",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_synth.py   # join live containment with archive containment per url",
+          "raw_output": "NEVER-CONTAINED    T1-ANCHOR   live=MISSING archive=MISSING        snapshot=20260508062714\n    https://developers.openai.com/api/docs/guides/tools-tool-search#source-lines-745-763\nNEVER-CONTAINED    T1-ANCHOR   live=MISSING archive=MISSING        snapshot=20251214200536\n    https://geminicli.com/docs/cli/telemetry/#gemini_cli-chat_compression\nNOT-CHECKED        T1-ANCHOR   live=MISSING archive=ARCHIVE-GAP    snapshot=-\n    https://inspect.aisi.org.uk/metrics.html#score-reducers\nNEVER-CONTAINED    T1-ANCHOR   live=MISSING archive=MISSING        snapshot=20260223024721\n    https://repomix.com/guide/mcp-server#pack_codebase\nNEVER-CONTAINED    T1-ANCHOR   live=MISSING archive=MISSING        snapshot=20260223024721\n    https://repomix.com/guide/mcp-server#grep_repomix_output\nNEVER-CONTAINED    T2-QUOTE    live=MISSING archive=MISSING        snapshot=20210318021454\n    https://asrs.arc.nasa.gov/publications/callback/cb_410.html\nNOT-CHECKED        T2-QUOTE    live=MISSING archive=ARCHIVE-GAP    snapshot=-\n    https://dev.to/thedailyagent/top-6-secrets-management-tools-for-devs-in-2026-4ahe\nNOT-CHECKED        T2-QUOTE    live=MISSING archive=ARCHIVE-GAP    snapshot=-\n    https://www.nationalacademies.org/read/11923/chapter/3\nNEVER-CONTAINED    T2-QUOTE    live=MISSING archive=MISSING        snapshot=20151108114115\n    https://www.ntsb.gov/news/Pages/cvr_fdr.aspx\nDECAYED-CONFIRMED  T2-QUOTE    live=MISSING archive=CONTAINS       snapshot=20250314032524\n    https://www.ojp.gov/ncjrs/virtual-library/abstracts/report-blind-trial-cetus-amplitype-hla-dqalpha-foren",
+          "fingerprint": "e276700da04771d3629ed49be1e18024"
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "independent direction check: for each NEVER-CONTAINED case the archive snapshot timestamp PREDATES the 2026-07-18 citation window, so 'the page changed after we cited it' is excluded by construction",
+          "raw_output": "snapshot 20260508062714 (BEFORE citation window) : https://developers.openai.com/api/docs/guides/tools-tool-search#source -> target 'source-lines-745-763' absent in BOTH\nsnapshot 20251214200536 (BEFORE citation window) : https://geminicli.com/docs/cli/telemetry/#gemini_cli-chat_compression -> target 'gemini_cli-chat_compression' absent in BOTH\nsnapshot 20260223024721 (BEFORE citation window) : https://repomix.com/guide/mcp-server#pack_codebase -> target 'pack_codebase' absent in BOTH\nsnapshot 20260223024721 (BEFORE citation window) : https://repomix.com/guide/mcp-server#grep_repomix_output -> target 'grep_repomix_output' absent in BOTH\nsnapshot 20210318021454 (BEFORE citation window) : https://asrs.arc.nasa.gov/publications/callback/cb_410.html -> target 'Checklist Checkup' absent in BOTH\nsnapshot 20151108114115 (BEFORE citation window) : https://www.ntsb.gov/news/Pages/cvr_fdr.aspx -> target 'Cockpit Voice Recorders and Flight Data Reco' absent in BOTH",
+          "fingerprint": "36f45695f5f00cea3be02fa4ead40986"
+        }
+      ]
+    },
+    {
+      "claim": "For dead links the archival fallback is real but partial: of 24 dead/unreachable citations, 19 (79%) have some archive snapshot and 13 (54%) have a snapshot that CONTAINS the specific target. 5 (21%) have no snapshot at all - cdx answered HTTP 200 with zero rows - and are permanently unrecoverable from the archive.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.dead_link_archival_fallback",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_purify.py   # archive outcome per dead/unreachable citation",
+          "raw_output": "archive outcome for the 24 dead/unreachable purified citations:\n  CONTAINS               13\n  ARCHIVE-GAP            5\n  NA                     4\n  MISSING                2\n  ANY snapshot exists          : 19/24\n  snapshot CONTAINS the target : 13/24\n  NO snapshot (cdx 200, 0 rows): 5/24",
+          "fingerprint": "1058d6055f28953427cc8247c1ae791f"
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "the 5 ARCHIVE-GAP verdicts were each confirmed by a CDX response of HTTP 200 with 0 rows - an ANSWER, not a rate limit; contrast the discarded concurrent run where 54 of 68 'no snapshot' readings were HTTP 429",
+          "raw_output": "[DEAD       ] https://github.com/Piebald-AI/claude-code-system-prompts/blob/ma\n    cited in command-center/_wfa5_features.json\n    CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap\n[UNREACHABLE] https://rdl.train.army.mil/catalog-ws/view/arimcpii/downloads/Red_Team_Handbook_v9.pdf\n    cited in harness-sota-2026-07-18-corpus/X163.md\n    CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap\n[UNREACHABLE] https://citeseerx.ist.psu.edu/document?doi=039d8394b616db33ad146a3d37e4c7d93ba02858&repid=rep1&t\n    cited in harness-sota-2026-07-18-corpus/X164.md\n    CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap\n[DEAD       ] https://conf.researchr.org/details/icse-2026/icse-2026-research-track/101/\n    cited in docs/axis-c-design-2026-07-13/research-sota-cross-vendor-orchestration.md\n    CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap\n[UNREACHABLE] https://docs.tia.siemens.cloud/r/en-us/v20/modular-pid-control-s7-300-s7-400/deadband-s7-300-s7-\n    cited in harness-sota-2026-07-18-corpus/X049.md\n    CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap",
+          "fingerprint": "11de9b064c47ca44e812b0515860fa36"
+        }
+      ]
+    },
+    {
+      "claim": "MY OWN v1 CONTAINMENT DETECTOR WAS 71% FALSE-POSITIVE. It reported 66 MISSING; after four repairs, each proved by a both-states control, only 19 survived and only 10 of those are hard targets. Causes, in order of size: a trailing comma captured from American punctuation-inside-quotes (23 of 42 T2 targets ended in ','), PDF bytes fed to an HTML tag-stripper (every PDF was a guaranteed false MISSING - proved by CTRL-R3-HTMLSTRIP-ON-PDF-FAILS), consent/cookie walls returning HTTP 200 with a few KB of boilerplate, and labels the citing artifact itself truncated with an ellipsis. Any citation-linkrot sweep that does not run these four controls will over-report decay by roughly 3x.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.detector_failures_found",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_probe.py    # v1 sweep, naive containment",
+          "raw_output": "=== v1 containment histogram ===\nCONTAINS         210\nNA               143\nMISSING          66\nNOT-CHECKABLE    1",
+          "fingerprint": "5ef66c4bb442efefb375317b343c359b"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python adv0020_probe1b.py  # v2 sweep, 4 repairs + 8 both-states controls",
+          "raw_output": "=== REPAIR CONTROLS (all 8 fired as expected, both directions) ===\nCTRL-R1-NORMALISED-FINDS-IT        got=CONTAINS       expected=CONTAINS       OK\nCTRL-R1-UNNORMALISED-MISSES-IT     got=MISSING        expected=MISSING        OK\nCTRL-R1-STILL-REJECTS-FAKE         got=MISSING        expected=MISSING        OK\nCTRL-R3-PDF-PRESENT                got=CONTAINS       expected=CONTAINS       OK\nCTRL-R3-PDF-ABSENT                 got=MISSING        expected=MISSING        OK\nCTRL-R3-HTMLSTRIP-ON-PDF-FAILS     got=MISSING        expected=MISSING        OK\nCTRL-R4-FIRES-ON-COOKIEWALL        got=FIRED          expected=FIRED          OK\nCTRL-R4-SILENT-ON-GOOD-PAGE        got=SILENT         expected=SILENT         OK\n\n=== v1 -> v2 MISSING migration ===\nv1 MISSING: 66   still MISSING in v2: 19   repaired (false positives): 47\nfalse-positive rate of the v1 detector: 47/66 = 71.2%",
+          "fingerprint": "f2e32d64f9837a3c31d21a60a11d6e86"
+        }
+      ]
+    },
+    {
+      "claim": "A CONCURRENT archive sweep produced a systematically FALSE answer and its own controls caught it. At 5 workers, 2 of 3 Probe-2 controls failed (cdx HTTP 503, availability HTTP 429) and 72 of 115 urls read as NO-SNAPSHOT - of which 54 were availability HTTP 429 and 37 were connection-refused, i.e. the reading measured MY RATE LIMIT, not the archive's holdings. Serializing to 1 worker with Retry-After backoff moved ARCHIVE-UNKNOWN from ~72 to 0 and passed all 4 controls. This is the unit's own warning realised in the inverse direction: the danger is not only a bot filter faking health, it is a rate limit faking DEATH.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.detector_failures_found",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_probe2.py   # 5 concurrent workers - DISCARDED RUN",
+          "raw_output": "=== Probe-2 controls (concurrent) ===\nCTRL-P2-CDX-FINDS-ARCHIVED         got=NONE       expected=FOUND      *** FAILED ***   [cdx status=503 err=None]\nCTRL-P2-CDX-EMPTY-ON-FAKE          got=NONE       expected=NONE       OK   [cdx returned 0 snapshot rows]\nCTRL-P2-AVAIL-FINDS-ARCHIVED       got=NONE       expected=FOUND      *** FAILED ***   [avail status=429]\n\nNO-SNAPSHOT verdicts: 72 of 115\n  of which availability said HTTP 429 : 54\n  cdx connection-refused (WinError 10061): 37\nVERDICT ON THIS RUN: uninterpretable, discarded.",
+          "fingerprint": "d6cc2a5dc8b0359ce9808b6be57164b1"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python adv0020_probe2b.py  # 1 worker, >=2.2s spacing, Retry-After backoff, control-gated",
+          "raw_output": "=== Probe-2b control gate (all 4 OK) ===\nCTRL-P2B-CDX-FINDS-ARCHIVED        got=FOUND      expected=FOUND      OK   [CDX-ANSWERED (8 rows)]\nCTRL-P2B-CDX-EMPTY-ON-FAKE         got=NONE       expected=NONE       OK   [CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap]\nCTRL-P2B-ARCHIVED-CONTAINS         got=CONTAINS   expected=CONTAINS   OK   [html ts=20131010013448 quote present (verbatim)]\nCTRL-P2B-ARCHIVED-MISSING          got=MISSING    expected=MISSING    OK   [ts=20131010013448 quote 'adv0020 absent-from-snapshot sentinel' absent]\n\nARCHIVE-UNKNOWN in the 52-url run: 0\nARCHIVE-GAP verdicts now rest on cdx HTTP 200 with 0 rows, an ANSWER.",
+          "fingerprint": "3fd37c6530fbbe4177bde6284666fbf1"
+        }
+      ]
+    },
+    {
+      "claim": "The naive URL frame is NOT a citation frame, and this inflates any dead-link rate. 30 of 420 sampled 'citations' were not citations: package artifacts on files.pythonhosted.org, git remotes ending .git, RFC-2606 fixtures (https://a.example/1, https://b.example.com/x), hostless fixtures (https://a, http://x) and brace templates. Worst case: 13 of the 15 apparently dead citations in the command-center CLAIM RECORDS were fixtures. After purification the claim records hold 38 real external citations with 2 dead, and both dead ones are degenerate (a truncated apache license URL and a URL my own extractor cut at '/blob/ma').",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/_wfa3_verify_out.json, command-center/_wfa5_features.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_purify.py   # classifier + control over the 420 probed urls",
+          "raw_output": "=== purifier control ===\nknown fixtures correctly dropped : 16/16\nknown citations correctly kept   : 10/10\nPURIFIER CONTROL: PASS\n\n=== dropped, by reason ===\npackage-artifact host 'files.pythonhosted.org', not a cited document 11\nno dotted host -> synthetic fixture                            4\ngit remote, not a cited document                               3\nplaceholder host 'a.com'                                       2\ntemplate/placeholder URL                                       2\nRFC-2606 example domain 'example.com'                          1\nRFC-2606 example domain 'a.example.com'                        1\nRFC-2606 reserved TLD host 'a.example'                         1\nplaceholder host 'b.com'                                       1\nRFC-2606 example domain 'b.example.com'                        1\nRFC-2606 reserved TLD host 'attacker.example'                  1\nRFC-2606 reserved TLD host 'canonical.example'                 1\nURL truncated at an unbalanced '                               1\n\nkept: 390",
+          "fingerprint": "2ebb30031f71970090277e6615b27aeb"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "independent read of the two surviving dead claim-record citations at their citing file, to confirm neither is a substantive evidence citation",
+          "raw_output": "real external citations in command-center claim records : 38\ndead/unreachable among them                             : 2\n  http://www.apache.org/license  (DEAD)  cited in command-center/_wfa3_verify_out.json\n  https://github.com/Piebald-AI/claude-code-system-prompts/blob/ma  (DEAD, url truncated by extraction)  cited in command-center/_wfa5_features.json\nNeither backs a measurement; the first is a licence identifier string, the second is an extraction artifact of a longer valid URL.",
+          "fingerprint": "42ee838d48c7ab5f32feaaf2cf9feff7"
+        }
+      ]
+    },
+    {
+      "claim": "COVERAGE LIMIT, stated as a limit and not a result: this is a STRATIFIED SAMPLE of 420 urls (8.2% of the frame), of which 390 survive purification as real citations (7.6% of the frame), drawn from a frame of 5,144 distinct citation URLs with a per-host cap of 6 and seed 20260811. It is NOT a census. The command-center claim-record subset (63 urls, 38 real) IS a census. Every percentage above therefore carries a Wilson CI95 and none may be quoted as a whole-corpus count. UNVERIFIED: the per-host cap deliberately under-samples github.com (1,123 frame urls, 16 probed) and arxiv.org (425 frame urls), so the estimate is not weighted back to the frame's host distribution and could shift if those two hosts rot at a different rate than the long tail.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.sampling_frame",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0020_extract.py + adv0020_tier.py   # frame construction and sampling",
+          "raw_output": "citation SITES: 13797\ndistinct URLs : 5144\n  research-corpus  sites=13021 distinct=4653\n  docs-research    sites=654   distinct=476\n  command-center   sites=122   distinct=63\ntier census: T3-TOKENS 4139 | T1-ANCHOR 733 | T2-QUOTE 272\nsample: 420 urls / 308 distinct hosts / per-host cap 6 / seed 20260811\nmax from one host: github.com 16",
+          "fingerprint": "80517d8dbb2a48e0248bfef9f2539f07"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "independent recount of the frame denominator by a whole-repo URL census with a different scoping rule (all top-level areas, not just the three research areas)",
+          "raw_output": "repo-wide distinct URLs (ex node_modules/.git): 8697\nby area: harness-sota-corpus 4661 | .agents 1453 | tools 1429 | skills 1283 | command-center 620 | docs 486 | platform 125\nThe 5,144 frame is the RESEARCH-ARTIFACT + CLAIM-RECORD subset of that 8,697; the difference is skill/tool/hook source files, which the unit's inputs field does not name.",
+          "fingerprint": "f24a6e8bbe003c44db0897f070df777d"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "CTRL-REQUIRED-LIVE-AND-DEAD",
+      "name": "REQUIRED CONTROL from tests_required: one URL known live-and-containing plus one known-dead, so a 100%-healthy sweep cannot pass unnoticed",
+      "command": "python adv0020_probe.py   # controls block, run before the sweep",
+      "result": "PASS",
+      "assertions": 4,
+      "duration_seconds": 12.0,
+      "output_tail": "CTRL-P1-LIVE-CONTAINING          status=200    class=LIVE_OK                contain=CONTAINS       expected=LIVE_OK/CONTAINS\nCTRL-P1-DEAD-404                 status=404    class=DEAD                   contain=NA             expected=DEAD\nCTRL-P1-DEAD-DNS                 status=None   class=UNREACHABLE            contain=NA             expected=UNREACHABLE\nCTRL-P1-CONTAINMENT-NEGATIVE     status=200    class=LIVE_CONTENT_MISMATCH  contain=MISSING        expected=LIVE_CONTENT_MISMATCH\nCTRL-P1-ANCHOR-PRESENT           status=200    class=LIVE_CONTENT_MISMATCH  contain=MISSING        expected=CONTAINS-or-NOT-CHECKABLE\nCTRL-P1-ANCHOR-ABSENT            status=200    class=LIVE_CONTENT_MISMATCH  contain=MISSING        expected=MISSING-or-NOT-CHECKABLE\n\nLIVE-AND-CONTAINING fired CONTAINS; DEAD-404 fired DEAD; DEAD-DNS fired UNREACHABLE; CONTAINMENT-NEGATIVE fired MISSING on a LIVE page - so the detector can distinguish live-with-quote, live-without-quote, 404 and DNS death. The sweep did NOT report 100% healthy (275/420 LIVE_OK), so it was not silently bot-filtered."
+    },
+    {
+      "id": "CTRL-ANCHOR-CONTROL-V1-FAILED",
+      "name": "HONEST RECORD OF A FAILED CONTROL: CTRL-P1-ANCHOR-PRESENT expected CONTAINS and got MISSING, leaving the anchor detector UNPROVEN because PRESENT and ABSENT returned the same verdict",
+      "command": "python adv0020_probe.py ; python adv0020_ctrlfix.py",
+      "result": "FAIL",
+      "assertions": 2,
+      "duration_seconds": 8.0,
+      "output_tail": "Root cause: I ASSUMED the anchor 'main_right_column' exists on iana.org/help/example-domains. It does not - the page's actual ids are [\"viewport\", \"header\", \"logo\", \"body\", \"example-domains\", \"further-reading\", \"sidenav\", \"footer\", \"custodian\", \"legalnotice\"]. My EXPECTATION was wrong, not the detector; but a control whose two arms return the same verdict proves nothing, so the anchor result was not citable until CTRL-P1-ANCHOR-PRESENT-V2 replaced it."
+    },
+    {
+      "id": "CTRL-ANCHOR-QUOTE-SELF-CALIBRATING-V2",
+      "name": "Self-calibrating both-states replacement: harvest a REAL id out of the fetched page's own body (cannot be mis-specified), assert CONTAINS on it and MISSING on a mutated id; same for a real phrase vs a fabricated phrase",
+      "command": "python adv0020_ctrlfix.py",
+      "result": "PASS",
+      "assertions": 4,
+      "duration_seconds": 6.0,
+      "output_tail": "CTRL-P1-ANCHOR-PRESENT-V2      verdict=CONTAINS       expected=CONTAINS   OK\nCTRL-P1-ANCHOR-ABSENT-V2       verdict=MISSING        expected=MISSING    OK\nCTRL-P1-QUOTE-PRESENT-V2       verdict=CONTAINS       expected=CONTAINS   OK\nCTRL-P1-QUOTE-ABSENT-V2        verdict=MISSING        expected=MISSING    OK\n\nAll four arms behaved; anchor and quote detectors are proven to discriminate in both directions on a real corpus host."
+    },
+    {
+      "id": "CTRL-FOUR-REPAIRS-BOTH-STATES",
+      "name": "Both-states control for each of the four v1 repairs: trailing punctuation, PDF text extraction, soft-block detection, and rejection of a fabricated quote",
+      "command": "python adv0020_probe1b.py   # controls block",
+      "result": "PASS",
+      "assertions": 8,
+      "duration_seconds": 22.0,
+      "output_tail": "CTRL-R1-NORMALISED-FINDS-IT        got=CONTAINS       expected=CONTAINS       OK\nCTRL-R1-UNNORMALISED-MISSES-IT     got=MISSING        expected=MISSING        OK\nCTRL-R1-STILL-REJECTS-FAKE         got=MISSING        expected=MISSING        OK\nCTRL-R3-PDF-PRESENT                got=CONTAINS       expected=CONTAINS       OK\nCTRL-R3-PDF-ABSENT                 got=MISSING        expected=MISSING        OK\nCTRL-R3-HTMLSTRIP-ON-PDF-FAILS     got=MISSING        expected=MISSING        OK\nCTRL-R4-FIRES-ON-COOKIEWALL        got=FIRED          expected=FIRED          OK\nCTRL-R4-SILENT-ON-GOOD-PAGE        got=SILENT         expected=SILENT         OK\n\nCTRL-R1-UNNORMALISED-MISSES-IT is the load-bearing arm: it proves the trailing comma alone flips the verdict, so the repair - not a looser matcher - is what changed the answer. CTRL-R1-STILL-REJECTS-FAKE proves the repair did not become permissive."
+    },
+    {
+      "id": "CTRL-P2-CONCURRENT-FAILED-GATE",
+      "name": "HONEST RECORD OF A FAILED CONTROL: the concurrent archive probe's positive controls failed (cdx 503, availability 429), so its 72 NO-SNAPSHOT verdicts were discarded rather than reported",
+      "command": "python adv0020_probe2.py",
+      "result": "FAIL",
+      "assertions": 3,
+      "duration_seconds": 421.6,
+      "output_tail": "CTRL-P2-CDX-FINDS-ARCHIVED         got=NONE       expected=FOUND      *** FAILED ***   [cdx status=503 err=None]\nCTRL-P2-CDX-EMPTY-ON-FAKE          got=NONE       expected=NONE       OK   [cdx returned 0 snapshot rows]\nCTRL-P2-AVAIL-FINDS-ARCHIVED       got=NONE       expected=FOUND      *** FAILED ***   [avail status=429]\n\n72 of 115 urls read NO-SNAPSHOT; 54 of those had availability HTTP 429 and 37 cdx probes were connection-refused. Had this run been reported it would have claimed a 63% archive gap that does not exist."
+    },
+    {
+      "id": "CTRL-P2B-ARCHIVE-GATE",
+      "name": "Archive control GATE: the serialized re-run refuses to emit any verdict unless a known-archived URL is found AND a known-unarchivable URL is not AND containment works both ways inside a fetched snapshot",
+      "command": "python adv0020_probe2b.py",
+      "result": "PASS",
+      "assertions": 4,
+      "duration_seconds": 948.2,
+      "output_tail": "CTRL-P2B-CDX-FINDS-ARCHIVED        got=FOUND      expected=FOUND      OK   [CDX-ANSWERED (8 rows)]\nCTRL-P2B-CDX-EMPTY-ON-FAKE         got=NONE       expected=NONE       OK   [CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap]\nCTRL-P2B-ARCHIVED-CONTAINS         got=CONTAINS   expected=CONTAINS   OK   [html ts=20131010013448 quote present (verbatim)]\nCTRL-P2B-ARCHIVED-MISSING          got=MISSING    expected=MISSING    OK   [ts=20131010013448 quote 'adv0020 absent-from-snapshot sentinel' absent]\n\nGATE PASS -> 52 urls probed, ARCHIVE-UNKNOWN = 0."
+    },
+    {
+      "id": "CTRL-FRAME-PURIFIER",
+      "name": "Control on the frame purifier: it must drop all 16 known non-citation artifacts and keep all 10 known real citations, including awkward keepers like a dead conference URL and a citeseerx query string",
+      "command": "python adv0020_purify.py",
+      "result": "PASS",
+      "assertions": 26,
+      "duration_seconds": 1.0,
+      "output_tail": "known fixtures correctly dropped : 16/16\nknown citations correctly kept   : 10/10\nBoth arms clean, so the 30 drops are not quietly deleting real dead links to flatter the resolve rate - the kept set still contains every dead citation the sweep found."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-LIVE-PAGE-MISSING-QUOTE",
+      "kind": "known-broken-fixture",
+      "description": "A URL that is definitely live (example.com, HTTP 200) paired with a sentinel string that is definitely not on it. Without this arm a 'containment 100%' result would be meaningless.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CTRL-P1-CONTAINMENT-NEGATIVE status=200 class=LIVE_CONTENT_MISMATCH contain=MISSING : quote 'adv0020 sentinel string that is not on this page' absent from 142 chars of extracted text",
+      "good_state_output": "CTRL-P1-LIVE-CONTAINING status=200 class=LIVE_OK contain=CONTAINS : verbatim quote present  (same URL, same code path, real quote)"
+    },
+    {
+      "id": "NC-HTMLSTRIP-ON-PDF",
+      "kind": "known-broken-fixture",
+      "description": "The v1 HTML tag-stripper applied to real PDF bytes (arxiv 2407.01489). Proves the v1 pipeline made every PDF citation a guaranteed false MISSING, which is why 17 of the 42 v1 T2 mismatches were PDFs.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CTRL-R3-HTMLSTRIP-ON-PDF-FAILS got=MISSING : strip_html() on the PDF yields 829074 chars of binary noise and the string 'Agentless', which IS in the paper, is absent",
+      "good_state_output": "CTRL-R3-PDF-PRESENT got=CONTAINS via engine=pymupdf, 96538 chars of real text; CTRL-R3-PDF-ABSENT got=MISSING on a fabricated sentinel in the same extracted text"
+    },
+    {
+      "id": "NC-SOFTBLOCK-COOKIE-WALL",
+      "kind": "known-broken-fixture",
+      "description": "A publisher consent wall that returns HTTP 200 (onlinelibrary.wiley.com -> /action/cookieAbsent). Counting it as LIVE_CONTENT_MISMATCH would report link-rot where there is a bot wall.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CTRL-R4-FIRES-ON-COOKIEWALL got=FIRED : final URL https://onlinelibrary.wiley.com/action/cookieAbsent matches the consent/challenge pattern",
+      "good_state_output": "CTRL-R4-SILENT-ON-GOOD-PAGE got=SILENT : arxiv abs page, 5534 chars, no soft-block signal - so the matcher is not simply firing on everything"
+    },
+    {
+      "id": "NC-ARCHIVE-CDX-EMPTY-ON-UNARCHIVABLE",
+      "kind": "known-broken-fixture",
+      "description": "A synthetic host that cannot ever have been crawled, queried through the same CDX path as the real citations. Distinguishes a genuine ARCHIVE-GAP from a rate-limited non-answer.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CTRL-P2B-CDX-EMPTY-ON-FAKE got=NONE : CDX-ANSWERED-EMPTY (http 200, 0 rows) for adv0020-linkrot-nonexistent-host-probe.example-invalid-tld",
+      "good_state_output": "CTRL-P2B-CDX-FINDS-ARCHIVED got=FOUND : CDX-ANSWERED (8 rows) for example.com, and the fetched 20131010013448 snapshot yields CONTAINS for 'Example Domain' and MISSING for a fabricated sentinel"
+    },
+    {
+      "id": "NC-RATE-LIMIT-MASQUERADING-AS-DEATH",
+      "kind": "other",
+      "description": "The discarded concurrent archive run IS the negative control for the serialized one: identical logic, 5 workers instead of 1, and it produced a systematically false mass-absence reading that its own positive control caught.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "5 workers: CTRL-P2-CDX-FINDS-ARCHIVED got NONE on cdx status=503; CTRL-P2-AVAIL-FINDS-ARCHIVED got NONE on avail status=429; 72/115 urls NO-SNAPSHOT (54 of them HTTP 429)",
+      "good_state_output": "1 worker, >=2.2s spacing, Retry-After backoff: all 4 controls OK, ARCHIVE-UNKNOWN = 0 across 52 urls"
+    },
+    {
+      "id": "NC-T3-ADVISORY-NOT-A-FAILURE",
+      "kind": "other",
+      "description": "T3-TOKENS label-token coverage is a DESCRIPTION-vs-page similarity score, not a quotation. Labels like 'official guidance' or 'official table' score 0/2 against a perfectly healthy page. These 9 are recorded and explicitly EXCLUDED from every failure count.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "if T3 were counted as failures the mismatch rate would read 19/321 instead of 10/150, mixing a descriptive-label heuristic into a quotation-integrity number",
+      "good_state_output": "T3 excluded: 9 low-coverage cases listed under report.t3_advisory_excluded with their scores, none counted"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "NOT-ASSIGNED",
+    "verdict": "NOT-REVIEWED",
+    "independent": false
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0020"
+  },
+  "downstream_consumers": [],
+  "residual_unknowns": [
+    {
+      "claim": "SAMPLE not census: 390 purified citations probed from a 5,144-url frame (7.6% of the frame). No percentage in this artifact may be quoted as a whole-corpus count; each carries a Wilson CI95.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "probe the full 5,144-url frame with the same per-host serialization; at the politeness rates used here that is roughly 4-6 hours wall-clock, which does not fit this unit's 5,400s timeout."
+    },
+    {
+      "claim": "Host-stratification is UNWEIGHTED. The per-host cap of 6 deliberately under-samples github.com (1,123 frame urls -> 16 probed) and arxiv.org (425 frame urls -> <=6), so the estimate is not weighted back to the frame's host distribution and would shift if those two hosts rot at a different rate than the long tail.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "draw a second sample proportional to host frequency, probe it, and compare the two resolve rates; a difference beyond the CIs means the cap biased the estimate."
+    },
+    {
+      "claim": "14.9% of citations are WALLED (401/403/429 or a consent interstitial) and are unverifiable by an unauthenticated sweep from this vantage point. Their true alive/dead split is UNKNOWN, which makes the 6.2% dead rate a LOWER BOUND.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "re-probe the 58 walled urls from an authenticated session or an institutional IP, or resolve them through the archive only, and compare the resulting dead rate."
+    },
+    {
+      "claim": "3 of the 10 live-200 content mismatches are NOT-CHECKED because CDX answered HTTP 200 with zero rows, so the decay direction for inspect.aisi.org.uk/metrics.html#score-reducers, the dev.to article and nationalacademies.org/read/11923/chapter/3 is undetermined.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "query a SECOND archive - archive.today, a search-engine cache, or the Common Crawl index - for a copy predating 2026-07-18 and re-run the same containment check against it."
+    },
+    {
+      "claim": "The 6 NEVER-CONTAINED classifications rest on an archive snapshot that PREDATES the citation window. That excludes post-citation decay, but does NOT prove the citing agent never saw the string: a JS-rendered anchor could have been present in a browser DOM and absent from both raw bodies.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "render the 6 pages headless with Playwright and re-test containment against the rendered DOM rather than the raw HTML; a CONTAINS there would reclassify the case from never-contained to detector-limitation."
+    },
+    {
+      "claim": "PDF text extraction failed on 7 citations (MuPDF 'object is not a stream', pypdf 'EOF marker not found'), recorded as NA rather than folded into either pass or fail.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "retry those 7 with pdftotext/poppler, or OCR them if they are scans."
+    },
+    {
+      "claim": "UNVERIFIED: no reviewer of any vendor has examined this artifact, and the reviewer_requirement's named Anthropic reviewer cannot satisfy cross-vendor independence because Anthropic executed the unit.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "assign an openai (or other distinct-vendor) refuter and have it re-derive the counterexample by re-running adv0020_probe1b.py and adv0020_probe2b.py, not by reading this report."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T18:05:00Z",
+    "ended_at": "2026-08-11T20:26:06Z"
+  },
+  "retry": {
+    "count": 2,
+    "policy": "up to 3 attempts with staggered arrival (60s/300s/900s); a 429/529 is provider-side and is NOT a unit failure. USED: attempt 1 = the naive containment sweep (retired for a 71% false-positive rate); attempt 2 = the concurrent archive sweep (retired because its positive controls failed on HTTP 503/429). Each retry used a MECHANICALLY DIFFERENT instrument - a repaired containment pipeline, then a serialized backoff client - not a re-run of the failed probe.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "containment-false-positive: naive HTML-only matcher, 14 concurrent",
+        "outcome": "SUPERSEDED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "archive-detector-blocked: cdx 503 / availability 429, 5 concurrent",
+        "outcome": "SUPERSEDED"
+      },
+      {
+        "attempt": 3,
+        "error_fingerprint": "none: repaired containment (4 fixes) + serialized control-gated archive; 24/27 control arms passed",
+        "outcome": "SUCCESS"
+      }
+    ],
+    "pivot_alternatives": [
+      "PIVOT 1 (taken): repair the containment pipeline with a both-states control per repair, rather than re-running the same matcher and hoping the numbers change.",
+      "PIVOT 2 (taken): serialize the archive client with Retry-After backoff and GATE the sweep on its positive control, rather than treating a 429 as an archive gap.",
+      "PIVOT 3 (considered, not taken): drop the archive probe entirely and report status codes only. Rejected because it would have deleted the unit's own second signal and made the decay-vs-never-contained distinction - the single most useful finding - unmeasurable.",
+      "PIVOT 4 (considered, not taken): headless-render every page with Playwright to eliminate the JS-anchor limitation. Rejected on budget; it remains the named settling experiment for the 6 NEVER-CONTAINED cases."
+    ]
+  },
+  "failure": {
+    "classification": [
+      "detector-failure",
+      "stale-premise"
+    ],
+    "reason": "state=BLOCKED while sentinel=SUCCESS: these are DIFFERENT contracts and both readings are literal. The unit's completion_sentinel conditions are ALL met - the artifact exists and is non-empty, it parses against output_schema, both named probes are recorded verbatim with raw output, every enumerated target carries exactly one verdict from the declared vocabulary, and every listed control has a recorded result. So the MEASUREMENT is complete and citable. The receipt PROCESS state is nevertheless BLOCKED because platform/schema/receipt.schema.json requires three further things for state=SUCCESS that this unit cannot honestly assert: reviewer.verdict=PASS with independent=true (no reviewer of any vendor has seen this, and the required Anthropic reviewer would be same-vendor as the executor), manifest_registration.registered=true (editing command-center/ARTIFACT-MANIFEST.json is forbidden by this unit's write scope), and at least one EXECUTED downstream consumer (none exists). Asserting any of those would be self-certification. A fourth blocker is deliberate: the SUCCESS branch forbids any test with result=FAIL, and two controls here HONESTLY failed - CTRL-ANCHOR-CONTROL-V1-FAILED and CTRL-P2-CONCURRENT-FAILED-GATE. Deleting them to obtain a green state would destroy the unit's most valuable evidence. SEPARATELY, both of the unit's declared failure_classification values occurred inside this unit's own instruments and are reported as FINDINGS: detector-failure (the v1 containment sweep was 71% false-positive; the concurrent archive sweep produced a false mass-absence reading that its own control caught; the naive URL frame counted test fixtures as citations) and stale-premise (the unit's premise that a live-200 content mismatch indicates DECAY is REFUTED for 6 of 10 cases, which were never-contained). The delivered measurement is the post-repair, control-gated one."
+  },
+  "report": {
+    "kind": "stale-premise-reprobe",
+    "question": "What fraction of external URLs cited as evidence still resolve today, and for every dead link is there an archival snapshot that contains the specific quoted text?",
+    "headline": "Both halves of the question are answerable, and both naive answers are wrong. (1) There is no single resolve fraction: 75.9% of 390 purified citations return HTTP 200, 6.2% are dead or unreachable, and 14.9% are WALLED behind a 401/403/429 or consent interstitial - neither alive nor dead by any unauthenticated probe. Among the 320 determinate citations the rate is 92.5% (CI95 89.1-94.9%). Any sweep that reports one number has silently assigned the walled 14.9% to a side. (2) Dead links are mostly but not fully recoverable: 19 of 24 have an archive snapshot, 13 of 24 have one that CONTAINS the cited target, and 5 are unrecoverable. (3) The more damaging finding is that link-rot is NOT the dominant citation-integrity risk here. 10 of 150 hard-target citations return a live 200 whose anchor or quote is absent - but only ONE is confirmed decay; SIX were never in the source at all, so archiving the source would not have helped. (4) And the instrument was the least trustworthy thing measured: my v1 containment detector was 71% false-positive (a trailing comma from punctuation-inside-quotes, PDFs fed to an HTML stripper, cookie walls returning 200), my concurrent archive probe reported a 63% archive gap that was really HTTP 429, and 30 of 420 sampled 'citations' were test fixtures and git remotes - 13 of the 15 apparently-dead claim-record citations among them. Three separate times a control caught my own sweep reporting the opposite of the truth.",
+    "sampling_frame": {
+      "frame_definition": "distinct external URLs appearing in the unit's declared inputs - research artifacts and claim records: harness-sota-2026-07-18-corpus/**, docs/**, command-center/** (.md/.json/.txt), excluding schema $id, localhost, npm registry and json-schema.org infrastructure URLs",
+      "citation_sites": 13797,
+      "distinct_urls_in_frame": 5144,
+      "frame_by_area": {
+        "research-corpus": 4653,
+        "docs-research": 476,
+        "command-center": 63
+      },
+      "repo_wide_distinct_urls_for_context": 8697,
+      "probed": 420,
+      "probed_after_purification": 390,
+      "coverage_pct_of_frame": 7.6,
+      "sampling_method": "stratified round-robin across hosts, per-host cap 6, seed 20260811, oversampling the hard-target tiers; plus a FULL CENSUS of the 63 command-center claim-record urls",
+      "distinct_hosts_probed": 308,
+      "containment_tiers": {
+        "T1-ANCHOR": "url carries a #fragment -> assert the fragment id exists as an id=/name= in the body, or the de-slugged phrase appears in the text. 733 in frame.",
+        "T2-QUOTE": "the citation label carries an explicitly quoted phrase -> assert verbatim containment after punctuation normalisation. 272 in frame.",
+        "T3-TOKENS": "no anchor and no quote -> ADVISORY content-word coverage of the label. 4,139 in frame. NEVER counted as a citation failure."
+      }
+    },
+    "observations": [
+      {
+        "name": "distinct-citation-urls-in-frame",
+        "measured": 5144,
+        "method": "regex over research artifacts + claim records, infrastructure URLs excluded",
+        "anchor": "harness-sota-2026-07-18-corpus/**, docs/**, command-center/**"
+      },
+      {
+        "name": "citations-probed-after-frame-purification",
+        "measured": 390,
+        "method": "stratified sample of 420, minus 30 non-citation artifacts (control-verified purifier)",
+        "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.sampling_frame"
+      },
+      {
+        "name": "resolves-http-200",
+        "measured": 296,
+        "method": "HTTP GET following redirects, browser user-agent, 3 staggered attempts on 429/5xx",
+        "anchor": "adv0020_probe1b.py"
+      },
+      {
+        "name": "dead-or-unreachable",
+        "measured": 24,
+        "method": "404/410 or DNS/TLS/timeout after 3 attempts",
+        "anchor": "adv0020_probe1b.py"
+      },
+      {
+        "name": "walled-indeterminate",
+        "measured": 58,
+        "method": "401/403/429/451 or a consent/challenge interstitial returning 200",
+        "anchor": "adv0020_probe1b.py"
+      },
+      {
+        "name": "resolve-pct-on-determinate-citations",
+        "measured": 92.5,
+        "method": "296/320, Wilson CI95 [0.8908, 0.9491]",
+        "anchor": "adv0020_purify.py"
+      },
+      {
+        "name": "hard-target-citations-with-checkable-200-body",
+        "measured": 150,
+        "method": "T1-ANCHOR + T2-QUOTE with a fetched 200 body and a testable target",
+        "anchor": "adv0020_probe1b.py"
+      },
+      {
+        "name": "silent-citation-failures-live-200-target-absent",
+        "measured": 10,
+        "method": "containment MISSING on a live 200, Wilson CI95 [0.0366, 0.1184]",
+        "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.silent_failure_adjudication"
+      },
+      {
+        "name": "of-those-confirmed-DECAYED-by-archive",
+        "measured": 1,
+        "method": "archive snapshot CONTAINS the target while today's live 200 does not",
+        "anchor": "adv0020_probe2b.py"
+      },
+      {
+        "name": "of-those-NEVER-CONTAINED",
+        "measured": 6,
+        "method": "target absent from both today's body and a pre-citation-window archive snapshot",
+        "anchor": "adv0020_probe2b.py"
+      },
+      {
+        "name": "of-those-NOT-CHECKED-no-snapshot",
+        "measured": 3,
+        "method": "CDX answered HTTP 200 with zero rows, so no second signal exists",
+        "anchor": "adv0020_probe2b.py"
+      },
+      {
+        "name": "dead-citations-with-any-archive-snapshot",
+        "measured": 19,
+        "method": "19/24, Wilson CI95",
+        "anchor": "adv0020_probe2b.py"
+      },
+      {
+        "name": "dead-citations-whose-snapshot-CONTAINS-the-target",
+        "measured": 13,
+        "method": "13/24 - the unit's literal second question",
+        "anchor": "adv0020_probe2b.py"
+      },
+      {
+        "name": "dead-citations-unrecoverable-no-snapshot",
+        "measured": 5,
+        "method": "CDX HTTP 200 with 0 rows - an answer, not a rate limit",
+        "anchor": "command-center/adversarial/ADV-0020-citation-linkrot-archival-audit.json#report.unrecoverable_citations"
+      },
+      {
+        "name": "v1-detector-false-positive-rate-pct",
+        "measured": 71.2,
+        "method": "47 of 66 v1 MISSING verdicts repaired by four control-proved fixes",
+        "anchor": "adv0020_probe1b.py"
+      },
+      {
+        "name": "concurrent-archive-no-snapshot-readings-that-were-HTTP-429",
+        "measured": 54,
+        "method": "availability_note field of the discarded 5-worker run",
+        "anchor": "adv0020_probe2.py"
+      },
+      {
+        "name": "non-citation-artifacts-in-the-naive-frame",
+        "measured": 30,
+        "method": "control-verified purifier: fixtures, git remotes, package artifacts, templates",
+        "anchor": "adv0020_purify.py"
+      },
+      {
+        "name": "claim-record-real-external-citations",
+        "measured": 38,
+        "method": "full census of command-center/** after purification",
+        "anchor": "command-center/**"
+      },
+      {
+        "name": "claim-record-dead-citations",
+        "measured": 2,
+        "method": "both degenerate: a licence identifier and an extraction-truncated URL",
+        "anchor": "command-center/_wfa3_verify_out.json, command-center/_wfa5_features.json"
+      }
+    ],
+    "resolution_histogram": {
+      "LIVE_OK": 277,
+      "REDIRECT_UNFOLLOWED": 5,
+      "BLOCKED": 32,
+      "OTHER_405": 4,
+      "DEAD": 6,
+      "SOFT_BLOCKED": 26,
+      "LIVE_CONTENT_MISMATCH": 19,
+      "OTHER_402": 1,
+      "UNREACHABLE": 16,
+      "OTHER_202": 2,
+      "SERVER_ERROR": 2
+    },
+    "control_arm_accounting": {
+      "_why": "The 13 entries in tests[] + negative_controls[] are control GROUPS; each contains several independently-recorded ARMS (a fired-on-bad and a silent-on-good reading). An earlier draft of this artifact's sentinel said '17 controls', which was an OVERCLAIM caught before delivery by counting the arms mechanically. The count below is computed from the probe JSONs, not typed.",
+      "total_arms": 27,
+      "passed": 24,
+      "failed": 3,
+      "failed_arm_ids": [
+        "CTRL-P1-ANCHOR-PRESENT",
+        "CTRL-P2-CDX-FINDS-ARCHIVED",
+        "CTRL-P2-AVAIL-FINDS-ARCHIVED"
+      ],
+      "arms_by_group": "probe1 controls=6; ctrlfix anchor v2=2; ctrlfix quote v2=2; probe1b repairs=8; probe2 discarded=3; probe2b gate=4; purifier=2",
+      "control_groups_in_tests_and_negative_controls": 13
+    },
+    "answer_to_the_question": {
+      "part_1_fraction_still_resolving": "296/390 = 75.9% of purified citations return HTTP 200; 24/390 = 6.2% are dead or unreachable; 58/390 = 14.9% are walled and indeterminate. On the 320 determinate citations: 92.5% (CI95 [0.8908, 0.9491]). REFUSAL TO GIVE ONE NUMBER IS THE FINDING - the walled bucket is 2.4x the dead bucket, so which side it is folded into changes the headline by 16 points.",
+      "part_2_archival_fallback_for_dead_links": "For the 24 dead/unreachable citations: 19 (79%) have SOME archive snapshot, 13 (54%) have a snapshot that CONTAINS the specific cited target, and 5 (21%) have no snapshot at all and are unrecoverable. So the answer to 'is there an archival snapshot that contains the quoted text' is YES for a bare majority (13/24) and NO or UNTESTABLE for the rest.",
+      "part_3_the_premise_correction": "The unit distinguishes itself from ADV-0080 by attacking DECAYED citations rather than FABRICATED ones. Measurement shows the boundary does not hold in practice: of 10 live-200 content mismatches, 1 is decay and 6 are targets that were never in the source, which is ADV-0080's class. A linkrot audit that does not run the archive comparison will mis-route 6 of 10 findings to the wrong remediation."
+    },
+    "silent_failure_adjudication": [
+      {
+        "url": "https://developers.openai.com/api/docs/guides/tools-tool-search#source-lines-745-763",
+        "tier": "T1-ANCHOR",
+        "target": "source-lines-745-763",
+        "live": "MISSING",
+        "live_detail": "fragment 'source-lines-745-763' absent from 173 ids and text",
+        "archive": "MISSING",
+        "archive_detail": "fragment 'source-lines-745-763' absent from 91 ids and text | snapshot chars=22525 ts=20260508062714",
+        "snapshot": {
+          "timestamp": "20260508062714",
+          "original": "https://developers.openai.com/api/docs/guides/tools-tool-search",
+          "replay_url": "https://web.archive.org/web/20260508062714id_/https://developers.openai.com/api/docs/guides/tools-tool-search",
+          "days_from_citation_window": 210,
+          "n_snapshots_indexed": 8
+        },
+        "verdict": "NEVER-CONTAINED",
+        "why": "target absent from BOTH today's live body AND the 20260508062714 archive snapshot -> not link-rot; the citing artifact's target does not appear in the source at all (fabricated/mis-quoted anchor is ADV-0080's lane, not decay)",
+        "cited_in": "harness-sota-2026-07-18-corpus/P1C22.md",
+        "n_sites": 1
+      },
+      {
+        "url": "https://geminicli.com/docs/cli/telemetry/#gemini_cli-chat_compression",
+        "tier": "T1-ANCHOR",
+        "target": "gemini_cli-chat_compression",
+        "live": "MISSING",
+        "live_detail": "fragment 'gemini_cli-chat_compression' absent from 126 ids and text",
+        "archive": "MISSING",
+        "archive_detail": "fragment 'gemini_cli-chat_compression' absent from 53 ids and text | snapshot chars=23887 ts=20251214200536",
+        "snapshot": {
+          "timestamp": "20251214200536",
+          "original": "https://geminicli.com/docs/cli/telemetry/",
+          "replay_url": "https://web.archive.org/web/20251214200536id_/https://geminicli.com/docs/cli/telemetry/",
+          "days_from_citation_window": 9504,
+          "n_snapshots_indexed": 8
+        },
+        "verdict": "NEVER-CONTAINED",
+        "why": "target absent from BOTH today's live body AND the 20251214200536 archive snapshot -> not link-rot; the citing artifact's target does not appear in the source at all (fabricated/mis-quoted anchor is ADV-0080's lane, not decay)",
+        "cited_in": "harness-sota-2026-07-18-corpus/T012.md",
+        "n_sites": 1
+      },
+      {
+        "url": "https://inspect.aisi.org.uk/metrics.html#score-reducers",
+        "tier": "T1-ANCHOR",
+        "target": "score-reducers",
+        "live": "MISSING",
+        "live_detail": "fragment 'score-reducers' absent from 217 ids and text",
+        "archive": "ARCHIVE-GAP",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap",
+        "snapshot": {},
+        "verdict": "NOT-CHECKED",
+        "why": "second signal unavailable (ARCHIVE-GAP); decay direction undetermined",
+        "cited_in": "harness-sota-2026-07-18-corpus/D005.md",
+        "n_sites": 1
+      },
+      {
+        "url": "https://repomix.com/guide/mcp-server#pack_codebase",
+        "tier": "T1-ANCHOR",
+        "target": "pack_codebase",
+        "live": "MISSING",
+        "live_detail": "fragment 'pack_codebase' absent from 40 ids and text",
+        "archive": "MISSING",
+        "archive_detail": "fragment 'pack_codebase' absent from 36 ids and text | snapshot chars=10941 ts=20260223024721",
+        "snapshot": {
+          "timestamp": "20260223024721",
+          "original": "https://repomix.com/guide/mcp-server",
+          "replay_url": "https://web.archive.org/web/20260223024721id_/https://repomix.com/guide/mcp-server",
+          "days_from_citation_window": 495,
+          "n_snapshots_indexed": 8
+        },
+        "verdict": "NEVER-CONTAINED",
+        "why": "target absent from BOTH today's live body AND the 20260223024721 archive snapshot -> not link-rot; the citing artifact's target does not appear in the source at all (fabricated/mis-quoted anchor is ADV-0080's lane, not decay)",
+        "cited_in": "harness-sota-2026-07-18-corpus/P1C19.md",
+        "n_sites": 2
+      },
+      {
+        "url": "https://repomix.com/guide/mcp-server#grep_repomix_output",
+        "tier": "T1-ANCHOR",
+        "target": "grep_repomix_output",
+        "live": "MISSING",
+        "live_detail": "fragment 'grep_repomix_output' absent from 40 ids and text",
+        "archive": "MISSING",
+        "archive_detail": "fragment 'grep_repomix_output' absent from 36 ids and text | snapshot chars=10941 ts=20260223024721",
+        "snapshot": {
+          "timestamp": "20260223024721",
+          "original": "https://repomix.com/guide/mcp-server",
+          "replay_url": "https://web.archive.org/web/20260223024721id_/https://repomix.com/guide/mcp-server",
+          "days_from_citation_window": 495,
+          "n_snapshots_indexed": 8
+        },
+        "verdict": "NEVER-CONTAINED",
+        "why": "target absent from BOTH today's live body AND the 20260223024721 archive snapshot -> not link-rot; the citing artifact's target does not appear in the source at all (fabricated/mis-quoted anchor is ADV-0080's lane, not decay)",
+        "cited_in": "harness-sota-2026-07-18-corpus/P1C19.md",
+        "n_sites": 2
+      },
+      {
+        "url": "https://asrs.arc.nasa.gov/publications/callback/cb_410.html",
+        "tier": "T2-QUOTE",
+        "target": "Checklist Checkup",
+        "live": "MISSING",
+        "live_detail": "quote 'checklist checkup' absent from 10428 chars",
+        "archive": "MISSING",
+        "archive_detail": "quote 'checklist checkup' absent from 10428 chars | snapshot chars=10428 ts=20210318021454",
+        "snapshot": {
+          "timestamp": "20210318021454",
+          "original": "https://asrs.arc.nasa.gov/publications/callback/cb_410.html",
+          "replay_url": "https://web.archive.org/web/20210318021454id_/https://asrs.arc.nasa.gov/publications/callback/cb_410.html",
+          "days_from_citation_window": 50400,
+          "n_snapshots_indexed": 4
+        },
+        "verdict": "NEVER-CONTAINED",
+        "why": "target absent from BOTH today's live body AND the 20210318021454 archive snapshot -> not link-rot; the citing artifact's target does not appear in the source at all (fabricated/mis-quoted anchor is ADV-0080's lane, not decay)",
+        "cited_in": "harness-sota-2026-07-18-corpus/X031.md",
+        "n_sites": 1
+      },
+      {
+        "url": "https://dev.to/thedailyagent/top-6-secrets-management-tools-for-devs-in-2026-4ahe",
+        "tier": "T2-QUOTE",
+        "target": "Top 6 secrets tools 2026",
+        "live": "MISSING",
+        "live_detail": "quote 'top 6 secrets tools 2026' absent from 11065 chars",
+        "archive": "ARCHIVE-GAP",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap",
+        "snapshot": {},
+        "verdict": "NOT-CHECKED",
+        "why": "second signal unavailable (ARCHIVE-GAP); decay direction undetermined",
+        "cited_in": "docs/phase3-discovery-2026-07-13/research-0.md",
+        "n_sites": 2
+      },
+      {
+        "url": "https://www.nationalacademies.org/read/11923/chapter/3",
+        "tier": "T2-QUOTE",
+        "target": "Complexity, Coupling, and Catastrophe",
+        "live": "MISSING",
+        "live_detail": "quote 'complexity, coupling, and catastrophe' absent from 120474 chars",
+        "archive": "ARCHIVE-GAP",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap",
+        "snapshot": {},
+        "verdict": "NOT-CHECKED",
+        "why": "second signal unavailable (ARCHIVE-GAP); decay direction undetermined",
+        "cited_in": "harness-sota-2026-07-18-corpus/X132.md",
+        "n_sites": 9
+      },
+      {
+        "url": "https://www.ntsb.gov/news/Pages/cvr_fdr.aspx",
+        "tier": "T2-QUOTE",
+        "target": "Cockpit Voice Recorders and Flight Data Recorders",
+        "live": "MISSING",
+        "live_detail": "quote 'cockpit voice recorders and flight data recorders' absent from 7480 chars",
+        "archive": "MISSING",
+        "archive_detail": "quote 'cockpit voice recorders and flight data recorders' absent from 7352 chars | snapshot chars=7352 ts=20151108114115",
+        "snapshot": {
+          "timestamp": "20151108114115",
+          "original": "http://www.ntsb.gov/news/Pages/cvr_fdr.aspx",
+          "replay_url": "https://web.archive.org/web/20151108114115id_/http://www.ntsb.gov/news/Pages/cvr_fdr.aspx",
+          "days_from_citation_window": 109610,
+          "n_snapshots_indexed": 8
+        },
+        "verdict": "NEVER-CONTAINED",
+        "why": "target absent from BOTH today's live body AND the 20151108114115 archive snapshot -> not link-rot; the citing artifact's target does not appear in the source at all (fabricated/mis-quoted anchor is ADV-0080's lane, not decay)",
+        "cited_in": "harness-sota-2026-07-18-corpus/X027.md",
+        "n_sites": 2
+      },
+      {
+        "url": "https://www.ojp.gov/ncjrs/virtual-library/abstracts/report-blind-trial-cetus-amplitype-hla-dqalpha-forensic",
+        "tier": "T2-QUOTE",
+        "target": "Report of the Blind Trial…",
+        "live": "MISSING",
+        "live_detail": "quote 'report of the blind trial' absent from 3890 chars",
+        "archive": "CONTAINS",
+        "archive_detail": "quote present (verbatim) | snapshot chars=4359 ts=20250314032524",
+        "snapshot": {
+          "timestamp": "20250314032524",
+          "original": "https://www.ojp.gov/ncjrs/virtual-library/abstracts/report-blind-trial-cetus-amplitype-hla-dqalpha-forensic",
+          "replay_url": "https://web.archive.org/web/20250314032524id_/https://www.ojp.gov/ncjrs/virtual-library/abstracts/report-blind-trial-cetus-amplitype-hla-dqalpha-forensic",
+          "days_from_citation_window": 10404,
+          "n_snapshots_indexed": 8
+        },
+        "verdict": "DECAYED-CONFIRMED",
+        "why": "archive snapshot 20250314032524 CONTAINS the target while today's live 200 does not -> the page changed after the citation",
+        "cited_in": "harness-sota-2026-07-18-corpus/X120.md",
+        "n_sites": 1
+      }
+    ],
+    "dead_link_archival_fallback": [
+      {
+        "url": "http://www.apache.org/license",
+        "live": "DEAD",
+        "tier": "T3-TOKENS",
+        "target": "",
+        "cited_in": "command-center/_wfa3_verify_out.json",
+        "archive": "NA",
+        "snapshot_ts": "20040201221325",
+        "archive_detail": "no content tokens in label | snapshot chars=2698 ts=20040201221325"
+      },
+      {
+        "url": "https://github.com/Piebald-AI/claude-code-system-prompts/blob/ma",
+        "live": "DEAD",
+        "tier": "T3-TOKENS",
+        "target": "",
+        "cited_in": "command-center/_wfa5_features.json",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://bestpractice.bmj.com/info/toolkit/learn-ebm/how-to-calculate-risk/",
+        "live": "DEAD",
+        "tier": "T2-QUOTE",
+        "target": "How to calculate risk",
+        "cited_in": "harness-sota-2026-07-18-corpus/X002.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20180701135617",
+        "archive_detail": "quote present (verbatim) | snapshot chars=3148 ts=20180701135617"
+      },
+      {
+        "url": "https://extapps.ksc.nasa.gov/Reliability/Documents/Availability_What_is_it.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Availability — What is it?",
+        "cited_in": "harness-sota-2026-07-18-corpus/X113.md",
+        "archive": "MISSING",
+        "snapshot_ts": "20251209154626",
+        "archive_detail": "quote 'availability — what is it' absent from 7337 chars | snapshot chars=7337 ts=20251209154626"
+      },
+      {
+        "url": "https://psas.scripts.mit.edu/home/books-and-handbooks/",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Books and Handbooks",
+        "cited_in": "harness-sota-2026-07-18-corpus/X137.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20250527072918",
+        "archive_detail": "quote present (verbatim) | snapshot chars=20317 ts=20250527072918"
+      },
+      {
+        "url": "https://rdl.train.army.mil/catalog-ws/view/100.ATSC%2FA711F133-D3F1-4B5D-B0C6-94D722B58291-1563301440627/tc6_0x2.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Recommend Commander",
+        "cited_in": "harness-sota-2026-07-18-corpus/X163.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20240219045740",
+        "archive_detail": "quote present (verbatim) | snapshot chars=204083 ts=20240219045740"
+      },
+      {
+        "url": "https://sunnyday.mit.edu/leadingindicators-published.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "A Systems Approach to Risk Management through Leading Safety Indicators",
+        "cited_in": "harness-sota-2026-07-18-corpus/X139.md",
+        "archive": "NA",
+        "snapshot_ts": "20240612161413",
+        "archive_detail": "no 200 body | snapshot chars=0 ts=20240612161413"
+      },
+      {
+        "url": "https://www.army.mil/article/179942/applying_mission_command_to_overcome_challenges",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Applying mission command to overcome challenges,",
+        "cited_in": "harness-sota-2026-07-18-corpus/X169.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20200806221318",
+        "archive_detail": "quote present (verbatim) | snapshot chars=17192 ts=20200806221318"
+      },
+      {
+        "url": "https://www.benning.army.mil/Infantry/DoctrineSupplement/ATP3-21.8/appendix_b/DirectFireControl/FireControlMeasures/index.html",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Weapons Control Status",
+        "cited_in": "harness-sota-2026-07-18-corpus/X161.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20161026234135",
+        "archive_detail": "quote present (verbatim) | snapshot chars=23462 ts=20161026234135"
+      },
+      {
+        "url": "https://www.bmj.com/content/320/7237/768",
+        "live": "DEAD",
+        "tier": "T2-QUOTE",
+        "target": "Human error: models and management,",
+        "cited_in": "harness-sota-2026-07-18-corpus/X129.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20130615045650",
+        "archive_detail": "quote present (verbatim) | snapshot chars=13839 ts=20130615045650"
+      },
+      {
+        "url": "https://www.canada.ca/en/library-archives/services/government/information-disposition/records/methodology.html",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "A brief history of the LAC macroappraisal methodology",
+        "cited_in": "harness-sota-2026-07-18-corpus/X155.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20260609165731",
+        "archive_detail": "quote present (verbatim) | snapshot chars=6081 ts=20260609165731"
+      },
+      {
+        "url": "https://psas.scripts.mit.edu/home/wp-content/uploads/2024/STPA-Scenarios-New-Approach.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "STPA Scenarios—New Approach,",
+        "cited_in": "harness-sota-2026-07-18-corpus/X133.md",
+        "archive": "MISSING",
+        "snapshot_ts": "20250603030734",
+        "archive_detail": "quote 'stpa scenarios—new approach' absent from 77560 chars | snapshot chars=77560 ts=20250603030734"
+      },
+      {
+        "url": "https://rdl.train.army.mil/catalog-ws/view/arimcpii/downloads/Red_Team_Handbook_v9.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Assumption Sensitivity Analysis,",
+        "cited_in": "harness-sota-2026-07-18-corpus/X163.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://www.army.mil/article/283214/tmd_publishes_training_circular_to_augment_fm_and_adp_7_0",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "TMD publishes training circular to augment FM and ADP 7-0",
+        "cited_in": "harness-sota-2026-07-18-corpus/X163.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20260420163250",
+        "archive_detail": "quote present (verbatim) | snapshot chars=6765 ts=20260420163250"
+      },
+      {
+        "url": "https://adminpubs.tradoc.army.mil/regulations/TR71-20.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "TR 71-20, Devil’s Advocate Red Team responsibilities",
+        "cited_in": "harness-sota-2026-07-18-corpus/X170.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20240511105656",
+        "archive_detail": "label token coverage 6/6 = 1.00 (ADVISORY) | snapshot chars=390455 ts=20240511105656"
+      },
+      {
+        "url": "https://api.army.mil/e2/c/downloads/2023/01/31/99194b3d/commanders-guide-for-driving-change-the-learning-organization-framework-jan-19-public.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "Center for Army Lessons Learned, *Commander’s Guide for Driving Change: The Learning Organization Framework*, pp. 2-3",
+        "cited_in": "harness-sota-2026-07-18-corpus/X160.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20250114080533",
+        "archive_detail": "label token coverage 11/13 = 0.85 (ADVISORY) | snapshot chars=23783 ts=20250114080533"
+      },
+      {
+        "url": "https://armypubs.army.mil/ProductMaps/PubForm/Details.aspx?PUB_ID=1030481",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "APD record for TC 7-0.1",
+        "cited_in": "harness-sota-2026-07-18-corpus/X167.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20250405004728",
+        "archive_detail": "label token coverage 3/3 = 1.00 (ADVISORY) | snapshot chars=3708 ts=20250405004728"
+      },
+      {
+        "url": "https://authors.library.caltech.edu/records/yzs24-xsx88",
+        "live": "SERVER_ERROR",
+        "tier": "T3-TOKENS",
+        "target": "Caltech Authors record and chapter files",
+        "cited_in": "harness-sota-2026-07-18-corpus/X058.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20260118110305",
+        "archive_detail": "label token coverage 4/5 = 0.80 (ADVISORY) | snapshot chars=17375 ts=20260118110305"
+      },
+      {
+        "url": "https://citeseerx.ist.psu.edu/document?doi=039d8394b616db33ad146a3d37e4c7d93ba02858&repid=rep1&type=pdf",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "Department of the Army, TC 25-20, *A Leader’s Guide to After-Action Reviews*",
+        "cited_in": "harness-sota-2026-07-18-corpus/X164.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://conf.researchr.org/details/icse-2026/icse-2026-research-track/101/",
+        "live": "DEAD",
+        "tier": "T3-TOKENS",
+        "target": "",
+        "cited_in": "docs/axis-c-design-2026-07-13/research-sota-cross-vendor-orchestration.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://cs-people.bu.edu/mathan/reading-groups/papers-classics/aries.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "Mohan et al., original paper",
+        "cited_in": "harness-sota-2026-07-18-corpus/X056.md",
+        "archive": "NA",
+        "snapshot_ts": "20240817201403",
+        "archive_detail": "no 200 body | snapshot chars=0 ts=20240817201403"
+      },
+      {
+        "url": "https://docs.mcp.cloudflare.com/sse",
+        "live": "DEAD",
+        "tier": "T3-TOKENS",
+        "target": "",
+        "cited_in": "docs/claude-toolkit-gap-analysis-2026-05-28.md",
+        "archive": "NA",
+        "snapshot_ts": "20260609123826",
+        "archive_detail": "no content tokens in label | snapshot chars=109 ts=20260609123826"
+      },
+      {
+        "url": "https://docs.tia.siemens.cloud/r/en-us/v20/modular-pid-control-s7-300-s7-400/deadband-s7-300-s7-400/description-deadband-s7-300-s7-400?contentId=vlGF_4TTqz7WhFHAyFLSkQ",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "Siemens PID DEADBAND documentation",
+        "cited_in": "harness-sota-2026-07-18-corpus/X049.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://dotfiles.io/en/guides/secret-management/",
+        "live": "SERVER_ERROR",
+        "tier": "T3-TOKENS",
+        "target": "Secret Management Best Practices (dotfiles.io)",
+        "cited_in": "docs/phase3-discovery-2026-07-13/research-0.md",
+        "archive": "CONTAINS",
+        "snapshot_ts": "20260414060158",
+        "archive_detail": "label token coverage 4/5 = 0.80 (ADVISORY) | snapshot chars=5608 ts=20260414060158"
+      }
+    ],
+    "unrecoverable_citations": [
+      {
+        "url": "https://github.com/Piebald-AI/claude-code-system-prompts/blob/ma",
+        "live": "DEAD",
+        "tier": "T3-TOKENS",
+        "target": "",
+        "cited_in": "command-center/_wfa5_features.json",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://rdl.train.army.mil/catalog-ws/view/arimcpii/downloads/Red_Team_Handbook_v9.pdf",
+        "live": "UNREACHABLE",
+        "tier": "T2-QUOTE",
+        "target": "Assumption Sensitivity Analysis,",
+        "cited_in": "harness-sota-2026-07-18-corpus/X163.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://citeseerx.ist.psu.edu/document?doi=039d8394b616db33ad146a3d37e4c7d93ba02858&repid=rep1&type=pdf",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "Department of the Army, TC 25-20, *A Leader’s Guide to After-Action Reviews*",
+        "cited_in": "harness-sota-2026-07-18-corpus/X164.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://conf.researchr.org/details/icse-2026/icse-2026-research-track/101/",
+        "live": "DEAD",
+        "tier": "T3-TOKENS",
+        "target": "",
+        "cited_in": "docs/axis-c-design-2026-07-13/research-sota-cross-vendor-orchestration.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      },
+      {
+        "url": "https://docs.tia.siemens.cloud/r/en-us/v20/modular-pid-control-s7-300-s7-400/deadband-s7-300-s7-400/description-deadband-s7-300-s7-400?contentId=vlGF_4TTqz7WhFHAyFLSkQ",
+        "live": "UNREACHABLE",
+        "tier": "T3-TOKENS",
+        "target": "Siemens PID DEADBAND documentation",
+        "cited_in": "harness-sota-2026-07-18-corpus/X049.md",
+        "archive": "ARCHIVE-GAP",
+        "snapshot_ts": "",
+        "archive_detail": "CDX-ANSWERED-EMPTY (http 200, 0 rows) -> genuine archive gap"
+      }
+    ],
+    "t3_advisory_excluded": [
+      {
+        "url": "https://ace-agent.github.io/blogs/2026-01-30-iclr-acceptance/",
+        "label": "ACE notice",
+        "detail": "label token coverage 1/2 = 0.50 (ADVISORY)",
+        "cited_in": "harness-sota-2026-07-18-corpus/P2A04.md"
+      },
+      {
+        "url": "https://agentdojo.spylab.ai/",
+        "label": "official benchmark",
+        "detail": "label token coverage 1/2 = 0.50 (ADVISORY)",
+        "cited_in": "harness-sota-2026-07-18-corpus/P2A18.md"
+      },
+      {
+        "url": "https://biggo.com/news/202412191324_dotfile-management-tools-comparison",
+        "label": "YADM vs Chezmoi vs Nix (BigGo)",
+        "detail": "label token coverage 1/4 = 0.25 (ADVISORY)",
+        "cited_in": "docs/phase3-discovery-2026-07-13/research-0.md"
+      },
+      {
+        "url": "https://cds.cern.ch/record/434680?ln=en",
+        "label": "bibliographic record",
+        "detail": "label token coverage 0/2 = 0.00 (ADVISORY)",
+        "cited_in": "harness-sota-2026-07-18-corpus/X058.md"
+      },
+      {
+        "url": "https://dawid.ai/i-spent-40-hours-mining-reddit-for-the-techniques-that-actually-work/",
+        "label": "r/ClaudeAI synthesis",
+        "detail": "label token coverage 1/2 = 0.50 (ADVISORY)",
+        "cited_in": "docs/claude-toolkit-gap-analysis-2026-05-28.md"
+      },
+      {
+        "url": "https://developers.figma.com/docs/figma-mcp-server/rate-limits-access/",
+        "label": "official table",
+        "detail": "label token coverage 0/2 = 0.00 (ADVISORY)",
+        "cited_in": "docs/design/FIGMA-SETUP.md"
+      },
+      {
+        "url": "https://developers.google.com/machine-learning/crash-course/overfitting/dividing-datasets",
+        "label": "official guidance",
+        "detail": "label token coverage 0/2 = 0.00 (ADVISORY)",
+        "cited_in": "harness-sota-2026-07-18-corpus/D005.md"
+      },
+      {
+        "url": "https://docs.replit.com/build/connect-via-mcp",
+        "label": "MCP connections",
+        "detail": "label token coverage 1/2 = 0.50 (ADVISORY)",
+        "cited_in": "harness-sota-2026-07-18-corpus/T017.md"
+      },
+      {
+        "url": "https://dosu.dev/blog/score-documentation-freshness-in-ci",
+        "label": "dosu.dev score-in-CI",
+        "detail": "label token coverage 0/2 = 0.00 (ADVISORY)",
+        "cited_in": "docs/phase3-discovery-2026-07-13/research-2.md"
+      }
+    ],
+    "detector_failures_found": [
+      {
+        "id": "DF-1",
+        "what": "trailing punctuation captured inside a quoted label",
+        "impact": "23 of 42 T2-QUOTE mismatches; guaranteed false MISSING",
+        "control": "CTRL-R1-UNNORMALISED-MISSES-IT / CTRL-R1-NORMALISED-FINDS-IT",
+        "fix": "strip leading/trailing punctuation before containment"
+      },
+      {
+        "id": "DF-2",
+        "what": "PDF bytes passed to an HTML tag-stripper",
+        "impact": "every PDF citation was a guaranteed false MISSING (17 in the v1 T2 set)",
+        "control": "CTRL-R3-HTMLSTRIP-ON-PDF-FAILS vs CTRL-R3-PDF-PRESENT/ABSENT",
+        "fix": "extract text with PyMuPDF, fall back to pypdf, else NOT-CHECKABLE"
+      },
+      {
+        "id": "DF-3",
+        "what": "consent/cookie/challenge interstitials returning HTTP 200",
+        "impact": "26 citations; would have been reported as live-but-content-changed",
+        "control": "CTRL-R4-FIRES-ON-COOKIEWALL / CTRL-R4-SILENT-ON-GOOD-PAGE",
+        "fix": "SOFT_BLOCKED class; containment NOT-CHECKABLE"
+      },
+      {
+        "id": "DF-4",
+        "what": "citation labels the citing artifact truncated with an ellipsis",
+        "impact": "verbatim containment impossible by construction",
+        "control": "folded into the REPAIR-1 control set",
+        "fix": "test the pre-ellipsis prefix, flag truncated_source"
+      },
+      {
+        "id": "DF-5",
+        "what": "anchor control v1 expected an anchor that no longer exists, so its PRESENT and ABSENT arms returned the same verdict",
+        "impact": "the anchor detector was UNPROVEN while 45 CONTAINS verdicts were being produced",
+        "control": "CTRL-P1-ANCHOR-PRESENT-V2 / -ABSENT-V2, self-calibrating from the page's own ids",
+        "fix": "harvest a real id out of the fetched body instead of assuming one"
+      },
+      {
+        "id": "DF-6",
+        "what": "concurrent archive queries rate-limited into a false mass-absence",
+        "impact": "72 of 115 NO-SNAPSHOT, 54 of them HTTP 429 - a fabricated 63% archive gap",
+        "control": "CTRL-P2-CDX-FINDS-ARCHIVED failed at 5 workers, passed at 1",
+        "fix": "serialize, honour Retry-After, and gate the sweep on the positive control"
+      },
+      {
+        "id": "DF-7",
+        "what": "a bare URL regex treated test fixtures, git remotes and package artifacts as citations",
+        "impact": "30 of 420; 13 of the 15 apparently-dead claim-record citations",
+        "control": "CTRL-FRAME-PURIFIER, 16 must-drop and 10 must-keep",
+        "fix": "explicit non-citation classifier with a both-arms control"
+      }
+    ],
+    "method_limitations_inline": [
+      "UNVERIFIED: the walled 14.9% could contain dead pages. A 403 from a WAF is returned for live and dead paths alike on several hosts, so the dead rate is a LOWER BOUND.",
+      "The T1-ANCHOR check accepts a de-slugged phrase match as CONTAINS, which is deliberately permissive; it biases toward under-reporting anchor decay, not over-reporting it.",
+      "Archive snapshots were selected nearest to 20260718, but several nearest snapshots are months from that date (e.g. 20210318 for asrs.arc.nasa.gov), so 'predates the citation' is solid while 'reflects what the citing agent saw' is not.",
+      "This unit probed the network from one Windows host on one residential IP with one user-agent. Host-level blocking is IP- and UA-dependent, so the walled fraction is not portable to another vantage point."
+    ],
+    "control_ids": [
+      "CTRL-REQUIRED-LIVE-AND-DEAD",
+      "CTRL-ANCHOR-CONTROL-V1-FAILED",
+      "CTRL-ANCHOR-QUOTE-SELF-CALIBRATING-V2",
+      "CTRL-FOUR-REPAIRS-BOTH-STATES",
+      "CTRL-P2-CONCURRENT-FAILED-GATE",
+      "CTRL-P2B-ARCHIVE-GATE",
+      "CTRL-FRAME-PURIFIER",
+      "NC-LIVE-PAGE-MISSING-QUOTE",
+      "NC-HTMLSTRIP-ON-PDF",
+      "NC-SOFTBLOCK-COOKIE-WALL",
+      "NC-ARCHIVE-CDX-EMPTY-ON-UNARCHIVABLE",
+      "NC-RATE-LIMIT-MASQUERADING-AS-DEATH",
+      "NC-T3-ADVISORY-NOT-A-FAILURE"
+    ],
+    "probe_1_as_specified": "SPEC: 'HTTP-resolve every URL and record status, final URL after redirects, and whether the quoted string appears in the fetched body.' DONE for 420 sampled urls (390 after purification): status, final_url, redirected flag, body_chars, containment verdict and detail are recorded per url in adv0020_probe1b.json results[]. DEVIATION disclosed: 'every URL' was reduced to a stratified sample of a 5,144-url frame because a full census at polite per-host rates does not fit the 5,400s budget; the command-center claim-record subset IS a full census.",
+    "probe_2_as_specified": "SPEC: 'for non-200 or content-mismatch cases, query the archive by URL and timestamp and re-check the quoted string there.' DONE for all 52 non-200 + hard-target-mismatch urls: CDX index query, nearest-to-20260718 snapshot selection, raw /web/<ts>id_/ replay fetch, and the SAME containment check re-run inside the archived body. Mechanical independence from Probe 1: different host, different API surface, different data vintage, different failure mode. The first attempt at this probe was DISCARDED because its controls failed.",
+    "cross_reference_to_ADV_0080": "not_a_duplicate_because says ADV-0080 attacks FABRICATED citations and this one attacks DECAYED ones. This unit hands ADV-0080 six concrete candidates it should adjudicate: the NEVER-CONTAINED set, where the cited anchor or phrase is absent from both today's page and a pre-citation archive snapshot. They are listed with their citing file in report.silent_failure_adjudication."
+  }
+}

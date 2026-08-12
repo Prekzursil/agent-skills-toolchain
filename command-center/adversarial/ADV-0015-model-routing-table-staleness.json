@@ -1,0 +1,744 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0015",
+  "state": "BLOCKED",
+  "sentinel": "FAILED:ADV-0015 measurement COMPLETE and every enumerated target carries exactly one verdict with both named probes recorded verbatim; the receipt cannot be SUCCESS because receipt_core forbids it while reviewer.verdict is NOT-REVIEWED and manifest_registration.registered is false, and this unit is barred by its spawn constraints from editing command-center/ARTIFACT-MANIFEST.json. Nothing in the measurement failed.",
+  "spec_anchor": "_USER-PROMPTS.md:10894, 11048",
+  "min_bytes_threshold": 8192,
+  "profile": "stale-premise-reprobe",
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0015-model-routing-table-staleness.json",
+      "bytes": 55850,
+      "sha256": "e4045cf3fd92ab3c552227d1cf23b17f7c52969d169f15da74daa73d7198387e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The three model ids in the claude-api capability matrix at skills/claude-api/SKILL.md:23-25 -- claude-opus-4-1, claude-sonnet-4-0, claude-3-5-haiku-latest -- are ALL RETIRED on the Claude API, so the premise 'this capability matrix matches the vendor's current published surface' is REFUTED 3/3.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "skills/claude-api/SKILL.md:23-25 vs https://platform.claude.com/docs/en/docs/about-claude/model-deprecations",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -c \"for i,l in enumerate(open('skills/claude-api/SKILL.md',encoding='utf-8').read().splitlines(),1): ...\" (line extraction, repo root C:/Users/Prekzursil/source/ast-integrate)",
+          "raw_output": "== skills/claude-api/SKILL.md (372 lines)\n  23: | Opus 4.1 | `claude-opus-4-1` | Complex reasoning, architecture, research |\n  24: | Sonnet 4 | `claude-sonnet-4-0` | Balanced coding, most development tasks |\n  25: | Haiku 3.5 | `claude-3-5-haiku-latest` | Fast responses, high-volume, cost-sensitive |\n  369: export ANTHROPIC_MODEL=\"claude-sonnet-4-0\"",
+          "fingerprint": "file-read:skills/claude-api/SKILL.md:23-25,369",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "WebFetch https://platform.claude.com/docs/en/docs/about-claude/model-deprecations (fetched 2026-08-11)",
+          "raw_output": "Model status table, verbatim rows:\n| claude-opus-4-1-20250805   | Retired | June 5, 2026      | August 5, 2026    |\n| claude-sonnet-4-20250514   | Retired | April 14, 2026    | June 15, 2026     |\n| claude-3-5-haiku-20241022  | Retired | December 19, 2025 | February 19, 2026 |\nDeprecation history, verbatim:\n  2026-06-05: `claude-opus-4-1-20250805` -> replacement `claude-opus-4-8`, retired August 5, 2026.\n  2026-04-14: `claude-sonnet-4-20250514` -> replacement `claude-sonnet-4-6`, retired June 15, 2026.\n  2025-12-19: `claude-3-5-haiku-20241022` -> replacement `claude-haiku-4-5-20251001`, retired February 19, 2026.\nPage definition, verbatim: 'Retired: The model is no longer available for use. Requests to retired models will fail.'",
+          "fingerprint": "http:platform.claude.com/model-deprecations",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "WebFetch https://platform.claude.com/docs/en/docs/about-claude/models/overview (fetched 2026-08-11) -- mechanically different page, asked to state whether the three ids still appear",
+          "raw_output": "Current models table lists ONLY: claude-fable-5 ($10/$50 MTok, 1M ctx, 128k out), claude-opus-5 ($5/$25, 1M ctx, 128k out), claude-sonnet-5 ($2/$10, 1M ctx, 128k out), claude-haiku-4-5-20251001 alias claude-haiku-4-5 ($1/$5, 200k ctx, 64k out). Legacy accordion lists ONLY: claude-opus-4-8, claude-opus-4-7, claude-opus-4-6, claude-sonnet-4-6, claude-sonnet-4-5-20250929, claude-opus-4-5-20251101. NONE of claude-opus-4-1, claude-sonnet-4-0, claude-3-5-haiku-latest appears in either table.",
+          "fingerprint": "http:platform.claude.com/models/overview",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The executable cost estimator tools/editor/metaswarm/bin/estimate-cost.sh prices gpt-5.3-codex at $1.50 input / $6.00 output per MTok while the vendor's current published price is $1.75 / $14.00, so the estimator SILENTLY returns a figure 2.10x too low (exit 0, no warning) rather than failing or flagging staleness.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:42-48 vs https://developers.openai.com/api/docs/pricing",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh --input-tokens 1000000 --output-tokens 1000000 --model gpt-5.3-codex",
+          "raw_output": "{\n  \"model\": \"gpt-5.3-codex\",\n  \"input_tokens\": 1000000,\n  \"output_tokens\": 1000000,\n  \"estimated_usd\": 7.5\n}\nexit=0",
+          "fingerprint": "command:estimate-cost.sh:gpt-5.3-codex",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "WebFetch https://developers.openai.com/api/docs/pricing (fetched 2026-08-11)",
+          "raw_output": "gpt-5.3-codex: $1.75 input / $14.00 output per 1M tokens. (Same row family: gpt-5.3-chat-latest $1.75/$14.00, gpt-5.2 $1.75/$14.00.) Implied true cost for 1M in + 1M out = $15.75 against the estimator's $7.50 -- the estimator understates by 52.4%; the vendor figure is 2.10x the estimate.",
+          "fingerprint": "http:developers.openai.com/api/docs/pricing",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "gpt-5-codex and gpt-5.1-codex were SHUT DOWN on the OpenAI API on 2026-07-23 (substitute gpt-5.6-sol), and WORK-UNIT-CATALOG.json assigns those two ids to 233 of its 2,007 work units (11.6% of the program; 67.9% of its 343 openai-vendor units).",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[].assigned_model_vendor_role.model vs https://developers.openai.com/api/docs/deprecations",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python -c \"import json,collections; d=json.load(open('command-center/WORK-UNIT-CATALOG.json',encoding='utf-8')); c=collections.Counter((w.get('assigned_model_vendor_role') or {}).get('model') for w in d['work_units'] if ((w.get('assigned_model_vendor_role') or {}).get('vendor'))=='openai'); print(c.most_common())\"",
+          "raw_output": "openai units 343\n   225  gpt-5-codex\n    59  gpt-5.x-codex\n    42  codex-cli-default\n     9  codex-cli\n     8  gpt-5.1-codex\nshut-down ids: 233 67.9% of openai units 11.6% of all 2007\nwildcard gpt-5.x-codex: 59",
+          "fingerprint": "static-analysis:catalog:assigned_model_vendor_role.model",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "WebFetch https://developers.openai.com/api/docs/deprecations (fetched 2026-08-11), asked specifically for API-side (not ChatGPT-sign-in) status",
+          "raw_output": "Both models are deprecated and shut down as of July 23, 2026.\n| Shutdown date | Model snapshot | Substitute model |\n| July 23, 2026 | `gpt-5-codex`   | `gpt-5.6-sol` |\n| July 23, 2026 | `gpt-5.1-codex` | `gpt-5.6-sol` |\nAnnouncement: '2026-04-22: Legacy GPT model snapshots (July 2026 shutdown)'.",
+          "fingerprint": "http:developers.openai.com/api/docs/deprecations",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "other",
+          "command": "WebSearch \"gpt-5-codex\" deprecated retired OpenAI model replacement 2026 -- search index, mechanically different from a page render",
+          "raw_output": "Instances of gpt-5-codex, gpt-5.1-codex, gpt-5.1-codex-max, gpt-5.1-codex-mini, and gpt-5.2-codex break on July 23, 2026. For older models, swap to gpt-5.3-codex. Sources returned: developers.openai.com/api/docs/deprecations, developers.openai.com/codex/models, github.com/openai/codex/discussions/17038. NOTE the same result set adds a caveat that must not be dropped: 'The OpenAI API and Codex authenticated with your own API key aren't affected by these ChatGPT sign-in retirements' -- that caveat concerns the ChatGPT-sign-in retirement wave and does NOT override the API deprecations table above, which lists a hard API shutdown date for both snapshots.",
+          "fingerprint": "websearch:gpt-5-codex-deprecation",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The external-tools adapters IGNORE the routing config's model field entirely: with .metaswarm/external-tools.yaml declaring codex=gpt-5.6-sol and gemini=gemini-3.5-flash, codex.sh health reported model gpt-5.3-codex and gemini.sh health reported model pro -- the hardcoded DEFAULT_MODEL -- with status ready, auth_valid true and exit 0. This is a SILENT SUBSTITUTION, and it is a defect even though both substituted models work.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "tools/editor/metaswarm/skills/external-tools/adapters/codex.sh:26 and gemini.sh:24 (DEFAULT_MODEL) vs skills-claude-only/metaswarm-setup/templates/external-tools.yaml:8,14",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "cd <tmp project with .metaswarm/external-tools.yaml declaring codex=gpt-5.6-sol, gemini=gemini-3.5-flash>; bash <repo>/tools/editor/metaswarm/skills/external-tools/adapters/codex.sh health; bash .../gemini.sh health",
+          "raw_output": "--- config currently declares codex=gpt-5.6-sol gemini=gemini-3.5-flash ---\nadapters:\n  codex:\n    enabled: true\n    model: \"gpt-5.6-sol\"\n  gemini:\n    enabled: true\n    model: \"gemini-3.5-flash\"\n\n--- codex.sh health FULL ---\n{\n  \"tool\": \"codex\",\n  \"status\": \"ready\",\n  \"version\": \"codex-cli 0.145.0\",\n  \"auth_valid\": true,\n  \"model\": \"gpt-5.3-codex\"\n}\n\n--- gemini.sh health FULL ---\n{\n  \"tool\": \"gemini\",\n  \"status\": \"ready\",\n  \"version\": \"0.45.2\",\n  \"auth_valid\": true,\n  \"model\": \"pro\"\n}",
+          "fingerprint": "command:adapters-health-with-divergent-config",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "grep -rn \"external-tools.yaml|external_tools.yaml|yq|\\.metaswarm/\" tools/editor/metaswarm/skills/external-tools/",
+          "raw_output": "tools/editor/metaswarm/skills/external-tools/SKILL.md:33:Per-project config at `.metaswarm/external-tools.yaml` (optional -- if absent, external tools are not used):\n\n(ONE hit, and it is PROSE in the SKILL.md. No adapter, no _common.sh, and no yq invocation reads the file. The only model source in either adapter is the literal DEFAULT_MODEL assignment: codex.sh:26 DEFAULT_MODEL=\"gpt-5.3-codex\"; gemini.sh:24 DEFAULT_MODEL=\"pro\". This is why the config value cannot reach the runtime -- the divergence measured by the source probe is structural, not incidental.)",
+          "fingerprint": "static-analysis:adapters-never-read-external-tools-yaml",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The estimator's degrade behaviour is SPLIT and the split is the defect: an id it does not know fails loudly (exit 1), but the program's own primary model claude-opus-5 -- carried by 1,664 of 2,007 work units -- is one of those unknown ids, so 82.9% of the program's work is unpriceable, while the two ids it DOES know both return a silently wrong number.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:50-52 (the `*)` arm) plus the five-case run below",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh --input-tokens 1000000 --output-tokens 1000000 --model <ID> for ID in {gpt-5.3-codex, gpt-5-codex, gemini-pro, claude-opus-5, zzz-not-a-model-9-9}",
+          "raw_output": "=== CASE A: gpt-5.3-codex (CURRENT id, program price 1.50/6.00 vs vendor 1.75/14.00) ===\n{\n  \"model\": \"gpt-5.3-codex\",\n  \"input_tokens\": 1000000,\n  \"output_tokens\": 1000000,\n  \"estimated_usd\": 7.5\n}\nexit=0\n\n=== CASE B: gpt-5-codex (RETIRED id; assigned to 225 catalog work units) ===\nError: Unknown model 'gpt-5-codex'.\nexit=1\n\n=== CASE C: gemini-pro (RETIRED bare alias) ===\n{\n  \"model\": \"gemini-pro\",\n  \"input_tokens\": 1000000,\n  \"output_tokens\": 1000000,\n  \"estimated_usd\": 6.25\n}\nexit=0\n\n=== CASE D: claude-opus-5 (the program's OWN primary model, 1664 catalog units) ===\nError: Unknown model 'claude-opus-5'.\nexit=1\n\n=== CASE E (CONTROL, fabricated id that cannot exist) ===\nError: Unknown model 'zzz-not-a-model-9-9'.\nexit=1",
+          "fingerprint": "command:estimate-cost.sh:five-case-ladder",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -c \"...print lines 41-52 of tools/editor/metaswarm/bin/estimate-cost.sh...\"",
+          "raw_output": "41: case \"$model\" in\n42:     \"gpt-5.3-codex\")\n43:         input_cost_rate=\"1.50\"\n45:         ;;\n46:     \"gemini-pro\")\n47:         input_cost_rate=\"1.25\"\n49:         ;;\n50:     *)\n51:         echo \"Error: Unknown model '$model'.\" >&2\n\n(The case statement enumerates exactly TWO model ids. There is no Anthropic arm at all, so every claude-* id -- including the 1,664-unit claude-opus-5 assignment -- falls to the `*)` arm.)",
+          "fingerprint": "static-analysis:estimate-cost.sh:case-arms",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "gemini-pro, the second and last id the estimator knows, is not a current Google model id at all: it appears on neither the Gemini models page nor the Gemini pricing page, both of which list only versioned ids.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:46-48 vs https://ai.google.dev/gemini-api/docs/models and /pricing",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read tools/editor/metaswarm/bin/estimate-cost.sh lines 46-48",
+          "raw_output": "46:     \"gemini-pro\")\n47:         input_cost_rate=\"1.25\"\n48:         output_cost_rate=\"5.00\"",
+          "fingerprint": "file-read:estimate-cost.sh:46-48",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "http",
+          "command": "WebFetch https://ai.google.dev/gemini-api/docs/pricing and https://ai.google.dev/gemini-api/docs/models (fetched 2026-08-11)",
+          "raw_output": "models page: 'The bare model id \"gemini-pro\" does not appear as a current model in this documentation.' Current ids listed: gemini-3.6-flash, gemini-3.5-flash, gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemini-2.5-flash, gemini-2.5-flash-lite, gemini-2.5-pro, gemini-3.1-flash-image, gemini-embedding-2-preview.\npricing page: 'No model with that bare name appears on this pricing page. All current models include version numbers (e.g., 2.5, 3.1, 3.6).' Nearest priced pro-tier rows: gemini-2.5-pro $1.25 in / $10.00 out (<=200k); gemini-3.1-pro-preview $2.00 in / $12.00 out (<=200k).",
+          "fingerprint": "http:ai.google.dev/gemini-api-models-and-pricing",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The staleness detector used for every verdict above discriminates: it returned ACTIVE for all 4 known-good ids and RETIRED/ABSENT for all 6 known-bad ids, including two fabricated ids that cannot exist.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "scratchpad/adv0015_detect.py run_control(); full control table reproduced in report.detector_control",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python <scratchpad>/adv0015_detect.py",
+          "raw_output": "\"all_expectations_met\": true, \"silent_on_good_state\": true, \"fired_on_bad_state\": true, \"discriminates\": true -- 10/10 control rows passed (see report.detector_control for every row).",
+          "fingerprint": "test-run:adv0015_detect.py:run_control",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh ... --model zzz-not-a-model-9-9 (independent runtime control on the real estimator, not on my classifier)",
+          "raw_output": "Error: Unknown model 'zzz-not-a-model-9-9'.\nexit=1\n\n(The real estimator agrees with my classifier on the fabricated id, and disagrees with it on nothing: every id my classifier called ACTIVE that the estimator knows -- gpt-5.3-codex -- the estimator also priced without error.)",
+          "fingerprint": "command:estimate-cost.sh:fabricated-id-control",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "claim": "The claude-api capability matrix is not an inert document: CLAUDE.md routes agents to it as the authority and forbids answering from memory, and the file itself ships an executable default pointing at a retired id (export ANTHROPIC_MODEL=\"claude-sonnet-4-0\" at line 369).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "C:/Users/Prekzursil/CLAUDE.md (Tool Routing section) and skills/claude-api/SKILL.md:369",
+      "probes": [
+        {
+          "role": "source",
+          "method": "manual-inspection",
+          "command": "read the claude-api skill trigger text injected into this session's skill listing",
+          "raw_output": "'TRIGGER -- read BEFORE opening the target file; don't skip because it \"looks like a one-liner\" -- whenever: the prompt names Claude/Anthropic in any form ...; the user asks about an LLM (pricing/model choice/limits/caching) -- never answer from memory'",
+          "fingerprint": "manual-inspection:claude-api-skill-trigger",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python line extraction of skills/claude-api/SKILL.md:369",
+          "raw_output": "369: export ANTHROPIC_MODEL=\"claude-sonnet-4-0\"",
+          "fingerprint": "file-read:claude-api:369",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The stale capability matrix is duplicated byte-identically at two live paths, so a fix applied to one leaves the other stale.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "skills/claude-api/SKILL.md and .agents/skills/claude-api/SKILL.md",
+      "probes": [
+        {
+          "role": "source",
+          "method": "byte-compare",
+          "command": "python -c \"import hashlib; [print(len(open(p,'rb').read()), hashlib.sha256(open(p,'rb').read()).hexdigest()[:16], p) for p in (...)]\"",
+          "raw_output": "   10507 20005e297d966a8c crlf=372 skills/claude-api/SKILL.md\n   10507 20005e297d966a8c crlf=372 .agents/skills/claude-api/SKILL.md",
+          "fingerprint": "byte-compare:claude-api-duplicates",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "same hashing pass applied to the three estimate-cost.sh copies",
+          "raw_output": "    1800 b40d1bc05c83b133 crlf=0 tools/editor/metaswarm/bin/estimate-cost.sh\n    1800 b40d1bc05c83b133 crlf=0 tools/editor/metaswarm/skills/setup/bin/estimate-cost.sh\n    1800 b40d1bc05c83b133 crlf=0 skills-claude-only/metaswarm-setup/bin/estimate-cost.sh\n\n(Three byte-identical copies of the stale estimator, so the same fan-out applies to the price table.)",
+          "fingerprint": "byte-compare:estimate-cost-triplicate",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "UNVERIFIED: the mapping from the estimator's gemini-pro row to gemini-2.5-pro as its intended current successor is MY inference, not a vendor statement, so the quoted 44.4% price understatement for that row is an estimate of an estimate.",
+      "verdict": "NOT-CHECKED",
+      "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:46-48",
+      "unverified": true,
+      "settling_experiment": "Read the metaswarm commit that introduced the gemini-pro arm (git log -S 'gemini-pro' -- tools/editor/metaswarm/bin/estimate-cost.sh) and recover which Google model was priced at $1.25/$5.00 on that date from the Gemini pricing page's history; that pins the intended successor instead of guessing it. The id-ABSENCE finding does not depend on this and stands on its own.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "manual-inspection",
+          "command": "no probe run -- recorded as an explicit unknown rather than folded into the price-delta claim",
+          "raw_output": "NOT-CHECKED. The estimator's own row carries no comment naming the model generation it was priced against.",
+          "fingerprint": "not-checked:gemini-pro-successor-mapping"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-estimator-current-id",
+      "name": "estimator prices a CURRENT vendor id from a stale rate",
+      "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh --input-tokens 1000000 --output-tokens 1000000 --model gpt-5.3-codex",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "estimated_usd 7.5, exit 0 -- against a vendor-published 15.75. Asserted: (a) exit code 0, (b) no staleness warning on stdout or stderr."
+    },
+    {
+      "id": "T2-estimator-retired-id",
+      "name": "estimator behaviour on a deliberately RETIRED id (the unit's named probe 2)",
+      "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh --input-tokens 1000000 --output-tokens 1000000 --model gpt-5-codex",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "Error: Unknown model 'gpt-5-codex'. exit=1 -- degrade-loudly SATISFIED for this id. Asserted: (a) non-zero exit, (b) no cost figure emitted."
+    },
+    {
+      "id": "T3-estimator-retired-alias-priced",
+      "name": "estimator SILENTLY prices a non-current id",
+      "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh --input-tokens 1000000 --output-tokens 1000000 --model gemini-pro",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "estimated_usd 6.25, exit 0 for an id absent from Google's models AND pricing pages -- degrade-loudly VIOLATED for this id."
+    },
+    {
+      "id": "T4-estimator-own-primary-model",
+      "name": "estimator cannot price the program's own primary model",
+      "command": "bash tools/editor/metaswarm/bin/estimate-cost.sh --input-tokens 1000000 --output-tokens 1000000 --model claude-opus-5",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "Error: Unknown model 'claude-opus-5'. exit=1 -- 1,664 of 2,007 catalogued work units (82.9%) carry this model and none can be priced."
+    },
+    {
+      "id": "T5-silent-substitution",
+      "name": "adapters substitute a hardcoded model for the configured one, silently (the unit's tests_required clause)",
+      "command": "cd <tmp>; bash <repo>/tools/editor/metaswarm/skills/external-tools/adapters/codex.sh health && bash .../gemini.sh health, with .metaswarm/external-tools.yaml declaring gpt-5.6-sol and gemini-3.5-flash",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "codex.sh -> \"model\": \"gpt-5.3-codex\"; gemini.sh -> \"model\": \"pro\". Asserted: (a) emitted model != configured model, (b) status \"ready\" and auth_valid true, (c) exit 0 with no warning. Classified a DEFECT per tests_required even though both substituted models work."
+    },
+    {
+      "id": "T6-detector-control",
+      "name": "both-states control on the staleness classifier",
+      "command": "python <scratchpad>/adv0015_detect.py",
+      "result": "PASS",
+      "assertions": 10,
+      "output_tail": "discriminates: true. 4/4 known-good -> ACTIVE, 3/3 known-retired -> RETIRED, 3/3 known-absent (2 fabricated) -> ABSENT."
+    },
+    {
+      "id": "T7-anchor-verification",
+      "name": "every file:line anchor cited in this receipt resolves to the quoted text",
+      "command": "python -c \"...print the exact lines 23,24,25,369 of skills/claude-api/SKILL.md and 41-51 of estimate-cost.sh and 8,14 of external-tools.yaml...\"",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "All three files' quoted lines matched verbatim. One correction applied during verification: the estimator's model arms are at lines 42 and 46 (the rates at 43/44 and 47/48), not 41/45 as first drafted -- corrected before this receipt was written."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-fabricated-id-vs-classifier",
+      "kind": "malformed-input",
+      "description": "Feed the staleness classifier two ids that cannot exist (claude-opus-9-9, zzz-not-a-model) and four that are demonstrably current (claude-opus-5, claude-opus-4-8, gpt-5.3-codex, gemini-2.5-pro). A classifier that returns the same verdict for both sets measures nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "claude-opus-9-9 -> ABSENT ('appears on neither the overview nor the deprecations table'); zzz-not-a-model -> ABSENT ('unrecognised vendor namespace'); gpt-5-codex -> ABSENT ('absent from both the OpenAI models page and the pricing page'); claude-3-5-haiku-20241022 -> RETIRED; claude-opus-4-1 -> RETIRED; claude-sonnet-4-0 -> RETIRED.",
+      "good_state_output": "claude-opus-5 -> ACTIVE; claude-opus-4-8 -> ACTIVE; gpt-5.3-codex -> ACTIVE ($1.75/$14.0); gemini-2.5-pro -> ACTIVE. Zero false positives on the good set."
+    },
+    {
+      "id": "NC2-fabricated-id-vs-real-estimator",
+      "kind": "malformed-input",
+      "description": "Independent control on the REAL estimator rather than on my classifier: a fabricated model id must produce the error arm, and a known-good id must not.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bash estimate-cost.sh ... --model zzz-not-a-model-9-9 -> \"Error: Unknown model 'zzz-not-a-model-9-9'.\" exit=1",
+      "good_state_output": "bash estimate-cost.sh ... --model gpt-5.3-codex -> {\"model\":\"gpt-5.3-codex\",...,\"estimated_usd\":7.5} exit=0, no error text on stderr."
+    },
+    {
+      "id": "NC3-config-divergence-both-states",
+      "kind": "known-broken-fixture",
+      "description": "Run the adapters twice against the SAME code with two different config files: a GOOD state where the configured model equals the adapter's hardcoded DEFAULT_MODEL, and a BAD state where it differs. A divergence detector that reports a mismatch in both states, or in neither, measures nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "config codex=gpt-5.6-sol gemini=gemini-3.5-flash -> emitted \"model\": \"gpt-5.3-codex\" and \"model\": \"pro\". MISMATCH detected on both adapters.",
+      "good_state_output": "config codex=gpt-5.3-codex gemini=pro -> emitted \"model\": \"gpt-5.3-codex\" and \"model\": \"pro\". NO mismatch reported. (The detector is silent exactly when the values coincide, which is the correct behaviour: it reports divergence, not inertness directly. Inertness is established by the NC3 pair TOGETHER with the static-analysis verifier showing no adapter reads the file.)"
+    },
+    {
+      "id": "NC4-two-page-cross-check",
+      "kind": "other",
+      "description": "Guard against a single-page or single-reader artifact: every retirement verdict was taken from the deprecations page AND independently checked against the models-overview page (and, for OpenAI, additionally against a search index). A claim present on only one surface would be downgraded.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "gpt-5.3-codex was ABSENT from the OpenAI models page on first read -- had that single reading been trusted, this receipt would have wrongly called an ACTIVE, currently-priced model retired. The pricing page contradicted it ($1.75/$14.00), and the pricing page won. That is the control firing on a real would-be false positive of my own.",
+      "good_state_output": "claude-opus-4-1 / claude-sonnet-4-0 / claude-3-5-haiku-latest: absent from the overview page AND listed Retired with dates on the deprecations page -- two independent surfaces agree, no downgrade."
+    },
+    {
+      "id": "NC5-schema-validator-mutation-battery",
+      "kind": "mutation",
+      "description": "The downstream consumer that reports this artifact schema-valid must be shown to fire. Six mutations were applied to the validated artifact in memory and each re-validated: drop report.control_ids, wrong report.kind, state=SUCCESS while reviewer is NOT-REVIEWED, lowercase unit_id, a REFUTED evidence item stripped to a source probe only, and a malformed sha256.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "MUTATION SCORE: 6/6 killed.\n  KILLED M1 drop report.control_ids -> report: 'control_ids' is a required property\n  KILLED M2 wrong report.kind -> report/kind: 'stale-premise-reprobe' was expected\n  KILLED M3 state=SUCCESS w/ NOT-REVIEWED reviewer + FAILED sentinel -> 5 errors, first: manifest_registration/registered: True was expected\n  KILLED M4 lowercase unit_id -> unit_id: 'adv-0015' does not match '^[A-Z][A-Z0-9]*-[0-9]{4}$'\n  KILLED M5 REFUTED with source probe only -> 2 errors on evidence/0/probes\n  KILLED M6 malformed sha256 -> artifacts/0/sha256: 'NOTAHASH' does not match '^[0-9a-f]{64}$'\n\nM3 is load-bearing for this receipt: it demonstrates the schema would have REJECTED a dishonest state:SUCCESS here, so the BLOCKED state recorded above is forced by the rules rather than chosen.",
+      "good_state_output": "GOOD STATE -> 0 errors."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "NONE",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "This unit's reviewer_requirement names a cross-vendor Codex (openai) refuter who re-derives the counterexample from the RAW artifact, not from this report. No such review has been run: this unit is a single Anthropic-vendor agent and a same-vendor reviewer explicitly does not satisfy the requirement. The refuter should re-derive, independently: (1) the retirement dates for claude-opus-4-1-20250805, claude-sonnet-4-20250514 and claude-3-5-haiku-20241022 straight from platform.claude.com, (2) the gpt-5.3-codex price, and (3) the adapter divergence, by re-running the health probe with its own config file. NOTE for the refuter: the OpenAI models page and the OpenAI pricing page DISAGREE about gpt-5.3-codex (absent from the former, priced on the latter); this receipt resolved that in favour of the pricing page and that resolution is the single most attackable judgement here."
+  },
+  "defects": [
+    {
+      "id": "ADV-0015-D1",
+      "severity": "P2",
+      "status": "open",
+      "summary": "skills/claude-api/SKILL.md:23-25 recommends three RETIRED Claude model ids (claude-opus-4-1, claude-sonnet-4-0, claude-3-5-haiku-latest; retired 2026-08-05, 2026-06-15 and 2026-02-19) and line 369 exports claude-sonnet-4-0 as ANTHROPIC_MODEL. The vendor states requests to retired models will fail. Duplicated byte-identically at .agents/skills/claude-api/SKILL.md. Recorded P2 rather than P1 because it is a documentation/default surface whose failure mode is a loud API error at call time, not a silent wrong result; a reviewer who judges the mandated-authority framing to make it call-blocking should re-grade it P1."
+    },
+    {
+      "id": "ADV-0015-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "tools/editor/metaswarm/bin/estimate-cost.sh (and its two byte-identical copies) understates gpt-5.3-codex by 2.10x ($1.50/$6.00 hardcoded vs $1.75/$14.00 published) and returns it silently at exit 0. The same file's budget consumers declare per_task_usd 2.00 and per_session_usd 20.00 circuit breakers, so those breakers admit roughly 2.1x the intended real spend before tripping."
+    },
+    {
+      "id": "ADV-0015-D3",
+      "severity": "P2",
+      "status": "open",
+      "summary": "SILENT SUBSTITUTION: adapters/codex.sh:26 and adapters/gemini.sh:24 hardcode DEFAULT_MODEL and no adapter or helper ever reads .metaswarm/external-tools.yaml, so adapters.codex.model and adapters.gemini.model are inert. Editing the config to a current model id has no runtime effect and produces no warning. Classified a defect per this unit's tests_required even though both substituted models currently work."
+    },
+    {
+      "id": "ADV-0015-D4",
+      "severity": "P3",
+      "status": "open",
+      "summary": "WORK-UNIT-CATALOG.json assigns 233 work units to gpt-5-codex / gpt-5.1-codex, both shut down on the OpenAI API on 2026-07-23 (substitute gpt-5.6-sol), and a further 59 to the wildcard gpt-5.x-codex which is not a resolvable id in any vendor namespace. P3 because the dispatch path in this program invokes the Codex CLI, which selects its own model, so the catalog field is descriptive metadata rather than a live routing key -- but it is metadata that no longer describes anything the vendor will serve."
+    },
+    {
+      "id": "ADV-0015-D5",
+      "severity": "P3",
+      "status": "open",
+      "summary": "The estimator has no Anthropic arm at all, so claude-opus-5 -- the model on 1,664 of 2,007 work units (82.9%) -- and every other Claude id fall to the unknown-model error arm. Cost for the overwhelming majority of the program is not merely mis-estimated, it is unestimable."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.validate_artifact",
+      "artifact_path": "command-center/adversarial/ADV-0015-model-routing-table-staleness.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python -c \"import sys; sys.path.insert(0,'platform/lib'); import json, schema_resolver; print(schema_resolver.validate_artifact(json.load(open('command-center/adversarial/ADV-0015-model-routing-table-staleness.json',encoding='utf-8')), 'command-center/schema/stale-premise-reprobe.schema.json'))\"",
+        "raw_output": "ERRORS: 0\n[]\n\nThe consumer was EXECUTED against this file, not merely named. Its first run against an earlier draft returned 12 errors ('residual_unknowns/0: 'claim' is a required property', 'Additional properties are not allowed ('description', 'id' were unexpected)', x4 entries), which were fixed before this receipt was finalised -- so the zero above is a green from a validator observed to fire, not an unproven silence.",
+        "fingerprint": "schema-validate:stale-premise-reprobe:ADV-0015",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T17:56:14Z",
+    "ended_at": "2026-08-11T18:34:00Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "up to 3 attempts with staggered arrival (60s / 300s / 900s) because this unit depends on external endpoints; a 429/529 is provider-side and is NOT a unit failure and must NOT reduce concurrency. No retry was consumed: all six vendor fetches returned on the first attempt (two returned a cross-host 301 which was followed by re-issuing against the redirect target, not a retry of the same request)."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-review",
+      "blocked-on-manifest-registration"
+    ],
+    "reason": "The MEASUREMENT is complete: both named probes ran, every enumerated target carries exactly one verdict, and all four controls fired on the bad state and were silent on the good state. The receipt cannot be SUCCESS because receipt_core's SUCCESS branch requires reviewer.verdict == PASS with independent == true, and requires manifest_registration.registered == true. This unit's spawn constraints forbid it from editing command-center/ARTIFACT-MANIFEST.json (a shared file), and its reviewer_requirement demands a cross-vendor Codex refuter which a single Anthropic agent cannot supply without the review ceasing to be independent. Both remaining conditions are the orchestrator's to close. No probe failed and no verdict here is downgraded by this state."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "U1 - Which auth rail the measured codex-cli 0.145.0 install uses (ChatGPT sign-in vs API key) is unknown. The OpenAI deprecations table gives a hard API shutdown date for gpt-5-codex/gpt-5.1-codex, but a search result also states API-key users are unaffected by the ChatGPT-sign-in retirement wave. This affects the SEVERITY of ADV-0015-D4, not the fact of the shutdown.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Inspect ~/.codex/auth.json (read-only, never printing the value) to see whether the credential is an API key or an OAuth session, then re-grade D4."
+    },
+    {
+      "claim": "U2 - Whether any RUNTIME path in this program reads assigned_model_vendor_role.model to select a model, or whether it is purely descriptive catalog metadata. I found no such reader, but I did not exhaustively trace the dispatch code, so D4's P3 grading rests on a partial trace.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "grep the dispatch/orchestration layer for assigned_model_vendor_role and follow every read to a model-selection call site; an absence there confirms D4 stays P3, a presence promotes it."
+    },
+    {
+      "claim": "U3 - The 117 distinct model-id tokens found repo-wide were triaged down to 13 enumerated targets on the basis that the rest are prose, fixtures, or vendored third-party trees. The unenumerated remainder was NOT individually verdicted.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run the inventory scanner and push all 117 tokens through the same classifier, rather than only those sitting in an executable routing table, cost estimator or mandated capability matrix. Both scripts are in the scratchpad and run in under a second."
+    },
+    {
+      "claim": "U4 - Context-window and capability-flag drift was diffed only for the Anthropic surface. No program artifact was found that hardcodes a per-model context window, so there was nothing to diff for OpenAI or Google; that absence is asserted from a ranked review of the 443 window-shaped lines, not from an exhaustive read of all of them.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Grep for a window literal (200k / 1M / 128000) on the same line as a model id across the program and verdict every hit; a null result would upgrade this from PARTIAL to CONFIRMED-absent."
+    }
+  ],
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5",
+    "role": "stale-premise-refuter",
+    "execution_substrate": "local-parallel"
+  },
+  "report": {
+    "kind": "stale-premise-reprobe",
+    "verdict_semantics": "Each target carries exactly one verdict on the PREMISE 'this program entry still matches the vendor's current published surface'. REFUTED = the entry is stale. CONFIRMED = the entry still matches. PARTIAL = matches in part. NOT-CHECKED = no probe run.",
+    "probe_1": "Published-surface diff. Six fetches on 2026-08-11: platform.claude.com models/overview, platform.claude.com model-deprecations, developers.openai.com/api/docs/models, developers.openai.com/api/docs/pricing, developers.openai.com/api/docs/deprecations, ai.google.dev models + pricing. Transcribed to scratchpad/vendor_surface_2026-08-11.json and diffed mechanically by scratchpad/adv0015_detect.py.",
+    "probe_2": "Retired-id runtime behaviour. The real executable estimator was invoked five times (current id, shut-down id, non-current alias, the program's own primary model, fabricated control), and the two external-tool adapters were invoked twice each under two different config states. Mechanically different from probe 1: process execution and exit codes, not document retrieval.",
+    "observations": [
+      {
+        "name": "targets_enumerated",
+        "measured": 11,
+        "method": "static-analysis of routing tables, cost estimators and capability matrices",
+        "anchor": "report.targets"
+      },
+      {
+        "name": "targets_REFUTED_as_stale",
+        "measured": 8,
+        "method": "classifier verdict over the fetched vendor surface",
+        "anchor": "report.targets"
+      },
+      {
+        "name": "targets_CONFIRMED_still_matching",
+        "measured": 1,
+        "method": "classifier verdict over the fetched vendor surface",
+        "anchor": "report.targets[EST-1 id-only] / RTE-1"
+      },
+      {
+        "name": "targets_PARTIAL",
+        "measured": 2,
+        "method": "classifier verdict plus runtime probe",
+        "anchor": "report.targets"
+      },
+      {
+        "name": "retired_id_runtime_behaviour",
+        "measured": "SPLIT: fails loudly (exit 1) for gpt-5-codex and claude-opus-5; SILENTLY prices gemini-pro at exit 0; SILENTLY prices the current gpt-5.3-codex from a 2.10x-stale rate at exit 0",
+        "method": "process execution of tools/editor/metaswarm/bin/estimate-cost.sh, five cases",
+        "anchor": "tests T1-T4"
+      },
+      {
+        "name": "silent_substitution_present",
+        "measured": true,
+        "method": "adapter health invocation under a divergent config, both states",
+        "anchor": "test T5 / negative control NC3"
+      },
+      {
+        "name": "gpt5_3_codex_price_error_factor",
+        "measured": 2.1,
+        "method": "vendor $15.75 per (1M in + 1M out) divided by estimator $7.50",
+        "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:42-44"
+      },
+      {
+        "name": "catalog_units_on_shutdown_ids",
+        "measured": 233,
+        "method": "census of assigned_model_vendor_role.model over 2,007 catalogued units",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json"
+      },
+      {
+        "name": "catalog_units_unpriceable_by_estimator",
+        "measured": 1664,
+        "method": "estimator has no Anthropic arm; every claude-* id hits the unknown-model error",
+        "anchor": "test T4"
+      },
+      {
+        "name": "schema_validation",
+        "measured": "0 errors against command-center/schema/stale-premise-reprobe.schema.json",
+        "method": "platform/lib/schema_resolver.validate_artifact, executed against this file",
+        "anchor": "downstream_consumers[0]"
+      },
+      {
+        "name": "schema_validator_mutation_score",
+        "measured": "6/6 killed",
+        "method": "six mutations applied to the validated artifact in memory, each re-validated",
+        "anchor": "negative control NC5"
+      },
+      {
+        "name": "detector_discriminates",
+        "measured": true,
+        "method": "10-row both-states control on the staleness classifier",
+        "anchor": "report.detector_control"
+      }
+    ],
+    "control_ids": [
+      "NC1-fabricated-id-vs-classifier",
+      "NC2-fabricated-id-vs-real-estimator",
+      "NC3-config-divergence-both-states",
+      "NC4-two-page-cross-check",
+      "NC5-schema-validator-mutation-battery"
+    ],
+    "detector_control": {
+      "discriminates": true,
+      "silent_on_good_state": true,
+      "fired_on_bad_state": true,
+      "rows": [
+        {"model": "claude-opus-5", "expected": "ACTIVE", "got": "ACTIVE", "pass": true},
+        {"model": "claude-opus-4-8", "expected": "ACTIVE", "got": "ACTIVE", "pass": true},
+        {"model": "gpt-5.3-codex", "expected": "ACTIVE", "got": "ACTIVE", "pass": true},
+        {"model": "gemini-2.5-pro", "expected": "ACTIVE", "got": "ACTIVE", "pass": true},
+        {"model": "claude-3-5-haiku-20241022", "expected": "RETIRED", "got": "RETIRED", "pass": true},
+        {"model": "claude-opus-4-1", "expected": "RETIRED", "got": "RETIRED", "pass": true},
+        {"model": "claude-sonnet-4-0", "expected": "RETIRED", "got": "RETIRED", "pass": true},
+        {"model": "claude-opus-9-9", "expected": "ABSENT", "got": "ABSENT", "pass": true},
+        {"model": "gpt-5-codex", "expected": "ABSENT", "got": "ABSENT", "pass": true},
+        {"model": "zzz-not-a-model", "expected": "ABSENT", "got": "ABSENT", "pass": true}
+      ]
+    },
+    "targets": [
+      {
+        "surface_id": "CAP-1",
+        "anchor": "skills/claude-api/SKILL.md:23",
+        "kind": "capability-matrix",
+        "program_value": "claude-opus-4-1 (row 'Opus 4.1 | Complex reasoning, architecture, research')",
+        "vendor_current": "RETIRED 2026-08-05 (as claude-opus-4-1-20250805); replacement claude-opus-4-8",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAP-2",
+        "anchor": "skills/claude-api/SKILL.md:24",
+        "kind": "capability-matrix",
+        "program_value": "claude-sonnet-4-0 (row 'Sonnet 4 | Balanced coding, most development tasks')",
+        "vendor_current": "RETIRED 2026-06-15 (as claude-sonnet-4-20250514); replacement claude-sonnet-4-6",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAP-3",
+        "anchor": "skills/claude-api/SKILL.md:25",
+        "kind": "capability-matrix",
+        "program_value": "claude-3-5-haiku-latest (row 'Haiku 3.5 | Fast responses, high-volume, cost-sensitive')",
+        "vendor_current": "RETIRED 2026-02-19 (as claude-3-5-haiku-20241022); replacement claude-haiku-4-5-20251001",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAP-4",
+        "anchor": "skills/claude-api/SKILL.md:369",
+        "kind": "env-default",
+        "program_value": "export ANTHROPIC_MODEL=\"claude-sonnet-4-0\"",
+        "vendor_current": "RETIRED 2026-06-15; an exported default pointing at a model the vendor says will fail",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAP-5",
+        "anchor": "skills/claude-api/SKILL.md (whole model table)",
+        "kind": "capability-matrix-coverage",
+        "program_value": "table names no context window and no max-output for any model; top model presented as Opus 4.1",
+        "vendor_current": "current family is claude-fable-5 / claude-opus-5 / claude-sonnet-5 at 1M context and 128k max output, plus claude-haiku-4-5 at 200k/64k. The matrix is two generations behind and carries no window or output column at all.",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "EST-1",
+        "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:42-44",
+        "kind": "cost-estimator",
+        "program_value": "gpt-5.3-codex priced at input 1.50 / output 6.00 per MTok",
+        "vendor_current": "gpt-5.3-codex is ACTIVE and priced $1.75 / $14.00 per MTok. Id matches; PRICE does not.",
+        "verdict": "PARTIAL",
+        "confidence": "almost-certain",
+        "note": "PARTIAL, not REFUTED, because exactly one of the two audited attributes (id, price) still matches. The price is stale by 2.10x on a 1M-in/1M-out basis."
+      },
+      {
+        "surface_id": "EST-2",
+        "anchor": "tools/editor/metaswarm/bin/estimate-cost.sh:46-48",
+        "kind": "cost-estimator",
+        "program_value": "gemini-pro priced at input 1.25 / output 5.00 per MTok",
+        "vendor_current": "no bare 'gemini-pro' on either the Gemini models page or the pricing page; all current ids are versioned. Nearest priced pro tier gemini-2.5-pro is $1.25 / $10.00 (<=200k). UNVERIFIED inline: treating gemini-2.5-pro as the intended successor is my inference, so the implied 44.4% understatement is softer than the id-absence finding.",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "RTE-1",
+        "anchor": "skills-claude-only/metaswarm-setup/templates/external-tools.yaml:8",
+        "kind": "routing-config",
+        "program_value": "adapters.codex.model = gpt-5.3-codex",
+        "vendor_current": "gpt-5.3-codex is ACTIVE and currently priced. The declared id is NOT stale.",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain",
+        "note": "The id is current. What is defective about this row is orthogonal to staleness and is captured as ADV-0015-D3: the field is never read at runtime."
+      },
+      {
+        "surface_id": "RTE-2",
+        "anchor": "skills-claude-only/metaswarm-setup/templates/external-tools.yaml:14",
+        "kind": "routing-config",
+        "program_value": "adapters.gemini.model = \"pro\" (bare alias; comment offers pro | flash | flash-lite)",
+        "vendor_current": "none of pro / flash / flash-lite is a Gemini model id; every current id is versioned (gemini-3.6-flash, gemini-2.5-pro, ...).",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAT-1",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (225 units)",
+        "kind": "assignment-table",
+        "program_value": "assigned_model_vendor_role.model = gpt-5-codex",
+        "vendor_current": "SHUT DOWN on the OpenAI API 2026-07-23; substitute gpt-5.6-sol",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAT-2",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (8 units)",
+        "kind": "assignment-table",
+        "program_value": "assigned_model_vendor_role.model = gpt-5.1-codex",
+        "vendor_current": "SHUT DOWN on the OpenAI API 2026-07-23; substitute gpt-5.6-sol",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAT-3",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (59 units)",
+        "kind": "assignment-table",
+        "program_value": "assigned_model_vendor_role.model = gpt-5.x-codex",
+        "vendor_current": "not an id in any vendor namespace -- a wildcard placeholder that cannot resolve",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      },
+      {
+        "surface_id": "CAT-4",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (1,664 units)",
+        "kind": "assignment-table",
+        "program_value": "assigned_model_vendor_role.model = \"opus\" (family alias, vendor anthropic)",
+        "vendor_current": "\"opus\" is a Claude Code / CLI family alias, not a Claude API model id, so it neither matches nor contradicts the published API surface. It is however unpriceable by the program's own estimator (test T4).",
+        "verdict": "PARTIAL",
+        "confidence": "likely",
+        "note": "PARTIAL rather than REFUTED: an alias that the CLI resolves is not a stale id, but it is also not a checkable one. Rated `likely` rather than `almost-certain` because I did not execute the CLI's alias resolution to prove it still resolves today."
+      }
+    ],
+    "answer_to_question_or_target": "NO. Of 13 enumerated entries across the program's routing tables, cost estimators and capability matrices, 9 are REFUTED as stale, 2 are PARTIAL, 1 is CONFIRMED current, and 1 (the gemini-pro price successor mapping) is NOT-CHECKED. The estimator's behaviour on an id that no longer resolves is SPLIT and that split is the finding: it fails loudly for gpt-5-codex and for claude-opus-5, but silently prices gemini-pro (a non-existent id) and silently prices the still-current gpt-5.3-codex from a rate 2.10x too low. Separately, the external-tools adapters silently substitute a hardcoded model for the configured one -- a defect under this unit's tests_required even though both substituted models work."
+  },
+  "extensions": {
+    "inventory_scan": {
+      "method": "regex census over 8,860 text files, excluding .git, node_modules, __pycache__ and the vendored ralph-orchestrator tree",
+      "distinct_model_id_tokens": 117,
+      "price_shaped_lines": 198,
+      "window_shaped_lines": 443,
+      "triage": "The 117 tokens were narrowed to the 13 enumerated targets by requiring that the token sit in an EXECUTABLE routing table, a cost estimator, or a capability matrix the harness routes to as authoritative. Prose mentions, corpus documents under harness-sota-2026-07-18-corpus/, and third-party vendored trees were excluded and are recorded as residual unknown U3.",
+      "scripts": [
+        "<scratchpad>/adv0015_inventory.py",
+        "<scratchpad>/adv0015_detect.py",
+        "<scratchpad>/vendor_surface_2026-08-11.json"
+      ]
+    },
+    "vendor_surface_fetched": {
+      "fetched_on": "2026-08-11",
+      "anthropic_current": {
+        "claude-fable-5": "$10/$50 MTok, 1M ctx, 128k out",
+        "claude-opus-5": "$5/$25 MTok, 1M ctx, 128k out",
+        "claude-sonnet-5": "$2/$10 MTok, 1M ctx, 128k out",
+        "claude-haiku-4-5-20251001": "$1/$5 MTok, 200k ctx, 64k out"
+      },
+      "openai_relevant": {
+        "gpt-5.6-sol": "$5.00/$30.00",
+        "gpt-5.3-codex": "$1.75/$14.00",
+        "gpt-5-codex": "SHUT DOWN 2026-07-23 -> gpt-5.6-sol",
+        "gpt-5.1-codex": "SHUT DOWN 2026-07-23 -> gpt-5.6-sol"
+      },
+      "google_relevant": {
+        "gemini-2.5-pro": "$1.25/$10.00 (<=200k)",
+        "gemini-3.5-flash": "$1.50/$9.00",
+        "gemini-pro": "ABSENT from models and pricing pages"
+      }
+    },
+    "self_hash_recipe": "artifacts[0] is SELF-REFERENTIAL: a file cannot contain its own sha256. The value stored there is therefore a well-defined, third-party-reproducible quantity rather than a naive whole-file digest. RECIPE: read this file as bytes, replace the 64 hex characters of artifacts[0].sha256 with 64 ASCII zeros, sha256 the result. That must equal the stored value. Substituting 64 hex for 64 zeros is length-preserving, so artifacts[0].bytes is the TRUE on-disk size and can be checked directly with stat. Disclosed here because a reducer that re-hashes the whole file naively will see a mismatch and must apply this recipe instead of reporting a defect.",
+    "self_critique": {
+      "strongest_attack_on_this_receipt": "The OpenAI models page and the OpenAI pricing page disagree about gpt-5.3-codex. This receipt resolved that in favour of the pricing page (id ACTIVE, price $1.75/$14.00). Had it trusted the models page alone, it would have called an actively-priced model retired -- a false positive of exactly the kind this unit exists to catch. NC4 records that near-miss rather than hiding it.",
+      "second_attack": "Every vendor reading in this receipt was obtained through WebFetch, whose page-to-answer step is itself a model. The mitigation is that each load-bearing retirement was read off TWO different pages (and for OpenAI, additionally off a search index), and the runtime probes -- which are pure process execution -- are independent of that channel entirely.",
+      "what_would_change_the_verdict": "A vendor-published statement that claude-opus-4-1 / claude-sonnet-4-0 / claude-3-5-haiku-latest still resolve as aliases to a live snapshot would downgrade CAP-1..4 from REFUTED to PARTIAL. The deprecations page's own definition ('Requests to retired models will fail') and the dated retirement rows make that unlikely."
+    }
+  }
+}

@@ -1,0 +1,2722 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0010",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0010:BLOCKED-ON-INDEPENDENT-REVIEW 330 gate-code mutations over 12/12 gates; 125 survivors, 203 killed, 12/12 canary controls fired, 9 survivors proven to make a gate exit 0 on a genuinely bad input",
+  "profile": "refutation-record",
+  "spec_anchor": "_USER-PROMPTS.md:11325, 11382",
+  "min_bytes_threshold": 8192,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5",
+    "role": "adversarial-refuter",
+    "execution_substrate": "scratch copies of the tree under %TEMP% (repo/ and repo2/); the repository working tree was never mutated"
+  },
+  "artifacts": [
+    {
+      "path": "tools/measure-guard/suitefloor.py",
+      "bytes": 10447,
+      "sha256": "8405a11248b49451a68b67c4bc07536a3d695d9a034b999dcac6ca61e22f52b3",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "tools/measure-guard/tests/test_suitefloor.py",
+      "bytes": 9622,
+      "sha256": "95b75a1090357cfb970c63ac6c5209007d61096ff58ac5cd0ace6712e505cf25",
+      "exists": true,
+      "role": "control"
+    },
+    {
+      "path": "tools/measure-guard/refcheck.py",
+      "bytes": 6941,
+      "sha256": "9b7de5cc7835d9f360a6d71e280fe2b48d43afc94ea454aef558d54a72e34fb6",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/measure-guard/wudeps.py",
+      "bytes": 8341,
+      "sha256": "616fbea3bbc03e29173f75bb929460dd5b6ad34e0bec54fea998064a11a3e1ef",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/measure-guard/jsonparse.py",
+      "bytes": 6464,
+      "sha256": "bab1f9ec0e4480cc741851725d80f0255b84c2fc0e17f468a9b566684a14ea93",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": ".github/workflows/quality.yml",
+      "bytes": 106029,
+      "sha256": "25396dac5af947e301a05602797ef3177f8921f59da6c552cc7fb9a9ec222f6b",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "THE HEADLINE. The suite-floor gate's central enforcement decision - `return 1` when a registered suite collects fewer tests than its declared floor (tools/measure-guard/suitefloor.py:246) - is asserted by NOTHING in its own 16-test suite. Mutated to `return 0` the suite still reports 16 passed, and the gate then PRINTS `FAILED:suite-floor 1 suite(s) below floor` while EXITING 0. The CI step at .github/workflows/quality.yml (gate-tests-coverage measure-guard) runs exactly `python tools/measure-guard/suitefloor.py --suite command-center`, so it would report GREEN on a suite that had lost 30 of its 61 tests.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/measure-guard/suitefloor.py:246",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+          "raw_output": "[G1-suitefloor] KILLED   M1-comparison-invert   L113   `==` -> `!=`\n[G1-suitefloor] SURVIVED M3-default-flip        L51    kwarg frozen=True -> False\n[G1-suitefloor] KILLED   M4-raise-to-log        L252   raise -> pass at line 252\n[G1-suitefloor] KILLED   M5-boolop-flip         L134   `or` -> `and`\n[G1-suitefloor] SURVIVED M6-exit-zero           L235   return 1 -> 0\n[G1-suitefloor] KILLED   M1-comparison-invert   L150   `<=` -> `>`\n[G1-suitefloor] KILLED   M3-default-flip        L135   kwarg capture_output=True -> False\n[G1-suitefloor] KILLED   M4-raise-to-log        L190   raise -> pass at line 190\n[G1-suitefloor] KILLED   M5-boolop-flip         L141   `or` -> `and`\n[G1-suitefloor] SURVIVED M6-exit-zero           L246   return 1 -> 0",
+          "fingerprint": "a944eb83ce919aa9"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python run_probe2.py  ==>  per survivor: run the gate's own CLI against a genuinely bad input and read its process EXIT CODE (unmutated first, as the control; then mutated)",
+          "raw_output": "{\n \"gate_id\": \"G1-suitefloor\",\n \"mutation\": \"M6-exit-zero L246 return 1 -> 0\",\n \"module\": \"tools/measure-guard/suitefloor.py\",\n \"bad_input\": \"the command-center suite collects 3 test files fewer than its declared floor of 55\",\n \"command\": \"python tools/measure-guard/suitefloor.py --suite command-center\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"OK   command-center: collected 61 >= floor 55\\nSUCCESS:suite-floor 1 suite(s) at or above floor\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"31 tests collected in 0.63s\\nFAILED:suite-floor 1 suite(s) below floor\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"31 tests collected in 0.61s\\nFAILED:suite-floor 1 suite(s) below floor\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}",
+          "fingerprint": "5b26fd3dd2b77240"
+        }
+      ]
+    },
+    {
+      "claim": "A SYSTEMATIC, CROSS-GATE HOLE: the CLI entry line itself - `if __name__ == \"__main__\": raise SystemExit(main())` - is asserted by nothing in 5 gates measured here. Replacing that `raise` with `pass` leaves every test green (the tests call main() directly) while `python <gate>.py` stops calling main() at all: the gate becomes a no-op that prints nothing and exits 0. That is precisely the failure rules/common/ci-hygiene.md section 1 exists to forbid, and the repo's own `# pragma: no cover - CLI entry` marker on those lines is what makes it invisible to the coverage gate as well. Proven consequential on: G3-wudeps tools/measure-guard/wudeps.py; G4-jsonparse tools/measure-guard/jsonparse.py; G2-refcheck tools/measure-guard/refcheck.py; G5-cc-validate tools/command-center/validate.py; G6-emit-hook-manifest ci/emit_hook_manifest.py",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/measure-guard/refcheck.py:173, wudeps.py:219, jsonparse.py:171",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+          "raw_output": "[G1-suitefloor] KILLED   M4-raise-to-log        L252   raise -> pass at line 252\n[G1-suitefloor] KILLED   M4-raise-to-log        L190   raise -> pass at line 190\n[G2-refcheck] SURVIVED M4-raise-to-log        L173   raise -> pass at line 173\n[G2-refcheck] KILLED   M4-raise-to-log        L98    raise -> pass at line 98\n[G3-wudeps] SURVIVED M4-raise-to-log        L219   raise -> pass at line 219\n[G3-wudeps] KILLED   M4-raise-to-log        L69    raise -> pass at line 69\n[G4-jsonparse] SURVIVED M4-raise-to-log        L171   raise -> pass at line 171\n[G4-jsonparse] KILLED   M4-raise-to-log        L88    raise -> pass at line 88\n[G5-cc-validate] SURVIVED M4-raise-to-log        L365   raise -> pass at line 365\n[G6-emit-hook-manifest] SURVIVED M4-raise-to-log        L149   raise -> pass at line 149\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L53    raise -> pass at line 53\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L58    raise -> pass at line 58\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L63    raise -> pass at line 63\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L68    raise -> pass at line 68\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L70    raise -> pass at line 70\n[G6-emit-hook-manifest] SURVIVED M4-raise-to-log        L81    raise -> pass at line 81\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L108   raise -> pass at line 108\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L48    raise -> pass at line 48\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L77    raise -> pass at line 77\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L95    raise -> pass at line 95\n[G6-emit-hook-manifest] KILLED   M4-raise-to-log        L106   raise -> pass at line 106\n[G7-receipt-schema-gate] SURVIVED M4-raise-to-log        L50    raise -> pass at line 50\n[G7-receipt-schema-gate] KILLED   M4-raise-to-log        L190   raise -> pass at line 190\n[G9-vendor-identity] KILLED   M4-raise-to-log        L399   raise -> pass at line 399\n[G9-vendor-identity] SURVIVED M4-raise-to-log        L402   raise -> pass at line 402\n[G9-vendor-identity] KILLED   M4-raise-to-log        L385   raise -> pass at line 385\n[G9-vendor-identity] SURVIVED M4-raise-to-log        L413   raise -> pass at line 413\n[G9-vendor-identity] SURVIVED M4-raise-to-log        L420   raise -> pass at line 420\n[G9-vendor-identity] KILLED   M4-raise-to-log        L390   raise -> pass at line 390\n[G9-vendor-identity] KILLED   M4-raise-to-log        L393   raise -> pass at line 393\n[G10-reaper] SURVIVED M4-raise-to-log        L328   raise -> pass at line 328\n[G10-reaper] KILLED   M4-raise-to-log        L197   raise -> pass at line 197\n[G12-coordination-reducer] KILLED   M4-raise-to-log        L234   raise -> pass at line 234\n[G12-coordination-reducer] KILLED   M4-raise-to-log        L259   raise -> pass at line 259\n[G12-coordination-reducer] KILLED   M4-raise-to-log        L262   raise -> pass at line 262\n[G12-coordination-reducer] KILLED   M4-raise-to-log        L267   raise -> pass at line 267\n[G8-completion-predicate] KILLED   M4-raise-to-log        L1312  raise -> pass at line 1312\n[G8-completion-predicate] SURVIVED M4-raise-to-log        L229   raise -> pass at line 229\n[G11-schema-resolver] SURVIVED M4-raise-to-log        L356   raise -> pass at line 356\n[G11-schema-resolver] SURVIVED M4-raise-to-log        L41    raise -> pass at line 41",
+          "fingerprint": "18741a0433f866ca"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python run_probe2.py  ==>  per survivor: run the gate's own CLI against a genuinely bad input and read its process EXIT CODE (unmutated first, as the control; then mutated)",
+          "raw_output": "{\n \"gate_id\": \"G3-wudeps\",\n \"mutation\": \"M4-raise-to-log L219 raise -> pass at line 219\",\n \"module\": \"tools/measure-guard/wudeps.py\",\n \"bad_input\": \"a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\",\n \"command\": \"python tools/measure-guard/wudeps.py\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"  REGRESSED dangling_refs: 42 > baseline 41 (+1)\\nFAILED:wudeps 1 metric(s) worse than the recorded baseline\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G4-jsonparse\",\n \"mutation\": \"M4-raise-to-log L171 raise -> pass at line 171\",\n \"module\": \"tools/measure-guard/jsonparse.py\",\n \"bad_input\": \"a tracked .json file does not parse\",\n \"command\": \"python tools/measure-guard/jsonparse.py\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"SUCCESS:jsonparse 1069 tracked .json files parse (2 git-crypt encrypted skipped, 0 oversized skipped)\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"              Expecting value: line 1 column 18 (char 17)\\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G2-refcheck\",\n \"mutation\": \"M4-raise-to-log L173 raise -> pass at line 173\",\n \"module\": \"tools/measure-guard/refcheck.py\",\n \"bad_input\": \"a tracked blueprint's subworkflows[].source names a file that is not in the repo\",\n \"command\": \"python tools/measure-guard/refcheck.py\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G5-cc-validate\",\n \"mutation\": \"M4-raise-to-log L365 raise -> pass at line 365\",\n \"module\": \"tools/command-center/validate.py\",\n \"bad_input\": \"a register item's dependency id resolves to nothing (REACH-1 referential integrity)\",\n \"command\": \"python tools/command-center/validate.py --catalog C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Local\\\\Temp\\\\adv0010\\\\p2scratch\\\\bad_catalog.json\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\\nSUCCESS:cc-validate items=103 open=58 reachable=all\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\\nFAILED:cc-validate violations=2\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G6-emit-hook-manifest\",\n \"mutation\": \"M4-raise-to-log L149 raise -> pass at line 149\",\n \"module\": \"ci/emit_hook_manifest.py\",\n \"bad_input\": \"the manifest source is missing `hooks`, the sole member of the target's required-set\",\n \"command\": \"python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"  }\\n}\",\n \"control_bad_input_exit\": 2,\n \"control_bad_input_tail\": \"ERROR: missing required keys: hooks\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}",
+          "fingerprint": "69b273da0122703e"
+        }
+      ]
+    },
+    {
+      "claim": "THE DOMINANT SURVIVOR CLASS is M6 (non-zero exit -> 0): the terminal `print(FAILED:...); return 1` on a gate's VIOLATION path. 4 of these were proven consequential across 4 gates. The gates' suites assert the pure scan/report functions and the argument handling, but not the mapping from 'findings exist' to 'process exits non-zero' - which is the only part CI reads.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/measure-guard/jsonparse.py (M6-exit-zero L161 return 1 -> 0); tools/measure-guard/refcheck.py (M6-exit-zero L167 return 1 -> 0); tools/measure-guard/suitefloor.py (M6-exit-zero L246 return 1 -> 0); tools/measure-guard/wudeps.py (M6-exit-zero L211 return 1 -> 0)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+          "raw_output": "[G1-suitefloor] SURVIVED M6-exit-zero           L235   return 1 -> 0\n[G1-suitefloor] SURVIVED M6-exit-zero           L246   return 1 -> 0\n[G2-refcheck] SURVIVED M6-exit-zero           L155   return 1 -> 0\n[G2-refcheck] SURVIVED M6-exit-zero           L167   return 1 -> 0\n[G3-wudeps] SURVIVED M6-exit-zero           L192   return 1 -> 0\n[G3-wudeps] SURVIVED M6-exit-zero           L211   return 1 -> 0\n[G3-wudeps] SURVIVED M6-exit-zero           L173   return 1 -> 0\n[G4-jsonparse] SURVIVED M6-exit-zero           L153   return 1 -> 0\n[G4-jsonparse] SURVIVED M6-exit-zero           L161   return 1 -> 0\n[G5-cc-validate] KILLED   M6-exit-zero           L330   return 1 -> 0\n[G5-cc-validate] KILLED   M6-exit-zero           L357   return 1 -> 0\n[G5-cc-validate] KILLED   M6-exit-zero           L319   return 1 -> 0\n[G6-emit-hook-manifest] KILLED   M6-exit-zero           L142   return 2 -> 0\n[G6-emit-hook-manifest] KILLED   M6-exit-zero           L137   return 1 -> 0\n[G10-reaper] KILLED   M6-exit-zero           L302   return 2 -> 0\n[G10-reaper] KILLED   M6-exit-zero           L318   return 2 -> 0\n[G12-coordination-reducer] KILLED   M6-exit-zero           L297   return 1 -> 0\n[G8-completion-predicate] SURVIVED M6-exit-zero           L1304  return 2 -> 0\n[G8-completion-predicate] SURVIVED M6-exit-zero           L1288  return 2 -> 0\n[G11-schema-resolver] SURVIVED M6-exit-zero           L352   return 2 -> 0",
+          "fingerprint": "22466b80c6f0c5e5"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python run_probe2.py  ==>  per survivor: run the gate's own CLI against a genuinely bad input and read its process EXIT CODE (unmutated first, as the control; then mutated)",
+          "raw_output": "{\n \"gate_id\": \"G3-wudeps\",\n \"mutation\": \"M6-exit-zero L211 return 1 -> 0\",\n \"module\": \"tools/measure-guard/wudeps.py\",\n \"bad_input\": \"a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\",\n \"command\": \"python tools/measure-guard/wudeps.py\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"  REGRESSED dangling_refs: 42 > baseline 41 (+1)\\nFAILED:wudeps 1 metric(s) worse than the recorded baseline\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"  REGRESSED dangling_refs: 42 > baseline 41 (+1)\\nFAILED:wudeps 1 metric(s) worse than the recorded baseline\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G4-jsonparse\",\n \"mutation\": \"M6-exit-zero L161 return 1 -> 0\",\n \"module\": \"tools/measure-guard/jsonparse.py\",\n \"bad_input\": \"a tracked .json file does not parse\",\n \"command\": \"python tools/measure-guard/jsonparse.py\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"SUCCESS:jsonparse 1069 tracked .json files parse (2 git-crypt encrypted skipped, 0 oversized skipped)\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"              Expecting value: line 1 column 18 (char 17)\\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"              Expecting value: line 1 column 18 (char 17)\\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G1-suitefloor\",\n \"mutation\": \"M6-exit-zero L246 return 1 -> 0\",\n \"module\": \"tools/measure-guard/suitefloor.py\",\n \"bad_input\": \"the command-center suite collects 3 test files fewer than its declared floor of 55\",\n \"command\": \"python tools/measure-guard/suitefloor.py --suite command-center\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"OK   command-center: collected 61 >= floor 55\\nSUCCESS:suite-floor 1 suite(s) at or above floor\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"31 tests collected in 0.63s\\nFAILED:suite-floor 1 suite(s) below floor\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"31 tests collected in 0.61s\\nFAILED:suite-floor 1 suite(s) below floor\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}\n{\n \"gate_id\": \"G2-refcheck\",\n \"mutation\": \"M6-exit-zero L167 return 1 -> 0\",\n \"module\": \"tools/measure-guard/refcheck.py\",\n \"bad_input\": \"a tracked blueprint's subworkflows[].source names a file that is not in the repo\",\n \"command\": \"python tools/measure-guard/refcheck.py\",\n \"control_good_state_exit\": 0,\n \"control_good_state_tail\": \"SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve\",\n \"control_bad_input_exit\": 1,\n \"control_bad_input_tail\": \"DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have\",\n \"mutant_bad_input_exit\": 0,\n \"mutant_bad_input_tail\": \"DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have\",\n \"verdict\": \"CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\"\n}",
+          "fingerprint": "0ca904645875311a"
+        }
+      ]
+    },
+    {
+      "claim": "Census across 12 gate modules: 330 mutations executed, 203 KILLED, 125 SURVIVED, 2 INVALID. Every one of the 12 per-gate canary controls fired, so no SURVIVED verdict here rests on a suite that never imported the module.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json extensions.per_gate_totals",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+          "raw_output": "[G1-suitefloor] KILLED   M1-comparison-invert   L113   `==` -> `!=`\n[G1-suitefloor] SURVIVED M3-default-flip        L51    kwarg frozen=True -> False\n[G1-suitefloor] KILLED   M4-raise-to-log        L252   raise -> pass at line 252\n[G1-suitefloor] KILLED   M5-boolop-flip         L134   `or` -> `and`\n[G1-suitefloor] SURVIVED M6-exit-zero           L235   return 1 -> 0\n[G1-suitefloor] KILLED   M1-comparison-invert   L150   `<=` -> `>`\n[G1-suitefloor] KILLED   M3-default-flip        L135   kwarg capture_output=True -> False\n[G1-suitefloor] KILLED   M4-raise-to-log        L190   raise -> pass at line 190\n[G1-suitefloor] KILLED   M5-boolop-flip         L141   `or` -> `and`\n[G1-suitefloor] SURVIVED M6-exit-zero           L246   return 1 -> 0\n[G2-refcheck] KILLED   M1-comparison-invert   L110   `>` -> `<=`\n[G2-refcheck] KILLED   M3-default-flip        L54    kwarg capture_output=True -> False\n[G2-refcheck] SURVIVED M4-raise-to-log        L173   raise -> pass at line 173\n[G2-refcheck] KILLED   M5-boolop-flip         L84    `and` -> `or`\n[G2-refcheck] SURVIVED M6-exit-zero           L155   return 1 -> 0\n[G2-refcheck] SURVIVED M1-comparison-invert   L150   `<` -> `>=`\n[G2-refcheck] KILLED   M3-default-flip        L55    kwarg text=True -> False\n[G2-refcheck] KILLED   M4-raise-to-log        L98    raise -> pass at line 98\n[G2-refcheck] KILLED   M5-boolop-flip         L95    `or` -> `and`\n[G2-refcheck] SURVIVED M6-exit-zero           L167   return 1 -> 0\n[G2-refcheck] KILLED   M1-comparison-invert   L172   `==` -> `!=`\n[G2-refcheck] SURVIVED M3-default-flip        L56    kwarg check=False -> True\n[G3-wudeps] KILLED   M1-comparison-invert   L68    `<` -> `>=`\n[G3-wudeps] KILLED   M1-comparison-invert   L86    `!=` -> `==`\n[G3-wudeps] KILLED   M1-comparison-invert   L88    `==` -> `!=`\n[G3-wudeps] KILLED   M1-comparison-invert   L92    `==` -> `!=`\n[G3-wudeps] KILLED   M1-comparison-invert   L115   `!=` -> `==`\n[G3-wudeps] KILLED   M1-comparison-invert   L123   `<` -> `>=`\n[G3-wudeps] KILLED   M1-comparison-invert   L126   `==` -> `!=`\n[G3-wudeps] SURVIVED M1-comparison-invert   L128   `==` -> `!=`\n[G3-wudeps] KILLED   M1-comparison-invert   L150   `>` -> `<=`\n[G3-wudeps] SURVIVED M1-comparison-invert   L160   `<` -> `>=`\n[G3-wudeps] SURVIVED M1-comparison-invert   L176   `!=` -> `==`\n[G3-wudeps] SURVIVED M1-comparison-invert   L187   `<` -> `>=`\n[G3-wudeps] SURVIVED M1-comparison-invert   L200   `==` -> `!=`\n[G3-wudeps] KILLED   M1-comparison-invert   L218   `==` -> `!=`\n[G3-wudeps] SURVIVED M4-raise-to-log        L219   raise -> pass at line 219\n[G3-wudeps] KILLED   M4-raise-to-log        L69    raise -> pass at line 69\n[G3-wudeps] KILLED   M5-boolop-flip         L63    `or` -> `and`\n[G3-wudeps] KILLED   M5-boolop-flip         L67    `or` -> `and`\n[G3-wudeps] KILLED   M5-boolop-flip         L75    `and` -> `or`\n[G3-wudeps] KILLED   M5-boolop-flip         L85    `or` -> `and`\n[G3-wudeps] SURVIVED M5-boolop-flip         L86    `and` -> `or`\n[G3-wudeps] SURVIVED M6-exit-zero           L192   return 1 -> 0\n[G3-wudeps] SURVIVED M6-exit-zero           L211   return 1 -> 0\n[G3-wudeps] SURVIVED M6-exit-zero           L173   return 1 -> 0\n[G4-jsonparse] KILLED   M1-comparison-invert   L79    `==` -> `!=`\n[G4-jsonparse] KILLED   M3-default-flip        L71    kwarg capture_output=True -> False\n[G4-jsonparse] SURVIVED M4-raise-to-log        L171   raise -> pass at line 171\n[G4-jsonparse] KILLED   M5-boolop-flip         L79    `and` -> `or`\n[G4-jsonparse] SURVIVED M6-exit-zero           L153   return 1 -> 0\n[G4-jsonparse] KILLED   M1-comparison-invert   L79    `==` -> `!=`\n[G4-jsonparse] INVALID  M3-default-flip        L72    kwarg text=True -> False\n[G4-jsonparse] KILLED   M4-raise-to-log        L88    raise -> pass at line 88\n[G4-jsonparse] KILLED   M5-boolop-flip         L85    `or` -> `and`\n[G4-jsonparse] SURVIVED M6-exit-zero           L161   return 1 -> 0\n[G4-jsonparse] KILLED   M1-comparison-invert   L101   `>` -> `<=`\n[G4-jsonparse] SURVIVED M3-default-flip        L73    kwarg check=False -> True\n[G5-cc-validate] SURVIVED M1-comparison-invert   L72    `==` -> `!=`\n[G5-cc-validate] SURVIVED M3-default-flip        L85    def validate(...): default False -> True\n[G5-cc-validate] SURVIVED M4-raise-to-log        L365   raise -> pass at line 365\n[G5-cc-validate] KILLED   M5-boolop-flip         L74    `and` -> `or`\n[G5-cc-validate] KILLED   M6-exit-zero           L330   return 1 -> 0\n[G5-cc-validate] KILLED   M1-comparison-invert   L167   `!=` -> `==`\n[G5-cc-validate] SURVIVED M3-default-flip        L341   kwarg sort_keys=True -> False\n[G5-cc-validate] SURVIVED M5-boolop-flip         L107   `or` -> `and`\n[G5-cc-validate] KILLED   M6-exit-zero           L357   return 1 -> 0\n[G5-cc-validate] KILLED   M1-comparison-invert   L231   `!=` -> `==`\n[G5-cc-validate] KILLED   M5-boolop-flip         L132   `and` -> `or`\n[G5-cc-validate] KILLED   M6-exit-zero           L319   return 1 -> 0\n[G6-emit-hook-manifest] KILLED   M1-comparison-invert   L132   `!=` -> `==`\n[G6-emit-hook-manifest] KILLED   M1-comparison-invert   L148   `==` -> `!=`\n[G6-emit-hook-manifest] KILLED   M2-required-drop       L35    kwarg required=: empty the single-element set (was \"hooks\")\n[G6-emit-hook-manifest] SURVIVED M3-default-flip        L26    kwarg frozen=True -> False\n[G6-emit-hook-manifest] SURVIVED M3-default-flip        L114   kwarg required=True -> False\n[G6-emit-hook-manifest] SURVIVED M3-default-flip        L115   kwarg required=True -> False\n[G6-emit-hook-manifest] SURVIVED M3-default-flip        L116   kwarg required=True -> False\n[G6-emit-hook-manifest] KILLED   M3-default-flip        L74    kwarg ensure_ascii=False -> True\n[G6-emit-hook-manifest] KILLED   M3-default-flip        L74    kwarg allow_nan=False -> True\n[G6-emit-hook-manifest] SURVIVED M3-default-flip        L88    kwarg ensure_ascii=False -> True\n[G6-emit-hook-manifest] SURVIVED M3-default-flip        L88    kwarg allow_nan=False -> True\n[G6-emit-hook-manifest] SURVIVED M4",
+          "fingerprint": "a944eb83ce919aa9"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python run_probe2.py  ==>  per survivor: run the gate's own CLI against a genuinely bad input and read its process EXIT CODE (unmutated first, as the control; then mutated)",
+          "raw_output": "[G3-wudeps] M1-comparison-invert L128 `==` -> `!=`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M1-comparison-invert L160 `<` -> `>=`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M1-comparison-invert L176 `!=` -> `==`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M1-comparison-invert L187 `<` -> `>=`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:wudeps only 2008 work units read, below the floor of 1500; the read has probably broken rather than the program shrunk\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M1-comparison-invert L200 `==` -> `!=`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M4-raise-to-log L219 raise -> pass at line 219\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=0 :: \n    => CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)\n[G3-wudeps] M5-boolop-flip L86 `and` -> `or`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M6-exi",
+          "fingerprint": "1d28e5c042d79d54"
+        }
+      ]
+    },
+    {
+      "claim": "SCOPING CHECK (not an assumption): Probe 1 ran the measure-guard mutants against the per-module test file, not the whole tools/measure-guard/tests directory CI runs. Four headline survivors were re-run against the FULL directory (55 tests) and all four survived there too, so the cheaper oracle hid no kill.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "scoping_check.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+          "raw_output": "[\n {\n  \"target\": \"BASELINE (no mutation)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 160.70s (0:02:40)\"\n },\n {\n  \"target\": \"tools/measure-guard/suitefloor.py:246 M6-exit-zero (return 1 -> 0)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 150.09s (0:02:30)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n },\n {\n  \"target\": \"tools/measure-guard/refcheck.py:167 M6-exit-zero (return 1 -> 0)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 113.79s (0:01:53)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n },\n {\n  \"target\": \"tools/measure-guard/refcheck.py:173 M4-raise-to-log (raise -> pass at line 173)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 133.92s (0:02:13)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n },\n {\n  \"target\": \"tools/measure-guard/jsonparse.py:161 M6-exit-zero (return 1 -> 0)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 145.50s (0:02:25)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n }\n]",
+          "fingerprint": "a256cb8bb3a69abb"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python run_probe2.py  ==>  per survivor: run the gate's own CLI against a genuinely bad input and read its process EXIT CODE (unmutated first, as the control; then mutated)",
+          "raw_output": "[G3-wudeps] M1-comparison-invert L128 `==` -> `!=`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M1-comparison-invert L160 `<` -> `>=`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 ::   buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13 | SUCCESS:wudeps no work-unit dependency metric regressed against the baseline\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 ::   REGRESSED dangling_refs: 42 > baseline 41 (+1) | FAILED:wudeps 1 metric(s) worse than the recorded baseline\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G3-wudeps] M1-comparison-invert L176 `!=` -> `==`\n    bad input: a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41\n    $ python tools/measure-guard/wudeps.py\n    CONTROL good-state (unmutated g",
+          "fingerprint": "1d28e5c042d79d54"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-probe1-mutation-sweep",
+      "name": "mutation catalogue vs each gate's own test suite",
+      "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+      "result": "PASS",
+      "assertions": 330,
+      "output_tail": "ED   M5-boolop-flip         L354   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L360   `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L383   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L401   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L410   `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L453   `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L454   `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L538   `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L540   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L563   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L578   `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L593   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L606   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L696   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L715   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L715   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L733   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L734   `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L737   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L764   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L764   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L776   `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L777   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L824   `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L870   `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L953   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L985   `and` -> `or`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L1020  `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L1048  `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L1053  `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L1066  `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L1066  `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L1131  `and` -> `or`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L1133  `or` -> `and`\n[G8-completion-predicate] KILLED   M5-boolop-flip         L1173  `or` -> `and`\n[G8-completion-predicate] SURVIVED M5-boolop-flip         L1206  `and` -> `or`\n[G8-completion-predicate] SURVIVED M6-exit-zero           L1304  return 2 -> 0\n[G8-completion-predicate] SURVIVED M6-exit-zero           L1288  return 2 -> 0\n[G11-schema-resolver] SURVIVED M1-comparison-invert   L127   `!=` -> `==`\n[G11-schema-resolver] SURVIVED M2-required-drop       L54    module const __all__: drop first element (\"ResolvedSchema\")\n[G11-schema-resolver] SURVIVED M3-default-flip        L73    kwarg frozen=True -> False\n[G11-schema-resolver] SURVIVED M4-raise-to-log        L356   raise -> pass at line 356\n[G11-schema-resolver] SURVIVED M5-boolop-flip         L89    `and` -> `or`\n[G11-schema-resolver] SURVIVED M6-exit-zero           L352   return 2 -> 0\n[G11-schema-resolver] SURVIVED M1-comparison-invert   L129   `==` -> `!=`\n[G11-schema-resolver] SURVIVED M3-default-flip        L193   kwarg report_kind_pinned=False -> True\n[G11-schema-resolver] SURVIVED M4-raise-to-log        L41    raise -> pass at line 41\n[G11-schema-resolver] SURVIVED M5-boolop-flip         L102   `and` -> `or`\n[G11-schema-resolver] KILLED   M1-comparison-invert   L137   `==` -> `!=`\n[G11-schema-resolver] SURVIVED M3-default-flip        L213   kwarg report_kind_pinned=False -> True"
+    },
+    {
+      "id": "T2-probe2-bad-input-exit-code",
+      "name": "surviving mutant vs a genuinely bad input, exit code read",
+      "command": "python run_probe2.py  ==>  per survivor: run the gate's own CLI against a genuinely bad input and read its process EXIT CODE (unmutated first, as the control; then mutated)",
+      "result": "PASS",
+      "assertions": 159,
+      "output_tail": "ired property\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G7-receipt-schema-gate] M5-boolop-flip L378 `or` -> `and`\n    bad input: a receipt with `sentinel` removed - a REQUIRED property of receipt_core\n    $ python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 :: SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G7-receipt-schema-gate] M5-boolop-flip L498 `or` -> `and`\n    bad input: a receipt with `sentinel` removed - a REQUIRED property of receipt_core\n    $ python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 :: SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G7-receipt-schema-gate] M5-boolop-flip L546 `or` -> `and`\n    bad input: a receipt with `sentinel` removed - a REQUIRED property of receipt_core\n    $ python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 :: SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G7-receipt-schema-gate] M5-boolop-flip L582 `and` -> `or`\n    bad input: a receipt with `sentinel` removed - a REQUIRED property of receipt_core\n    $ python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 :: SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)\n[G7-receipt-schema-gate] M5-boolop-flip L723 `or` -> `and`\n    bad input: a receipt with `sentinel` removed - a REQUIRED property of receipt_core\n    $ python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only\n    CONTROL good-state (unmutated gate, healthy tree)  exit=0 :: SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)\n    CONTROL bad-input  (unmutated gate, bad input)     exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    TREATMENT          (MUTATED gate, same bad input)  exit=1 :: FAILED:IMP-0001 schema-invalid (1 error(s)) |     - <root>: 'sentinel' is a required property\n    => NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+    },
+    {
+      "id": "T3-baseline-green-before-mutation",
+      "name": "every gate suite baselined, failing-id set captured, before any mutation",
+      "command": "python baseline.py",
+      "result": "PASS",
+      "assertions": 12,
+      "output_tail": "[\n {\n  \"gate\": \"G1-suitefloor\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 112.6\n },\n {\n  \"gate\": \"G2-refcheck\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 112.6\n },\n {\n  \"gate\": \"G3-wudeps\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 112.6\n },\n {\n  \"gate\": \"G4-jsonparse\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 112.6\n },\n {\n  \"gate\": \"G5-cc-validate\",\n  \"rc\": 1,\n  \"prefailing\": [\n   \"tools/command-center/tests/test_validate.py::test_real_catalog_is_clean\"\n  ],\n  \"sec\": 28.7\n },\n {\n  \"gate\": \"G6-emit-hook-manifest\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 7.4\n },\n {\n  \"gate\": \"G7-receipt-schema-gate\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 9.9\n },\n {\n  \"gate\": \"G8-completion-predicate\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 12.0\n },\n {\n  \"gate\": \"G9-vendor-identity\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 4.5\n },\n {\n  \"gate\": \"G10-reaper\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 4.3\n },\n {\n  \"gate\": \"G11-schema-resolver\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 27.7\n },\n {\n  \"gate\": \"G12-coordination-reducer\",\n  \"rc\": 0,\n  \"prefailing\": [],\n  \"sec\": 8.9\n }\n]"
+    },
+    {
+      "id": "T4-oracle-scoping-full-directory",
+      "name": "four headline survivors re-run against the FULL measure-guard tests directory",
+      "command": "python scoping_check.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "[\n {\n  \"target\": \"BASELINE (no mutation)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 160.70s (0:02:40)\"\n },\n {\n  \"target\": \"tools/measure-guard/suitefloor.py:246 M6-exit-zero (return 1 -> 0)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 150.09s (0:02:30)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n },\n {\n  \"target\": \"tools/measure-guard/refcheck.py:167 M6-exit-zero (return 1 -> 0)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 113.79s (0:01:53)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n },\n {\n  \"target\": \"tools/measure-guard/refcheck.py:173 M4-raise-to-log (raise -> pass at line 173)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 133.92s (0:02:13)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n },\n {\n  \"target\": \"tools/measure-guard/jsonparse.py:161 M6-exit-zero (return 1 -> 0)\",\n  \"full_dir_exit\": 0,\n  \"tail\": \"55 passed in 145.50s (0:02:25)\",\n  \"verdict\": \"SURVIVES THE FULL DIRECTORY TOO\"\n }\n]"
+    },
+    {
+      "id": "T5-mutation-harness-killed-at-least-one",
+      "name": "tests_required: the harness must produce at least one KILLED mutation, else the suite never ran",
+      "command": "python run_mutations.py  ==>  per mutant: AST-splice ONE gate decision into the module, then python -m pytest <that gate's own test suite> -q --no-header -p no:cacheprovider, then restore",
+      "result": "PASS",
+      "assertions": 203,
+      "output_tail": "203 KILLED of 330 executed across 12 gates; per-gate: {\"G1-suitefloor\": 7, \"G2-refcheck\": 7, \"G3-wudeps\": 14, \"G4-jsonparse\": 7, \"G5-cc-validate\": 7, \"G6-emit-hook-manifest\": 18, \"G7-receipt-schema-gate\": 38, \"G8-completion-predicate\": 46, \"G9-vendor-identity\": 21, \"G10-reaper\": 17, \"G11-schema-resolver\": 1, \"G12-coordination-reducer\": 20}"
+    },
+    {
+      "id": "T6-receipt-is-consumable",
+      "name": "this receipt is readable by the repo's own receipt gate and by a stdlib reader",
+      "command": "python platform/lib/receipt_schema_gate.py command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json --repo-root . --schema-only",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "SCHEMA-VALID:ADV-0010 (layer 1 only - this is NOT a completion verdict)\ntop-level keys: 21\nunit_id: ADV-0010\nper_target_verdicts: 12\nsurvivors listed: 125\nprobe2 pairs: 53"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "C0-canary-per-gate",
+      "kind": "mutation",
+      "description": "Before any real mutation each gate module got an unconditional import-time `raise RuntimeError` appended. If the gate's own suite stayed GREEN, that suite never imports the module and every survivor for it would be a harness artifact rather than a finding. This is the control that makes a SURVIVED verdict readable at all (rules/common/single-signal-verification.md rule 3b).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "G1-suitefloor=KILLED(rc=2,newfail=1); G2-refcheck=KILLED(rc=2,newfail=1); G3-wudeps=KILLED(rc=2,newfail=1); G4-jsonparse=KILLED(rc=2,newfail=1); G5-cc-validate=KILLED(rc=2,newfail=3); G6-emit-hook-manifest=KILLED(rc=2,newfail=1); G7-receipt-schema-gate=KILLED(rc=2,newfail=1); G9-vendor-identity=KILLED(rc=2,newfail=1); G10-reaper=KILLED(rc=2,newfail=1); G12-coordination-reducer=KILLED(rc=2,newfail=1); G8-completion-predicate=KILLED(rc=2,newfail=1); G11-schema-resolver=KILLED(rc=2,newfail=1)",
+      "good_state_output": "G1-suitefloor=rc0/prefail0; G2-refcheck=rc0/prefail0; G3-wudeps=rc0/prefail0; G4-jsonparse=rc0/prefail0; G5-cc-validate=rc1/prefail1; G6-emit-hook-manifest=rc0/prefail0; G7-receipt-schema-gate=rc0/prefail0; G8-completion-predicate=rc0/prefail0; G9-vendor-identity=rc0/prefail0; G10-reaper=rc0/prefail0; G11-schema-resolver=rc0/prefail0; G12-coordination-reducer=rc0/prefail0"
+    },
+    {
+      "id": "P2-control-bad-input-fires",
+      "kind": "known-broken-fixture",
+      "description": "For every Probe-2 pair the UNMUTATED gate ran against the same bad input FIRST. A non-zero exit proves the input really is bad; without it, 'the mutant exited 0' could just mean the input was fine. Paired with a good-state run of the same unmutated gate (exit 0), so the instrument is shown to discriminate in BOTH directions.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "G3-wudeps/M1-comparison-invert L128  ctlBad=1 mutBad=1; G3-wudeps/M1-comparison-invert L160  ctlBad=1 mutBad=1; G3-wudeps/M1-comparison-invert L176  ctlBad=1 mutBad=1; G3-wudeps/M1-comparison-invert L187  ctlBad=1 mutBad=1; G3-wudeps/M1-comparison-invert L200  ctlBad=1 mutBad=1; G3-wudeps/M4-raise-to-log L219 raise ctlBad=1 mutBad=0; G3-wudeps/M5-boolop-flip L86 `and` - ctlBad=1 mutBad=1; G3-wudeps/M6-exit-zero L192 return 1 ctlBad=1 mutBad=1; G3-wudeps/M6-exit-zero L211 return 1 ctlBad=1 mutBad=0; G3-wudeps/M6-exit-zero L173 return 1 ctlBad=1 mutBad=1; G4-jsonparse/M4-raise-to-log L171 raise ctlBad=1 mutBad=0; G4-jsonparse/M6-exit-zero L153 return 1 ctlBad=1 mutBad=1; G4-jsonparse/M6-exit-zero L161 return 1 ctlBad=1 mutBad=0; G1-suitefloor/M3-default-flip L51 kwarg  ctlBad=1 mutBad=1; G1-suitefloor/M6-exit-zero L235 return 1 ctlBad=1 mutBad=1; G1-suitefloor/M6-exit-zero L246 return 1 ctlBad=1 mutBad=0; G2-refcheck/M4-raise-to-log L173 raise ctlBad=1 mutBad=0; G2-refcheck/M6-exit-zero L155 return 1 ctlBad=1 mutBad=1; G2-refcheck/M1-comparison-invert L150  ctlBad=1 mutBad=1; G2-refcheck/M6-exit-zero L167 return 1 ctlBad=1 mutBad=0; G2-refcheck/M3-default-flip L56 kwarg  ctlBad=1 mutBad=1; G5-cc-validate/M1-comparison-invert L72 ` ctlBad=1 mutBad=1; G5-cc-validate/M3-default-flip L85 def va ctlBad=1 mutBad=1; G5-cc-validate/M4-raise-to-log L365 raise ctlBad=1 mutBad=0; G5-cc-validate/M3-default-flip L341 kwarg ctlBad=1 mutBad=1; G5-cc-validate/M5-boolop-flip L107 `or` - ctlBad=1 mutBad=1; G6-emit-hook-manifest/M3-default-flip L26 kwarg  ctlBad=2 mutBad=2; G6-emit-hook-manifest/M3-default-flip L114 kwarg ctlBad=2 mutBad=2; G6-emit-hook-manifest/M3-default-flip L115 kwarg ctlBad=2 mutBad=2; G6-emit-hook-manifest/M3-default-flip L116 kwarg ctlBad=2 mutBad=2; G6-emit-hook-manifest/M3-default-flip L88 kwarg  ctlBad=2 mutBad=2; G6-emit-hook-manifest/M3-default-flip L88 kwarg  ctlBad=2 mutBad=2; G6-emit-hook-manifest/M4-raise-to-log L149 raise ctlBad=2 mutBad=0; G6-emit-hook",
+      "good_state_output": "G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G3-wudeps good=0; G4-jsonparse good=0; G4-jsonparse good=0; G4-jsonparse good=0; G1-suitefloor good=0; G1-suitefloor good=0; G1-suitefloor good=0; G2-refcheck good=0; G2-refcheck good=0; G2-refcheck good=0; G2-refcheck good=0; G2-refcheck good=0; G5-cc-validate good=0; G5-cc-validate good=0; G5-cc-validate good=0; G5-cc-validate good=0; G5-cc-validate good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G6-emit-hook-manifest good=0; G12-coordination-reducer good=0; G12-coordination-reducer good=0; G12-coordination-reducer good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good=0; G7-receipt-schema-gate good"
+    },
+    {
+      "id": "C-M2-matcher-selfcheck",
+      "kind": "other",
+      "description": "THE HARNESS'S OWN BROKEN DETECTOR, recorded rather than hidden. The first M2 matcher ('drop a required field from the required-set') keyed on identifier names containing required/mandatory and produced ZERO mutations across all 12 gate modules. That zero was NOT reported as 'these gates have no required-sets': a zero from an unproven matcher is worth nothing. Re-keyed on SHAPE - a module- or class-level container of constants - it then fired on the real shape, `NON_WAIVABLE: frozenset[int] = frozenset({1, 2, 3, 4, 5, 11, 12})` at platform/lib/completion_predicate.py:90, the non-waivable predicate conditions.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "M2 mutation count with the NAME-keyed matcher: 0 across 12/12 gate modules.",
+      "good_state_output": "M2 mutation count with the SHAPE-keyed matcher: 15 executed; first example 'NON_WAIVABLE: drop first element (1)' - predicate condition 1 becomes waivable."
+    },
+    {
+      "id": "C-restore-integrity",
+      "kind": "other",
+      "description": "After every mutation the module was restored and asserted equal to the original. A killed background run left one leftover mutant in the SCRATCH copy (tools/command-center/validate.py) - detected by comparing the copy against the real repo, restored with git checkout, and the writer switched to newline='' so restores are byte-exact rather than merely content-exact. THE REAL REPOSITORY TREE WAS NEVER MUTATED; all mutation ran in %TEMP% copies.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "content_identical=False for tools/command-center/validate.py in the scratch copy after the killed run - the leftover-mutant detector fired.",
+      "good_state_output": "After git checkout: 0 modified tracked files in the scratch copy; validate.py and suitefloor.py both content-identical to the real repo."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "NONE OBTAINED - cross-vendor dispatch attempted and FAILED",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The unit requires a CROSS-VENDOR refuter who re-derives the counterexample from the raw artifact rather than from this report. This receipt was produced by an Anthropic agent (the catalog had assigned the unit to openai/gpt-5-codex), so the qualifying reviewer is a NON-Anthropic one, and the three other agents live in this session are all Anthropic peers on the same program - same-vendor, sharing this harness's blind spots, and explicitly excluded by the unit's reviewer_requirement. A cross-vendor review WAS attempted: mcp__codex__codex (gpt-5.2-codex, sandbox=workspace-write, cwd=the scratch copy) was dispatched with a bounded re-derivation brief for claim C1 (suitefloor.py return 1 -> return 0) instructing it to measure first and read the artifact only afterwards. The dispatch failed at the vendor's account layer, verbatim: 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register'. That is a credential/registration failure on the OpenAI side; AGENTS.md section 9 forbids this agent from modifying, refreshing or re-authenticating any credential, so the failure is reported and handed back rather than worked around. Not retried: a second identical dispatch would re-run the same failing probe (AGENTS.md 4b two-strikes). NO self-review is recorded as a reviewer verdict - a reviewer block asserting PASS without a reviewer would be exactly the self-certification the receipt schema exists to prevent, and it is the difference between this receipt being BLOCKED and being a false SUCCESS.",
+    "vendor": "unassigned"
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": ".github/workflows/quality.yml gate-tests-coverage measure-guard (the literal CI step that reads this gate's exit code)",
+      "artifact_path": "tools/measure-guard/suitefloor.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python tools/measure-guard/suitefloor.py --suite command-center",
+        "raw_output": "OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 1 suite(s) at or above floor",
+        "exit_code": 0,
+        "fingerprint": "b29d8319293b97bb"
+      }
+    },
+    {
+      "consumer": "pytest consuming the gate's own suite (the oracle used by Probe 1)",
+      "artifact_path": "tools/measure-guard/tests/test_suitefloor.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "test-run",
+        "command": "python -m pytest tools/measure-guard/tests/test_suitefloor.py -q --no-header -p no:cacheprovider",
+        "raw_output": "................                                                         [100%]\n16 passed in 35.63s",
+        "exit_code": 0,
+        "fingerprint": "bc1a7b4d572e3158"
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "NOT EVERY SURVIVOR IS A DEFECT, and this artifact does not claim otherwise. Of the 125 survivors, 9 are PROVEN consequential by Probe 2 and 44 are proven NOT consequential for the input tested. At least 16 more are near-certainly EQUIVALENT MUTANTS with no possible behavioural effect - dropping an entry from `__all__`, flipping `@dataclass(frozen=)`, flipping `json.dumps(sort_keys=)`. A survivor is evidence of an UNASSERTED line, which is not the same thing as an exploitable hole. UNVERIFIED: the remaining survivors have no consequence measurement at all and must not be counted as defects.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Run Probe 2 for every survivor, and for each one that is NOT-CONSEQUENTIAL across a battery of bad inputs, classify it explicitly as an equivalent mutant rather than leaving it in the survivor count."
+    },
+    {
+      "claim": "G11-schema-resolver is the outlier and is called out rather than averaged away: 11 of its 12 executed mutations survived (92%), including `return 2 -> 0` at line 352 and two `report_kind_pinned=False -> True` flips. Its suite reports 34 passed / 4 skipped, so the module is executed but very little of its decision surface is asserted. UNVERIFIED: no Probe-2 fixture was built for G11, so none of those 11 has a demonstrated consequence - the verdict for that target is PARTIAL, not CONFIRMED.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Feed schema_resolver a schema carrying an unresolvable $ref and a $ref cycle, run its CLI, and re-test each of the 11 survivors against those two inputs."
+    },
+    {
+      "claim": "Probe 2 covers 53 of 125 survivors. The survivors in G10-reaper, G11-schema-resolver, G8-completion-predicate, G9-vendor-identity have NO bad-input fixture, so their real-world consequence is NOT-CHECKED - they are reported as unasserted behaviour (Probe 1) without a consequence claim (Probe 2).",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Build one bad-input fixture per remaining gate (a receipt failing a named predicate condition for G7/G8; a same-vendor alias pair claimed as cross-vendor for G9; an unresolvable $ref for G11; a duplicate reducer plane for G12) and re-run run_probe2.py."
+    },
+    {
+      "claim": "G10-reaper (plugin-cache destructive-delete safety) was DELIBERATELY excluded from Probe 2: this harness discriminates on EXIT CODE, and the reaper's correct behaviour on a protected entry is to exit 0 while NOT deleting it. An exit-code oracle scores that identically for the mutated and unmutated gate, i.e. it cannot tell the states apart.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Replace the oracle for G10 with a filesystem postcondition: build a cache root holding one REAL entry plus one staging entry, run with --apply, and assert the real entry still exists and the staging entry is gone. Then re-run each G10 survivor against it."
+    },
+    {
+      "claim": "The mutation catalogue is bounded and the run was CAPPED. 391 mutations were generated across the 12 modules; 330 were executed, sampled evenly across operators with a per-gate cap on the five slowest suites. An unexecuted mutation is not a refuted one.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run with DEFAULT_CAP raised above the largest generated set (81) and no CAP overrides."
+    },
+    {
+      "claim": "SCOPE OF THE GATE INVENTORY. 12 Python gate modules were mutated. The declared input was 'the source of every gate that can block a merge or a release', and quality.yml alone is 1,523 lines naming dozens of steps; the YAML workflow logic itself, .quality/charter_check.sh, and the hook/permission layer under hooks/ were NOT mutated.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Extend the harness with a YAML-step mutator (delete a `run:` line, drop a `--cov-fail-under`, flip an `if:` condition) and a shell mutator, then re-run against the workflow's own ci/tests/test_ci_wiring.py and test_charter_consistency.py suites."
+    },
+    {
+      "claim": "G5-cc-validate's own suite carries a PRE-EXISTING RED, unrelated to any mutation: tools/command-center/tests/test_validate.py::test_real_catalog_is_clean asserts stats['open'] == 59 while the live register measures 58. Reproduced in the real repo, not only the scratch copy. The kill criterion was therefore made baseline-relative (the failing-id set must GROW), because an exit-code criterion would have scored every G5 mutation as KILLED without the mutation doing anything.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "git log -p tools/command-center/ to find which item was closed after the constant was pinned, then update the pinned 59 (the test's own docstring says to do exactly this when items are closed on purpose). NOT fixed here: outside this unit's write scope."
+    },
+    {
+      "claim": "NO INDEPENDENT CROSS-VENDOR REVIEWER read this artifact. A Codex (gpt-5.2-codex) re-derivation was dispatched and failed at the vendor account layer: 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register'. Credential repair is forbidden to this agent (AGENTS.md section 9), and the only other live agents are same-vendor Anthropic peers, which the unit's reviewer_requirement explicitly rejects. This is the primary reason state is BLOCKED rather than SUCCESS.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Owner re-authenticates Codex (`codex login`), then re-dispatch the same bounded brief: have the reviewer independently mutate suitefloor.py:246 in a scratch copy and confirm BOTH that test_suitefloor.py stays green and that the gate CLI exits 0 while printing FAILED. The brief is preserved in this unit's harness directory."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T09:05:00Z",
+    "ended_at": "2026-08-11T22:04:14Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-review"
+    ],
+    "reason": "The measurement is complete and self-consistent: both named probes ran with their raw output recorded, every listed control fired on the bad state and was silent on the good one, and each enumerated target carries exactly one verdict. SUCCESS is still forbidden by this receipt's own schema: no independent cross-vendor reviewer PASS; manifest_registration is false: command-center/ARTIFACT-MANIFEST.json is a DERIVED file (quality.yml runs render.py --check against its derivation) and this unit's write scope is its own output_path only, so registering is an orchestrator action.",
+    "blocked_on": "no independent cross-vendor reviewer PASS; manifest_registration is false: command-center/ARTIFACT-MANIFEST.json is a DERIVED file (quality.yml runs render.py --check against its derivation) and this unit's write scope is its own output_path only, so registering is an orchestrator action"
+  },
+  "report": {
+    "kind": "refutation-record",
+    "observations": [
+      {
+        "name": "gate_modules_enumerated",
+        "measured": 12,
+        "method": "static-analysis",
+        "anchor": "command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json extensions.gate_registry"
+      },
+      {
+        "name": "gate_modules_mutated",
+        "measured": 12,
+        "method": "test-run",
+        "anchor": "mutation_results.json"
+      },
+      {
+        "name": "mutations_executed",
+        "measured": 330,
+        "method": "test-run",
+        "anchor": "mutation_results.json"
+      },
+      {
+        "name": "mutations_killed",
+        "measured": 203,
+        "method": "test-run",
+        "anchor": "failing-test-id set grew vs that suite's baseline"
+      },
+      {
+        "name": "mutations_survived",
+        "measured": 125,
+        "method": "test-run",
+        "anchor": "suite exactly as green as baseline"
+      },
+      {
+        "name": "mutations_invalid",
+        "measured": 2,
+        "method": "test-run",
+        "anchor": "mutant hung the suite (timeout) - not counted as a survivor"
+      },
+      {
+        "name": "canary_controls_fired",
+        "measured": "12/12",
+        "method": "test-run",
+        "anchor": "mutation_results.json is_control=true"
+      },
+      {
+        "name": "survivors_probe2_consequential",
+        "measured": 9,
+        "method": "command",
+        "anchor": "probe2_results.json - mutated gate exits 0 on a bad input"
+      },
+      {
+        "name": "survivors_probe2_not_consequential",
+        "measured": 44,
+        "method": "command",
+        "anchor": "probe2_results.json - gate still exits non-zero"
+      },
+      {
+        "name": "survivors_probe2_not_checked",
+        "measured": 72,
+        "method": "manual-inspection",
+        "anchor": "no bad-input fixture built - see residual_unknowns"
+      }
+    ],
+    "control_ids": [
+      "C0-canary-per-gate",
+      "P2-control-bad-input-fires",
+      "C-M2-matcher-selfcheck",
+      "C-restore-integrity"
+    ]
+  },
+  "extensions": {
+    "coverage_statement": "COMPLETE for the 12 enumerated Python gate modules",
+    "question_or_target": "Which mutations of the GATE code survive the gates' own test suite - i.e. which gate behaviours are asserted by nothing?",
+    "answer_in_one_line": "125 of 330 mutations survived; the survivors cluster hard into two classes - the terminal `return 1` on a gate's VIOLATION path, and the `if __name__ == \"__main__\": raise SystemExit(main())` CLI entry - i.e. the gates test their pure scan logic and leave the part CI actually reads (the exit code) unasserted.",
+    "unit_completion_sentinel_criteria": {
+      "_note": "The unit's own completion_sentinel lists five criteria. They are all met, and they are a DIFFERENT layer from the receipt's 12-condition predicate. State is BLOCKED because of receipt conditions 1/9/11 (terminal state, independent reviewer, manifest registration) - NOT because a measurement is missing. Both statements are recorded so neither can be read as the other.",
+      "1_artifact_exists_and_non_empty": "MET - see extensions.receipt_self",
+      "2_parses_against_output_schema": "MET - `python platform/lib/receipt_schema_gate.py <this file> --repo-root . --schema-only` prints SCHEMA-VALID:ADV-0010; recorded verbatim in tests[T6]",
+      "3_both_named_probes_verbatim_with_raw_output": "MET - every evidence item carries exactly two probes, role=source (Probe 1, method=test-run) and role=verifier (Probe 2, method=command), each with its raw output and a distinct fingerprint; full transcripts in tests[T1]/tests[T2]",
+      "4_exactly_one_verdict_per_enumerated_target": "MET - extensions.per_target_verdicts holds 12 rows, one per enumerated gate, each with exactly one verdict drawn from {CONFIRMED, REFUTED, PARTIAL, NOT-CHECKED, BLOCKED}",
+      "5_every_listed_control_recorded": "MET - 4 controls in negative_controls[], each with fired_on_bad_state and silent_on_good_state plus both output strings. None missing, so no verdict is downgraded to NOT-CHECKED on control grounds.",
+      "receipt_predicate_status": "9 of 12 conditions SATISFIED. UNSATISFIED: c1 (state=BLOCKED), c9 (no independent reviewer), c11 (manifest registration). Full output in tests[T6] and extensions.receipt_self."
+    },
+    "concurrent_tree_activity_not_attributable_to_this_unit": "During this run `git status` in the real repo showed one MODIFIED tracked file, scripts/claude-science/register-tasks.ps1 (+35/-3, mtime 2026-08-12 00:48). It is NOT this unit's work: this unit wrote exactly one path (its output_path) and did all mutation in %TEMP% copies, and the diff contains zero references to this unit's subject matter (grep -icE 'adv0010|mutation|suitefloor' -> 0). Three sibling agents were live in the same session. Disclosed because a pinned-tree-equality invariant would have raised this as a false alarm (rules/common/single-signal-verification.md, the self-falsifying-safety-check corollary).",
+    "per_target_verdicts": [
+      {
+        "target": "G1-suitefloor",
+        "module": "tools/measure-guard/suitefloor.py",
+        "gate_kind": "validator (measurement floor)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "verdict": "CONFIRMED",
+        "confidence_band": "almost-certain",
+        "rationale": "3 of 10 mutations survived the gate's own suite, and Probe 2 proved 1 of them CONSEQUENTIAL - the mutated gate exits 0 on a genuinely bad input (M6-exit-zero L246 return 1 -> 0)",
+        "mutations_run": 10,
+        "survivors": 3,
+        "canary_fired": true
+      },
+      {
+        "target": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "gate_kind": "validator (reference resolution)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "verdict": "CONFIRMED",
+        "confidence_band": "almost-certain",
+        "rationale": "5 of 12 mutations survived the gate's own suite, and Probe 2 proved 2 of them CONSEQUENTIAL - the mutated gate exits 0 on a genuinely bad input (M4-raise-to-log L173 raise -> pass at line 173; M6-exit-zero L167 return 1 -> 0)",
+        "mutations_run": 12,
+        "survivors": 5,
+        "canary_fired": true
+      },
+      {
+        "target": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "gate_kind": "validator (work-unit dependency ratchet)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "verdict": "CONFIRMED",
+        "confidence_band": "almost-certain",
+        "rationale": "10 of 24 mutations survived the gate's own suite, and Probe 2 proved 2 of them CONSEQUENTIAL - the mutated gate exits 0 on a genuinely bad input (M4-raise-to-log L219 raise -> pass at line 219; M6-exit-zero L211 return 1 -> 0)",
+        "mutations_run": 24,
+        "survivors": 10,
+        "canary_fired": true
+      },
+      {
+        "target": "G4-jsonparse",
+        "module": "tools/measure-guard/jsonparse.py",
+        "gate_kind": "validator (JSON parseability)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "verdict": "CONFIRMED",
+        "confidence_band": "almost-certain",
+        "rationale": "4 of 12 mutations survived the gate's own suite, and Probe 2 proved 2 of them CONSEQUENTIAL - the mutated gate exits 0 on a genuinely bad input (M4-raise-to-log L171 raise -> pass at line 171; M6-exit-zero L161 return 1 -> 0)",
+        "mutations_run": 12,
+        "survivors": 4,
+        "canary_fired": true
+      },
+      {
+        "target": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "gate_kind": "validator (backlog reachability)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage command-center",
+        "verdict": "CONFIRMED",
+        "confidence_band": "almost-certain",
+        "rationale": "5 of 12 mutations survived the gate's own suite, and Probe 2 proved 1 of them CONSEQUENTIAL - the mutated gate exits 0 on a genuinely bad input (M4-raise-to-log L365 raise -> pass at line 365)",
+        "mutations_run": 12,
+        "survivors": 5,
+        "canary_fired": true
+      },
+      {
+        "target": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "gate_kind": "manifest check",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage strict-target hook manifests",
+        "verdict": "CONFIRMED",
+        "confidence_band": "almost-certain",
+        "rationale": "8 of 26 mutations survived the gate's own suite, and Probe 2 proved 1 of them CONSEQUENTIAL - the mutated gate exits 0 on a genuinely bad input (M4-raise-to-log L149 raise -> pass at line 149)",
+        "mutations_run": 26,
+        "survivors": 8,
+        "canary_fired": true
+      },
+      {
+        "target": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "gate_kind": "validator (receipt schema + predicate reducer)",
+        "ci_anchor": "platform test lane",
+        "verdict": "PARTIAL",
+        "confidence_band": "likely",
+        "rationale": "16 of 54 mutations survived the gate's own suite, so those behaviours are asserted by nothing; the real-world consequence of each is NOT-CHECKED for this gate (no bad-input fixture was built for it - see residual_unknowns)",
+        "mutations_run": 54,
+        "survivors": 16,
+        "canary_fired": true
+      },
+      {
+        "target": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "gate_kind": "validator (12-condition completion predicate)",
+        "ci_anchor": "platform test lane",
+        "verdict": "PARTIAL",
+        "confidence_band": "likely",
+        "rationale": "35 of 81 mutations survived the gate's own suite, so those behaviours are asserted by nothing; the real-world consequence of each is NOT-CHECKED for this gate (no bad-input fixture was built for it - see residual_unknowns)",
+        "mutations_run": 81,
+        "survivors": 35,
+        "canary_fired": true
+      },
+      {
+        "target": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "gate_kind": "permission check (cross-vendor distinctness)",
+        "ci_anchor": "platform test lane",
+        "verdict": "PARTIAL",
+        "confidence_band": "likely",
+        "rationale": "17 of 39 mutations survived the gate's own suite, so those behaviours are asserted by nothing; the real-world consequence of each is NOT-CHECKED for this gate (no bad-input fixture was built for it - see residual_unknowns)",
+        "mutations_run": 39,
+        "survivors": 17,
+        "canary_fired": true
+      },
+      {
+        "target": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "gate_kind": "permission check (destructive-delete safety)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage plugin-cache-reaper",
+        "verdict": "PARTIAL",
+        "confidence_band": "likely",
+        "rationale": "8 of 25 mutations survived the gate's own suite, so those behaviours are asserted by nothing; the real-world consequence of each is NOT-CHECKED for this gate (no bad-input fixture was built for it - see residual_unknowns)",
+        "mutations_run": 25,
+        "survivors": 8,
+        "canary_fired": true
+      },
+      {
+        "target": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "gate_kind": "validator (schema reference resolution)",
+        "ci_anchor": "platform test lane",
+        "verdict": "PARTIAL",
+        "confidence_band": "likely",
+        "rationale": "11 of 12 mutations survived the gate's own suite, so those behaviours are asserted by nothing; the real-world consequence of each is NOT-CHECKED for this gate (no bad-input fixture was built for it - see residual_unknowns)",
+        "mutations_run": 12,
+        "survivors": 11,
+        "canary_fired": true
+      },
+      {
+        "target": "G12-coordination-reducer",
+        "module": "platform/coordination/reducer.py",
+        "gate_kind": "validator (coordination reducer / require_complete)",
+        "ci_anchor": "platform test lane",
+        "verdict": "PARTIAL",
+        "confidence_band": "likely",
+        "rationale": "3 of 23 mutations survived the gate's own suite, so those behaviours are asserted by nothing; the real-world consequence of each is NOT-CHECKED for this gate (no bad-input fixture was built for it - see residual_unknowns)",
+        "mutations_run": 23,
+        "survivors": 3,
+        "canary_fired": true
+      }
+    ],
+    "mutation_catalogue": {
+      "M1-comparison-invert": "invert a comparison operator (spec: 'invert a comparison')",
+      "M2-required-drop": "drop the first member of a required-set, or empty a 1-member set (spec: 'drop a required field from the required-set')",
+      "M3-default-flip": "flip a boolean default or keyword argument, BOTH directions (spec: 'flip a default from True to False'; the estate's measured hole was a default-False require_complete, so False->True is generated too)",
+      "M4-raise-to-log": "replace a raise with a pass (spec: 'replace a raise with a log')",
+      "M5-boolop-flip": "AND-gate -> OR and the reverse (the plugin-cache-reaper two-signal AND)",
+      "M6-exit-zero": "non-zero return / exit code -> 0 (a gate that returns 0 on a violation)"
+    },
+    "mutations_generated_total": 391,
+    "gate_registry": [
+      {
+        "gate_id": "G1-suitefloor",
+        "module": "tools/measure-guard/suitefloor.py",
+        "kind": "validator (measurement floor)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "oracle_command": "python -m pytest tools/measure-guard/tests -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 112.6
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "kind": "validator (reference resolution)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "oracle_command": "python -m pytest tools/measure-guard/tests -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 112.6
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "kind": "validator (work-unit dependency ratchet)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "oracle_command": "python -m pytest tools/measure-guard/tests -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 112.6
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "module": "tools/measure-guard/jsonparse.py",
+        "kind": "validator (JSON parseability)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage measure-guard",
+        "oracle_command": "python -m pytest tools/measure-guard/tests -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 112.6
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "kind": "validator (backlog reachability)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage command-center",
+        "oracle_command": "python -m pytest tools/command-center/tests -q --no-header -p no:cacheprovider",
+        "baseline_exit": 1,
+        "baseline_prefailing": [
+          "tools/command-center/tests/test_validate.py::test_real_catalog_is_clean"
+        ],
+        "baseline_seconds": 28.7
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "kind": "manifest check",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage strict-target hook manifests",
+        "oracle_command": "python -m pytest ci/tests/test_emit_hook_manifest.py -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 7.4
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "kind": "validator (receipt schema + predicate reducer)",
+        "ci_anchor": "platform test lane",
+        "oracle_command": "python -m pytest platform/lib/test_receipt_schema_gate.py -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 9.9
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "kind": "validator (12-condition completion predicate)",
+        "ci_anchor": "platform test lane",
+        "oracle_command": "python -m pytest platform/lib/test_completion_predicate.py -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 12.0
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "kind": "permission check (cross-vendor distinctness)",
+        "ci_anchor": "platform test lane",
+        "oracle_command": "python -m pytest platform/lib/test_vendor_identity.py -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 4.5
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "kind": "permission check (destructive-delete safety)",
+        "ci_anchor": ".github/workflows/quality.yml gate-tests-coverage plugin-cache-reaper",
+        "oracle_command": "python -m pytest tools/plugin-cache-reaper -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 4.3
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "kind": "validator (schema reference resolution)",
+        "ci_anchor": "platform test lane",
+        "oracle_command": "python -m pytest platform/lib/test_schema_resolver.py -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 27.7
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "module": "platform/coordination/reducer.py",
+        "kind": "validator (coordination reducer / require_complete)",
+        "ci_anchor": "platform test lane",
+        "oracle_command": "python -m pytest platform/coordination/test_reducer.py -q --no-header -p no:cacheprovider",
+        "baseline_exit": 0,
+        "baseline_prefailing": [],
+        "baseline_seconds": 8.9
+      }
+    ],
+    "per_gate_totals": {
+      "G1-suitefloor": {
+        "KILLED": 7,
+        "SURVIVED": 3
+      },
+      "G2-refcheck": {
+        "KILLED": 7,
+        "SURVIVED": 5
+      },
+      "G3-wudeps": {
+        "KILLED": 14,
+        "SURVIVED": 10
+      },
+      "G4-jsonparse": {
+        "KILLED": 7,
+        "SURVIVED": 4,
+        "INVALID": 1
+      },
+      "G5-cc-validate": {
+        "SURVIVED": 5,
+        "KILLED": 7
+      },
+      "G6-emit-hook-manifest": {
+        "KILLED": 18,
+        "SURVIVED": 8
+      },
+      "G7-receipt-schema-gate": {
+        "KILLED": 38,
+        "SURVIVED": 16
+      },
+      "G8-completion-predicate": {
+        "KILLED": 46,
+        "SURVIVED": 35
+      },
+      "G9-vendor-identity": {
+        "KILLED": 21,
+        "SURVIVED": 17,
+        "INVALID": 1
+      },
+      "G10-reaper": {
+        "SURVIVED": 8,
+        "KILLED": 17
+      },
+      "G11-schema-resolver": {
+        "SURVIVED": 11,
+        "KILLED": 1
+      },
+      "G12-coordination-reducer": {
+        "KILLED": 20,
+        "SURVIVED": 3
+      }
+    },
+    "per_operator_totals": {
+      "M1-comparison-invert:KILLED": 79,
+      "M1-comparison-invert:SURVIVED": 16,
+      "M2-required-drop:KILLED": 5,
+      "M2-required-drop:SURVIVED": 10,
+      "M3-default-flip:INVALID": 2,
+      "M3-default-flip:KILLED": 15,
+      "M3-default-flip:SURVIVED": 35,
+      "M4-raise-to-log:KILLED": 26,
+      "M4-raise-to-log:SURVIVED": 14,
+      "M5-boolop-flip:KILLED": 70,
+      "M5-boolop-flip:SURVIVED": 38,
+      "M6-exit-zero:KILLED": 8,
+      "M6-exit-zero:SURVIVED": 12
+    },
+    "survivors": [
+      {
+        "gate_id": "G1-suitefloor",
+        "module": "tools/measure-guard/suitefloor.py",
+        "op": "M3-default-flip",
+        "line": 51,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G1-suitefloor",
+        "module": "tools/measure-guard/suitefloor.py",
+        "op": "M6-exit-zero",
+        "line": 235,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G1-suitefloor",
+        "module": "tools/measure-guard/suitefloor.py",
+        "op": "M6-exit-zero",
+        "line": 246,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "op": "M4-raise-to-log",
+        "line": 173,
+        "description": "raise -> pass at line 173",
+        "source_line_before": "raise SystemExit(main())",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "op": "M6-exit-zero",
+        "line": 155,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "op": "M1-comparison-invert",
+        "line": 150,
+        "description": "`<` -> `>=`",
+        "source_line_before": "if checked < MIN_REFERENCES:",
+        "source_line_after": "if checked >= MIN_REFERENCES:"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "op": "M6-exit-zero",
+        "line": 167,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "module": "tools/measure-guard/refcheck.py",
+        "op": "M3-default-flip",
+        "line": 56,
+        "description": "kwarg check=False -> True",
+        "source_line_before": "check=False,",
+        "source_line_after": "check=True,"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M1-comparison-invert",
+        "line": 128,
+        "description": "`==` -> `!=`",
+        "source_line_before": "elif colour.get(nxt) == WHITE:",
+        "source_line_after": "elif colour.get(nxt) != WHITE:"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M1-comparison-invert",
+        "line": 160,
+        "description": "`<` -> `>=`",
+        "source_line_before": "if now[k] < base[k]",
+        "source_line_after": "if now[k] >= base[k]"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M1-comparison-invert",
+        "line": 176,
+        "description": "`!=` -> `==`",
+        "source_line_before": "printable = {k: v for k, v in report.items() if k != \"bucket_members\"}",
+        "source_line_after": "printable = {k: v for k, v in report.items() if k == \"bucket_members\"}"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M1-comparison-invert",
+        "line": 187,
+        "description": "`<` -> `>=`",
+        "source_line_before": "if report[\"units_scanned\"] < MIN_UNITS:",
+        "source_line_after": "if report[\"units_scanned\"] >= MIN_UNITS:"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M1-comparison-invert",
+        "line": 200,
+        "description": "`==` -> `!=`",
+        "source_line_before": "empty = sorted(b for b, n in report[\"bucket_members\"].items() if n == 0)",
+        "source_line_after": "empty = sorted(b for b, n in report[\"bucket_members\"].items() if n != 0)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M4-raise-to-log",
+        "line": 219,
+        "description": "raise -> pass at line 219",
+        "source_line_before": "raise SystemExit(main(sys.argv[1:]))",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M5-boolop-flip",
+        "line": 86,
+        "description": "`and` -> `or`",
+        "source_line_before": "graph[uid] = [d for d in deps if d in ids and d != uid]",
+        "source_line_after": "graph[uid] = [d for d in deps if d in ids or d != uid]"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M6-exit-zero",
+        "line": 192,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M6-exit-zero",
+        "line": 211,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "module": "tools/measure-guard/wudeps.py",
+        "op": "M6-exit-zero",
+        "line": 173,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "module": "tools/measure-guard/jsonparse.py",
+        "op": "M4-raise-to-log",
+        "line": 171,
+        "description": "raise -> pass at line 171",
+        "source_line_before": "raise SystemExit(main(sys.argv[1:]))",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "module": "tools/measure-guard/jsonparse.py",
+        "op": "M6-exit-zero",
+        "line": 153,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "module": "tools/measure-guard/jsonparse.py",
+        "op": "M6-exit-zero",
+        "line": 161,
+        "description": "return 1 -> 0",
+        "source_line_before": "return 1",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "module": "tools/measure-guard/jsonparse.py",
+        "op": "M3-default-flip",
+        "line": 73,
+        "description": "kwarg check=False -> True",
+        "source_line_before": "check=False,",
+        "source_line_after": "check=True,"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "op": "M1-comparison-invert",
+        "line": 72,
+        "description": "`==` -> `!=`",
+        "source_line_before": "return field == \"disposition\"",
+        "source_line_after": "return field != \"disposition\""
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "op": "M3-default-flip",
+        "line": 85,
+        "description": "def validate(...): default False -> True",
+        "source_line_before": "require_complete: bool = False,",
+        "source_line_after": "require_complete: bool = True,"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "op": "M4-raise-to-log",
+        "line": 365,
+        "description": "raise -> pass at line 365",
+        "source_line_before": "raise SystemExit(main())",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "op": "M3-default-flip",
+        "line": 341,
+        "description": "kwarg sort_keys=True -> False",
+        "source_line_before": "{\"violations\": violations, \"stats\": stats}, indent=2, sort_keys=True",
+        "source_line_after": "{\"violations\": violations, \"stats\": stats}, indent=2, sort_keys=False"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "module": "tools/command-center/validate.py",
+        "op": "M5-boolop-flip",
+        "line": 107,
+        "description": "`or` -> `and`",
+        "source_line_before": "item_id or \"<blank>\",",
+        "source_line_after": "item_id and \"<blank>\","
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M3-default-flip",
+        "line": 26,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M3-default-flip",
+        "line": 114,
+        "description": "kwarg required=True -> False",
+        "source_line_before": "parser.add_argument(\"--source\", required=True, type=Path)",
+        "source_line_after": "parser.add_argument(\"--source\", required=False, type=Path)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M3-default-flip",
+        "line": 115,
+        "description": "kwarg required=True -> False",
+        "source_line_before": "parser.add_argument(\"--target\", required=True)",
+        "source_line_after": "parser.add_argument(\"--target\", required=False)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M3-default-flip",
+        "line": 116,
+        "description": "kwarg required=True -> False",
+        "source_line_before": "mode = parser.add_mutually_exclusive_group(required=True)",
+        "source_line_after": "mode = parser.add_mutually_exclusive_group(required=False)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M3-default-flip",
+        "line": 88,
+        "description": "kwarg ensure_ascii=False -> True",
+        "source_line_before": "return json.dumps(emitted, indent=2, ensure_ascii=False, allow_nan=False) + \"\\n\"",
+        "source_line_after": "return json.dumps(emitted, indent=2, ensure_ascii=True, allow_nan=False) + \"\\n\""
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M3-default-flip",
+        "line": 88,
+        "description": "kwarg allow_nan=False -> True",
+        "source_line_before": "return json.dumps(emitted, indent=2, ensure_ascii=False, allow_nan=False) + \"\\n\"",
+        "source_line_after": "return json.dumps(emitted, indent=2, ensure_ascii=False, allow_nan=True) + \"\\n\""
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M4-raise-to-log",
+        "line": 149,
+        "description": "raise -> pass at line 149",
+        "source_line_before": "raise SystemExit(main())",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "module": "ci/emit_hook_manifest.py",
+        "op": "M4-raise-to-log",
+        "line": 81,
+        "description": "raise -> pass at line 81",
+        "source_line_before": "raise AssertionError(\"internal error: projected manifest is not an object\")",
+        "source_line_after": "        pass"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M1-comparison-invert",
+        "line": 245,
+        "description": "`==` -> `!=`",
+        "source_line_before": "primary = [a for a in arts if a.get(\"role\", \"primary\") == \"primary\"]",
+        "source_line_after": "primary = [a for a in arts if a.get(\"role\", \"primary\") != \"primary\"]"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M1-comparison-invert",
+        "line": 719,
+        "description": "`!=` -> `==`",
+        "source_line_before": "if c.outcome != SATISFIED:",
+        "source_line_after": "if c.outcome == SATISFIED:"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M2-required-drop",
+        "line": 81,
+        "description": "module const HARD_RULES: drop first element (\"Exit code zero alone is never success.\")",
+        "source_line_before": "\"Exit code zero alone is never success.\",",
+        "source_line_after": "\"A plausible digest is not a receipt.\","
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M3-default-flip",
+        "line": 621,
+        "description": "def evaluate_full(...): default True -> False",
+        "source_line_before": "verify_filesystem: bool = True,",
+        "source_line_after": "verify_filesystem: bool = False,"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M3-default-flip",
+        "line": 97,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M4-raise-to-log",
+        "line": 50,
+        "description": "raise -> pass at line 50",
+        "source_line_before": "raise SystemExit(\n        \"receipt_schema_gate requires the 'jsonschema' package (>=4.18 for the \"\n        f\"referencing",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 203,
+        "description": "`or` -> `and`",
+        "source_line_before": "loc = \"/\".join(str(p) for p in err.absolute_path) or \"<root>\"",
+        "source_line_after": "loc = \"/\".join(str(p) for p in err.absolute_path) and \"<root>\""
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 246,
+        "description": "`or` -> `and`",
+        "source_line_before": "return primary or arts",
+        "source_line_after": "return primary and arts"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 266,
+        "description": "`or` -> `and`",
+        "source_line_before": "schema_errors=schema_errors or [\"root: not an object\"],",
+        "source_line_after": "schema_errors=schema_errors and [\"root: not an object\"],"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 312,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(threshold, int) or threshold < 1:",
+        "source_line_after": "if not isinstance(threshold, int) and threshold < 1:"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 328,
+        "description": "`or` -> `and`",
+        "source_line_before": "elif not verify_filesystem or root is None:",
+        "source_line_after": "elif not verify_filesystem and root is None:"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 378,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(sentinel, str) or not sentinel:",
+        "source_line_after": "if not isinstance(sentinel, str) and not sentinel:"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 498,
+        "description": "`or` -> `and`",
+        "source_line_before": "receipt.get(\"produced_by\") or {}",
+        "source_line_after": "receipt.get(\"produced_by\") and {}"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 546,
+        "description": "`or` -> `and`",
+        "source_line_before": "elif not isinstance(c.get(\"probe\"), dict) or not c[\"probe\"].get(",
+        "source_line_after": "elif not isinstance(c.get(\"probe\"), dict) and not c[\"probe\"].get("
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 582,
+        "description": "`and` -> `or`",
+        "source_line_before": "if start and end:",
+        "source_line_after": "if start or end:"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "op": "M5-boolop-flip",
+        "line": 723,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not result.complete or extra:",
+        "source_line_after": "if not result.complete and extra:"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M2-required-drop",
+        "line": 79,
+        "description": "module const __all__: drop first element (\"Comparison\")",
+        "source_line_before": "\"Comparison\",",
+        "source_line_after": "\"IdentityKind\","
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M2-required-drop",
+        "line": 109,
+        "description": "module const _DEFAULT_DOMAIN_SUFFIXES: drop first element (\".com\")",
+        "source_line_before": "\".com\",",
+        "source_line_after": "\".ai\","
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M2-required-drop",
+        "line": 121,
+        "description": "module const _DEFAULT_LEGAL_ENTITY_SUFFIXES: drop first element (\"inc\")",
+        "source_line_before": "\"inc\",",
+        "source_line_after": "\"incorporated\","
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M2-required-drop",
+        "line": 166,
+        "description": "module const _DEFAULT_DESCRIPTOR_SUFFIXES: drop first element (\"ai\")",
+        "source_line_before": "_DEFAULT_DESCRIPTOR_SUFFIXES: tuple[str, ...] = (\"ai\", \"labs\", \"lab\", \"research\")",
+        "source_line_after": "_DEFAULT_DESCRIPTOR_SUFFIXES: tuple[str, ...] = (\"labs\", \"lab\", \"research\")"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M2-required-drop",
+        "line": 182,
+        "description": "module const _REMOVED_CATEGORIES: drop first element (\"Cc\")",
+        "source_line_before": "_REMOVED_CATEGORIES = frozenset({\"Cc\", \"Cf\"})",
+        "source_line_after": "_REMOVED_CATEGORIES = frozenset({\"Cf\"})"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M3-default-flip",
+        "line": 334,
+        "description": "assign changed: default True -> False",
+        "source_line_before": "changed = True",
+        "source_line_after": "changed = False"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M3-default-flip",
+        "line": 229,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M3-default-flip",
+        "line": 259,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M4-raise-to-log",
+        "line": 402,
+        "description": "raise -> pass at line 402",
+        "source_line_before": "raise ValueError(\n            f\"{p} 'normalization' must be an object, got {type(norm_block)}\"\n        )",
+        "source_line_after": "        pass"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M4-raise-to-log",
+        "line": 413,
+        "description": "raise -> pass at line 413",
+        "source_line_before": "raise ValueError(f\"{p} normalization.{field} must be a list of strings\")",
+        "source_line_after": "            pass"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M4-raise-to-log",
+        "line": 420,
+        "description": "raise -> pass at line 420",
+        "source_line_before": "raise ValueError(\n            f\"{p} normalization.punctuation_folded_to_separator must be a string\"\n        )",
+        "source_line_after": "        pass"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M5-boolop-flip",
+        "line": 350,
+        "description": "`and` -> `or`",
+        "source_line_before": "if dotted and dotted not in base:",
+        "source_line_after": "if dotted or dotted not in base:"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M5-boolop-flip",
+        "line": 355,
+        "description": "`and` -> `or`",
+        "source_line_before": "if stripped and stripped not in base:",
+        "source_line_after": "if stripped or stripped not in base:"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M5-boolop-flip",
+        "line": 361,
+        "description": "`and` -> `or`",
+        "source_line_before": "if folded and folded not in base:",
+        "source_line_after": "if folded or folded not in base:"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M5-boolop-flip",
+        "line": 371,
+        "description": "`and` -> `or`",
+        "source_line_before": "if candidate and candidate not in forms:",
+        "source_line_after": "if candidate or candidate not in forms:"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M5-boolop-flip",
+        "line": 412,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(value, list) or not all(isinstance(v, str) for v in value):",
+        "source_line_after": "if not isinstance(value, list) and not all(isinstance(v, str) for v in value):"
+      },
+      {
+        "gate_id": "G9-vendor-identity",
+        "module": "platform/lib/vendor_identity.py",
+        "op": "M5-boolop-flip",
+        "line": 450,
+        "description": "`or` -> `and`",
+        "source_line_before": "return (registry or _default_registry()).canonical_ids",
+        "source_line_after": "return (registry and _default_registry()).canonical_ids"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M1-comparison-invert",
+        "line": 78,
+        "description": "`==` -> `!=`",
+        "source_line_before": "IS_WINDOWS = os.name == \"nt\"",
+        "source_line_after": "IS_WINDOWS = os.name != \"nt\""
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M3-default-flip",
+        "line": 81,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M3-default-flip",
+        "line": 173,
+        "description": "kwarg follow_symlinks=False -> True",
+        "source_line_before": "if entry.is_dir(follow_symlinks=False):",
+        "source_line_after": "if entry.is_dir(follow_symlinks=True):"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M3-default-flip",
+        "line": 219,
+        "description": "kwarg follow_symlinks=False -> True",
+        "source_line_before": "if not entry.is_dir(follow_symlinks=False):",
+        "source_line_after": "if not entry.is_dir(follow_symlinks=True):"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M3-default-flip",
+        "line": 137,
+        "description": "kwarg follow_symlinks=False -> True",
+        "source_line_before": "if entry.is_dir(follow_symlinks=False):",
+        "source_line_after": "if entry.is_dir(follow_symlinks=True):"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M3-default-flip",
+        "line": 222,
+        "description": "kwarg follow_symlinks=False -> True",
+        "source_line_before": "mtime_ms = int(entry.stat(follow_symlinks=False).st_mtime * 1000)",
+        "source_line_after": "mtime_ms = int(entry.stat(follow_symlinks=True).st_mtime * 1000)"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M3-default-flip",
+        "line": 140,
+        "description": "kwarg follow_symlinks=False -> True",
+        "source_line_before": "total += entry.stat(follow_symlinks=False).st_size",
+        "source_line_after": "total += entry.stat(follow_symlinks=True).st_size"
+      },
+      {
+        "gate_id": "G10-reaper",
+        "module": "tools/plugin-cache-reaper/reap.py",
+        "op": "M4-raise-to-log",
+        "line": 328,
+        "description": "raise -> pass at line 328",
+        "source_line_before": "raise SystemExit(main())",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "module": "platform/coordination/reducer.py",
+        "op": "M2-required-drop",
+        "line": 46,
+        "description": "module const __all__: drop first element (\"BANNED_DEFINITIONS\")",
+        "source_line_before": "\"BANNED_DEFINITIONS\",",
+        "source_line_after": "\"DELEGATE_MODULE\","
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "module": "platform/coordination/reducer.py",
+        "op": "M3-default-flip",
+        "line": 83,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "module": "platform/coordination/reducer.py",
+        "op": "M5-boolop-flip",
+        "line": 138,
+        "description": "`or` -> `and`",
+        "source_line_before": "bound.add(alias.asname or alias.name.split(\".\")[0])",
+        "source_line_after": "bound.add(alias.asname and alias.name.split(\".\")[0])"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M1-comparison-invert",
+        "line": 316,
+        "description": "`==` -> `!=`",
+        "source_line_before": "primary = [a for a in arts if a.get(\"role\") == \"primary\"]",
+        "source_line_after": "primary = [a for a in arts if a.get(\"role\") != \"primary\"]"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M1-comparison-invert",
+        "line": 538,
+        "description": "`==` -> `!=`",
+        "source_line_before": "art.get(\"artifact_class\") or (\"json\" if p.suffix == \".json\" else \"other\")",
+        "source_line_after": "art.get(\"artifact_class\") or (\"json\" if p.suffix != \".json\" else \"other\")"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M1-comparison-invert",
+        "line": 1001,
+        "description": "`==` -> `!=`",
+        "source_line_before": "waived = [d.get(\"id\") for d in defects if d.get(\"status\") == \"waived-by-owner\"]",
+        "source_line_after": "waived = [d.get(\"id\") for d in defects if d.get(\"status\") != \"waived-by-owner\"]"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M1-comparison-invert",
+        "line": 1079,
+        "description": "`==` -> `!=`",
+        "source_line_before": "if mode == \"lf-normalised\":",
+        "source_line_after": "if mode != \"lf-normalised\":"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M2-required-drop",
+        "line": 51,
+        "description": "module const __all__: drop first element (\"ABSOLUTE_MIN_BYTES\")",
+        "source_line_before": "\"ABSOLUTE_MIN_BYTES\",",
+        "source_line_after": "\"CONDITIONS\","
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M2-required-drop",
+        "line": 90,
+        "description": "module const NON_WAIVABLE: drop first element (1)",
+        "source_line_before": "NON_WAIVABLE: frozenset[int] = frozenset({1, 2, 3, 4, 5, 11, 12})",
+        "source_line_after": "NON_WAIVABLE: frozenset[int] = frozenset({2, 3, 4, 5, 11, 12})"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 177,
+        "description": "assign require_cross_vendor_review: default False -> True",
+        "source_line_before": "require_cross_vendor_review: bool = False",
+        "source_line_after": "require_cross_vendor_review: bool = True"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 178,
+        "description": "assign require_fresh_context_review: default False -> True",
+        "source_line_before": "require_fresh_context_review: bool = False",
+        "source_line_after": "require_fresh_context_review: bool = True"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 397,
+        "description": "assign Subscript(value=Name(id='row', ctx=Load(: default True -> False",
+        "source_line_before": "row[\"exists_on_disk\"] = True",
+        "source_line_after": "row[\"exists_on_disk\"] = False"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 1289,
+        "description": "assign Subscript(value=Name(id='applicability',: default False -> True",
+        "source_line_before": "applicability[k] = False",
+        "source_line_after": "applicability[k] = True"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 388,
+        "description": "assign Subscript(value=Name(id='row', ctx=Load(: default False -> True",
+        "source_line_before": "row[\"exists_on_disk\"] = False",
+        "source_line_after": "row[\"exists_on_disk\"] = True"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 138,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 162,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 186,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M3-default-flip",
+        "line": 536,
+        "description": "kwarg strict=True -> False",
+        "source_line_before": "for art, p in zip(prims, paths, strict=True):",
+        "source_line_after": "for art, p in zip(prims, paths, strict=False):"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M4-raise-to-log",
+        "line": 229,
+        "description": "raise -> pass at line 229",
+        "source_line_before": "raise KeyError(n)",
+        "source_line_after": "        pass"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 269,
+        "description": "`or` -> `and`",
+        "source_line_before": "if p.is_absolute() or _WINDOWS_DRIVE.match(raw):",
+        "source_line_after": "if p.is_absolute() and _WINDOWS_DRIVE.match(raw):"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 317,
+        "description": "`or` -> `and`",
+        "source_line_before": "return primary or arts",
+        "source_line_after": "return primary and arts"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 360,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(sentinel, str) or not sentinel:",
+        "source_line_after": "if not isinstance(sentinel, str) and not sentinel:"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 383,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(raw, str) or not raw:",
+        "source_line_after": "if not isinstance(raw, str) and not raw:"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 410,
+        "description": "`and` -> `or`",
+        "source_line_before": "if isinstance(declared_sha, str) and _SHA256_HEX.match(declared_sha):",
+        "source_line_after": "if isinstance(declared_sha, str) or _SHA256_HEX.match(declared_sha):"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 454,
+        "description": "`or` -> `and`",
+        "source_line_before": "cls = str(prims[0].get(\"artifact_class\") or \"other\")",
+        "source_line_after": "cls = str(prims[0].get(\"artifact_class\") and \"other\")"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 538,
+        "description": "`or` -> `and`",
+        "source_line_before": "art.get(\"artifact_class\") or (\"json\" if p.suffix == \".json\" else \"other\")",
+        "source_line_after": "art.get(\"artifact_class\") and (\"json\" if p.suffix == \".json\" else \"other\")"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 540,
+        "description": "`and` -> `or`",
+        "source_line_before": "if p.suffix.lower() not in {\".json\", \".jsonl\"} and cls not in {\"json\", \"jsonl\"}:",
+        "source_line_after": "if p.suffix.lower() not in {\".json\", \".jsonl\"} or cls not in {\"json\", \"jsonl\"}:"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 563,
+        "description": "`or` -> `and`",
+        "source_line_before": "loc = \"/\".join(str(x) for x in exc.absolute_path) or \"<root>\"",
+        "source_line_after": "loc = \"/\".join(str(x) for x in exc.absolute_path) and \"<root>\""
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 696,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(anchor, str) or not anchor.strip():",
+        "source_line_after": "if not isinstance(anchor, str) and not anchor.strip():"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 737,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not s_fp or not v_fp:",
+        "source_line_after": "if not s_fp and not v_fp:"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 764,
+        "description": "`or` -> `and`",
+        "source_line_before": "and not str(item.get(\"settling_experiment\") or \"\").strip()",
+        "source_line_after": "and not str(item.get(\"settling_experiment\") and \"\").strip()"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 953,
+        "description": "`and` -> `or`",
+        "source_line_before": "if opts.require_fresh_context_review and rv.get(\"fresh_context\") is not True:",
+        "source_line_after": "if opts.require_fresh_context_review or rv.get(\"fresh_context\") is not True:"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 985,
+        "description": "`and` -> `or`",
+        "source_line_before": "and d.get(\"status\")",
+        "source_line_after": "or d.get(\"status\")"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 1020,
+        "description": "`or` -> `and`",
+        "source_line_before": "if not isinstance(manifest_rel, str) or not manifest_rel:",
+        "source_line_after": "if not isinstance(manifest_rel, str) and not manifest_rel:"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 1048,
+        "description": "`and` -> `or`",
+        "source_line_before": "if isinstance(e, dict) and isinstance(e.get(\"path\"), str):",
+        "source_line_after": "if isinstance(e, dict) or isinstance(e.get(\"path\"), str):"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M5-boolop-flip",
+        "line": 1206,
+        "description": "`and` -> `or`",
+        "source_line_before": "unit_id = unit_id if isinstance(unit_id, str) and unit_id else \"UNKNOWN-0000\"",
+        "source_line_after": "unit_id = unit_id if isinstance(unit_id, str) or unit_id else \"UNKNOWN-0000\""
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M6-exit-zero",
+        "line": 1304,
+        "description": "return 2 -> 0",
+        "source_line_before": "return 2",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G8-completion-predicate",
+        "module": "platform/lib/completion_predicate.py",
+        "op": "M6-exit-zero",
+        "line": 1288,
+        "description": "return 2 -> 0",
+        "source_line_before": "return 2",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M1-comparison-invert",
+        "line": 127,
+        "description": "`!=` -> `==`",
+        "source_line_before": "if _registry_cache is None or path != REGISTRY_PATH:",
+        "source_line_after": "if _registry_cache is None or path == REGISTRY_PATH:"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M2-required-drop",
+        "line": 54,
+        "description": "module const __all__: drop first element (\"ResolvedSchema\")",
+        "source_line_before": "\"ResolvedSchema\",",
+        "source_line_after": "\"UnknownSchemaError\","
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M3-default-flip",
+        "line": 73,
+        "description": "kwarg frozen=True -> False",
+        "source_line_before": "@dataclass(frozen=True)",
+        "source_line_after": "@dataclass(frozen=False)"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M4-raise-to-log",
+        "line": 356,
+        "description": "raise -> pass at line 356",
+        "source_line_before": "raise SystemExit(main())",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M5-boolop-flip",
+        "line": 89,
+        "description": "`and` -> `or`",
+        "source_line_before": "return bool(self.shim_path) and (REPO_ROOT / self.shim_path).is_file()",
+        "source_line_after": "return bool(self.shim_path) or (REPO_ROOT / self.shim_path).is_file()"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M6-exit-zero",
+        "line": 352,
+        "description": "return 2 -> 0",
+        "source_line_before": "return 2",
+        "source_line_after": "return 0"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M1-comparison-invert",
+        "line": 129,
+        "description": "`==` -> `!=`",
+        "source_line_before": "if path == REGISTRY_PATH:",
+        "source_line_after": "if path != REGISTRY_PATH:"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M3-default-flip",
+        "line": 193,
+        "description": "kwarg report_kind_pinned=False -> True",
+        "source_line_before": "report_kind_pinned=False,",
+        "source_line_after": "report_kind_pinned=True,"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M4-raise-to-log",
+        "line": 41,
+        "description": "raise -> pass at line 41",
+        "source_line_before": "raise SystemExit(\n        f\"schema_resolver requires jsonschema>=4.18 (referencing API). Import failed: {exc}\"\n    ) fro",
+        "source_line_after": "    pass"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M5-boolop-flip",
+        "line": 102,
+        "description": "`and` -> `or`",
+        "source_line_before": "return self.shim_exists and self.physical_exists",
+        "source_line_after": "return self.shim_exists or self.physical_exists"
+      },
+      {
+        "gate_id": "G11-schema-resolver",
+        "module": "platform/lib/schema_resolver.py",
+        "op": "M3-default-flip",
+        "line": 213,
+        "description": "kwarg report_kind_pinned=False -> True",
+        "source_line_before": "report_kind_pinned=False,",
+        "source_line_after": "report_kind_pinned=True,"
+      }
+    ],
+    "probe2_pairs": [
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M1-comparison-invert L128 `==` -> `!=`",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M1-comparison-invert L160 `<` -> `>=`",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M1-comparison-invert L176 `!=` -> `==`",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M1-comparison-invert L187 `<` -> `>=`",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:wudeps only 2008 work units read, below the floor of 1500; the read has probably broken rather than the program shrunk",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M1-comparison-invert L200 `==` -> `!=`",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M4-raise-to-log L219 raise -> pass at line 219",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M5-boolop-flip L86 `and` -> `or`",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M6-exit-zero L192 return 1 -> 0",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M6-exit-zero L211 return 1 -> 0",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G3-wudeps",
+        "mutation": "M6-exit-zero L173 return 1 -> 0",
+        "module": "tools/measure-guard/wudeps.py",
+        "bad_input": "a work unit's `dependencies` names an id that resolves to nothing, pushing dangling_refs above the recorded baseline of 41",
+        "command": "python tools/measure-guard/wudeps.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nSUCCESS:wudeps no work-unit dependency metric regressed against the baseline",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "  REGRESSED dangling_refs: 42 > baseline 41 (+1)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "mutation": "M4-raise-to-log L171 raise -> pass at line 171",
+        "module": "tools/measure-guard/jsonparse.py",
+        "bad_input": "a tracked .json file does not parse",
+        "command": "python tools/measure-guard/jsonparse.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:jsonparse 1069 tracked .json files parse (2 git-crypt encrypted skipped, 0 oversized skipped)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "              Expecting value: line 1 column 18 (char 17)\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "mutation": "M6-exit-zero L153 return 1 -> 0",
+        "module": "tools/measure-guard/jsonparse.py",
+        "bad_input": "a tracked .json file does not parse",
+        "command": "python tools/measure-guard/jsonparse.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:jsonparse 1069 tracked .json files parse (2 git-crypt encrypted skipped, 0 oversized skipped)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "              Expecting value: line 1 column 18 (char 17)\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "              Expecting value: line 1 column 18 (char 17)\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G4-jsonparse",
+        "mutation": "M6-exit-zero L161 return 1 -> 0",
+        "module": "tools/measure-guard/jsonparse.py",
+        "bad_input": "a tracked .json file does not parse",
+        "command": "python tools/measure-guard/jsonparse.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:jsonparse 1069 tracked .json files parse (2 git-crypt encrypted skipped, 0 oversized skipped)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "              Expecting value: line 1 column 18 (char 17)\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "              Expecting value: line 1 column 18 (char 17)\nFAILED:jsonparse 1 of 1070 tracked .json files do not parse",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G1-suitefloor",
+        "mutation": "M3-default-flip L51 kwarg frozen=True -> False",
+        "module": "tools/measure-guard/suitefloor.py",
+        "bad_input": "the command-center suite collects 3 test files fewer than its declared floor of 55",
+        "command": "python tools/measure-guard/suitefloor.py --suite command-center",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 1 suite(s) at or above floor",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "31 tests collected in 0.46s\nFAILED:suite-floor 1 suite(s) below floor",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "31 tests collected in 0.37s\nFAILED:suite-floor 1 suite(s) below floor",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G1-suitefloor",
+        "mutation": "M6-exit-zero L235 return 1 -> 0",
+        "module": "tools/measure-guard/suitefloor.py",
+        "bad_input": "the command-center suite collects 3 test files fewer than its declared floor of 55",
+        "command": "python tools/measure-guard/suitefloor.py --suite command-center",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 1 suite(s) at or above floor",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "31 tests collected in 0.71s\nFAILED:suite-floor 1 suite(s) below floor",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "31 tests collected in 0.50s\nFAILED:suite-floor 1 suite(s) below floor",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G1-suitefloor",
+        "mutation": "M6-exit-zero L246 return 1 -> 0",
+        "module": "tools/measure-guard/suitefloor.py",
+        "bad_input": "the command-center suite collects 3 test files fewer than its declared floor of 55",
+        "command": "python tools/measure-guard/suitefloor.py --suite command-center",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "OK   command-center: collected 61 >= floor 55\nSUCCESS:suite-floor 1 suite(s) at or above floor",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "31 tests collected in 0.63s\nFAILED:suite-floor 1 suite(s) below floor",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "31 tests collected in 0.61s\nFAILED:suite-floor 1 suite(s) below floor",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "mutation": "M4-raise-to-log L173 raise -> pass at line 173",
+        "module": "tools/measure-guard/refcheck.py",
+        "bad_input": "a tracked blueprint's subworkflows[].source names a file that is not in the repo",
+        "command": "python tools/measure-guard/refcheck.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "mutation": "M6-exit-zero L155 return 1 -> 0",
+        "module": "tools/measure-guard/refcheck.py",
+        "bad_input": "a tracked blueprint's subworkflows[].source names a file that is not in the repo",
+        "command": "python tools/measure-guard/refcheck.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "mutation": "M1-comparison-invert L150 `<` -> `>=`",
+        "module": "tools/measure-guard/refcheck.py",
+        "bad_input": "a tracked blueprint's subworkflows[].source names a file that is not in the repo",
+        "command": "python tools/measure-guard/refcheck.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:refcheck only 18 subworkflows[].source reference(s) found, below the floor of 12; the walk has probably broken rather than the corpus shrunk",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "mutation": "M6-exit-zero L167 return 1 -> 0",
+        "module": "tools/measure-guard/refcheck.py",
+        "bad_input": "a tracked blueprint's subworkflows[].source names a file that is not in the repo",
+        "command": "python tools/measure-guard/refcheck.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G2-refcheck",
+        "mutation": "M3-default-flip L56 kwarg check=False -> True",
+        "module": "tools/measure-guard/refcheck.py",
+        "bad_input": "a tracked blueprint's subworkflows[].source names a file that is not in the repo",
+        "command": "python tools/measure-guard/refcheck.py",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:refcheck 17 subworkflows[].source reference(s) all resolve",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "DANGLING platform/workflows/_shared/adv0010.does.not.exist.json  <- platform/workflows/_adv0010_bad.subworkflow.json (declared as ?)\nFAILED:refcheck 1 of 18 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "mutation": "M1-comparison-invert L72 `==` -> `!=`",
+        "module": "tools/command-center/validate.py",
+        "bad_input": "a register item's dependency id resolves to nothing (REACH-1 referential integrity)",
+        "command": "python tools/command-center/validate.py --catalog C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\bad_catalog.json",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "mutation": "M3-default-flip L85 def validate(...): default False -> True",
+        "module": "tools/command-center/validate.py",
+        "bad_input": "a register item's dependency id resolves to nothing (REACH-1 referential integrity)",
+        "command": "python tools/command-center/validate.py --catalog C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\bad_catalog.json",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "mutation": "M4-raise-to-log L365 raise -> pass at line 365",
+        "module": "tools/command-center/validate.py",
+        "bad_input": "a register item's dependency id resolves to nothing (REACH-1 referential integrity)",
+        "command": "python tools/command-center/validate.py --catalog C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\bad_catalog.json",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "mutation": "M3-default-flip L341 kwarg sort_keys=True -> False",
+        "module": "tools/command-center/validate.py",
+        "bad_input": "a register item's dependency id resolves to nothing (REACH-1 referential integrity)",
+        "command": "python tools/command-center/validate.py --catalog C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\bad_catalog.json",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G5-cc-validate",
+        "mutation": "M5-boolop-flip L107 `or` -> `and`",
+        "module": "tools/command-center/validate.py",
+        "bad_input": "a register item's dependency id resolves to nothing (REACH-1 referential integrity)",
+        "command": "python tools/command-center/validate.py --catalog C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\bad_catalog.json",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "cc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M3-default-flip L26 kwarg frozen=True -> False",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M3-default-flip L114 kwarg required=True -> False",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M3-default-flip L115 kwarg required=True -> False",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M3-default-flip L116 kwarg required=True -> False",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M3-default-flip L88 kwarg ensure_ascii=False -> True",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M3-default-flip L88 kwarg allow_nan=False -> True",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M4-raise-to-log L149 raise -> pass at line 149",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 0,
+        "mutant_bad_input_tail": "",
+        "verdict": "CONSEQUENTIAL (mutated gate exits 0 on a genuinely bad input)"
+      },
+      {
+        "gate_id": "G6-emit-hook-manifest",
+        "mutation": "M4-raise-to-log L81 raise -> pass at line 81",
+        "module": "ci/emit_hook_manifest.py",
+        "bad_input": "the manifest source is missing `hooks`, the sole member of the target's required-set",
+        "command": "python ci/emit_hook_manifest.py --source _adv0010_src_hooks.json --target codex-plugin --emit",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "  }\n}",
+        "control_bad_input_exit": 2,
+        "control_bad_input_tail": "ERROR: missing required keys: hooks",
+        "mutant_bad_input_exit": 2,
+        "mutant_bad_input_tail": "ERROR: missing required keys: hooks",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "mutation": "M2-required-drop L46 module const __all__: drop first element (\"BANNED_DEFINITIONS\")",
+        "module": "platform/coordination/reducer.py",
+        "bad_input": "a second module top-level-defining `evaluate` and `NON_WAIVABLE` - a duplicate reducer decision plane",
+        "command": "python platform/coordination/single_reducer_gate.py C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\dupplane",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:single-reducer modules=33 delegate=completion_predicate violations=0",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:single-reducer rival.py:4 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=2 delegate=completion_predicate",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:single-reducer rival.py:4 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=2 delegate=completion_predicate",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "mutation": "M3-default-flip L83 kwarg frozen=True -> False",
+        "module": "platform/coordination/reducer.py",
+        "bad_input": "a second module top-level-defining `evaluate` and `NON_WAIVABLE` - a duplicate reducer decision plane",
+        "command": "python platform/coordination/single_reducer_gate.py C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\dupplane",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:single-reducer modules=33 delegate=completion_predicate violations=0",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:single-reducer rival.py:4 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=2 delegate=completion_predicate",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:single-reducer rival.py:4 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=2 delegate=completion_predicate",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G12-coordination-reducer",
+        "mutation": "M5-boolop-flip L138 `or` -> `and`",
+        "module": "platform/coordination/reducer.py",
+        "bad_input": "a second module top-level-defining `evaluate` and `NON_WAIVABLE` - a duplicate reducer decision plane",
+        "command": "python platform/coordination/single_reducer_gate.py C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0010\\p2scratch\\dupplane",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SUCCESS:single-reducer modules=33 delegate=completion_predicate violations=0",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:single-reducer rival.py:4 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=2 delegate=completion_predicate",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:single-reducer rival.py:4 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=2 delegate=completion_predicate",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M1-comparison-invert L245 `==` -> `!=`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M1-comparison-invert L719 `!=` -> `==`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M2-required-drop L81 module const HARD_RULES: drop first element (\"Exit code zero alone is never success.\")",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M3-default-flip L621 def evaluate_full(...): default True -> False",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M3-default-flip L97 kwarg frozen=True -> False",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M4-raise-to-log L50 raise -> pass at line 50",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L203 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - : 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L246 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L266 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L312 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L328 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L378 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L498 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L546 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L582 `and` -> `or`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      },
+      {
+        "gate_id": "G7-receipt-schema-gate",
+        "mutation": "M5-boolop-flip L723 `or` -> `and`",
+        "module": "platform/lib/receipt_schema_gate.py",
+        "bad_input": "a receipt with `sentinel` removed - a REQUIRED property of receipt_core",
+        "command": "python platform/lib/receipt_schema_gate.py _adv0010_bad_receipt.json --schema-only",
+        "control_good_state_exit": 0,
+        "control_good_state_tail": "SCHEMA-VALID:IMP-0001 (layer 1 only - this is NOT a completion verdict)",
+        "control_bad_input_exit": 1,
+        "control_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "mutant_bad_input_exit": 1,
+        "mutant_bad_input_tail": "FAILED:IMP-0001 schema-invalid (1 error(s))\n    - <root>: 'sentinel' is a required property",
+        "verdict": "NOT-CONSEQUENTIAL for this input (gate still blocks it)"
+      }
+    ],
+    "oracle_scoping_check": [
+      {
+        "target": "BASELINE (no mutation)",
+        "full_dir_exit": 0,
+        "tail": "55 passed in 160.70s (0:02:40)"
+      },
+      {
+        "target": "tools/measure-guard/suitefloor.py:246 M6-exit-zero (return 1 -> 0)",
+        "full_dir_exit": 0,
+        "tail": "55 passed in 150.09s (0:02:30)",
+        "verdict": "SURVIVES THE FULL DIRECTORY TOO"
+      },
+      {
+        "target": "tools/measure-guard/refcheck.py:167 M6-exit-zero (return 1 -> 0)",
+        "full_dir_exit": 0,
+        "tail": "55 passed in 113.79s (0:01:53)",
+        "verdict": "SURVIVES THE FULL DIRECTORY TOO"
+      },
+      {
+        "target": "tools/measure-guard/refcheck.py:173 M4-raise-to-log (raise -> pass at line 173)",
+        "full_dir_exit": 0,
+        "tail": "55 passed in 133.92s (0:02:13)",
+        "verdict": "SURVIVES THE FULL DIRECTORY TOO"
+      },
+      {
+        "target": "tools/measure-guard/jsonparse.py:161 M6-exit-zero (return 1 -> 0)",
+        "full_dir_exit": 0,
+        "tail": "55 passed in 145.50s (0:02:25)",
+        "verdict": "SURVIVES THE FULL DIRECTORY TOO"
+      }
+    ],
+    "harness_files": [
+      "baseline.py",
+      "build_artifact.py",
+      "consumer_probe.py",
+      "gates.py",
+      "gitify.py",
+      "mutators.py",
+      "probe2.py",
+      "run_mutations.py",
+      "run_probe2.py",
+      "scoping_check.py",
+      "setup_copy.py",
+      "setup_copy2.py"
+    ],
+    "artifact_notes": {
+      "tools/measure-guard/suitefloor.py": "the headline counterexample: the below-floor `return 1` at :246 that no test asserts",
+      "tools/measure-guard/tests/test_suitefloor.py": "the gate's OWN suite - 16 tests, green with that return mutated to 0",
+      "tools/measure-guard/refcheck.py": "CLI-entry + violation-path survivors",
+      "tools/measure-guard/wudeps.py": "CLI-entry + violation-path survivors",
+      "tools/measure-guard/jsonparse.py": "CLI-entry + violation-path survivors",
+      ".github/workflows/quality.yml": "the workflow whose steps read these gates' exit codes"
+    },
+    "receipt_self": {
+      "path": "command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json",
+      "bytes_at_penultimate_write": 191132,
+      "sha256_note": "Not recorded: a JSON document cannot carry the sha256 of its own final bytes. Verify with: python -c \"import hashlib;print(hashlib.sha256(open(r'command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json','rb').read()).hexdigest())\"",
+      "eol": "LF"
+    }
+  }
+}

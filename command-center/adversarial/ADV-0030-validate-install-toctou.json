@@ -1,0 +1,348 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0030",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0030:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW TOCTOU audit of mkt.install.Installer.install() validate-then-install sequence: a window EXISTS between gate-9 payload validation and the copy (CONFIRMED), but the installer re-verifies the digest of the ACTUALLY-INSTALLED copy at the point of use (install.py:449-450, CONFIRMED), so a mid-sequence byte swap is REFUSED and no swapped content is installed (exploit REFUTED; mutant with the re-check disabled installs the swapped bytes, proving it load-bearing). SUCCESS withheld: the catalog reviewer_requirement (cross-vendor opus refuter) is not dispatchable in this unit's tool_permissions and self-certification is the failure this program prevents.",
+  "spec_anchor": "_USER-PROMPTS.md:10871, 11049",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "security-exploit-engineer",
+    "execution_substrate": "worktree-isolated"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "bytes": 24836,
+      "sha256": "7954fe9665ddf493038bda8016a58755445541ddb9272d68e689f78fd9f24af5",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "TARGET T1 (window exists): CONFIRMED. Between gate 9 (payload-digest validation of the SOURCE payload, install.py:385-392) and the copy that consumes it (install.py:438-448), the install runs gate 10 (SBOM), gate 11 (license), gate 12 (dependencies -- which recursively installs and can take arbitrary wall-clock) and gate 13a (lockfile pin). The staged/source bytes on disk are not locked or copied into a private buffer during that interval, so a concurrent writer can change them -- the harness in fact swapped a source payload byte mid-sequence and the swap took effect (swap_fired=true).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/marketplace/mkt/install.py:380-448",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "grep -n gate-order install.py (gate9 @385-392; gates 10/11/12/13a; copy @438-448)",
+          "raw_output": "gate 9 payload-digest validates SOURCE payload_root at :385-392; then _gate_sbom (:395), _gate_license (:398), dependencies loop (:401-421), _check_lockfile_pin (:436) all run BEFORE the copy loop at :438-448. The source payload_root is re-read by the copy; it is never snapshotted at gate 9.",
+          "fingerprint": "2cda52cd934adb56"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "adv0030_toctou_probe.py: wrap _recompute_payload / shutil.copy2 to mutate source bytes mid-sequence",
+          "raw_output": "probe_1a swap_fired=True swapped_file='LICENSE'; probe_1b swap_fired=True swapped_file='LICENSE' -- the source payload byte was writable and was changed after gate-9 validation returned.",
+          "fingerprint": "5f94fe9ede189541"
+        }
+      ]
+    },
+    {
+      "claim": "TARGET T2 (installer re-verifies the hash at point of use): CONFIRMED. After copying the payload into the site, install.py:449-450 recomputes installed_digest = _recompute_payload(dest, manifest) over the ACTUALLY-INSTALLED bytes and refuses (MKT-I09) if it != the signed manifest digest. It does NOT trust the gate-9 boolean: gate 9 recorded PASS on the good bytes, yet the post-copy re-check independently digests dest and caught the swap.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/marketplace/mkt/install.py:449-454",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "grep -n 'installed_digest = self._recompute_payload(dest' platform/marketplace/mkt/install.py",
+          "raw_output": "448:                shutil.copy2(src, dst)\n449:            installed_digest = self._recompute_payload(dest, manifest)\n450:            if installed_digest != manifest[\"payload\"][\"digest\"]:\n451:                raise attempt.refuse(\"payload-digest\", ...installed copy digests to ...)\n        (post-copy: recomputes the ACTUALLY-INSTALLED dest copy = TIME-OF-USE; refuses on mismatch)",
+          "fingerprint": "3b513f2cf479b26d"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "probe_1b: swap at the copy seam (after gates 9/10/11 passed on good bytes), then install",
+          "raw_output": "outcome=REFUSED refusal_code=MKT-I09 :: MKT-I09 [payload-digest] installed copy digests to sha256:cb59a165a3b4be40e2f2d373c60bd3b251af26e09229277780533d414f43d6fa, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b :: swapped_content_installed=False any_bytes_left_in_site=False",
+          "fingerprint": "ea06bd05fc25bce3"
+        }
+      ]
+    },
+    {
+      "claim": "TARGET T3 (does a PASSED check still describe the bytes that get installed? = is the TOCTOU exploitable to install swapped content?): REFUTED. A mid-sequence byte swap never reaches the site: swapping right after gate-9 is caught by the SBOM gate (MKT-I10); swapping at the copy seam is caught by the post-copy digest re-check (MKT-I09); in BOTH the outcome is REFUSED with zero bytes left in the site. The swapped content is installed ONLY when the post-copy re-check is deleted (mutant), which proves the re-verification -- not luck -- is what closes the window.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/marketplace/mkt/install.py:385-459; platform/marketplace/mkt/mutations.py:534-543 (M5)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "probe_1a + probe_1b: swap the staged bytes after validation, observe whether swapped content installs",
+          "raw_output": "probe_1a(after-gate9): outcome=REFUSED code=MKT-I10 installed=False bytes_left=False :: MKT-I10 [sbom] SBOM does not match the payload: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1\nprobe_1b(copy-seam): outcome=REFUSED code=MKT-I09 installed=False bytes_left=False",
+          "fingerprint": "99310bc036ef1531"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "probe_1c (both-states / mutation control): disable ONLY the post-copy re-check (if False:), same copy-seam swap",
+          "raw_output": "needle_matches_in_source=1 (unique) outcome=SUCCESS swapped_content_installed=True installed_copy_digest=sha256:cb59a165a3b4be40e2f2d373c60bd3b251af26e09229277780533d414f43d6fa (!= manifest_digest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b) -- with the re-check removed the SWAPPED bytes install, so the re-check is the load-bearing defense.",
+          "fingerprint": "c18e8e5365668707"
+        }
+      ]
+    },
+    {
+      "claim": "CONTROL (required): without any swap the install SUCCEEDS and the digest matches, so a refusal caused by the harness itself is distinguishable from a real defensive refusal.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "adv0030_toctou_probe.py::control_clean",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "install.Installer.install(hello-skill, =1.0.0, stable) into a disposable site, no swap",
+          "raw_output": "outcome=SUCCESS gates=13/13 installed_files=['LICENSE', 'README.md', 'hello.py']",
+          "fingerprint": "391d0a2ead718cd5"
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "recompute installed-copy digest and compare to manifest + receipt payload_digest",
+          "raw_output": "installed_copy_recomputed_digest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b manifest_payload_digest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b receipt_payload_digest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b digest_matches=True",
+          "fingerprint": "4d8632d5ec566264"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T0-control-clean-install",
+      "command": "install.Installer.install(hello-skill,=1.0.0,stable) no swap; assert SUCCESS and digest match",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "outcome=SUCCESS gates=13/13 digest_matches=True"
+    },
+    {
+      "id": "T1-swap-after-gate9-refused",
+      "command": "probe_1a: swap source byte right after gate-9 validation; assert REFUSED and nothing installed",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "outcome=REFUSED code=MKT-I10 swapped_content_installed=False"
+    },
+    {
+      "id": "T2-swap-at-copy-seam-refused-by-recheck",
+      "command": "probe_1b: swap at copy seam; assert REFUSED MKT-I09 (post-copy re-check) and nothing installed",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "outcome=REFUSED code=MKT-I09 swapped_content_installed=False"
+    },
+    {
+      "id": "T3-mutant-recheck-disabled-installs-swap",
+      "command": "probe_1c: disable post-copy re-check; assert swapped content INSTALLS (defense is load-bearing)",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "outcome=SUCCESS swapped_content_installed=True needle_unique=True"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-postcopy-recheck-both-states",
+      "kind": "adversarial-payload",
+      "description": "The post-copy digest re-verification (install.py:449-450) must FIRE on the swapped payload and be SILENT on the unswapped one, else a refusal proves nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "copy-seam swap -> REFUSED MKT-I09 :: MKT-I09 [payload-digest] installed copy digests to sha256:cb59a165a3b4be40e2f2d373c60bd3b251af26e09229277780533d414f43d6fa, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+      "good_state_output": "no swap -> SUCCESS gates 13/13, digest_matches=True"
+    },
+    {
+      "id": "NC2-recheck-is-load-bearing-mutation",
+      "kind": "mutation",
+      "description": "Disabling ONLY the post-copy check (`if installed_digest != ...:` -> `if False:`, unique match) makes the same swap INSTALL the malicious bytes; the real (unmutated) module refuses it. This isolates the re-check as the mechanism that closes the TOCTOU.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutant (re-check disabled) + swap -> outcome=SUCCESS swapped_content_installed=True installed_digest=sha256:cb59a165a3b4be40e2f2d373c60bd3b251af26e09229277780533d414f43d6fa",
+      "good_state_output": "real module + swap -> outcome=REFUSED code=MKT-I09 swapped_content_installed=False"
+    },
+    {
+      "id": "NC3-sbom-gate-catches-earlier-swap",
+      "kind": "adversarial-payload",
+      "description": "Defense-in-depth: a swap performed the instant gate-9 returns is caught by the NEXT source-reading gate (SBOM, MKT-I10) before the copy; silent on the unswapped payload.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "swap-after-gate9 -> REFUSED MKT-I10 :: MKT-I10 [sbom] SBOM does not match the payload: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1",
+      "good_state_output": "no swap -> SUCCESS (all 13 gates pass)"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "<none>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The catalog reviewer_requirement demands one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the RAW artifact and harness, not from this report. This unit was produced by anthropic/claude-opus-5[1m]; the catalog assigns it to openai/gpt-5-codex, so a qualifying cross-vendor refuter is openai/gpt-5-codex via mcp__codex__codex re-running %TEMP%/adv0030_toctou_probe.py against a freshly built mkt fixture. Not run here: this unit's tool_permissions are [Read, Grep, Glob, Bash, Write, modal_sandbox_*] with NO cross-vendor dispatch, and self-certification is the exact failure this program prevents."
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0030"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py (--schema-only --fragment generic_report) + an independent referencing.Registry validator against the DECLARED output_schema command-center/schema/exploit-proof.schema.json ($ref -> artifact-class-profiles -> receipt.schema.json#/$defs/generic_report)",
+      "artifact_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report <artifact> ; then jsonschema.Draft202012Validator(exploit-proof.schema.json, registry) over the $ref chain",
+        "raw_output": "receipt_schema_gate --schema-only: exit=0 :: SCHEMA-VALID:ADV-0030 (layer 1 only - NOT a completion verdict), schema_errors=[]. Independent exploit-proof.schema.json validation: 0 errors, report.kind=='exploit-proof'. FULL predicate gate: complete=False (c9 reviewer / c11 manifest / c12 downstream UNSATISFIED, c2/c3 NOT-CHECKED due to the self-hash basis) -- the correct BLOCKED posture, not a self-certified SUCCESS.",
+        "fingerprint": "adv0030-schemagate-verify"
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T23:10:00Z",
+    "ended_at": "2026-08-12T00:20:00Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): no hypothesis failed; both injection points (after-gate9, copy-seam) are distinct probes, not retries of one."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-cross-vendor-review",
+      "review-gate-unmet"
+    ],
+    "reason": "The measurement is complete and every control is recorded, but SUCCESS is withheld. (1) The catalog reviewer_requirement -- a cross-vendor opus refuter re-deriving the counterexample from the raw artifact -- has not run, and this unit may not certify itself. (2) The artifact is not registered in ARTIFACT-MANIFEST.json because this unit may write only its own output_path. Nothing here is unmeasured: T1/T2 are CONFIRMED and T3 is REFUTED, each on two mechanically independent probes plus a both-states control.",
+    "blocked_on": "openai/gpt-5-codex (or any non-anthropic) refuter re-deriving from %TEMP%/adv0030_toctou_probe.py and the built mkt fixture; plus orchestrator manifest registration",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "WORK-UNIT-CATALOG.json work_units[ADV-0030].reviewer_requirement",
+        "raw_output": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+        "fingerprint": "7e46468752ad198d"
+      },
+      {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "WORK-UNIT-CATALOG.json work_units[ADV-0030].tool_permissions",
+        "raw_output": "[Read, Grep, Glob, Bash, Write, mcp__cloud-hub__modal_sandbox_create, mcp__cloud-hub__modal_sandbox_exec, mcp__cloud-hub__modal_sandbox_terminate] -- no cross-vendor dispatch tool is granted",
+        "fingerprint": "9f4a91f8eef69ddb"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "SCOPE: this unit's 'install' = copy the payload into the site + re-verify (the copy is the point of use). It does NOT cover a SECOND, downstream TOCTOU: between the post-copy re-verification (install.py:449-454) and a later consumer LOADING the installed file, the site bytes are not re-checked, so an attacker with write access to the site root after install could tamper post-verification. That is a verify-time-vs-load-time window in the CONSUMER, not the validate-vs-install window audited here.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "audit every reader of site/packages/** (the plugin/skill loader) for a load-time digest re-check against installed.json/lockfile payload_digest; if none exists, that is a separate finding for a consumer-side unit."
+    },
+    {
+      "claim": "THREAT MODEL: the probes swap bytes in the SOURCE/registry payload the installer reads. A real attacker needs concurrent write access to that staging/registry path during the install window. The FINDING (installer re-verifies at point of use) holds regardless of attacker capability; the exploit's practicality depends on that write primitive, which is out of scope for this unit.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "model who can write registry/packages/** mid-install (mirror sync, shared FS, race on a downloaded staging dir) in a registry-trust unit."
+    },
+    {
+      "claim": "artifacts[0].sha256 cannot be the raw digest of this file (a file cannot contain its own hash). The recorded value is the sha256 of the DIGEST BASIS: this file's exact bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters. bytes is the true on-disk size (identical because 64 hex and 64 zeros are the same length).",
+      "verdict": "PARTIAL",
+      "settling_experiment": "b=OUT.read_bytes(); basis=b.replace(recorded.encode(),b'0'*64,1); assert sha256(basis).hexdigest()==recorded and len(b)==recorded_bytes"
+    },
+    {
+      "claim": "Probe oracle used a disposable LOCAL temp site + registry (never the live tree), not a Modal sandbox. A local ephemeral root is the direct effect oracle for the filesystem copy/verify behaviour measured and cannot touch anything live; Modal would run the same copy-then-reverify code for no additional signal.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "re-run adv0030_toctou_probe.py inside mcp__cloud-hub__modal_sandbox_exec; confirm identical outcome codes (control SUCCESS; 1a MKT-I10; 1b MKT-I09; 1c SUCCESS+malicious)."
+    }
+  ],
+  "report": {
+    "kind": "exploit-proof",
+    "question": "Is there a window between the validator reading a package and the installer consuming it in which the bytes can change, and does the installer re-verify the hash it validated?",
+    "answer": "YES there is a window (gates 10/11/12/13a run between the gate-9 payload validation and the copy; dependency installs make it arbitrarily long and the source bytes are not snapshotted), BUT the installer re-verifies the digest of the ACTUALLY-INSTALLED copy at the point of use (install.py:449-450) and refuses (MKT-I09) on any mismatch. Measured: a byte swapped right after gate-9 is caught by the SBOM gate (MKT-I10); a byte swapped at the copy seam is caught by the post-copy digest re-check (MKT-I09); in both, install is REFUSED and zero bytes are left in the site. The swapped bytes install ONLY when that post-copy re-check is deleted (mutant SUCCESS, malicious digest), proving the re-verification is the load-bearing defense. So a PASSED check still describes the bytes that get installed: the classic validate-then-install TOCTOU is CLOSED for the installed payload. Not-a-duplicate of ADV-0028 (which asks whether the signature check can be SKIPPED).",
+    "observations": [
+      {
+        "name": "T1_window_between_validate_and_install_exists",
+        "measured": "CONFIRMED",
+        "method": "static gate-order read + mid-sequence swap fired",
+        "anchor": "platform/marketplace/mkt/install.py:380-448"
+      },
+      {
+        "name": "T2_installer_reverifies_installed_copy_digest",
+        "measured": "CONFIRMED",
+        "method": "static read of the post-copy recompute + copy-seam swap -> MKT-I09",
+        "anchor": "platform/marketplace/mkt/install.py:449-454"
+      },
+      {
+        "name": "T3_toctou_exploitable_to_install_swapped_bytes",
+        "measured": "REFUTED",
+        "method": "two swap injection points both REFUSED + both-states mutant proves the re-check load-bearing",
+        "anchor": "platform/marketplace/mkt/install.py:385-459"
+      },
+      {
+        "name": "control_clean_install_succeeds_and_digest_matches",
+        "measured": true,
+        "method": "install with no swap: SUCCESS 13/13 gates, installed digest == manifest == receipt",
+        "anchor": "adv0030_toctou_probe.py::control_clean"
+      }
+    ],
+    "control_ids": [
+      "NC1-postcopy-recheck-both-states",
+      "NC2-recheck-is-load-bearing-mutation",
+      "NC3-sbom-gate-catches-earlier-swap",
+      "T0-control-clean-install"
+    ],
+    "target_detail": {
+      "control_clean_no_swap": {
+        "outcome": "SUCCESS",
+        "gates_evaluated": 13,
+        "gates_declared": 13,
+        "receipt_payload_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "manifest_payload_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "installed_copy_recomputed_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "digest_matches": true,
+        "installed_files_on_disk": [
+          "LICENSE",
+          "README.md",
+          "hello.py"
+        ]
+      },
+      "probe_1a_swap_after_gate9_validation": {
+        "swap_fired": true,
+        "swapped_file": "LICENSE",
+        "gate9_digest_over_good_bytes": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "manifest_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I10",
+        "refusal_detail": "MKT-I10 [sbom] SBOM does not match the payload: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1",
+        "swapped_content_installed": false,
+        "any_bytes_left_in_site": false
+      },
+      "probe_1b_swap_at_copy_seam": {
+        "swap_fired": true,
+        "swapped_file": "LICENSE",
+        "manifest_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I09",
+        "refusal_detail": "MKT-I09 [payload-digest] installed copy digests to sha256:cb59a165a3b4be40e2f2d373c60bd3b251af26e09229277780533d414f43d6fa, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "swapped_content_installed": false,
+        "any_bytes_left_in_site": false
+      },
+      "probe_1c_mutant_post_copy_check_disabled": {
+        "post_copy_check_needle_matches_in_source": 1,
+        "swap_fired": true,
+        "swapped_file": "LICENSE",
+        "manifest_digest": "sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+        "installed_copy_digest_with_defense_disabled": "sha256:cb59a165a3b4be40e2f2d373c60bd3b251af26e09229277780533d414f43d6fa",
+        "outcome": "SUCCESS",
+        "refusal_code": "NONE",
+        "refusal_detail": "INSTALL SUCCEEDED",
+        "swapped_content_installed": true
+      },
+      "static_gate9_source_check": "385:        recomputed = self._recompute_payload(payload_root, manifest)\n386:        if recomputed != manifest[\"payload\"][\"digest\"]:\n        (gate 9: validates the SOURCE/registry payload copy = TIME-OF-CHECK)",
+      "static_postcopy_installed_check": "448:                shutil.copy2(src, dst)\n449:            installed_digest = self._recompute_payload(dest, manifest)\n450:            if installed_digest != manifest[\"payload\"][\"digest\"]:\n451:                raise attempt.refuse(\"payload-digest\", ...installed copy digests to ...)\n        (post-copy: recomputes the ACTUALLY-INSTALLED dest copy = TIME-OF-USE; refuses on mismatch)"
+    }
+  },
+  "extensions": {
+    "target_module": "platform/marketplace/mkt/install.py :: Installer.install()",
+    "harness": "python %TEMP%/adv0030_toctou_probe.py (builds a fresh mkt fixture marketplace in a temp root each run; raw JSON saved at %TEMP%/adv0030_probe_out.json)",
+    "swap_payload_marker": "the swapped bytes are a curl-to-evil.invalid stub; installed digest sha256:cb59a1... != manifest sha256:8c8d59...",
+    "mutation_reference": "platform/marketplace/mkt/mutations.py BATTERY M5-payload-digest edits BOTH digest checks; this unit isolates the SECOND (post-copy) one for the TOCTOU."
+  }
+}

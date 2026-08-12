@@ -1,0 +1,722 @@
+{
+ "schema_version": 1,
+ "unit_id": "ADV-0040",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:ADV-0040 measurement COMPLETE and citable - the artifact exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict for each of the 7 enumerated targets, and records the result of all 8 controls. STATE is nevertheless BLOCKED, not SUCCESS, because the unit's reviewer_requirement (one cross-vendor openai/Codex refuter) could not be satisfied: the codex MCP failed twice, by two different mechanisms, and repairing it would require touching a credential.",
+ "spec_anchor": "_USER-PROMPTS.md:11050, 10480",
+ "min_bytes_threshold": 4096,
+ "profile": "privacy-dataflow",
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "claude-opus-5[1m]",
+  "role": "privacy-analyst",
+  "execution_substrate": "local-serialized"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json",
+   "bytes": 100452,
+   "sha256": "7c8df5ccdfdda995cce81d67483d1de3940324e8fe7d3ae75928a52a8733c942",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TARGET home-paths: CONFIRMED. The owner's Windows account name appears in home-path position and as a bare handle 58,884 times across 1,231 distinct files of the publishable set - by volume the single largest personal-data exposure in this corpus. Per-category occurrences: OWNER_HANDLE 24,552, HOME_PATH_WIN 20,904, HOME_PATH_NIX 10,495, C--Users-<name> flat form 2,933. 111 distinct usernames occupy home-path position; the owner accounts for 821 of the 1,231 files.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#report.findings.F1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep_v2.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1v2_out.json --scan-paths",
+     "raw_output": "files_read=9833 bytes=126776758 findings=87490\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      4  (non-placeholder 4)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25938  (non-placeholder 25938)\n  HOME_PATH_NIX             10498  (non-placeholder 10498)\n  HOME_PATH_WIN             20907  (non-placeholder 20907)\n  HOME_PATH_WIN_FLAT         2936  (non-placeholder 2936)\n  IPV4                       1281  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24555  (non-placeholder 24555)\n  PERSON_NAME_LABELED          71  (non-placeholder 71)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS                7  (non-placeholder 7)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "a2a4b631d556e2750aee9663",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python %TEMP%/adv0040/verifier_probes.py  (git grep -I -F -c <token>, run inside the repo)",
+     "raw_output": "{\n \"V1_owner_handle\": {\n  \"token\": \"Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 901,\n  \"matching_lines\": 16362,\n  \"stderr\": \"\"\n },\n \"V1_home_win\": {\n  \"token\": \"C:\\\\Users\\\\Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 341,\n  \"matching_lines\": 2404,\n  \"stderr\": \"\"\n },\n \"V1_home_flat\": {\n  \"token\": \"C--Users-Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 56,\n  \"matching_lines\": 2802,\n  \"stderr\": \"\"\n },\n \"V1_control_absent\": {\n  \"token\": \"Zzqx-Absent-Token-ADV0040\",\n  \"exit\": 1,\n  \"files_with_match\": 0,\n  \"matching_lines\": 0,\n  \"stderr\": \"\"\n },\n \"V2_gmail\": {\n  \"token\": \"@gmail.com\",\n  \"exit\": 0,\n  \"files_with_match\": 10,\n  \"matching_lines\": 28,\n  \"stderr\": \"\"\n },\n \"V2_yahoo\": {\n  \"token\": \"@yahoo.com\",\n  \"exit\": 0,\n  \"files_with_match\": 4,\n  \"matching_lines\": 4,\n  \"stderr\": \"\"\n },\n \"V2_bolt\": {\n  \"token\": \"@bolt.eu\",\n  \"exit\": 0,\n  \"files_with_match\": 18,\n  \"matching_lines\": 25,\n  \"stderr\": \"\"\n },\n \"V2_control_present\": {\n  \"token\": \"@example.com\",\n  \"exit\": 0,\n  \"files_with_match\": 105,\n  \"matching_lines\": 196,\n  \"stderr\": \"\"\n },\n \"V3_phone\": {\n  \"exit\": 0,\n  \"files\": 1,\n  \"redacted_stdout\": \"hooks/profile-capture/capture.py:79:    #     \\\"birth day: 8 june 2002\\\"   \\\"phone number: +<PHONE-REDACTED>\\\"\"\n },\n \"V4_pixel_only_username\": {\n  \"gif_bytes\": 538165,\n  \"ascii_username_in_raw_bytes\": false,\n  \"ascii_users_prefix_in_raw_bytes\": false,\n  \"git_grep_text_exit\": 0,\n  \"git_grep_text_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\",\n  \"git_grep_binary_exit\": 0,\n  \"git_grep_binary_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\"\n },\n \"V5_manifest\": {\n  \"manifest_exists\": true,\n  \"manifest_bytes\": 2875,\n  \"mentions_ADV_0040\": false,\n  \"mentions_output_path\": false\n }\n}",
+     "fingerprint": "554062aa111b85f95c3e3b43",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TARGET email-addresses: CONFIRMED. 269 distinct e-mail-shaped strings; after triage 7 are personal mailboxes of REAL natural persons (3 owner-linked, 4 third parties) and 17 are organisational/third-party. 146 of the 269 are markdown-anchor artefacts (`token@file.md`), not e-mail addresses at all, and 93 are documented placeholders - so the raw count over-states the exposure by ~24x and must not be quoted alone.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#report.findings.F2",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep_v2.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1v2_out.json --scan-paths",
+     "raw_output": "files_read=9833 bytes=126776758 findings=87490\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      4  (non-placeholder 4)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25938  (non-placeholder 25938)\n  HOME_PATH_NIX             10498  (non-placeholder 10498)\n  HOME_PATH_WIN             20907  (non-placeholder 20907)\n  HOME_PATH_WIN_FLAT         2936  (non-placeholder 2936)\n  IPV4                       1281  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24555  (non-placeholder 24555)\n  PERSON_NAME_LABELED          71  (non-placeholder 71)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS                7  (non-placeholder 7)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "a2a4b631d556e2750aee9663",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python %TEMP%/adv0040/verifier_probes.py  (git grep -I -F -c <token>, run inside the repo)",
+     "raw_output": "{\n \"V1_owner_handle\": {\n  \"token\": \"Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 901,\n  \"matching_lines\": 16362,\n  \"stderr\": \"\"\n },\n \"V1_home_win\": {\n  \"token\": \"C:\\\\Users\\\\Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 341,\n  \"matching_lines\": 2404,\n  \"stderr\": \"\"\n },\n \"V1_home_flat\": {\n  \"token\": \"C--Users-Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 56,\n  \"matching_lines\": 2802,\n  \"stderr\": \"\"\n },\n \"V1_control_absent\": {\n  \"token\": \"Zzqx-Absent-Token-ADV0040\",\n  \"exit\": 1,\n  \"files_with_match\": 0,\n  \"matching_lines\": 0,\n  \"stderr\": \"\"\n },\n \"V2_gmail\": {\n  \"token\": \"@gmail.com\",\n  \"exit\": 0,\n  \"files_with_match\": 10,\n  \"matching_lines\": 28,\n  \"stderr\": \"\"\n },\n \"V2_yahoo\": {\n  \"token\": \"@yahoo.com\",\n  \"exit\": 0,\n  \"files_with_match\": 4,\n  \"matching_lines\": 4,\n  \"stderr\": \"\"\n },\n \"V2_bolt\": {\n  \"token\": \"@bolt.eu\",\n  \"exit\": 0,\n  \"files_with_match\": 18,\n  \"matching_lines\": 25,\n  \"stderr\": \"\"\n },\n \"V2_control_present\": {\n  \"token\": \"@example.com\",\n  \"exit\": 0,\n  \"files_with_match\": 105,\n  \"matching_lines\": 196,\n  \"stderr\": \"\"\n },\n \"V3_phone\": {\n  \"exit\": 0,\n  \"files\": 1,\n  \"redacted_stdout\": \"hooks/profile-capture/capture.py:79:    #     \\\"birth day: 8 june 2002\\\"   \\\"phone number: +<PHONE-REDACTED>\\\"\"\n },\n \"V4_pixel_only_username\": {\n  \"gif_bytes\": 538165,\n  \"ascii_username_in_raw_bytes\": false,\n  \"ascii_users_prefix_in_raw_bytes\": false,\n  \"git_grep_text_exit\": 0,\n  \"git_grep_text_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\",\n  \"git_grep_binary_exit\": 0,\n  \"git_grep_binary_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\"\n },\n \"V5_manifest\": {\n  \"manifest_exists\": true,\n  \"manifest_bytes\": 2875,\n  \"mentions_ADV_0040\": false,\n  \"mentions_output_path\": false\n }\n}",
+     "fingerprint": "554062aa111b85f95c3e3b43",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TARGET phone-numbers: CONFIRMED, exactly one. hooks/profile-capture/capture.py:79 quotes, in a CODE COMMENT, a real person's phone number alongside a birth date and academic affiliation, as example input for the PII-capture hook itself. Every other PHONE_E164/PHONE_NANP hit (12 + 9) is a false positive (percentage strings such as '+123 (177% of floor)', breakpoint pixel lists) or a reserved 555-01xx placeholder.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "hooks/profile-capture/capture.py:79",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep_v2.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1v2_out.json --scan-paths",
+     "raw_output": "files_read=9833 bytes=126776758 findings=87490\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      4  (non-placeholder 4)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25938  (non-placeholder 25938)\n  HOME_PATH_NIX             10498  (non-placeholder 10498)\n  HOME_PATH_WIN             20907  (non-placeholder 20907)\n  HOME_PATH_WIN_FLAT         2936  (non-placeholder 2936)\n  IPV4                       1281  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24555  (non-placeholder 24555)\n  PERSON_NAME_LABELED          71  (non-placeholder 71)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS                7  (non-placeholder 7)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "a2a4b631d556e2750aee9663",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python %TEMP%/adv0040/verifier_probes.py  (git grep -I -F -c <token>, run inside the repo)",
+     "raw_output": "{\n \"V1_owner_handle\": {\n  \"token\": \"Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 901,\n  \"matching_lines\": 16362,\n  \"stderr\": \"\"\n },\n \"V1_home_win\": {\n  \"token\": \"C:\\\\Users\\\\Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 341,\n  \"matching_lines\": 2404,\n  \"stderr\": \"\"\n },\n \"V1_home_flat\": {\n  \"token\": \"C--Users-Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 56,\n  \"matching_lines\": 2802,\n  \"stderr\": \"\"\n },\n \"V1_control_absent\": {\n  \"token\": \"Zzqx-Absent-Token-ADV0040\",\n  \"exit\": 1,\n  \"files_with_match\": 0,\n  \"matching_lines\": 0,\n  \"stderr\": \"\"\n },\n \"V2_gmail\": {\n  \"token\": \"@gmail.com\",\n  \"exit\": 0,\n  \"files_with_match\": 10,\n  \"matching_lines\": 28,\n  \"stderr\": \"\"\n },\n \"V2_yahoo\": {\n  \"token\": \"@yahoo.com\",\n  \"exit\": 0,\n  \"files_with_match\": 4,\n  \"matching_lines\": 4,\n  \"stderr\": \"\"\n },\n \"V2_bolt\": {\n  \"token\": \"@bolt.eu\",\n  \"exit\": 0,\n  \"files_with_match\": 18,\n  \"matching_lines\": 25,\n  \"stderr\": \"\"\n },\n \"V2_control_present\": {\n  \"token\": \"@example.com\",\n  \"exit\": 0,\n  \"files_with_match\": 105,\n  \"matching_lines\": 196,\n  \"stderr\": \"\"\n },\n \"V3_phone\": {\n  \"exit\": 0,\n  \"files\": 1,\n  \"redacted_stdout\": \"hooks/profile-capture/capture.py:79:    #     \\\"birth day: 8 june 2002\\\"   \\\"phone number: +<PHONE-REDACTED>\\\"\"\n },\n \"V4_pixel_only_username\": {\n  \"gif_bytes\": 538165,\n  \"ascii_username_in_raw_bytes\": false,\n  \"ascii_users_prefix_in_raw_bytes\": false,\n  \"git_grep_text_exit\": 0,\n  \"git_grep_text_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\",\n  \"git_grep_binary_exit\": 0,\n  \"git_grep_binary_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\"\n },\n \"V5_manifest\": {\n  \"manifest_exists\": true,\n  \"manifest_bytes\": 2875,\n  \"mentions_ADV_0040\": false,\n  \"mentions_output_path\": false\n }\n}",
+     "fingerprint": "554062aa111b85f95c3e3b43",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TARGET names: CONFIRMED that natural persons' names are present, but NOT via the channel built to find them. The dedicated labelled-name detector produced 34 distinct captures and ALL 34 are prose false positives ('await prisma', 'Dataset owner username'); zero real names. Names reach the corpus through the EMAIL local-part instead (e.g. <first>.<last>@bolt.eu) and through the account inventory in the cookie-bridge runbook.",
+   "verdict": "CONFIRMED",
+   "confidence": "likely",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#report.findings.F3",
+   "unverified": true,
+   "settling_experiment": "run a trained NER model (spaCy en_core_web_trf PERSON entities) over the 4,779 markdown files and diff its PERSON set against the 34 regex captures; the regex channel measures only LABELLED names and cannot see a name in running prose.",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep_v2.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1v2_out.json --scan-paths",
+     "raw_output": "files_read=9833 bytes=126776758 findings=87490\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      4  (non-placeholder 4)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25938  (non-placeholder 25938)\n  HOME_PATH_NIX             10498  (non-placeholder 10498)\n  HOME_PATH_WIN             20907  (non-placeholder 20907)\n  HOME_PATH_WIN_FLAT         2936  (non-placeholder 2936)\n  IPV4                       1281  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24555  (non-placeholder 24555)\n  PERSON_NAME_LABELED          71  (non-placeholder 71)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS                7  (non-placeholder 7)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "a2a4b631d556e2750aee9663",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python %TEMP%/adv0040/verifier_probes.py  (git grep -I -F -c <token>, run inside the repo)",
+     "raw_output": "{\n \"V1_owner_handle\": {\n  \"token\": \"Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 901,\n  \"matching_lines\": 16362,\n  \"stderr\": \"\"\n },\n \"V1_home_win\": {\n  \"token\": \"C:\\\\Users\\\\Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 341,\n  \"matching_lines\": 2404,\n  \"stderr\": \"\"\n },\n \"V1_home_flat\": {\n  \"token\": \"C--Users-Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 56,\n  \"matching_lines\": 2802,\n  \"stderr\": \"\"\n },\n \"V1_control_absent\": {\n  \"token\": \"Zzqx-Absent-Token-ADV0040\",\n  \"exit\": 1,\n  \"files_with_match\": 0,\n  \"matching_lines\": 0,\n  \"stderr\": \"\"\n },\n \"V2_gmail\": {\n  \"token\": \"@gmail.com\",\n  \"exit\": 0,\n  \"files_with_match\": 10,\n  \"matching_lines\": 28,\n  \"stderr\": \"\"\n },\n \"V2_yahoo\": {\n  \"token\": \"@yahoo.com\",\n  \"exit\": 0,\n  \"files_with_match\": 4,\n  \"matching_lines\": 4,\n  \"stderr\": \"\"\n },\n \"V2_bolt\": {\n  \"token\": \"@bolt.eu\",\n  \"exit\": 0,\n  \"files_with_match\": 18,\n  \"matching_lines\": 25,\n  \"stderr\": \"\"\n },\n \"V2_control_present\": {\n  \"token\": \"@example.com\",\n  \"exit\": 0,\n  \"files_with_match\": 105,\n  \"matching_lines\": 196,\n  \"stderr\": \"\"\n },\n \"V3_phone\": {\n  \"exit\": 0,\n  \"files\": 1,\n  \"redacted_stdout\": \"hooks/profile-capture/capture.py:79:    #     \\\"birth day: 8 june 2002\\\"   \\\"phone number: +<PHONE-REDACTED>\\\"\"\n },\n \"V4_pixel_only_username\": {\n  \"gif_bytes\": 538165,\n  \"ascii_username_in_raw_bytes\": false,\n  \"ascii_users_prefix_in_raw_bytes\": false,\n  \"git_grep_text_exit\": 0,\n  \"git_grep_text_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\",\n  \"git_grep_binary_exit\": 0,\n  \"git_grep_binary_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\"\n },\n \"V5_manifest\": {\n  \"manifest_exists\": true,\n  \"manifest_bytes\": 2875,\n  \"mentions_ADV_0040\": false,\n  \"mentions_output_path\": false\n }\n}",
+     "fingerprint": "554062aa111b85f95c3e3b43",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TARGET private-URLs: REFUTED for the shapes probed. Zero non-placeholder tunnel URLs (ngrok/trycloudflare/loca.lt/tailnet) and zero share URLs (drive/dropbox/1drv/sharepoint). All 9 signed-URL hits are template literals or redaction test fixtures (`?token=${BRIGHTDATA_TOKEN}`, `?token=%3Credacted%3E`), not live credentials or live share links.",
+   "verdict": "REFUTED",
+   "confidence": "likely",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#report.findings.F5",
+   "unverified": true,
+   "settling_experiment": "this refutation covers only the 3 URL patterns encoded in the sweep. To settle it for arbitrary private URLs, enumerate every http(s) URL in the corpus and resolve each host against a public-DNS/allowlist oracle offline.",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep_v2.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1v2_out.json --scan-paths",
+     "raw_output": "files_read=9833 bytes=126776758 findings=87490\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      4  (non-placeholder 4)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25938  (non-placeholder 25938)\n  HOME_PATH_NIX             10498  (non-placeholder 10498)\n  HOME_PATH_WIN             20907  (non-placeholder 20907)\n  HOME_PATH_WIN_FLAT         2936  (non-placeholder 2936)\n  IPV4                       1281  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24555  (non-placeholder 24555)\n  PERSON_NAME_LABELED          71  (non-placeholder 71)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS                7  (non-placeholder 7)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "a2a4b631d556e2750aee9663",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python %TEMP%/adv0040/verifier_probes.py  (git grep -I -F -c <token>, run inside the repo)",
+     "raw_output": "{\n \"V1_owner_handle\": {\n  \"token\": \"Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 901,\n  \"matching_lines\": 16362,\n  \"stderr\": \"\"\n },\n \"V1_home_win\": {\n  \"token\": \"C:\\\\Users\\\\Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 341,\n  \"matching_lines\": 2404,\n  \"stderr\": \"\"\n },\n \"V1_home_flat\": {\n  \"token\": \"C--Users-Prekzursil\",\n  \"exit\": 0,\n  \"files_with_match\": 56,\n  \"matching_lines\": 2802,\n  \"stderr\": \"\"\n },\n \"V1_control_absent\": {\n  \"token\": \"Zzqx-Absent-Token-ADV0040\",\n  \"exit\": 1,\n  \"files_with_match\": 0,\n  \"matching_lines\": 0,\n  \"stderr\": \"\"\n },\n \"V2_gmail\": {\n  \"token\": \"@gmail.com\",\n  \"exit\": 0,\n  \"files_with_match\": 10,\n  \"matching_lines\": 28,\n  \"stderr\": \"\"\n },\n \"V2_yahoo\": {\n  \"token\": \"@yahoo.com\",\n  \"exit\": 0,\n  \"files_with_match\": 4,\n  \"matching_lines\": 4,\n  \"stderr\": \"\"\n },\n \"V2_bolt\": {\n  \"token\": \"@bolt.eu\",\n  \"exit\": 0,\n  \"files_with_match\": 18,\n  \"matching_lines\": 25,\n  \"stderr\": \"\"\n },\n \"V2_control_present\": {\n  \"token\": \"@example.com\",\n  \"exit\": 0,\n  \"files_with_match\": 105,\n  \"matching_lines\": 196,\n  \"stderr\": \"\"\n },\n \"V3_phone\": {\n  \"exit\": 0,\n  \"files\": 1,\n  \"redacted_stdout\": \"hooks/profile-capture/capture.py:79:    #     \\\"birth day: 8 june 2002\\\"   \\\"phone number: +<PHONE-REDACTED>\\\"\"\n },\n \"V4_pixel_only_username\": {\n  \"gif_bytes\": 538165,\n  \"ascii_username_in_raw_bytes\": false,\n  \"ascii_users_prefix_in_raw_bytes\": false,\n  \"git_grep_text_exit\": 0,\n  \"git_grep_text_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\",\n  \"git_grep_binary_exit\": 0,\n  \"git_grep_binary_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\"\n },\n \"V5_manifest\": {\n  \"manifest_exists\": true,\n  \"manifest_bytes\": 2875,\n  \"mentions_ADV_0040\": false,\n  \"mentions_output_path\": false\n }\n}",
+     "fingerprint": "554062aa111b85f95c3e3b43",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TARGET faces-in-screenshots: REFUTED for frontal faces. Zero faces detected across all 68 tracked raster images, with a control proving the detector fires on a real human face and stays silent on noise. UNVERIFIED for non-frontal faces: the instrument is a Haar frontal-face cascade, which has known low recall on profile, occluded, small or stylised faces, so this is 'no FRONTAL face', not 'no face'.",
+   "verdict": "REFUTED",
+   "confidence": "likely",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#negative_controls.NC-P2-FACE",
+   "unverified": true,
+   "settling_experiment": "re-run the 68 images through a CNN detector (RetinaFace or MTCNN) which detects profile and small faces, and compare the count against the Haar result.",
+   "probes": [
+    {
+     "role": "source",
+     "method": "other",
+     "command": "python %TEMP%/adv0040/probe2_nontext.py --filelist images_rel.txt --root C:/Users/Prekzursil --out probe2_out.json",
+     "raw_output": "images=74 analysed=74 ocr_text=9 meta=11 faces=1 findings=8\n  EMAIL                         2\n  FACE_IN_IMAGE                 1\n  HOME_PATH_WIN                 1\n  PERSON_NAME_LABELED           2\n  PHONE_E164                    2\n\n---- control evaluation ----\n=== PROBE 2 CONTROL VERDICTS ===\n  OCR_fires_on_bad           True\n  OCR_silent_on_good         True\n  METADATA_fires_on_bad      True\n  METADATA_silent_on_good    True\n  FACE_fires_on_bad          True\n  FACE_silent_on_good        True\n\n=== controls detail ===\n  ctrl_bad_ocr_pii.png ocr=146 meta=0 faces=0 cats=['EMAIL', 'HOME_PATH_WIN', 'PERSON_NAME_LABELED', 'PHONE_E164']\n  ctrl_good_blank.png ocr=0 meta=0 faces=0 cats=[]\n  ctrl_bad_metadata.png ocr=0 meta=3 faces=0 cats=['EMAIL', 'PERSON_NAME_LABELED', 'PHONE_E164']\n  ctrl_good_nometadata.png ocr=0 meta=0 faces=0 cats=[]\n  ctrl_bad_face.png ocr=0 meta=0 faces=1 cats=['FACE_IN_IMAGE']\n  ctrl_good_noface.png ocr=0 meta=0 faces=0 cats=[]\n\nBAD-OCR text: 'Contact card - internal\\n\\nEmail: mihai.popescu@northwind-analytics.ro\\nPhone: +40 721 234 567\\n\\nHome: C:\\\\Users\\\\mpopescu\\\\Desktop\\n\\nowner: Mihai Popescu'\nBAD-META    : 'Author=Mihai Popescu\\nComment=contact mihai.popescu@northwind-analytics.ro tel +40 721 234 567\\nSoftware=synthetic control for ADV-0040'\n\n=== corpus ===\nimages=68 ocr_text=8 meta=10 faces=0 findings=0\n  source/ast-integrate/.agents/skills/aspnet-core/assets/dotnet-logo.png ocr=4 meta=2 :: '-NET' | 'exif=Exif\\x00\\x00MM\\x00*\\x00\\x00\\x00\\x08\\x00\\x01\ufffdi\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x1a\\x00\\x00\\x00\\x00\\x00\\x03\ufffd\\x01\\x00\\x03\\x00\\x00\\x00\\x01\\x00\\x01\\x00\\x00\ufffd\\x02\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\ufffd\\x03\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\\x00\\x00\\x00\\x00\\n'\n  source/ast-integrate/.agents/skills/jupyter-notebook/assets/jupyter.png ocr=10 meta=0 :: 'jupyter\\n~w' | ''\n  source/ast-integrate/.agents/skills/linear/assets/linear.png ocr=0 meta=5 :: '' | 'exif=Exif\\x00\\x00MM\\x00*\\x00\\x00\\x00\\x08\\x00\\x04\\x01\\x1a\\x00\\x05\\x00\\x00\\x00\\x01\\x00\\x00\\x00>\\x01\\x1b\\x00\\x05\\x00\\x00\\x00\\x01\\x00\\x00\\x00F\\x01(\\x00\\x03\\x00\\x00\\x00\\x01\\x00\\x02\\x00\\x00\ufffdi\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00N\\x00\\x00\\x00\\x00\\x00\\x00\\x01 \\x00\\x00\\x00'\n  source/ast-integrate/.agents/skills/slides/assets/slides.png ocr=0 meta=1 :: '' | 'Software=Figma'\n  source/ast-integrate/.agents/skills/video-watermark-removal/scripts/_logo_template_example.png ocr=15 meta=0 :: ') OpusClip |\\nxz' | ''\n  source/ast-integrate/.agents/skills/winui-app/assets/winui.png ocr=0 meta=2 :: '' | 'exif=Exif\\x00\\x00MM\\x00*\\x00\\x00\\x00\\x08\\x00\\x01\ufffdi\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x1a\\x00\\x00\\x00\\x00\\x00\\x03\ufffd\\x01\\x00\\x03\\x00\\x00\\x00\\x01\\x00\\x01\\x00\\x00\ufffd\\x02\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\ufffd\\x03\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\\x00\\x00\\x00\\x00\\n'\n  source/ast-integrate/skills/aspnet-core/assets/dotnet-logo.png ocr=4 meta=2 :: '-NET' | 'exif=Exif\\x00\\x00MM\\x00*\\x00\\x00\\x00\\x08\\x00\\x01\ufffdi\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x1a\\x00\\x00\\x00\\x00\\x00\\x03\ufffd\\x01\\x00\\x03\\x00\\x00\\x00\\x01\\x00\\x01\\x00\\x00\ufffd\\x02\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\ufffd\\x03\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\\x00\\x00\\x00\\x00\\n'\n  source/ast-integrate/skills/jupyter-notebook/assets/jupyter.png ocr=10 meta=0 :: 'jupyter\\n~w' | ''\n  source/ast-integrate/skills/linear/assets/linear.png ocr=0 meta=5 :: '' | 'exif=Exif\\x00\\x00MM\\x00*\\x00\\x00\\x00\\x08\\x00\\x04\\x01\\x1a\\x00\\x05\\x00\\x00\\x00\\x01\\x00\\x00\\x00>\\x01\\x1b\\x00\\x05\\x00\\x00\\x00\\x01\\x00\\x00\\x00F\\x01(\\x00\\x03\\x00\\x00\\x00\\x01\\x00\\x02\\x00\\x00\ufffdi\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00N\\x00\\x00\\x00\\x00\\x00\\x00\\x01 \\x00\\x00\\x00'\n  source/ast-integrate/skills/slides/assets/slides.png ocr=0 meta=1 :: '' | 'Software=Figma'\n  source/ast-integrate/skills/video-watermark-removal/scripts/_logo_template_example.png ocr=15 meta=0 :: ') OpusClip |\\nxz' | ''\n  source/ast-integrate/skills/winui-app/assets/winui.png ocr=0 meta=2 :: '' | 'exif=Exif\\x00\\x00MM\\x00*\\x00\\x00\\x00\\x08\\x00\\x01\ufffdi\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x1a\\x00\\x00\\x00\\x00\\x00\\x03\ufffd\\x01\\x00\\x03\\x00\\x00\\x00\\x01\\x00\\x01\\x00\\x00\ufffd\\x02\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\ufffd\\x03\\x00\\x04\\x00\\x00\\x00\\x01\\x00\\x00\\x00d\\x00\\x00\\x00\\x00\\n'\n  source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif ocr=44 meta=2 :: '@ Starting Prompt-Driven Development session' | 'version=GIF89a\\ncomment=gif.ski'\n  source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-task.gif ocr=41 meta=2 :: '@ Starting Code Task Generator session...' | 'version=GIF89a\\ncomment=gif.ski'\n",
+     "fingerprint": "82aec329ec18b3ce883a9dee",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "other",
+     "command": "python %TEMP%/adv0040/probe2b_gif_frames.py images_rel.txt",
+     "raw_output": "source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif frames=264 ocred=132 chars=71595\nsource/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-task.gif frames=443 ocred=148 chars=88416\nfindings=220\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame4 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame6 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame8 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame10 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame12 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame14 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame16 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame18 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame20 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame22 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame24 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame26 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame28 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame30 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame30 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame32 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame32 HIGH_ENTROPY_TOKEN {'len': 28, 'sha256_12': '6b48fd6c29e5'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame34 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame34 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame36 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame36 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame38 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame38 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame40 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame40 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame42 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame42 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame44 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame44 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame46 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame46 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame48 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame48 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame50 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame50 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame52 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame52 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame54 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame54 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame56 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame56 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame58 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame58 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame60 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame60 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame62 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame62 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame64 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame64 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame66 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame66 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame68 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame68 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame70 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame70 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame72 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame72 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame74 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame74 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame76 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame76 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame78 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame78 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame80 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame80 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame82 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame82 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame84 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame84 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame86 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame86 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame88 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame88 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame90 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame90 HIGH_ENTROPY_TOKEN {'len': 29, 'sha25\n---- distinct per category ----\n{\n \"total\": 220\n}",
+     "fingerprint": "53ac45e490ba10f4d2b753c3",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TARGET measured-recall: CONFIRMED. Against 57 synthetic PII items planted across 19 categories x 3 file carriers (md/json/jsonl) and swept in the SAME invocation as the real corpus, the as-specified v1 instrument scored 51/57 = 89.47%, with exactly two categories at 0/3 (PERSON_NAME_LABELED, POSTAL_ADDRESS). A v2 instrument closing only those two named blind spots scored 57/57 = 100%. Both scored ZERO findings on the 4 clean decoys, so neither bought recall with over-firing.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#report.recall",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "python %TEMP%/adv0040/analyze1.py   (57 planted items, 19 categories)",
+     "raw_output": "PLANTED=57 DETECTED=51 RECALL=0.8947 (89.47%)\nclean-decoy findings (must be 0): 0\n--- per-category recall ---\n  CREDIT_CARD            3/3\n  DOB_DATE               3/3\n  EMAIL                  3/3\n  GEO_COORD              3/3\n  GOV_ID_RO_CNP          3/3\n  HIGH_ENTROPY_TOKEN     3/3\n  HOME_PATH_NIX          3/3\n  HOME_PATH_WIN          3/3\n  HOME_PATH_WIN_FLAT     3/3\n  IPV4                   3/3\n  MAC_ADDR               3/3\n  OWNER_HANDLE           3/3\n  PERSON_NAME_LABELED    0/3\n      MISSED person_name_labeled_notes_16.md line 5 (md)\n      MISSED person_name_labeled_record_16.json line 4 (json)\n      MISSED person_name_labeled_transcript_16.jsonl line 2 (jsonl)\n  PHONE_E164             3/3\n  PHONE_NANP             3/3\n  POSTAL_ADDRESS         0/3\n      MISSED postal_address_notes_17.md line 5 (md)\n      MISSED postal_address_record_17.json line 4 (json)\n      MISSED postal_address_transcript_17.jsonl line 2 (jsonl)\n  PRIVATE_URL_SHARE      3/3\n  PRIVATE_URL_SIGNED     3/3\n  PRIVATE_URL_TUNNEL     3/3\n--- corpus distinct values ---\n  CREDIT_CARD            occurrences=97      distinct=57\n  EMAIL                  occurrences=1133    distinct=270\n  GOV_ID_RO_CNP          occurrences=8       distinct=5\n  HIGH_ENTROPY_TOKEN     occurrences=25558   distinct=7903\n  HOME_PATH_NIX          occurrences=10363   distinct=37\n  HOME_PATH_WIN          occurrences=20761   distinct=36\n  HOME_PATH_WIN_FLAT     occurrences=2932    distinct=81\n  IPV4                   occurrences=1152    distinct=83\n  OWNER_HANDLE           occurrences=24357   distinct=2\n  PERSON_NAME_LABELED    occurrences=25      distinct=17\n  PHONE_E164             occurrences=10      distinct=7\n  PHONE_NANP             occurrences=6       distinct=3\n  POSTAL_ADDRESS         occurrences=56      distinct=40\n  PRIVATE_URL_SIGNED     occurrences=9       distinct=6\n",
+     "fingerprint": "5689056df7af8f35f8261456",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "python %TEMP%/adv0040/triage_v2.py + the v1-vs-v2 recall diff (same planted manifest, v2 instrument)",
+     "raw_output": "v1 recall 51/57 = 0.8947  MISS PERSON_NAME_LABELED 0/3, POSTAL_ADDRESS 0/3\nv2 recall 57/57 = 1.0000\nv1 clean-decoy findings: 0\nv2 clean-decoy findings: 0\n\nPERSON_NAME_LABELED v1_corpus=25 v2_corpus=68 new=67 dropped=24\nPOSTAL_ADDRESS      v1_corpus=55 v2_corpus=4  new=0  dropped=51\nDOB_DATE            v1_corpus=0  v2_corpus=1  new=1  dropped=0\n  NEW source/ast-integrate/hooks/profile-capture/capture.py 79",
+     "fingerprint": "3698dc07d0dfd0ee84aec700",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "NON-TEXT CHANNEL is non-redundant, demonstrated on a real file: tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-task.gif renders a UNIX home path exposing a human username in frames 162-174. The string is NOT present as literal bytes anywhere in that 538,165-byte file (LZW-compressed pixels), PROBE 1 skipped the file as binary, and PROBE 1 returned 0 findings for it. Only per-frame OCR sees it. CORRECTLY SCOPED: this proves FILE-level blindness, not corpus-level - the same username also appears as plain text in 2 other tracked files (vendored rust-analyzer flycheck output), so a text sweep would have found the PERSON, just not through this file.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-task.gif#frame162",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "other",
+     "command": "python %TEMP%/adv0040/probe2b_gif_frames.py images_rel.txt",
+     "raw_output": "source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif frames=264 ocred=132 chars=71595\nsource/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-task.gif frames=443 ocred=148 chars=88416\nfindings=220\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame4 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame6 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame8 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame10 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame12 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame14 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame16 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame18 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame20 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame22 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame24 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame26 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame28 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame30 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame30 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame32 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame32 HIGH_ENTROPY_TOKEN {'len': 28, 'sha256_12': '6b48fd6c29e5'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame34 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame34 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame36 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame36 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame38 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame38 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame40 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame40 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame42 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame42 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame44 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame44 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame46 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame46 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame48 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame48 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame50 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame50 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame52 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame52 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame54 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame54 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame56 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame56 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame58 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame58 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame60 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame60 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame62 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame62 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame64 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame64 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame66 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame66 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame68 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame68 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame70 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame70 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame72 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame72 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame74 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame74 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame76 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame76 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame78 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame78 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame80 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame80 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame82 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame82 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame84 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame84 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame86 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame86 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame88 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame88 HIGH_ENTROPY_TOKEN {'len': 29, 'sha256_12': '2b6162ff8829'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame90 HIGH_ENTROPY_TOKEN {'len': 24, 'sha256_12': '4b3ce65614b9'}\n   source/ast-integrate/tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-plan.gif#frame90 HIGH_ENTROPY_TOKEN {'len': 29, 'sha25\n---- distinct per category ----\n{\n \"total\": 220\n}",
+     "fingerprint": "53ac45e490ba10f4d2b753c3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "python: raw=open(ralph-task.gif,'rb').read(); b'mobrienv' in raw  -> then git grep -I -F -l mobrienv",
+     "raw_output": "{\n \"gif_bytes\": 538165,\n \"ascii_username_in_raw_bytes\": false,\n \"ascii_users_prefix_in_raw_bytes\": false,\n \"git_grep_text_exit\": 0,\n \"git_grep_text_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\",\n \"git_grep_binary_exit\": 0,\n \"git_grep_binary_files\": \"tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stderr\\ntools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout\"\n}",
+     "fingerprint": "22755e41a7db02e4944bd980",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "All 57 planted synthetic PII items and all 6 synthetic control images were removed and removal was verified three mechanically different ways: filesystem stat (dirs absent), a re-run of the scanner over the planted file list (61 missing, 0 findings), and a git grep of the repository for two distinctive planted canaries (0 hits) whose detector was proved live by a control token returning 51 hits in the same run.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#tests.TST-2",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "python %TEMP%/adv0040/plant.py <dest> <manifest>  (creates), then shutil.rmtree",
+     "raw_output": "planted 57 items across 19 categories, 4 clean decoys\nbefore: plant_files=61 p2ctrl_files=7 (cycle 1) / 61, 0 (cycle 2)",
+     "fingerprint": "96044d9734b6044127dea24e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "python %TEMP%/adv0040/remove_verify.py",
+     "raw_output": "{\n \"before\": {\n  \"plant_files\": 61,\n  \"p2ctrl_files\": 0\n },\n \"check1_stat\": {\n  \"plant_dir_exists\": false,\n  \"p2ctrl_dir_exists\": false\n },\n \"check2_rescan\": {\n  \"exit\": 0,\n  \"stdout\": \"files_read=0 bytes=0 findings=0\",\n  \"files_read\": 0,\n  \"files_missing\": 61,\n  \"findings\": 0\n },\n \"check3_repo_grep\": [\n  {\n   \"token\": \"northwind-analytics\",\n   \"exit\": 1,\n   \"stdout\": \"\",\n   \"hit_lines\": 0\n  },\n  {\n   \"token\": \"mpopescu\",\n   \"exit\": 1,\n   \"stdout\": \"\",\n   \"hit_lines\": 0\n  }\n ],\n \"check3_detector_control\": {\n  \"token\": \"privacy-dataflow\",\n  \"exit\": 0,\n  \"stdout\": \"command-center/P14-MANIFEST-VERIFY.json:478:      \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5224:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5275:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5324:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5371:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5419:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5471:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5522:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5570:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.json:5622:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.premerge-fix-backup.json:4976:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.premerge-fix-backup.json:5027:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.premerge-fix-backup.json:5076:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.premerge-fix-backup.json:5123:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.premerge-fix-backup.json:5171:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-UNIT-CATALOG.premerge-fix-backup.json:5223:   \\\"output_schema\\\": \\\"command-center/schema/privacy-dataflow.schema.json\\\",\\ncommand-center/WORK-U\",\n  \"hit_lines\": 51\n },\n \"git_status_porcelain\": \"M command-center/READY-UNITS.json\\n M rules/common/single-signal-verification.md\\n?? command-center/_adv0031/\\n?? command-center/_d1_reverify_artifacts.err.txt\\n?? command-center/_d1_reverify_f345.err.txt\\n?? command-center/_d1_reverify_followup.err.txt\\n?? command-center/_d1_reverify_probes.err.txt\\n?? command-center/_p14_d1_rerun.json\\n?? command-center/_wave2_catalog_conf.json\\n?? command-center/adversarial/\\n?? command-center/build/\\n?? command-center/casualty/\\n?? command-center/grounding/\\n?? command-center/harvest/\\n?? command-center/p2-wave/\\n?? docs/monitor/\\n?? docs/workflow-sota/\\n?? platform/_d3_after_suite.txt\\n?? platform/_d3_baseline_suite.txt\\n?? platform/_d3_final_suite.txt\\n?? platform/architecture/_judge_refutation.py\\n?? platform/architecture/_judge_verify.py\\n?? platform/architecture/_judge_verify2.py\\n?? platform/architecture/_measure_cf.err.txt\\n?? platform/architecture/_measure_cf.out.json\\n?? platform/architecture/_measure_cf.py\\n?? platform/architecture/_measure_cf2.err.txt\\n?? platform/architecture/_measure_cf2.out.json\\n?? platform/architecture/_measure_cf2.py\\n?? platform/architecture/_mh_measure.err.txt\\n?? platform/architecture/_mh_measure.out.json\\n?? platform/architecture/_mh_measure.py\\n?? platform/architecture/_mh_measure2.out.json\\n?? platform/architecture/_mh_measure2.py\\n?? platform/architecture/_mh_measure3.out.json\\n?? platform/architecture/_mh_measure3.py\\n?? platform/architecture/_mh_measure4.out.json\\n?? platform/architecture/_mh_measure4.py\\n?? platform/architecture/_mh_measure5.out.json\\n?? platform/architecture/_mh_measure5.py\\n?? platform/architecture/_mh_measure6.out.json\\n?? platform/architecture/_mh_measure6.py\\n?? platform/architecture/_mh_probe_drift.out.json\\n?? platform/architecture/_mh_probe_drift.py\\n?? platform/architecture/_mkt_measure.py\\n?? platform/architecture/_mkt_measure2.py\\n?? platform/architecture/_mkt_measure3.py\\n?? platform/architecture/_mkt_measure4.py\\n?? platform/architecture/_mkt_measure5.py\\n?? platform/architecture/_mkt_measure6.py\\n?? platform/architecture/_mkt_measure7.py\\n?? platform/architecture/_probe_cf_catalog_defects.out.json\\n?? platform/architecture/_probe_cf_compound.out.json\\n?? platform/architecture/_probe_cf_reconcile.out.json\\n?? platform/architecture/_secfirst_measure.out.json\\n?? platform/architecture/_secfirst_measure.py\\n?? platform/architecture/_secfirst_measure2.out.json\\n?? platform/architecture/_secfirst_measure2.py\\n?? platform/architecture/_secfirst_measure3.out.json\\n?? platform/architecture/_secfirst_measure3.py\\n?? platform/architecture/_secfirst_probe_denydefault.out.json\\n?? platform/architecture/_secfirst_probe_denydefault.py\\n?? platform/architecture/_secfirst_selfaudit.out.json\\n?? platform/architecture/_secfirst_selfaudit.py\\n?? platform/architecture/_uxpf_consumption.py\\n?? platform/architecture/_uxpf_measure.py\\n?? platform/architecture/_uxpf_schemagap.py\\n?? platform/corpus/_normalize_lf.py\\n?? platform/council/_dump_schema_surface.py\\n?? platform/council/_readback.py\\n?? platform/council/_validate_protocols.py\\n?? platform/lib/_d1_insert_vendor_defs.py\\n?? platform/lib/_d1_mutation_proof.py\\n?? platform/lib/_d3_control_BROKEN-STATE.json\\n?? platform/lib/_d3_control_after.json\\n?? platform/lib/_d3_control_after.py\\n?? platform/lib/_d3_control_bothstates.py\\n?? platform/lib/_d3_measure_before.py\\n?? platform/lib/_d3_probe_paths.py\\n?? platform/lib/_d3_verify_failclosed.py\\n?? platform/lib/_d3_verify_outroot.py\\n?? platform/lib/_derive_size_floors.py\\n?? platform/lib/_p12_receipt_defect_census.py\\n?? platform/lib/_p12_refute_predicate.py\\n?? platform/lib/_p12_refute_predicate2.py\\n?? platform/lib/_p12_refute_substrate.py\\n?? platform/lib/_predicate_twin_differential.py\\n?? platform/lib/_spec_extract.py\\n?? platform/lib/foundry/_regen_forged.py\\n?? platform/lib/workflows/_bp1_distinctness.py\\n?? platform/lib/workflows/_bp1_fix_quotes.py\\n?? platform/lib/workflows/_bp1_probe.py\\n?? platform/lib/workflows/_bp1_reverify.py\\n?? platform/lib/workflows/_bp1_validate_all.py\\n?? platform/lib/workflows/_bp2_patch_arms_and_timeouts.py\\n?? platform/lib/workflows/_bp3_common.py\\n?? platform/lib/workflows/_bp3_one.json\\n?? platform/lib/workflows/_bp3_validation.json\\n?? platform/lib/workflows/_bp5_crv_a.py\\n?? platform/lib/workflows/_bp5_crv_b.py\\n?? platform/lib/workflows/_bp5_ids.py\\n?? platform/lib/workflows/_bp5_selfcheck.py\\n?? platform/lib/workflows/_bp5_terminal.py\\n?? platform/lib/workflows/_bp5_tst_a.py\\n?? platform/lib/workflows/_bp5_tst_b.py\\n?? platform/lib/workflows/_bp8_fix_substrate.py\\n?? platform/lib/workflows/_bp8b_card_coverage.py\\n?? platform/lib/workflows/_bp8b_dump.py\\n?? platform/lib/workflows/_bp8b_inventory.py\\n?? platform/lib/workflows/_bp8b_orphan_gates.py\\n?? platform/lib/workflows/_bp8b_validate_per_file.py\\n?? platform/lib/workflows/_d4_bothstates_real.py\\n?? platform/lib/workflows/_d4_measure.py\\n?? platform/lib/workflows/_d4_scope_probe.py\\n?? platform/lib/workflows/_p12_refute_distinctness.py\\n?? platform/lib/workflows/_p12_refute_semantic_overlap.py\\n?? platform/lib/workflows/_validate_blueprints.py\\n?? platform/lib/workflows/_verify_bp3.py\\n?? platform/routing/_p12_refute_supersede_direction.py\\n?? tools/measure-guard/tests/test_vendordrift.py\\n?? tools/measure-guard/vendordrift.py\"\n}",
+     "fingerprint": "e57388d1cf4790d521cdeb07",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CONFOUND, disclosed: the corpus MUTATED between the v1 and v2 sweeps because sibling agents write to this worktree concurrently (v1: files_read=9,834 bytes=126,232,016; v2: files_read=9,833 bytes=126,776,758). v1-vs-v2 category deltas are therefore NOT purely attributable to the instrument change, except for the three categories whose regexes were deliberately altered, where the delta direction was verified by reading the individual captures.",
+   "verdict": "PARTIAL",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#extensions.corpus_mutation",
+   "unverified": true,
+   "settling_experiment": "re-run v1 and v2 back-to-back against a frozen `git archive`-free clone pinned at one commit with no concurrent writers, and diff the two category tables.",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1_out.json --scan-paths",
+     "raw_output": "files_read=9834 bytes=126232016 findings=86526\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      3  (non-placeholder 3)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25569  (non-placeholder 25569)\n  HOME_PATH_NIX             10366  (non-placeholder 10366)\n  HOME_PATH_WIN             20764  (non-placeholder 20764)\n  HOME_PATH_WIN_FLAT         2935  (non-placeholder 2935)\n  IPV4                       1155  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24360  (non-placeholder 24360)\n  PERSON_NAME_LABELED          25  (non-placeholder 25)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS               56  (non-placeholder 56)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "b96a286c3e23cac17037b5cc",
+     "exit_code": 0
+    },
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python %TEMP%/adv0040/pii_sweep_v2.py --filelist combined_rel.txt --root C:/Users/Prekzursil --out probe1v2_out.json --scan-paths",
+     "raw_output": "files_read=9833 bytes=126776758 findings=87490\n  CREDIT_CARD                 100  (non-placeholder 100)\n  DOB_DATE                      4  (non-placeholder 4)\n  EMAIL                      1136  (non-placeholder 849)\n  GEO_COORD                     3  (non-placeholder 3)\n  GOV_ID_RO_CNP                11  (non-placeholder 11)\n  HIGH_ENTROPY_TOKEN        25938  (non-placeholder 25938)\n  HOME_PATH_NIX             10498  (non-placeholder 10498)\n  HOME_PATH_WIN             20907  (non-placeholder 20907)\n  HOME_PATH_WIN_FLAT         2936  (non-placeholder 2936)\n  IPV4                       1281  (non-placeholder 0)\n  MAC_ADDR                      3  (non-placeholder 3)\n  OWNER_HANDLE              24555  (non-placeholder 24555)\n  PERSON_NAME_LABELED          71  (non-placeholder 71)\n  PHONE_E164                   13  (non-placeholder 13)\n  PHONE_NANP                    9  (non-placeholder 9)\n  POSTAL_ADDRESS                7  (non-placeholder 7)\n  PRIVATE_URL_SHARE             3  (non-placeholder 3)\n  PRIVATE_URL_SIGNED           12  (non-placeholder 12)\n  PRIVATE_URL_TUNNEL            3  (non-placeholder 3)\n",
+     "fingerprint": "a2a4b631d556e2750aee9663",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "TST-1",
+   "name": "planted-PII recall reported as a number",
+   "command": "python %TEMP%/adv0040/analyze1.py",
+   "result": "PASS",
+   "assertions": 2,
+   "output_tail": "PLANTED=57 DETECTED=51 RECALL=0.8947 (89.47%) for the as-specified instrument; 57/57 = 100.00% for the v2 instrument. A number is reported for both, so no zero-findings reading is offered without a recall figure."
+  },
+  {
+   "id": "TST-2",
+   "name": "planted PII synthetic, removed, removal verified",
+   "command": "python %TEMP%/adv0040/remove_verify.py",
+   "result": "PASS",
+   "assertions": 5,
+   "output_tail": "plant_dir_exists=false; p2ctrl_dir_exists=false; rescan files_read=0 files_missing=61 findings=0; repo grep for 'northwind-analytics'=0 and 'mpopescu'=0 with a live-detector control returning 51 hits. All planted values were synthetic (documented Visa test PAN, invented .ro domain, invented Romanian names/CNP)."
+  },
+  {
+   "id": "TST-3",
+   "name": "receipt validates against the declared output_schema",
+   "command": "python platform/lib/receipt_schema_gate.py command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json --repo-root . --fragment generic_report --json",
+   "result": "PASS",
+   "assertions": 1,
+   "output_tail": "REPLACED_BY_VALIDATOR_RUN"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-P1-PLANT-FIRES",
+   "kind": "known-broken-fixture",
+   "description": "57 synthetic PII items of 19 categories planted in md/json/jsonl carriers and swept in the SAME invocation as the corpus. Bad state = the planted files; good state = 4 clean decoy files in the same directory, same invocation.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "v1: 51/57 detected (89.47%). v2: 57/57 detected (100%).",
+   "good_state_output": "v1 clean-decoy findings: 0.  v2 clean-decoy findings: 0."
+  },
+  {
+   "id": "NC-P1-NEARMISS-EXCLUSION",
+   "kind": "malformed-input",
+   "description": "Near-miss decoy carrying a 40-hex git oid, a 64-hex sha256, a uuid, two semver strings and a short token - shapes the entropy sweep must NOT report as personal data.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "the same entropy sweep DID fire on the planted opaque session token sess_<32 chars> (HIGH_ENTROPY_TOKEN, 3/3 in v1 and v2), so the exclusion list is not simply disabling the detector",
+   "good_state_output": "0 findings on clean_nearmiss.md in both v1 and v2"
+  },
+  {
+   "id": "NC-P2-OCR",
+   "kind": "known-broken-fixture",
+   "description": "Bad = a 1100x340 PNG with synthetic email/phone/home-path/name RENDERED AS PIXELS. Good = a flat-colour PNG of the same size.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "ocr_chars=146, categories fired = ['EMAIL','HOME_PATH_WIN','PERSON_NAME_LABELED','PHONE_E164']; OCR text read back as 'Contact card - internal / Email: m***@n***.ro / Phone: +40 *** *** / Home: C:\\Users\\m*** / owner: M*** P***' (synthetic values masked here per this unit's own values-redacted contract)",
+   "good_state_output": "ocr_chars=0, faces=0, metadata_keys=0, findings=0"
+  },
+  {
+   "id": "NC-P2-METADATA",
+   "kind": "known-broken-fixture",
+   "description": "Bad = a 64x64 PNG whose tEXt chunks carry a synthetic Author name, e-mail and phone. Good = byte-identical pixels with no text chunks.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "metadata_keys=3, categories fired = ['EMAIL','PERSON_NAME_LABELED','PHONE_E164'] from Author=/Comment=/Software= (synthetic values masked)",
+   "good_state_output": "metadata_keys=0, image-metadata findings=0"
+  },
+  {
+   "id": "NC-P2-FACE",
+   "kind": "known-broken-fixture",
+   "description": "Bad = skimage.data.astronaut(), a photograph of a real human face. Good = 512x512 uniform random noise. Detector = OpenCV haarcascade_frontalface_default.xml.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "faces=1, FACE_IN_IMAGE finding emitted",
+   "good_state_output": "faces=0, no FACE_IN_IMAGE finding"
+  },
+  {
+   "id": "NC-VERIFIER-GITGREP",
+   "kind": "absent-input",
+   "description": "The git-grep verifier must be proved live before any of its zeroes count. Bad state = a token known present (@example.com); good state = a token known absent (Zzqx-Absent-Token-ADV0040).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "@example.com -> exit 0, 105 files, 196 matching lines",
+   "good_state_output": "Zzqx-Absent-Token-ADV0040 -> exit 1, 0 files, 0 lines"
+  },
+  {
+   "id": "NC-REMOVAL-CANARY",
+   "kind": "absent-input",
+   "description": "The post-removal leak check must be proved live. Bad state = the token 'privacy-dataflow', known present in the repo; good state = the two planted canaries after removal.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "privacy-dataflow -> exit 0, 51 hit lines",
+   "good_state_output": "northwind-analytics -> exit 1, 0 hits;  mpopescu -> exit 1, 0 hits"
+  },
+  {
+   "id": "NC-P1-BLIND-TO-PIXELS",
+   "kind": "adversarial-payload",
+   "description": "Both-states proof that the TEXT sweep is structurally blind to a screenshot: run PROBE 1 against ralph-task.gif (bad state - it provably contains a username as pixels) and against the same username's plain-text carriers (good state for the detector).",
+   "fired_on_bad_state": false,
+   "silent_on_good_state": true,
+   "bad_state_output": "PROBE 1 findings for the GIF = 0; file counted in files_binary_skipped=71; b'mobrienv' in raw bytes = False. fired_on_bad_state is deliberately FALSE - this control exists to PROVE the text detector cannot fire here, which is the unit's premise, not to show that it can.",
+   "good_state_output": "git grep -I -F -l mobrienv -> 2 tracked plain-text files, so the text channel is not globally blind, only file-blind"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "<none - cross-vendor refuter unavailable>",
+  "verdict": "NOT-REVIEWED",
+  "independent": false,
+  "fresh_context": false,
+  "notes": "The unit requires ONE cross-vendor openai/Codex refuter who re-derives the counterexample from the raw artifacts and NOT from this report; it states explicitly that a same-vendor reviewer does not satisfy the requirement, so no Anthropic substitute was sought. Two dispatch attempts were made through the mounted codex MCP and both failed, by MECHANICALLY DIFFERENT modes: attempt 1 (full refuter brief, sandbox=read-only, approval=never) returned 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register'; attempt 2 (a bare liveness ping, no config overrides) returned 'MCP server codex tool codex timed out after 600s'. Both are auth/transport failures on the OpenAI side. Under AGENTS.md Sec.9 credential lifecycle belongs to the owner, so no repair was attempted. The refuter brief that was prepared is preserved verbatim in extensions.prepared_refuter_brief so the review can be run unchanged once the rail is healthy."
+ },
+ "defects": [
+  {
+   "id": "ADV0040-D1",
+   "severity": "P1",
+   "status": "open",
+   "summary": "CORPUS DEFECT F2/F3/F4: personal data of real natural persons - including four third parties who are not the owner - is present in tracked, publishable files. This receipt is attached as OPEN because the corpus is NOT safe to publish until these are remediated; this unit is read-only and did not edit them."
+  },
+  {
+   "id": "ADV0040-D2",
+   "severity": "P2",
+   "status": "open",
+   "summary": "INSTRUMENT DEFECT: the v2 instrument raised planted recall to 100% but REGRESSED coverage - it dropped the bare `name:` label to kill v1's false-positive storm, and thereby stopped capturing the one labelled-name shape v1 did capture (a sample-persona profile). v2 does NOT dominate v1; the two have different blind spots and a production sweep should run the union."
+  },
+  {
+   "id": "ADV0040-D3",
+   "severity": "P3",
+   "status": "open",
+   "summary": "ANALYSIS DEFECT, self-caught and withdrawn: the per-username occurrence counts in usernames.json are quadratically inflated (the script re-scans a whole matched line once per finding on that line, so a line with k matches contributes k^2). Only the SET-derived numbers from that script are cited here - 111 distinct usernames and the distinct-file counts 821 owner / 113 other / 51 placeholder. The occurrence totals quoted in this receipt come from the findings list directly, which does not double count."
+  }
+ ],
+ "manifest_registration": {
+  "registered": false,
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0040"
+ },
+ "downstream_consumers": [],
+ "timestamps": {
+  "started_at": "2026-08-11T22:12:22Z",
+  "ended_at": "2026-08-12T03:33:47Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "attempts": [
+   {
+    "attempt": 1,
+    "outcome": "SUCCESS",
+    "error_fingerprint": "none - PROBE 1 and PROBE 2 both completed first try"
+   }
+  ]
+ },
+ "failure": {
+  "classification": [
+   "blocked-on-independent-review",
+   "privacy-leak"
+  ],
+  "reason": "state=BLOCKED while sentinel=SUCCESS: these are two DIFFERENT contracts and both readings are literal. The unit's completion_sentinel enumerates six conditions - artifact exists, non-empty, parses against output_schema, both named probes recorded verbatim with raw output, exactly one verdict per enumerated target, every listed control recorded - and all six are met. The receipt-level completion predicate is a superset: condition 9 requires an INDEPENDENT reviewer with verdict PASS, and this unit's reviewer_requirement names a cross-vendor openai/Codex refuter specifically. That reviewer could not run (two different failure modes, both credential/transport, not repairable without touching a credential). Condition 11 is also unmet: command-center/ARTIFACT-MANIFEST.json does not contain an ADV-0040 entry, measured, and registering it would mean editing a shared file this unit is forbidden to touch. Declaring SUCCESS with neither condition met would be exactly the self-certification the predicate exists to prevent.",
+  "blocked_on": "(1) the mandatory cross-vendor openai/Codex refuter; (2) registration of this artifact in command-center/ARTIFACT-MANIFEST.json by the orchestrator, which owns that shared file"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "UNVERIFIED: names appearing in RUNNING PROSE rather than after a label were never measured. The labelled-name regex is the only name channel and it captured zero real names.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "run spaCy en_core_web_trf PERSON extraction over the 4,779 markdown files and diff against the 34 regex captures"
+  },
+  {
+   "claim": "UNVERIFIED: non-frontal, occluded, small or stylised faces. The Haar frontal cascade returned 0/68 with a working control, but its recall on profile faces is known to be poor.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "re-run the 68 images through RetinaFace or MTCNN and compare"
+  },
+  {
+   "claim": "NOT-CHECKED: 71 files were skipped by PROBE 1 as binary and only the 68 raster images among them were covered by PROBE 2. The remaining binary files (and any embedded office/zip containers) were never opened by either channel.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "enumerate the 71 binary-skipped paths, classify by magic bytes, and route each container type to an extractor (zipfile for ooxml, strings for the rest)"
+  },
+  {
+   "claim": "NOT-CHECKED: only 280 of the 707 GIF frames were OCR'd (a stride of 2 and 3 respectively). A PII string visible for fewer than 3 consecutive frames could be missed.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "re-run PROBE 2b with step=1 over all 707 frames"
+  },
+  {
+   "claim": "NOT-CHECKED: the corpus was scoped to this worktree. The unit's input list names 'the estate's own corpus history (transcripts and message archives)' as the high-risk area; the estate-wide session transcript store under ~/.claude/projects is OUTSIDE this repo and was NOT swept.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "re-run pii_sweep.py with --root C:/Users/Prekzursil/.claude over the projects/ transcript tree, which is a strictly larger and higher-risk corpus than this repo"
+  },
+  {
+   "claim": "NOT-CHECKED: whether the third parties named in F2/F3 consented. This unit reports presence only and makes no legal determination.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "owner decision - out of scope for an automated sweep"
+  }
+ ],
+ "report": {
+  "kind": "privacy-dataflow",
+  "question": "Does the corpus contain personal data - names, email addresses, phone numbers, home paths, private URLs, faces in screenshots - and what is the sweep's measured recall against planted PII?",
+  "answer": "YES, and the exposure is real but concentrated. Measured recall of the as-specified instrument is 89.47% (51/57 planted items, 19 categories); a v2 instrument closing the two measured blind spots reaches 100% (57/57) without over-firing (0 findings on clean decoys in both). Across 9,844 publishable paths: home paths and the owner handle are the dominant exposure at 58,884 occurrences in 1,231 files; 7 personal mailboxes of real natural persons are present, 4 of them THIRD PARTIES, in a tracked browser-account inventory; one named individual's corporate address is hardcoded as a workspace path in 18 files; and one code comment carries a real phone number, birth date and affiliation together. Private URLs: none live. Faces: none frontal in 68 images. The non-text channel earned its place - a vendored demo GIF renders a third-party username that exists nowhere in the file as bytes, so the text sweep returned 0 for it. Counter-warning: the raw category counts are false-positive dominated (CREDIT_CARD 97/97 FP, PERSON_NAME_LABELED 34/34 FP) and must not be quoted as an exposure figure.",
+  "control_ids": [
+   "NC-P1-PLANT-FIRES",
+   "NC-P1-NEARMISS-EXCLUSION",
+   "NC-P2-OCR",
+   "NC-P2-METADATA",
+   "NC-P2-FACE",
+   "NC-VERIFIER-GITGREP",
+   "NC-REMOVAL-CANARY",
+   "NC-P1-BLIND-TO-PIXELS"
+  ],
+  "observations": [
+   {
+    "name": "corpus_scope_paths",
+    "measured": 9844,
+    "method": "git ls-files UNION git ls-files --others --exclude-standard",
+    "anchor": "HEAD 4b33634780cca43f7c2bc9d9364a4a7885c85707"
+   },
+   {
+    "name": "text_files_read_v2",
+    "measured": 9833,
+    "method": "PROBE 1 v2 utf-8 decode + regex/entropy",
+    "anchor": "probe1v2_console.txt"
+   },
+   {
+    "name": "bytes_scanned_v2",
+    "measured": 126776758,
+    "method": "PROBE 1 v2",
+    "anchor": "probe1v2_console.txt"
+   },
+   {
+    "name": "files_binary_skipped_v1",
+    "measured": 71,
+    "method": "NUL-byte test in first 8 KiB",
+    "anchor": "probe1_out.json#stats"
+   },
+   {
+    "name": "planted_recall_v1_as_specified",
+    "measured": 0.8947,
+    "method": "57 planted items, 19 categories, same invocation as corpus",
+    "anchor": "analysis1_console.txt"
+   },
+   {
+    "name": "planted_recall_v2_blindspots_closed",
+    "measured": 1.0,
+    "method": "same planted manifest, v2 instrument",
+    "anchor": "probe1v2_console.txt"
+   },
+   {
+    "name": "clean_decoy_findings_v1_and_v2",
+    "measured": 0,
+    "method": "4 clean decoy files swept in the same invocation",
+    "anchor": "analysis1.json#clean_decoy_finding_count"
+   },
+   {
+    "name": "owner_identifier_occurrences",
+    "measured": 58884,
+    "method": "PROBE 1 v2 OWNER_HANDLE + HOME_PATH_WIN + HOME_PATH_NIX + flat form",
+    "anchor": "final_numbers.json#owner_identifier_total_occurrences"
+   },
+   {
+    "name": "owner_identifier_distinct_files",
+    "measured": 1231,
+    "method": "PROBE 1 v2, set of distinct paths",
+    "anchor": "final_numbers.json#owner_identifier_total_distinct_files"
+   },
+   {
+    "name": "distinct_usernames_in_home_path_position",
+    "measured": 111,
+    "method": "re-extraction of the username capture group",
+    "anchor": "usernames.json"
+   },
+   {
+    "name": "personal_mailboxes_real_persons",
+    "measured": 7,
+    "method": "EMAIL channel + manual bucket triage",
+    "anchor": "final_numbers.json#email_buckets"
+   },
+   {
+    "name": "distinct_email_strings",
+    "measured": 269,
+    "method": "EMAIL channel",
+    "anchor": "final_numbers.json#distinct_email_strings"
+   },
+   {
+    "name": "email_strings_that_are_markdown_anchors_not_emails",
+    "measured": 146,
+    "method": "domain ends in a source-file extension",
+    "anchor": "final_numbers.json#email_buckets"
+   },
+   {
+    "name": "real_phone_numbers",
+    "measured": 1,
+    "method": "PHONE_E164 + manual triage of all 22 phone hits",
+    "anchor": "hooks/profile-capture/capture.py:79"
+   },
+   {
+    "name": "real_dates_of_birth",
+    "measured": 1,
+    "method": "DOB_DATE v2 (spelled-out month)",
+    "anchor": "hooks/profile-capture/capture.py:79"
+   },
+   {
+    "name": "images_analysed",
+    "measured": 68,
+    "method": "PROBE 2 tesseract OCR + PIL metadata + Haar",
+    "anchor": "probe2_console.txt"
+   },
+   {
+    "name": "images_with_faces",
+    "measured": 0,
+    "method": "OpenCV haarcascade_frontalface_default",
+    "anchor": "analysis2.json"
+   },
+   {
+    "name": "image_pii_findings",
+    "measured": 0,
+    "method": "PROBE 2 over 68 tracked raster images",
+    "anchor": "analysis2.json"
+   },
+   {
+    "name": "gif_frames_ocred",
+    "measured": 280,
+    "method": "PROBE 2b per-frame OCR (132 of 264 + 148 of 443)",
+    "anchor": "probe2b_out.json"
+   },
+   {
+    "name": "pixel_only_username_files",
+    "measured": 1,
+    "method": "PROBE 2b OCR + byte-absence test",
+    "anchor": "ralph-task.gif#frame162"
+   },
+   {
+    "name": "false_positive_dominated_categories",
+    "measured": "CREDIT_CARD 97/97 FP (epoch-ms, hex checksums, digit runs in URLs), GOV_ID_RO_CNP 8/8 FP, POSTAL_ADDRESS 55/55 FP under v1 (4/4 placeholder under v2), PERSON_NAME_LABELED 34/34 distinct FP, IPV4 0 non-placeholder",
+    "method": "manual read-back of every distinct match",
+    "anchor": "triage_context.txt"
+   }
+  ],
+  "corpus_scope": "git ls-files UNION git ls-files --others --exclude-standard at HEAD 4b33634780cca43f7c2bc9d9364a4a7885c85707 = 9,844 paths (9,633 tracked + 211 untracked-not-ignored): the set that could be published or shared.",
+  "recall": {
+   "planted_items": 57,
+   "planted_categories": 19,
+   "carriers_per_category": [
+    "md",
+    "json",
+    "jsonl"
+   ],
+   "v1_as_specified": {
+    "detected": 51,
+    "recall": 0.8947,
+    "zero_categories": [
+     "PERSON_NAME_LABELED",
+     "POSTAL_ADDRESS"
+    ]
+   },
+   "v2_blindspots_closed": {
+    "detected": 57,
+    "recall": 1.0,
+    "zero_categories": []
+   },
+   "clean_decoy_findings": {
+    "v1": 0,
+    "v2": 0
+   },
+   "named_blind_spots": [
+    "v1 PERSON_NAME_LABELED was anchored to line start/end, so a label appearing mid-line was invisible",
+    "v1 POSTAL_ADDRESS assumed Anglo word order (<number> <Name> Street) and could not see the Romanian form (Strada <Name> <number>)",
+    "v1 DOB_DATE was numeric-only and could not see a spelled-out month - a gap exposed by a REAL corpus line, not by the plant"
+   ]
+  },
+  "findings": [
+   {
+    "id": "F1",
+    "severity": "P2",
+    "category": "owner-identifier-volume",
+    "summary": "The owner's Windows account name is embedded 58,884 times across 1,231 publishable files as C:\\Users\\<name>, /home/<name>, C--Users-<name> and as a bare handle. Individually low-sensitivity, but at this density it is an unavoidable, machine-linkable identifier in anything shipped.",
+    "example_anchors": [
+     "hooks/recall-inject/index/recall_index.json",
+     "harness-sota-2026-07-18-corpus/*.md",
+     "docs/audit-design-2026-07-13/B-doc-clustermap.md"
+    ]
+   },
+   {
+    "id": "F2",
+    "severity": "P1",
+    "category": "third-party-personal-data",
+    "summary": "An account inventory in a TRACKED skill reference enumerates 7 personal mailboxes of real natural persons - 3 owner-linked and 4 belonging to OTHER individuals who did not consent to publication - as a list of signed-in browser accounts. Duplicated across both the .agents/skills and skills trees, so 4 tracked files carry it. The owner-linked address also leaks into docs/SETUP-GUIDE.md, three docs/drug-discovery guides, hooks/recall-inject/index/recall_index.json and two tools/crcp reports.",
+    "example_anchors": [
+     ".agents/skills/cookie-bridge/references/RUNBOOK-cookie-bridge-databricks-2026-07-24.md",
+     ".agents/skills/cookie-bridge/references/RUNBOOK-cookie-bridge-databricks-2026-07-24-ADDENDUM.md",
+     "skills/cookie-bridge/references/RUNBOOK-cookie-bridge-databricks-2026-07-24.md",
+     "docs/SETUP-GUIDE.md",
+     "hooks/recall-inject/index/recall_index.json"
+    ]
+   },
+   {
+    "id": "F3",
+    "severity": "P1",
+    "category": "third-party-personal-data",
+    "summary": "A named individual's corporate e-mail address at a real employer domain is HARDCODED as a Databricks workspace path in a tracked script and repeated in its SKILL.md, 25 occurrences across 18 files. It discloses a person's full name, employer and internal workspace layout together.",
+    "example_anchors": [
+     ".agents/skills/codex-databricks-fanout/scripts/harness/contract.py",
+     ".agents/skills/codex-databricks-fanout/SKILL.md",
+     "skills/codex-databricks-fanout/scripts/harness/contract.py"
+    ]
+   },
+   {
+    "id": "F4",
+    "severity": "P1",
+    "category": "special-category-personal-data",
+    "summary": "hooks/profile-capture/capture.py:79 quotes verbatim, in a code comment, a real person's phone number, date of birth and academic affiliation as example input - inside the very hook written to detect personal data. Phone + DOB + affiliation together is a re-identification set, not three separate low-risk items.",
+    "example_anchors": [
+     "hooks/profile-capture/capture.py:79"
+    ]
+   },
+   {
+    "id": "F5",
+    "severity": "P3",
+    "category": "third-party-username-in-pixels",
+    "summary": "A vendored upstream demo GIF renders a third-party developer's UNIX home path (username visible in frames 162-174). Present ONLY as pixels in that file. The same username is separately present as plain text in two tracked rust-analyzer build-artifact files that should not have been committed upstream at all.",
+    "example_anchors": [
+     "tools/editor/ralph-orchestrator/vendor/docs/demos/ralph-task.gif",
+     "tools/editor/ralph-orchestrator/vendor/tools/e2e/target/rust-analyzer/flycheck0/stdout"
+    ]
+   },
+   {
+    "id": "F6",
+    "severity": "INFO",
+    "category": "detector-precision",
+    "summary": "Raw category counts are false-positive dominated and must never be quoted as an exposure figure: CREDIT_CARD 97/97 FP (Luhn alone does not discriminate epoch-ms timestamps or hex digest substrings), GOV_ID_RO_CNP 8/8 FP, v1 POSTAL_ADDRESS 55/55 FP, PERSON_NAME_LABELED 34/34 distinct FP, IPV4 0/1281 non-placeholder, HIGH_ENTROPY_TOKEN 7,903 distinct values that are overwhelmingly lockfile digests.",
+    "example_anchors": [
+     "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json#report.observations"
+    ]
+   }
+  ],
+  "channel_coverage": {
+   "text_content": {
+    "files_read": 9833,
+    "bytes": 126776758
+   },
+   "file_paths": "scanned as a separate channel (--scan-paths); 28 path-channel hits",
+   "binary_skipped_by_text_sweep": 71,
+   "images_ocr_metadata_face": 68,
+   "gif_frames_ocred": 280,
+   "pdfs_in_corpus": 0
+  }
+ },
+ "extensions": {
+  "COVERAGE": "COMPLETE for the two contracted probes, their controls and the recall calibration. INCOMPLETE and disclosed: prose-name NER, non-frontal faces, the 71 binary-skipped files beyond the 68 images, 427 of 707 GIF frames, and the estate-wide transcript store outside this repo. NOT REVIEWED: the mandatory cross-vendor refuter did not run.",
+  "sha256_convention": "artifacts[0].sha256 is the SHA-256 over these exact bytes with the value of that field replaced by 64 '0' characters. Self-reference makes a literal self-hash unreachable; this convention is exactly reproducible and matches the convention already used by ADV-0020 and ADV-0036.",
+  "corpus_mutation": "The worktree is being written concurrently by sibling agents. PROBE 1 v1 read 9,834 files / 126,232,016 bytes; the v2 run 22 minutes later read 9,833 files / 126,776,758 bytes. Category deltas between the two runs are therefore only attributable to the instrument for the three categories whose regexes were deliberately changed, and each of those deltas was confirmed by reading the individual captures.",
+  "values_redacted": "No personal value appears in this artifact. Every match is carried as (path, line, category) plus a length and a 12-hex SHA-256 prefix, which lets a reviewer holding the same corpus re-derive the exact string without this file carrying it. Synthetic control values are masked for the same reason even though they are invented.",
+  "instrument_paths": "Scratch only, under %TEMP%/adv0040/: pii_sweep.py (PROBE 1 v1), pii_sweep_v2.py (v2), probe2_nontext.py (PROBE 2), probe2b_gif_frames.py (PROBE 2b), plant.py, make_controls_p2.py, remove_verify.py, verifier_probes.py, analyze1.py, analyze2.py, final_numbers.py, usernames.py. Nothing was written inside the repository except this receipt.",
+  "prepared_refuter_brief": "Do NOT read this receipt. Re-derive from the raw artifacts. (C1) the cookie-bridge RUNBOOK + ADDENDUM and their duplicates under skills/ list real personal mailboxes of MULTIPLE DISTINCT natural persons as a browser-account inventory. (C2) codex-databricks-fanout/scripts/harness/contract.py hardcodes a named individual's corporate address as a workspace path. (C3) hooks/profile-capture/capture.py comments quote a real phone number, birth date and affiliation. (C4) ralph-task.gif shows a UNIX home path whose username is NOT present as literal bytes in that file - OCR frames 160-175. (C5) the largest exposure by volume is the owner's Windows account name in home paths, tens of thousands of occurrences. Mask every personal value. Report any category these five claims MISS. End with REFUTER-VERDICT: PASS or CHANGES-REQUESTED."
+ }
+}

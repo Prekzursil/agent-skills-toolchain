@@ -1,0 +1,661 @@
+{
+ "schema_version": 1,
+ "unit_id": "ADV-0014",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:ADV-0014 measurement COMPLETE and citable; completion predicate unmet - no independent cross-vendor reviewer was run (reviewer_requirement) and the artifact manifest is a shared file this unit is forbidden to edit",
+ "spec_anchor": "_USER-PROMPTS.md:11048, 10685-10686",
+ "min_bytes_threshold": 8192,
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "claude-opus-5[1m]",
+  "role": "adversarial-refuter",
+  "execution_substrate": "local-serialized"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0014-vendor-cli-surface-drift.json",
+   "bytes": 98999,
+   "sha256": "3d9ad9671ab57a7b21adf1d811894652c75c8da0b5463ece372667c78a0f34d4",
+   "exists": true,
+   "role": "primary",
+   "eol": "LF"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-11T00:00:00Z",
+  "ended_at": "2026-08-11T00:00:00Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b). No hypothesis failed twice: the help-text detector failed ONCE (git dash-stripped diagnostic) and the revision-probe control failed ONCE (unrecognized-vs-unknown wording); each was corrected on first strike and re-run, and the third probe (revision echo/interpret) was a deliberate pivot away from the arg-parser hypothesis for the 10 rows where its own control refused."
+ },
+ "failure": {
+  "classification": [
+   "review-gate-unmet: reviewer_requirement demands a cross-vendor Anthropic (opus) refuter re-deriving from the raw artifact; none was run by this unit",
+   "manifest-registration-out-of-scope: command-center/ARTIFACT-MANIFEST.json is a shared file and this unit's hard constraints forbid editing it"
+  ],
+  "reason": "All measurement is COMPLETE. Probe 1 (source-extracted invocation surface vs today's --help, flag-by-flag) and Probe 2 (MCP identifier vs today's LIVE tool schema) both ran with passing both-states detector controls, and every enumerated target carries exactly one verdict. The state is BLOCKED, not SUCCESS, only because the schema's SUCCESS branch additionally requires an independent reviewer PASS and manifest_registration.registered=true, neither of which this unit may self-certify or perform. The findings below are citable; the unit-completion predicate is not satisfied."
+ },
+ "evidence": [
+  {
+   "claim": "The invocation surface was extracted from SOURCE (2,274 ast-parsed .py files, .mjs/.js/.ts array+spawn literals, and command-position-anchored .sh/.ps1/.yml), never from documentation: 161 distinct flags across the 8 target binaries and 156 distinct mcp__<server>__<tool> identifiers across 44 server namespaces.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "adv0014_extract3.py stats: {\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_help.py  ->  <bin> --version ; <bin> --help ; <bin> <sub> --help (git: <bin> --no-pager <sub> -h) for all 8 binaries, then word-boundary flag diff",
+     "raw_output": "$ python adv0014_help.py <surface.json> <help.json>\nclaude: version_exit=0 help_len=16887 subs=11\ncodex: version_exit=0 help_len=5545 subs=30\ngh: version_exit=0 help_len=2478 subs=14\ngit: version_exit=0 help_len=2248 subs=71\nuv: version_exit=0 help_len=2880 subs=4\nnode: version_exit=0 help_len=24651 subs=13\ndocker: version_exit=0 help_len=4616 subs=8\nwsl: version_exit=0 help_len=6958 subs=9\n\nVERSIONS MEASURED TODAY (`<bin> --version`, exit 0 for all 8):\n  claude   2.1.225 (Claude Code)                                          exe=C:\\Users\\Prekzursil\\.local\\bin\\claude.exe\n  codex    codex-cli 0.145.0                                              exe=C:\\Users\\Prekzursil\\AppData\\Roaming\\npm\\codex.cmd\n  gh       gh version 2.74.2 (2025-06-18)                                 exe=C:\\Program Files\\GitHub CLI\\gh.exe\n  git      git version 2.52.0.windows.1                                   exe=C:\\Program Files\\Git\\mingw64\\bin\\git.exe\n  uv       uv 0.10.4 (079e3fd05 2026-02-17)                               exe=C:\\Users\\Prekzursil\\.local\\bin\\uv.exe\n  node     v24.16.0                                                       exe=C:\\Program Files\\nodejs\\node.exe\n  docker   Docker version 29.6.2, build dfc4efb                           exe=C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\n  wsl      WSL version: 2.7.10.0                                          exe=C:\\Windows\\System32\\wsl.exe\n\nFLAG-BY-FLAG DIFF vs TODAY's HELP CORPUS (top-level --help + every source-issued\nsubcommand's help; `git <sub> -h` NOT `--help`, which launches a BROWSER on\nGit-for-Windows):\n  claude   version=2.1.225 (Claude Code)                      corpus=156938B flags_checked=  7 absent_from_help=  4 ['--json', '--scope', '--sparse', '-s']\n  codex    version=codex-cli 0.145.0                          corpus=156606B flags_checked= 20 absent_from_help=  3 ['--background', '--ignore-user-configuration', '--prompt-file']\n  gh       version=gh version 2.74.2 (2025-06-18)             corpus= 19701B flags_checked= 22 absent_from_help= 13 ['--auto', '--base', '--body', '--branch', '--head', '--json', '--limit', '--log-failed']\n  git      version=git version 2.52.0.windows.1               corpus= 65063B flags_checked= 87 absent_from_help= 29 ['--abbrev-ref', '--config', '--depth', '--force', '--force-with-lease', '--get', '--get-regexp', '--git-common-dir']\n  uv       version=uv 0.10.4 (079e3fd05 2026-02-17)           corpus= 27045B flags_checked=  1 absent_from_help=  0 []\n  node     version=v24.16.0                                   corpus= 34812B flags_checked=  8 absent_from_help=  4 ['--claude', '--out', '--sync', '--timeout']\n  docker   version=Docker version 29.6.2, build dfc4efb       corpus= 31349B flags_checked=  5 absent_from_help=  1 ['--build']\n  wsl      version=WSL version: 2.7.10.0                      corpus= 20472B flags_checked= 11 absent_from_help=  3 ['--detached', '--no-browser', '-lc']\n\nDETECTOR CONTROL (executed BEFORE any real result was accepted):\n  claude   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  codex    valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  gh       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  git      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  uv       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  node     valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  docker   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  wsl      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\nCONTROL VERDICT: PASS  (8/8 binaries)",
+     "fingerprint": "da68091d8200d20384a570cc8d5afa4f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "All 8 vendor binaries the program depends on are installed and answer --version with exit 0 today: claude 2.1.225, codex-cli 0.145.0, gh 2.74.2, git 2.52.0.windows.1, uv 0.10.4, node v24.16.0, Docker 29.6.2, WSL 2.7.10.0.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "adv0014_help.py resolved_exe + version block, all eight exit=0",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_help.py  ->  <bin> --version ; <bin> --help ; <bin> <sub> --help (git: <bin> --no-pager <sub> -h) for all 8 binaries, then word-boundary flag diff",
+     "raw_output": "$ python adv0014_help.py <surface.json> <help.json>\nclaude: version_exit=0 help_len=16887 subs=11\ncodex: version_exit=0 help_len=5545 subs=30\ngh: version_exit=0 help_len=2478 subs=14\ngit: version_exit=0 help_len=2248 subs=71\nuv: version_exit=0 help_len=2880 subs=4\nnode: version_exit=0 help_len=24651 subs=13\ndocker: version_exit=0 help_len=4616 subs=8\nwsl: version_exit=0 help_len=6958 subs=9\n\nVERSIONS MEASURED TODAY (`<bin> --version`, exit 0 for all 8):\n  claude   2.1.225 (Claude Code)                                          exe=C:\\Users\\Prekzursil\\.local\\bin\\claude.exe\n  codex    codex-cli 0.145.0                                              exe=C:\\Users\\Prekzursil\\AppData\\Roaming\\npm\\codex.cmd\n  gh       gh version 2.74.2 (2025-06-18)                                 exe=C:\\Program Files\\GitHub CLI\\gh.exe\n  git      git version 2.52.0.windows.1                                   exe=C:\\Program Files\\Git\\mingw64\\bin\\git.exe\n  uv       uv 0.10.4 (079e3fd05 2026-02-17)                               exe=C:\\Users\\Prekzursil\\.local\\bin\\uv.exe\n  node     v24.16.0                                                       exe=C:\\Program Files\\nodejs\\node.exe\n  docker   Docker version 29.6.2, build dfc4efb                           exe=C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\n  wsl      WSL version: 2.7.10.0                                          exe=C:\\Windows\\System32\\wsl.exe\n\nFLAG-BY-FLAG DIFF vs TODAY's HELP CORPUS (top-level --help + every source-issued\nsubcommand's help; `git <sub> -h` NOT `--help`, which launches a BROWSER on\nGit-for-Windows):\n  claude   version=2.1.225 (Claude Code)                      corpus=156938B flags_checked=  7 absent_from_help=  4 ['--json', '--scope', '--sparse', '-s']\n  codex    version=codex-cli 0.145.0                          corpus=156606B flags_checked= 20 absent_from_help=  3 ['--background', '--ignore-user-configuration', '--prompt-file']\n  gh       version=gh version 2.74.2 (2025-06-18)             corpus= 19701B flags_checked= 22 absent_from_help= 13 ['--auto', '--base', '--body', '--branch', '--head', '--json', '--limit', '--log-failed']\n  git      version=git version 2.52.0.windows.1               corpus= 65063B flags_checked= 87 absent_from_help= 29 ['--abbrev-ref', '--config', '--depth', '--force', '--force-with-lease', '--get', '--get-regexp', '--git-common-dir']\n  uv       version=uv 0.10.4 (079e3fd05 2026-02-17)           corpus= 27045B flags_checked=  1 absent_from_help=  0 []\n  node     version=v24.16.0                                   corpus= 34812B flags_checked=  8 absent_from_help=  4 ['--claude', '--out', '--sync', '--timeout']\n  docker   version=Docker version 29.6.2, build dfc4efb       corpus= 31349B flags_checked=  5 absent_from_help=  1 ['--build']\n  wsl      version=WSL version: 2.7.10.0                      corpus= 20472B flags_checked= 11 absent_from_help=  3 ['--detached', '--no-browser', '-lc']\n\nDETECTOR CONTROL (executed BEFORE any real result was accepted):\n  claude   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  codex    valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  gh       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  git      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  uv       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  node     valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  docker   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  wsl      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\nCONTROL VERDICT: PASS  (8/8 binaries)",
+     "fingerprint": "da68091d8200d20384a570cc8d5afa4f",
+     "exit_code": 0
+    },
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REFUTED PREMISE: `--prompt-file` is NOT a flag of the codex CLI. The live parser (codex-cli 0.145.0) rejects it with `error: unexpected argument '--prompt-file' found` and exit 2, while the same shell accepts `--ignore-user-config` and rejects a synthetic flag identically - so the rejection is the parser's verdict on this flag, not a broken probe. The premise appears in this program's own governing text: WORK-UNIT-CATALOG.json retry_policy (11 occurrences, e.g. :11051) says 'retry ONCE on win-arg-limit with --ignore-user-config and a --prompt-file transport', and tools/agentspec-js/test/argv.test.mjs:40 asserts the argv [\"codex\",\"--ignore-user-config\",\"--prompt-file\",\"/tmp/p.txt\"].",
+   "verdict": "REFUTED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11051 ; tools/agentspec-js/test/argv.test.mjs:40 ; codex exec --help (no --prompt-file)",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "codex exec --ignore-user-config --prompt-file /nonexistent/p.txt --help  (+ known-invalid and known-valid controls in the same shell)",
+     "raw_output": "$ codex exec --ignore-user-config --prompt-file /nonexistent/p.txt --help\nerror: unexpected argument '--prompt-file' found\n\n  tip: a similar argument exists: '--profile'\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n\nFor more information, try '--help'.\nEXIT=2\n\n$ codex exec --adv0014-nonexistent-flag-zzz --help          # CONTROL: known-invalid\nerror: unexpected argument '--adv0014-nonexistent-flag-zzz' found\n\n  tip: to pass '--adv0014-nonexistent-flag-zzz' as a value, use '-- --adv0014-nonexistent-flag-zzz'\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n\n$ codex exec --ignore-user-config --help                    # CONTROL: known-valid\nRun Codex non-interactively\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n",
+     "fingerprint": "36986220440cb3a48a0aae2316442850",
+     "exit_code": 2
+    }
+   ]
+  },
+  {
+   "claim": "SCOPE CORRECTION on the finding above: the SHIPPED runtime rail is NOT drifted. tools/agentrail/agentrail/rails.toml sets the codex rail to native_transport = \"stdio\"-equivalent `stdin` and states in-line 'There is NO prompt-file flag on codex', while `prompt_flag = \"--prompt-file\"` is carried only by the grok rail where it is valid; tools/agentrail/tests/test_config_rows.py:84 asserts `codex.prompt_flag is None`. The stale premise therefore lives in the catalog's retry_policy prose and one JS unit-test fixture, not in the dispatch path.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "tools/agentrail/agentrail/rails.toml (rail.codex native_transport=stdin) ; tools/agentrail/tests/test_config_rows.py:84 ; :121",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "codex exec --ignore-user-config --prompt-file /nonexistent/p.txt --help  (+ known-invalid and known-valid controls in the same shell)",
+     "raw_output": "$ codex exec --ignore-user-config --prompt-file /nonexistent/p.txt --help\nerror: unexpected argument '--prompt-file' found\n\n  tip: a similar argument exists: '--profile'\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n\nFor more information, try '--help'.\nEXIT=2\n\n$ codex exec --adv0014-nonexistent-flag-zzz --help          # CONTROL: known-invalid\nerror: unexpected argument '--adv0014-nonexistent-flag-zzz' found\n\n  tip: to pass '--adv0014-nonexistent-flag-zzz' as a value, use '-- --adv0014-nonexistent-flag-zzz'\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n\n$ codex exec --ignore-user-config --help                    # CONTROL: known-valid\nRun Codex non-interactively\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n",
+     "fingerprint": "36986220440cb3a48a0aae2316442850",
+     "exit_code": 2
+    }
+   ]
+  },
+  {
+   "claim": "The other two codex flags absent from `codex exec --help` are NOT drift: `--background` at platform/coordination/test_dispatch.py:463 is a deliberate fixture reproducing the 2026-07-18 rail failure so the audit rules light up, and `--ignore-user-configuration` at tools/agentspec-js/test/argv.test.mjs:142 is a deliberate NEGATIVE fixture asserting that a longer flag must not satisfy the shorter required `--ignore-user-config` (which IS present in codex exec --help).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "platform/coordination/test_dispatch.py:463 ; tools/agentspec-js/test/argv.test.mjs:142",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "codex exec --ignore-user-config --prompt-file /nonexistent/p.txt --help  (+ known-invalid and known-valid controls in the same shell)",
+     "raw_output": "$ codex exec --ignore-user-config --prompt-file /nonexistent/p.txt --help\nerror: unexpected argument '--prompt-file' found\n\n  tip: a similar argument exists: '--profile'\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n\nFor more information, try '--help'.\nEXIT=2\n\n$ codex exec --adv0014-nonexistent-flag-zzz --help          # CONTROL: known-invalid\nerror: unexpected argument '--adv0014-nonexistent-flag-zzz' found\n\n  tip: to pass '--adv0014-nonexistent-flag-zzz' as a value, use '-- --adv0014-nonexistent-flag-zzz'\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n\n$ codex exec --ignore-user-config --help                    # CONTROL: known-valid\nRun Codex non-interactively\n\nUsage: codex exec [OPTIONS] [PROMPT]\n       codex exec [OPTIONS] <COMMAND> [ARGS]\n",
+     "fingerprint": "36986220440cb3a48a0aae2316442850",
+     "exit_code": 2
+    }
+   ]
+  },
+  {
+   "claim": "git: all 29 flags absent from the depth-1 help corpus still exist and still mean the same thing today. 20 are ACCEPTED by git's own option parser at the subcommand their source anchor names (control 47/57 paths pass), and 8 more are INTERPRETED by the revision-accepting commands (control 10/10 pass). Exactly one, `--config`, is never accepted anywhere - and its anchor proves it was never a git flag: ci/tests/test_workflow_action_contracts.py:58 asserts the string 'gitleaks git --config .gitleaks.toml', where `git` is gitleaks' SUBCOMMAND and `--config` is gitleaks' flag. That is this unit's extractor mis-attributing, not vendor drift.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "ci/tests/test_workflow_action_contracts.py:58 ; adv0014_argparse.json ; adv0014_revprobe.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_argparse.py  ->  git <sub> <flag>  inside a throwaway `git init` repo with HOME/GIT_CONFIG_GLOBAL/GIT_CONFIG_SYSTEM redirected to a temp dir",
+     "raw_output": "ARG-PARSER PROBE (mechanically different from help-text matching: it asks git's own\noption parser, in a THROWAWAY repo with HOME / GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM\nredirected to a temp dir, so no flag - including --global or --force - can reach the\nreal repo or the real user config. No credential read or written.)\nsandbox_repo=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0014_sbx_g9_4ugjo\\repo\ncontrols: 47/57 pass\n  --abbrev-ref             path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --config                 path=[]                     -> UNKNOWN-FLAG     ctrl=ok\n  --depth                  path=['fetch']              -> ACCEPTED         ctrl=ok\n  --depth                  path=['pull']               -> ACCEPTED         ctrl=ok\n  --depth                  path=['reset']              -> UNKNOWN-FLAG     ctrl=ok\n  --depth                  path=['sparse-checkout']    -> UNKNOWN-FLAG     ctrl=ok\n  --force                  path=['branch']             -> ACCEPTED         ctrl=ok\n  --force                  path=['clean']              -> ACCEPTED         ctrl=ok\n  --force                  path=['push']               -> ACCEPTED         ctrl=ok\n  --force                  path=['repo']               -> UNKNOWN-FLAG     ctrl=ok\n  --force-with-lease       path=['push']               -> ACCEPTED         ctrl=ok\n  --get                    path=['config']             -> ACCEPTED         ctrl=ok\n  --get-regexp             path=['config']             -> ACCEPTED         ctrl=ok\n  --git-common-dir         path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --global                 path=['clone']              -> UNKNOWN-FLAG     ctrl=ok\n  --global                 path=['config']             -> ACCEPTED         ctrl=ok\n  --is-inside-work-tree    path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --local                  path=['config']             -> ACCEPTED         ctrl=ok\n  --local-env-vars         path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --lost-found             path=['fsck']               -> ACCEPTED         ctrl=ok\n  --lost-found             path=['reflog']             -> ACCEPTED         ctrl=FAIL\n  --lost-found             path=['stash']              -> UNKNOWN-FLAG     ctrl=ok\n  --no-edit                path=['pull']               -> ACCEPTED         ctrl=ok\n  --no-edit                path=['repo']               -> UNKNOWN-FLAG     ctrl=ok\n  --no-ff                  path=['checkout']           -> UNKNOWN-FLAG     ctrl=ok\n  --no-ff                  path=['merge']              -> ACCEPTED         ctrl=ok\n  --no-recurse-submodules  path=['checkout']           -> ACCEPTED         ctrl=ok\n  --no-recurse-submodules  path=['clone']              -> ACCEPTED         ctrl=ok\n  --no-recurse-submodules  path=['config']             -> UNKNOWN-FLAG     ctrl=ok\n  --no-recurse-submodules  path=['fetch']              -> ACCEPTED         ctrl=ok\n  --oneline                path=['log']                -> ACCEPTED         ctrl=FAIL\n  --rebase                 path=['pull']               -> ACCEPTED         ctrl=ok\n  --show-current           path=['branch']             -> ACCEPTED         ctrl=ok\n  --show-toplevel          path=['repo']               -> UNKNOWN-FLAG     ctrl=ok\n  --show-toplevel          path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --single-branch          path=['clone']              -> ACCEPTED         ctrl=ok\n  -1                       path=['cat-file']           -> UNKNOWN-FLAG     ctrl=ok\n  -1                       path=['log']                -> ACCEPTED         ctrl=FAIL\n  -5                       path=['log']                -> ACCEPTED         ctrl=FAIL\n  -am                      path=['checkout']           -> REJECTED-OTHER   ctrl=ok\n  -am                      path=['commit']             -> ACCEPTED         ctrl=ok\n  -am                      path=['config']             -> REJECTED-OTHER   ctrl=ok\n  -am                      path=['push']               -> REJECTED-OTHER   ctrl=ok\n  -fd                      path=['checkout']           -> ACCEPTED         ctrl=ok\n  -fd                      path=['clean']              -> ACCEPTED         ctrl=ok\n  -fd                      path=['repo']               -> REJECTED-OTHER   ctrl=ok\n  -fdx                     path=['branch']             -> REJECTED-OTHER   ctrl=ok\n  -fdx                     path=['clean']              -> ACCEPTED         ctrl=ok\n  -fdx                     path=['stash']              -> REJECTED-OTHER   ctrl=ok\n  -qm                      path=['add']                -> REJECTED-OTHER   ctrl=ok\n  -qm                      path=['commit']             -> ACCEPTED         ctrl=ok\n  -uall                    path=['clean']              -> REJECTED-OTHER   ctrl=ok\n  -uall                    path=['ls-files']           -> REJECTED-OTHER   ctrl=ok\n  -uall                    path=['status']             -> ACCEPTED         ctrl=ok\n  -vH                      path=['clone']              -> REJECTED-OTHER   ctrl=ok\n  -vH                      path=['count-objects']      -> ACCEPTED         ctrl=ok\n  -vH                      path=['rev-list']           -> ACCEPTED         ctrl=FAIL\n\nDETECTOR BUG #1, FOUND BY THE CONTROL: the first run scored 56/57 controls FAILING.\nCause: git prints  error: unknown option `abbrev-ref'  - WITHOUT the leading dashes -\nso requiring the diagnostic to contain the literal \"--abbrev-ref\" never matched and\nevery git row misclassified as REJECTED-OTHER. Fixed by also matching the bare form;\ncontrols then went 56-failing -> 10-failing.",
+     "fingerprint": "15a074103422ec0b76208cfebff213d2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_revprobe.py  ->  git rev-parse|log|reflog|rev-list <flag> in a throwaway repo; ECHOED vs INTERPRETED discriminator",
+     "raw_output": "REVISION-COMMAND PROBE. The 10 arg-parser controls that still failed are all\nrevision-accepting commands (rev-parse / log / reflog / rev-list): `git rev-parse --bogus`\nECHOES the token and exits 0, so an unknown flag is never rejected and the arg-parser\nprobe is structurally inapplicable. Its control correctly refused to certify those rows.\nDiscriminator used instead: run the flag and compare stdout against the flag itself.\ncontrols: 10/10 pass\n  rev-parse  --abbrev-ref           -> INTERPRETED          ctrl=ok | stdout='master'\n  rev-parse  --git-common-dir       -> INTERPRETED          ctrl=ok | stdout='.git'\n  rev-parse  --is-inside-work-tree  -> INTERPRETED          ctrl=ok | stdout='true'\n  rev-parse  --local-env-vars       -> INTERPRETED          ctrl=ok | stdout='GIT_ALTERNATE_OBJECT_DIRECTORIES\\nGIT_CONFIG\\nGIT_CONFIG_P'\n  rev-parse  --show-toplevel        -> INTERPRETED          ctrl=ok | stdout='C:/Users/Prekzursil/AppData/Local/Temp/adv0014_rev_7rz0g'\n  log        --oneline              -> INTERPRETED          ctrl=ok | stdout='8c4c155 c'\n  log        -1                     -> INTERPRETED          ctrl=ok | stdout='8c4c155d8ff54c21da730ef9ac7b6296544a7c2a'\n  log        -5                     -> INTERPRETED          ctrl=ok | stdout='8c4c155d8ff54c21da730ef9ac7b6296544a7c2a'\n  reflog     --lost-found           -> REJECTED-BY-PARSER   ctrl=ok | stdout=''\n  rev-list   -vH                    -> REJECTED-BY-PARSER   ctrl=ok | stdout=''\n\nDETECTOR BUG #2, FOUND BY THE CONTROL: the control matched only the word \"unknown\",\nbut git log/reflog say \"unrecognized argument\" and rev-list just prints \"usage:\" - so\nthe control was inert on 5/10 rows. Fixed; controls then went 5-failing -> 0-failing.\n\nRESIDUAL: `reflog --lost-found` and `rev-list -vH` are REJECTED-BY-PARSER at those\nsubcommands, but both are ACCEPTED at the subcommand their source anchor actually\nnames (`git fsck --lost-found`, `git count-objects -vH`) - a path-derivation artifact\nof this unit's extractor, not vendor drift.",
+     "fingerprint": "900e4f7aa9ea96da80b4de214b4bcec8",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "gh, claude and docker: every flag absent from the depth-1 corpus is PRESENT-AT-DEPTH, so nothing has drifted. `--notes-file` and `--target` are `gh release create` flags, `--state` is a `gh pr list` / `gh issue list` flag, `--scope` is a `claude mcp add` flag (`-s, --scope <scope>`), and `--build` is a `docker compose up` flag.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "gh release create --help:40,44 ; gh pr list --help:26 ; claude mcp add --help:29",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "gh release create --help | grep -- --notes-file ; gh pr list --help | grep -- --state ; claude mcp add --help | grep -- --scope ; plus automated depth re-probe",
+     "raw_output": "ADJUDICATION of the 57 flags absent from the depth-1 help corpus.\nThree rival explanations eliminated before any drift verdict:\n  (A) CORPUS-DEPTH   flag lives at depth>=2 (`gh release create --target`)\n  (B) INNER-PROGRAM  flag belongs to the program the binary LAUNCHES\n                     (`wsl -d Ubuntu -- bash -lc claude-science serve --no-browser`)\n  (C) SHORT-HELP     `git <sub> -h` prints usage lines only for some plumbing commands\n  claude   PRESENT-AT-DEPTH= 3 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--scope']\n  codex    PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--background', '--ignore-user-configuration', '--prompt-file']\n  gh       PRESENT-AT-DEPTH=10 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--notes-file', '--state', '--target']\n  git      PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--abbrev-ref', '--config', '--depth', '--force', '--force-with-lease', '--get', '--get-regexp', '--git-common-dir', '--global', '--is-inside-work-tree', '--local', '--local-env-vars', '--lost-found', '--no-edit', '--no-ff', '--no-recurse-submodules', '--oneline', '--rebase', '--show-current', '--show-toplevel', '--single-branch', '-1', '-5', '-am', '-fd', '-fdx', '-qm', '-uall', '-vH']\n  uv       PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=[]\n  node     PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--claude', '--out', '--sync', '--timeout']\n  docker   PRESENT-AT-DEPTH= 1 INNER-PROGRAM= 0 DRIFT-CANDIDATE=[]\n  wsl      PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--detached', '--no-browser', '-lc']\n\nMANUAL DEPTH RESOLUTION of the remaining non-git candidates:\n$ gh release create --help | grep -E -- '--notes-file|--target'\n8:Use `--target` to point to a different branch or commit for the automatic tag creation.\n40:  -F, --notes-file file              Read release notes from file (use \"-\" to read from standard input)\n44:      --target branch                Target branch or full commit SHA (default [main branch])\n$ gh pr list --help | grep -- --state\n26:  -s, --state string      Filter by state: {open|closed|merged|all} (default \"open\")\n$ claude mcp add --help | grep -- --scope\n29:  -s, --scope <scope>          Configuration scope (local, user, or project)\n-> --notes-file / --target / --state / --scope are all PRESENT-AT-DEPTH, not drift.",
+     "fingerprint": "c31a9f026cd16b6ff6924e448afe51fe",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "node and wsl: all 7 remaining absent flags belong to the INNER program the binary launches, not to node or wsl. `wsl -d Ubuntu -- bash -lc claude-science serve --no-browser --detached` (scripts/claude-science/cs-start.ps1:6) puts --no-browser / --detached / -lc after the `--` separator, and node's --claude / --out / --sync / --timeout are flags of the .sh and .py scripts node is invoking. This is an extractor-semantics limitation of this unit, disclosed rather than reported as drift.",
+   "verdict": "CONFIRMED",
+   "confidence": "likely",
+   "anchor": "scripts/claude-science/cs-start.ps1:6 ; scripts/claude-science/cs-lib.ps1:17 ; tools/mcp/social-hub/fb_session.py:84 ; tools/editor/metaswarm/tests/cli/test-installer.sh:79",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "gh release create --help | grep -- --notes-file ; gh pr list --help | grep -- --state ; claude mcp add --help | grep -- --scope ; plus automated depth re-probe",
+     "raw_output": "ADJUDICATION of the 57 flags absent from the depth-1 help corpus.\nThree rival explanations eliminated before any drift verdict:\n  (A) CORPUS-DEPTH   flag lives at depth>=2 (`gh release create --target`)\n  (B) INNER-PROGRAM  flag belongs to the program the binary LAUNCHES\n                     (`wsl -d Ubuntu -- bash -lc claude-science serve --no-browser`)\n  (C) SHORT-HELP     `git <sub> -h` prints usage lines only for some plumbing commands\n  claude   PRESENT-AT-DEPTH= 3 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--scope']\n  codex    PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--background', '--ignore-user-configuration', '--prompt-file']\n  gh       PRESENT-AT-DEPTH=10 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--notes-file', '--state', '--target']\n  git      PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--abbrev-ref', '--config', '--depth', '--force', '--force-with-lease', '--get', '--get-regexp', '--git-common-dir', '--global', '--is-inside-work-tree', '--local', '--local-env-vars', '--lost-found', '--no-edit', '--no-ff', '--no-recurse-submodules', '--oneline', '--rebase', '--show-current', '--show-toplevel', '--single-branch', '-1', '-5', '-am', '-fd', '-fdx', '-qm', '-uall', '-vH']\n  uv       PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=[]\n  node     PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--claude', '--out', '--sync', '--timeout']\n  docker   PRESENT-AT-DEPTH= 1 INNER-PROGRAM= 0 DRIFT-CANDIDATE=[]\n  wsl      PRESENT-AT-DEPTH= 0 INNER-PROGRAM= 0 DRIFT-CANDIDATE=['--detached', '--no-browser', '-lc']\n\nMANUAL DEPTH RESOLUTION of the remaining non-git candidates:\n$ gh release create --help | grep -E -- '--notes-file|--target'\n8:Use `--target` to point to a different branch or commit for the automatic tag creation.\n40:  -F, --notes-file file              Read release notes from file (use \"-\" to read from standard input)\n44:      --target branch                Target branch or full commit SHA (default [main branch])\n$ gh pr list --help | grep -- --state\n26:  -s, --state string      Filter by state: {open|closed|merged|all} (default \"open\")\n$ claude mcp add --help | grep -- --scope\n29:  -s, --scope <scope>          Configuration scope (local, user, or project)\n-> --notes-file / --target / --state / --scope are all PRESENT-AT-DEPTH, not drift.",
+     "fingerprint": "c31a9f026cd16b6ff6924e448afe51fe",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REFUTED PREMISE (MCP): four MCP tool identifiers issued by this program's source do NOT resolve against today's live tool schema - mcp__exa__web_search_exa, mcp__tavily__tavily_search, mcp__firecrawl__firecrawl_scrape and mcp__tooluniverse__execute_tool all return 'No matching deferred tools found'. Three of them moved namespace rather than disappearing: the live equivalents are mcp__search-hub__web_search_exa, mcp__search-hub__tavily_search and mcp__search-hub__firecrawl_scrape. This is exactly the class ADV-0019's presence check cannot see - the firecrawl SERVER is OK-Connected in `claude mcp list` while its mcp__firecrawl__* identifiers are dead.",
+   "verdict": "REFUTED",
+   "confidence": "almost-certain",
+   "anchor": "ToolSearch select: (zero of four resolve) ; claude mcp list (firecrawl Connected, exa/tavily absent, tooluniverse Failed to connect)",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  ->  regex mcp__<server>__<tool> over the same source corpus; 156 distinct identifiers across 44 server namespaces",
+     "raw_output": "mcp_tools 156 across 44 namespaces (incl. 5 test-fixture namespaces: a, c, x, x-mcp, NotAServer).\nservers named by source: agent-mail(5) basic-memory(9) binary-ninja-mcp(3) brightdata(2) cheatengine(5) chrome-devtools(2) cloud-hub(19) codex(2) context7(2) deepwiki(1) exa(1) fetch(1) figma(8) firecrawl(2) frida-mcp(5) ghidra-mcp(5) github(17) github_cli(1) ida-pro-mcp(2) openmm-md(7) paper-search(7) pdf-reader(1) perplexity(1) playwright(3) qlty(1) repomix(2) scholarly-access(7) schrodinger(4) search-hub(12) searxng(2) sonarqube(1) tavily(1) tooluniverse(2) ...",
+     "fingerprint": "57e86ff810091613b985b5b680202b93",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "ToolSearch(query=\"select:<tool-name>[,...]\") - resolves a tool NAME against the LIVE tool schema inventory and returns the actual JSONSchema, not the docs",
+     "raw_output": "ToolSearch(query=\"select:mcp__codex__codex,mcp__codex__codex-reply,mcp__codex__codex_reply,mcp__adv0014__nope\", max_results=10)\n-> <functions> block returned schemas for EXACTLY TWO names:\n     mcp__codex__codex        \"Run a Codex session. Accepts configuration parameters matching the Codex Config struct.\"\n     mcp__codex__codex-reply  \"Continue a Codex conversation by providing the thread id and prompt.\"\n                              params: {conversationId: \"DEPRECATED: use threadId instead.\", prompt, threadId}\n                              required: [\"prompt\"]\n   NOT returned (do not resolve): mcp__codex__codex_reply , mcp__adv0014__nope\n\nToolSearch(query=\"select:mcp__exa__web_search_exa,mcp__tavily__tavily_search,mcp__firecrawl__firecrawl_scrape,mcp__tooluniverse__execute_tool\", max_results=8)\n-> \"No matching deferred tools found\"        (ZERO of the four resolve)\n\nToolSearch(query=\"select:mcp__search-hub__web_search_exa,mcp__exa__web_search_exa\", max_results=4)\n-> <functions> block returned EXACTLY ONE schema:\n     mcp__search-hub__web_search_exa  \"Search the web for any topic and get clean, ready-to-use content.\"\n   mcp__exa__web_search_exa was NOT returned.\n   SAME-CALL DISCRIMINATOR: one name resolves and the other does not inside a single\n   invocation, so a global \"no matching tools\" failure mode is excluded.",
+     "fingerprint": "eb611814a7e08930a647766e1c2238bf",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "claude mcp list",
+     "raw_output": "$ claude mcp list      (truncated to the servers this program's source names)\ncodex: codex mcp-server - OK Connected\nagent-mail: http://127.0.0.1:8812/mcp (HTTP) - OK Connected\nbasic-memory: http://127.0.0.1:8765/mcp (HTTP) - OK Connected\ngithub: https://api.githubcopilot.com/mcp (HTTP) - OK Connected\ngithub_cli: gh-cli-mcp  - OK Connected\ncloud-hub / search-hub / social-hub (python hub.py) - OK Connected\nfirecrawl: cmd /c npx -y firecrawl-mcp@3.22.3 - OK Connected\nplaywright: npx -y @playwright/mcp@0.0.78 - OK Connected\ncontext7, deepwiki, repomix, searxng, pdf-reader, figma, qlty, sonarqube,\nscholarly-access, schrodinger, openmm-md, paper-search, perplexity,\nghidra-mcp, ida-pro-mcp, binary-ninja-mcp, frida-mcp, cheatengine,\nchrome-devtools, brightdata(pending approval) - OK Connected / pending\ntooluniverse: uvx tooluniverse==1.2.4 - FAILED to connect (-32000 Connection closed)\ndocker: uvx docker-mcp - FAILED to connect (-32000 Connection closed)\nNOT MOUNTED AT ALL (named in source, absent from the live server list):\n  exa , tavily , fetch , ghost , hublive , svc , claude-in-chrome ,\n  claude_ai_Tavily , claude_ai_Boltz_API , x-mcp\nEXIT=0",
+     "fingerprint": "dfe3c33a5260926916876d78c95e75bc",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "SCOPE of the MCP finding: mcp__exa__*, mcp__tavily__* and mcp__firecrawl__* occur ONLY in hook TEST corpora (hooks/memory-guard/test_scan.py, hooks/selection-events/test_emitter.py); the production router hooks/memory-guard/scan.py hardcodes none of them and folds by suffix instead. mcp__tooluniverse__find_tools / execute_tool, by contrast, appear in PRODUCTION hook code - hooks/inquisitiveness/prompt-guard.py:203,206 injects a runtime directive telling the agent to call them - and the tooluniverse server FAILS to connect today.",
+   "verdict": "PARTIAL",
+   "confidence": "almost-certain",
+   "anchor": "hooks/memory-guard/scan.py:166 ; hooks/inquisitiveness/prompt-guard.py:203,206 ; hooks/memory-guard/test_scan.py:105,185,206",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  ->  regex mcp__<server>__<tool> over the same source corpus; 156 distinct identifiers across 44 server namespaces",
+     "raw_output": "mcp_tools 156 across 44 namespaces (incl. 5 test-fixture namespaces: a, c, x, x-mcp, NotAServer).\nservers named by source: agent-mail(5) basic-memory(9) binary-ninja-mcp(3) brightdata(2) cheatengine(5) chrome-devtools(2) cloud-hub(19) codex(2) context7(2) deepwiki(1) exa(1) fetch(1) figma(8) firecrawl(2) frida-mcp(5) ghidra-mcp(5) github(17) github_cli(1) ida-pro-mcp(2) openmm-md(7) paper-search(7) pdf-reader(1) perplexity(1) playwright(3) qlty(1) repomix(2) scholarly-access(7) schrodinger(4) search-hub(12) searxng(2) sonarqube(1) tavily(1) tooluniverse(2) ...",
+     "fingerprint": "57e86ff810091613b985b5b680202b93",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "claude mcp list",
+     "raw_output": "$ claude mcp list      (truncated to the servers this program's source names)\ncodex: codex mcp-server - OK Connected\nagent-mail: http://127.0.0.1:8812/mcp (HTTP) - OK Connected\nbasic-memory: http://127.0.0.1:8765/mcp (HTTP) - OK Connected\ngithub: https://api.githubcopilot.com/mcp (HTTP) - OK Connected\ngithub_cli: gh-cli-mcp  - OK Connected\ncloud-hub / search-hub / social-hub (python hub.py) - OK Connected\nfirecrawl: cmd /c npx -y firecrawl-mcp@3.22.3 - OK Connected\nplaywright: npx -y @playwright/mcp@0.0.78 - OK Connected\ncontext7, deepwiki, repomix, searxng, pdf-reader, figma, qlty, sonarqube,\nscholarly-access, schrodinger, openmm-md, paper-search, perplexity,\nghidra-mcp, ida-pro-mcp, binary-ninja-mcp, frida-mcp, cheatengine,\nchrome-devtools, brightdata(pending approval) - OK Connected / pending\ntooluniverse: uvx tooluniverse==1.2.4 - FAILED to connect (-32000 Connection closed)\ndocker: uvx docker-mcp - FAILED to connect (-32000 Connection closed)\nNOT MOUNTED AT ALL (named in source, absent from the live server list):\n  exa , tavily , fetch , ghost , hublive , svc , claude-in-chrome ,\n  claude_ai_Tavily , claude_ai_Boltz_API , x-mcp\nEXIT=0",
+     "fingerprint": "dfe3c33a5260926916876d78c95e75bc",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CHANGED SEMANTICS, not changed existence: the live mcp__codex__codex-reply schema marks `conversationId` as 'DEPRECATED: use threadId instead' and requires only `prompt`, with threadId documented as 'required, but we keep it optional here for backward compatibility'. No source file in this repo passes conversationId to codex-reply (the only conversationId hits are CRCP ChatGPT-desktop fixtures under tools/crcp/fixtures/), so the program is on the current field - but the deprecation is live today and a doc-derived caller would not see it.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "ToolSearch mcp__codex__codex-reply schema (conversationId description) ; grep conversationId -> only tools/crcp/fixtures/chatgpt_desktop/**",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "ToolSearch(query=\"select:<tool-name>[,...]\") - resolves a tool NAME against the LIVE tool schema inventory and returns the actual JSONSchema, not the docs",
+     "raw_output": "ToolSearch(query=\"select:mcp__codex__codex,mcp__codex__codex-reply,mcp__codex__codex_reply,mcp__adv0014__nope\", max_results=10)\n-> <functions> block returned schemas for EXACTLY TWO names:\n     mcp__codex__codex        \"Run a Codex session. Accepts configuration parameters matching the Codex Config struct.\"\n     mcp__codex__codex-reply  \"Continue a Codex conversation by providing the thread id and prompt.\"\n                              params: {conversationId: \"DEPRECATED: use threadId instead.\", prompt, threadId}\n                              required: [\"prompt\"]\n   NOT returned (do not resolve): mcp__codex__codex_reply , mcp__adv0014__nope\n\nToolSearch(query=\"select:mcp__exa__web_search_exa,mcp__tavily__tavily_search,mcp__firecrawl__firecrawl_scrape,mcp__tooluniverse__execute_tool\", max_results=8)\n-> \"No matching deferred tools found\"        (ZERO of the four resolve)\n\nToolSearch(query=\"select:mcp__search-hub__web_search_exa,mcp__exa__web_search_exa\", max_results=4)\n-> <functions> block returned EXACTLY ONE schema:\n     mcp__search-hub__web_search_exa  \"Search the web for any topic and get clean, ready-to-use content.\"\n   mcp__exa__web_search_exa was NOT returned.\n   SAME-CALL DISCRIMINATOR: one name resolves and the other does not inside a single\n   invocation, so a global \"no matching tools\" failure mode is excluded.",
+     "fingerprint": "eb611814a7e08930a647766e1c2238bf",
+     "exit_code": 0
+    },
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  ->  regex mcp__<server>__<tool> over the same source corpus; 156 distinct identifiers across 44 server namespaces",
+     "raw_output": "mcp_tools 156 across 44 namespaces (incl. 5 test-fixture namespaces: a, c, x, x-mcp, NotAServer).\nservers named by source: agent-mail(5) basic-memory(9) binary-ninja-mcp(3) brightdata(2) cheatengine(5) chrome-devtools(2) cloud-hub(19) codex(2) context7(2) deepwiki(1) exa(1) fetch(1) figma(8) firecrawl(2) frida-mcp(5) ghidra-mcp(5) github(17) github_cli(1) ida-pro-mcp(2) openmm-md(7) paper-search(7) pdf-reader(1) perplexity(1) playwright(3) qlty(1) repomix(2) scholarly-access(7) schrodinger(4) search-hub(12) searxng(2) sonarqube(1) tavily(1) tooluniverse(2) ...",
+     "fingerprint": "57e86ff810091613b985b5b680202b93",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "The hyphenated-vs-underscored counterexample named in this unit's evidence_requirement reproduces exactly: mcp__codex__codex-reply RESOLVES with a full schema while mcp__codex__codex_reply does NOT, confirming that a doc-derived tool name can be wrong while looking right, and that name resolution must go through the live schema.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "ToolSearch select:mcp__codex__codex,mcp__codex__codex-reply,mcp__codex__codex_reply,mcp__adv0014__nope -> exactly two schemas returned",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "ToolSearch(query=\"select:<tool-name>[,...]\") - resolves a tool NAME against the LIVE tool schema inventory and returns the actual JSONSchema, not the docs",
+     "raw_output": "ToolSearch(query=\"select:mcp__codex__codex,mcp__codex__codex-reply,mcp__codex__codex_reply,mcp__adv0014__nope\", max_results=10)\n-> <functions> block returned schemas for EXACTLY TWO names:\n     mcp__codex__codex        \"Run a Codex session. Accepts configuration parameters matching the Codex Config struct.\"\n     mcp__codex__codex-reply  \"Continue a Codex conversation by providing the thread id and prompt.\"\n                              params: {conversationId: \"DEPRECATED: use threadId instead.\", prompt, threadId}\n                              required: [\"prompt\"]\n   NOT returned (do not resolve): mcp__codex__codex_reply , mcp__adv0014__nope\n\nToolSearch(query=\"select:mcp__exa__web_search_exa,mcp__tavily__tavily_search,mcp__firecrawl__firecrawl_scrape,mcp__tooluniverse__execute_tool\", max_results=8)\n-> \"No matching deferred tools found\"        (ZERO of the four resolve)\n\nToolSearch(query=\"select:mcp__search-hub__web_search_exa,mcp__exa__web_search_exa\", max_results=4)\n-> <functions> block returned EXACTLY ONE schema:\n     mcp__search-hub__web_search_exa  \"Search the web for any topic and get clean, ready-to-use content.\"\n   mcp__exa__web_search_exa was NOT returned.\n   SAME-CALL DISCRIMINATOR: one name resolves and the other does not inside a single\n   invocation, so a global \"no matching tools\" failure mode is excluded.",
+     "fingerprint": "eb611814a7e08930a647766e1c2238bf",
+     "exit_code": 0
+    },
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  ->  regex mcp__<server>__<tool> over the same source corpus; 156 distinct identifiers across 44 server namespaces",
+     "raw_output": "mcp_tools 156 across 44 namespaces (incl. 5 test-fixture namespaces: a, c, x, x-mcp, NotAServer).\nservers named by source: agent-mail(5) basic-memory(9) binary-ninja-mcp(3) brightdata(2) cheatengine(5) chrome-devtools(2) cloud-hub(19) codex(2) context7(2) deepwiki(1) exa(1) fetch(1) figma(8) firecrawl(2) frida-mcp(5) ghidra-mcp(5) github(17) github_cli(1) ida-pro-mcp(2) openmm-md(7) paper-search(7) pdf-reader(1) perplexity(1) playwright(3) qlty(1) repomix(2) scholarly-access(7) schrodinger(4) search-hub(12) searxng(2) sonarqube(1) tavily(1) tooluniverse(2) ...",
+     "fingerprint": "57e86ff810091613b985b5b680202b93",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WINDOWS INVOCATION DEFECT surfaced while building the probe: spawning the bare name `codex` from Python with shell=False fails with [WinError 2] because `where codex` resolves to a dash-less npm shim plus codex.cmd, and only the .cmd form is executable by CreateProcess. Any program code that does subprocess.run([\"codex\", ...]) on this box without resolving the shim gets a hard NOT-FOUND, not a codex error.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "adv0014_help.py first run: codex version_exit=None error='NOT-FOUND: [WinError 2]' ; `where codex` -> {...}\\npm\\codex and {...}\\npm\\codex.cmd ; corroborated by tools/agentrail/agentrail/rails.toml exe_fallbacks",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_help.py  ->  <bin> --version ; <bin> --help ; <bin> <sub> --help (git: <bin> --no-pager <sub> -h) for all 8 binaries, then word-boundary flag diff",
+     "raw_output": "$ python adv0014_help.py <surface.json> <help.json>\nclaude: version_exit=0 help_len=16887 subs=11\ncodex: version_exit=0 help_len=5545 subs=30\ngh: version_exit=0 help_len=2478 subs=14\ngit: version_exit=0 help_len=2248 subs=71\nuv: version_exit=0 help_len=2880 subs=4\nnode: version_exit=0 help_len=24651 subs=13\ndocker: version_exit=0 help_len=4616 subs=8\nwsl: version_exit=0 help_len=6958 subs=9\n\nVERSIONS MEASURED TODAY (`<bin> --version`, exit 0 for all 8):\n  claude   2.1.225 (Claude Code)                                          exe=C:\\Users\\Prekzursil\\.local\\bin\\claude.exe\n  codex    codex-cli 0.145.0                                              exe=C:\\Users\\Prekzursil\\AppData\\Roaming\\npm\\codex.cmd\n  gh       gh version 2.74.2 (2025-06-18)                                 exe=C:\\Program Files\\GitHub CLI\\gh.exe\n  git      git version 2.52.0.windows.1                                   exe=C:\\Program Files\\Git\\mingw64\\bin\\git.exe\n  uv       uv 0.10.4 (079e3fd05 2026-02-17)                               exe=C:\\Users\\Prekzursil\\.local\\bin\\uv.exe\n  node     v24.16.0                                                       exe=C:\\Program Files\\nodejs\\node.exe\n  docker   Docker version 29.6.2, build dfc4efb                           exe=C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe\n  wsl      WSL version: 2.7.10.0                                          exe=C:\\Windows\\System32\\wsl.exe\n\nFLAG-BY-FLAG DIFF vs TODAY's HELP CORPUS (top-level --help + every source-issued\nsubcommand's help; `git <sub> -h` NOT `--help`, which launches a BROWSER on\nGit-for-Windows):\n  claude   version=2.1.225 (Claude Code)                      corpus=156938B flags_checked=  7 absent_from_help=  4 ['--json', '--scope', '--sparse', '-s']\n  codex    version=codex-cli 0.145.0                          corpus=156606B flags_checked= 20 absent_from_help=  3 ['--background', '--ignore-user-configuration', '--prompt-file']\n  gh       version=gh version 2.74.2 (2025-06-18)             corpus= 19701B flags_checked= 22 absent_from_help= 13 ['--auto', '--base', '--body', '--branch', '--head', '--json', '--limit', '--log-failed']\n  git      version=git version 2.52.0.windows.1               corpus= 65063B flags_checked= 87 absent_from_help= 29 ['--abbrev-ref', '--config', '--depth', '--force', '--force-with-lease', '--get', '--get-regexp', '--git-common-dir']\n  uv       version=uv 0.10.4 (079e3fd05 2026-02-17)           corpus= 27045B flags_checked=  1 absent_from_help=  0 []\n  node     version=v24.16.0                                   corpus= 34812B flags_checked=  8 absent_from_help=  4 ['--claude', '--out', '--sync', '--timeout']\n  docker   version=Docker version 29.6.2, build dfc4efb       corpus= 31349B flags_checked=  5 absent_from_help=  1 ['--build']\n  wsl      version=WSL version: 2.7.10.0                      corpus= 20472B flags_checked= 11 absent_from_help=  3 ['--detached', '--no-browser', '-lc']\n\nDETECTOR CONTROL (executed BEFORE any real result was accepted):\n  claude   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  codex    valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  gh       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  git      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  uv       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  node     valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  docker   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  wsl      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\nCONTROL VERDICT: PASS  (8/8 binaries)",
+     "fingerprint": "da68091d8200d20384a570cc8d5afa4f",
+     "exit_code": 0
+    },
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "This unit's OWN detector was broken twice and the both-states control caught both, which is the only reason the git verdicts are trustworthy: (1) matching git's unknown-option diagnostic on the full \"--flag\" token failed because git strips the dashes, scoring 56/57 controls FAILING; (2) the revision probe matched only the word \"unknown\" while git log says \"unrecognized argument\" and rev-list prints \"usage:\", leaving the control inert on 5/10 rows. An unproven matcher would have reported 29 git flags as drift.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "adv0014_argparse.json controls (56 failing -> 10 failing after fix) ; adv0014_revprobe.json controls (5 failing -> 0 failing after fix)",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "python adv0014_extract3.py  (ast walk over 2,274 .py + array/spawn scan over .mjs/.js/.ts + command-position scan over .sh/.ps1/.yml; 3,165 files; .md EXCLUDED)",
+     "raw_output": "$ python adv0014_extract3.py <out.json>\n{\"files\": 3165, \"py_parsed\": 2274, \"py_parse_fail\": 0, \"py_list_literals\": 357, \"py_str_cmds\": 401, \"js_arrays\": 4, \"js_calls\": 9, \"shell_cmds\": 424}\nclaude   flags=   7 subs=  11\ncodex    flags=  20 subs=  32\ngh       flags=  22 subs=  14\ngit      flags=  87 subs=  74\nuv       flags=   1 subs=   4\nnode     flags=   8 subs=  13\ndocker   flags=   5 subs=   8\nwsl      flags=  11 subs=   9\nmcp_tools 156\n\nEXTRACTION METHOD (source, never docs): python `ast` walk over 2,274 parsed .py files\n(every List/Tuple literal whose head element is a target binary, plus every string\nconstant of the form \"<bin> <args...>\"), array-literal + spawn/execFile scan over\n.mjs/.js/.ts, and a command-POSITION-anchored scan over .sh/.ps1/.yml/.yaml. .md files\nwere NOT scanned - the unit requires the surface to come from source, not documentation.",
+     "fingerprint": "6f4f89f1d9ccc49af2aff5438284c70f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_argparse.py  ->  git <sub> <flag>  inside a throwaway `git init` repo with HOME/GIT_CONFIG_GLOBAL/GIT_CONFIG_SYSTEM redirected to a temp dir",
+     "raw_output": "ARG-PARSER PROBE (mechanically different from help-text matching: it asks git's own\noption parser, in a THROWAWAY repo with HOME / GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM\nredirected to a temp dir, so no flag - including --global or --force - can reach the\nreal repo or the real user config. No credential read or written.)\nsandbox_repo=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0014_sbx_g9_4ugjo\\repo\ncontrols: 47/57 pass\n  --abbrev-ref             path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --config                 path=[]                     -> UNKNOWN-FLAG     ctrl=ok\n  --depth                  path=['fetch']              -> ACCEPTED         ctrl=ok\n  --depth                  path=['pull']               -> ACCEPTED         ctrl=ok\n  --depth                  path=['reset']              -> UNKNOWN-FLAG     ctrl=ok\n  --depth                  path=['sparse-checkout']    -> UNKNOWN-FLAG     ctrl=ok\n  --force                  path=['branch']             -> ACCEPTED         ctrl=ok\n  --force                  path=['clean']              -> ACCEPTED         ctrl=ok\n  --force                  path=['push']               -> ACCEPTED         ctrl=ok\n  --force                  path=['repo']               -> UNKNOWN-FLAG     ctrl=ok\n  --force-with-lease       path=['push']               -> ACCEPTED         ctrl=ok\n  --get                    path=['config']             -> ACCEPTED         ctrl=ok\n  --get-regexp             path=['config']             -> ACCEPTED         ctrl=ok\n  --git-common-dir         path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --global                 path=['clone']              -> UNKNOWN-FLAG     ctrl=ok\n  --global                 path=['config']             -> ACCEPTED         ctrl=ok\n  --is-inside-work-tree    path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --local                  path=['config']             -> ACCEPTED         ctrl=ok\n  --local-env-vars         path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --lost-found             path=['fsck']               -> ACCEPTED         ctrl=ok\n  --lost-found             path=['reflog']             -> ACCEPTED         ctrl=FAIL\n  --lost-found             path=['stash']              -> UNKNOWN-FLAG     ctrl=ok\n  --no-edit                path=['pull']               -> ACCEPTED         ctrl=ok\n  --no-edit                path=['repo']               -> UNKNOWN-FLAG     ctrl=ok\n  --no-ff                  path=['checkout']           -> UNKNOWN-FLAG     ctrl=ok\n  --no-ff                  path=['merge']              -> ACCEPTED         ctrl=ok\n  --no-recurse-submodules  path=['checkout']           -> ACCEPTED         ctrl=ok\n  --no-recurse-submodules  path=['clone']              -> ACCEPTED         ctrl=ok\n  --no-recurse-submodules  path=['config']             -> UNKNOWN-FLAG     ctrl=ok\n  --no-recurse-submodules  path=['fetch']              -> ACCEPTED         ctrl=ok\n  --oneline                path=['log']                -> ACCEPTED         ctrl=FAIL\n  --rebase                 path=['pull']               -> ACCEPTED         ctrl=ok\n  --show-current           path=['branch']             -> ACCEPTED         ctrl=ok\n  --show-toplevel          path=['repo']               -> UNKNOWN-FLAG     ctrl=ok\n  --show-toplevel          path=['rev-parse']          -> ACCEPTED         ctrl=FAIL\n  --single-branch          path=['clone']              -> ACCEPTED         ctrl=ok\n  -1                       path=['cat-file']           -> UNKNOWN-FLAG     ctrl=ok\n  -1                       path=['log']                -> ACCEPTED         ctrl=FAIL\n  -5                       path=['log']                -> ACCEPTED         ctrl=FAIL\n  -am                      path=['checkout']           -> REJECTED-OTHER   ctrl=ok\n  -am                      path=['commit']             -> ACCEPTED         ctrl=ok\n  -am                      path=['config']             -> REJECTED-OTHER   ctrl=ok\n  -am                      path=['push']               -> REJECTED-OTHER   ctrl=ok\n  -fd                      path=['checkout']           -> ACCEPTED         ctrl=ok\n  -fd                      path=['clean']              -> ACCEPTED         ctrl=ok\n  -fd                      path=['repo']               -> REJECTED-OTHER   ctrl=ok\n  -fdx                     path=['branch']             -> REJECTED-OTHER   ctrl=ok\n  -fdx                     path=['clean']              -> ACCEPTED         ctrl=ok\n  -fdx                     path=['stash']              -> REJECTED-OTHER   ctrl=ok\n  -qm                      path=['add']                -> REJECTED-OTHER   ctrl=ok\n  -qm                      path=['commit']             -> ACCEPTED         ctrl=ok\n  -uall                    path=['clean']              -> REJECTED-OTHER   ctrl=ok\n  -uall                    path=['ls-files']           -> REJECTED-OTHER   ctrl=ok\n  -uall                    path=['status']             -> ACCEPTED         ctrl=ok\n  -vH                      path=['clone']              -> REJECTED-OTHER   ctrl=ok\n  -vH                      path=['count-objects']      -> ACCEPTED         ctrl=ok\n  -vH                      path=['rev-list']           -> ACCEPTED         ctrl=FAIL\n\nDETECTOR BUG #1, FOUND BY THE CONTROL: the first run scored 56/57 controls FAILING.\nCause: git prints  error: unknown option `abbrev-ref'  - WITHOUT the leading dashes -\nso requiring the diagnostic to contain the literal \"--abbrev-ref\" never matched and\nevery git row misclassified as REJECTED-OTHER. Fixed by also matching the bare form;\ncontrols then went 56-failing -> 10-failing.",
+     "fingerprint": "15a074103422ec0b76208cfebff213d2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "python adv0014_revprobe.py  ->  git rev-parse|log|reflog|rev-list <flag> in a throwaway repo; ECHOED vs INTERPRETED discriminator",
+     "raw_output": "REVISION-COMMAND PROBE. The 10 arg-parser controls that still failed are all\nrevision-accepting commands (rev-parse / log / reflog / rev-list): `git rev-parse --bogus`\nECHOES the token and exits 0, so an unknown flag is never rejected and the arg-parser\nprobe is structurally inapplicable. Its control correctly refused to certify those rows.\nDiscriminator used instead: run the flag and compare stdout against the flag itself.\ncontrols: 10/10 pass\n  rev-parse  --abbrev-ref           -> INTERPRETED          ctrl=ok | stdout='master'\n  rev-parse  --git-common-dir       -> INTERPRETED          ctrl=ok | stdout='.git'\n  rev-parse  --is-inside-work-tree  -> INTERPRETED          ctrl=ok | stdout='true'\n  rev-parse  --local-env-vars       -> INTERPRETED          ctrl=ok | stdout='GIT_ALTERNATE_OBJECT_DIRECTORIES\\nGIT_CONFIG\\nGIT_CONFIG_P'\n  rev-parse  --show-toplevel        -> INTERPRETED          ctrl=ok | stdout='C:/Users/Prekzursil/AppData/Local/Temp/adv0014_rev_7rz0g'\n  log        --oneline              -> INTERPRETED          ctrl=ok | stdout='8c4c155 c'\n  log        -1                     -> INTERPRETED          ctrl=ok | stdout='8c4c155d8ff54c21da730ef9ac7b6296544a7c2a'\n  log        -5                     -> INTERPRETED          ctrl=ok | stdout='8c4c155d8ff54c21da730ef9ac7b6296544a7c2a'\n  reflog     --lost-found           -> REJECTED-BY-PARSER   ctrl=ok | stdout=''\n  rev-list   -vH                    -> REJECTED-BY-PARSER   ctrl=ok | stdout=''\n\nDETECTOR BUG #2, FOUND BY THE CONTROL: the control matched only the word \"unknown\",\nbut git log/reflog say \"unrecognized argument\" and rev-list just prints \"usage:\" - so\nthe control was inert on 5/10 rows. Fixed; controls then went 5-failing -> 0-failing.\n\nRESIDUAL: `reflog --lost-found` and `rev-list -vH` are REJECTED-BY-PARSER at those\nsubcommands, but both are ACCEPTED at the subcommand their source anchor actually\nnames (`git fsck --lost-found`, `git count-objects -vH`) - a path-derivation artifact\nof this unit's extractor, not vendor drift.",
+     "fingerprint": "900e4f7aa9ea96da80b4de214b4bcec8",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "TEST-1-detector-control-valid-and-invalid-flag",
+   "name": "tests_required: one known-valid and one known-invalid flag, both classified correctly before any real result is accepted",
+   "command": "python adv0014_classify.py <surface> <help> <out>  (control block runs first)",
+   "result": "PASS",
+   "assertions": 16,
+   "output_tail": "CONTROL VERDICT: PASS\n  claude   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  codex    valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  gh       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  git      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  uv       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  node     valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  docker   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  wsl      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS"
+  },
+  {
+   "id": "TEST-2-git-argparser-control",
+   "name": "per-command-path both-states control for the git argument-parser probe",
+   "command": "python adv0014_argparse.py <spec> <out>",
+   "result": "PASS",
+   "assertions": 57,
+   "output_tail": "controls=57 pass=47 refused=10 (refused rows emit no verdict)"
+  },
+  {
+   "id": "TEST-3-revision-command-control",
+   "name": "both-states control for the echo-vs-interpret discriminator",
+   "command": "python adv0014_revprobe.py <out>",
+   "result": "PASS",
+   "assertions": 10,
+   "output_tail": "controls 10/10 pass"
+  },
+  {
+   "id": "TEST-4-mcp-name-resolution-control",
+   "name": "two resolvable and two non-resolvable MCP names, plus a same-call discriminator",
+   "command": "ToolSearch(query=\"select:mcp__codex__codex,mcp__codex__codex-reply,mcp__codex__codex_reply,mcp__adv0014__nope\")",
+   "result": "PASS",
+   "assertions": 6,
+   "output_tail": "2 schemas returned, 2 names unresolved; same-call discriminator returned 1 of 2."
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "CTRL-1-help-corpus-flag-detector",
+   "kind": "known-broken-fixture",
+   "description": "REQUIRED BY tests_required. For each of the 8 binaries the checker was handed one flag known-VALID by EXECUTION (--version, exit 0 with a version string - ground truth established by running it, NOT by reading the help text, so the control is non-circular) and one flag known-INVALID by EXECUTION (--adv0014-nonexistent-flag-zzz). It had to classify the valid one PRESENT and the invalid one ABSENT before any real result was accepted. 8/8 correct.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "known_invalid: gt=INVALID det=ABSENT for all 8 binaries (detector correctly flags the nonexistent flag)\n  claude   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  codex    valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  gh       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  git      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  uv       valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  node     valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  docker   valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS\n  wsl      valid(--version) gt=VALID det=PRESENT  | invalid(--adv0014-nonexistent-flag-zzz) gt=INVALID det=ABSENT   -> PASS",
+   "good_state_output": "known_valid --version: gt=VALID det=PRESENT for all 8 binaries (detector correctly stays silent)\nCONTROL VERDICT: PASS"
+  },
+  {
+   "id": "CTRL-2-git-argparser-both-states",
+   "kind": "known-broken-fixture",
+   "description": "Per command path, a synthetic invalid flag had to classify UNKNOWN-FLAG and a known-valid flag (-h) had to classify ACCEPTED. 47/57 paths pass. The 10 failures are all revision-accepting commands where git rejects nothing; those rows were REFUSED and re-measured by CTRL-3 instead of being reported.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "e.g. git fetch --adv0014-nonexistent-flag-zzz -> error: unknown option `adv0014-nonexistent-flag-zzz'  (UNKNOWN-FLAG)",
+   "good_state_output": "e.g. git fetch -h -> usage: git fetch [<options>] ...  (ACCEPTED)"
+  },
+  {
+   "id": "CTRL-2b-argparser-inapplicable-rows-REFUSED",
+   "kind": "absent-input",
+   "description": "HONEST NEGATIVE - THIS ROW IS A DISCLOSURE, NOT A CONTROL OFFERED AS PASSING; it is superseded by CTRL-3 and it is why condition 8 reads UNSATISFIED. On 10/57 paths (rev-parse, log, reflog, rev-list) the control did NOT pass, because `git rev-parse --bogus` echoes the token and exits 0. Those rows produced NO verdict from this probe. Recording the failure rather than folding it into a pass is the point of the control.",
+   "fired_on_bad_state": false,
+   "silent_on_good_state": true,
+   "bad_state_output": "git rev-parse --adv0014-nonexistent-flag-zzz -> stdout '--adv0014-nonexistent-flag-zzz', exit 0  (detector INERT here)",
+   "good_state_output": "git rev-parse -h -> usage lines, no option list  (ACCEPTED, but uninformative)"
+  },
+  {
+   "id": "CTRL-3-revision-command-echo-vs-interpret",
+   "kind": "known-broken-fixture",
+   "description": "Replacement control for the rows CTRL-2 refused. The synthetic bogus flag must be ECHOED/rejected and an independently known-good flag for the same subcommand must be INTERPRETED. 10/10 pass after the wording fix.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "git rev-parse --adv0014-nonexistent-flag-zzz -> echoes the flag ; git log --adv0014-nonexistent-flag-zzz -> fatal: unrecognized argument: --adv0014-nonexistent-flag-zzz",
+   "good_state_output": "git rev-parse --show-toplevel -> a real path ; git log --format=%H -> a real sha (INTERPRETED, exit 0)"
+  },
+  {
+   "id": "CTRL-4-mcp-live-schema-resolution",
+   "kind": "known-broken-fixture",
+   "description": "Both-states control for Probe 2. Two names known to exist (mcp__codex__codex, mcp__codex__codex-reply) must resolve with a schema; two known not to (mcp__codex__codex_reply - the underscore form this unit's spec names as the counterexample - and the synthetic mcp__adv0014__nope) must not. 4/4 correct. Strengthened by a SAME-CALL discriminator: select:mcp__search-hub__web_search_exa,mcp__exa__web_search_exa returned exactly one schema, so a blanket 'nothing resolves' failure mode is excluded.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "mcp__codex__codex_reply and mcp__adv0014__nope: absent from the returned <functions> block. select: over the 4 drifted names -> 'No matching deferred tools found'.",
+   "good_state_output": "mcp__codex__codex and mcp__codex__codex-reply: full JSONSchema returned. mcp__search-hub__web_search_exa: full JSONSchema returned IN THE SAME CALL that failed to resolve mcp__exa__web_search_exa."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "NONE",
+  "verdict": "NOT-REVIEWED",
+  "independent": false,
+  "fresh_context": false,
+  "notes": "reviewer_requirement: one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the RAW artifact and not from this report. Not run. The single highest-value re-derivation for that reviewer: take the 161 extracted flags, ignore this unit's adjudication entirely, and re-run `codex exec --prompt-file <path> --help` plus `codex exec --help` - if --prompt-file is accepted, this unit's one REFUTED verdict collapses."
+ },
+ "manifest_registration": {
+  "registered": false,
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/receipt_schema_gate.py (the program's own receipt validator and 12-condition completion reducer)",
+   "artifact_path": "command-center/adversarial/ADV-0014-vendor-cli-surface-drift.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report command-center/adversarial/ADV-0014-vendor-cli-surface-drift.json",
+    "raw_output": "SCHEMA-VALID:ADV-0014 (layer 1 only - this is NOT a completion verdict)\nEXIT 0\n\nThe same consumer was then run WITHOUT --schema-only to evaluate the 12-condition predicate; it read the artifact and returned FAILED:ADV-0014 predicate-unsatisfied c1,c3,c5,c6,c8,c9,c11,c12 - reproduced verbatim in extensions.completion_predicate_as_measured. read_ok is true (the consumer PARSED the artifact); the predicate verdict is a separate, and deliberately unsatisfied, matter.",
+    "fingerprint": "consumer-receipt-schema-gate-schemaonly",
+    "exit_code": 0
+   }
+  }
+ ],
+ "defects": [
+  {
+   "id": "ADV-0014-D1",
+   "severity": "P2",
+   "status": "open",
+   "summary": "STALE PREMISE IN GOVERNING TEXT: WORK-UNIT-CATALOG.json retry_policy (11 occurrences, e.g. :11051) and command-center/catalog-slices/ARC-1.json instruct 'retry ONCE on win-arg-limit with --ignore-user-config and a --prompt-file transport'. codex-cli 0.145.0 rejects --prompt-file with exit 2, so a unit that follows that retry policy literally against the codex binary fails. The shipped agentrail rail is already correct (stdin); only the instruction is stale."
+  },
+  {
+   "id": "ADV-0014-D2",
+   "severity": "P3",
+   "status": "open",
+   "summary": "TEST FIXTURE ASSERTS A VENDOR-INVALID ARGV: tools/agentspec-js/test/argv.test.mjs:40 asserts buildArgv emits [\"codex\",\"--ignore-user-config\",\"--prompt-file\",\"/tmp/p.txt\"] with exe:\"codex\". The builder is generic and the shipped config never selects that combination, so this is a fixture-realism defect rather than a dispatch defect - but it is the exact argv the live codex parser refuses."
+  },
+  {
+   "id": "ADV-0014-D3",
+   "severity": "P3",
+   "status": "open",
+   "summary": "PRODUCTION HOOK POINTS AT A DEAD SERVER: hooks/inquisitiveness/prompt-guard.py:203,206 injects a runtime directive to call mcp__tooluniverse__find_tools / execute_tool; `claude mcp list` reports tooluniverse as Failed to connect (-32000) today. Partly self-mitigating - the directive itself says 'If a TU tool is down, record it once (no retry-loop) and use the module's documented fallback'."
+  },
+  {
+   "id": "ADV-0014-D4",
+   "severity": "P3",
+   "status": "open",
+   "summary": "STALE TEST CORPUS NAMESPACE: hooks/memory-guard/test_scan.py and hooks/selection-events/test_emitter.py exercise the router against mcp__firecrawl__firecrawl_scrape / mcp__exa__web_search_exa / mcp__tavily__tavily_search, none of which resolve today; the live identifiers are mcp__search-hub__*. The production router (hooks/memory-guard/scan.py) folds by suffix and does not hardcode them, so behaviour is unaffected - but the corpus no longer represents a real call."
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Coverage of the extraction is bounded by what a literal-argv analysis can see: argv assembled entirely from runtime variables is recorded as <DYN> and its flags are invisible to this unit. The 161 flags are a LOWER BOUND on the program's real flag surface, not a census.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Instrument the process table (or an LD_PRELOAD/Detours shim on CreateProcess) during a full CI run and diff the observed argv against this unit's static surface."
+  },
+  {
+   "claim": "Subcommand extraction carries prose false-positives (tokens like 'and', 'not', 'to' were harvested from string constants), and one flag was mis-attributed across a tool boundary (`--config` is gitleaks', read as git's). Flags are far cleaner than subcommands because a --x/-x shape rarely occurs in prose, but the subcommand list should not be cited as a surface.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Re-run the extractor with a use-vs-mention gate that requires the token to be reachable from a subprocess call site, and diff the subcommand sets."
+  },
+  {
+   "claim": "Only the 8 named binaries plus MCP identifiers were checked. HTTP/API endpoints the program depends on (the api.githubcopilot.com MCP endpoint, 127.0.0.1:8765 basic-memory, 127.0.0.1:8812 agent-mail) were observed only through `claude mcp list` connection status, not by asserting response SHAPE, so endpoint semantic drift is NOT-CHECKED.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Issue one read-only request per endpoint and validate the response against the shape the program's parser expects."
+  },
+  {
+   "claim": "The 152 non-drifted MCP identifiers were classified by SERVER liveness from `claude mcp list` plus this session's tool inventory; only 10 identifiers were individually resolved against the live schema via ToolSearch. Per-tool argument-level drift (a parameter renamed or made required) is checked ONLY for mcp__codex__codex-reply.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "ToolSearch select: every one of the 156 identifiers in batches and diff each returned JSONSchema's required[] and property names against the call sites."
+  },
+  {
+   "claim": "The primary artifact's own sha256 cannot be self-referential. The recorded digest is of this file with the artifacts[0].sha256 VALUE replaced by 64 zeros; extensions.digest_convention states the recipe.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Read the file, replace the 64-hex value of artifacts[0].sha256 with 64 '0' characters, sha256 the resulting bytes, and compare."
+  }
+ ],
+ "report": {
+  "kind": "stale-premise-reprobe",
+  "observations": [
+   {
+    "name": "binary:claude",
+    "measured": "version=2.1.225 (Claude Code) flags_checked=7 absent_from_depth1_help=4 drift_candidates_after_adjudication=1 verdict=CONFIRMED (all flags resolve at depth or belong to an inner program)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.claude ; adv0014_adjudicate.json claude"
+   },
+   {
+    "name": "binary:codex",
+    "measured": "version=codex-cli 0.145.0 flags_checked=20 absent_from_depth1_help=3 drift_candidates_after_adjudication=3 verdict=REFUTED (1 flag: --prompt-file is not a codex flag today)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.codex ; adv0014_adjudicate.json codex"
+   },
+   {
+    "name": "binary:gh",
+    "measured": "version=gh version 2.74.2 (2025-06-18) flags_checked=22 absent_from_depth1_help=13 drift_candidates_after_adjudication=3 verdict=CONFIRMED (all flags resolve at depth or belong to an inner program)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.gh ; adv0014_adjudicate.json gh"
+   },
+   {
+    "name": "binary:git",
+    "measured": "version=git version 2.52.0.windows.1 flags_checked=87 absent_from_depth1_help=29 drift_candidates_after_adjudication=29 verdict=CONFIRMED (29/29 absent-from-help flags resolve; --config was never git's)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.git ; adv0014_adjudicate.json git"
+   },
+   {
+    "name": "binary:uv",
+    "measured": "version=uv 0.10.4 (079e3fd05 2026-02-17) flags_checked=1 absent_from_depth1_help=0 drift_candidates_after_adjudication=0 verdict=CONFIRMED (all flags resolve at depth or belong to an inner program)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.uv ; adv0014_adjudicate.json uv"
+   },
+   {
+    "name": "binary:node",
+    "measured": "version=v24.16.0 flags_checked=8 absent_from_depth1_help=4 drift_candidates_after_adjudication=4 verdict=CONFIRMED (all flags resolve at depth or belong to an inner program)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.node ; adv0014_adjudicate.json node"
+   },
+   {
+    "name": "binary:docker",
+    "measured": "version=Docker version 29.6.2, build dfc4efb flags_checked=5 absent_from_depth1_help=1 drift_candidates_after_adjudication=0 verdict=CONFIRMED (all flags resolve at depth or belong to an inner program)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.docker ; adv0014_adjudicate.json docker"
+   },
+   {
+    "name": "binary:wsl",
+    "measured": "version=WSL version: 2.7.10.0 flags_checked=11 absent_from_depth1_help=3 drift_candidates_after_adjudication=3 verdict=CONFIRMED (all flags resolve at depth or belong to an inner program)",
+    "method": "source-extracted argv diffed flag-by-flag against today's --help corpus, then depth re-probe, then the binary's own argument parser in a sandbox",
+    "anchor": "adv0014_classify.json results.wsl ; adv0014_adjudicate.json wsl"
+   },
+   {
+    "name": "mcp:identifier-resolution",
+    "measured": "156 identifiers extracted from source across 44 namespaces; 4 do NOT resolve against the live tool schema (mcp__exa__web_search_exa, mcp__tavily__tavily_search, mcp__firecrawl__firecrawl_scrape, mcp__tooluniverse__execute_tool); 3 of those 4 moved to the mcp__search-hub__* namespace while their server still reports Connected - the changed-semantics class no presence check can see. verdict=REFUTED",
+    "method": "ToolSearch select: against the LIVE tool schema (not docs), cross-checked against `claude mcp list` server liveness",
+    "anchor": "ToolSearch select: results ; claude mcp list"
+   },
+   {
+    "name": "mcp:codex-reply-semantics",
+    "measured": "mcp__codex__codex-reply resolves and its live schema marks conversationId 'DEPRECATED: use threadId instead'; no source file passes conversationId to it. The underscore form mcp__codex__codex_reply does NOT resolve. verdict=CONFIRMED",
+    "method": "live tool-schema resolution + repo-wide grep for conversationId/threadId",
+    "anchor": "ToolSearch mcp__codex__codex-reply schema ; grep conversationId"
+   },
+   {
+    "name": "detector:self-refutation",
+    "measured": "2 detector bugs found and fixed BY THE CONTROLS before any verdict was accepted (git strips dashes from its unknown-option diagnostic: 56/57 controls failing; 'unrecognized'/'usage:' wording: 5/10 controls inert). Without them this unit would have reported 29 false git drifts. verdict=CONFIRMED",
+    "method": "both-states negative control on every probe",
+    "anchor": "adv0014_argparse.json controls ; adv0014_revprobe.json controls"
+   }
+  ],
+  "control_ids": [
+   "CTRL-1-help-corpus-flag-detector",
+   "CTRL-2-git-argparser-both-states",
+   "CTRL-2b-argparser-inapplicable-rows-REFUSED",
+   "CTRL-3-revision-command-echo-vs-interpret",
+   "CTRL-4-mcp-live-schema-resolution"
+  ]
+ },
+ "extensions": {
+  "digest_convention": "artifacts[0].sha256 is the SHA-256 of this file's bytes with the 64-hex value of artifacts[0].sha256 itself replaced by 64 '0' characters. A self-referential digest is mathematically impossible; this recipe is exactly reproducible by a third party.",
+  "probe_scripts": [
+   "adv0014_extract3.py  - source invocation-surface extraction (ast + array + command-position)",
+   "adv0014_help.py      - today's --version / --help / <sub> --help corpus for all 8 binaries",
+   "adv0014_classify.py  - flag-by-flag diff + the tests_required detector control",
+   "adv0014_adjudicate.py- depth / inner-program / short-help adjudication of the absent set",
+   "adv0014_argparse.py  - git's own option parser in a sandboxed throwaway repo",
+   "adv0014_revprobe.py  - echo-vs-interpret discriminator for revision-accepting commands"
+  ],
+  "probe_scripts_location": "%TEMP%/claude/.../scratchpad (scratch; not repo files). Every command line and every raw output they produced is embedded verbatim in evidence[].probes[].raw_output above, so no verdict here depends on a file outside this artifact.",
+  "not_a_duplicate_of_ADV-0019": "ADV-0019 finds references to tools that no longer EXIST. The load-bearing findings here are the opposite shape: the firecrawl MCP server is Connected while its mcp__firecrawl__* identifiers are dead, and the codex binary is installed and healthy while --prompt-file is refused. No presence check sees either.",
+  "completion_predicate_as_measured": {
+   "command": "python platform/lib/receipt_schema_gate.py --repo-root . --fragment generic_report command-center/adversarial/ADV-0014-vendor-cli-surface-drift.json",
+   "marker": "FAILED:ADV-0014 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c8=UNSATISFIED,c9=UNSATISFIED,c11=UNSATISFIED  |  SATISFIED: c2,c4,c6,c7,c10,c12",
+   "history": "An earlier draft of this artifact also failed c6 (source and verifier shared method=command) and c12 (no executed downstream consumer). Both were genuinely fixed - the source probe for the flag claims is now the static extraction (method=static-analysis) rather than a second command probe, and receipt_schema_gate.py was actually run against this file. The earlier marker string listing c6 and c12 was itself a stale premise and is corrected here rather than left in place.",
+   "note": "Recorded so the gate's own verdict on this artifact is IN the artifact rather than only in a transcript. Conditions 1/5/9/11 are unsatisfied BY DESIGN: this unit may not self-certify a reviewer (reviewer_requirement demands a cross-vendor refuter) and may not edit the shared artifact manifest. Condition 3 is STRUCTURALLY unsatisfiable for a self-describing receipt - the reducer re-hashes the file, and a digest of a file that contains that digest does not exist; see extensions.digest_convention and the matching residual_unknown. Condition 8 reads UNSATISFIED because CTRL-2b truthfully records fired_on_bad_state=false for the 10 revision-accepting git paths where the arg-parser probe is inert; those rows produced NO verdict and were re-measured by CTRL-3 (10/10 controls pass). Folding that into a green would be the exact uncontrolled-silence defect this unit hunts."
+  },
+  "scope_not_checked": "Endpoints (HTTP/API response SHAPE), per-tool argument drift for the 146 unresolved-by-schema MCP identifiers, and any flag whose argv is fully dynamic. See residual_unknowns."
+ }
+}

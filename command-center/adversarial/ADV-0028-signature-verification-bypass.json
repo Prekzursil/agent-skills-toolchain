@@ -1,0 +1,658 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0028",
+  "state": "BLOCKED",
+  "sentinel": "FAILED:ADV-0028 measurement COMPLETE - both named probes ran, all 14 negative variants (9 package-side + 5 trust-store) REFUSED, control installs, 9/9 crypto-primitive checks + an independent Ed25519 cross-verify + a 20/20 load-bearing-gate mutation test agree; per-target verdict = REFUTED (no signature/provenance bypass; verifier fails closed). SUCCESS certification is BLOCKED on two schema conditions outside this sandboxed subagent's scope: independent cross-vendor review (none run) and artifact-manifest registration (forbidden to edit shared files).",
+  "spec_anchor": "_USER-PROMPTS.md:10856-10857, 11108",
+  "min_bytes_threshold": 8192,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus (adversarial subagent standing in for the assigned gpt-5-codex security-exploit-engineer)",
+    "role": "security-exploit-engineer",
+    "execution_substrate": "worktree-isolated"
+  },
+  "report": {
+    "kind": "exploit-proof",
+    "question": "Can a marketplace package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key -- and does the verifier fail closed (incl. under a degraded/corrupt trust store)?",
+    "headline": "REFUTED. No signature or provenance verification bypass exists on install. Across 14 negative cases (9 package-side variants + 5 trust-store degradations) every install was REFUSED at a signature/provenance gate, while the byte-identical healthy package installs with all 13 gates PASS. The verifier fails CLOSED: an unsigned/truncated/tampered/wrong-key/wrong-domain document is rejected, and a corrupt, emptied, or non-declaring trust store refuses rather than skipping the check. An attacker with registry-file-write but no maintainer key is stopped at gate 1 (the maintainer signature binds the whole index).",
+    "target_implementation": {
+      "signing_and_verification": "platform/marketplace/mkt/crypto.py (pure-Python RFC 8032 Ed25519 + verify_document)",
+      "install_path": "platform/marketplace/mkt/install.py (13 gates; gates 1-3 = index-signature, publisher-known, manifest-signature)",
+      "trust_store": "platform/marketplace/mkt/registry.py + the consumer trust-policy (registry_maintainer_keys, trusted_publishers, on_missing)",
+      "note_on_dependency": "The catalog dependency bucket B07 is a zero-member bucket (command-center/WORK-UNIT-CATALOG.json work_units_meta.remeasured_2026_08_11.buckets_with_zero_members), so no separate B07 signing implementation was ever produced; the signing/verification/trust-store implementation under test is the marketplace's own, which ADV-0021/0025/0027 also target."
+    },
+    "verdict_per_target": {
+      "T1_unsigned": "REFUTED (install refused: MKT-I03 'no signature block' / registry-index schema requires 'signature')",
+      "T2_truncated_malformed": "REFUTED (schema rejects len!=128; bit-flip -> MKT-I03 'signature mismatch')",
+      "T3_valid_sig_over_different_content": "REFUTED (MKT-I03 'digest mismatch'; index-row payload_digest cross-check fires)",
+      "T4_untrusted_key": "REFUTED (MKT-I03 'key not trusted'; index-repoint -> MKT-I02 publisher-known; wrong-domain -> MKT-I03 'domain mismatch')",
+      "T5_fail_closed_under_degraded_trust_store": "REFUTED (D1 MKT-I01 wrong maintainer key; D2/D3/D4 MKT-I02 publisher-known; D5 MKT-I01 index digest mismatch when files rewritten without the maintainer key)"
+    },
+    "method": "Build the real fixture marketplace (mkt.fixture.build) in a temp root; establish control C1 (healthy install succeeds, 13 gates). PROBE 1: clone the registry, mutate the PACKAGE into each signature/provenance variant, attempt install, record accept/reject + exact failure mode. PROBE 2 (mechanically different): leave the package healthy and DEGRADE the trust store / key source, re-attempt. Corroborate at the unit level with verify_document/raw_verify reasons, an independent `cryptography`-library Ed25519 cross-verify, and the repo mutation test proving the gates are load-bearing.",
+    "scope_and_residuals": "Scope = the registry install path (mkt.install.Installer) and the crypto/registry it calls. NOT separately exercised here: the offline BUNDLE import path (mkt.bundle.verify_bundle, domain mkt.bundle.v1) -- the e2e probe shows offline bundle install works with verification, but a dedicated bundle-signature variant matrix was not run (see residual_unknowns). Assumption: the maintainer/root key is uncompromised (standard PKI root-of-trust); D5 shows file-write alone does not defeat it. Policy note: a consumer MAY set on_missing.publisher='warn', which only loosens 'publisher known', not signature validity -- gates 1 and 3 still fully enforce.",
+    "probe1_variant_matrix": [
+      {
+        "id": "V1",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "removed manifest.signature block",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "manifest-signature",
+        "refusal_code": "MKT-I03",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I03 [manifest-signature] no signature block"
+      },
+      {
+        "id": "V1b",
+        "surface": "package",
+        "target_stage": "index-signature",
+        "mutation": "removed index.signature block",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "installer-construction",
+        "refusal_gate": null,
+        "refusal_code": null,
+        "exc_type": "RegistryError",
+        "failure_mode": "registry index fails its own schema: C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0028-mmd_wjmv\\v1b\\index.json: registry-index: 1 validation error(s): $: 'signature' is a required property"
+      },
+      {
+        "id": "V2",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "truncated manifest signature hex to len 126",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "runtime-exception",
+        "refusal_gate": null,
+        "refusal_code": null,
+        "exc_type": "ValidationFailed",
+        "failure_mode": "package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'"
+      },
+      {
+        "id": "V2b",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "flipped one nibble of manifest signature (len preserved)",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "manifest-signature",
+        "refusal_code": "MKT-I03",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I03 [manifest-signature] signature mismatch"
+      },
+      {
+        "id": "V3",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "edited manifest.summary after signing; signature left intact",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "manifest-signature",
+        "refusal_code": "MKT-I03",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed"
+      },
+      {
+        "id": "V3b",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "index row payload_digest set to a lie, index re-signed by root",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "manifest-signature",
+        "refusal_code": "MKT-I03",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I03 [manifest-signature] index payload_digest disagrees with the SIGNED manifest -- the index row was edited"
+      },
+      {
+        "id": "V4",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "manifest re-signed by attacker key; index row still names the trusted key",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "manifest-signature",
+        "refusal_code": "MKT-I03",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I03 [manifest-signature] key not trusted for this document"
+      },
+      {
+        "id": "V4b",
+        "surface": "package",
+        "target_stage": "publisher-known",
+        "mutation": "manifest+index row re-signed by attacker key (index re-signed by root); attacker key not trusted",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "publisher-known",
+        "refusal_code": "MKT-I02",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:8cb5a21d0d00... is not in the trust policy or not declared by the registry"
+      },
+      {
+        "id": "V5",
+        "surface": "package",
+        "target_stage": "manifest-signature",
+        "mutation": "manifest signed under wrong domain mkt.index.v1",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "manifest-signature",
+        "refusal_code": "MKT-I03",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I03 [manifest-signature] domain mismatch: signed for 'mkt.index.v1', verifying as 'mkt.manifest.v1'"
+      }
+    ],
+    "probe2_trust_store_degradation": [
+      {
+        "id": "D1",
+        "surface": "trust-store",
+        "target_stage": "index-signature",
+        "mutation": "registry_maintainer_keys replaced with a wrong well-formed key",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "index-signature",
+        "refusal_code": "MKT-I01",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key"
+      },
+      {
+        "id": "D2",
+        "surface": "trust-store",
+        "target_stage": "publisher-known",
+        "mutation": "trusted_publishers emptied (on_missing.publisher=refuse)",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "publisher-known",
+        "refusal_code": "MKT-I02",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry"
+      },
+      {
+        "id": "D3",
+        "surface": "trust-store",
+        "target_stage": "publisher-known",
+        "mutation": "trusted publisher pub:alpha-tools public_key replaced with a wrong key",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "publisher-known",
+        "refusal_code": "MKT-I02",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry"
+      },
+      {
+        "id": "D4",
+        "surface": "registry-key-source",
+        "target_stage": "publisher-known",
+        "mutation": "index publisher key record no longer declares the signing key, index re-signed by root",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "publisher-known",
+        "refusal_code": "MKT-I02",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry"
+      },
+      {
+        "id": "D5",
+        "surface": "registry-files-no-maintainer-key",
+        "target_stage": "index-signature",
+        "mutation": "attacker repoints manifest+index row to their key but CANNOT re-sign the index (no maintainer key)",
+        "expected": "REFUSE",
+        "result": "REFUSED",
+        "stage": "gate",
+        "refusal_gate": "index-signature",
+        "refusal_code": "MKT-I01",
+        "exc_type": "InstallRefused",
+        "failure_mode": "MKT-I01 [index-signature] digest mismatch: the document changed after it was signed"
+      }
+    ],
+    "tierA_crypto_primitive": [
+      {
+        "id": "A0-positive",
+        "target": "verify_document",
+        "input": "unmodified signed manifest",
+        "ok": true,
+        "reason": "",
+        "expected_ok": true,
+        "as_expected": true
+      },
+      {
+        "id": "A1-unsigned",
+        "target": "verify_document",
+        "input": "signature block removed",
+        "ok": false,
+        "reason": "no signature block",
+        "expected_ok": false,
+        "as_expected": true
+      },
+      {
+        "id": "A2-truncated",
+        "target": "verify_document",
+        "input": "signature hex len 126",
+        "ok": false,
+        "reason": "malformed signature",
+        "expected_ok": false,
+        "as_expected": true
+      },
+      {
+        "id": "A3-tampered",
+        "target": "verify_document",
+        "input": "summary edited, signature intact",
+        "ok": false,
+        "reason": "digest mismatch: the document changed after it was signed",
+        "expected_ok": false,
+        "as_expected": true
+      },
+      {
+        "id": "A4-domain",
+        "target": "verify_document",
+        "input": "manifest-domain doc verified as index-domain",
+        "ok": false,
+        "reason": "domain mismatch: signed for 'mkt.manifest.v1', verifying as 'mkt.index.v1'",
+        "expected_ok": false,
+        "as_expected": true
+      },
+      {
+        "id": "A5-untrusted-key",
+        "target": "verify_document",
+        "input": "expected_public_key=attacker key",
+        "ok": false,
+        "reason": "key not trusted for this document",
+        "expected_ok": false,
+        "as_expected": true
+      },
+      {
+        "id": "A6-rawverify-pos",
+        "target": "raw_verify",
+        "input": "valid signature",
+        "ok": true,
+        "reason": "",
+        "expected_ok": true,
+        "as_expected": true
+      },
+      {
+        "id": "A7-noncanonical-S",
+        "target": "raw_verify",
+        "input": "s replaced with s+L",
+        "ok": false,
+        "reason": "",
+        "expected_ok": false,
+        "as_expected": true
+      },
+      {
+        "id": "A8-allzero-sig",
+        "target": "raw_verify",
+        "input": "all-zero 64-byte signature",
+        "ok": false,
+        "reason": "",
+        "expected_ok": false,
+        "as_expected": true
+      }
+    ],
+    "control_C1_positive_baseline": {
+      "result": "INSTALLED",
+      "outcome": "SUCCESS",
+      "gates_evaluated": 13,
+      "gate_outcomes": {
+        "index-signature": "PASS",
+        "publisher-known": "PASS",
+        "manifest-signature": "PASS",
+        "revocation": "PASS",
+        "permissions": "PASS",
+        "compatibility": "PASS",
+        "advisory": "PASS",
+        "conformance-score": "PASS",
+        "payload-digest": "PASS",
+        "sbom": "PASS",
+        "license": "PASS",
+        "dependencies": "SKIP",
+        "lockfile": "PASS"
+      },
+      "failure_mode": null
+    },
+    "summary": {
+      "any_signature_bypass": false,
+      "installs_that_should_not_have": [],
+      "harness_setup_errors": [],
+      "every_bad_case_refused": true,
+      "control_installs": true,
+      "tierA_all_as_expected": true,
+      "detector_discriminates": true,
+      "verdict_hint": "REFUTED (no bypass; verifier fails closed)"
+    },
+    "observations": [
+      {
+        "name": "package_side_variants_tested",
+        "measured": 9,
+        "method": "test-run",
+        "anchor": "command-center/adversarial/ADV-0028-signature-verification-bypass.json#/report/probe1_variant_matrix"
+      },
+      {
+        "name": "trust_store_degradations_tested",
+        "measured": 5,
+        "method": "test-run",
+        "anchor": "#/report/probe2_trust_store_degradation"
+      },
+      {
+        "name": "bad_cases_installed_that_should_not_have",
+        "measured": 0,
+        "method": "test-run",
+        "anchor": "#/report/summary/installs_that_should_not_have"
+      },
+      {
+        "name": "control_C1_install_outcome",
+        "measured": "SUCCESS",
+        "method": "test-run",
+        "anchor": "#/report/control_C1_positive_baseline"
+      },
+      {
+        "name": "control_C1_gates_all_pass",
+        "measured": true,
+        "method": "test-run",
+        "anchor": "install.py:51-65 GATES"
+      },
+      {
+        "name": "crypto_primitive_checks_as_expected",
+        "measured": "9/9",
+        "method": "command",
+        "anchor": "#/report/tierA_crypto_primitive"
+      },
+      {
+        "name": "ed25519_crossvendor_agreement",
+        "measured": true,
+        "method": "command",
+        "anchor": "platform/marketplace/probe_crypto_crossverify.py"
+      },
+      {
+        "name": "gates_load_bearing_mutation_tests_passed",
+        "measured": 20,
+        "method": "test-run",
+        "anchor": "platform/marketplace/mkt/test_gates_are_load_bearing.py"
+      }
+    ],
+    "control_ids": [
+      "C1-positive-baseline",
+      "C2-detector-both-states",
+      "C3-trust-store-degradation-control",
+      "C4-synthetic-keys-only",
+      "MUT-gates-load-bearing",
+      "XV-ed25519-crossverify"
+    ],
+    "self_hash_convention": "artifacts[0].sha256 is the SHA-256 of this file with artifacts[0].sha256 replaced by 64 '0' chars, over json.dumps(d, indent=2, ensure_ascii=False)+'\\n'. bytes is the literal on-disk size (substituting one 64-hex string for another does not change length)."
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+      "bytes": 43980,
+      "sha256": "dc596e968b0e014cb81daa8bcb516c9cc4ee0e31729f5eea381052163307771f",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "PROBE 1 (variant matrix): a marketplace package whose manifest/index signature is ABSENT, MALFORMED/TRUNCATED, VALID-BUT-OVER-DIFFERENT-CONTENT, or made by an UNTRUSTED key cannot be installed -- all 9 package-side variants were REFUSED at a signature/provenance gate, while the byte-identical unmodified package installs (control C1). No signature/provenance bypass exists on install.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/marketplace/mkt/install.py:280-337 (gates 1-3); crypto.py:245-287 (verify_document)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python %TEMP%/adv0028/harness.py  (worktree-isolated; MKT on sys.path)  [Probe 1]",
+          "raw_output": "[\n {\n  \"id\": \"V1\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"removed manifest.signature block\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"manifest-signature\",\n  \"refusal_code\": \"MKT-I03\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I03 [manifest-signature] no signature block\"\n },\n {\n  \"id\": \"V1b\",\n  \"surface\": \"package\",\n  \"target_stage\": \"index-signature\",\n  \"mutation\": \"removed index.signature block\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"installer-construction\",\n  \"refusal_gate\": null,\n  \"refusal_code\": null,\n  \"exc_type\": \"RegistryError\",\n  \"failure_mode\": \"registry index fails its own schema: C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Local\\\\Temp\\\\adv0028-mmd_wjmv\\\\v1b\\\\index.json: registry-index: 1 validation error(s): $: 'signature' is a required property\"\n },\n {\n  \"id\": \"V2\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"truncated manifest signature hex to len 126\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"runtime-exception\",\n  \"refusal_gate\": null,\n  \"refusal_code\": null,\n  \"exc_type\": \"ValidationFailed\",\n  \"failure_mode\": \"package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'\"\n },\n {\n  \"id\": \"V2b\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"flipped one nibble of manifest signature (len preserved)\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"manifest-signature\",\n  \"refusal_code\": \"MKT-I03\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I03 [manifest-signature] signature mismatch\"\n },\n {\n  \"id\": \"V3\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"edited manifest.summary after signing; signature left intact\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"manifest-signature\",\n  \"refusal_code\": \"MKT-I03\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed\"\n },\n {\n  \"id\": \"V3b\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"index row payload_digest set to a lie, index re-signed by root\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"manifest-signature\",\n  \"refusal_code\": \"MKT-I03\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I03 [manifest-signature] index payload_digest disagrees with the SIGNED manifest -- the index row was edited\"\n },\n {\n  \"id\": \"V4\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"manifest re-signed by attacker key; index row still names the trusted key\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"manifest-signature\",\n  \"refusal_code\": \"MKT-I03\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I03 [manifest-signature] key not trusted for this document\"\n },\n {\n  \"id\": \"V4b\",\n  \"surface\": \"package\",\n  \"target_stage\": \"publisher-known\",\n  \"mutation\": \"manifest+index row re-signed by attacker key (index re-signed by root); attacker key not trusted\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"publisher-known\",\n  \"refusal_code\": \"MKT-I02\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:8cb5a21d0d00... is not in the trust policy or not declared by the registry\"\n },\n {\n  \"id\": \"V5\",\n  \"surface\": \"package\",\n  \"target_stage\": \"manifest-signature\",\n  \"mutation\": \"manifest signed under wrong domain mkt.index.v1\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"manifest-signature\",\n  \"refusal_code\": \"MKT-I03\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I03 [manifest-signature] domain mismatch: signed for 'mkt.index.v1', verifying as 'mkt.manifest.v1'\"\n }\n]",
+          "fingerprint": "4c2556d5c7d6e92f8d1d916314f54114"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python platform/marketplace/probe_crypto_crossverify.py  (independent Ed25519 vs the `cryptography` library)",
+          "raw_output": "{\n  \"pure_python_self_consistent\": true,\n  \"cross_vendor\": {\n    \"ours_verified_by_cryptography\": true,\n    \"cryptography_verified_by_ours\": true,\n    \"signature_bytes_identical\": true\n  },\n  \"control_valid_signature_accepted\": true,\n  \"control_tampered_message_rejected\": true\n}\nSUCCESS:crypto-crossverify",
+          "fingerprint": "1526f95f883509ea122637793775a2ed"
+        }
+      ]
+    },
+    {
+      "claim": "PROBE 2 (degraded trust store): with the package left healthy, corrupting the maintainer key, emptying the trusted-publisher set, corrupting the trusted publisher key, making the registry key record no longer declare the signing key, or an attacker rewriting registry files WITHOUT the maintainer key -- every one is REFUSED (MKT-I01/MKT-I02). The verifier fails CLOSED when it cannot anchor the key; it never skips verification and installs anyway.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/marketplace/mkt/install.py:280-341; registry.py:96-107 (verify_index_signature refuses any key not in maintainer_keys)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python %TEMP%/adv0028/harness.py  (worktree-isolated; MKT on sys.path)  [Probe 2]",
+          "raw_output": "[\n {\n  \"id\": \"D1\",\n  \"surface\": \"trust-store\",\n  \"target_stage\": \"index-signature\",\n  \"mutation\": \"registry_maintainer_keys replaced with a wrong well-formed key\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"index-signature\",\n  \"refusal_code\": \"MKT-I01\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key\"\n },\n {\n  \"id\": \"D2\",\n  \"surface\": \"trust-store\",\n  \"target_stage\": \"publisher-known\",\n  \"mutation\": \"trusted_publishers emptied (on_missing.publisher=refuse)\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"publisher-known\",\n  \"refusal_code\": \"MKT-I02\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\"\n },\n {\n  \"id\": \"D3\",\n  \"surface\": \"trust-store\",\n  \"target_stage\": \"publisher-known\",\n  \"mutation\": \"trusted publisher pub:alpha-tools public_key replaced with a wrong key\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"publisher-known\",\n  \"refusal_code\": \"MKT-I02\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\"\n },\n {\n  \"id\": \"D4\",\n  \"surface\": \"registry-key-source\",\n  \"target_stage\": \"publisher-known\",\n  \"mutation\": \"index publisher key record no longer declares the signing key, index re-signed by root\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"publisher-known\",\n  \"refusal_code\": \"MKT-I02\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\"\n },\n {\n  \"id\": \"D5\",\n  \"surface\": \"registry-files-no-maintainer-key\",\n  \"target_stage\": \"index-signature\",\n  \"mutation\": \"attacker repoints manifest+index row to their key but CANNOT re-sign the index (no maintainer key)\",\n  \"expected\": \"REFUSE\",\n  \"result\": \"REFUSED\",\n  \"stage\": \"gate\",\n  \"refusal_gate\": \"index-signature\",\n  \"refusal_code\": \"MKT-I01\",\n  \"exc_type\": \"InstallRefused\",\n  \"failure_mode\": \"MKT-I01 [index-signature] digest mismatch: the document changed after it was signed\"\n }\n]",
+          "fingerprint": "87b45d9deb8ebf202a73c3a3b4052a6b"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -m pytest platform/marketplace/mkt/test_gates_are_load_bearing.py -q  (mutation: each guard disabled -> the bad install then SUCCEEDS, proving the guard is load-bearing)",
+          "raw_output": "....................                                                     [100%]\n20 passed in 7.38s",
+          "fingerprint": "6d7a4d995bcc01ca7e041e7ed3101eaa"
+        }
+      ]
+    },
+    {
+      "claim": "TARGET T1 UNSIGNED: an unsigned manifest is refused at gate 3 (MKT-I03 'no signature block'); an unsigned index is refused at construction by the registry-index schema ('signature' required). verify_document independently returns (False, 'no signature block').",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "install.py:319-325; crypto.py:255-257; registry.py:65-82",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "harness V1 (unsigned manifest) + V1b (unsigned index)",
+          "raw_output": "V1: REFUSED at manifest-signature [MKT-I03] :: MKT-I03 [manifest-signature] no signature block\nV1b: REFUSED at installer-construction [RegistryError] :: registry index fails its own schema: C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0028-mmd_wjmv\\v1b\\index.json: registry-index: 1 validation error(s): $: 'signature' is a required property",
+          "fingerprint": "28a258ed2f84e38ff4b4f5526210541d"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "mkt.crypto.verify_document(manifest_without_signature, 'mkt.manifest.v1')",
+          "raw_output": "{\n \"id\": \"A1-unsigned\",\n \"target\": \"verify_document\",\n \"input\": \"signature block removed\",\n \"ok\": false,\n \"reason\": \"no signature block\",\n \"expected_ok\": false,\n \"as_expected\": true\n}",
+          "fingerprint": "54846dc51fd56820740bec8caa328617"
+        }
+      ]
+    },
+    {
+      "claim": "TARGET T2 TRUNCATED/MALFORMED: a signature truncated to 126 hex is rejected by the package-manifest schema ('does not match ^[0-9a-f]{128}$'); a full-length but bit-flipped signature is refused at gate 3 (MKT-I03 'signature mismatch'). verify_document independently returns (False, 'malformed signature').",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "install.py:319-325; crypto.py:278-286",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "harness V2 (truncated) + V2b (bit-flipped, length preserved)",
+          "raw_output": "V2: REFUSED at runtime-exception [ValidationFailed] :: package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'\nV2b: REFUSED at manifest-signature [MKT-I03] :: MKT-I03 [manifest-signature] signature mismatch",
+          "fingerprint": "641295c1a954e01594c577a034577ee5"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "mkt.crypto.verify_document(manifest_with_len126_sig, 'mkt.manifest.v1', expected_public_key=pub)",
+          "raw_output": "{\n \"id\": \"A2-truncated\",\n \"target\": \"verify_document\",\n \"input\": \"signature hex len 126\",\n \"ok\": false,\n \"reason\": \"malformed signature\",\n \"expected_ok\": false,\n \"as_expected\": true\n}",
+          "fingerprint": "52f429daccfaad658083b19397483a01"
+        }
+      ]
+    },
+    {
+      "claim": "TARGET T3 VALID-SIGNATURE-OVER-DIFFERENT-CONTENT: editing a signed manifest field after signing is refused at gate 3 (MKT-I03 'digest mismatch: the document changed after it was signed'); making the index row's payload_digest disagree with the SIGNED manifest (index re-signed by root) is refused at gate 3 ('index payload_digest disagrees with the SIGNED manifest'). The provenance binding holds.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "install.py:319-337 (digest+permission cross-check); crypto.py:276-277",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "harness V3 (tampered manifest) + V3b (index-row payload_digest lie, index re-signed)",
+          "raw_output": "V3: REFUSED at manifest-signature [MKT-I03] :: MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed\nV3b: REFUSED at manifest-signature [MKT-I03] :: MKT-I03 [manifest-signature] index payload_digest disagrees with the SIGNED manifest -- the index row was edited",
+          "fingerprint": "2bb0201aa2c6ca1bfc5ba202736ccf8a"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "mkt.crypto.verify_document(manifest_with_edited_summary, 'mkt.manifest.v1', expected_public_key=pub)",
+          "raw_output": "{\n \"id\": \"A3-tampered\",\n \"target\": \"verify_document\",\n \"input\": \"summary edited, signature intact\",\n \"ok\": false,\n \"reason\": \"digest mismatch: the document changed after it was signed\",\n \"expected_ok\": false,\n \"as_expected\": true\n}",
+          "fingerprint": "703bba8c9d2ccc5064e93ca95aa0a3d6"
+        }
+      ]
+    },
+    {
+      "claim": "TARGET T4 UNTRUSTED KEY: a manifest re-signed by an attacker key while the index still names the trusted key is refused at gate 3 (MKT-I03 'key not trusted for this document'); repointing the index row to the attacker key (index re-signed by root) is refused at gate 2 (MKT-I02 publisher-known: not in trust policy / not declared by registry); a wrong-domain signature is refused (MKT-I03 'domain mismatch'). verify_document with expected_public_key=attacker returns (False, 'key not trusted').",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "install.py:288-337 (gate 2 publisher-known, gate 3 expected_public_key pin); crypto.py:260-269",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "harness V4 (attacker key, index names trusted) + V4b (index repointed to attacker) + V5 (wrong domain)",
+          "raw_output": "V4: REFUSED at manifest-signature [MKT-I03] :: MKT-I03 [manifest-signature] key not trusted for this document\nV4b: REFUSED at publisher-known [MKT-I02] :: MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:8cb5a21d0d00... is not in the trust policy or not declared by the registry\nV5: REFUSED at manifest-signature [MKT-I03] :: MKT-I03 [manifest-signature] domain mismatch: signed for 'mkt.index.v1', verifying as 'mkt.manifest.v1'",
+          "fingerprint": "695ae3dd22a2a387ce773d98f89f0c29"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "mkt.crypto.verify_document(manifest, 'mkt.manifest.v1', expected_public_key=ATTACKER) and domain probe A4",
+          "raw_output": "{\n \"A5\": {\n  \"id\": \"A5-untrusted-key\",\n  \"target\": \"verify_document\",\n  \"input\": \"expected_public_key=attacker key\",\n  \"ok\": false,\n  \"reason\": \"key not trusted for this document\",\n  \"expected_ok\": false,\n  \"as_expected\": true\n },\n \"A4\": {\n  \"id\": \"A4-domain\",\n  \"target\": \"verify_document\",\n  \"input\": \"manifest-domain doc verified as index-domain\",\n  \"ok\": false,\n  \"reason\": \"domain mismatch: signed for 'mkt.manifest.v1', verifying as 'mkt.index.v1'\",\n  \"expected_ok\": false,\n  \"as_expected\": true\n }\n}",
+          "fingerprint": "31b77a5247b0e94ea158bd8d75a6c186"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-harness",
+      "name": "ADV-0028 variant-matrix + trust-store-degradation + crypto-primitive harness",
+      "command": "python %TEMP%/adv0028/harness.py  (worktree-isolated; MKT on sys.path)",
+      "result": "PASS",
+      "assertions": 24,
+      "output_tail": "SUCCESS:adv0028-harness  (14/14 bad refused; control installs; 9/9 crypto-primitive checks as expected)"
+    },
+    {
+      "id": "T-mutation-gates-load-bearing",
+      "name": "each install guard disabled -> bad install then succeeds (guards are load-bearing)",
+      "command": "python -m pytest platform/marketplace/mkt/test_gates_are_load_bearing.py -q -p no:cacheprovider",
+      "result": "PASS",
+      "assertions": 20,
+      "duration_seconds": 7.38,
+      "output_tail": "20 passed in 7.38s"
+    },
+    {
+      "id": "T-ed25519-crossverify",
+      "name": "pure-Python Ed25519 cross-verified against the cryptography library, both directions",
+      "command": "python platform/marketplace/probe_crypto_crossverify.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "SUCCESS:crypto-crossverify"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "C1-C2-installer-both-states",
+      "kind": "adversarial-payload",
+      "description": "The installer/verify_document detector must fire on bad and stay silent on good. 14 signature/provenance bad variants (9 package-side + 5 trust-store) were each REFUSED; the byte-identical healthy package installed with all 13 gates PASS. A detector that refused everything would fail C1; a detector that installed a variant would be a bypass.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "14/14 bad variants REFUSED: V1: REFUSED at manifest-signature [MKT-I03]; V1b: REFUSED at installer-construction [RegistryError]; V2: REFUSED at runtime-exception [ValidationFailed]; V2b: REFUSED at manifest-signature [MKT-I03]; V3: REFUSED at manifest-signature [MKT-I03]; V3b: REFUSED at manifest-signature [MKT-I03]; V4: REFUSED at manifest-signature [MKT-I03]; V4b: REFUSED at publisher-known [MKT-I02]; V5: REFUSED at manifest-signature [MKT-I03]; D1: REFUSED at index-signature [MKT-I01]; D2: REFUSED at publisher-known [MKT-I02]; D3: REFUSED at publisher-known [MKT-I02]; D4: REFUSED at publisher-known [MKT-I02]; D5: REFUSED at index-signature [MKT-I01]",
+      "good_state_output": "control C1 INSTALLED outcome=SUCCESS gates=13/13 all PASS"
+    },
+    {
+      "id": "C2-crypto-primitive-both-states",
+      "kind": "adversarial-payload",
+      "description": "raw_verify must reject forgeries and accept a valid signature. Non-canonical S (s+L) and an all-zero 64-byte signature are both rejected; a valid signature is accepted (A6). This is the both-states control on the crypto primitive that every install gate rests on.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A7 non-canonical-S -> raw_verify=False; A8 all-zero-sig -> raw_verify=False",
+      "good_state_output": "A6 valid signature -> raw_verify=True"
+    },
+    {
+      "id": "MUT-gates-load-bearing",
+      "kind": "mutation",
+      "description": "Repo mutation harness disables each install guard in an isolated copy of install.py and asserts the bad install then SUCCEEDS -- proving the signature/revocation/permission guards are load-bearing rather than decorative. 20/20 passed.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "guard-disabled copy -> bad install SUCCEEDS (mutation survives, guard proven necessary)",
+      "good_state_output": "20 passed in 7.38s"
+    },
+    {
+      "id": "XV-ed25519-crossverify",
+      "kind": "known-broken-fixture",
+      "description": "Independent instrument: the pure-Python Ed25519 is cross-checked against the `cryptography` library both directions, and a tampered message is rejected while a valid one is accepted. Proves raw_verify is a real verifier, so its False on a forgery is genuine cryptographic rejection, not a broken matcher.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "control_tampered_message_rejected=true (from probe_crypto_crossverify.py)",
+      "good_state_output": "control_valid_signature_accepted=true; ours<->cryptography agree both directions, bytes identical"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "NOT-ASSIGNED",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "notes": "The unit's reviewer_requirement mandates two reviewers from DIFFERENT vendors, each independently reproducing the counterexample. There is NO counterexample (REFUTED). The whole result is reproducible from the recorded harness (variant matrix + trust-store degradation) and the two independent corroborations (probe_crypto_crossverify.py; test_gates_are_load_bearing.py). No reviewer has run."
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0028"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft202012Validator against command-center/schema/exploit-proof.schema.json (resolved through artifact-class-profiles -> receipt.schema.json#/$defs/generic_report)",
+      "artifact_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "jsonschema Draft202012Validator(exploit-proof.schema.json).iter_errors(receipt)",
+        "raw_output": "VALID: 0 schema errors",
+        "fingerprint": "24b587aae38c3d6df556bfd47366e5ae"
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T23:05:00Z",
+    "ended_at": "2026-08-12T00:40:00Z",
+    "duration_seconds": 5700
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "failure": {
+    "classification": [
+      "success-certification-blocked-on-governance",
+      "manifest-registration-out-of-scope"
+    ],
+    "reason": "The adversarial measurement is COMPLETE and no verdict is downgraded: both named probes ran with verbatim raw output, every enumerated target carries exactly one verdict (REFUTED), and every listed control/negative test is recorded and passed. The terminal state is BLOCKED rather than SUCCESS because two schema-mandated SUCCESS conditions cannot be satisfied honestly by this agent: condition 9 (an INDEPENDENT reviewer - the unit requires TWO from different vendors and none has run) and condition 11 (artifact-manifest registration - the spawn contract forbids editing shared files such as command-center/ARTIFACT-MANIFEST.json). Asserting either would be the exact fabrication this program exists to detect, so both are reported false instead.",
+    "blocked_on": "independent cross-vendor reproduction of the variant matrix + a manifest-registration step by an agent permitted to write command-center/ARTIFACT-MANIFEST.json"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The offline BUNDLE import path (mkt.bundle.verify_bundle, signing domain mkt.bundle.v1) was not put through a dedicated signature-variant matrix; only the registry install path was.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run PROBE 1's four variants against export_bundle/import_bundle/verify_bundle (mkt.bundle) instead of the registry Installer, asserting each variant refuses import."
+    },
+    {
+      "claim": "The result assumes the maintainer/root signing key is uncompromised (standard PKI root-of-trust). D5 shows registry-file-write without that key is stopped at gate 1, but a stolen maintainer key defeats index provenance by definition.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Out of scope for install-bypass: model maintainer-key custody / HSM separately; if the root key can be signed with, provenance is void regardless of the install gates."
+    }
+  ]
+}

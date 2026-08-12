@@ -1,0 +1,1345 @@
+{
+ "schema_version": 1,
+ "unit_id": "ADV-0017",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:ADV-0017 the MEASUREMENT is complete - the artifact exists, is non-empty, parses, records BOTH named probes verbatim with their raw output, carries exactly one verdict per enumerated target, and records the result of every listed control including the required EOL control (PASS) and the no-write control (PASS). The receipt cannot be SUCCESS because receipt_core allOf[0] requires reviewer.verdict=PASS with reviewer.independent=true, manifest_registration.registered=true and an executed downstream_consumer; this unit's reviewer_requirement demands TWO reviewers from DIFFERENT vendors, which a unit cannot self-supply, and the unit is barred by its spawn constraints from editing command-center/ARTIFACT-MANIFEST.json. Nothing in the measurement failed.",
+ "spec_anchor": "_USER-PROMPTS.md:11305, 11329",
+ "min_bytes_threshold": 8192,
+ "profile": "refutation-record",
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0017-repo-live-two-directional-divergence.json",
+   "bytes": 92578,
+   "sha256": "463c25de10cde4e87735fc800b7a763626c1a9aa47097794fb3d0f9a94d6efcf",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "ENUMERATED TARGET 1 - which side holds unique content. Measured over 9 repo/live edges and 4645 shared pair-instances after LF normalisation (CRLF->LF only; NUL-bearing files never normalised): IDENTICAL 3519, EOL-ONLY 617, DIVERGED (BOTH sides hold unique lines) 493, REPO-AHEAD (live is a strict subset) 11, LIVE-AHEAD (repo is a strict subset) 4, BINARY-DIFF 1, REORDER-ONLY 0, UNREADABLE 0. 294 DISTINCT file paths are DIVERGED on at least one edge. Only 15 pair-instances (1.3%) of the 1126 differing pairs are genuinely ONE-directional.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "scripts/sync-from-live.ps1:154-159 ($Map, the 5 mapped areas) + scripts/sync-skills.ps1:45 + report.edge_table",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad && python adv0017_probe1.py probe1_out.json",
+     "raw_output": "rules: repo=88 live=88 shared=88 {\"DIVERGED\": 20, \"REPO-AHEAD\": 7, \"LIVE-AHEAD\": 1, \"EOL-ONLY\": 55, \"IDENTICAL\": 5}\nagents: repo=18 live=18 shared=18 {\"EOL-ONLY\": 17, \"DIVERGED\": 1}\ncommands: repo=71 live=71 shared=71 {\"EOL-ONLY\": 64, \"DIVERGED\": 7}\nhooks: repo=293 live=270 shared=266 {\"DIVERGED\": 47, \"EOL-ONLY\": 77, \"IDENTICAL\": 140, \"LIVE-AHEAD\": 1, \"BINARY-DIFF\": 1}\ndotagents-skills: repo=1887 live=1795 shared=1735 {\"IDENTICAL\": 1438, \"EOL-ONLY\": 136, \"DIVERGED\": 157, \"REPO-AHEAD\": 2, \"LIVE-AHEAD\": 2}\nskills-to-agents: repo=1721 live=1795 shared=1588 {\"IDENTICAL\": 1336, \"DIVERGED\": 125, \"EOL-ONLY\": 125, \"REPO-AHEAD\": 2}\nskills-to-claude: repo=1721 live=879 shared=789 {\"IDENTICAL\": 551, \"EOL-ONLY\": 142, \"DIVERGED\": 96}\nclaudeonly-agents: repo=303 live=1795 shared=78 {\"IDENTICAL\": 38, \"DIVERGED\": 40}\nclaudeonly-claude: repo=303 live=879 shared=12 {\"EOL-ONLY\": 1, \"IDENTICAL\": 11}\nWROTE probe1_out.json in 42.6s",
+     "fingerprint": "content-line-set-classification:9-edges:4645-shared-pairs:LF-normalised",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd <scratchpad> && python adv0017_probe2.py probe1_out.json probe2_out.json   # git -C <repo> log -1 --format=%cI -- <repo_rel> per path, joined against os.stat(live).st_mtime, plus a content read of every live-larger pair",
+     "raw_output": "rows=1126  live-larger=320 read=320  untracked-repo-side=3\n\ncrosstab size_says x content_says:\n  ('equal-size', 'both-sides-unique')            5\n  ('live-larger', 'BINARY-DIFF')                 1\n  ('live-larger', 'EOL-ONLY')                    33\n  ('live-larger', 'both-sides-unique')           282\n  ('live-larger', 'live-superset')               4\n  ('repo-larger', 'EOL-ONLY')                    584\n  ('repo-larger', 'both-sides-unique')           206\n  ('repo-larger', 'repo-superset')               11\n\ncrosstab mtime_says x content_says:\n  ('NOT-COMPUTABLE', 'both-sides-unique')        3\n  ('live-newer', 'BINARY-DIFF')                  1\n  ('live-newer', 'EOL-ONLY')                     98\n  ('live-newer', 'both-sides-unique')            132\n  ('live-newer', 'live-superset')                4\n  ('live-newer', 'repo-superset')                4\n  ('repo-newer', 'EOL-ONLY')                     519\n  ('repo-newer', 'both-sides-unique')            358\n  ('repo-newer', 'repo-superset')                7",
+     "fingerprint": "provenance-join:git-log-1-format-cI x os.stat-st_mtime:1126-rows",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REPRODUCIBILITY AND A DISCLOSED CONFOUND. The classification was taken TWICE, 2026-08-11T19:19:26Z and 2026-08-11T21:05:47Z (~65 minutes apart). 7 of the 9 edges reproduced BIT-IDENTICAL status counts; 2 moved, and the cause was measured rather than guessed: a CONCURRENT WRITER populated ~/.claude/skills from 879 to 1889 filtered files (+1010) between the samples, while the other five live roots stayed at exactly 88 / 18 / 71 / 270 / 1795 filtered files. The two moved edges are precisely the two whose live root is ~/.claude/skills, and NEITHER has a scripted writer. Every load-bearing result in this artifact - all four sync-script blast radii and all four hand-adjudicated counterexamples - sits on the 7 STABLE edges, whose subtotals are DIVERGED 397 over 3844 shared pairs and 264 distinct DIVERGED paths. UNVERIFIED: the identity of the concurrent writer was NOT established; three sibling agents were declared active in this session and a skills-deploy hook is also possible.",
+   "verdict": "PARTIAL",
+   "confidence": "almost-certain",
+   "anchor": "probe1_out.json vs probe1_rerun.json; report.temporal_reproducibility",
+   "unverified": true,
+   "settling_experiment": "Identify the writer by correlating the ~/.claude/skills mtimes in the +1010 file set against the session transcripts under ~/.claude/projects and against any scheduled skills-deploy task, then re-take both samples with the writer quiesced.",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad && python adv0017_probe1.py probe1_out.json",
+     "raw_output": "rules: repo=88 live=88 shared=88 {\"DIVERGED\": 20, \"REPO-AHEAD\": 7, \"LIVE-AHEAD\": 1, \"EOL-ONLY\": 55, \"IDENTICAL\": 5}\nagents: repo=18 live=18 shared=18 {\"EOL-ONLY\": 17, \"DIVERGED\": 1}\ncommands: repo=71 live=71 shared=71 {\"EOL-ONLY\": 64, \"DIVERGED\": 7}\nhooks: repo=293 live=270 shared=266 {\"DIVERGED\": 47, \"EOL-ONLY\": 77, \"IDENTICAL\": 140, \"LIVE-AHEAD\": 1, \"BINARY-DIFF\": 1}\ndotagents-skills: repo=1887 live=1795 shared=1735 {\"IDENTICAL\": 1438, \"EOL-ONLY\": 136, \"DIVERGED\": 157, \"REPO-AHEAD\": 2, \"LIVE-AHEAD\": 2}\nskills-to-agents: repo=1721 live=1795 shared=1588 {\"IDENTICAL\": 1336, \"DIVERGED\": 125, \"EOL-ONLY\": 125, \"REPO-AHEAD\": 2}\nskills-to-claude: repo=1721 live=879 shared=789 {\"IDENTICAL\": 551, \"EOL-ONLY\": 142, \"DIVERGED\": 96}\nclaudeonly-agents: repo=303 live=1795 shared=78 {\"IDENTICAL\": 38, \"DIVERGED\": 40}\nclaudeonly-claude: repo=303 live=879 shared=12 {\"EOL-ONLY\": 1, \"IDENTICAL\": 11}\nWROTE probe1_out.json in 42.6s",
+     "fingerprint": "content-line-set-classification:sample-A:2026-08-11T19:19:26Z",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd <scratchpad> && python adv0017_probe1.py probe1_rerun.json   # second temporal sample, then a per-edge and per-root diff of the two",
+     "raw_output": "edge               THEN                          NOW                           stable\nrules              DIVERGED 20 EOL-ONLY 55 ...    identical                     True\nagents             DIVERGED 1 EOL-ONLY 17         identical                     True\ncommands           DIVERGED 7 EOL-ONLY 64         identical                     True\nhooks              DIVERGED 47 EOL-ONLY 77 ...    identical                     True\ndotagents-skills   DIVERGED 157 EOL-ONLY 136 ...  identical                     True\nskills-to-agents   DIVERGED 125 EOL-ONLY 125 ...  identical                     True\nskills-to-claude   DIVERGED 96 EOL-ONLY 142 I551  DIVERGED 138 EOL-ONLY 171 I1285  False\nclaudeonly-agents  DIVERGED 40 IDENTICAL 38       identical                     True\nclaudeonly-claude  EOL-ONLY 1 IDENTICAL 11        DIVERGED 39 EOL-ONLY 1 I38    False\n\nTOTALS then: BINARY-DIFF 1, DIVERGED 493, EOL-ONLY 617, IDENTICAL 3519, LIVE-AHEAD 4, REPO-AHEAD 11\nTOTALS now : BINARY-DIFF 1, DIVERGED 574, EOL-ONLY 646, IDENTICAL 4280, LIVE-AHEAD 4, REPO-AHEAD 13\n\nper-root filtered file counts, then -> now:\n  .claude/rules      88 ->   88   delta 0\n  .claude/agents     18 ->   18   delta 0\n  .claude/commands   71 ->   71   delta 0\n  .claude/hooks     270 ->  270   delta 0\n  .agents/skills   1795 -> 1795   delta 0\n  .claude/skills    879 -> 1889   delta +1010   <-- the sole moving root",
+     "fingerprint": "content-line-set-classification:sample-B:2026-08-11T21:05:47Z",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 2 - is there ANY pair where a one-directional sync in EITHER direction destroys content? YES. 493 pair-instances across 294 distinct paths hold unique lines on BOTH sides, so a repo->live overwrite deletes the live-only lines and a live->repo overwrite deletes the repo-only lines. The single sharpest counterexample is rules/common/security.md: LIVE uniquely holds the AGENTS.md-9 \"do NOT rotate a credential\" rule (6 substantive lines) while REPO uniquely holds the paths: frontmatter glob list (22 substantive lines) - both directions destroy load-bearing content on the SAME FILE, and the live tree is the one Claude Code actually reads.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "rules/common/security.md vs C:/Users/Prekzursil/.claude/rules/common/security.md; rules/common/performance.md; rules/common/owner-ops-authorization.md",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad && python adv0017_probe1.py probe1_out.json",
+     "raw_output": "rules: repo=88 live=88 shared=88 {\"DIVERGED\": 20, \"REPO-AHEAD\": 7, \"LIVE-AHEAD\": 1, \"EOL-ONLY\": 55, \"IDENTICAL\": 5}\nagents: repo=18 live=18 shared=18 {\"EOL-ONLY\": 17, \"DIVERGED\": 1}\ncommands: repo=71 live=71 shared=71 {\"EOL-ONLY\": 64, \"DIVERGED\": 7}\nhooks: repo=293 live=270 shared=266 {\"DIVERGED\": 47, \"EOL-ONLY\": 77, \"IDENTICAL\": 140, \"LIVE-AHEAD\": 1, \"BINARY-DIFF\": 1}\ndotagents-skills: repo=1887 live=1795 shared=1735 {\"IDENTICAL\": 1438, \"EOL-ONLY\": 136, \"DIVERGED\": 157, \"REPO-AHEAD\": 2, \"LIVE-AHEAD\": 2}\nskills-to-agents: repo=1721 live=1795 shared=1588 {\"IDENTICAL\": 1336, \"DIVERGED\": 125, \"EOL-ONLY\": 125, \"REPO-AHEAD\": 2}\nskills-to-claude: repo=1721 live=879 shared=789 {\"IDENTICAL\": 551, \"EOL-ONLY\": 142, \"DIVERGED\": 96}\nclaudeonly-agents: repo=303 live=1795 shared=78 {\"IDENTICAL\": 38, \"DIVERGED\": 40}\nclaudeonly-claude: repo=303 live=879 shared=12 {\"EOL-ONLY\": 1, \"IDENTICAL\": 11}\nWROTE probe1_out.json in 42.6s",
+     "fingerprint": "content-line-set-classification:9-edges:4645-shared-pairs:LF-normalised",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "python -c \"LF-normalised line-set diff + verbatim line dump of the three rules/common counterexamples\"  (direct content read, a THIRD instrument independent of both the classifier and the provenance join)",
+     "raw_output": "$ git -C <repo> config --system core.autocrlf   ->  true\n$ grep -n 'eol' .gitattributes   ->  16:*.sh eol=lf     17:*.ps1 eol=crlf    (no *.md, no *.py)\n\n$ python -c \"LF-normalised line-set diff of rules/common/security.md\"\nrepo bytes/lines: 1671/73   live bytes/lines: 1768/57\n--- LIVE-ONLY (destroyed by a repo->live sync-rules.ps1 run) ---\n  L| - **Do NOT rotate. AGENTS.md 9 forbids an agent removing, rotating, revoking or modifying any\n  L|   API key or token - the owner handles credential lifecycle personally.** If a secret may have\n  L|   been exposed, REPORT it and recommend rotation; never perform it.\n  L| 4. **REPORT any exposed secret and recommend rotation - do not rotate it.** Name the credential,\n  L|    the scope it lives at, where it leaked, and what still trusts it. Rotation is the owner's\n  L|    action (AGENTS.md 9); performing it for them is the banned step, saying it is needed is not.\n--- REPO-ONLY (destroyed by a live->repo sync-from-live.ps1 run), 22 substantive lines ---\n  R|   - \"**/*.cc\"      R|   - \"**/*.cgi\"    R|   - \"**/*.csproj\"   R|   - \"**/*.css\"\n  R|   - \"**/*.csx\"     R|   - \"**/*.cxx\"    R|   - \"**/*.dart\"     R|   - \"**/*.hh\"   ... (paths: frontmatter glob list)\n\n$ python -c \"same for rules/common/performance.md\"\nrepo_lines=57 live_lines=73\n  LIVE-ONLY (17 substantive): the per-language paths: glob list (\"**/*.py\", \"**/*.ts\", ...)\n  REPO-ONLY (1 substantive):  - \"**/*\"\n\n$ python -c \"same for rules/common/owner-ops-authorization.md\"\nrepo_lines=216 live_lines=235 ; status LIVE-AHEAD (repo is a strict SUBSET)\n  LIVE-ONLY (15 substantive) begins:\n  L| RECONSTRUCTION NOTE (2026-08-08). This file was lost when ~/.claude/rules/common was emptied at\n  L| 02:17:31 and it exists in NO version-control source: it is absent from\n  L| source/agent-skills-toolchain/rules/common, `git log` on the path is empty (never tracked) ...",
+     "fingerprint": "direct-read:rules/common/{security,performance,owner-ops-authorization}.md",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 3 - the briefed baseline \"only 5 of 88 rules files byte-identical, 28 content-differing, 25 repo-larger, 3 live-larger\". The COUNTS reproduce EXACTLY (measured: 88 shared, IDENTICAL=5, content-differing=28, repo-larger=25, live-larger=3) so the sibling counts lane is CONFIRMED - but the DIRECTIONAL reading a size comparison invites is REFUTED: only 7 of the 25 \"repo-larger\" pairs are actually repo supersets; 18 of them are two-directionally DIVERGED. Corpus-wide, size says \"repo-larger\" for 584 pairs that carry ZERO content difference (EOL-ONLY), and size is completely blind on 5 equal-size pairs that ARE diverged.",
+   "verdict": "REFUTED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/WORK-UNIT-CATALOG.json ADV-0017.inputs[2] vs the size x content crosstab in probe 2",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad && python adv0017_probe1.py probe1_out.json",
+     "raw_output": "rules: repo=88 live=88 shared=88 {\"DIVERGED\": 20, \"REPO-AHEAD\": 7, \"LIVE-AHEAD\": 1, \"EOL-ONLY\": 55, \"IDENTICAL\": 5}\nagents: repo=18 live=18 shared=18 {\"EOL-ONLY\": 17, \"DIVERGED\": 1}\ncommands: repo=71 live=71 shared=71 {\"EOL-ONLY\": 64, \"DIVERGED\": 7}\nhooks: repo=293 live=270 shared=266 {\"DIVERGED\": 47, \"EOL-ONLY\": 77, \"IDENTICAL\": 140, \"LIVE-AHEAD\": 1, \"BINARY-DIFF\": 1}\ndotagents-skills: repo=1887 live=1795 shared=1735 {\"IDENTICAL\": 1438, \"EOL-ONLY\": 136, \"DIVERGED\": 157, \"REPO-AHEAD\": 2, \"LIVE-AHEAD\": 2}\nskills-to-agents: repo=1721 live=1795 shared=1588 {\"IDENTICAL\": 1336, \"DIVERGED\": 125, \"EOL-ONLY\": 125, \"REPO-AHEAD\": 2}\nskills-to-claude: repo=1721 live=879 shared=789 {\"IDENTICAL\": 551, \"EOL-ONLY\": 142, \"DIVERGED\": 96}\nclaudeonly-agents: repo=303 live=1795 shared=78 {\"IDENTICAL\": 38, \"DIVERGED\": 40}\nclaudeonly-claude: repo=303 live=879 shared=12 {\"EOL-ONLY\": 1, \"IDENTICAL\": 11}\nWROTE probe1_out.json in 42.6s",
+     "fingerprint": "content-line-set-classification:9-edges:4645-shared-pairs:LF-normalised",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd <scratchpad> && python adv0017_probe2.py probe1_out.json probe2_out.json   # git -C <repo> log -1 --format=%cI -- <repo_rel> per path, joined against os.stat(live).st_mtime, plus a content read of every live-larger pair",
+     "raw_output": "rows=1126  live-larger=320 read=320  untracked-repo-side=3\n\ncrosstab size_says x content_says:\n  ('equal-size', 'both-sides-unique')            5\n  ('live-larger', 'BINARY-DIFF')                 1\n  ('live-larger', 'EOL-ONLY')                    33\n  ('live-larger', 'both-sides-unique')           282\n  ('live-larger', 'live-superset')               4\n  ('repo-larger', 'EOL-ONLY')                    584\n  ('repo-larger', 'both-sides-unique')           206\n  ('repo-larger', 'repo-superset')               11\n\ncrosstab mtime_says x content_says:\n  ('NOT-COMPUTABLE', 'both-sides-unique')        3\n  ('live-newer', 'BINARY-DIFF')                  1\n  ('live-newer', 'EOL-ONLY')                     98\n  ('live-newer', 'both-sides-unique')            132\n  ('live-newer', 'live-superset')                4\n  ('live-newer', 'repo-superset')                4\n  ('repo-newer', 'EOL-ONLY')                     519\n  ('repo-newer', 'both-sides-unique')            358\n  ('repo-newer', 'repo-superset')                7",
+     "fingerprint": "provenance-join:git-log-1-format-cI x os.stat-st_mtime:1126-rows",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 4 - does mtime or size settle WHICH SIDE IS AUTHORITATIVE? NO, both are REFUTED as authority signals. The git-commit-time x live-mtime join finds 4 pair-instances where mtime says LIVE is newer while live is a strict SUBSET of repo (direction literally inverted), 358 where mtime says repo is newer while live still holds unique lines, and 3 pairs where provenance is NOT-COMPUTABLE because the repo-side file is UNTRACKED (hooks/git-hygiene/.last-run, hooks/recall-gate/state/recall-gate-20260808.jsonl, hooks/recall-gate/state/tree_index.json - runtime state sitting in a version-controlled tree). mtime gets the direction right in only 11 of the 15 pairs where a direction exists. UNVERIFIED: a live mtime records the last WRITE, which for a deployed copy is the deploy time, so a \"live-newer\" reading can never by itself establish live authorship.",
+   "verdict": "REFUTED",
+   "confidence": "almost-certain",
+   "anchor": "scripts/sync-from-live.ps1:756-758 (the drift table prints mtimeSays and sizeDelta as its adjudication columns) vs probe 2 crosstab_mtime_vs_content",
+   "unverified": true,
+   "settling_experiment": "Per-file authorship attribution that does not rely on mtime: for each DIVERGED pair, blame the live-only lines against every session transcript under ~/.claude/projects and the repo-only lines against git log -p, and compare the two authorship timelines.",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd <scratchpad> && python adv0017_probe2.py probe1_out.json probe2_out.json   # git -C <repo> log -1 --format=%cI -- <repo_rel> per path, joined against os.stat(live).st_mtime, plus a content read of every live-larger pair",
+     "raw_output": "rows=1126  live-larger=320 read=320  untracked-repo-side=3\n\ncrosstab size_says x content_says:\n  ('equal-size', 'both-sides-unique')            5\n  ('live-larger', 'BINARY-DIFF')                 1\n  ('live-larger', 'EOL-ONLY')                    33\n  ('live-larger', 'both-sides-unique')           282\n  ('live-larger', 'live-superset')               4\n  ('repo-larger', 'EOL-ONLY')                    584\n  ('repo-larger', 'both-sides-unique')           206\n  ('repo-larger', 'repo-superset')               11\n\ncrosstab mtime_says x content_says:\n  ('NOT-COMPUTABLE', 'both-sides-unique')        3\n  ('live-newer', 'BINARY-DIFF')                  1\n  ('live-newer', 'EOL-ONLY')                     98\n  ('live-newer', 'both-sides-unique')            132\n  ('live-newer', 'live-superset')                4\n  ('live-newer', 'repo-superset')                4\n  ('repo-newer', 'EOL-ONLY')                     519\n  ('repo-newer', 'both-sides-unique')            358\n  ('repo-newer', 'repo-superset')                7",
+     "fingerprint": "provenance-join:git-log-1-format-cI x os.stat-st_mtime:1126-rows",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad && python adv0017_probe1.py probe1_out.json",
+     "raw_output": "rules: repo=88 live=88 shared=88 {\"DIVERGED\": 20, \"REPO-AHEAD\": 7, \"LIVE-AHEAD\": 1, \"EOL-ONLY\": 55, \"IDENTICAL\": 5}\nagents: repo=18 live=18 shared=18 {\"EOL-ONLY\": 17, \"DIVERGED\": 1}\ncommands: repo=71 live=71 shared=71 {\"EOL-ONLY\": 64, \"DIVERGED\": 7}\nhooks: repo=293 live=270 shared=266 {\"DIVERGED\": 47, \"EOL-ONLY\": 77, \"IDENTICAL\": 140, \"LIVE-AHEAD\": 1, \"BINARY-DIFF\": 1}\ndotagents-skills: repo=1887 live=1795 shared=1735 {\"IDENTICAL\": 1438, \"EOL-ONLY\": 136, \"DIVERGED\": 157, \"REPO-AHEAD\": 2, \"LIVE-AHEAD\": 2}\nskills-to-agents: repo=1721 live=1795 shared=1588 {\"IDENTICAL\": 1336, \"DIVERGED\": 125, \"EOL-ONLY\": 125, \"REPO-AHEAD\": 2}\nskills-to-claude: repo=1721 live=879 shared=789 {\"IDENTICAL\": 551, \"EOL-ONLY\": 142, \"DIVERGED\": 96}\nclaudeonly-agents: repo=303 live=1795 shared=78 {\"IDENTICAL\": 38, \"DIVERGED\": 40}\nclaudeonly-claude: repo=303 live=879 shared=12 {\"EOL-ONLY\": 1, \"IDENTICAL\": 11}\nWROTE probe1_out.json in 42.6s",
+     "fingerprint": "content-line-set-classification:9-edges:4645-shared-pairs:LF-normalised",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd <scratchpad> && python -c \"print the mtime-vs-content inversions, the untracked repo-side rows and the equal-size DIVERGED rows out of probe2_out.json\"",
+     "raw_output": "=== UNTRACKED REPO-SIDE (no commit time -> provenance NOT-COMPUTABLE) ===\n hooks              git-hygiene/.last-run                                      DIVERGED repo_only=1 live_only=1\n hooks              recall-gate/state/recall-gate-20260808.jsonl               DIVERGED repo_only=11 live_only=112\n hooks              recall-gate/state/tree_index.json                          DIVERGED repo_only=1 live_only=1\n\n=== mtime DIRECTION INVERTED vs CONTENT (live-newer but repo is a strict SUPERSET) ===\n dotagents-skills   microsoft-foundry/foundry-agent/create/references/to repo_commit=2026-07-27T10:43:07+03:00 live_mtime=2026-08-07T17:59:05Z dh=274.27 repoOnly=4\n dotagents-skills   microsoft-foundry/foundry-agent/create/references/to repo_commit=2026-07-27T10:43:07+03:00 live_mtime=2026-08-07T17:59:05Z dh=274.27 repoOnly=1\n skills-to-agents   microsoft-foundry/foundry-agent/create/references/to repo_commit=2026-07-27T10:43:07+03:00 live_mtime=2026-08-07T17:59:05Z dh=274.27 repoOnly=4\n skills-to-agents   microsoft-foundry/foundry-agent/create/references/to repo_commit=2026-07-27T10:43:07+03:00 live_mtime=2026-08-07T17:59:05Z dh=274.27 repoOnly=1\n\n=== EQUAL-SIZE but DIVERGED (size detector is fully blind) ===\n hooks              git-hygiene/.last-run                                bytes=18 repoOnly=1 liveOnly=1 mtime=NOT-COMPUTABLE\n dotagents-skills   humanizer/AGENTS.md                                  bytes=1664 repoOnly=1 liveOnly=1 mtime=repo-newer\n skills-to-agents   humanizer/AGENTS.md                                  bytes=1664 repoOnly=1 liveOnly=1 mtime=repo-newer\n skills-to-agents   mechanistic-ddi-pipeline/SKILL.md                    bytes=4794 repoOnly=1 liveOnly=1 mtime=repo-newer\n skills-to-claude   reframe/SKILL.md                                     bytes=2749 repoOnly=1 liveOnly=1 mtime=repo-newer\n\n=== LIVE-LARGER CONTENT READS ===\npairs read: 320 ; all read_ok: True\ntotal substantive live-only lines across live-larger pairs: 6058\nlive-larger pairs with ZERO substantive live-only lines (pure formatting/EOL bulk): 33",
+     "fingerprint": "provenance-inversion-listing:4-inverted:3-untracked:5-equal-size",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 5 - do the sync scripts apply a transform? NO content transform in either direction (all four use Copy-Item, a byte copy), but the directions are ASYMMETRIC in EOL awareness and that asymmetry is load-bearing. sync-from-live.ps1 classifies with an EOL-normalised hash and skips EOL-ONLY pairs (:357-363); the three repo->live scripts have no such guard. With core.autocrlf=true measured at SYSTEM level and .gitattributes covering only *.sh and *.ps1 (no *.md, no *.py), that is the mechanism behind the 617 EOL-ONLY pairs. sync-skills.ps1 is additionally the most destructive writer in the estate: it does Remove-Item -Recurse -Force on the live skill dir and THEN recopies (:72-73), a wholesale directory replacement with no exclusions, no EOL awareness and no hold list.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "scripts/sync-skills.ps1:72-73; scripts/sync-from-live.ps1:357-363; scripts/sync-rules.ps1:67; scripts/sync-hooks.ps1:83; .gitattributes:16-17",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "Read scripts/sync-rules.ps1, scripts/sync-hooks.ps1, scripts/sync-skills.ps1 and scripts/sync-from-live.ps1 (Map at :154-159, hold list at :205-206, classifier at :339-366)",
+     "raw_output": "sync-skills.ps1:72-73  ->  if (Test-Path $target) { Remove-Item -Recurse -Force $target }\n                            Copy-Item -Recurse -Force -Path $dir.FullName -Destination $target\nsync-rules.ps1:67     ->  Copy-Item -Force -LiteralPath $f.FullName -Destination $target\nsync-hooks.ps1:83     ->  Copy-Item -Force -LiteralPath $f.FullName -Destination $target\nsync-from-live.ps1:357-363 -> if (-not binary) { $nLive = Get-NormalizedHash $LivePath;\n                                $nRepo = Get-NormalizedHash $RepoPath; if equal ->\n                                return @{ Status = 'EOL-ONLY' } }\nsync-from-live.ps1:154-159 -> $Map: .claude\\rules->rules, .claude\\agents->agents,\n                                .claude\\commands->commands, .claude\\hooks->hooks,\n                                .agents\\skills->.agents/skills",
+     "fingerprint": "file-read:scripts/sync-{rules,hooks,skills,from-live}.ps1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "git -C <repo> config --system core.autocrlf ; grep -n eol .gitattributes ; plus the LF-normalised line dumps of the three rules/common counterexamples",
+     "raw_output": "$ git -C <repo> config --system core.autocrlf   ->  true\n$ grep -n 'eol' .gitattributes   ->  16:*.sh eol=lf     17:*.ps1 eol=crlf    (no *.md, no *.py)\n\n$ python -c \"LF-normalised line-set diff of rules/common/security.md\"\nrepo bytes/lines: 1671/73   live bytes/lines: 1768/57\n--- LIVE-ONLY (destroyed by a repo->live sync-rules.ps1 run) ---\n  L| - **Do NOT rotate. AGENTS.md 9 forbids an agent removing, rotating, revoking or modifying any\n  L|   API key or token - the owner handles credential lifecycle personally.** If a secret may have\n  L|   been exposed, REPORT it and recommend rotation; never perform it.\n  L| 4. **REPORT any exposed secret and recommend rotation - do not rotate it.** Name the credential,\n  L|    the scope it lives at, where it leaked, and what still trusts it. Rotation is the owner's\n  L|    action (AGENTS.md 9); performing it for them is the banned step, saying it is needed is not.\n--- REPO-ONLY (destroyed by a live->repo sync-from-live.ps1 run), 22 substantive lines ---\n  R|   - \"**/*.cc\"      R|   - \"**/*.cgi\"    R|   - \"**/*.csproj\"   R|   - \"**/*.css\"\n  R|   - \"**/*.csx\"     R|   - \"**/*.cxx\"    R|   - \"**/*.dart\"     R|   - \"**/*.hh\"   ... (paths: frontmatter glob list)\n\n$ python -c \"same for rules/common/performance.md\"\nrepo_lines=57 live_lines=73\n  LIVE-ONLY (17 substantive): the per-language paths: glob list (\"**/*.py\", \"**/*.ts\", ...)\n  REPO-ONLY (1 substantive):  - \"**/*\"\n\n$ python -c \"same for rules/common/owner-ops-authorization.md\"\nrepo_lines=216 live_lines=235 ; status LIVE-AHEAD (repo is a strict SUBSET)\n  LIVE-ONLY (15 substantive) begins:\n  L| RECONSTRUCTION NOTE (2026-08-08). This file was lost when ~/.claude/rules/common was emptied at\n  L| 02:17:31 and it exists in NO version-control source: it is absent from\n  L| source/agent-skills-toolchain/rules/common, `git log` on the path is empty (never tracked) ...",
+     "fingerprint": "git-config+gitattributes+direct-read",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 6 - blast radius per NAMED writer, if invoked right now with DEFAULT arguments. sync-rules.ps1: 12 of 19 in-scope pairs destroy live content, 71 live-only lines. sync-hooks.ps1: 47 of 122, 648 live-only lines. sync-skills.ps1: 337 skill dirs rmdir+recopied, 125 shared pairs lose 1274 live-only lines, and 234 live-only WHOLE FILES (5325764 bytes) are deleted. sync-skills.ps1 -IncludeClaudeOnly adds 40 pairs / 911 lines. sync-from-live.ps1, with its EOL-ONLY guard and 3-file hold list CREDITED, still overwrites 239 pairs where the repo holds unique content, destroying 5398 repo-only lines. HONEST SCOPING of the whole-file figure: 199 of the 234 files (4970512 bytes) are the vendored crypto-ctf/RsaCtfTool foreign clone and 33 (326908 bytes) are agent .bak backups, so only 2 files / 28344 bytes are other live-only content - the real sync-skills.ps1 risk is at the LINE level, not the file level.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "scripts/sync-rules.ps1:48,57-59,67 | sync-hooks.ps1:52,62,66-89 | sync-skills.ps1:45,58-74 | sync-from-live.ps1:154-159,205-206,341-366",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad && python adv0017_probe1.py probe1_out.json",
+     "raw_output": "rules: repo=88 live=88 shared=88 {\"DIVERGED\": 20, \"REPO-AHEAD\": 7, \"LIVE-AHEAD\": 1, \"EOL-ONLY\": 55, \"IDENTICAL\": 5}\nagents: repo=18 live=18 shared=18 {\"EOL-ONLY\": 17, \"DIVERGED\": 1}\ncommands: repo=71 live=71 shared=71 {\"EOL-ONLY\": 64, \"DIVERGED\": 7}\nhooks: repo=293 live=270 shared=266 {\"DIVERGED\": 47, \"EOL-ONLY\": 77, \"IDENTICAL\": 140, \"LIVE-AHEAD\": 1, \"BINARY-DIFF\": 1}\ndotagents-skills: repo=1887 live=1795 shared=1735 {\"IDENTICAL\": 1438, \"EOL-ONLY\": 136, \"DIVERGED\": 157, \"REPO-AHEAD\": 2, \"LIVE-AHEAD\": 2}\nskills-to-agents: repo=1721 live=1795 shared=1588 {\"IDENTICAL\": 1336, \"DIVERGED\": 125, \"EOL-ONLY\": 125, \"REPO-AHEAD\": 2}\nskills-to-claude: repo=1721 live=879 shared=789 {\"IDENTICAL\": 551, \"EOL-ONLY\": 142, \"DIVERGED\": 96}\nclaudeonly-agents: repo=303 live=1795 shared=78 {\"IDENTICAL\": 38, \"DIVERGED\": 40}\nclaudeonly-claude: repo=303 live=879 shared=12 {\"EOL-ONLY\": 1, \"IDENTICAL\": 11}\nWROTE probe1_out.json in 42.6s",
+     "fingerprint": "content-line-set-classification:9-edges:4645-shared-pairs:LF-normalised",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd <scratchpad> && python adv0017_blast.py probe1_out.json blast_out.json  # joins the probe-1 classification against each script's OWN scope rules read from source, then walks the live tree for live-only whole files under repo-present skill dirs",
+     "raw_output": "$ python -c \"categorise the 234 live-only whole files that sync-skills.ps1's rmdir deletes\"\n  nested-foreign-repo        files= 199 bytes=  4970512   (crypto-ctf/RsaCtfTool, a full foreign clone)\n  agent-backup-dir-or-file   files=  33 bytes=   326908   (workflow-monitor/monitorcore.bak-20260727-091532/*)\n  other-live-only            files=   2 bytes=    28344   (workflow-monitor/mitm_mcp_traffic.db, ui-audit/package-lock.json)\n  windows reserved name encountered: C:/Users/Prekzursil/.agents/skills\\workflow-monitor\\NUL\n\nW1 sync-rules.ps1 (repo->live), the 12 pairs that lose live content:\n  common/performance.md                      DIVERGED    liveOnly= 17 repoOnly=  1\n  common/owner-ops-authorization.md          LIVE-AHEAD  liveOnly= 15 repoOnly=  0\n  common/cross-vendor-dispatch.md            DIVERGED    liveOnly=  9 repoOnly= 35\n  common/bash-hud-and-terminal-emit.md       DIVERGED    liveOnly=  7 repoOnly=  7\n  common/hooks.md                            DIVERGED    liveOnly=  6 repoOnly= 52\n  common/security.md                         DIVERGED    liveOnly=  6 repoOnly= 22\n  common/ci-hygiene.md                       DIVERGED    liveOnly=  4 repoOnly= 50\n  common/git-workflow.md                     DIVERGED    liveOnly=  2 repoOnly= 31\n  common/harness-vcs-hygiene.md              DIVERGED    liveOnly=  2 repoOnly= 13\n  common/coding-style.md                     DIVERGED    liveOnly=  1 repoOnly= 28\n  common/testing.md                          DIVERGED    liveOnly=  1 repoOnly= 30\n  common/windows-shell.md                    DIVERGED    liveOnly=  1 repoOnly= 24",
+     "fingerprint": "blast-radius-join:4-writers:live-tree-walk",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 7 - \"which side is authoritative\" is currently ILL-POSED, which BLOCKS any reconcile. The repo holds TWO counterparts for the SAME live tree: skills/<X> is the repo->live push source (sync-skills.ps1:45) and .agents/skills/<X> is the live->repo pull target (sync-from-live.ps1:159). 336 skill names exist under both repo paths and their SKILL.md files DIFFER after LF normalisation in 16 cases, so \"the repo side\" of a live file is not a single object. A reconcile cannot be executed until the repo's own internal duplication is resolved first.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "scripts/sync-skills.ps1:45 vs scripts/sync-from-live.ps1:159; repo skills/ (342 dirs) vs repo .agents/skills/ (348 dirs), 336 shared names",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "Read scripts/sync-skills.ps1:45 ($sourceDirs = @((Join-Path $Root \"skills\"))) and scripts/sync-from-live.ps1:159 (@{ Live = \"$UserProfile\\.agents\\skills\"; Repo = '.agents/skills' })",
+     "raw_output": "sync-skills.ps1:37  $Dest = ...UserProfile .agents/skills\nsync-skills.ps1:45  $sourceDirs = @((Join-Path $Root \"skills\"))\nsync-from-live.ps1:159  @{ Live = \"$UserProfile\\.agents\\skills\"; Repo = '.agents/skills'; Label = 'skills' }\n=> ONE live tree, TWO repo counterparts, one writer each, in opposite directions.",
+     "fingerprint": "file-read:two-repo-roots-one-live-tree",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd <repo> && python -c \"hash repo skills/<X>/SKILL.md against repo .agents/skills/<X>/SKILL.md, LF-normalised, for every shared name\"",
+     "raw_output": "$ python -c \"compare repo skills/<X>/SKILL.md against repo .agents/skills/<X>/SKILL.md, LF-normalised\"\nrepo skills/ dirs=342  repo .agents/skills dirs=348  shared names=336\nSKILL.md LF-normalised: identical=318 differ=16 missing=2\nexamples of repo-INTERNAL divergence:\n   bc-update-survival, compchem-validators, design-studio-session, execution-grounded-bon,\n   ida-multi-mcp, llm-decompile-verify, mechanistic-ddi-pipeline, multi-ai-mingle,\n   orchestration-patterns, pdf-reader",
+     "fingerprint": "repo-internal-duplication:336-shared:16-differ",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 8 - STALE PREMISE FOUND in the sync tooling's own adjudication data. scripts/sync-from-live.ps1's $RepoOwnedFiles comment block asserts, \"Re-measured 2026-07-18: live is a strict SUBSET of repo (5 lines removed, 0 added), so this is staleness in live, NOT bidirectional divergence\" for .agents/skills/multi-agent-quickstart/SKILL.md. Measured at HEAD 2decae91 that claim is FALSE: the pair is DIVERGED with 35 repo-unique and 18 live-unique lines over only 7 shared, because the repo copy was \"Rewritten 2026-08-09\" AFTER the comment was written. This was surfaced BY the documented-positive-control battery failing 1 of 3, and resolved with a third instrument (unified diff), not by trusting either the doc or the classifier.",
+   "verdict": "REFUTED",
+   "confidence": "almost-certain",
+   "anchor": "scripts/sync-from-live.ps1 $RepoOwnedFiles comment (multi-agent-quickstart entry, ~:196-200) vs .agents/skills/multi-agent-quickstart/SKILL.md @ 2decae91",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd <scratchpad> && python adv0017_analyze.py probe1_out.json live_larger.json   # runs the 3 documented positive controls taken from the script's own comments",
+     "raw_output": "=== DOCUMENTED POSITIVE CONTROLS ON REAL DATA (known-present items taken from\n    scripts/sync-from-live.ps1's OWN $RepoOwnedFiles comment block, lines ~186-206) ===\nPASS quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py expect=DIVERGED   got=DIVERGED   repo_only=43 live_only=9 shared=445 bytes r/l=22442/20831\nFAIL multi-agent-quickstart/SKILL.md                                           expect=REPO-AHEAD got=DIVERGED   repo_only=35 live_only=18 shared=7 bytes r/l=2735/1272\nPASS hooks/README.md                                                           expect=DIVERGED   got=DIVERGED   repo_only=94 live_only=133 shared=1 bytes r/l=9441/8700",
+     "fingerprint": "documented-positive-controls:2-of-3-reproduced",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "cd <repo> && python -c \"difflib.unified_diff over the LF-normalised repo and live copies of multi-agent-quickstart/SKILL.md\"",
+     "raw_output": "$ python -c \"difflib.unified_diff(LF-normalised repo vs live)\"   # THIRD instrument, not probe 1\nrepo lines=58 live lines=30\n--- REPO\n+++ LIVE\n@@ -7,39 +7,17 @@\n-**Rewritten 2026-08-09.** The previous version taught six MCP tools (`codex_consult`,\n-`codex_brainstorm`, `codex_review`, `codex_discuss`, `codex_coordinate`, `codex_curate`) plus\n-an optional PromptBridge talk lane. All of them came from `tools/mcp/codex-orchestrator/` ...\n+## Mental Model\n+- `codex_consult` = one expert answer\n+- `codex_brainstorm` = two idea-generating peers plus synthesis\n+- `codex_review` = one critic pass\n+- `codex_discuss` = two peers debate before synthesis\n+- `codex_coordinate` = role split plus consolidation\n+- `codex_curate` = final selector, optionally with PromptBridge talk-only curation\n...\n+## PromptBridge Boundary\n+- PromptBridge is talk-only.\n+- It can discuss or curate, but it is not the execution authority.\n+- If the sidecar is unavailable, continue in Lane A and emit `fallback_to_lane_a = true`.\n=> LIVE holds 18 unique lines (a whole 'Mental Model' table and a 'PromptBridge Boundary'\n   section) that the repo does NOT. The hold-list comment's claim '5 lines removed, 0 added'\n   was true when written (2026-07-18) and is FALSE at HEAD 2decae91: the repo copy was\n   'Rewritten 2026-08-09', after the comment's measurement date.",
+     "fingerprint": "unified-diff:multi-agent-quickstart/SKILL.md",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ENUMERATED TARGET 9 - the no-write obligation. This unit performed NO write to the live tree and no write to the repo outside its own output_path. A (path, size, mtime_ns) manifest over the three live roots hashed identically before and after the run (3593 files, sha256 2701a5ddd470df01...), and git status --porcelain over rules hooks agents commands .agents skills skills-claude-only scripts printed nothing. No sync script was invoked in any mode, including -WhatIf. SCOPE OF THIS PROOF, stated inline: the bracket shows NO NET CHANGE ACROSS MY RUN, which is not the same as sole-writership - a third measurement ~65 minutes later found ~/.claude/skills had grown by 1010 files from a concurrent writer, so the live tree is demonstrably NOT quiescent. The git-status half of the proof is scoped to the mapped areas and scripts/ only; other untracked files exist elsewhere in the repo (platform/) and predate this unit.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "probe1_out.json no_write_control + git status --porcelain over all mapped areas",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "cd <scratchpad> && python -c \"stat_manifest([live roots]) before and after the run\"",
+     "raw_output": "good-state    hash=b9ae069a1e84233c n=1\nre-measure    hash=b9ae069a1e84233c n=1  -> silent_on_good_state=True\nafter 1 append hash=810b3c3d0aaafc2a n=1 -> fired_on_bad_state=True\nafter new file hash=8484083e7a696112 n=2 -> detects added file=True\n\n# and on the real live trees, before vs after the whole measurement run:\nlive_stat_manifest_before = 2701a5ddd470df011dfd552e4c92f82d4f755f54b75317c5b879edb12e315036   files_hashed_before = 3593\nlive_stat_manifest_after  = 2701a5ddd470df011dfd552e4c92f82d4f755f54b75317c5b879edb12e315036   files_hashed_after  = 3593\nunchanged = True\n\n# repo side, all mapped areas:\n$ git -C C:/Users/Prekzursil/source/ast-integrate status --porcelain rules hooks agents commands .agents skills skills-claude-only scripts\n<no output>",
+     "fingerprint": "stat-manifest-hash:3593-files:before-after",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "cd C:/Users/Prekzursil/source/ast-integrate && git status --porcelain rules hooks agents commands .agents skills skills-claude-only scripts",
+     "raw_output": "<no output>\n(exit 0, zero lines - no modification, no addition, no deletion in any mapped area or in scripts/)",
+     "fingerprint": "git-status-porcelain:mapped-areas:empty",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-EOL-CONTROL",
+   "name": "REQUIRED by tests_required[0]: a file differing ONLY by line endings must classify as identical after normalisation, or every count in this artifact is inflated",
+   "command": "cd <scratchpad> && python adv0017_control.py control_out.json",
+   "result": "PASS",
+   "assertions": 10,
+   "output_tail": "C1-identical           expect=IDENTICAL    got=IDENTICAL    PASS\nC2-eol-only            expect=EOL-ONLY     got=EOL-ONLY     PASS\nC3-eol-only-reverse    expect=EOL-ONLY     got=EOL-ONLY     PASS\nC4-repo-ahead          expect=REPO-AHEAD   got=REPO-AHEAD   PASS\nC5-live-ahead          expect=LIVE-AHEAD   got=LIVE-AHEAD   PASS\nC6-diverged            expect=DIVERGED     got=DIVERGED     PASS\nC7-diverged-under-crlf expect=DIVERGED     got=DIVERGED     PASS\nC8-reorder-only        expect=REORDER-ONLY got=REORDER-ONLY PASS\nC9-binary-diff         expect=BINARY-DIFF  got=BINARY-DIFF  PASS\nC10-binary-same        expect=IDENTICAL    got=IDENTICAL    PASS\nCONTROL 10/10 pass\nEXIT=0"
+  },
+  {
+   "id": "T-NO-WRITE",
+   "name": "REQUIRED by tests_required[1]: measurement-only - any sync invocation or any write to the live tree is a unit failure",
+   "command": "cd <scratchpad> && python -c \"stat_manifest before/after\" ; git -C <repo> status --porcelain rules hooks agents commands .agents skills skills-claude-only scripts",
+   "result": "PASS",
+   "assertions": 2,
+   "output_tail": "good-state    hash=b9ae069a1e84233c n=1\nre-measure    hash=b9ae069a1e84233c n=1  -> silent_on_good_state=True\nafter 1 append hash=810b3c3d0aaafc2a n=1 -> fired_on_bad_state=True\nafter new file hash=8484083e7a696112 n=2 -> detects added file=True\n\n# and on the real live trees, before vs after the whole measurement run:\nlive_stat_manifest_before = 2701a5ddd470df011dfd552e4c92f82d4f755f54b75317c5b879edb12e315036   files_hashed_before = 3593\nlive_stat_manifest_after  = 2701a5ddd470df011dfd552e4c92f82d4f755f54b75317c5b879edb12e315036   files_hashed_after  = 3593\nunchanged = True\n\n# repo side, all mapped areas:\n$ git -C C:/Users/Prekzursil/source/ast-integrate status --porcelain rules hooks agents commands .agents skills skills-claude-only scripts\n<no output>"
+  },
+  {
+   "id": "T-MUTATION-ON-THE-CONTROL",
+   "name": "The EOL control must itself be non-decorative: with normalize() mutated to the identity the battery must go RED",
+   "command": "cd <scratchpad> && python adv0017_mutation.py mutation_out.json",
+   "result": "PASS",
+   "assertions": 10,
+   "output_tail": "good=10/10  mutant=8/10  restored=10/10\nkilled by mutant: C2-eol-only, C3-eol-only-reverse\nEXIT=0"
+  },
+  {
+   "id": "T-TEMPORAL-REPRODUCIBILITY",
+   "name": "Re-take the whole classification ~65 minutes later; the population must either reproduce or the movement must be localised to a named root rather than reported as noise",
+   "command": "cd <scratchpad> && python adv0017_probe1.py probe1_rerun.json ; python -c \"per-edge and per-root diff of probe1_out.json vs probe1_rerun.json\"",
+   "result": "PASS",
+   "assertions": 9,
+   "output_tail": "7/9 edges bit-identical: agents, claudeonly-agents, commands, dotagents-skills, hooks, rules, skills-to-agents. 2 moved: claudeonly-claude, skills-to-claude. Cause localised: .claude/skills 879 -> 1889 filtered files (+1010); all five other live roots unchanged. Stable-edge subtotals: {\"BINARY-DIFF\": 1, \"DIVERGED\": 397, \"EOL-ONLY\": 474, \"IDENTICAL\": 2957, \"LIVE-AHEAD\": 4, \"REPO-AHEAD\": 11}"
+  },
+  {
+   "id": "T-DOCUMENTED-POSITIVE-CONTROLS",
+   "name": "The classifier must reproduce three KNOWN-PRESENT divergences taken from sync-from-live.ps1's own comments; 2 of 3 reproduced and the third disagreement was adjudicated by a third instrument as a STALE DOC, not a detector failure",
+   "command": "cd <scratchpad> && python adv0017_analyze.py probe1_out.json live_larger.json",
+   "result": "PASS",
+   "assertions": 3,
+   "output_tail": "=== DOCUMENTED POSITIVE CONTROLS ON REAL DATA (known-present items taken from\n    scripts/sync-from-live.ps1's OWN $RepoOwnedFiles comment block, lines ~186-206) ===\nPASS quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py expect=DIVERGED   got=DIVERGED   repo_only=43 live_only=9 shared=445 bytes r/l=22442/20831\nFAIL multi-agent-quickstart/SKILL.md                                           expect=REPO-AHEAD got=DIVERGED   repo_only=35 live_only=18 shared=7 bytes r/l=2735/1272\nPASS hooks/README.md                                                           expect=DIVERGED   got=DIVERGED   repo_only=94 live_only=133 shared=1 bytes r/l=9441/8700\n\n$ python -c \"difflib.unified_diff(LF-normalised repo vs live)\"   # THIRD instrument, not probe 1\nrepo lines=58 live lines=30\n--- REPO\n+++ LIVE\n@@ -7,39 +7,17 @@\n-**Rewritten 2026-08-09.** The previous version taught six MCP tools (`codex_consult`,\n-`codex_brainstorm`, `codex_review`, `codex_discuss`, `codex_coordinate`, `codex_curate`) plus\n-an optional PromptBridge talk lane. All of them came from `tools/mcp/codex-orchestrator/` ...\n+## Mental Model\n+- `codex_consult` = one expert answer\n+- `codex_brainstorm` = two idea-generating peers plus synthesis\n+- `codex_review` = one critic pass\n+- `codex_discuss` = two peers debate before synthesis\n+- `codex_coordinate` = role split plus consolidation\n+- `codex_curate` = final selector, optionally with PromptBridge talk-only curation\n...\n+## PromptBridge Boundary\n+- PromptBridge is talk-only.\n+- It can discuss or curate, but it is not the execution authority.\n+- If the sidecar is unavailable, continue in Lane A and emit `fallback_to_lane_a = true`.\n=> LIVE holds 18 unique lines (a whole 'Mental Model' table and a 'PromptBridge Boundary'\n   section) that the repo does NOT. The hold-list comment's claim '5 lines removed, 0 added'\n   was true when written (2026-07-18) and is FALSE at HEAD 2decae91: the repo copy was\n   'Rewritten 2026-08-09', after the comment's measurement date."
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-01-EOL-NORMALISATION",
+   "kind": "known-broken-fixture",
+   "description": "C2/C3: a pair differing ONLY by CRLF-vs-LF must classify EOL-ONLY (silent). C7: a pair that is genuinely two-directionally divergent AND simultaneously differs in EOL must still classify DIVERGED (fires) - normalisation must not swallow the real divergence.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "C7-diverged-under-crlf expect=DIVERGED got=DIVERGED PASS",
+   "good_state_output": "C2-eol-only expect=EOL-ONLY got=EOL-ONLY PASS / C3-eol-only-reverse expect=EOL-ONLY got=EOL-ONLY PASS"
+  },
+  {
+   "id": "NC-02-DIVERGED-BOTH-STATES",
+   "kind": "known-broken-fixture",
+   "description": "The DIVERGED verdict is the one this whole unit turns on. C6 (both sides hold a unique line) must fire; C1 (byte-identical) and C8 (same unique line set, reordered) must not.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "C6-diverged expect=DIVERGED got=DIVERGED PASS",
+   "good_state_output": "C1-identical got=IDENTICAL PASS / C8-reorder-only got=REORDER-ONLY PASS"
+  },
+  {
+   "id": "NC-03-MUTATION-OF-THE-NORMALISER",
+   "kind": "mutation",
+   "description": "adv0017_probe1.normalize() replaced by the identity function - the exact defect the EOL control exists to catch. The battery must go RED, proving the battery is not decorative. C7 survives the mutant and is a proven-equivalent case (it is DIVERGED either way), which is explained rather than hidden.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "good=10/10  mutant=8/10  restored=10/10\nkilled by mutant: C2-eol-only, C3-eol-only-reverse\nEXIT=0",
+   "good_state_output": "good=10/10 ; restored=10/10 after the mutant was reverted"
+  },
+  {
+   "id": "NC-04-DOCUMENTED-POSITIVE-CONTROLS-ON-REAL-DATA",
+   "kind": "known-broken-fixture",
+   "description": "Three known-present divergences, taken from scripts/sync-from-live.ps1's OWN $RepoOwnedFiles comment block, run against the real trees so the detector proves it can find an item that is documented to be there. 2 of 3 reproduced exactly; the 1 disagreement was resolved against a third instrument and turned out to be a STALE DOC (enumerated target 8), not a detector failure.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "=== DOCUMENTED POSITIVE CONTROLS ON REAL DATA (known-present items taken from\n    scripts/sync-from-live.ps1's OWN $RepoOwnedFiles comment block, lines ~186-206) ===\nPASS quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py expect=DIVERGED   got=DIVERGED   repo_only=43 live_only=9 shared=445 bytes r/l=22442/20831\nFAIL multi-agent-quickstart/SKILL.md                                           expect=REPO-AHEAD got=DIVERGED   repo_only=35 live_only=18 shared=7 bytes r/l=2735/1272\nPASS hooks/README.md                                                           expect=DIVERGED   got=DIVERGED   repo_only=94 live_only=133 shared=1 bytes r/l=9441/8700",
+   "good_state_output": "3519 of 4645 shared pair-instances classify IDENTICAL, i.e. the detector is silent on the overwhelming majority - it is not a matcher that fires on everything"
+  },
+  {
+   "id": "NC-05-NO-WRITE-DETECTOR",
+   "kind": "mutation",
+   "description": "The no-write proof is a (path,size,mtime_ns) manifest hash. Before trusting its silence on the live trees it was run against a KNOWN-WRITE state in a scratch directory: a single one-byte append changed the hash, and an added file changed both the hash and the count. Re-measuring an unchanged directory reproduced the hash exactly.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "after 1 append hash=810b3c3d0aaafc2a -> fired_on_bad_state=True ; after new file hash=8484083e7a696112 n=2 -> detects added file=True",
+   "good_state_output": "good-state hash=b9ae069a1e84233c n=1 ; re-measure hash=b9ae069a1e84233c n=1 -> silent_on_good_state=True"
+  },
+  {
+   "id": "NC-07-TEMPORAL-REPRODUCIBILITY",
+   "kind": "other",
+   "description": "The classification was taken twice, ~65 minutes apart, to test whether the population is stable. 7 of 9 edges reproduced bit-identical status counts (the control is SILENT where nothing changed). The 2 that moved FIRED, and the per-root file-count diff localised the cause to a single root, ~/.claude/skills (+1010 files from a concurrent writer), rather than leaving it as unexplained noise. This is what makes the stable-edge subtotals citable and the moved-edge numbers explicitly a snapshot.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "skills-to-claude DIVERGED 96->138, claudeonly-claude DIVERGED 0->39 ; .claude/skills filtered file count 879 -> 1889 (+1010)",
+   "good_state_output": "rules / agents / commands / hooks / dotagents-skills / skills-to-agents / claudeonly-agents: status counts bit-identical across both samples, and their live roots unchanged at 88 / 18 / 71 / 270 / 1795 / 1795 filtered files"
+  },
+  {
+   "id": "NC-06-SENSITIVITY-BAND",
+   "kind": "other",
+   "description": "Guards against an inflated DIVERGED count by re-running the classification with each line stripped and blank lines dropped, then at thresholds of 3 and 10 unique lines required on BOTH sides. 493 raw DIVERGED pair-instances survive the whitespace-insensitive variant unchanged, 203 survive the >=3 threshold and 108 survive >=10. The headline count is therefore not a whitespace artifact, and the narrower bands are reported alongside it rather than instead of it.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "DIVERGED pair-instances: raw=493  strip>0=493  >=3both=203  >=10both=108",
+   "good_state_output": "EOL-ONLY and IDENTICAL pairs contribute 0 to every band"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "UNASSIGNED",
+  "verdict": "NOT-REVIEWED",
+  "independent": false,
+  "fresh_context": false,
+  "notes": "reviewer_requirement: two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict escalates to the owner with both raw probes attached and is NEVER resolved by vote. Not satisfiable by the producing unit. The reproduction path is fully specified: the three scripts under the scratchpad path recorded in retry.attempts, or an independent re-implementation of the three-way line-set classification, whose single highest-value check is rules/common/security.md."
+ },
+ "defects": [
+  {
+   "id": "D-ADV0017-1",
+   "severity": "P1",
+   "status": "open",
+   "summary": "rules/common/security.md is two-directionally divergent: LIVE uniquely holds the AGENTS.md-9 do-not-rotate-a-credential rule and REPO uniquely holds the paths: frontmatter glob list. Either sync direction deletes a load-bearing security clause from the tree that consumes it. 11 more rules/common files are in the same class."
+  },
+  {
+   "id": "D-ADV0017-2",
+   "severity": "P1",
+   "status": "open",
+   "summary": "rules/common/owner-ops-authorization.md is LIVE-AHEAD and its 15 live-only lines are a RECONSTRUCTION NOTE recording that the file was lost on 2026-08-08 and exists in no version-control source. A repo->live sync-rules.ps1 run deletes the only record of that data-loss event."
+  },
+  {
+   "id": "D-ADV0017-3",
+   "severity": "P2",
+   "status": "open",
+   "summary": "sync-from-live.ps1's $RepoOwnedFiles comment for multi-agent-quickstart/SKILL.md is STALE (asserts a strict subset, measured DIVERGED 35/18). The hold list is the sync tooling's only authority record, so a stale entry is a wrong-adjudication risk."
+  },
+  {
+   "id": "D-ADV0017-4",
+   "severity": "P2",
+   "status": "open",
+   "summary": "ONE live tree (~/.agents/skills) has TWO repo counterparts (skills/ as push source, .agents/skills/ as pull target) whose SKILL.md files disagree in 16 of 336 shared names, so \"the repo side\" is not a single object and no reconcile is well-defined yet."
+  },
+  {
+   "id": "D-ADV0017-5",
+   "severity": "P3",
+   "status": "open",
+   "summary": "Three hook runtime-state files are present in the repo tree but UNTRACKED (hooks/git-hygiene/.last-run, hooks/recall-gate/state/recall-gate-20260808.jsonl, hooks/recall-gate/state/tree_index.json), so provenance is NOT-COMPUTABLE for them and they generate permanent, meaningless drift. A stray Windows reserved-name file also exists at ~/.agents/skills/workflow-monitor/NUL, which defeats os.path.relpath and would defeat a naive walker."
+  }
+ ],
+ "manifest_registration": {
+  "registered": false,
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0017"
+ },
+ "timestamps": {
+  "started_at": "2026-08-11T19:35:00Z",
+  "ended_at": "2026-08-11T21:05:00Z",
+  "duration_seconds": 5400
+ },
+ "retry": {
+  "count": 0,
+  "policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "attempts": [
+   {
+    "attempt": 1,
+    "outcome": "BLOCKED",
+    "started_at": "2026-08-11T19:35:00Z",
+    "error_fingerprint": "measurement-complete-controls-green; blocked only on the cross-vendor reviewer pair and manifest registration, neither self-suppliable"
+   }
+  ],
+  "pivot_alternatives": [
+   "authorship blame of live-only lines against ~/.claude/projects session transcripts",
+   "git log -p over the repo path to date each repo-only hunk independently of mtime",
+   "a fresh clone at HEAD to separate worktree-checkout EOL from real content divergence"
+  ]
+ },
+ "failure": {
+  "classification": [
+   "reviewer-unavailable-cross-vendor",
+   "manifest-registration-out-of-scope"
+  ],
+  "reason": "The measurement is complete and every control is green. The receipt is BLOCKED, not FAILED-on-measurement: receipt_core forbids state=SUCCESS while reviewer.verdict is NOT-REVIEWED and manifest_registration.registered is false, and this unit can satisfy neither (a cross-vendor reviewer pair cannot be self-supplied, and editing command-center/ARTIFACT-MANIFEST.json is outside this unit's write scope).",
+  "blocked_on": "two independent reviewers from DIFFERENT vendors per ADV-0017.reviewer_requirement, plus orchestrator registration in command-center/ARTIFACT-MANIFEST.json",
+  "diagnostic_tail": "platform/schema/receipt.schema.json #/$defs/receipt_core allOf[0].then requires reviewer.verdict=const PASS, reviewer.independent=const true, manifest_registration.registered=const true and a downstream_consumer with executed!=false. Independently re-derived from the schema rather than inherited from the sibling ADV-0015 receipt that reports the same constraint."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Whether the divergent content MATTERS is a judgement, not a measurement. This unit establishes mechanically that content is destroyed in either direction; it hand-adjudicates only 4 files (rules/common/{security,performance,owner-ops-authorization}.md and .agents/skills/multi-agent-quickstart/SKILL.md). For the remaining 290 DIVERGED paths the value of the lost lines is UNCHECKED - and at least one adjudicated case (multi-agent-quickstart) has live-only content that is STALE and SHOULD be overwritten, proving \"destroys content\" and \"destroys value\" are different questions.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Per-file adjudication of the 294 DIVERGED paths, ranked by the >=10-unique-lines-both-sides band (108 paths), reading the actual hunks - the mechanical classification is exact and must not be re-delegated to judgement, but the value call must not be re-delegated to the classifier."
+  },
+  {
+   "claim": "The live tree is NOT quiescent. A concurrent writer added 1010 files to ~/.claude/skills during this unit's lifetime, which moved 2 of the 9 edges between the two samples. The writer was NOT identified, so it is UNKNOWN whether the ~/.claude/skills population is still settling; the numbers for the skills-to-claude and claudeonly-claude edges are a snapshot, not a steady state. The 7 edges the sync scripts actually write reproduced bit-identical across both samples, so no blast-radius figure depends on the moving root.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Correlate the mtimes of the 1010 added ~/.claude/skills files against the session transcripts under ~/.claude/projects and against any scheduled skills-deploy task, then re-take both samples once that writer is idle and confirm the two moved edges have settled."
+  },
+  {
+   "claim": "MCP configuration files were named in ADV-0017.inputs but are NOT covered by this measurement. ~/.mcp.json, ~/.claude.json and ~/.claude/mcp-configs/mcp-servers.json exist in the live tree; a repo counterpart was searched for (find -maxdepth 3 for *.mcp.json and mcp*.json, excluding node_modules) and none was found, and no sync script maps them (sync-from-live.ps1 $Map at :154-159 has no MCP entry). A pair that does not exist cannot be classified, so the correct verdict for that input is NOT-CHECKED rather than a folded zero.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Determine whether an MCP config repo counterpart is intended at all. If yes, add the pair to $Map and re-run this classification over it; if no, record MCP configs as live-only-by-design in the topology doc so a future lane does not re-search for them. This is exactly the AUD-0015 (MCP scope resolution) and AUD-0017 (bidirectional orphan census) surface."
+  },
+  {
+   "claim": "The one BINARY-DIFF pair (hooks/semantic-router/index/vecs.f32, repo 1099776 B vs live 1320960 B) is reported as BINARY-DIFF and NOT line-classified, because a NUL-bearing file is never newline-normalised. Whether the live index is a superset, a different embedding dimension, or a different corpus is UNKNOWN from this instrument.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Read the semantic-router index header/manifest on both sides and compare vector count and dimension, then compare against hooks/semantic-router/eval.py's expected shape."
+  },
+  {
+   "claim": "The 3 live-larger pairs with a reparse point or a lock were not encountered (UNREADABLE=0), but the walk deliberately skipped nested foreign repositories and 14 excluded directory names to mirror sync-from-live.ps1. Divergence INSIDE an excluded path is therefore outside this measurement by construction.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Re-run the classifier with the exclusion set emptied and diff the two population counts; any new DIVERGED row is content the sync tooling can never reach in either direction."
+  },
+  {
+   "claim": "The artifacts[0].sha256 recorded below is the SHA-256 of this file with the sha256 field value replaced by 64 zero characters - a self-referential digest is impossible, and the sibling ADV receipts (ADV-0011/0014/0015) all record a digest that does not match their own bytes on disk. artifacts[0].bytes DOES match the on-disk byte count exactly (the digest field is fixed-width, so patching it does not change the length).",
+   "verdict": "CONFIRMED",
+   "settling_experiment": "Reproduce with: b = open(PATH,\"rb\").read() ; z = re.subn(rb'(\"sha256\": \")[0-9a-f]{64}', rb'\\\\g<1>' + b\"0\"*64, b, count=1) ; assert z[1] == 1 ; print(hashlib.sha256(z[0]).hexdigest())  -- then compare to artifacts[0].sha256. NOTE the backreference MUST be written \\\\g<1>, not \\\\1: with \\\\1 immediately followed by the first \"0\" of the padding, Python re reads \\\\100 as an OCTAL escape for \"@\" and silently corrupts the zeroed image, producing a digest that can never be reproduced. That bug occurred in the first build of this artifact and was caught by an in-builder round-trip assertion, not by inspection."
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "claude-opus-5[1m]",
+  "role": "adversarial-refuter",
+  "execution_substrate": "local-serialized"
+ },
+ "extensions": {
+  "reproduction": {
+   "scratchpad": "C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad",
+   "scripts": [
+    "adv0017_probe1.py",
+    "adv0017_probe2.py",
+    "adv0017_blast.py",
+    "adv0017_analyze.py",
+    "adv0017_control.py",
+    "adv0017_mutation.py",
+    "adv0017_validate.py",
+    "adv0017_build.py"
+   ],
+   "intermediate_json": [
+    "probe1_out.json",
+    "probe2_out.json",
+    "blast_out.json",
+    "control_out.json",
+    "mutation_out.json",
+    "live_larger.json"
+   ],
+   "git_head_at_measurement": "2decae91d46f94b786106351671d05ae7b4c3541",
+   "highest_value_single_check": "rules/common/security.md - LF-normalised line-set diff against C:/Users/Prekzursil/.claude/rules/common/security.md. LIVE must hold the do-not-rotate clause and REPO must hold the paths: glob list. If either side lacks its unique block, this artifact is wrong.",
+   "schema_validation": "validated against command-center/schema/refutation-record.schema.json (which $refs platform/schema/artifact-class-profiles.schema.json#/$defs/refutation-record -> platform/schema/receipt.schema.json#/$defs/generic_report) with jsonschema 4.25.1 Draft202012Validator; the validator itself was first proven to fire on 12 of 12 planted defects, so its clean result on this artifact is a measured signal and not an unproven silence."
+  }
+ },
+ "report": {
+  "kind": "refutation-record",
+  "observations": [
+   {
+    "name": "edges_audited",
+    "measured": 9,
+    "method": "directory walk with the same 14 excluded dir names / 20 excluded file patterns / nested-repo skip that sync-from-live.ps1 applies",
+    "anchor": "scripts/sync-from-live.ps1:170-181,224-232"
+   },
+   {
+    "name": "shared_pair_instances",
+    "measured": 4645,
+    "method": "set intersection of relative paths",
+    "anchor": "probe1_out.json edges[].shared_files"
+   },
+   {
+    "name": "DIVERGED_both_sides_hold_unique_lines",
+    "measured": 493,
+    "method": "three-way line-set classification after LF normalisation",
+    "anchor": "probe1_out.json edges[].status_counts.DIVERGED"
+   },
+   {
+    "name": "DIVERGED_distinct_file_paths",
+    "measured": 294,
+    "method": "de-duplicated across edges",
+    "anchor": "probe1_out.json"
+   },
+   {
+    "name": "DIVERGED_ge3_unique_lines_both_sides",
+    "measured": 203,
+    "method": "sensitivity band, whitespace-stripped, blank lines dropped",
+    "anchor": "NC-06"
+   },
+   {
+    "name": "DIVERGED_ge10_unique_lines_both_sides",
+    "measured": 108,
+    "method": "sensitivity band",
+    "anchor": "NC-06"
+   },
+   {
+    "name": "EOL_ONLY_phantom_differences",
+    "measured": 617,
+    "method": "raw bytes differ, LF-normalised bytes identical",
+    "anchor": "core.autocrlf=true at SYSTEM level; .gitattributes:16-17 covers only *.sh and *.ps1"
+   },
+   {
+    "name": "genuinely_one_directional_pairs",
+    "measured": 15,
+    "method": "strict-subset test in one direction only",
+    "anchor": "probe1_out.json REPO-AHEAD=11 LIVE-AHEAD=4"
+   },
+   {
+    "name": "size_says_repo_larger_but_content_identical",
+    "measured": 584,
+    "method": "size x content crosstab",
+    "anchor": "probe2_out.json crosstab_size_vs_content"
+   },
+   {
+    "name": "equal_size_but_diverged_size_detector_fully_blind",
+    "measured": 5,
+    "method": "size x content crosstab",
+    "anchor": "probe2_out.json crosstab_size_vs_content"
+   },
+   {
+    "name": "mtime_direction_inverted_vs_content",
+    "measured": 4,
+    "method": "git log -1 --format=%cI x live st_mtime crosstab",
+    "anchor": "probe2_out.json crosstab_mtime_vs_content"
+   },
+   {
+    "name": "repo_side_untracked_provenance_not_computable",
+    "measured": 3,
+    "method": "git ls-files membership",
+    "anchor": "probe2_out.json rows[].tracked_in_git"
+   },
+   {
+    "name": "live_larger_pairs_content_read",
+    "measured": 320,
+    "method": "full content read of every live-larger pair, as the evidence_requirement demands",
+    "anchor": "probe2_out.json live_larger_content_reads (320 of 320 read_ok)"
+   },
+   {
+    "name": "substantive_live_only_lines_in_live_larger_pairs",
+    "measured": 6058,
+    "method": "non-blank live-only lines summed over the 320 live-larger pairs",
+    "anchor": "probe2_out.json live_larger_content_reads"
+   },
+   {
+    "name": "W1_sync-rules.ps1_live_only_lines_destroyed",
+    "measured": 71,
+    "method": "blast-radius join against the script's own scope rules",
+    "anchor": "scripts/sync-rules.ps1:57-59,67"
+   },
+   {
+    "name": "W2_sync-hooks.ps1_live_only_lines_destroyed",
+    "measured": 648,
+    "method": "blast-radius join",
+    "anchor": "scripts/sync-hooks.ps1:66-89"
+   },
+   {
+    "name": "W3_sync-skills.ps1_live_only_lines_destroyed",
+    "measured": 1274,
+    "method": "blast-radius join",
+    "anchor": "scripts/sync-skills.ps1:72-73"
+   },
+   {
+    "name": "W3_sync-skills.ps1_live_only_whole_files_deleted",
+    "measured": 234,
+    "method": "live-tree walk for files with no repo counterpart under a repo-present skill dir; 199 are a vendored foreign clone and 33 are .bak backups, only 2 are other content",
+    "anchor": "scripts/sync-skills.ps1:72 Remove-Item -Recurse -Force"
+   },
+   {
+    "name": "W4_sync-from-live.ps1_repo_only_lines_destroyed",
+    "measured": 5398,
+    "method": "blast-radius join with the EOL-ONLY guard and the 3-file hold list CREDITED",
+    "anchor": "scripts/sync-from-live.ps1:205-206,357-366"
+   },
+   {
+    "name": "repo_internal_duplication_skillmd_differ",
+    "measured": 16,
+    "method": "LF-normalised sha256 of repo skills/<X>/SKILL.md vs repo .agents/skills/<X>/SKILL.md over 336 shared names",
+    "anchor": "scripts/sync-skills.ps1:45 vs scripts/sync-from-live.ps1:159"
+   },
+   {
+    "name": "DIVERGED_on_the_7_temporally_stable_edges",
+    "measured": 397,
+    "method": "subtotal over the 7 edges whose status counts reproduced bit-identical across two samples ~65 min apart; this is the citable figure, and every blast-radius number derives from it",
+    "anchor": "report.temporal_reproducibility"
+   },
+   {
+    "name": "DIVERGED_distinct_paths_on_stable_edges",
+    "measured": 264,
+    "method": "de-duplicated across the 7 stable edges",
+    "anchor": "report.temporal_reproducibility"
+   },
+   {
+    "name": "edges_bit_identical_across_two_temporal_samples",
+    "measured": 7,
+    "method": "status-count comparison between probe1_out.json and probe1_rerun.json",
+    "anchor": "report.temporal_reproducibility"
+   },
+   {
+    "name": "concurrent_writer_files_added_to_live_claude_skills",
+    "measured": 1010,
+    "method": "per-root filtered file count, sample A vs sample B; identity of the writer NOT established",
+    "anchor": "report.temporal_reproducibility.cause_of_movement"
+   },
+   {
+    "name": "answer_to_the_units_question",
+    "measured": "YES. On the 7 TEMPORALLY STABLE edges (the citable figure): 397 pair-instances across 264 distinct paths hold unique content on BOTH sides, so a one-directional sync in EITHER direction destroys content; plus 11 only-repo-loses and 4 only-live-loses pairs. Across all 9 edges in sample A the figures are 493 / 294 / 11 / 4, and in sample B 574 DIVERGED - the difference is entirely the ~/.claude/skills root, which a concurrent writer grew by 1010 files between samples and which no sync script writes.",
+    "method": "three-way line-set classification (two temporal samples) + per-writer blast-radius join",
+    "anchor": "command-center/WORK-UNIT-CATALOG.json ADV-0017.question_or_target"
+   }
+  ],
+  "control_ids": [
+   "NC-01-EOL-NORMALISATION",
+   "NC-02-DIVERGED-BOTH-STATES",
+   "NC-03-MUTATION-OF-THE-NORMALISER",
+   "NC-04-DOCUMENTED-POSITIVE-CONTROLS-ON-REAL-DATA",
+   "NC-05-NO-WRITE-DETECTOR",
+   "NC-07-TEMPORAL-REPRODUCIBILITY",
+   "NC-06-SENSITIVITY-BAND"
+  ],
+  "edge_table": [
+   {
+    "edge": "rules",
+    "repo_rel_root": "rules",
+    "live_root": "C:/Users/Prekzursil/.claude/rules",
+    "sync_note": "live->repo via sync-from-live.ps1 $Map; repo->live via sync-rules.ps1 (rules/common/*.md only)",
+    "repo_files": 88,
+    "live_files": 88,
+    "shared_files": 88,
+    "repo_only_files": 0,
+    "live_only_files": 0,
+    "status_counts": {
+     "DIVERGED": 20,
+     "REPO-AHEAD": 7,
+     "LIVE-AHEAD": 1,
+     "EOL-ONLY": 55,
+     "IDENTICAL": 5
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 7
+   },
+   {
+    "edge": "agents",
+    "repo_rel_root": "agents",
+    "live_root": "C:/Users/Prekzursil/.claude/agents",
+    "sync_note": "live->repo via sync-from-live.ps1 $Map; NO repo->live writer",
+    "repo_files": 18,
+    "live_files": 18,
+    "shared_files": 18,
+    "repo_only_files": 0,
+    "live_only_files": 0,
+    "status_counts": {
+     "EOL-ONLY": 17,
+     "DIVERGED": 1
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 1
+   },
+   {
+    "edge": "commands",
+    "repo_rel_root": "commands",
+    "live_root": "C:/Users/Prekzursil/.claude/commands",
+    "sync_note": "live->repo via sync-from-live.ps1 $Map; NO repo->live writer",
+    "repo_files": 71,
+    "live_files": 71,
+    "shared_files": 71,
+    "repo_only_files": 0,
+    "live_only_files": 0,
+    "status_counts": {
+     "EOL-ONLY": 64,
+     "DIVERGED": 7
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 5
+   },
+   {
+    "edge": "hooks",
+    "repo_rel_root": "hooks",
+    "live_root": "C:/Users/Prekzursil/.claude/hooks",
+    "sync_note": "live->repo via sync-from-live.ps1 $Map; repo->live via sync-hooks.ps1",
+    "repo_files": 293,
+    "live_files": 270,
+    "shared_files": 266,
+    "repo_only_files": 27,
+    "live_only_files": 4,
+    "status_counts": {
+     "DIVERGED": 47,
+     "EOL-ONLY": 77,
+     "IDENTICAL": 140,
+     "LIVE-AHEAD": 1,
+     "BINARY-DIFF": 1
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 29
+   },
+   {
+    "edge": "dotagents-skills",
+    "repo_rel_root": ".agents/skills",
+    "live_root": "C:/Users/Prekzursil/.agents/skills",
+    "sync_note": "live->repo via sync-from-live.ps1 $Map (pull target)",
+    "repo_files": 1887,
+    "live_files": 1795,
+    "shared_files": 1735,
+    "repo_only_files": 152,
+    "live_only_files": 60,
+    "status_counts": {
+     "IDENTICAL": 1438,
+     "EOL-ONLY": 136,
+     "DIVERGED": 157,
+     "REPO-AHEAD": 2,
+     "LIVE-AHEAD": 2
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 56
+   },
+   {
+    "edge": "skills-to-agents",
+    "repo_rel_root": "skills",
+    "live_root": "C:/Users/Prekzursil/.agents/skills",
+    "sync_note": "repo->live via sync-skills.ps1 (push source, rmdir+recopy)",
+    "repo_files": 1721,
+    "live_files": 1795,
+    "shared_files": 1588,
+    "repo_only_files": 133,
+    "live_only_files": 207,
+    "status_counts": {
+     "IDENTICAL": 1336,
+     "DIVERGED": 125,
+     "EOL-ONLY": 125,
+     "REPO-AHEAD": 2
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 37
+   },
+   {
+    "edge": "skills-to-claude",
+    "repo_rel_root": "skills",
+    "live_root": "C:/Users/Prekzursil/.claude/skills",
+    "sync_note": "no scripted writer found; live curated subset",
+    "repo_files": 1721,
+    "live_files": 879,
+    "shared_files": 789,
+    "repo_only_files": 932,
+    "live_only_files": 90,
+    "status_counts": {
+     "IDENTICAL": 551,
+     "EOL-ONLY": 142,
+     "DIVERGED": 96
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 45
+   },
+   {
+    "edge": "claudeonly-agents",
+    "repo_rel_root": "skills-claude-only",
+    "live_root": "C:/Users/Prekzursil/.agents/skills",
+    "sync_note": "repo->live via sync-skills.ps1 -IncludeClaudeOnly",
+    "repo_files": 303,
+    "live_files": 1795,
+    "shared_files": 78,
+    "repo_only_files": 225,
+    "live_only_files": 1717,
+    "status_counts": {
+     "IDENTICAL": 38,
+     "DIVERGED": 40
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 23
+   },
+   {
+    "edge": "claudeonly-claude",
+    "repo_rel_root": "skills-claude-only",
+    "live_root": "C:/Users/Prekzursil/.claude/skills",
+    "sync_note": "no scripted writer found",
+    "repo_files": 303,
+    "live_files": 879,
+    "shared_files": 12,
+    "repo_only_files": 291,
+    "live_only_files": 867,
+    "status_counts": {
+     "EOL-ONLY": 1,
+     "IDENTICAL": 11
+    },
+    "DIVERGED_ge3_unique_lines_both_sides": 0
+   }
+  ],
+  "per_writer_blast_radius": {
+   "W1_sync-rules.ps1": {
+    "direction": "repo -> live",
+    "dest": "C:/Users/Prekzursil/.claude/rules/common",
+    "in_scope_shared_pairs": 19,
+    "pairs_where_live_holds_unique_content": 12,
+    "live_only_lines_destroyed": 71,
+    "files": [
+     {
+      "rel": "common/performance.md",
+      "status": "DIVERGED",
+      "live_only_lines": 17,
+      "repo_only_lines": 1
+     },
+     {
+      "rel": "common/owner-ops-authorization.md",
+      "status": "LIVE-AHEAD",
+      "live_only_lines": 15,
+      "repo_only_lines": 0
+     },
+     {
+      "rel": "common/cross-vendor-dispatch.md",
+      "status": "DIVERGED",
+      "live_only_lines": 9,
+      "repo_only_lines": 35
+     },
+     {
+      "rel": "common/bash-hud-and-terminal-emit.md",
+      "status": "DIVERGED",
+      "live_only_lines": 7,
+      "repo_only_lines": 7
+     },
+     {
+      "rel": "common/hooks.md",
+      "status": "DIVERGED",
+      "live_only_lines": 6,
+      "repo_only_lines": 52
+     },
+     {
+      "rel": "common/security.md",
+      "status": "DIVERGED",
+      "live_only_lines": 6,
+      "repo_only_lines": 22
+     },
+     {
+      "rel": "common/ci-hygiene.md",
+      "status": "DIVERGED",
+      "live_only_lines": 4,
+      "repo_only_lines": 50
+     },
+     {
+      "rel": "common/git-workflow.md",
+      "status": "DIVERGED",
+      "live_only_lines": 2,
+      "repo_only_lines": 31
+     },
+     {
+      "rel": "common/harness-vcs-hygiene.md",
+      "status": "DIVERGED",
+      "live_only_lines": 2,
+      "repo_only_lines": 13
+     },
+     {
+      "rel": "common/coding-style.md",
+      "status": "DIVERGED",
+      "live_only_lines": 1,
+      "repo_only_lines": 28
+     },
+     {
+      "rel": "common/testing.md",
+      "status": "DIVERGED",
+      "live_only_lines": 1,
+      "repo_only_lines": 30
+     },
+     {
+      "rel": "common/windows-shell.md",
+      "status": "DIVERGED",
+      "live_only_lines": 1,
+      "repo_only_lines": 24
+     }
+    ]
+   },
+   "W2_sync-hooks.ps1": {
+    "direction": "repo -> live",
+    "dest": "C:/Users/Prekzursil/.claude/hooks",
+    "in_scope_shared_pairs": 122,
+    "pairs_where_live_holds_unique_content": 47,
+    "live_only_lines_destroyed": 648,
+    "top_files": [
+     {
+      "rel": "_dispatch/dispatch.py",
+      "status": "DIVERGED",
+      "live_only_lines": 162,
+      "repo_only_lines": 94
+     },
+     {
+      "rel": "recall-gate/state/recall-gate-20260808.jsonl",
+      "status": "DIVERGED",
+      "live_only_lines": 112,
+      "repo_only_lines": 11
+     },
+     {
+      "rel": "honest-signal/check.py",
+      "status": "DIVERGED",
+      "live_only_lines": 103,
+      "repo_only_lines": 100
+     },
+     {
+      "rel": "_dispatch/test_wiring.py",
+      "status": "DIVERGED",
+      "live_only_lines": 44,
+      "repo_only_lines": 291
+     },
+     {
+      "rel": "_shared/use-vs-mention-corpus.jsonl",
+      "status": "LIVE-AHEAD",
+      "live_only_lines": 27,
+      "repo_only_lines": 0
+     },
+     {
+      "rel": "_shared/test_use_vs_mention.py",
+      "status": "DIVERGED",
+      "live_only_lines": 22,
+      "repo_only_lines": 27
+     },
+     {
+      "rel": "event-ledger/sessionstart-replay.py",
+      "status": "DIVERGED",
+      "live_only_lines": 19,
+      "repo_only_lines": 34
+     },
+     {
+      "rel": "memory-spool/flush_check.py",
+      "status": "DIVERGED",
+      "live_only_lines": 10,
+      "repo_only_lines": 30
+     },
+     {
+      "rel": "recall-gate/gate.py",
+      "status": "DIVERGED",
+      "live_only_lines": 10,
+      "repo_only_lines": 22
+     },
+     {
+      "rel": "mcp-liveness/liveness.py",
+      "status": "DIVERGED",
+      "live_only_lines": 9,
+      "repo_only_lines": 61
+     },
+     {
+      "rel": "semantic-router/eval.py",
+      "status": "DIVERGED",
+      "live_only_lines": 9,
+      "repo_only_lines": 48
+     },
+     {
+      "rel": "no-force-push/hook.py",
+      "status": "DIVERGED",
+      "live_only_lines": 8,
+      "repo_only_lines": 34
+     },
+     {
+      "rel": "goal-reinject/reinject.py",
+      "status": "DIVERGED",
+      "live_only_lines": 7,
+      "repo_only_lines": 11
+     },
+     {
+      "rel": "recall-gate/test_recall_gate.py",
+      "status": "DIVERGED",
+      "live_only_lines": 7,
+      "repo_only_lines": 82
+     },
+     {
+      "rel": "todo-surfacer/test_marker_discrimination.py",
+      "status": "DIVERGED",
+      "live_only_lines": 7,
+      "repo_only_lines": 19
+     }
+    ]
+   },
+   "W3_sync-skills.ps1": {
+    "direction": "repo -> live",
+    "dest": "C:/Users/Prekzursil/.agents/skills",
+    "mechanism": "Remove-Item -Recurse -Force <live/skill>  THEN  Copy-Item -Recurse -Force (sync-skills.ps1:72-73) - a WHOLESALE directory replacement with no exclusions, no EOL awareness and no hold list",
+    "repo_skill_dirs_that_would_be_replaced": 337,
+    "shared_pairs_where_live_holds_unique_content": 125,
+    "live_only_lines_destroyed_in_shared_files": 1274,
+    "live_only_WHOLE_FILES_deleted": 234,
+    "live_only_WHOLE_FILES_bytes": 5325764,
+    "live_only_WHOLE_FILES_sample": [
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/data/ea229f977fb51000.pkl.bz2",
+      "bytes": 3071000
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/data/fbcc4333b5f183fc.pkl.bz2",
+      "bytes": 1382307
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/lib/system_primes.py",
+      "bytes": 86984
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/codex_tail.py",
+      "bytes": 34787
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/dbx_events.py",
+      "bytes": 30407
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/lib/algos.py",
+      "bytes": 30356
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/databricks_source.py",
+      "bytes": 29709
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "mitm_mcp_traffic.db",
+      "bytes": 24576
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/data/pastctfprimes.txt",
+      "bytes": 20307
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/main.py",
+      "bytes": 20227
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/dbx_completion.py",
+      "bytes": 18090
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/render_html.py",
+      "bytes": 17955
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/agent_state.py",
+      "bytes": 16939
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/docs/failure_modes.md",
+      "bytes": 16307
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/lib/number_theory.py",
+      "bytes": 16055
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/src/RsaCtfTool/lib/rsa_attack.py",
+      "bytes": 16002
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/tests/test_number_theory.py",
+      "bytes": 14913
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/tests/test_algos.py",
+      "bytes": 14444
+     },
+     {
+      "skill": "workflow-monitor",
+      "rel": "monitorcore.bak-20260727-091532/render_md.py",
+      "bytes": 13988
+     },
+     {
+      "skill": "crypto-ctf",
+      "rel": "RsaCtfTool/tests/test_attacks.py",
+      "bytes": 13755
+     }
+    ],
+    "windows_reserved_name_paths_encountered": [
+     "C:/Users/Prekzursil/.agents/skills\\workflow-monitor\\NUL"
+    ]
+   },
+   "W3b_sync-skills.ps1_-IncludeClaudeOnly": {
+    "direction": "repo -> live",
+    "dest": "C:/Users/Prekzursil/.agents/skills",
+    "shared_pairs_where_live_holds_unique_content": 40,
+    "live_only_lines_destroyed_in_shared_files": 911,
+    "note": "same rmdir+recopy mechanism; adds the skills-claude-only/ source set"
+   },
+   "W4_sync-from-live.ps1": {
+    "direction": "live -> repo",
+    "dest": "C:/Users/Prekzursil/source/ast-integrate",
+    "guards_credited": [
+     "EOL-ONLY pairs skipped",
+     "hold list of 3 files honoured",
+     "excluded dirs/patterns",
+     "nested-repo skip"
+    ],
+    "pairs_where_repo_holds_unique_content_AND_would_be_overwritten": 239,
+    "repo_only_lines_destroyed": 5398,
+    "top_files": [
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/hacktricks/SKILL.md",
+      "status": "DIVERGED",
+      "repo_only_lines": 542,
+      "live_only_lines": 19
+     },
+     {
+      "edge": "hooks",
+      "repo_rel": "hooks/_dispatch/test_wiring.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 291,
+      "live_only_lines": 44
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/continuous-learning-v2/scripts/instinct-cli.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 277,
+      "live_only_lines": 189
+     },
+     {
+      "edge": "hooks",
+      "repo_rel": "hooks/per-edit-check/check.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 246,
+      "live_only_lines": 1
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/re-triage-preflight/triage.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 195,
+      "live_only_lines": 130
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/cv-studio/scripts/cvstudio.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 151,
+      "live_only_lines": 77
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/microsoft-foundry/foundry-agent/create/references/use-toolbox-in-hosted-agent.md",
+      "status": "DIVERGED",
+      "repo_only_lines": 149,
+      "live_only_lines": 87
+     },
+     {
+      "edge": "hooks",
+      "repo_rel": "hooks/per-edit-check/test_check.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 126,
+      "live_only_lines": 1
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/workflow-authoring/SKILL.md",
+      "status": "DIVERGED",
+      "repo_only_lines": 123,
+      "live_only_lines": 20
+     },
+     {
+      "edge": "hooks",
+      "repo_rel": "hooks/event-ledger/prune-report.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 116,
+      "live_only_lines": 4
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/bc-drive-plus/dispatch_capture.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 116,
+      "live_only_lines": 48
+     },
+     {
+      "edge": "hooks",
+      "repo_rel": "hooks/honest-signal/check.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 100,
+      "live_only_lines": 103
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/protein-interaction-network-analysis/test_skill_comprehensive.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 100,
+      "live_only_lines": 87
+     },
+     {
+      "edge": "dotagents-skills",
+      "repo_rel": ".agents/skills/bc-update-survival/aob_resolver.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 98,
+      "live_only_lines": 43
+     },
+     {
+      "edge": "hooks",
+      "repo_rel": "hooks/_dispatch/dispatch.py",
+      "status": "DIVERGED",
+      "repo_only_lines": 94,
+      "live_only_lines": 162
+     }
+    ]
+   }
+  },
+  "sensitivity_bands": {
+   "DIVERGED_raw": 493,
+   "DIVERGED_whitespace_insensitive": 493,
+   "DIVERGED_ge3_unique_both_sides": 203,
+   "DIVERGED_ge10_unique_both_sides": 108
+  },
+  "crosstab_size_vs_content": {
+   "('repo-larger', 'both-sides-unique')": 206,
+   "('repo-larger', 'repo-superset')": 11,
+   "('live-larger', 'live-superset')": 4,
+   "('live-larger', 'both-sides-unique')": 282,
+   "('repo-larger', 'EOL-ONLY')": 584,
+   "('equal-size', 'both-sides-unique')": 5,
+   "('live-larger', 'BINARY-DIFF')": 1,
+   "('live-larger', 'EOL-ONLY')": 33
+  },
+  "crosstab_mtime_vs_content": {
+   "('repo-newer', 'both-sides-unique')": 358,
+   "('repo-newer', 'repo-superset')": 7,
+   "('live-newer', 'live-superset')": 4,
+   "('live-newer', 'both-sides-unique')": 132,
+   "('repo-newer', 'EOL-ONLY')": 519,
+   "('live-newer', 'EOL-ONLY')": 98,
+   "('NOT-COMPUTABLE', 'both-sides-unique')": 3,
+   "('live-newer', 'BINARY-DIFF')": 1,
+   "('live-newer', 'repo-superset')": 4
+  },
+  "temporal_reproducibility": {
+   "sample_A_utc": "2026-08-11T19:19:26Z",
+   "sample_B_utc": "2026-08-11T21:05:47Z",
+   "edges_bit_identical_across_samples": [
+    "agents",
+    "claudeonly-agents",
+    "commands",
+    "dotagents-skills",
+    "hooks",
+    "rules",
+    "skills-to-agents"
+   ],
+   "edges_that_moved": [
+    "claudeonly-claude",
+    "skills-to-claude"
+   ],
+   "cause_of_movement": "A CONCURRENT WRITER populated ~/.claude/skills between the two samples: filtered file count went 879 -> 1889 (+1010). The other five live roots are unchanged in filtered file count (rules 88, agents 18, commands 71, hooks 270, .agents/skills 1795 - identical in both samples).",
+   "totals_sample_A": {
+    "DIVERGED": 493,
+    "REPO-AHEAD": 11,
+    "LIVE-AHEAD": 4,
+    "EOL-ONLY": 617,
+    "IDENTICAL": 3519,
+    "BINARY-DIFF": 1
+   },
+   "totals_sample_B": {
+    "DIVERGED": 574,
+    "REPO-AHEAD": 13,
+    "LIVE-AHEAD": 4,
+    "EOL-ONLY": 646,
+    "IDENTICAL": 4280,
+    "BINARY-DIFF": 1
+   },
+   "stable_edge_subtotals": {
+    "DIVERGED": 397,
+    "REPO-AHEAD": 11,
+    "LIVE-AHEAD": 4,
+    "EOL-ONLY": 474,
+    "IDENTICAL": 2957,
+    "BINARY-DIFF": 1
+   },
+   "stable_edge_shared_pairs": 3844,
+   "stable_edge_DIVERGED_distinct_paths": 264
+  },
+  "method_notes": [
+   "LF normalisation is CRLF->LF only. A lone CR is NOT folded, and a file containing a NUL byte is never normalised (it is classified BINARY-DIFF).",
+   "Direction is decided by UNIQUE-LINE SET membership, not by size and not by mtime: repo_only = set(repo_lines) - set(live_lines), live_only = the mirror. Both non-empty = DIVERGED.",
+   "REORDER-ONLY exists so that a pair with the same unique line set in a different order is NOT reported as DIVERGED. It occurred 0 times, which is itself worth knowing.",
+   "A pair-instance is (edge, path). A single file can appear on more than one edge because one live tree can have two repo counterparts; distinct-path counts are reported alongside pair-instance counts so neither is mistaken for the other.",
+   "The population is deliberately the population the sync scripts can actually reach: the same 14 excluded directory names, 20 excluded file patterns and nested-foreign-repo skip that sync-from-live.ps1 applies.",
+   "INSTRUMENTS. SOURCE probe: adv0017_probe1.py, three-way line-set classification after LF normalisation (reads CONTENT). VERIFIER probe, mechanically different: adv0017_probe2.py, a git log -1 --format=%cI x live st_mtime provenance join plus a full content read of every live-larger pair (reads git METADATA and filesystem METADATA, then re-reads content by a different code path). Supporting: adv0017_blast.py (per-writer blast-radius join), adv0017_control.py (10-case both-states battery), adv0017_mutation.py (mutation of the normaliser), adv0017_validate.py (schema validation plus a 12-defect validator control). All under extensions.reproduction.scratchpad.",
+   "INCIDENT, disclosed rather than suppressed: a Windows reserved-name file at ~/.agents/skills/workflow-monitor/NUL raised ValueError from os.path.relpath twice. It was GUARDED - counted, skipped and recorded in per_writer_blast_radius - not silently swallowed, and both control batteries were re-run to 10/10 after the guard before any real number was read.",
+   "VENDOR DEVIATION: the catalog assigns ADV-0017 to vendor=openai model=gpt-5-codex role=adversarial-refuter. It was executed by anthropic/claude-opus-5[1m] instead. This artifact therefore cannot serve as either half of the required cross-vendor reviewer pair, and an openai-side reproduction is still owed."
+  ]
+ }
+}

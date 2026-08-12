@@ -1,0 +1,636 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0031",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0031:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW workflow-parameter command injection measured across 11 shell/argv/here-string adapters x 21 payloads (231 runs, two independent probes + benign control + both-states controls). CONFIRMED execution-injection on 5 string-command/eval/here-string adapters; REFUTED on 3 Windows argv-array adapters; MSYS path-conv argv divergence CONFIRMED on the POSIX argv passthrough. BLOCKED pending the unit's mandated two-different-vendor independent reproduction.",
+  "spec_anchor": "_USER-PROMPTS.md:11308-11309, 11015",
+  "min_bytes_threshold": 8192,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "security-exploit-engineer",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json",
+      "bytes": 56611,
+      "sha256": "6bbbdc264af93118cbd45e783e0d005e94fa3e1ad2f79b5f2a6b0910c7aee47f",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "[A1 ARGV-ARRAY / windows] ARGV-ARRAY .NET ProcessStartInfo.ArgumentList (scripts/longrun.ps1:108-115, the AGENTS.md 4a long-op wrapper): a value with ANY of the 20 metacharacter payloads reached the child as one intact argv element; no canary fired and the argv did not diverge on Windows. The metacharacters are inert.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "scripts/longrun.ps1:108-115",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A1 with corpus[c07-amp] param=\"benign-value & Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A1-c07-amp.canary' -Value x\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A1-c07-amp.canary')",
+          "raw_output": "probe1_canary_fired=False canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A1-c07-amp.canary child_stdout_tail='CHILD_PID=34464\\nCHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A1:c07-amp",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A1-c07-amp; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=2; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A1-c07-amp\", \"benign-value & Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A1-c07-amp.canary' -Value x\"]; intended_param=\"benign-value & Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A1-c07-amp.canary' -Value x\"; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.EXE\\\" -NoProfile -ExecutionPolicy Bypass -File C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a1_argumentlist.ps1 -Exe C:\\\\Python314\\\\python.exe -ScriptPath C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py -Marker ADV0031RUN-A1-c07-amp -Param \\\"benign-value & Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A1-c07-amp.canary' -Value x\\\"\", \"\\\"C:\\\\Python314\\\\python.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A1-c07-amp \\\"benign-value & Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A1-c07-amp.canary' -Value x\\\"\"]",
+          "fingerprint": "P2-ostable-argv:A1:c07-amp",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A2 ARGV-ARRAY / windows] ARGV-ARRAY python subprocess list shell=False (tools/mcp/schrodinger-mcp/server.py:90 + 747 sites): value reached the child intact; 0 canary, 0 argv divergence.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "tools/mcp/schrodinger-mcp/server.py:90 (+747 sites)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A2 with corpus[c09-semicolon] param='benign-value; echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c09-semicolon.canary\"'; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c09-semicolon.canary')",
+          "raw_output": "probe1_canary_fired=False canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A2-c09-semicolon.canary child_stdout_tail='CHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A2:c09-semicolon",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A2-c09-semicolon; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=2; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A2-c09-semicolon\", \"benign-value; echo x> \\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c09-semicolon.canary\\\"\"]; intended_param='benign-value; echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c09-semicolon.canary\"'; all_cmdlines=[\"C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a2_py_argv_list.py C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A2-c09-semicolon \\\"benign-value; echo x> \\\\\\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c09-semicolon.canary\\\\\\\"\\\"\", \"C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A2-c09-semicolon \\\"benign-value; echo x> \\\\\\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c09-semicolon.canary\\\\\\\"\\\"\"]",
+          "fingerprint": "P2-ostable-argv:A2:c09-semicolon",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A8 ARGV-ARRAY / windows] ARGV-ARRAY PowerShell native invocation & $exe $arg: value reached the child intact; 0 canary, 0 argv divergence.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "scripts/sync-skills.ps1 and 100+ .ps1 native-call sites (shape)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A8 with corpus[c09-semicolon] param=\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary' -Value x\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary')",
+          "raw_output": "probe1_canary_fired=False canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A8-c09-semicolon.canary child_stdout_tail='CHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A8:c09-semicolon",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A8-c09-semicolon; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=2; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A8-c09-semicolon\", \"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary' -Value x\"]; intended_param=\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary' -Value x\"; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.EXE\\\" -NoProfile -ExecutionPolicy Bypass -File C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a8_ps_native_argv.ps1 -Exe C:\\\\Python314\\\\python.exe -ScriptPath C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py -Marker ADV0031RUN-A8-c09-semicolon -Param \\\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary' -Value x\\\"\", \"\\\"C:\\\\Python314\\\\python.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A8-c09-semicolon \\\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary' -Value x\\\"\"]",
+          "fingerprint": "P2-ostable-argv:A8:c09-semicolon",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A5 ARGV-ARRAY / posix(git-bash)] ARGV-ARRAY POSIX \"$@\" passthrough (metaswarm _common.sh:92-126). Shell metacharacters are REFUTED (inert, argv intact), BUT MSYS path-conversion CONFIRMED a divergence: /sdcard/benign-value and /data/local/tmp/benign-value were rewritten to C:/Program Files/Git/sdcard/... before the child saw them (windows-shell.md 1), and ${HOME} lost its braces. Argv altered without any shell execution.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "skills-claude-only/metaswarm-external-tools/adapters/_common.sh:92-126",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A5 with corpus[c15-msys-abs-path] param='/sdcard/benign-value'; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A5-c15-msys-abs-path.canary')",
+          "raw_output": "probe1_canary_fired=False canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A5-c15-msys-abs-path.canary child_stdout_tail='CHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A5:c15-msys-abs-path",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A5-c15-msys-abs-path; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=6; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A5-c15-msys-abs-path\", \"C:/Program Files/Git/sdcard/benign-value\"]; intended_param='/sdcard/benign-value'; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\Git\\\\bin\\\\bash.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a5_argv_passthrough.sh C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A5-c15-msys-abs-path /sdcard/benign-value\", \"\\\"C:\\\\Program Files\\\\Git\\\\bin\\\\..\\\\usr\\\\bin\\\\bash.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a5_argv_passthrough.sh C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A5-c15-msys-abs-path /sdcard/benign-value\", \"\\\"C:\\\\Program Files\\\\Git\\\\bin\\\\..\\\\usr\\\\bin\\\\bash.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a5_argv_passthrough.sh C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\s",
+          "fingerprint": "P2-ostable-argv:A5:c15-msys-abs-path",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A3 STRING-COMMAND / windows] STRING-COMMAND python subprocess shell=True over a double-quote-wrapped f-string (tools/ese-gate/ese_gate.py:209-211 shape): the c02 double-quote payload closed the wrapper quote and the injected canary command executed (canary file created).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/ese-gate/ese_gate.py:209-211 (shape)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A3 with corpus[c02-doublequote] param='benign-value\"echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3-c02-doublequote.canary\"\"'; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3-c02-doublequote.canary')",
+          "raw_output": "probe1_canary_fired=True canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A3-c02-doublequote.canary child_stdout_tail='CONSTRUCTED=\"C:\\\\Python314\\\\python.exe\" \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\" \"ADV0031RUN-A3-c02-doublequote\" \"benign-value\"echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3-c02-doublequote.canary\"\"\"\\nCHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A3:c02-doublequote",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A3-c02-doublequote; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=3; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A3-c02-doublequote\", \"benign-valueecho\", \"x\"]; intended_param='benign-value\"echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3-c02-doublequote.canary\"\"'; all_cmdlines=[\"C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a3_py_shell_true.py C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A3-c02-doublequote \\\"benign-value\\\\\\\"echo x> \\\\\\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3-c02-doublequote.canary\\\\\\\"\\\\\\\"\\\"\", \"C:\\\\WINDOWS\\\\system32\\\\cmd.exe /c \\\"\\\"C:\\\\Python314\\\\python.exe\\\" \\\"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\\\" \\\"ADV0031RUN-A3-c02-doublequote\\\" \\\"benign-value\\\"echo x> \\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3-c02-doublequote.canary\\\"\\\"\\\"\\\"\", \"\\\"C:\\\\Python314\\\\python.exe\\\"  \\\"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\\\" \\\"ADV0031RUN-A3-c02-doublequote\\\" \\\"benign-value\\\"ec",
+          "fingerprint": "P2-ostable-argv:A3:c02-doublequote",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A3B STRING-COMMAND / windows] STRING-COMMAND python subprocess shell=True over an UNQUOTED f-string: 6 of 20 payloads (&, &&, ;, |, and cmd metachars) each executed the injected canary command via cmd.exe /c.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/ese-gate/ese_gate.py:209-211 (shape), UNQUOTED variant",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A3B with corpus[c07-amp] param='benign-value & echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3B-c07-amp.canary\"'; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3B-c07-amp.canary')",
+          "raw_output": "probe1_canary_fired=True canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A3B-c07-amp.canary child_stdout_tail='CONSTRUCTED=C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A3B-c07-amp benign-value & echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3B-c07-amp.canary\"\\nCHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A3B:c07-amp",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A3B-c07-amp; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=3; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A3B-c07-amp\", \"benign-value\"]; intended_param='benign-value & echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3B-c07-amp.canary\"'; all_cmdlines=[\"C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a3b_py_shell_true_unquoted.py C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A3B-c07-amp \\\"benign-value & echo x> \\\\\\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3B-c07-amp.canary\\\\\\\"\\\"\", \"C:\\\\WINDOWS\\\\system32\\\\cmd.exe /c \\\"C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A3B-c07-amp benign-value & echo x> \\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A3B-c07-amp.canary\\\"\\\"\", \"C:\\\\Python314\\\\python.exe  C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A3B-c07-amp benign-value \"]",
+          "fingerprint": "P2-ostable-argv:A3B:c07-amp",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A4 STRING-COMMAND / posix(git-bash)] STRING-COMMAND POSIX sh -c over an interpolated string: the c13 payload's embedded newline / here-string-terminator split the sh -c string into a new statement and the injected canary command executed (canary file created).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "281 first-party STRING-COMMAND lines (shape)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A4 with corpus[c13-herestring-sq] param=\"benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A4-c13-herestring-sq.canary'\\n@'\\n\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A4-c13-herestring-sq.canary')",
+          "raw_output": "probe1_canary_fired=True canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A4-c13-herestring-sq.canary child_stdout_tail=\"CONSTRUCTED='C:\\\\Python314\\\\python.exe' 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py' 'ADV0031RUN-A4-c13-herestring-sq' 'benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A4-c13-herestring-sq.canary'\\n@'\\n'\\nCHILD_EXIT=127\"",
+          "fingerprint": "P1-canary-sidefx:A4:c13-herestring-sq",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A4-c13-herestring-sq; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=6; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A4-c13-herestring-sq\", \"benign-value\\n@\"]; intended_param=\"benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A4-c13-herestring-sq.canary'\\n@'\\n\"; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\Git\\\\bin\\\\bash.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a4_sh_c_string.sh C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A4-c13-herestring-sq \\\"benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A4-c13-herestring-sq.canary'\\n@'\\n\\\"\", \"\\\"C:\\\\Program Files\\\\Git\\\\bin\\\\..\\\\usr\\\\bin\\\\bash.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a4_sh_c_string.sh C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A4-c13-herestring-sq \\\"benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A4-c13-herestring-sq.canary'\\n@'\\n\\\"\", \"\\\"C:\\\\Program Files\\\\Git\\\\bin\\\\..\\\\usr\\\\bi",
+          "fingerprint": "P2-ostable-argv:A4:c13-herestring-sq",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A7 HERE-STRING / windows] HERE-STRING PowerShell @'...'@ carrying the value as body (44 here-string sites, e.g. tools/mcp-manager/install.ps1): the c13 single-quoted here-string terminator ('@) broke out of the body and the injected canary executed (windows-shell.md 9).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "44 here-string sites, e.g. tools/mcp-manager/install.ps1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A7 with corpus[c13-herestring-sq] param=\"benign-value\\n'@\\nSet-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A7-c13-herestring-sq.canary' -Value x\\n@'\\n\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A7-c13-herestring-sq.canary')",
+          "raw_output": "probe1_canary_fired=True canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A7-c13-herestring-sq.canary child_stdout_tail='GENERATED=C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\gen\\\\A7-c13-herestring-sq.ps1\\n\\nCHILD_EXIT=0'",
+          "fingerprint": "P1-canary-sidefx:A7:c13-herestring-sq",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A7-c13-herestring-sq; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=2; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A7-c13-herestring-sq\", \"benign-value\"]; intended_param=\"benign-value\\n'@\\nSet-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A7-c13-herestring-sq.canary' -Value x\\n@'\\n\"; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.EXE\\\" -NoProfile -ExecutionPolicy Bypass -File C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a7_herestring.ps1 -Exe C:\\\\Python314\\\\python.exe -ScriptPath C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py -Marker ADV0031RUN-A7-c13-herestring-sq -Param \\\"benign-value\\n'@\\nSet-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A7-c13-herestring-sq.canary' -Value x\\n@'\\n\\\" -GenPath C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\gen\\\\A7-c13-herestring-sq.ps1\", \"\\\"C:\\\\Python314\\\\python.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A7-c13-herestring-sq benign-value\"]",
+          "fingerprint": "P2-ostable-argv:A7:c13-herestring-sq",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A9 STRING-COMMAND / windows] STRING-COMMAND PowerShell Invoke-Expression over a SINGLE-QUOTE-wrapped value (scw_monitor.ps1:45 shape): 10 of 20 payloads corrupted the child argv, but no canary fired - the injected text landed inside the argument list of the & call, not as a new statement. Command tokens altered; no second command executed with this quoting.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "inventory shape: Invoke-Expression (eval), single-quote-wrapped value",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A9 with corpus[c09-semicolon] param=\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary' -Value x\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary')",
+          "raw_output": "probe1_canary_fired=False canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A9-c09-semicolon.canary child_stdout_tail=\"CONSTRUCTED=& 'C:\\\\Python314\\\\python.exe' 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py' 'ADV0031RUN-A9-c09-semicolon' 'benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary' -Value x'\\nCHILD_EXIT=0\"",
+          "fingerprint": "P1-canary-sidefx:A9:c09-semicolon",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A9-c09-semicolon; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=2; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A9-c09-semicolon\", \"benign-value; Set-Content -LiteralPath \", \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary -Value x\"]; intended_param=\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary' -Value x\"; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.EXE\\\" -NoProfile -ExecutionPolicy Bypass -File C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a9_ps_iex.ps1 -Exe C:\\\\Python314\\\\python.exe -ScriptPath C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py -Marker ADV0031RUN-A9-c09-semicolon -Param \\\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary' -Value x\\\"\", \"\\\"C:\\\\Python314\\\\python.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A9-c09-semicolon \\\"benign-value; Set-Content -LiteralPath \\\" \\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9-c09-semicolon.canary -Value x\\\"\"]",
+          "fingerprint": "P2-ostable-argv:A9:c09-semicolon",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A9B STRING-COMMAND / windows] STRING-COMMAND PowerShell Invoke-Expression over an UNQUOTED value: 7 of 20 payloads (;, &, &&, $(), newline, CR, arith) executed the injected canary command as a new statement. This is the true eval sink.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "scripts/monitors/scw_monitor.ps1:45 (IEX shape), UNQUOTED variant",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A9B with corpus[c09-semicolon] param=\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9B-c09-semicolon.canary' -Value x\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9B-c09-semicolon.canary')",
+          "raw_output": "probe1_canary_fired=True canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A9B-c09-semicolon.canary child_stdout_tail=\"CONSTRUCTED=& 'C:\\\\Python314\\\\python.exe' 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py' 'ADV0031RUN-A9B-c09-semicolon' benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9B-c09-semicolon.canary' -Value x\\nCHILD_EXIT=0\"",
+          "fingerprint": "P1-canary-sidefx:A9B:c09-semicolon",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A9B-c09-semicolon; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=2; leaf_child_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A9B-c09-semicolon\", \"benign-value\"]; intended_param=\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9B-c09-semicolon.canary' -Value x\"; all_cmdlines=[\"\\\"C:\\\\Program Files\\\\PowerShell\\\\7\\\\pwsh.EXE\\\" -NoProfile -ExecutionPolicy Bypass -File C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\adapters\\\\a9b_ps_iex_unquoted.ps1 -Exe C:\\\\Python314\\\\python.exe -ScriptPath C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py -Marker ADV0031RUN-A9B-c09-semicolon -Param \\\"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A9B-c09-semicolon.canary' -Value x\\\"\", \"\\\"C:\\\\Python314\\\\python.exe\\\" C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A9B-c09-semicolon benign-value\"]",
+          "fingerprint": "P2-ostable-argv:A9B:c09-semicolon",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "[A6 ARITHMETIC-EVAL / posix(git-bash)] ARITHMETIC-EVAL bash [[ \"$elapsed\" -ge \"$timeout_secs\" ]] on the --timeout workflow parameter (metaswarm _common.sh:111). The arithmetic operand IS a command-execution vector - the c17 array-subscript payload 1 x[$(touch)] created the canary on BOTH git-bash 5.2 and WSL bash WITHOUT set -u - but under the real adapter's set -euo pipefail (line 11) it aborts on 'x: unbound variable' before firing, and two engineered set-u-surviving payloads did not fire (top-level $() not re-expanded). Additional mitigation: the sink is in the macOS-fallback branch, reached only when neither timeout nor gtimeout is on PATH; coreutils timeout is present here (measured GNU 8.32 git-bash / 9.4 WSL; A5's process table shows timeout.exe in use), so the branch is dead on this box.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "skills-claude-only/metaswarm-external-tools/adapters/_common.sh:111",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "drive adapter A6 with corpus[c17-arith-cmdsub] param=\"1 x[$(touch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A6-c17-arith-cmdsub.canary')]\"; then os.path.exists('C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A6-c17-arith-cmdsub.canary')",
+          "raw_output": "probe1_canary_fired=False canary_path=C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0031\\canary\\ADV0031RUN-A6-c17-arith-cmdsub.canary child_stdout_tail=''",
+          "fingerprint": "P1-canary-sidefx:A6:c17-arith-cmdsub",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "Win32_Process poll (watcher.ps1) filtered by run marker ADV0031RUN-A6-c17-arith-cmdsub; CommandLineToArgvW re-parse of the child's OS-table command line",
+          "raw_output": "process_count=0; leaf_child_argv=null; intended_param=\"1 x[$(touch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A6-c17-arith-cmdsub.canary')]\"; all_cmdlines=[]",
+          "fingerprint": "P2-ostable-argv:A6:c17-arith-cmdsub",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "claim": "Static first-party sink inventory: 748 ARGV-ARRAY, 395 dynamic-argv and 659 STRING-COMMAND call sites catalogued; the precise second-pass detector (both-states controlled) locates the injectable shapes - eval, sh -c \"$var\", arithmetic operand, Invoke-Expression, cmd /c. The S3 unquoted-expansion count is a candidate locator that still includes internal/loop variables and needs data-flow to confirm reachability from a workflow parameter - disclosed, not counted as confirmed.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "command-center/_adv0031_precise_out.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python command-center/_adv0031/_adv0031_inventory.py (AST for python, anchored line patterns for ps1/sh/js)",
+          "raw_output": "by_shape={\"ARGV-ARRAY\": 748, \"ARGV-ARRAY-DYNAMIC\": 395, \"STRING-COMMAND\": 659, \"OTHER\": 6, \"HERE-STRING\": 44} files_scanned={\"python\": 2285, \"powershell\": 124, \"bash\": 129, \"javascript\": 210}",
+          "fingerprint": "static-inventory-ast"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python command-center/_adv0031/precise_sink.py (precise rules + both-states control fixture)",
+          "raw_output": "CONTROL=CONTROL-PASS fired_on_bad=True silent_on_good=True by_rule={\"S3-posix-unquoted-expand\": 23, \"S7-ps-cmd-c\": 1, \"S4-posix-arith-operand\": 5, \"S8-heredoc-interp\": 17, \"S2-posix-sh-c-var\": 5, \"S5-ps-invoke-expression\": 1}",
+          "fingerprint": "static-precise-sink-controlled"
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "Add taint/data-flow from each adapter's declared CLI parameter to each S3 site to separate workflow-parameter reachable sinks from internal-variable sites."
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-benign-control",
+      "name": "benign value intact on all adapters",
+      "command": "python command-center/_adv0031/harness.py (corpus c00-benign, 11 adapters)",
+      "result": "PASS",
+      "assertions": 11,
+      "output_tail": "c00-benign: 0 canary, 0 argv divergence on all of A1,A2,A3,A3B,A4,A5,A6,A7,A8,A9,A9B"
+    },
+    {
+      "id": "T-argv-safe-windows",
+      "name": "argv-array adapters neutralize metacharacters on Windows",
+      "command": "reducer over runtime matrix, adapters A1/A2/A8",
+      "result": "PASS",
+      "assertions": 60,
+      "output_tail": "A1,A2,A8: canary=0 argvdiv=0 across all 20 metacharacter payloads"
+    },
+    {
+      "id": "T-string-injectable",
+      "name": "string-command/here-string/eval adapters execute injected commands",
+      "command": "reducer over runtime matrix, adapters A3/A3B/A4/A7/A9B",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "canary fired on A3(1) A3B(6) A4(1) A7(1) A9B(7)"
+    },
+    {
+      "id": "T-arith-cross-shell",
+      "name": "arithmetic operand exec vector, both-states, two bash builds",
+      "command": "bash command-center/_adv0031/arith_probe2.sh (git-bash 5.2 AND wsl bash)",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "c17 CANARY=created (nosetu) on git-bash AND wsl; c17_u CANARY=absent under set -u; numret_u/arith_plus_u absent (top-level $() not re-expanded)"
+    },
+    {
+      "id": "T-static-detector-control",
+      "name": "precise sink detector both-states control passes",
+      "command": "python command-center/_adv0031/precise_sink.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "CONTROL=CONTROL-PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-cmd-family-canary",
+      "kind": "adversarial-payload",
+      "description": "cmd.exe family: the canary oracle must fire on a known-injectable shell=True string and be silent on an argv-array call with the same payload.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A3B/c07-amp: canary_fired=True stdout='CONSTRUCTED=C:\\\\Python314\\\\python.exe C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py ADV0031RUN-A3B-c07-amp benign-value & echo x> \"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0'",
+      "good_state_output": "A2/c07-amp: canary_fired=False leaf_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A2-c07-amp\", \"benign-value & echo x> \\\"C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A2-c07-amp.canary\\\"\"]"
+    },
+    {
+      "id": "NC2-posix-family-canary",
+      "kind": "adversarial-payload",
+      "description": "POSIX family: canary fires on sh -c string injection (A4/c13, embedded newline creates a new statement), silent on the \"$@\" argv passthrough with the same payload.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A4/c13-herestring-sq: canary_fired=True stdout=\"CONSTRUCTED='C:\\\\Python314\\\\python.exe' 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py' 'ADV0031RUN-A4-c13-herestring-sq' 'benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\\"",
+      "good_state_output": "A5/c13-herestring-sq: canary_fired=False leaf_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A5-c13-herestring-sq\", \"benign-value\\n'@\\ntouch 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A5-c13-herestring-sq.canary'\\n@'\\n\"]"
+    },
+    {
+      "id": "NC3-ps-family-canary",
+      "kind": "adversarial-payload",
+      "description": "PowerShell family: canary fires on unquoted Invoke-Expression, silent on the native & argv call.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A9B/c09-semicolon: canary_fired=True stdout=\"CONSTRUCTED=& 'C:\\\\Python314\\\\python.exe' 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py' 'ADV0031RUN-A9B-c09-semicolon' benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PR\"",
+      "good_state_output": "A8/c09-semicolon: canary_fired=False leaf_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A8-c09-semicolon\", \"benign-value; Set-Content -LiteralPath 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\canary\\\\ADV0031RUN-A8-c09-semicolon.canary' -Value x\"]"
+    },
+    {
+      "id": "NC4-herestring-terminator",
+      "kind": "adversarial-payload",
+      "description": "Here-string: the '@ terminator payload breaks the body and fires; a benign value does not.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A7/c13-herestring-sq: canary_fired=True stdout='GENERATED=C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv0031\\\\gen\\\\A7-c13-herestring-sq.ps1\\n\\nCHILD_EXIT=0'",
+      "good_state_output": "A7/c00-benign: canary_fired=False leaf_argv=[\"C:\\\\Python314\\\\python.exe\", \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\command-center\\\\_adv0031\\\\sleeper.py\", \"ADV0031RUN-A7-c00-benign\", \"benign-value\"]"
+    },
+    {
+      "id": "NC5-benign-required-control",
+      "kind": "other",
+      "description": "tests_required control: a benign parameter must produce the intended argv and no canary on every adapter. 'Bad state' = the same detector fires when a real injection payload is used, proving the control is not vacuously silent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "A3B/c07-amp canary_fired=True (detector demonstrably fires)",
+      "good_state_output": "c00-benign across all 11 adapters: canary_fired=False and param landed as the intended argv element"
+    },
+    {
+      "id": "NC6-static-detector-both-states",
+      "kind": "known-broken-fixture",
+      "description": "precise_sink.py runs its rules against a KNOWN-BAD fixture (every rule must fire) and a KNOWN-GOOD fixture (no rule may fire); it exits nonzero unless CONTROL-PASS. It caught two of my OWN false positives (jq multi-line string, $@ positional) which were then fixed.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bad fixture rules fired=[\"S1-posix-eval\", \"S2-posix-sh-c-var\", \"S3-posix-unquoted-expand\", \"S4-posix-arith-operand\", \"S8-heredoc-interp\", \"S5-ps-invoke-expression\", \"S6-ps-argumentlist-string\", \"S7-ps-cmd-c\"]",
+      "good_state_output": "good_sh hits=0 good_ps hits=0"
+    },
+    {
+      "id": "NC7-probe2-instrument-liveness",
+      "kind": "other",
+      "description": "The OS-process-table watcher is gated by a warm-up: a known-present decoy process must be captured before any adapter is driven. When the instrument was NOT live (an earlier run under load) the harness ABORTED rather than reporting silence as safety; on the recorded run the decoy WAS captured.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "prior run: captured_decoy=False latency_s=90.48 -> harness printed 'Probe 2 instrument never saw a known-present process; aborting' and wrote no verdict",
+      "good_state_output": "recorded run: warmup={\"captured_decoy\": true, \"latency_s\": 10.61} watched_procs=589"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "UNASSIGNED-cross-vendor-pair",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "notes": "reviewer_requirement: two reviewers from DIFFERENT vendors must each independently reproduce the counterexamples; a split verdict escalates to the owner with both raw probes attached and is NEVER resolved by vote. Not yet performed - this receipt is BLOCKED on it. All scaffolding to reproduce is under command-center/_adv0031/ (harness.py, adapters/, watcher.ps1, arith_probe2.sh, precise_sink.py)."
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0031"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py::validate_artifact against command-center/schema/injection-corpus-result.schema.json",
+      "artifact_path": "command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python -c \"import sys; sys.path.insert(0,'platform/lib'); import schema_resolver as sr, json; print(len(sr.validate_artifact(json.load(open(OUT)), 'command-center/schema/injection-corpus-result.schema.json')))\"",
+        "raw_output": "LAYER-1 schema errors: 0 (receipt is schema-valid against the declared injection-corpus-result class -> receipt_core + generic_report + report.kind pin)",
+        "fingerprint": "downstream-schema-resolver-validate"
+      }
+    },
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py 12-condition completion predicate",
+      "artifact_path": "command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 1,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py <OUT> --repo-root .",
+        "raw_output": "gate read + parsed the receipt and evaluated all 12 conditions; it reports BLOCKED as incomplete (exit 1) - the correct, honest verdict for a unit blocked on cross-vendor review. c2/c4/c5/c6/c7/c10 SATISFIED; c1 (blocked-not-success), c9 (no independent reviewer), c11 (not manifest-registered - shared file, out of this unit's write scope) and c3 (self-referential sha, see residual) remain unsatisfied by design of a BLOCKED receipt.",
+        "fingerprint": "downstream-receipt-gate-predicate"
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T21:30:00Z",
+    "ended_at": "2026-08-11T23:56:18Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b). One detector artifact was caught and fixed mid-run (the argv oracle matched the adapter WRAPPER's -ScriptPath sleeper.py instead of the leaf child, mislabelling A1's -Param named arg as divergence); the fix required argv[1] to be sleeper.py. Two precise-detector false positives (jq multi-line string, $@ positional) were caught by the both-states control fixture and fixed. No repeated failure on one fingerprint."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-cross-vendor-review",
+      "prompt-injection",
+      "platform-portability",
+      "sandbox-escape"
+    ],
+    "reason": "Measurement COMPLETE and every counterexample proven with two mechanically independent probes plus a benign control and both-states detector controls. BLOCKED strictly on the unit's reviewer_requirement: two DIFFERENT-vendor reviewers must each independently reproduce the counterexamples. As a single anthropic agent I cannot satisfy the cross-vendor reviewer condition, so per the honesty rule I do NOT self-certify SUCCESS. Findings summary: CONFIRMED execution-injection on A3/A3B (python shell=True), A4 (sh -c), A7 (PowerShell here-string terminator), A9B (unquoted Invoke-Expression); REFUTED on A1 (longrun ArgumentList), A2 (python argv list), A8 (PowerShell native call) - metacharacters inert on Windows argv-array adapters; PARTIAL on A5 (POSIX \"$@\" safe for shell metachars but MSYS path-conversion rewrote /sdcard,/data arguments), A9 (IEX single-quote-wrapped corrupted argv but did not execute), and A6 (arithmetic operand is an exec vector but neutralized by set -u and a dead fallback branch on this box).",
+    "blocked_on": "two-different-vendor independent reproduction of the counterexamples (reviewer_requirement); split verdict -> owner, probe wins over vote",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "manual-inspection",
+        "command": "produced_by.vendor == 'anthropic'; only one vendor present in this run",
+        "raw_output": "single-agent run; no second-vendor reviewer executed the harness",
+        "fingerprint": "reviewer-vendor-count"
+      },
+      {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "reviewer.independent field in this receipt",
+        "raw_output": "reviewer.independent=false, verdict=NOT-REVIEWED",
+        "fingerprint": "reviewer-field-state"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether an arithmetic payload exists that both re-expands $() AND survives set -u in the [[ -ge \"$timeout_secs\" ]] sink (A6).",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Fuzz the operand with arithmetic sub-expression contexts that reference only SET variables (e.g. a pre-set array) while carrying $(); confirm on both git-bash and WSL under set -euo pipefail."
+    },
+    {
+      "claim": "Which of the 23 S3 unquoted-expansion sites are reachable from an EXTERNAL workflow parameter vs an internal/loop variable.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Taint-track each adapter's declared CLI parameter to the S3 sites; a data-flow pass is out of scope for this runtime unit."
+    },
+    {
+      "claim": "Whether the scw_monitor.ps1:45 Invoke-Expression -Collector sink is reachable from an attacker-influenced value rather than an operator-supplied command.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Trace every caller that supplies -Collector (monitors.toml entry composition + the mon launcher) and check whether any segment is attacker-influenced; by-design it is a command, not a value."
+    },
+    {
+      "claim": "Behaviour under real WSL bash for the argv adapters (only the arithmetic probe was cross-run on WSL; the argv/here-string matrix ran on Windows + git-bash).",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run harness.py adapters A4/A5 under wsl.exe bash and compare the /proc/<pid>/cmdline NUL-array to the Windows CommandLineToArgvW reconstruction."
+    },
+    {
+      "claim": "The recorded artifact sha256 is self-referential: a receipt that stores the hash of its own bytes can never hash-match on disk (SHA-256 preimage). The receipt-gate condition 3 therefore reports a sha mismatch for this and every sibling adversarial receipt; the recorded bytes count IS exact.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Verify by convention: blank the sha256 field to 64 zeros and re-hash; that value equals the recorded sha256. The gate would need a self-hash-aware mode to mark c3 SATISFIED, which is moot here because the unit is BLOCKED (c1) regardless."
+    }
+  ],
+  "report": {
+    "kind": "injection-corpus-result",
+    "observations": [
+      {
+        "name": "adapters_tested",
+        "measured": 11,
+        "method": "test-run",
+        "anchor": "command-center/_adv0031_verdict_out.json"
+      },
+      {
+        "name": "corpus_size",
+        "measured": 21,
+        "method": "test-run",
+        "anchor": "command-center/_adv0031/harness.py CORPUS"
+      },
+      {
+        "name": "total_runs",
+        "measured": 231,
+        "method": "test-run",
+        "anchor": "command-center/_adv0031_runtime_out.json"
+      },
+      {
+        "name": "execution_injection_adapters",
+        "measured": "A3,A3B,A4,A7,A9B",
+        "method": "process-table",
+        "anchor": "A3,A3B,A4,A7,A9B fired a canary"
+      },
+      {
+        "name": "argv_divergence_only_adapters",
+        "measured": "A5,A9",
+        "method": "process-table",
+        "anchor": "A5(MSYS path-conv),A9(IEX quoted)"
+      },
+      {
+        "name": "safe_adapters",
+        "measured": "A1,A2,A6,A8",
+        "method": "process-table",
+        "anchor": "A1,A2,A6,A8"
+      },
+      {
+        "name": "msys_path_conversion_confirmed",
+        "measured": "/sdcard/benign-value -> C:/Program Files/Git/sdcard/benign-value",
+        "method": "process-table",
+        "anchor": "A5/c15 leaf child argv, windows-shell.md 1"
+      },
+      {
+        "name": "warmup_probe2_live",
+        "measured": "{\"captured_decoy\": true, \"latency_s\": 10.61}",
+        "method": "process-table",
+        "anchor": "watcher warm-up decoy capture"
+      }
+    ],
+    "control_ids": [
+      "NC1-cmd-family-canary",
+      "NC2-posix-family-canary",
+      "NC3-ps-family-canary",
+      "NC4-herestring-terminator",
+      "NC5-benign-required-control",
+      "NC6-static-detector-both-states",
+      "NC7-probe2-instrument-liveness"
+    ]
+  },
+  "extensions": {
+    "named_probes": {
+      "probe_1_canary_side_effect": "Detects execution divergence by a filesystem canary the injected fragment would create - NOT by reading stdout. Verbatim per-run raw output in evidence[].probes role=source.",
+      "probe_2_os_process_table_argv": "Captures the child's actual command line from Win32_Process and re-parses argv with CommandLineToArgvW - sees divergence stdout cannot. Verbatim in evidence[].probes role=verifier."
+    },
+    "adapter_split": {
+      "argv_array": [
+        "A1",
+        "A2",
+        "A5",
+        "A8"
+      ],
+      "string_command": [
+        "A3",
+        "A3B",
+        "A4",
+        "A9",
+        "A9B"
+      ],
+      "other": [
+        "A6",
+        "A7"
+      ],
+      "note": "tests_required: argv-array and string-command adapters reported separately. The program is safe ONLY on argv-array adapters (Windows) and the POSIX \"$@\" passthrough for shell metacharacters; it is NOT safe on any string-command/eval/here-string adapter, and the POSIX passthrough still diverges under MSYS path conversion."
+    },
+    "per_adapter_verdicts": {
+      "A1": "REFUTED",
+      "A2": "REFUTED",
+      "A8": "REFUTED",
+      "A5": "PARTIAL",
+      "A3": "CONFIRMED",
+      "A3B": "CONFIRMED",
+      "A4": "CONFIRMED",
+      "A7": "CONFIRMED",
+      "A9": "PARTIAL",
+      "A9B": "CONFIRMED",
+      "A6": "PARTIAL"
+    },
+    "scaffolding": {
+      "harness": "command-center/_adv0031/harness.py",
+      "adapters": "command-center/_adv0031/adapters/",
+      "probe2_watcher": "command-center/_adv0031/watcher.ps1",
+      "arith_probe": "command-center/_adv0031/arith_probe2.sh",
+      "static_inventory": "command-center/_adv0031/_adv0031_inventory.py",
+      "static_precise": "command-center/_adv0031/precise_sink.py",
+      "reducer": "command-center/_adv0031/analyze.py",
+      "runtime_json": "command-center/_adv0031_runtime_out.json",
+      "verdict_json": "command-center/_adv0031_verdict_out.json"
+    },
+    "sha256_convention": "artifacts[0].sha256 = sha256(this file with the artifacts[0].sha256 value replaced by 64 '0' chars). A self-describing receipt cannot embed its own final hash (preimage); this convention is reproducible. artifacts[0].bytes is the exact on-disk byte count."
+  }
+}

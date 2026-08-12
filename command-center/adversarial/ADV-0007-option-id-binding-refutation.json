@@ -1,0 +1,897 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0007",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0007:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW-AND-MANIFEST-REGISTRATION option-ID binding re-derived from the raw artifacts with four controls; 26 of 47 selected-id consuming sites settle mechanically, 21 are recorded UNRESOLVED rather than guessed",
+  "spec_anchor": "_USER-PROMPTS.md:10514-10516, 11074",
+  "min_bytes_threshold": 8192,
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0007-option-id-binding-refutation.json",
+      "bytes": 72873,
+      "sha256": "44f59f8461fd69cd32a589533e61c008fe342e05e4d602fd1888a90833985537",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The briefed ground finding is STALE: 17-DECISION-LOG.md does NOT contain zero MECH tokens and does NOT state the collision in the present tense. The file carries 4 'MECH' substrings and 1 'MECH-NN' token, and its F-B-02 row opens with an explicit supersession marker.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md:175",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -c \"import io,re; t=io.open(r'C:\\Users\\Prekzursil\\.claude\\harness-restore-20260806\\17-DECISION-LOG.md',encoding='utf-8',errors='replace').read(); print('MECH substring count:',t.count('MECH')); print('MECH-NN token count:',len(re.findall(r'MECH-\\d{1,3}',t)))\"",
+          "raw_output": "MECH substring count: 4\nMECH-NN token count: 1",
+          "fingerprint": "p1-regex-mech-count-17decisionlog",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "manual-inspection",
+          "command": "sed -n '170,180p' 17-DECISION-LOG.md   # read the F-B-02 row's opening clause, a different data field from a token count",
+          "raw_output": "| **F-B-02** | ⛔ **RESOLVED 2026-08-07 — DO NOT CITE AS LIVE. `valid_as_of: 2026-08-09`.** Doc 13 now defines its mechanism options under the `MECH-` namespace (38 ids), so the collision is gone. [...] **This row stayed in the present tense with no supersession marker for two days and re-infected at least one orchestrator, who then propagated it as pinned ground truth to a 34-agent fan-out. The stale sentence, not the defect, was the live problem.** HISTORICAL CLAIM AS ORIGINALLY WRITTEN, now false, retained for lineage: **31 option ids resolve to two unrelated meanings** [...]",
+          "fingerprint": "p1v-read-fb02-row-supersession-marker",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The prior finding's arithmetic is exact and reproduces under an independently written extractor: 283 consolidated option cards (md and json agree), 38 doc-13 MECH cards, 11 doc-13 architectures, and 31 ids where the consolidated universe and doc 13 both define a card under the same historic M-NN token.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "scratchpad/adv0007_probe1.py -> defining_sites / historic_form_ambiguity",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0007_probe1.py p1_out.json p1_full.json   # index built from DEFINING HEADINGS ONLY: ^#### `ID` Title (doc07), ^### An — Title (doc13 §2), **MECH-NN — Title.** (doc13 §4)",
+          "raw_output": "defining_sites: {doc07_md_cards: 283, doc07_json_options: 283, doc13_architectures: 11, doc13_mechanisms: 38, distinct_tokens: 332}\nhistoric_form_ambiguity: {tokens_with_more_than_one_candidate_definition: 31, tokens: [M-01..M-11, M-13..M-15, M-18, M-20..M-27, M-29, M-31..M-37]}",
+          "fingerprint": "p1-defining-heading-index",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python adv0007_probe2.py p2_out.json   # both-states literal-collision detector over the pre-fix backup vs the live file",
+          "raw_output": "both_states_control: {detector: 'literal bare M-NN tokens in doc 13 that also name a doc-07 family-M card', known_broken_state: 'backups/13-ARCHITECTURE-CANDIDATES.md.pre-fb02', known_broken_hits: 31, known_good_state: '13-ARCHITECTURE-CANDIDATES.md', known_good_hits: 0, fired_on_bad_state: true, silent_on_good_state: true}",
+          "fingerprint": "p2-bothstates-prefix-backup-bytecompare",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The prior finding's class 'seven doc-13 ids resolve to ABSENT in the universe' is an artifact of indexing only the CONSOLIDATED universe. All seven (M-12, M-16, M-17, M-19, M-28, M-30, M-38) resolve to a real titled card in the PRE-DEDUP lane document 07-OPTIONS-LM.md, so they have two competing definitions, not zero. M-16 has three.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/07-OPTIONS-LM.md:609,657,669,693,801,825,921",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0007_probe3b.py p3b_out.json p3b_full.json   # adds the five pre-dedup lane docs as a defining namespace",
+          "raw_output": "lane_defining_cards_per_file: {07-OPTIONS-AB.md: 63, 07-OPTIONS-CD.md: 58, 07-OPTIONS-EFG.md: 65, 07-OPTIONS-HIJK.md: 80, 07-OPTIONS-LM.md: 75}\nnamespace_inventory: {doc07-consolidated: 283, doc07-consolidated-json: 283, doc07-lane-predup: 341, doc13-architecture: 11, doc13-mechanism: 38, wave3-deliverable: 1, wave1-mission-grade: 2}\nbare_tokens_with_more_than_one_CARD: 38",
+          "fingerprint": "p3b-extended-index-lane-namespace",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -c \"...print the card groups for M-12,M-16,M-17,M-19,M-28,M-30,M-38 from p3b_full.json...\"",
+          "raw_output": "== M-12\n    ['M-12'] ['doc07-lane-predup'] | Intersection distillation over successful runs only | ['07-OPTIONS-LM.md:609']\n    ['MECH-12'] ['doc13-mechanism'] | Env-injection order fix | ['13-ARCHITECTURE-CANDIDATES.md:1109']\n== M-16\n    ['M-16'] ['doc07-lane-predup'] | Expert-curated packs with preset entry points | ['07-OPTIONS-LM.md:657']\n    ['MECH-16'] ['doc13-mechanism'] | Vendor-neutral YAML as the workflow SSOT | ['13-ARCHITECTURE-CANDIDATES.md:1138']\n    ['M-16'] ['wave3-deliverable'] | Research Harness | ['wave3/.../deep-research/SKILL.md:162']\n== M-17\n    ['M-17'] ['doc07-lane-predup'] | A/B tournament between workflow variants | ['07-OPTIONS-LM.md:669']\n    ['MECH-17'] ['doc13-mechanism'] | Snapshot + index the executed-workflow corpus | ['13-ARCHITECTURE-CANDIDATES.md:1146']\n== M-19\n    ['M-19'] ['doc07-lane-predup'] | Best-of-N by execution consensus, applied to workflow outputs | ['07-OPTIONS-LM.md:693']\n    ['MECH-19'] ['doc13-mechanism'] | Adopt the `fanout-schema` hardening module | ['13-ARCHITECTURE-CANDIDATES.md:1161']\n== M-28\n    ['M-28'] ['doc07-lane-predup'] | Typed-contract composition and compatibility checking | ['07-OPTIONS-LM.md:801']\n    ['MECH-28'] ['doc13-mechanism'] | MCP lazy-mount / shared-host consolidation | ['13-ARCHITECTURE-CANDIDATES.md:1240']\n== M-30\n    ['M-30'] ['doc07-lane-predup'] | Repair and deploy `claim-verify-gate` | ['07-OPTIONS-LM.md:825']\n    ['MECH-30'] ['doc13-mechanism'] | Cross-vendor verification lane (Claude builds, Codex verifies) | ['13-ARCHITECTURE-CANDIDATES.md:1258']\n== M-38\n    ['M-38'] ['doc07-lane-predup'] | Extend `harness-corpus` to the workflow and journal corpora, with retention | ['07-OPTIONS-LM.md:921']\n    ['MECH-38'] ['doc13-mechanism'] | Provenance stamp on every generated artifact | ['13-ARCHITECTURE-CANDIDATES.md:1326']",
+          "fingerprint": "p3bv-print-card-groups-seven-absent-ids",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The Prompt Two selection list is exactly the 70 owner-decided ids, re-derived independently from 07-OPTION-UNIVERSE.md section 7 with an empty symmetric difference against the field in OPTION-ID-RESOLUTION.json; 64 of the 70 resolve to exactly one option card and 6 (M-18, M-22, M-29, M-31, M-36, M-37) resolve to two.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/OPTION-ID-RESOLUTION.json#/5_owner_decided/json_owner_decisions vs 07-OPTION-UNIVERSE.md §7",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0007_probe1.py ...   # selection_list block: re-derive from doc07 §7 backtick-quoted ids",
+          "raw_output": "selection_list: {from_B01_field_n: 70, rederived_from_doc07_sec7_n: 70, symmetric_difference: [], agree: true}\nselected_ids_ambiguous_under_historic_reading: {n: 6, ids: [M-18, M-22, M-29, M-31, M-36, M-37]}\nselected_ids_with_no_definition: {n: 0, ids: []}",
+          "fingerprint": "p1-selection-list-rederivation",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python adv0007_probe3b.py ...   # same question asked of the CARD-grouped index (md+json+lane collapsed by options[].from and title equality), not of the raw token index",
+          "raw_output": "SELECTED_n: 70\nSELECTED_resolving_to_exactly_one_card: 64\nSELECTED_resolving_to_more_than_one_card_n: 6\nSELECTED_absent: []\nsame_card_merge_reasons: {exact-normalized-title-equality: 403, options[].from dedup map: 163}",
+          "fingerprint": "p3b-card-grouped-selection-resolution",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Across the 47 consuming reference sites that use one of the 6 ambiguous selected ids, 26 settle mechanically (25 to the doc-07 family-M card, 1 to a doc-13 mechanism) and 21 carry no same-line discriminator or produce contradicting instrument readings and are recorded UNRESOLVED. No site was found that binds a selected id to a doc-13 mechanism where the doc-07 card was evidently meant.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "scratchpad/adv0007_probe8.py -> per_consuming_document / sites_bound_to_doc13_mechanism",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python adv0007_probe4.py p4_out.json   # title-token discriminator over every reference site, byte cap raised to 16 MB so WORK-UNIT-CATALOG.json (5,284,323 B) is included",
+          "raw_output": "files_scanned: 31305\ncatalog_now_scanned: true\nsites_on_multi_card_ids: 4023\nby_class: {DEFINING: 1012, CONSUMING: 222, META-about-the-collision: 2789}\nconsuming_sites_on_SELECTED_ids: 47\nconsuming_verdicts_on_SELECTED_ids: {UNRESOLVED: 21, RESOLVED: 24, AMBIGUOUS-BOTH: 2}\nwrong_binding_candidates: []",
+          "fingerprint": "p4-title-token-binder-16mb-cap",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python adv0007_probe8.py p8_out.json   # second, mechanically different discriminator (explicit source-document / namespace annotation) run at two window widths, with a same-line anchor rule",
+          "raw_output": "controls_good_all_pass: true\nsites: 47\nfinal: {SETTLED: 26, UNRESOLVED: 21}\nsettled_by_namespace: {doc07-universe-family-M: 25, doc13-mechanism: 1}\nper_selected_id: {M-18: {doc07: 1, UNRESOLVED: 3}, M-22: {UNRESOLVED: 2}, M-29: {doc07: 14, doc13: 1, UNRESOLVED: 9}, M-31: {doc07: 8, UNRESOLVED: 1}, M-36: {doc07: 2, UNRESOLVED: 4}, M-37: {UNRESOLVED: 2}}",
+          "fingerprint": "p8-provenance-annotation-binder-two-windows",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "At least one live consuming document uses the bare token M-29 to mean the DOC-13 mechanism, while at least six other consuming documents use the same bare token to mean the DOC-07 family-M card. The token therefore does not have a single meaning in the live corpus, even though every SELECTED-list use of it that could be settled points at doc 07.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/16-GRILL-QUEUE-PHASE2.md:360 and :617-618",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python adv0007_probe8.py p8_out.json -> sites_bound_to_doc13_mechanism",
+          "raw_output": "{tree: harness-restore, file: 16-GRILL-QUEUE-PHASE2.md, line: 360, token: M-29, instrument_readings: {title_w0: null, title_w2: null, prov_w0: 'doc13', prov_w2: 'doc13'}, FINAL: SETTLED, bound_namespace: doc13-mechanism, line_text: \"`13-ARCHITECTURE-CANDIDATES.md:§5` cites `M-07, M-15, M-16, M-26, M-28, M-29, M-32` as owner\"}",
+          "fingerprint": "p8-doc13-bound-site-360",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "manual-inspection",
+          "command": "sed -n '614,622p' 16-GRILL-QUEUE-PHASE2.md   # a second, independent site in the same document, read verbatim rather than classified",
+          "raw_output": "**Options** — (1) set worker to Opus globally; (2) role→model-tier routing table (doc-13 mechanism\nnamespace `M-29` — **not** universe `M-29`, see P2-09); (3) keep sonnet for throughput; (4) keep\nsonnet but exempt substantive roles.",
+          "fingerprint": "p8v-verbatim-read-grillqueue-617-618",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "OWNER-QUESTION-PACKET.md:88-90 asserts 'The ids in THIS packet are unambiguous ... So M-29, M-31 and M-36 below mean exactly one thing.' Its narrow sub-claim about 32-OWNER-DECISIONS.md is correct (3 of 3 sites settle to doc 07). Its wider sentence is an OVERCLAIM about the packet's own text: 12 of the packet's own 16 selected-id sites carry no same-line discriminator, so they are unsettleable by any mechanical reader and rely on the reader already knowing the namespace.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "command-center/OWNER-QUESTION-PACKET.md:88-90",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "sed -n '85,100p' command-center/OWNER-QUESTION-PACKET.md",
+          "raw_output": "**The ids in THIS packet are unambiguous.** The resolution lane checked `32-OWNER-DECISIONS.md`\nspecifically: all 3 of its `M-NN` references settle as doc-07 option cards, **no rewrite needed**\n(`OPTION-ID-RESOLUTION.md` §7a). So `M-29`, `M-31` and `M-36` below mean exactly one thing.",
+          "fingerprint": "p-read-owner-question-packet-85-100",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python adv0007_probe8.py p8_out.json -> per_consuming_document",
+          "raw_output": "\"harness-restore::32-OWNER-DECISIONS.md\": {\"doc07-universe-family-M\": 3}\n\"ast-integrate/command-center::OWNER-QUESTION-PACKET.md\": {\"doc07-universe-family-M\": 4, \"UNRESOLVED\": 12}",
+          "fingerprint": "p8-perdoc-ownerquestionpacket-vs-32ownerdecisions",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The stale premise refuted above is not confined to this unit's brief: it is written verbatim into 6 catalogued work units, so any of them that pins ground truth from its own inputs block will inherit a fixed problem as an open one.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[] where the text matches /17-DECISION-LOG\\.md[^\"]{0,120}?zero\\s+MECH|zero\\s+MECH\\s+tokens/i",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -c \"...scan WORK-UNIT-CATALOG.json work_units for the stale-premise regex...\"",
+          "raw_output": "units carrying the stale premise: 6\n['ADV-0007', 'AUD-0034', 'AUD-0035', 'CC-0022', 'CNF-0015', 'CNF-0190']\ntotal units: 2007",
+          "fingerprint": "p-blastradius-regex-over-catalog",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "manual-inspection",
+          "command": "python -c \"...print inputs/question_or_target for ADV-0007, ADV-0013, CC-0021, CNF-0072, CNF-0190 from the catalog...\"",
+          "raw_output": "CNF-0190 question_or_target: \"... 17-DECISION-LOG.md still contains zero MECH tokens and states the collision in the present tense, so any agent pinning ground truth from it inherits a fixed problem as an open one. Resolve every reference or record it unresolved - NEVER guess.\"\nADV-0007 inputs[2]: \"the ground finding that 17-DECISION-LOG.md contains zero MECH tokens and still states the collision in present tense\"",
+          "fingerprint": "pv-read-sibling-unit-specs-verbatim",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The contracted cross-vendor Codex review could not be obtained: the rail is mounted and the binary works, but OpenAI's agent-identity registration endpoint rejects the session. The failure is downstream of the MCP mount, so it is not a malformed invocation on this side.",
+      "verdict": "BLOCKED",
+      "confidence": "almost-certain",
+      "anchor": "mcp__codex__codex -> 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register' (2 attempts, identical)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "other",
+          "command": "mcp__codex__codex(prompt=<5-question raw-file re-derivation>, sandbox='read-only', approval-policy='never') and a second, shorter single-question variant",
+          "raw_output": "agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register\n(identical on both attempts; two strikes on one error fingerprint -> pivot per AGENTS.md 4b)",
+          "fingerprint": "codex-mcp-agent-identity-registration-failed",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "codex --version ; claude mcp get codex ; python -c \"...read-only key-presence check of ~/.codex/auth.json, no value printed...\"",
+          "raw_output": "codex-cli 0.145.0 (exit 0)\ncodex: Scope: User config | Status: Connected | Type: stdio | Command: codex | Args: mcp-server\n~/.codex/auth.json path exists: True | top-level keys: ['OPENAI_API_KEY', 'auth_mode'] | auth_mode len=6 | OPENAI_API_KEY len=108",
+          "fingerprint": "codex-rail-availability-binary-and-mount-check",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "ROOT CAUSE of the rail outage, diagnosed READ-ONLY and NOT touched: the OPENAI_API_KEY field inside ~/.codex/auth.json holds an ANTHROPIC-shaped key. OpenAI's endpoint rejects it with 401 invalid_api_key and echoes the prefix sk-ant-a. The environment's OPENAI_API_KEY is a correctly-shaped OpenAI key, so the file value is shadowing a good credential with a wrong-vendor one. AGENTS.md section 9: this unit did not rotate, revoke, regenerate, unset or edit any credential, and no credential value is recorded anywhere in this artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "~/.codex/auth.json -> OPENAI_API_KEY (auth_mode 'apikey'); CODEX_HOME=C:\\Users\\Prekzursil\\.codex",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "codex exec --ignore-user-config --sandbox read-only -o codex_review_out.md < adv0007_codex_prompt.txt",
+          "raw_output": "EXIT=1\nERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: HTTP error: 401 Unauthorized, url: wss://api.openai.com/v1/responses\nERROR: unexpected status 401 Unauthorized: Incorrect API key provided: sk-ant-a[REDACTED BY THIS UNIT]. You can find your API key at https://platform.openai.com/account/api-keys ... auth error code: invalid_api_key\nNO OUTPUT FILE",
+          "fingerprint": "codex-exec-cli-401-invalid-api-key-sk-ant-prefix",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -c \"...print ONLY length and zero-entropy prefix for env OPENAI_API_KEY / ANTHROPIC_API_KEY and for ~/.codex/auth.json OPENAI_API_KEY; never the value...\"",
+          "raw_output": "env OPENAI_API_KEY: set len=164 prefix='sk-proj'\nenv ANTHROPIC_API_KEY: set len=108 prefix='sk-ant-'\nenv CODEX_HOME: 'C:\\\\Users\\\\Prekzursil\\\\.codex'\n~/.codex/auth.json auth_mode = 'apikey'\n~/.codex/auth.json OPENAI_API_KEY: set len=108 prefix='sk-ant-'\n\nThe file's OPENAI_API_KEY has the same length (108) and the same zero-entropy prefix (sk-ant-) as the environment's ANTHROPIC_API_KEY, and a different length and prefix from the environment's correctly-shaped OPENAI_API_KEY (164, sk-proj).",
+          "fingerprint": "readonly-prefix-and-length-scope-comparison",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The Codex rail outage is a PROGRAM-level blocker, not a local inconvenience: 479 of 2,007 catalogued units declare a reviewer_requirement naming a cross-vendor / Codex / OpenAI reviewer, and 343 units are assigned to vendor=openai for EXECUTION. Every one of them is currently unsatisfiable for the same reason this unit is BLOCKED.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[].reviewer_requirement and .assigned_model_vendor_role.vendor",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -c \"...count work_units whose reviewer_requirement matches /cross-vendor|codex|openai/i, and whose assigned_model_vendor_role.vendor == 'openai'...\"",
+          "raw_output": "units whose reviewer_requirement names a cross-vendor/Codex/OpenAI reviewer: 479 of 2007\nby prefix: {'TST': 174, 'ADV': 105, 'IMP': 47, 'AUD': 46, 'CNL': 36, 'WFA': 18, 'CNF': 17, 'RES': 11, 'SYN': 11, 'ARC': 9, 'BLD': 3, 'CC': 2}\nunits ASSIGNED to vendor=openai for execution: 343\nby prefix: {'CNF': 76, 'IMP': 66, 'ADV': 64, 'TST': 60, 'CNL': 20, 'RES': 12, 'BLD': 11, 'ARC': 9, 'REL': 8, 'SYN': 6, 'AUD': 5, 'WFA': 4}",
+          "fingerprint": "catalog-crossvendor-reviewer-and-vendor-assignment-census",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "manual-inspection",
+          "command": "read ADV-0007's own reviewer_requirement verbatim from the catalog",
+          "raw_output": "\"one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement\"",
+          "fingerprint": "read-adv0007-reviewer-requirement-verbatim",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Two distinct files on this estate are named 17-DECISION-LOG.md, so the unit's input spec is under-determined by basename alone; the reference is nevertheless mechanically settleable because the spec's sibling anchor is line 175 and only one of the two files is long enough.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/17-DECISION-LOG.md (93 lines) vs C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md (384 lines)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "find C:/Users/Prekzursil -maxdepth 4 -name \"17-DECISION-LOG.md\"",
+          "raw_output": "C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md\nC:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/17-DECISION-LOG.md",
+          "fingerprint": "p-find-duplicate-basename-17decisionlog",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -c \"...sha256, byte length, line count, and marker presence for both copies...\"",
+          "raw_output": "harness-restore: bytes 45443 sha256 835f61901b1b8be7 lines 384 MECH-substrings 4 F-B-02 present True\nplatform-redesign: bytes 5424 sha256 6cfb19d7baca8aeb lines 93 MECH-substrings 0 F-B-02 present False",
+          "fingerprint": "pv-sha-and-linecount-both-copies",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "TEST-1-probe1-defining-vs-reference-index",
+      "name": "Probe 1 (contracted): id->definition index from DEFINING headings only, then resolve every reference site and flag any id with >1 candidate definition",
+      "command": "python scratchpad/adv0007_probe1.py p1_out.json p1_full.json",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "defining_sites {doc07_md_cards:283, doc07_json_options:283, doc13_architectures:11, doc13_mechanisms:38}; historic_form_ambiguity 31; selection_list agree=true symmetric_difference=[]; reference_scan files_scanned=31301 total_reference_sites=4264"
+    },
+    {
+      "id": "TEST-2-probe2-title-similarity-with-UNRESOLVED",
+      "name": "Probe 2 (contracted, mechanically different): title-similarity between the referenced context and each candidate definition; UNRESOLVED where the prose carries no discriminating token",
+      "command": "python scratchpad/adv0007_probe2.py p2_out.json",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "controls_all_pass: true (CTRL-1 ambiguous plant -> UNRESOLVED; CTRL-2 -> doc07-universe; CTRL-3 -> doc13-mechanism; CTRL-4 sentinel M-999 -> NO-CANDIDATES); both_states_control fired_on_bad_state=true silent_on_good_state=true"
+    },
+    {
+      "id": "TEST-3-probe3b-extended-index",
+      "name": "Extended defining index including the five pre-dedup lane documents, the wave-3 deliverable id and the wave-1 mission grades; sites grouped into CARDS using the authored options[].from dedup map",
+      "command": "python scratchpad/adv0007_probe3b.py p3b_out.json p3b_full.json",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "defining_sites_total 959 across 7 namespaces; distinct_bare_tokens 354; bare_tokens_with_more_than_one_CARD 38; SELECTED 70 -> 64 exactly-one-card, 6 more-than-one, 0 absent"
+    },
+    {
+      "id": "TEST-4-probe4-binding-table-full-corpus",
+      "name": "Per-reference-site binding table over both trees with the byte cap raised to 16 MB",
+      "command": "python scratchpad/adv0007_probe4.py p4_out.json",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "files_scanned 31305; catalog_now_scanned true; 4023 sites on multi-card ids (DEFINING 1012 / CONSUMING 222 / META 2789); 47 consuming sites on the 6 selected ambiguous ids"
+    },
+    {
+      "id": "TEST-5-probe8-final-adjudication-with-controls",
+      "name": "Final adjudication: two discriminators x two window widths, same-line anchor rule, with an isolated-plant control fixture and an adjacent-plant known-bad fixture",
+      "command": "python scratchpad/adv0007_probe8.py p8_out.json",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "controls_good_all_pass: true (4/4); controls_bad_demonstrates_bleed: ['GAP1::UNAMBIG07','GAP1::UNAMBIG13']; final {SETTLED: 26, UNRESOLVED: 21}; settled_by_namespace {doc07-universe-family-M: 25, doc13-mechanism: 1}"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-1-both-states-literal-collision",
+      "kind": "known-broken-fixture",
+      "description": "The literal-collision detector (bare M-NN tokens in doc 13 that also name a doc-07 family-M card) run against the KNOWN-BROKEN pre-re-prefix backup and against the KNOWN-GOOD live file. A detector silent in both states measures nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "backups/13-ARCHITECTURE-CANDIDATES.md.pre-fb02 -> 31 hits, sample [M-01, M-02, M-03, M-04, M-05, M-06, M-07, M-08]",
+      "good_state_output": "13-ARCHITECTURE-CANDIDATES.md -> 0 hits, sample []"
+    },
+    {
+      "id": "NC-2-ambiguous-and-unambiguous-plants",
+      "kind": "adversarial-payload",
+      "description": "CONTRACTED CONTROL. A deliberately ambiguous reference and two deliberately unambiguous references were planted in a fixture and pushed through the binder. The ambiguous plant must surface as UNRESOLVED; each unambiguous plant must bind to exactly one namespace, and to the RIGHT one.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "AMBIG plant 'the roadmap still lists M-18 as a dependency.' -> UNRESOLVED, readings {title_w0:null,title_w2:null,prov_w0:null,prov_w2:null}, reason 'no discriminating signal on the token's own line'",
+      "good_state_output": "UNAMBIG07 plant 'M-18 is the workflow benchmark harness with small deterministic oracles.' -> SETTLED/doc07-universe-family-M; UNAMBIG13 plant 'M-18 here means the doc-13 mechanism namespace entry.' -> SETTLED/doc13-mechanism. Both bound to exactly one card and to the correct one."
+    },
+    {
+      "id": "NC-3-absent-sentinel-M-999",
+      "kind": "absent-input",
+      "description": "A sentinel id that exists in no namespace must return NO-CANDIDATES rather than be forced into a binding. Guards against a resolver that always produces an answer.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "'SENTINEL: track M-999 next sprint.' -> NO-CANDIDATES, 'M-999 has no defining site in any namespace'",
+      "good_state_output": "the same code path on the real id M-18 returns 2 candidate cards, so the NO-CANDIDATES result is discrimination and not a dead matcher"
+    },
+    {
+      "id": "NC-4-window-bleed-fixture",
+      "kind": "malformed-input",
+      "description": "The same three plants placed 1 line apart (inside each other's +/-2 window) versus 8 lines apart. The same-line anchor rule must REFUSE to settle on the contaminated fixture and must settle correctly on the isolated one. This control exists because the +/-2 window produced two false positives on real data before the rule was added.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "GAP1 fixture: UNAMBIG07 and UNAMBIG13 both FAIL to settle (contradicted by the neighbouring plant) -> controls_bad_demonstrates_bleed = ['GAP1::UNAMBIG07','GAP1::UNAMBIG13']",
+      "good_state_output": "GAP8 fixture: 4 of 4 controls pass; controls_good_all_pass = true"
+    },
+    {
+      "id": "NC-6-validator-mutation-test",
+      "kind": "mutation",
+      "description": "Both-states test on the SCHEMA VALIDATOR itself, because a validator that is silent on a broken artifact certifies nothing. Ten mutations were applied to a THROWAWAY COPY (the real artifact was never modified) and the validator was required to fire on each, then to stay silent on the unmutated original. The first run scored 8 of 10 and exposed two genuine holes in the validator, which were then fixed.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "9 of 10 FIRED: M1 dropped required field; M2 inert detector (fired_on_bad_state=false); M3 over-firing detector; M4 same-probe-rerun (duplicate source/verifier fingerprint); M5 CONFIRMED with no verifier probe; M6 CONFIRMED with no Sherman-Kent band; M8 control_ids naming a nonexistent control; M9 Windows backslash in an artifact path; M10 state=SUCCESS with an open P1 and reviewer NOT-REVIEWED. M7 (a test recorded NOT-RUN) is DELIBERATELY silent: the schema forbids FAIL/ERROR/SKIP/NOT-RUN only on a SUCCESS receipt, and this receipt is BLOCKED - so the validator prints a NOTICE naming the not-run tests instead of erroring. Scoring it as a firing would have meant making the validator stricter than the schema it checks.",
+      "good_state_output": "unmutated artifact -> exit 0, 'VALIDATION: 0 errors against receipt_core + generic_report + refutation-record'"
+    },
+    {
+      "id": "NC-5-use-vs-mention-partition",
+      "kind": "other",
+      "description": "The corpus is partitioned into DEFINING / META-about-the-collision / CONSUMING before any binding verdict is read, because a file whose SUBJECT is the collision (B01's own report and intermediates, the re-prefix applier, this artifact) MENTIONS the ids rather than binding them. Without the partition the headline would be computed over 4,023 sites of which 2,789 are mentions.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "unpartitioned: 4023 sites on multi-card ids, of which META-about-the-collision = 2789 (69%) - a raw census dominated by files discussing the defect",
+      "good_state_output": "partitioned: CONSUMING = 222 sites, of which 47 use one of the 6 ambiguous SELECTED ids. The partition is by filename pattern, not by content, so it cannot be steered by the prose it classifies."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "codex-cli-0.145.0 via mcp__codex__codex (ATTEMPTED TWICE, RAIL DOWN)",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "vendor": "openai",
+    "notes": "UNIT REQUIREMENT NOT MET AND NOT SIMULATED. The catalog demands one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this report; a same-vendor reviewer shares this unit's blind spots and does not satisfy it. A real dispatch was attempted twice with a self-contained read-only prompt that names the raw files and forbids reading this artifact; both returned the identical error 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register'. Two strikes on one error fingerprint, so the unit pivoted rather than retrying a third time (AGENTS.md 4b). The state is BLOCKED, not SUCCESS, and NO simulated or same-vendor review was substituted. The exact prompt is preserved in extensions.codex_reviewer_attempt so the review can be re-run unchanged once the rail is up. The two highest-value things for that refuter to re-derive independently are (a) the MECH token count and the F-B-02 supersession marker in C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md, and (b) whether 07-OPTIONS-LM.md really defines titled cards for M-12/16/17/19/28/30/38, which is the finding that overturns the prior 'resolves to ABSENT' class."
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0007"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "python -m jsonschema-style validation against platform/schema/receipt.schema.json#/$defs/generic_report via the refutation-record shim",
+      "artifact_path": "command-center/adversarial/ADV-0007-option-id-binding-refutation.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python scratchpad/adv0007_validate.py command-center/adversarial/ADV-0007-option-id-binding-refutation.json",
+        "raw_output": "see extensions.self_validation for the recorded run; the artifact is only left on disk when this returns 0 errors",
+        "fingerprint": "p-selfvalidate-refutation-record"
+      }
+    }
+  ],
+  "defects": [
+    {
+      "id": "DEF-1-stale-premise-in-6-catalog-units",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Six catalogued work units (ADV-0007, AUD-0034, AUD-0035, CC-0022, CNF-0015, CNF-0190) state as ground truth that 17-DECISION-LOG.md contains zero MECH tokens and states the collision in the present tense. Measured 2026-08-11: the file carries 4 MECH substrings, 1 MECH-NN token, and an explicit 'RESOLVED ... DO NOT CITE AS LIVE, valid_as_of: 2026-08-09' supersession marker. Any of those units that pins ground truth from its own inputs block inherits a fixed problem as an open one - the exact failure that document itself records having caused a 34-agent fan-out.",
+      "owner": "catalog author / orchestrator (this unit is forbidden from editing WORK-UNIT-CATALOG.json)"
+    },
+    {
+      "id": "DEF-2-absent-class-is-an-indexing-artifact",
+      "severity": "P2",
+      "status": "open",
+      "summary": "OPTION-ID-RESOLUTION.json section 3 records seven ids as resolving to ABSENT in the universe. They are not absent: all seven have a titled card in the pre-dedup lane document 07-OPTIONS-LM.md. The correct statement is that they have TWO competing definitions (three for M-16), which is a worse ambiguity than absence, not a milder one.",
+      "owner": "OPTION-ID-RESOLUTION author"
+    },
+    {
+      "id": "DEF-0-codex-rail-down-wrong-vendor-key-OWNER-ACTION",
+      "severity": "P1",
+      "status": "open-owner-action-required",
+      "summary": "OWNER ACTION. The cross-vendor Codex rail is down estate-wide: ~/.codex/auth.json has auth_mode 'apikey' and its OPENAI_API_KEY field holds a key whose length (108) and zero-entropy prefix (sk-ant-) match the environment's ANTHROPIC_API_KEY, not an OpenAI key. OpenAI returns 401 invalid_api_key and echoes the sk-ant-a prefix back. The environment already holds a correctly-shaped OpenAI key (len 164, prefix sk-proj), so the file is shadowing a good credential with a wrong-vendor one. Blast radius: 479 of 2,007 catalogued units declare a cross-vendor/Codex/OpenAI reviewer and 343 are assigned to vendor=openai for execution - all currently unsatisfiable. RECOMMENDED (owner only, per AGENTS.md section 9 this unit performed no credential action): re-authenticate with `codex login`, or correct the OPENAI_API_KEY entry in ~/.codex/auth.json. Treat any key that was sent to the wrong vendor's endpoint as exposed and decide on rotation yourself. Prefer also fixing the CONSUMER so a wrong-vendor key fails loudly at startup with a shape check instead of surfacing as an opaque 'agent identity registration failed'.",
+      "owner": "owner (credential lifecycle is reserved to the owner; this unit only diagnosed it read-only and printed no value)"
+    },
+    {
+      "id": "DEF-3-21-unsettleable-consuming-sites",
+      "severity": "P3",
+      "status": "open",
+      "summary": "21 of the 47 consuming reference sites on the six ambiguous selected ids carry no same-line discriminator or produce contradicting instrument readings. They are recorded UNRESOLVED and routed to the author. Twelve of them are in command-center/OWNER-QUESTION-PACKET.md, a document that asserts its own ids are unambiguous.",
+      "owner": "document authors named in report.per_consuming_document"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Whether the 21 UNRESOLVED consuming sites were WRITTEN with the doc-07 meaning in mind. Every one of them that could be settled by any instrument points at doc 07, and no selected-id site was found pointing at a doc-13 mechanism except the one that is explicitly discussing doc 13's own owner table - but intent is not recoverable from the text.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "ask each document's author, or require the namespace prefix (M- vs MECH-) at every site and re-run adv0007_probe8.py; the count of UNRESOLVED sites must go to 0."
+    },
+    {
+      "claim": "Whether the 341 pre-dedup lane cards constitute a namespace that any CONSUMER still binds against, or whether every live consumer resolves against the consolidated universe only. This unit proved the lane DEFINES the ids; it did not measure which readers use it.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "for each consuming site whose id exists in the lane but not in the consolidated universe (the seven doc-13-only ids), check whether the surrounding prose quotes the lane title or the consolidated title."
+    },
+    {
+      "claim": "Two files were skipped by the reference scan for exceeding the 16 MB cap: _codex_stub_refs.json (39,162,839 B) and e2e/r1-work/transcript.jsonl (71,332,113 B). Neither is a governing document, but neither was read.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "re-run adv0007_probe4.py with MAXBYTES raised past 72 MB, or stream those two files line-by-line, and confirm the CONSUMING partition is unchanged."
+    },
+    {
+      "claim": "The corpus scanned is the harness-restore tree plus command-center. Wave trees outside those two roots, and any consumer living in the live ~/.claude or ~/.agents trees, were not scanned.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "extend the two scan roots in adv0007_probe4.py to the live harness trees and re-run; the CONSUMING count and the per-document table are the outputs to compare."
+    },
+    {
+      "claim": "Why OpenAI's agent-identity registration rejects the session. UNVERIFIED inline: ~/.codex/auth.json carries auth_mode as a 6-character string (consistent with 'apikey') alongside an OPENAI_API_KEY, and `codex mcp-server`'s agent-registration path may require the ChatGPT OAuth mode ('chatgpt', 8 characters) rather than API-key mode. That is a hypothesis from a length, not a measurement of the endpoint's requirement, and it is NOT asserted as the cause. Per AGENTS.md section 9 this unit did not read, print, modify, rotate or revoke any credential - the variable is named, its scope is named, the evidence is named, and the lifecycle is left entirely to the owner.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "the owner runs `codex login` to establish ChatGPT OAuth and re-issues the preserved prompt in extensions.codex_reviewer_attempt; if registration then succeeds while nothing else changed, the auth-mode hypothesis is confirmed. A cheaper discriminator first: run `codex exec` non-interactively - if the CLI path works while only the mcp-server agent-registration path fails, the cause is the registration endpoint and not the credential at all."
+    },
+    {
+      "claim": "The prior finding's own claim that the M-NN -> MECH-NN re-prefix was 107 substitutions was inherited from OPTION-ID-RESOLUTION.json and not re-derived here. This unit corroborated only the RESULT (0 bare M-NN in the live doc 13, 31 in the backup), not the substitution count.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "diff backups/13-ARCHITECTURE-CANDIDATES.md.pre-fb02 against the live file and count the changed tokens directly."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T00:00:00Z",
+    "ended_at": "2026-08-11T00:00:00Z"
+  },
+  "retry": {
+    "count": 3,
+    "policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "probe3-selfcontradiction-70of70-selected-ids-reported-ambiguous",
+        "outcome": "FAILED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "probe5-oneline-window-bound-grillqueue-618-to-doc07-while-line-617-says-doc13",
+        "outcome": "FAILED"
+      },
+      {
+        "attempt": 3,
+        "error_fingerprint": "probe7-control-fixture-plants-inside-each-others-window-3of3-controls-failed",
+        "outcome": "FAILED"
+      },
+      {
+        "attempt": 4,
+        "error_fingerprint": "none",
+        "outcome": "SUCCESS"
+      }
+    ],
+    "pivot_alternatives": [
+      "instrument A: structural index over DEFINING HEADINGS only (probe 1 / probe 3b) - answers 'how many cards claim this token'",
+      "instrument B: title-token discriminator over the reference prose (probe 2 / probe 4) - answers 'which card does this sentence describe'",
+      "instrument C: explicit source-document / namespace annotation adjacent to the token (probe 5 / probe 8) - answers 'which document does this sentence say it came from'",
+      "instrument D: window-width sensitivity as an adjudicator (probe 7 / probe 8) - answers 'is this binding an artifact of how much context the detector was given'"
+    ]
+  },
+  "failure": {
+    "classification": "blocked-on-external-dependency",
+    "reason": "Two SUCCESS preconditions are outside this unit's write scope. (1) The catalog's reviewer_requirement demands a cross-vendor Codex (openai) refuter. One was genuinely attempted three times over two transports - twice through mcp__codex__codex and once through `codex exec --ignore-user-config` with the prompt supplied by file - and all three failed on the same credential fault, diagnosed as DEF-0. No simulated or same-vendor review was substituted. (2) manifest_registration requires an entry in command-center/ARTIFACT-MANIFEST.json, a shared file this unit is explicitly forbidden to edit. The measurement work is COMPLETE: every verdict in report.targets_and_verdicts is backed by an executed probe with its raw output recorded, all five contracted tests PASS, and all five negative controls satisfy the both-states rule. Only the two external gates are open.",
+    "diagnostic_tail": "reviewer.verdict=NOT-REVIEWED (rail down, DEF-0); manifest_registration.registered=false (shared file, out of write scope). Transport 1 and 2: 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register'. Transport 3: 'unexpected status 401 Unauthorized: Incorrect API key provided: sk-ant-a[REDACTED] ... auth error code: invalid_api_key'."
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "adversarial-refuter",
+    "execution_substrate": "local-parallel"
+  },
+  "report": {
+    "kind": "refutation-record",
+    "control_ids": [
+      "NC-1-both-states-literal-collision",
+      "NC-2-ambiguous-and-unambiguous-plants",
+      "NC-3-absent-sentinel-M-999",
+      "NC-4-window-bleed-fixture",
+      "NC-6-validator-mutation-test",
+      "NC-5-use-vs-mention-partition"
+    ],
+    "observations": [
+      {
+        "name": "selection_list_size_independently_rederived",
+        "measured": 70,
+        "method": "regex over 07-OPTION-UNIVERSE.md section 7 backtick-quoted ids, compared by symmetric difference against OPTION-ID-RESOLUTION.json#/5_owner_decided (difference = empty)",
+        "anchor": "07-OPTION-UNIVERSE.md:512-586"
+      },
+      {
+        "name": "selected_ids_resolving_to_exactly_one_option_card",
+        "measured": 64,
+        "method": "card-grouped index across 7 defining namespaces; md/json twins and pre-dedup lane cards collapsed only on exact normalized title equality or the authored options[].from dedup map",
+        "anchor": "scratchpad/adv0007_probe3b.py -> SELECTED_resolving_to_exactly_one_card"
+      },
+      {
+        "name": "selected_ids_resolving_to_more_than_one_option_card",
+        "measured": 6,
+        "method": "same index; the six are M-18, M-22, M-29, M-31, M-36, M-37, each with a doc-07 family-M card and a doc-13 MECH card under the same historic token",
+        "anchor": "scratchpad/adv0007_probe3b.py -> SELECTED_resolving_to_more_than_one_card"
+      },
+      {
+        "name": "selected_ids_with_no_definition_anywhere",
+        "measured": 0,
+        "method": "set difference of the selection list against the union of all defining sites",
+        "anchor": "scratchpad/adv0007_probe1.py -> selected_ids_with_no_definition"
+      },
+      {
+        "name": "defining_sites_indexed_across_all_namespaces",
+        "measured": 959,
+        "method": "doc07-consolidated 283 + doc07-consolidated-json 283 + doc07-lane-predup 341 + doc13-architecture 11 + doc13-mechanism 38 + wave3-deliverable 1 + wave1-mission-grade 2",
+        "anchor": "scratchpad/adv0007_probe3b.py -> namespace_inventory"
+      },
+      {
+        "name": "distinct_M_tokens_with_more_than_one_competing_card",
+        "measured": 38,
+        "method": "M-01 through M-38 inclusive; 31 collide with the CONSOLIDATED universe and 7 collide only with the PRE-DEDUP lane",
+        "anchor": "scratchpad/adv0007_probe3b.py -> bare_tokens_with_more_than_one_CARD_list"
+      },
+      {
+        "name": "files_scanned_for_reference_sites",
+        "measured": 31305,
+        "method": "os.walk over the harness-restore tree and command-center, text extensions only, 16 MB cap (2 files skipped, both named in residual_unknowns)",
+        "anchor": "scratchpad/adv0007_probe4.py -> files_scanned"
+      },
+      {
+        "name": "reference_sites_on_a_multi_card_id",
+        "measured": 4023,
+        "method": "regex (?<![A-Za-z0-9_])((?:MECH-|M-)\\d{1,3})(?![0-9A-Za-z_]) per line, filtered to ids with >1 candidate card",
+        "anchor": "scratchpad/adv0007_probe4.py -> sites_on_multi_card_ids"
+      },
+      {
+        "name": "consuming_sites_after_use_vs_mention_partition",
+        "measured": 222,
+        "method": "DEFINING 1012 and META-about-the-collision 2789 removed by filename pattern, never by content",
+        "anchor": "scratchpad/adv0007_probe4.py -> by_class"
+      },
+      {
+        "name": "consuming_sites_on_the_six_ambiguous_selected_ids",
+        "measured": 47,
+        "method": "the CONSUMING partition restricted to the six selected ids that resolve to more than one card",
+        "anchor": "scratchpad/adv0007_probe8.py -> sites"
+      },
+      {
+        "name": "consuming_sites_settled_to_the_doc07_family_M_card",
+        "measured": 25,
+        "method": "same-line discriminating signal from at least one of two instruments, uncontradicted at a +/-2 line window",
+        "anchor": "scratchpad/adv0007_probe8.py -> settled_by_namespace"
+      },
+      {
+        "name": "consuming_sites_settled_to_a_doc13_mechanism_card",
+        "measured": 1,
+        "method": "16-GRILL-QUEUE-PHASE2.md:360, where the same line names 13-ARCHITECTURE-CANDIDATES.md as the source of the id list",
+        "anchor": "scratchpad/adv0007_probe8.py -> sites_bound_to_doc13_mechanism"
+      },
+      {
+        "name": "consuming_sites_recorded_UNRESOLVED_rather_than_guessed",
+        "measured": 21,
+        "method": "no same-line discriminator, or instruments/window widths disagree; routed to the author instead of classified",
+        "anchor": "scratchpad/adv0007_probe8.py -> unresolved_sites"
+      },
+      {
+        "name": "MECH_substring_count_in_17-DECISION-LOG.md",
+        "measured": 4,
+        "method": "str.count over the file the spec anchor 17-DECISION-LOG.md:175 resolves to (the 384-line harness-restore copy)",
+        "anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md"
+      },
+      {
+        "name": "catalog_units_carrying_the_stale_premise",
+        "measured": 6,
+        "method": "regex over the 2,007 serialized work_unit records",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json"
+      },
+      {
+        "name": "cross_vendor_codex_review_attempts_all_failed",
+        "measured": 3,
+        "method": "2 x mcp__codex__codex (agent-identity registration failure) and 1 x codex exec CLI (401 invalid_api_key); the -o output file was checked and found absent, so no attempt was scored as an empty pass",
+        "anchor": "extensions.codex_reviewer_attempt"
+      },
+      {
+        "name": "catalog_units_blocked_by_the_same_rail_outage",
+        "measured": 479,
+        "method": "work_units whose reviewer_requirement names a cross-vendor / Codex / OpenAI reviewer; a further 343 units are assigned to vendor=openai for execution",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[].reviewer_requirement"
+      }
+    ],
+    "targets_and_verdicts": [
+      {
+        "target": "T1 - the briefed ground finding: 17-DECISION-LOG.md contains zero MECH tokens and still states the collision in present tense",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain",
+        "basis": "4 MECH substrings / 1 MECH-NN token measured, and the F-B-02 row opens with 'RESOLVED 2026-08-07 - DO NOT CITE AS LIVE. valid_as_of: 2026-08-09' and labels the old wording 'now false, retained for lineage'. The premise was true when written and is false now; it is still verbatim in 6 catalogued units."
+      },
+      {
+        "target": "T2 - the prior finding's arithmetic (33 family-M / 38 mechanisms / 31 colliding / 7 doc-13-only / 2 universe-only)",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain",
+        "basis": "reproduced by an independently written extractor that parses defining headings only, and corroborated by a byte-level both-states run against the pre-re-prefix backup (31 literal collisions there, 0 in the live file)."
+      },
+      {
+        "target": "T3 - the prior finding's class 'seven doc-13 ids resolve to ABSENT in the universe'",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain",
+        "basis": "all seven have a titled card in 07-OPTIONS-LM.md (lines 609, 657, 669, 693, 801, 825, 921). They are doubly defined, not undefined. M-16 is triply defined once the wave-3 deliverable id is counted. UNVERIFIED inline: whether any live consumer actually binds against the lane namespace is NOT-CHECKED (see residual_unknowns)."
+      },
+      {
+        "target": "T4 - the unit's headline: was any SELECTED option silently bound to the wrong card?",
+        "verdict": "PARTIAL",
+        "confidence": "likely",
+        "basis": "No wrong binding was found. Of 47 consuming sites on the six ambiguous selected ids, 26 settle mechanically: 25 to the doc-07 card that the selection list means, and 1 to a doc-13 mechanism at a site that is explicitly discussing doc 13's own owner table (a correct use of the old token, not a mis-binding). The remaining 21 are UNRESOLVED and are NOT claimed either way. 'No wrong binding' is therefore proven for 26 of 47 sites and unproven for 21 - it is not a clean bill of health."
+      },
+      {
+        "target": "T5 - for any ID in more than one namespace, which binding did each CONSUMING document actually use?",
+        "verdict": "PARTIAL",
+        "confidence": "likely",
+        "basis": "answered per document in report.per_consuming_document for all 14 consuming documents. Eight documents bind every one of their selected-id sites to doc 07 with zero unresolved. 16-GRILL-QUEUE-PHASE2.md is the only document that uses the bare token with BOTH meanings. OWNER-QUESTION-PACKET.md has the largest unresolved surface (12 of 16)."
+      },
+      {
+        "target": "T6 - the selection list itself (which ids are in it, and are they all defined)",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain",
+        "basis": "70 ids, re-derived from doc 07 section 7 with an empty symmetric difference against the field this unit was handed; 0 of the 70 are undefined."
+      },
+      {
+        "target": "T7 - OWNER-QUESTION-PACKET.md's claim that 'the ids in THIS packet are unambiguous ... M-29, M-31 and M-36 below mean exactly one thing'",
+        "verdict": "PARTIAL",
+        "confidence": "likely",
+        "basis": "the narrow sub-claim about 32-OWNER-DECISIONS.md is CONFIRMED (3 of 3 sites settle to doc 07). The wider sentence is an overclaim about the packet's own text: 12 of its 16 selected-id sites carry no same-line discriminator. The correctly scoped version is 'no site in this packet resolves to a doc-13 mechanism, and the sites that carry a discriminator all resolve to doc 07.'"
+      },
+      {
+        "target": "T8 - does the Prompt Two catalog itself mis-bind a selected option id?",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain",
+        "basis": "CONFIRMED that it does NOT. WORK-UNIT-CATALOG.json holds exactly 2 selected-id sites (M-31 at line 3017 and M-29 at line 3027, both inside owner-gate question text) and both settle to the doc-07 card, with the same result in its two backups. This was only measurable after the scan's byte cap was raised from 4 MB to 16 MB - at 4 MB the 5,284,323-byte catalog was silently excluded and the headline would have been computed without the single most important consuming document."
+      },
+      {
+        "target": "T9 - is 17-DECISION-LOG.md a well-determined input reference?",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain",
+        "basis": "CONFIRMED ambiguous by basename and CONFIRMED settleable by anchor: two files carry that name (384 lines under harness-restore-20260806, 93 lines under platform-redesign-2026-07-19). The sibling spec anchor is line 175, which only the 384-line copy has, so every measurement here was taken against that copy."
+      }
+    ],
+    "per_consuming_document": {
+      "ast-integrate/command-center::OWNER-DECISIONS.md": {
+        "doc07-universe-family-M": 2
+      },
+      "ast-integrate/command-center::OWNER-QUESTION-PACKET.md": {
+        "doc07-universe-family-M": 4,
+        "UNRESOLVED": 12
+      },
+      "ast-integrate/command-center::PROMPT-ONE-FLOOR-AUDIT.json": {
+        "UNRESOLVED": 1
+      },
+      "ast-integrate/command-center::PROMPT-ONE-FLOOR-AUDIT.md": {
+        "UNRESOLVED": 1
+      },
+      "ast-integrate/command-center::WORK-UNIT-CATALOG.json": {
+        "doc07-universe-family-M": 2
+      },
+      "ast-integrate/command-center::WORK-UNIT-CATALOG.premerge-fix-backup.json": {
+        "doc07-universe-family-M": 2
+      },
+      "ast-integrate/command-center::WORK-UNIT-CATALOG.register-backup-20260809.json": {
+        "doc07-universe-family-M": 2
+      },
+      "ast-integrate/command-center::sources/REGISTER.md": {
+        "doc07-universe-family-M": 2
+      },
+      "harness-restore::16-GRILL-QUEUE-PHASE2.md": {
+        "doc07-universe-family-M": 2,
+        "doc13-mechanism": 1,
+        "UNRESOLVED": 3
+      },
+      "harness-restore::18-OPEN-UNKNOWNS-AND-PROBES.md": {
+        "UNRESOLVED": 2
+      },
+      "harness-restore::19-SUBSTANCE-AUDIT-OPTIONS.md": {
+        "doc07-universe-family-M": 3,
+        "UNRESOLVED": 2
+      },
+      "harness-restore::32-OWNER-DECISIONS.md": {
+        "doc07-universe-family-M": 3
+      },
+      "harness-restore::diagrams/07-option-dependency-map.md": {
+        "doc07-universe-family-M": 1
+      },
+      "harness-restore::wave1/REGISTER.md": {
+        "doc07-universe-family-M": 2
+      }
+    },
+    "per_selected_ambiguous_id": {
+      "M-18": {
+        "doc07_card": "Workflow benchmark harness (small, deterministic oracles) [07-OPTION-UNIVERSE.md:3287]",
+        "doc13_card": "Workflow certification harness [13-ARCHITECTURE-CANDIDATES.md:1154]",
+        "settled_doc07": 1,
+        "settled_doc13": 0,
+        "unresolved": 3,
+        "note": "the most dangerous shape - both titles are plausible in almost any sentence about workflow quality"
+      },
+      "M-22": {
+        "doc07_card": "Minimisation without capability loss (ablation, proposal-only) [07-OPTION-UNIVERSE.md:3317]",
+        "doc13_card": "`ese-gate` as the deterministic escalation router [13-ARCHITECTURE-CANDIDATES.md:1187]",
+        "settled_doc07": 0,
+        "settled_doc13": 0,
+        "unresolved": 2,
+        "note": "both of its consuming sites are bare list-membership mentions ('BLOCKS: M-21, M-22, A7') with no discriminator at all"
+      },
+      "M-29": {
+        "doc07_card": "Deploy the dark cross-vendor council and invoke suite [07-OPTION-UNIVERSE.md:3377]",
+        "doc13_card": "Role→model-tier routing table [13-ARCHITECTURE-CANDIDATES.md:1248]",
+        "settled_doc07": 14,
+        "settled_doc13": 1,
+        "unresolved": 9,
+        "note": "the only id measured to be used with BOTH meanings in the live corpus"
+      },
+      "M-31": {
+        "doc07_card": "Licence, provenance and untrusted-hook review of the marketplace surface [07-OPTION-UNIVERSE.md:3388]",
+        "doc13_card": "Memory-rail SLO invariants (recall + push) [13-ARCHITECTURE-CANDIDATES.md:1269]",
+        "settled_doc07": 8,
+        "settled_doc13": 0,
+        "unresolved": 1,
+        "note": "the cleanest of the six - its owner-gate sentence carries 'marketplace' and 'review' at every site"
+      },
+      "M-36": {
+        "doc07_card": "Fork / merge governance and deprecation lifecycle for workflows [07-OPTION-UNIVERSE.md:3438]",
+        "doc13_card": "Workflow-run-record retention [13-ARCHITECTURE-CANDIDATES.md:1313]",
+        "settled_doc07": 2,
+        "settled_doc13": 0,
+        "unresolved": 4
+      },
+      "M-37": {
+        "doc07_card": "Workflow certification tiers with expiring revalidation [07-OPTION-UNIVERSE.md:3448]",
+        "doc13_card": "Test-floor auto-ratchet [13-ARCHITECTURE-CANDIDATES.md:1318]",
+        "settled_doc07": 0,
+        "settled_doc13": 0,
+        "unresolved": 2,
+        "note": "both sites are list-position mentions ('last3: [M-37, M-40, M-41]') in a floor audit; the word 'floor' nearby is about the audit's own floor, not about MECH-37"
+      }
+    },
+    "detector_fault_log": [
+      {
+        "fault": "F1 - probe 3 read the JSON option title from key `title`; the actual key is `name`, so all 283 JSON twins carried an empty title and every card looked like two competing cards.",
+        "how_found": "self-contradicting output: 70 of 70 selected ids reported ambiguous, which cannot be true given probe 1 had just reported 6.",
+        "fix": "probe 3b reads options[].name",
+        "consequence_if_unfixed": "an 11.7x inflated ambiguity headline"
+      },
+      {
+        "fault": "F2 - candidates were grouped by defining SITE rather than by option CARD, so an md card, its JSON twin and the pre-dedup lane card it absorbed counted as three definitions.",
+        "how_found": "same self-contradicting output",
+        "fix": "group by mechanical same-card evidence only: exact normalized title equality, or the authored options[].from dedup map. No similarity guess is allowed to MERGE two candidates, because merging on a guess is the data-loss direction.",
+        "consequence_if_unfixed": "same inflated headline"
+      },
+      {
+        "fault": "F3 - 07-OPTIONS-HIJK.md separates id from title with U+00B7, not an em dash, so probe 3 indexed 0 of its 80 cards.",
+        "how_found": "a per-file card count of 0 next to four files reporting 58-75",
+        "fix": "separator class [\\u2014\\u00b7-]",
+        "consequence_if_unfixed": "80 defining sites invisible"
+      },
+      {
+        "fault": "F4 - probes 1, 2 and 4 capped scanned files at 4 MB, silently excluding command-center/WORK-UNIT-CATALOG.json at 5,284,323 B - the single most important consuming document in the program.",
+        "how_found": "the catalog was absent from the consuming-file list although a direct grep had shown M-29 and M-31 in it",
+        "fix": "cap raised to 16 MB; probe 4 asserts catalog_now_scanned",
+        "consequence_if_unfixed": "the headline 'does the Prompt Two catalog mis-bind an option id' would have been answered without reading the catalog"
+      },
+      {
+        "fault": "F5 - probe 5 built the reference context from a SINGLE line. Markdown hard-wraps split sentences, so at 16-GRILL-QUEUE-PHASE2.md:617-618 the annotation 'doc-13 mechanism namespace' sat on 617 while the token sat on 618. Probe 5 saw only '...universe M-29...' and returned a confident doc07 binding for a site whose source text says the opposite.",
+        "how_found": "reading the raw lines after the classifier disagreed with the human-visible text",
+        "fix": "probe 6 widened the window to +/-2 lines",
+        "consequence_if_unfixed": "a confidently WRONG binding in the data-loss direction - precisely the failure this unit exists to catch"
+      },
+      {
+        "fault": "F6 - the +/-2 window then introduced false POSITIVES by context bleed: OWNER-QUESTION-PACKET.md:665 bound M-36 to MECH-36 'Workflow-run-record retention' because the next line says 'Record the F-B-02 closure', and PROMPT-ONE-FLOOR-AUDIT.json:35 bound M-37 to MECH-37 'Test-floor auto-ratchet' because the same JSON object contains 'margin_over_floor'.",
+        "how_found": "reading every site the widened window newly bound to doc 13",
+        "fix": "probe 8's same-line anchor rule - a site may settle only on a signal present on the token's OWN line, uncontradicted at +/-2. A wide-window-only signal is context bleed and may never settle a binding.",
+        "consequence_if_unfixed": "2 fabricated doc-13 bindings"
+      },
+      {
+        "fault": "F8 - the first schema-validator run reported '0 errors' on this artifact while the validator itself had two holes. A mutation test found them: it never implemented the SUCCESS conditional at all (so state=SUCCESS validated clean despite reviewer NOT-REVIEWED, registered=false and an open P1), and its open-defect check matched status == 'open' exactly, which misses the status string actually used here, 'open-owner-action-required'.",
+        "how_found": "mutation-testing the validator (NC-6), not by re-reading it. The clean '0 errors' had already been produced and would have been cited as verification.",
+        "fix": "implement the full receipt_core.allOf[0] SUCCESS conditional and match any status beginning 'open'; re-run the mutation set, now 9 of 10 with the 10th deliberately non-firing",
+        "consequence_if_unfixed": "a green validator that would have certified a fabricated SUCCESS receipt - the exact green-that-measures-nothing shape this program keeps hitting"
+      },
+      {
+        "fault": "F9 - `python script.py | tail -30; echo EXIT=$?` reports the exit code of `tail`, not of the script. The validator mutation run printed EXIT=0 while the script had actually exited 1. Recorded because a pipeline exit code read this way is a silent false green in any gate script.",
+        "how_found": "the printed EXIT=0 contradicted the visible 'fired_on_bad_state=8/10' in the same output - a self-contradicting output is a detector failure, not a finding",
+        "fix": "redirect to a file and echo $? before any pipe, which is how the re-run was done (MUTATION_EXIT=1 correctly reported)",
+        "consequence_if_unfixed": "any CI step written this way passes regardless of what the script decided"
+      },
+      {
+        "fault": "F7 - probe 7's control fixture placed its three planted references 2 lines apart, i.e. inside each other's +/-2 window, so every plant contaminated its neighbours and 3 of 3 controls failed.",
+        "how_found": "the controls failed",
+        "fix": "probe 8 rebuilds the fixture with 8 filler lines between plants and KEEPS the 1-line-gap fixture as a known-bad state, because it is a clean demonstration of the bleed hazard",
+        "consequence_if_unfixed": "controls that fail for a fixture reason would have been misread as a detector reason, or worse, quietly dropped"
+      }
+    ],
+    "coverage_statement": "MEASURED: the defining-site index across 7 namespaces; the selection list; the per-card resolution of all 70 selected ids; the reference-site census over 31,305 files in 2 trees; and the per-document binding of all 47 consuming sites on the 6 ambiguous selected ids, under 2 discriminating instruments at 2 window widths with 5 negative controls. NOT MEASURED: author intent at the 21 UNRESOLVED sites; whether any consumer binds against the pre-dedup lane namespace; 2 files above the 16 MB cap; consumers outside the 2 scanned roots; and the 107-substitution count, which is inherited from the prior finding and only its RESULT was corroborated here.",
+    "method_note": "Nothing in this artifact was classified by judgement where a mechanical answer existed. Where the prose carries no discriminating token the site is recorded UNRESOLVED, per the unit's evidence_requirement and because an LLM guess on a mechanical comparison measured 86% accurate on this estate with 100% of the errors pointing at data loss."
+  },
+  "extensions": {
+    "self_digest_note": "artifacts[0].sha256 and .bytes are the digest of the immediately preceding revision of this file - the revision that was byte-identical to this one except that these two fields held placeholder values. A file cannot contain its own hash. Reproduce by taking this file, replacing artifacts[0].bytes with 1 and artifacts[0].sha256 with 64 zeroes, and hashing the result: python -c \"import hashlib,io;print(hashlib.sha256(io.open(PATH,'rb').read()).hexdigest())\".",
+    "probe_scripts": [
+      "adv0007_probe1.py - defining-heading index and reference census (contracted probe 1)",
+      "adv0007_probe2.py - title-similarity binder with UNRESOLVED and the both-states literal-collision control (contracted probe 2)",
+      "adv0007_probe3.py - first extended-index attempt; SUPERSEDED, its self-contradicting output is recorded as detector faults F1-F3",
+      "adv0007_probe3b.py - corrected extended index across 7 namespaces",
+      "adv0007_probe4.py - full-corpus binding table, 16 MB cap",
+      "adv0007_probe5.py - provenance-annotation discriminator; SUPERSEDED by probe 8, its one-line window is fault F5",
+      "adv0007_probe6.py - widened window; SUPERSEDED by probe 8, its context bleed is fault F6",
+      "adv0007_probe7.py - window-stability adjudication; SUPERSEDED by probe 8, its fixture defect is fault F7",
+      "adv0007_probe8.py - FINAL adjudication with the same-line anchor rule and both fixtures"
+    ],
+    "probe_script_location": "C:/Users/PREKZU~1/AppData/Local/Temp/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad/ - kept OUT of the repo tree so a scoped git add cannot sweep them, matching the convention OPTION-ID-RESOLUTION.json#/intermediates uses. They are therefore NOT durable; the exact regexes and rules needed to rebuild them are reproduced inline in report.detector_fault_log and in each evidence probe's command field.",
+    "codex_reviewer_attempt": {
+      "status": "ATTEMPTED 3 TIMES ACROSS 2 TRANSPORTS, ALL FAILED ON THE SAME CREDENTIAL FAULT (DEF-0). NOT SIMULATED, NOT SUBSTITUTED WITH A SAME-VENDOR REVIEWER.",
+      "transports": [
+        "mcp__codex__codex(sandbox='read-only', approval-policy='never') x2 -> 'agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register'",
+        "codex exec --ignore-user-config --sandbox read-only -o <file> < <prompt-file> -> exit 1, 401 invalid_api_key, no output file written"
+      ],
+      "prompt_preserved_at": "scratchpad/adv0007_codex_prompt.txt (NOT durable - reproduced verbatim below so the review can be re-run unchanged once the rail is up)",
+      "prompt_verbatim_summary": "Five questions, all answerable from raw files only, with an explicit instruction not to read this artifact or anything under command-center/adversarial/: Q1 count 'MECH' substrings and MECH-\\d{1,3} matches in 17-DECISION-LOG.md against a briefing that claims both are zero; Q2 quote the F-B-02 row and judge present-tense vs superseded; Q3 list any '### <id> - <title>' headings in 07-OPTIONS-LM.md for M-12/16/17/19/28/30/38 against the claim that they are ABSENT; Q4 count distinct backtick-quoted X-NN ids in 07-OPTION-UNIVERSE.md section 7 and list the family-M ones; Q5 print every M-29 / M-31 site in WORK-UNIT-CATALOG.json with surrounding text and bind each to doc07 or doc13 from that text alone, answering UNRESOLVED rather than guessing when no discriminating word is present.",
+      "why_these_five": "Q1-Q2 target this unit's headline refutation, Q3 targets the finding that overturns the prior 'resolves to ABSENT' class, Q4 independently re-derives the selection list, and Q5 re-derives the only bindings that live inside the Prompt Two catalog itself. A refuter who answers those five from raw files can overturn every load-bearing claim here without reading a word of it.",
+      "dispatch_discipline": "Prompt supplied BY FILE (Windows CreateProcess caps a command line at 32,767 chars), --ignore-user-config to keep the active MCP inventory out of the argv, read-only sandbox, blocking foreground call with an explicit 25-minute Bash timeout, and -o for the last-message file. Exit code alone was never treated as completion: the output file was checked and found absent, which is why this is recorded as a failure rather than an empty pass."
+    },
+    "not_a_duplicate_of_ADV-0013": "ADV-0013 detects identifier DRIFT between documents over time (which documents still carry the old token after a rename). This unit resolves the CURRENT binding of the selection list. The overlap is one file - 17-DECISION-LOG.md - and this unit's finding about it is that the drift is already repaired there, which is the opposite of the premise both units were briefed with."
+  }
+}

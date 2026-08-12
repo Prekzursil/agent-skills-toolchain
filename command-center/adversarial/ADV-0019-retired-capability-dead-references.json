@@ -1,0 +1,707 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0019",
+  "state": "BLOCKED",
+  "sentinel": "FAILED:ADV-0019 blocked-on-independent-review -- every probe, control and verdict below IS measured and citable, but the unit's reviewer_requirement (one cross-vendor refuter who re-derives the counterexample from the raw artifact and NOT from this report) is unsatisfied, and platform/schema/receipt.schema.json requires reviewer.verdict==PASS and reviewer.independent==true for state SUCCESS. Self-review is not review, so SUCCESS would be a false green. NOTE the vendor inversion: the catalog assigns this unit to openai/gpt-5-codex and asks for an ANTHROPIC opus refuter; it was actually executed by anthropic/claude-opus-5, so the satisfying reviewer is now an OPENAI/Codex refuter, not an Anthropic one.",
+  "spec_anchor": "_USER-PROMPTS.md:11330, 11048",
+  "min_bytes_threshold": 4096,
+  "profile": "adversarial-refuter",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "adversarial-refuter",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0019-retired-capability-dead-references.json",
+      "bytes": 67304,
+      "sha256": "b89de3b1442f94dc5a767f8f5ca8373a3e3b9d0dc58c8a719dbaa7d0433c161d",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "EIGHT distinct MCP server namespaces are named by mcp__<server>__<tool> tokens inside the repo's instruction corpus while being absent from the live inventory: ace-tool, hacktricks, devfleet, SlopOrNot, openaiDeveloperDocs, memory, plugin_serena_serena, claude-in-chrome. 72 distinct mcp__ tokens were extracted from 1,938 tracked instruction files (10,797,307 bytes); 64 servers are mounted; the 8 above are in neither the mounted-server list nor the live tool schema.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/adversarial/ADV-0019-retired-capability-dead-references.json#/report/dead_reference_inventory ; probe scripts under %TEMP%/.../scratchpad/extract_tokens.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python <scratchpad>/extract_tokens.py   # regex mcp__([A-Za-z0-9_.+-]+?)__([A-Za-z0-9_.+-]+) over `git ls-files skills skills-claude-only rules agents commands workflows guides agent-self AGENTS.md CLAUDE.md README.md`, set-differenced against server names parsed out of `claude mcp list`",
+          "raw_output": "{\n \"stats\": {\n  \"files_scanned\": 1938,\n  \"bytes_scanned\": 10797307,\n  \"mcp_tokens\": 232,\n  \"plugin_tokens\": 117,\n  \"retired_named_tokens\": 9,\n  \"binary_tokens\": 9349\n },\n \"distinct_mcp_tokens\": 72,\n \"distinct_binary_head_tokens\": 1822,\n \"live_mcp_servers\": 64,\n \"live_plugins\": 98\n}\nhits: 203\nhits by class/verdict: {('PLUGIN', 'UNKNOWN'): 117, ('RETIRED-NAMED', 'UNKNOWN'): 9, ('MCP', 'UNKNOWN'): 77}\n\n-- absent servers by occurrence --\n  ace-tool 24\n  hacktricks 16\n  devfleet 15\n  SlopOrNot 8\n  openaiDeveloperDocs 5\n  memory 4\n  plugin_serena_serena 4\n  claude-in-chrome 1",
+          "fingerprint": "p1-mcplist-stdout-setdiff",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "ToolSearch query=\"select:mcp__basic-memory__write_note,mcp__memory__create_entities,mcp__devfleet__plan_project,mcp__ace-tool__enhance_prompt,mcp__SlopOrNot__detect_text\" then query=\"select:mcp__hacktricks__search_hacktricks,mcp__openaiDeveloperDocs__search_openai_docs,mcp__plugin_serena_serena__find_symbol,mcp__claude-in-chrome__navigate,mcp__repomix__pack_codebase,mcp__searxng__searxng_web_search\"   # resolution against the LIVE MCP tool schema, not against any CLI stdout",
+          "raw_output": "call 1 of 5 names -> exactly ONE <function> block returned: mcp__basic-memory__write_note (full JSONSchema). mcp__memory__create_entities, mcp__devfleet__plan_project, mcp__ace-tool__enhance_prompt, mcp__SlopOrNot__detect_text -> NOT returned.\ncall 2 of 6 names -> exactly TWO <function> blocks returned: mcp__repomix__pack_codebase, mcp__searxng__searxng_web_search. mcp__hacktricks__search_hacktricks, mcp__openaiDeveloperDocs__search_openai_docs, mcp__plugin_serena_serena__find_symbol, mcp__claude-in-chrome__navigate -> NOT returned.\nBOTH-STATES within a single call: present names resolve, absent names are silent -> the resolver discriminates.",
+          "fingerprint": "p2a-live-tool-schema-select-resolution",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "THREE instruction artifacts (each mirrored into a second tree, so 5 files) instruct an agent to call an absent MCP server with no runtime availability guard at the call site. skills/knowledge-ops/SKILL.md:131-134 is the worst case: four `Use mcp__memory__*` directives with NO availability guard, NO fallback and NO prerequisite anywhere in the artifact. commands/devfleet.md + agent-self/config/commands/devfleet.md + skills/source-command-devfleet/SKILL.md carry 15 unconditional `mcp__devfleet__*(...)` call sites; the only mitigation is an INSTALL prerequisite line (`Requires the DevFleet MCP server: claude mcp add devfleet ...`), which is not a runtime guard. skills/hacktricks/SKILL.md + its agent-self mirror carry 16 worked-example call sites and assert as fact at line 77 that `The configured MCP client entry is `hacktricks``, which the live inventory refutes.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "skills/knowledge-ops/SKILL.md:131-134 ; commands/devfleet.md:9,29,42,50,56,64 ; skills/hacktricks/SKILL.md:77,325,336,339,342,352,355,364,367",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python <scratchpad>/probe4_adjudicate.py   # 3-layer adjudicator: L1 token reach, L2 hooks/_shared/use_vs_mention.classify(kind=\"marker\") + definition-site + config-matcher exclusions, L3 line-local vs file-level availability guard",
+          "raw_output": "corpus files: 1756  hits: 86\nby (kind, adjudication):\n   ('MCP-ABSENT-SERVER', 'MENTION') 36\n   ('MCP-ABSENT-SERVER', 'USE-FILE-GUARDED') 31\n   ('MCP-ABSENT-SERVER', 'USE-GUARDED') 6\n   ('MCP-ABSENT-SERVER', 'USE-UNGUARDED') 4\n   ('RETIRED-BUDGET-TOOL', 'MENTION') 9\n\n=== USE-UNGUARDED (no guard anywhere in the artifact) ===\n  skills/knowledge-ops/SKILL.md:131  mcp__memory__create_entities\n      | Use mcp__memory__create_entities for permanent structured data\n  skills/knowledge-ops/SKILL.md:132  mcp__memory__create_relations\n  skills/knowledge-ops/SKILL.md:133  mcp__memory__add_observations\n  skills/knowledge-ops/SKILL.md:134  mcp__memory__search_nodes\n\n=== USE-FILE-GUARDED by file ===\n  agent-self/skills/hacktricks/SKILL.md  n=8\n  skills/hacktricks/SKILL.md  n=8\n  agent-self/config/commands/devfleet.md  n=5\n  commands/devfleet.md  n=5\n  skills/source-command-devfleet/SKILL.md  n=5",
+          "fingerprint": "p4-three-layer-adjudicator",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "sed -n '126,138p' skills/knowledge-ops/SKILL.md ; sed -n '1,24p;25,66p' commands/devfleet.md ; grep -n -i -E 'available|not installed|fallback|require|missing|optional|mcp__' skills/knowledge-ops/SKILL.md",
+          "raw_output": "skills/knowledge-ops/SKILL.md:\n  # Semantic layer: MCP knowledge graph\n  Use mcp__memory__create_entities for permanent structured data\n  Use mcp__memory__create_relations for relationship mapping\n  Use mcp__memory__add_observations for new facts about known entities\n  Use mcp__memory__search_nodes to find existing knowledge\n  ```\n  ## Best Practices\ngrep for guard language in that file returned ONLY lines 131-134 (the four directives). No 'available', 'not installed', 'fallback', 'require', 'missing' or 'optional' anywhere.\n\ncommands/devfleet.md:9  Requires the DevFleet MCP server: `claude mcp add devfleet --transport http http://localhost:18801/mcp`\ncommands/devfleet.md:29  mcp__devfleet__plan_project(prompt=\"<user's description>\")   [unconditional, inside a fenced block]\ngrep -i -E 'available|not installed|absent|fallback|degrade|optional' commands/devfleet.md -> only line 9 (install prerequisite) and line 69 ('## All Available Tools', a heading). NO runtime guard.",
+          "fingerprint": "p4v-manual-line-read-guard-grep",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The calibration case is CLEAN and the corpus is NOT defective on it: the retired AgentBridge budget tools appear 9 times across 7 instruction files, and ZERO of the 9 is a live instruction to call them. Seven are explicit retirement notices (AGENTS.md:100,111 ; CLAUDE.md:7,21 ; agent-self/config/CLAUDE.md:97 ; skills/codex-mixed-workflow-doctrine/SKILL.md:431 ; skills/multi-ai-mingle/SKILL.md:49) and two (skills/llm-security/AGENTS.md:3142, skills/llm-security/rules/unbounded-consumption.md:255) are an unrelated Python method `def check_budget(` in a security code sample -- a name collision, not the AgentBridge tool.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "AGENTS.md:100 ; CLAUDE.md:7 ; agent-self/config/CLAUDE.md:97 ; skills/multi-ai-mingle/SKILL.md:49 ; skills/llm-security/rules/unbounded-consumption.md:255",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python <scratchpad>/probe4_adjudicate.py   # RE_RETIRED = \\b(get_budget|check_budget)\\b over the same corpus, then the 3-layer adjudicator",
+          "raw_output": "('RETIRED-BUDGET-TOOL', 'MENTION') 9\nNC-L1-TOKEN-REACH: retired_budget_token_occurrences_in_corpus = 9\n  files = [AGENTS.md, CLAUDE.md, agent-self/config/CLAUDE.md, skills/codex-mixed-workflow-doctrine/SKILL.md, skills/llm-security/AGENTS.md, skills/llm-security/rules/unbounded-consumption.md, skills/multi-ai-mingle/SKILL.md]\nAdjudication: 7 x 'use_vs_mention:marker:unfenced-prose' / 'retirement-notice context', 2 x 'definition-site (def/class), not a call'.",
+          "fingerprint": "p4-retired-set-adjudication",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python - <<PY  # print +/-3 lines around each of the 9 hits, verbatim",
+          "raw_output": "AGENTS.md:100   `get_messages`, `get_budget`) are gone. Do not follow the old protocol.\nAGENTS.md:111   Retiring AgentBridge also removed `get_budget`, so budget pacing is advisory and manual now\nCLAUDE.md:7     `get_budget`). **Those tools no longer exist.** AgentBridge was Windows-broken and was\nCLAUDE.md:21    **Consequence worth knowing:** retiring AgentBridge also removed `get_budget`, so the\nagent-self/config/CLAUDE.md:97   AgentBridge's `get_budget` tool was the enforcement mechanism. It's retired (the daemon is off).\nskills/codex-mixed-workflow-doctrine/SKILL.md:431  No automated cross-sub budget daemon (`get_budget` was retired\nskills/multi-ai-mingle/SKILL.md:49  Retiring AgentBridge also removed its `get_budget` tool -> the CLAUDE.md budget-pacing protocol is now inert\nskills/llm-security/AGENTS.md:3142      def check_budget(\nskills/llm-security/rules/unbounded-consumption.md:255      def check_budget(\nEvery one is a retirement notice or a `def`; none is an imperative to call the tool.",
+          "fingerprint": "p4v-verbatim-nine-line-read",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The PLUGIN class also yields ZERO dead references. 117 plugin-token occurrences resolve against a 98-entry live plugin list; the two load-bearing disabled plugins are agentbridge@agentbridge (4 corpus references) and serena@claude-plugins-official (4 mcp__plugin_serena_serena__ references). All 4 agentbridge references are retirement notices or the `enabledPlugins: false` entry that PERFORMS the disabling; the serena references sit behind an explicit `Honest precondition` + `Fallback if Serena is out`. UNVERIFIED-adjacent nuance, disclosed inline: the serena artifact's stated premise is now WRONG in the stale direction -- skills/orchestration-patterns/SKILL.md says Serena is \"disabled-yet-mounted\", but the live inventory shows it is disabled AND not mounted at all (absent from `claude mcp list` and from the live tool schema).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "AGENTS.md:99 ; CLAUDE.md:8 ; agent-self/config/settings.json:690 ; skills/multi-ai-mingle/SKILL.md:48 ; skills/orchestration-patterns/SKILL.md:114,116,130,200",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "claude plugin list   # 493 lines; parsed to 98 name@marketplace entries with Status",
+          "raw_output": "  > agentbridge@agentbridge\n    Version: 0.1.30\n    Scope: user\n    Status: x disabled\n...\n  > serena@claude-plugins-official\n    Version: unknown\n    Scope: user\n    Status: x disabled\n\n  > skill-creator@claude-plugins-official\n(grep -i -E 'ace-tool|devfleet|hacktricks|slopornot|openaidev' over the same file -> NONE of the absent MCP servers is plugin-provided either.)",
+          "fingerprint": "p1-claude-plugin-list-stdout",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "sed -n '686,694p' agent-self/config/settings.json ; python -c \"import json;d=json.load(open('C:/Users/Prekzursil/.claude/settings.json',encoding='utf-8'));ep=d['enabledPlugins'];print({k:ep[k] for k in ep if 'agentbridge' in k or 'serena' in k}, len(ep))\"",
+          "raw_output": "agent-self/config/settings.json:688    \"serena@claude-plugins-official\": false,\nagent-self/config/settings.json:690    \"agentbridge@agentbridge\": false,\nlive ~/.claude/settings.json: agentbridge@agentbridge = False ; serena@claude-plugins-official = False ; enabledPlugins entries: 99\nBoth the repo source of truth and the DEPLOYED live config agree; the corpus reference at settings.json:690 IS the disabling, not an instruction to call.",
+          "fingerprint": "p4v-settings-json-enabledplugins-crosscheck",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The command/binary half of the specified mechanism yields ZERO confirmed dead references, and its precision on this corpus is 0/10 on the targeted set. All 10 names that both resolvers fail (longrun, frida-server, capa, floss, diec, bc, crosshair, vitest, ghidra, windbg) are FALSE POSITIVES of the on-PATH assumption: longrun is invoked as scripts/longrun.{ps1,sh} and BOTH files exist in the repo; frida-server is a device-side Android binary; capa/floss/crosshair are invoked as `python -m`; vitest via npx/JS import; ghidra and windbg matched a `--ghidra-base` flag fragment and a `$windbg-preview` skill reference; and `bc` is a name that rules/common/windows-shell.md section 8 itself documents as ABSENT and tells the reader to replace with python. A PATH resolver answers \"is this name on PATH\", which is not the question \"does this capability exist\".",
+      "verdict": "CONFIRMED",
+      "confidence": "likely",
+      "anchor": "scripts/longrun.ps1 (10737 bytes) ; scripts/longrun.sh (8932 bytes) ; rules/common/windows-shell.md section 8 (Git Bash lacks bc)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "bash -c 'while IFS= read -r n; do if command -v -- \"$n\" >/dev/null 2>&1; then echo \"OK $n\"; else echo \"NO $n\"; fi; done < names.txt'   # Git-Bash `command -v` over 369 narrow-fence command heads UNION a 68-name targeted dependency list",
+          "raw_output": "corpus .md files scanned: 1706\ndistinct command heads (NARROW langs): 369\nDEAD by AND-gate over the TARGETED set: ['longrun', 'frida-server', 'capa', 'floss', 'diec', 'bc', 'crosshair', 'vitest', 'ghidra', 'windbg']",
+          "fingerprint": "p3-gitbash-command-v-and-gate",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "ls -la scripts/longrun.* ; for n in longrun frida-server capa floss diec bc crosshair vitest ghidra windbg; do grep -rhoE \"[^`\\n]{0,60}\\b${n}\\b[^`\\n]{0,40}\" --include='*.md' skills rules commands agents AGENTS.md | head -3; done",
+          "raw_output": "-rw-r--r-- 1 Prekzursil 197611 10737 Aug  8 06:31 scripts/longrun.ps1\n-rwxr-xr-x 1 Prekzursil 197611  8932 Aug  8 06:31 scripts/longrun.sh\nlongrun      -> 'wrap with longrun; may exceed 60s' (script invoked by path)\nfrida-server -> 'rooted BlueStacks Pie64 + frida-server, ADB' (device-side)\ncapa         -> 'name: capa-triage' / 'capa + capa-rules are Apache-2.0'\nfloss        -> '-m floss sample.exe   # all' (python -m)\ndiec         -> 'diec -j' (real PATH call; tool genuinely not installed = MISSING capability, not RETIRED)\nbc           -> 'name: bc-drive' / 'docs/research/2026-05-24-bc-eve' (token collision)\ncrosshair    -> '-m crosshair diffbehavior mod.clip_old' (python -m)\nvitest       -> 'import { describe, it, expect } from \"vitest\";' (JS import)\nghidra       -> '--ghidra-base 0x100000 --out' (flag fragment)\nwindbg       -> '$windbg-preview' (skill reference)",
+          "fingerprint": "p3v-invocation-form-manual-read",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "REFUTED as stated: a single-resolver set difference cannot answer this unit's question. Running the corpus against Git-Bash `command -v` ALONE manufactures 25 false positives (mon, wfmon, and 23 PowerShell cmdlets: add-content, add-type, convertfrom-json, copy-item, get-command, set-content, test-path, where-object, write-host, ...), exactly the .cmd-shim blindness rules/common/windows-shell.md section 8 records; and a BULK `Get-Command -CommandType Application,...` dump ALONE manufactures 44 the other way (grep, sed, awk, head, wc, uniq, comm, xargs, chmod, ...). Only the AND-gate of the two resolvers, with per-name `Get-Command` rather than a bulk dump, is sound.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "rules/common/windows-shell.md section 8 (check with Get-Command in PowerShell, not `which` in Git Bash, which misses .cmd shims)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python <scratchpad>/probe2_binaries.py   # reads a PREVIOUSLY CAPTURED bulk inventory file: `Get-Command -CommandType Application,Cmdlet,Function,Alias,ExternalScript | Select -Expand Name | Sort -Unique > getcommand.txt` (4166 names), then set-compares it against the Git-Bash results. Method is file-read, not command: the resolution is a membership test against a captured snapshot, which is precisely why it disagrees with the live per-name probe below.",
+          "raw_output": "gitbash MISSED but powershell FOUND (the .cmd-shim class): 39 ['add-content', 'add-type', 'compare', 'configuration', 'context', 'convertfrom-json', 'convertto-json', 'copy-item', 'foreach', 'format', 'get-command', 'get-content', 'group', 'invoke-expression', 'it', 'launch', 'main', 'make', 'measure', 'mock', 'mon', 'more', 'move', 'out-string', 'pause', 'prompt', 'select-string', 'set-content', 'set-location', 'setup', 'should', 'start-sleep', 'test-path', 'wfmon', 'where-object', 'write', 'write-error', 'write-host', 'write-output']\npowershell missed but gitbash found: 44 ['awk', 'backup', 'bind', 'chmod', 'chown', 'comm', 'complete', 'connect', 'cut', 'df', 'enable', 'env', 'file', 'grep', 'head', 'id', 'install', 'link', 'nohup', 'openssl', 'paste', 'patch', 'pr', 'prove', 'readonly', 'requirements.txt', 'restore', 'sed', 'shasum', 'skill.md', 'sync', 'touch', 'tr', 'trust', 'uniq', 'unlink', 'version', 'view', 'vim', 'wc']\nTARGETED disagreements: mon gitbash=False getcommand=True ; wfmon gitbash=False getcommand=True ; agentmon gitbash=NOT-PROBED getcommand=True ; grep gitbash=True getcommand=False (occ=115) ; sed gitbash=True getcommand=False (occ=18) ; head gitbash=True getcommand=False (occ=36)",
+          "fingerprint": "p2b-bulk-getcommand-dump-vs-gitbash",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "pwsh -NoProfile -NonInteractive -Command \"Get-Content names.txt | ForEach-Object { $c = Get-Command -Name $_ -ErrorAction SilentlyContinue | Select-Object -First 1; if($c){'OK '+$_} else {'NO '+$_} }\"   # PER-NAME Get-Command, not a bulk dump",
+          "raw_output": "would-be FALSE POSITIVES if only Git-Bash were used: 25 ['add-content', 'add-type', 'compare', 'convertfrom-json', 'convertto-json', 'copy-item', 'foreach', 'format', 'get-command', 'get-content', 'group', 'invoke-expression', 'make', 'mon', 'out-string', 'select-string', 'set-content', 'set-location', 'start-sleep', 'test-path', 'wfmon', 'where-object', 'write-error', 'write-host', 'write-output']\nwould-be FALSE POSITIVES if only PowerShell were used: 1 ['complete']\nSECOND-ORDER DETECTOR FINDING: per-name Get-Command RESOLVES grep/sed/awk/head/wc (present-both) which the BULK dump reported as missing. A bulk Get-Command dump is therefore NOT interchangeable with per-name resolution, and the 44-name figure above is an artifact of the bulk form.",
+          "fingerprint": "p3-pwsh-per-name-getcommand",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "UNVERIFIED (inline, and it qualifies the command-class scope only): the GENERIC command sweep produced 238 AND-gate hits over 369 narrow-fence command heads, and those 238 were NOT individually adjudicated. Spot-reading the top of that list shows it is dominated by (a) third-party vendor CLIs a skill documents but that were never installed here (wrangler occ=223, pwcli 75, cloudflared 39, doctl 36, azd 13, psql 11, workerd 11, pulumi 8, vercel 8, flutter 9, dart 10) and (b) residual extraction noise where API-verb and JS tables sit inside shell-tagged fences (const 89, get 37, console.log 34, post 24, var 20, from 19, import 11, assert 9, length 6, eof 7). Neither is a RETIRED capability. No count of genuinely-retired commands is claimed for that residue.",
+      "verdict": "PARTIAL",
+      "confidence": "likely",
+      "anchor": "<scratchpad>/probe3.json#/dead_command_references_and_gated (238 entries, top 60 recorded)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python <scratchpad>/probe3_corrected.py   # AND-gate over the narrow-fence command heads",
+          "raw_output": "distinct command heads (NARROW langs): 369\nDEAD (unresolved by BOTH resolvers, occ>0): 238\n   wrangler   occ=223  ['skills/cloudflare-deploy/references/ai-gateway/configuration.md', ...]\n   const      occ=89   ['agent-self/config/commands/sessions.md', 'commands/sessions.md', ...]\n   pwcli      occ=75   ['skills/playwright/references/cli.md', ...]\n   cloudflared occ=39  ['skills/cloudflare-deploy/references/tunnel/README.md', ...]\n   get        occ=37   ['skills/cloudflare-deploy/references/api-shield/api.md', ...]\n   doctl      occ=36   ['skills-claude-only/digitalocean-cli/SKILL.md']\n   console.log occ=34  ['commands/sessions.md']",
+          "fingerprint": "p3-generic-sweep-238",
+          "exit_code": 0
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "For each of the 238 names, classify the invocation form at every call site into {bare-PATH, path-relative, python -m, npx/uvx, device-side, non-command-token} using a parser over the fenced line rather than the head token alone, then resolve only the bare-PATH subset. Expected outcome: the confirmed dead-command count stays 0 and the 238 collapses to a small MISSING-THIRD-PARTY-CLI set. Cost: roughly one focused hour."
+    },
+    {
+      "claim": "UNVERIFIED (inline, qualifies the MCP-class recall not its precision): the L2 classifier has a MEASURED false-negative direction. hooks/_shared/use_vs_mention.classify(kind=\"marker\") calls an UNFENCED prose occurrence a MENTION, but an imperative in unfenced prose IS an instruction. 23 of the 42 marker:unfenced-prose MENTIONs sit on a line carrying call/Use/run/invoke. 18 of the 23 are ace-tool lines whose SAME line also carries the guard (\"If ace-tool MCP is available ... If unavailable\"), so the verdict is harmless there; 3 are skills/openai-docs/SKILL.md:13-15 (\"Use `mcp__openaiDeveloperDocs__search_openai_docs` to find ...\") which read as unconditional bullets and are only guarded by a separate sentence at line 10; 2 are SlopOrNot lines guarded by \"MCP path (try first)\". So this artifact's UNGUARDED count of 4 is a LOWER BOUND, not a total.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "hooks/_shared/use_vs_mention.py:764-771 (marker polarity: unfenced prose -> MENTION) ; skills/openai-docs/SKILL.md:10,13-15",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python -c \"...\"   # count MENTION hits whose uvm_rule=='marker:unfenced-prose' AND whose line matches \\b(call|Call|use|Use|run|Run|invoke|Invoke)\\b",
+          "raw_output": "RESIDUAL false-negative surface (MENTION via unfenced-prose BUT line carries an imperative): 23\n  commands/multi-plan.md:74   | **If ace-tool MCP is available**, call `mcp__ace-tool__enhance_prompt` tool:\n  skills/openai-docs/SKILL.md:13  | - Use `mcp__openaiDeveloperDocs__search_openai_docs` to find the most relevant doc pages.\n  skills/openai-docs/SKILL.md:14  | - Use `mcp__openaiDeveloperDocs__fetch_openai_doc` to pull exact sections ...\n  skills/openai-docs/SKILL.md:15  | - Use `mcp__openaiDeveloperDocs__list_openai_docs` only when you need to browse ...\n  skills/agentic-humanizer/SKILL.md:263 | Call `mcp__SlopOrNot__detect_text` with the fixture and\nMENTION verdicts by uvm_rule: marker:unfenced-prose 42 ; marker:source-file 1 ; marker:fenced-code-in-prose 2",
+          "fingerprint": "p4-residual-imperative-in-unfenced-prose",
+          "exit_code": 0
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "Add an IMPERATIVE-IN-PROSE rule to the adjudicator (a line matching (call|use|invoke|run)\\s+`?mcp__ is a USE regardless of fencing) and re-run; the UNGUARDED count is expected to rise from 4 to 7 (the three openai-docs bullets). Then confirm by hand-reading all 42 marker:unfenced-prose MENTIONs, which is the exhaustive check."
+    }
+  ],
+  "tests": [
+    {
+      "id": "CTRL-PRESENT-MCP",
+      "name": "REQUIRED known-present control: a currently-available MCP tool must NOT be flagged",
+      "command": "ToolSearch select:mcp__basic-memory__write_note,mcp__repomix__pack_codebase,mcp__searxng__searxng_web_search  +  probe4 assertion that {basic-memory, codex, github, repomix, searxng} is disjoint from the ABSENT set",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "mcp__basic-memory__write_note -> full JSONSchema returned. mcp__repomix__pack_codebase -> returned. mcp__searxng__searxng_web_search -> returned. NC-PRESENT-MCP flagged = [] (empty)."
+    },
+    {
+      "id": "CTRL-ABSENT-MCP",
+      "name": "REQUIRED known-absent control: an absent MCP name must fail to resolve in the SAME resolver call that resolves a present one",
+      "command": "ToolSearch select:mcp__hacktricks__search_hacktricks,mcp__openaiDeveloperDocs__search_openai_docs,mcp__plugin_serena_serena__find_symbol,mcp__claude-in-chrome__navigate,mcp__repomix__pack_codebase,mcp__searxng__searxng_web_search",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "2 of 6 returned (repomix, searxng); 4 of 6 silent (hacktricks, openaiDeveloperDocs, plugin_serena_serena, claude-in-chrome). Both states inside one call, so the silence is not a dead resolver."
+    },
+    {
+      "id": "CTRL-L1-TOKEN-REACH",
+      "name": "REQUIRED known-absent control: the retired budget tools MUST be flagged at the token layer, else the detector is not reaching the instruction corpus",
+      "command": "python <scratchpad>/probe4_adjudicate.py   # RE_RETIRED over the git ls-files corpus",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "retired_budget_token_occurrences_in_corpus = 9 across 7 files including AGENTS.md, CLAUDE.md and agent-self/config/CLAUDE.md. The detector reaches the instruction corpus."
+    },
+    {
+      "id": "CTRL-L2-BOTH-STATES",
+      "name": "REQUIRED both-states control on the use-vs-mention layer, using synthetic fixtures because the real corpus contains NO live instruction to a retired budget tool",
+      "command": "python <scratchpad>/probe4_adjudicate.py   # scan(KNOWN_BAD) must fire, scan(KNOWN_GOOD) must be silent",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "known_bad_fired=1 (get_budget in a fenced `get_budget --json` block -> USE-UNGUARDED); known_good_fired=0 (the retirement-notice wording -> MENTION). fired_on_bad_state=true, silent_on_good_state=true."
+    },
+    {
+      "id": "CTRL-PRESENT-BIN",
+      "name": "REQUIRED known-present control: an installed binary must NOT be flagged by either resolver",
+      "command": "python <scratchpad>/probe3_corrected.py   # git, python, gh, node through Git-Bash `command -v` and per-name pwsh Get-Command",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "gitbash {git:true, python:true, gh:true, node:true} ; powershell {git:true, python:true, gh:true, node:true} ; flagged_dead = []"
+    },
+    {
+      "id": "CTRL-ABSENT-BIN",
+      "name": "REQUIRED known-absent control: a name that provably does not exist must be flagged by BOTH resolvers",
+      "command": "python <scratchpad>/probe3_corrected.py   # name 'zzz-definitely-not-a-real-binary-adv0019'",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "gitbash=false, powershell=false -> flagged. The AND-gate is not vacuously silent."
+    },
+    {
+      "id": "CTRL-CONFIG-MATCHER-DISCRIMINATION",
+      "name": "Both-states control on the config-matcher exclusion: a real unguarded call site must fire while a hook matcher regex naming the same shape must stay silent",
+      "command": "python <scratchpad>/probe4_adjudicate.py   # compare skills/knowledge-ops/SKILL.md:131 against agent-self/config/settings.json:353",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "knowledge-ops/SKILL.md:131 -> USE-UNGUARDED (fires). settings.json:353 (\"matcher\": \"Bash|mcp__playwright__.*|mcp__claude-in-chrome__.*|...\") -> MENTION 'config matcher regex, not a call site' (silent). Before this rule the matcher scored USE-UNGUARDED: a measured false positive, now killed."
+    },
+    {
+      "id": "CTRL-DOWNSTREAM-SCHEMA-GATE",
+      "name": "Downstream consumer executes against this artifact",
+      "command": "python platform/lib/receipt_schema_gate.py --json command-center/adversarial/ADV-0019-retired-capability-dead-references.json",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "See downstream_consumers[0] for the verbatim result."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-L2-BOTH-STATES",
+      "kind": "known-broken-fixture",
+      "description": "The real corpus contains ZERO live instructions to a retired budget tool, so the adjudication layer's silence there proves nothing on its own. Two synthetic fixtures supply the missing states: KNOWN_BAD carries an actual directive plus a fenced `get_budget --json` invocation; KNOWN_GOOD carries the estate's real retirement wording.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "known-bad fixture adjudications: [('mcp__memory__create_entities','MENTION','use_vs_mention:marker:unfenced-prose'), ('get_budget','MENTION','use_vs_mention:marker:unfenced-prose'), ('get_budget','USE-UNGUARDED','instruction with NO availability guard anywhere in the artifact')] -> 1 USE fired",
+      "good_state_output": "known-good fixture adjudications: [('get_budget','MENTION','use_vs_mention:marker:unfenced-prose')] -> 0 USE fired"
+    },
+    {
+      "id": "NC-MCP-RESOLVER-BOTH-STATES",
+      "kind": "absent-input",
+      "description": "The live-tool-schema resolver (ToolSearch select:) is exercised on present and absent names inside ONE call, so a global resolver failure cannot masquerade as absence.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent names returned no <function> block: mcp__memory__create_entities, mcp__devfleet__plan_project, mcp__ace-tool__enhance_prompt, mcp__SlopOrNot__detect_text, mcp__hacktricks__search_hacktricks, mcp__openaiDeveloperDocs__search_openai_docs, mcp__plugin_serena_serena__find_symbol, mcp__claude-in-chrome__navigate",
+      "good_state_output": "present names returned a full schema in the same calls: mcp__basic-memory__write_note, mcp__repomix__pack_codebase, mcp__searxng__searxng_web_search"
+    },
+    {
+      "id": "NC-BIN-RESOLVER-BOTH-STATES",
+      "kind": "absent-input",
+      "description": "Both binary resolvers are exercised against a provably-absent name and against four provably-present ones.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "zzz-definitely-not-a-real-binary-adv0019: gitbash=false powershell=false",
+      "good_state_output": "git/python/gh/node: gitbash=true powershell=true, flagged_dead=[]"
+    },
+    {
+      "id": "NC-DEFSITE-DISCRIMINATION",
+      "kind": "adversarial-payload",
+      "description": "A same-named identifier that is a DEFINITION, not a call, must not be flagged. skills/llm-security/rules/unbounded-consumption.md:255 defines `def check_budget(` inside a fenced Python sample; marker semantics alone scores a fenced block in prose as USE, which would be a false positive.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "With the definition-site rule DISABLED, skills/llm-security/rules/unbounded-consumption.md:255 and skills/llm-security/AGENTS.md:3142 adjudicate as USE (marker:fenced-code-in-prose) -- 2 false positives, and the earlier probe1 run recorded exactly those two as fenced-code hits.",
+      "good_state_output": "With the rule ENABLED both adjudicate as MENTION 'definition-site (def/class), not a call'; the 2 remaining marker:fenced-code-in-prose MENTIONs in probe4.json are precisely these."
+    },
+    {
+      "id": "NC-CONFIG-MATCHER",
+      "kind": "adversarial-payload",
+      "description": "A hook matcher regex that names an absent MCP namespace must stay silent while a genuine call site fires.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "skills/knowledge-ops/SKILL.md:131 -> USE-UNGUARDED",
+      "good_state_output": "agent-self/config/settings.json:353 -> MENTION 'config matcher regex, not a call site' (was USE-UNGUARDED before the rule was added)"
+    },
+    {
+      "id": "NC-SINGLE-RESOLVER-IS-BROKEN",
+      "kind": "mutation",
+      "description": "Mutation of the detector itself: drop one resolver from the AND-gate and count the resulting false positives. This is the control that proves the two probes are genuinely independent rather than decorative.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "Git-Bash only -> 25 false positives (mon, wfmon + 23 PowerShell cmdlets). Bulk Get-Command only -> 44 false positives (grep, sed, awk, head, wc, chmod, ...).",
+      "good_state_output": "AND-gate of Git-Bash `command -v` and per-name pwsh Get-Command -> 0 of those 69 names is flagged; only the 10 genuinely-unresolvable targeted names survive, and those are then adjudicated by invocation form."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "NOT-ASSIGNED",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The unit's reviewer_requirement asks for one CROSS-VENDOR refuter who re-derives the counterexample from the raw artifact and NOT from this report. The catalog assigns the unit to openai/gpt-5-codex and therefore names an ANTHROPIC (opus) refuter; this unit was actually EXECUTED by anthropic/claude-opus-5, so the requirement inverts and only an OPENAI/Codex refuter now satisfies independence. Nobody has reviewed it. The single highest-value re-derivation for a refuter: open skills/knowledge-ops/SKILL.md at lines 126-138 with no other context and answer independently whether those four `Use mcp__memory__*` lines carry any availability guard, and separately re-resolve mcp__memory__create_entities through a THIRD instrument (a live tool-call attempt, not ToolSearch and not `claude mcp list`)."
+  },
+  "defects": [
+    {
+      "id": "D-ADV0019-1",
+      "severity": "P2",
+      "status": "open",
+      "summary": "skills/knowledge-ops/SKILL.md:131-134 instructs four calls to the absent `memory` MCP server with no availability guard, no fallback and no prerequisite anywhere in the artifact. Fix the INSTRUCTION (point it at the mounted basic-memory server, or add a guard), not a call site."
+    },
+    {
+      "id": "D-ADV0019-2",
+      "severity": "P3",
+      "status": "open",
+      "summary": "skills/hacktricks/SKILL.md:77 asserts as present-tense fact that `The configured MCP client entry is `hacktricks``; the live inventory has no such server. The artifact's MCP-down fallback still works, so this is a stale premise rather than a hard break."
+    },
+    {
+      "id": "D-ADV0019-3",
+      "severity": "P3",
+      "status": "open",
+      "summary": "skills/orchestration-patterns/SKILL.md:130 states Serena is 'disabled-yet-mounted'. Measured: serena@claude-plugins-official is disabled AND absent from both `claude mcp list` and the live tool schema, i.e. not mounted at all. The documented fallback still holds."
+    },
+    {
+      "id": "D-ADV0019-4",
+      "severity": "P3",
+      "status": "open",
+      "summary": "commands/devfleet.md + agent-self/config/commands/devfleet.md + skills/source-command-devfleet/SKILL.md carry 15 unconditional mcp__devfleet__* call sites against an absent server; mitigated only by an install-prerequisite line, which is not a runtime guard."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0019"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py (--fragment generic_report)",
+      "artifact_path": "command-center/adversarial/ADV-0019-retired-capability-dead-references.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py --json --fragment generic_report command-center/adversarial/ADV-0019-retired-capability-dead-references.json",
+        "raw_output": "python platform/lib/receipt_schema_gate.py --json --repo-root . --fragment generic_report <this file>  -> exit 1 (predicate unsatisfied, as intended for a BLOCKED unit), and the consumer READ and PARSED the artifact:\nmarker: FAILED:ADV-0019 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c9=UNSATISFIED,c11=UNSATISFIED\nschema_errors: []\n  c1  UNSATISFIED    state=BLOCKED is terminal but not a completion\n  c2  SATISFIED      1 artifact(s) stat-confirmed under .\n  c3  UNSATISFIED    declared bytes/sha256 disagree with disk (the self-hash residual; see residual_unknowns[0])\n  c4  SATISFIED      validates against receipt.schema.json generic_report\n  c5  UNSATISFIED    sentinel is a FAILED marker\n  c6  SATISFIED      8 anchored evidence item(s), source/verifier pairs independent\n  c7  SATISFIED      8 test(s) PASS\n  c8  SATISFIED      6 both-states control(s) fired on bad and silent on good\n  c9  UNSATISFIED    reviewer verdict='NOT-REVIEWED'\n  c10 SATISFIED      4 defect(s) recorded, none open at P0/P1\n  c11 UNSATISFIED    manifest_registration.registered is not true\n  c12 SATISFIED      1 consumer(s) executed and read the artifact",
+        "fingerprint": "receipt-schema-gate-generic-report"
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The sha256 and byte count recorded in artifacts[0] cannot be the hash of the FINAL bytes of this file, because a file cannot contain its own hash.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Recompute externally: python -c \"import hashlib,pathlib;p=pathlib.Path('command-center/adversarial/ADV-0019-retired-capability-dead-references.json');b=p.read_bytes();print(len(b), hashlib.sha256(b).hexdigest())\" and compare against extensions.measured_after_write, which records the values measured on the immediately-preceding write."
+    },
+    {
+      "claim": "Scope: the corpus is the TRACKED repo instruction tree (skills, skills-claude-only, rules, agents, commands, workflows, guides, agent-self, AGENTS.md, CLAUDE.md, README.md = 1,756 md/json files). It excludes docs/, harness-sota-*-corpus/, platform/, command-center/ and the untracked live trees (~/.claude, ~/.agents). A dead reference living only in an untracked live-tree copy would be missed.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run extract_tokens.py with CORPUS_ROOTS pointed at ~/.claude and ~/.agents and diff the absent-server set against this run's. Per rules/common/harness-vcs-hygiene.md the repo is the source of truth, so a live-only hit would additionally be un-reconciled drift."
+    },
+    {
+      "claim": "Recall of the mcp__ token class is bounded by the token SHAPE. An instruction that names a dead capability in prose without the mcp__server__tool form (\"ask the devfleet server to plan the project\") is invisible to this detector, exactly as `get_budget` was invisible until it was added to a hand-curated retired set.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Build the retired-name set MECHANICALLY instead of by hand: for every DISABLED plugin and every unmounted server, harvest its documented tool names from the artifact that documents it, then re-scan for those bare names. That converts the hand-curated calibration case into a general rule."
+    },
+    {
+      "claim": "`diec` (Detect-It-Easy) is invoked as a bare PATH command at least once and resolves in neither resolver, so it is a genuinely absent capability -- but it is a NEVER-INSTALLED third-party tool, not a RETIRED one, and its skill states it degrades gracefully when a tool is missing. It is therefore excluded from the dead-reference count by classification, not by measurement.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Execute the re-triage-preflight skill's diec path with the binary absent and confirm the documented graceful degradation actually fires rather than raising; if it raises, reclassify as a P2 dead reference."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T19:35:00Z",
+    "ended_at": "2026-08-11T20:25:00Z",
+    "duration_seconds": 3000
+  },
+  "retry": {
+    "count": 1,
+    "policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "detector-failure:class-C-over-extraction (fenced-language set included `text` and bare fences, so prose was harvested as commands: 1822 distinct heads, 1615 'unresolved' -- a self-evidently broken instrument)",
+        "outcome": "FAILED",
+        "started_at": "2026-08-11T19:45:00Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "none; pivoted instrument (narrow fenced-language set + AND-gated two-resolver check + per-name Get-Command instead of a bulk dump)",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-11T19:58:00Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "narrow the fenced-language set to real shell languages and AND-gate the two resolvers (chosen)",
+      "abandon the generic command sweep and probe only a curated dependency list of tools the instruction corpus actually relies on (also done, as the targeted probe)",
+      "parse invocation FORM (bare-PATH vs path-relative vs python -m vs npx/uvx vs device-side) before resolving anything (deferred; named as the settling experiment for the 238-name residue)"
+    ]
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-review",
+      "stale-premise",
+      "detector-failure"
+    ],
+    "reason": "All probes, controls and verdicts in this receipt are measured and citable, and the unit's question is ANSWERED. The unit is nevertheless BLOCKED, not SUCCESS, for one structural reason: platform/schema/receipt.schema.json requires reviewer.verdict==PASS with reviewer.independent==true for state SUCCESS, and no independent cross-vendor refuter has reviewed this artifact. Self-certifying would be exactly the false green this unit exists to hunt. The two secondary classifications are earned rather than decorative: `stale-premise` because three artifacts assert live-inventory facts that are false (hacktricks MCP configured, Serena disabled-yet-mounted, DevFleet server reachable), and `detector-failure` because this unit's OWN first-attempt command-class detector was broken (prose harvested as commands) and because it MEASURED that a single-resolver set difference -- the naive reading of the specified mechanism -- manufactures 25 or 44 false positives depending on which resolver is dropped.",
+    "blocked_on": "One cross-vendor (OpenAI/Codex, given this unit was executed by anthropic/claude-opus-5) refuter who re-derives the counterexample from skills/knowledge-ops/SKILL.md:126-138 and from a THIRD resolver instrument, without reading this report.",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "platform/schema/receipt.schema.json#/$defs/receipt_core/allOf[0] -- the state==SUCCESS clause",
+        "raw_output": "\"reviewer\": { \"properties\": { \"verdict\": { \"const\": \"PASS\" }, \"independent\": { \"const\": true } }, \"required\": [\"verdict\", \"independent\"] }  -- so a SUCCESS receipt structurally cannot carry reviewer.verdict NOT-REVIEWED / independent false.",
+        "fingerprint": "schema-success-clause-read"
+      },
+      {
+        "role": "verifier",
+        "method": "manual-inspection",
+        "command": "command-center/WORK-UNIT-CATALOG.json work_units[id==ADV-0019].reviewer_requirement",
+        "raw_output": "\"one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement\" -- and produced_by.vendor here is anthropic, so an Anthropic refuter is now SAME-vendor and cannot satisfy it.",
+        "fingerprint": "catalog-reviewer-requirement-read"
+      }
+    ]
+  },
+  "report": {
+    "kind": "stale-premise-reprobe",
+    "question": "Which prompts, skills, rules, agents and workflow definitions still instruct an agent to call a tool, plugin or command that no longer exists in the live inventory?",
+    "headline": "FIVE artifacts (three distinct, two of them duplicated into a second tree) instruct calls to MCP servers that are absent from the live inventory: skills/knowledge-ops/SKILL.md is the only one with NO guard of any kind (four `Use mcp__memory__*` directives), skills/hacktricks/SKILL.md and the devfleet trio carry file-level fallbacks or an install prerequisite but assert live-inventory facts that are false, and ace-tool / SlopOrNot / openaiDeveloperDocs / Serena degrade gracefully behind guards. The calibration case is CLEAN: all 9 references to the retired AgentBridge budget tools are retirement notices or an unrelated `def check_budget(`, and the disabled-plugin references are notices or the config that performs the disabling -- so the estate's retirement propagation worked. The command/binary half of the specified mechanism found ZERO dead references at 0/10 precision on the targeted set, because instruction artifacts invoke tools by path, by `python -m`, by npx/uvx or on a device, not from PATH -- and a SINGLE-resolver set difference, which is the naive reading of the mechanism, manufactures 25 false positives with Git-Bash alone or 44 with a bulk Get-Command dump alone.",
+    "observations": [
+      {
+        "name": "instruction-corpus-files-scanned",
+        "measured": 1938,
+        "method": "git ls-files over skills, skills-claude-only, rules, agents, commands, workflows, guides, agent-self, AGENTS.md, CLAUDE.md, README.md filtered to md/markdown/mdx/txt/mjs/js/json/yaml/yml",
+        "anchor": "<scratchpad>/probe1.json#/stats/files_scanned"
+      },
+      {
+        "name": "instruction-corpus-bytes-scanned",
+        "measured": 10797307,
+        "method": "sum of len(text) over the scanned corpus",
+        "anchor": "<scratchpad>/probe1.json#/stats/bytes_scanned"
+      },
+      {
+        "name": "distinct-mcp-tool-tokens-extracted",
+        "measured": 72,
+        "method": "regex mcp__([A-Za-z0-9_.+-]+?)__([A-Za-z0-9_.+-]+), 232 total occurrences",
+        "anchor": "<scratchpad>/probe1.json#/distinct_mcp_tokens"
+      },
+      {
+        "name": "live-mcp-servers-mounted",
+        "measured": 64,
+        "method": "claude mcp list, parsed to name -> health",
+        "anchor": "<scratchpad>/mcplist.txt"
+      },
+      {
+        "name": "absent-mcp-server-namespaces-instructed",
+        "measured": 8,
+        "method": "set difference of instructed server names against mounted servers, then re-resolved through the live tool schema",
+        "anchor": "report.dead_reference_inventory"
+      },
+      {
+        "name": "mcp-call-sites-with-NO-guard-anywhere-in-artifact",
+        "measured": 4,
+        "method": "3-layer adjudicator; LOWER BOUND, see the disclosed marker false-negative",
+        "anchor": "skills/knowledge-ops/SKILL.md:131-134"
+      },
+      {
+        "name": "mcp-call-sites-guarded-only-at-file-level",
+        "measured": 31,
+        "method": "3-layer adjudicator, USE-FILE-GUARDED bucket",
+        "anchor": "<scratchpad>/probe4.json#/hits"
+      },
+      {
+        "name": "mcp-call-sites-with-line-local-guard",
+        "measured": 6,
+        "method": "3-layer adjudicator, USE-GUARDED bucket",
+        "anchor": "<scratchpad>/probe4.json#/hits"
+      },
+      {
+        "name": "retired-budget-tool-occurrences-in-corpus",
+        "measured": 9,
+        "method": "RE \\b(get_budget|check_budget)\\b over the corpus",
+        "anchor": "AGENTS.md:100,111 ; CLAUDE.md:7,21 ; agent-self/config/CLAUDE.md:97 ; skills/codex-mixed-workflow-doctrine/SKILL.md:431 ; skills/multi-ai-mingle/SKILL.md:49 ; skills/llm-security/AGENTS.md:3142 ; skills/llm-security/rules/unbounded-consumption.md:255"
+      },
+      {
+        "name": "retired-budget-tool-LIVE-INSTRUCTIONS",
+        "measured": 0,
+        "method": "3-layer adjudication of all 9 occurrences plus a verbatim read of every one",
+        "anchor": "report.calibration_case"
+      },
+      {
+        "name": "live-plugins-enumerated",
+        "measured": 98,
+        "method": "claude plugin list, 493 lines parsed to name@marketplace -> Status",
+        "anchor": "<scratchpad>/plugins.txt"
+      },
+      {
+        "name": "dead-plugin-references",
+        "measured": 0,
+        "method": "117 plugin-token occurrences adjudicated; the 4 agentbridge and 4 serena references are notices, guards or the disabling config itself",
+        "anchor": "agent-self/config/settings.json:688,690"
+      },
+      {
+        "name": "distinct-command-heads-narrow-fences",
+        "measured": 369,
+        "method": "head token of each command line inside fences tagged bash/sh/shell/zsh/console/shellsession/powershell/pwsh/ps1/cmd/bat/batch over 1706 md files",
+        "anchor": "<scratchpad>/probe3.json#/distinct_command_heads_narrow"
+      },
+      {
+        "name": "confirmed-dead-command-references",
+        "measured": 0,
+        "method": "AND-gate of Git-Bash `command -v` and per-name pwsh Get-Command over a 68-name targeted dependency list, then invocation-form adjudication of all 10 survivors",
+        "anchor": "report.command_class"
+      },
+      {
+        "name": "false-positives-if-only-gitbash-resolver",
+        "measured": 25,
+        "method": "names failed by Git-Bash `command -v` but resolved by per-name Get-Command",
+        "anchor": "<scratchpad>/probe3.json#/single_resolver_false_positives_if_only_gitbash"
+      },
+      {
+        "name": "false-positives-if-only-bulk-getcommand-dump",
+        "measured": 44,
+        "method": "names resolved by Git-Bash but missing from a bulk `Get-Command -CommandType Application,Cmdlet,Function,Alias,ExternalScript` dump",
+        "anchor": "<scratchpad>/probe2.json#/powershell_missed_but_gitbash_found"
+      },
+      {
+        "name": "first-attempt-detector-false-positive-rate-class-C",
+        "measured": "1615 of 1822 distinct head tokens reported unresolved -- a self-evidently broken instrument, corrected in attempt 2",
+        "method": "attempt-1 wide fenced-language set including `text` and bare fences",
+        "anchor": "<scratchpad>/probe1.json#/binary_head_tokens_unresolved_gitbash"
+      },
+      {
+        "name": "marker-classifier-residual-false-negative-surface",
+        "measured": 23,
+        "method": "count of marker:unfenced-prose MENTIONs whose line carries call/Use/run/invoke",
+        "anchor": "hooks/_shared/use_vs_mention.py:764-771"
+      }
+    ],
+    "dead_reference_inventory": [
+      {
+        "server": "memory",
+        "artifacts": ["skills/knowledge-ops/SKILL.md:131-134"],
+        "occurrences": 4,
+        "guard": "NONE anywhere in the artifact (grep for available/not installed/fallback/require/missing/optional returned only the four directive lines)",
+        "verdict": "CONFIRMED",
+        "severity": "P2",
+        "confidence": "almost-certain",
+        "note": "The estate's real semantic-memory server is basic-memory (mcp__basic-memory__*), which IS mounted. This looks like an un-migrated reference to the generic `memory` knowledge-graph server."
+      },
+      {
+        "server": "devfleet",
+        "artifacts": ["commands/devfleet.md:29,42,50,56,64", "agent-self/config/commands/devfleet.md:29,42,50,56,64", "skills/source-command-devfleet/SKILL.md:36,49,57,63,71"],
+        "occurrences": 15,
+        "guard": "install prerequisite only (commands/devfleet.md:9 `Requires the DevFleet MCP server: claude mcp add devfleet --transport http http://localhost:18801/mcp`); no runtime availability check at any call site",
+        "verdict": "CONFIRMED",
+        "severity": "P3",
+        "confidence": "almost-certain"
+      },
+      {
+        "server": "hacktricks",
+        "artifacts": ["skills/hacktricks/SKILL.md:77,325,336,339,342,352,355,364,367", "agent-self/skills/hacktricks/SKILL.md (same lines)"],
+        "occurrences": 16,
+        "guard": "file-level fallback present (routing table row: `Exact literal, regex, offline-only, or MCP-down lookup | Offline corpus`)",
+        "verdict": "CONFIRMED",
+        "severity": "P3",
+        "confidence": "almost-certain",
+        "note": "STALE PREMISE at line 77: `The configured MCP client entry is `hacktricks`` is asserted as present-tense fact and is false. The repo ships tools/mcp/hacktricks-mcp-server/ but nothing mounts it."
+      },
+      {
+        "server": "openaiDeveloperDocs",
+        "artifacts": ["skills/openai-docs/SKILL.md:10,13,14,15", "skills/chatgpt-apps/SKILL.md:46,47"],
+        "occurrences": 5,
+        "guard": "partial -- openai-docs/SKILL.md:10 says `Only if the MCP server is installed and returns no meaningful results should you fall back to web search`, and chatgpt-apps gates on `If $openai-docs is unavailable`; but the Quick-start bullets at 13-15 read as unconditional",
+        "verdict": "CONFIRMED",
+        "severity": "P3",
+        "confidence": "almost-certain"
+      },
+      {
+        "server": "ace-tool",
+        "artifacts": ["commands/multi-plan.md:74,77,90,93", "commands/multi-execute.md:141,144", "commands/multi-backend.md:88,94", "commands/multi-frontend.md:88,94", "commands/multi-workflow.md:122,123", "agent-self/config/commands/* (same five files, same lines)"],
+        "occurrences": 24,
+        "guard": "line-local at every call site (`If ace-tool MCP is available, call ... If ace-tool MCP is NOT available: Skip this step and use the original $ARGUMENTS as-is`)",
+        "verdict": "CONFIRMED",
+        "severity": "INFO",
+        "confidence": "almost-certain",
+        "note": "Absent from the live inventory, but the instruction degrades correctly. This is the shape a dead reference SHOULD have."
+      },
+      {
+        "server": "SlopOrNot",
+        "artifacts": ["skills/agentic-humanizer/SKILL.md:263", "skills/agentic-humanizer/references/slop-mcp-setup.md:20-25,124"],
+        "occurrences": 8,
+        "guard": "line-local (`MCP path (try first)` with a CLI fallback); the owning skill is additionally scoped `macOS only`",
+        "verdict": "CONFIRMED",
+        "severity": "INFO",
+        "confidence": "almost-certain"
+      },
+      {
+        "server": "plugin_serena_serena",
+        "artifacts": ["skills/orchestration-patterns/SKILL.md:114,116,130,200"],
+        "occurrences": 4,
+        "guard": "explicit (`Honest precondition` + `Fallback if Serena is out: rank by import/reference degree from a repomix pack ... never fabricate a ranking`)",
+        "verdict": "CONFIRMED",
+        "severity": "P3",
+        "confidence": "almost-certain",
+        "note": "STALE PREMISE: the artifact says Serena is `disabled-yet-mounted`. Measured: serena@claude-plugins-official Status=disabled in `claude plugin list`, enabledPlugins=false in BOTH agent-self/config/settings.json:688 and the live ~/.claude/settings.json, and absent from `claude mcp list` and the live tool schema -- disabled AND unmounted."
+      },
+      {
+        "server": "claude-in-chrome",
+        "artifacts": ["agent-self/config/settings.json:353"],
+        "occurrences": 1,
+        "guard": "n/a",
+        "verdict": "REFUTED",
+        "severity": "INFO",
+        "confidence": "almost-certain",
+        "note": "NOT a dead reference. The token sits inside a hook `\"matcher\"` regex (`Bash|mcp__playwright__.*|mcp__claude-in-chrome__.*|mcp__chrome-devtools__.*`), which names tool shapes to intercept rather than instructing a call. An inert alternation branch. This was a measured FALSE POSITIVE of the first adjudicator and is the reason the config-matcher exclusion exists."
+      }
+    ],
+    "calibration_case": {
+      "target": "the known retired set: AgentBridge get_budget / check_budget",
+      "layer_1_token_reach": "FIRED -- 9 occurrences across 7 instruction files including AGENTS.md, CLAUDE.md and agent-self/config/CLAUDE.md, so the detector demonstrably reaches the instruction corpus",
+      "layer_2_adjudication": "0 of 9 is a live instruction: 7 retirement notices, 2 x `def check_budget(` in an unrelated security code sample",
+      "verdict": "CONFIRMED that the corpus is CLEAN on the calibration case",
+      "confidence": "almost-certain",
+      "why_a_synthetic_fixture_was_required": "Because the corpus is clean, the adjudication layer's silence there proves nothing about the layer. NC-L2-BOTH-STATES supplies the missing broken state with a synthetic fixture that carries a genuine directive; the layer FIRES on it and stays silent on the estate's real retirement wording."
+    },
+    "command_class": {
+      "and_gate_survivors": ["longrun", "frida-server", "capa", "floss", "diec", "bc", "crosshair", "vitest", "ghidra", "windbg"],
+      "adjudicated_dead": [],
+      "precision_on_targeted_set": "0 of 10 -- every survivor is a false positive of the on-PATH assumption",
+      "why": "longrun is scripts/longrun.{ps1,sh} and both files exist (10737 and 8932 bytes); frida-server is device-side; capa/floss/crosshair run as `python -m`; vitest via npx / a JS import; ghidra matched the `--ghidra-base` flag fragment; windbg matched a `$windbg-preview` skill reference; `bc` collided with the bc-drive skill name AND is documented as absent by rules/common/windows-shell.md section 8 itself; `diec` is a real bare-PATH call but a never-installed third-party tool with documented graceful degradation, i.e. MISSING rather than RETIRED.",
+      "verdict": "CONFIRMED zero dead command references on the targeted set; PARTIAL over the 238-name generic residue (not individually adjudicated, see the UNVERIFIED evidence item)",
+      "confidence": "likely"
+    },
+    "answer_to_the_question": "Five artifacts, covering three distinct capabilities, instruct calls to MCP servers absent from the live inventory, and exactly ONE of them does so with no guard whatsoever: skills/knowledge-ops/SKILL.md:131-134 (four `Use mcp__memory__*` directives, P2). The devfleet trio (15 sites) is mitigated only by an install prerequisite, and skills/hacktricks/SKILL.md (16 sites) plus skills/orchestration-patterns/SKILL.md (4 sites) keep working fallbacks but assert live-inventory facts that are now false -- stale premises, P3. ace-tool (24 sites), SlopOrNot (8) and openaiDeveloperDocs (5) all degrade behind guards. NOTHING still instructs a retired AgentBridge tool and NOTHING still instructs a disabled plugin: the estate's retirement propagation is clean, and the 9 get_budget/check_budget hits plus the 8 agentbridge/serena hits are notices, guards, or the config that performs the disabling. The command class contributes zero confirmed dead references. The fix in every confirmed case is to edit the INSTRUCTION -- repoint, guard, or delete -- not any call site.",
+    "control_ids": [
+      "CTRL-PRESENT-MCP",
+      "CTRL-ABSENT-MCP",
+      "CTRL-L1-TOKEN-REACH",
+      "CTRL-L2-BOTH-STATES",
+      "CTRL-PRESENT-BIN",
+      "CTRL-ABSENT-BIN",
+      "CTRL-CONFIG-MATCHER-DISCRIMINATION",
+      "CTRL-DOWNSTREAM-SCHEMA-GATE",
+      "NC-L2-BOTH-STATES",
+      "NC-MCP-RESOLVER-BOTH-STATES",
+      "NC-BIN-RESOLVER-BOTH-STATES",
+      "NC-DEFSITE-DISCRIMINATION",
+      "NC-CONFIG-MATCHER",
+      "NC-SINGLE-RESOLVER-IS-BROKEN"
+    ],
+    "probe_1_as_specified": "SATISFIED. `extract every tool/command token from instruction artifacts and set-difference it against the live inventory`: 1,938 tracked instruction files / 10,797,307 bytes yielded 72 distinct mcp__ tokens (232 occurrences), 117 plugin@marketplace occurrences, 9 retired-name occurrences and 9,349 command-head tokens; set-differenced against 64 mounted MCP servers (`claude mcp list`), 98 plugins with enabled/disabled state (`claude plugin list`) and Git-Bash `command -v`.",
+    "probe_2_as_specified": "SATISFIED and mechanically different in both halves. Binaries: PowerShell per-name `Get-Command` instead of Git-Bash `command -v` -- and the disagreement is real and measured in BOTH directions, which is why the AND-gate exists (Git-Bash alone: 25 false positives including mon/wfmon, the documented .cmd-shim blindness; a bulk Get-Command dump alone: 44 the other way including grep/sed/awk). MCP names: resolution through the LIVE tool schema via ToolSearch `select:`, which touches no CLI stdout at all; present and absent names were resolved inside the SAME call so the silence is controlled.",
+    "method_limitations_inline": "(1) The mcp__ token shape bounds recall -- a prose instruction naming a dead capability without that shape is invisible, exactly as get_budget was until it was hand-added to a retired set. (2) The marker classifier scores unfenced prose as MENTION, so the UNGUARDED count of 4 is a LOWER BOUND; 23 of 42 such MENTIONs carry an imperative and 3 of those (skills/openai-docs/SKILL.md:13-15) are genuinely unconditional bullets. (3) The command class resolves PATH membership, which is not capability existence; 10/10 of its survivors were false positives. (4) The corpus is the TRACKED repo tree only; docs/, platform/, command-center/ and the untracked live trees are out of scope. (5) `mcp__claude-in-chrome__navigate` was a NAME I constructed rather than one taken from an artifact, so its non-resolution is server-level evidence only -- the artifact-derived names carry both server-level and tool-level evidence."
+  },
+  "extensions": {
+    "measured_after_write": {
+      "note": "The BYTE COUNT in artifacts[0] is a genuine fixed point and should match disk exactly: the final edit replaced a 5-digit placeholder with the 5-digit measured value and a 64-hex-char zero placeholder with a 64-hex-char digest, both length-preserving, so the file size did not move. The SHA256 in artifacts[0] is the digest measured on the immediately-preceding write and CANNOT equal the final digest -- a file cannot contain its own hash. receipt_schema_gate.py therefore reports c3 UNSATISFIED, correctly, and that is the only condition failing for a reason other than the review blocker or the manifest write this unit is forbidden to perform.",
+      "bytes_measured_before_final_length_preserving_patch": 67304,
+      "sha256_measured_before_final_length_preserving_patch": "b89de3b1442f94dc5a767f8f5ca8373a3e3b9d0dc58c8a719dbaa7d0433c161d",
+      "eol_measured": "LF (0 CRLF pairs, 707 LF) -- so the disk bytes and the git blob agree and no CRLF-vs-LF drift can produce a false hash mismatch (rules/common/windows-shell.md section 8b)"
+    },
+    "downstream_gate_output": "See downstream_consumers[0].probe.raw_output for the verbatim run; schema_errors was empty and conditions 2, 4, 6, 7, 8, 10 and 12 all came back SATISFIED.",
+    "reproduction_commands": [
+      "claude mcp list",
+      "claude plugin list",
+      "python <scratchpad>/extract_tokens.py   # probe 1: token extraction + mcp-list/plugin-list/Git-Bash set difference",
+      "python <scratchpad>/probe2_binaries.py  # probe 2B: bulk Get-Command comparison (records the two-directional resolver disagreement)",
+      "python <scratchpad>/probe3_corrected.py # corrected AND-gated command detector + binary control battery",
+      "python <scratchpad>/probe4_adjudicate.py# 3-layer use-vs-mention adjudicator + both-states fixtures",
+      "python platform/lib/receipt_schema_gate.py --json --fragment generic_report command-center/adversarial/ADV-0019-retired-capability-dead-references.json"
+    ],
+    "scratch_probes_not_committed": "The five probe scripts and their JSON outputs live under the session scratchpad (%TEMP%/claude/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/scratchpad/) and are NOT committed: this unit's hard constraint is to write only its own output_path. A refuter who wants to re-derive rather than re-run should use the reproduction_commands above, or better, re-derive from the raw artifacts named in dead_reference_inventory without reading this report at all."
+  }
+}

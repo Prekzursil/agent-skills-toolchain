@@ -1,0 +1,378 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0027",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0027:BLOCKED-ON-INDEPENDENT-CROSS-VENDOR-REVIEW archive-extraction matrix (8 vectors + e2e install) run through the real offline-import call packager.unpack: 7 path/link/device vectors REFUTED (0 escapes), 1 compression-bomb CONFIRMED (no uncompressed-size cap, P2 DoS). All controls recorded. SUCCESS withheld: mandated cross-vendor refuter not in tool_permissions and receipt not manifest-registered.",
+  "spec_anchor": "_USER-PROMPTS.md:10866,11049",
+  "min_bytes_threshold": 8192,
+  "profile": "exploit-proof",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5[1m]",
+    "role": "security-exploit-engineer",
+    "execution_substrate": "worktree-isolated"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+      "bytes": 27113,
+      "sha256": "9ad49d74c95a573954dae226ef59b6aeeb866ba3d4a3aaff13a419b31e780a4c",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A member spelled ../ (traversal), /abs (absolute), C:/abs (drive-absolute) or //unc (UNC, both / and \\ spellings) is refused with PluginError E_IO before any byte is written; 0 files land outside the destination root. Driven through packager.unpack -- the exact call plugin.lifecycle.install uses for offline import.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/plugin/fsops.py:45-68; platform/plugin/packager.py:169-187",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/adv0027/probe.py  (vectors: relative_traversal, absolute_path, drive_absolute, unc_fwd, unc_back)",
+          "raw_output": "[VEC relative_traversal] exc={'code': 'E_IO', 'msg': \"E_IO: parent-directory segment escapes the root: '../ESCAPED_adv0027_trav.txt'\", 'type': 'PluginError'} escapes=[]\n[VEC absolute_path] exc={'code': 'E_IO', 'msg': \"E_IO: absolute or UNC path is not payload-relative: '/tmp/ESCAPED_adv0027_abs.txt'\", 'type': 'PluginError'} escapes=[]\n[VEC drive_absolute] exc={'code': 'E_IO', 'msg': \"E_IO: drive-absolute path is not payload-relative: 'C:/Windows/Temp/ESCAPED_adv0027_drive.txt'\", 'type': 'PluginError'} escapes=[]\n[VEC unc_fwd] exc={'code': 'E_IO', 'msg': \"E_IO: absolute or UNC path is not payload-relative: '//attacker/share/ESCAPED_adv0027_unc.txt'\", 'type': 'PluginError'} escapes=[]\n[VEC unc_back] exc={'code': 'E_IO', 'msg': \"E_IO: absolute or UNC path is not payload-relative: '//attacker/share/ESCAPED_adv0027_uncb.txt'\", 'type': 'PluginError'} escapes=[]",
+          "fingerprint": "5e3206505c90c54f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "platform/plugin/fsops.py:45-68 check_relpath",
+          "raw_output": "check_relpath: startswith('/')|('//')->E_IO (absolute/UNC); unified[1]==':'->E_IO (drive); parts split on '/', any(p=='..')->E_IO (traversal). rel.replace('\\\\','/') folds backslash UNC to //. Runs BEFORE any write; safe_join calls it per member.",
+          "fingerprint": "2ce7b7e6d9292394"
+        }
+      ]
+    },
+    {
+      "claim": "A member whose path segment is a Windows reserved device (nul, con, aux, com1..9, lpt1..9, and dotted/nested forms nul.txt, sub/con) is refused with a clean PluginError E_IO on the REAL win32 target -- handled explicitly, NOT an unhandled crash and NOT a successful write.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/plugin/fsops.py:29-42 (RESERVED_STEMS, is_reserved_segment)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/adv0027/probe.py  (vectors: device_*)",
+          "raw_output": "[VEC device_nul] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'nul' (segment 'nul')\", 'type': 'PluginError'} escapes=[]\n[VEC device_con] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'con' (segment 'con')\", 'type': 'PluginError'} escapes=[]\n[VEC device_aux] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'aux' (segment 'aux')\", 'type': 'PluginError'} escapes=[]\n[VEC device_com1] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'com1' (segment 'com1')\", 'type': 'PluginError'} escapes=[]\n[VEC device_lpt1] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'lpt1' (segment 'lpt1')\", 'type': 'PluginError'} escapes=[]\n[VEC device_nul.txt] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'nul.txt' (segment 'nul.txt')\", 'type': 'PluginError'} escapes=[]\n[VEC device_sub_con] exc={'code': 'E_IO', 'msg': \"E_IO: reserved device name in path: 'sub/con' (segment 'con')\", 'type': 'PluginError'} escapes=[]",
+          "fingerprint": "165800da25ec973a",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "platform/plugin/fsops.py:29-42 is_reserved_segment",
+          "raw_output": "stem=segment.split('.',1)[0].strip().lower(); return stem in RESERVED_STEMS (con,prn,aux,nul,clock$,com1..9,lpt1..9). Every exception raised was type=PluginError code=E_IO (a handled refusal), never OSError/None-crash; refused_cleanly_pluginerror=True for all.",
+          "fingerprint": "86530f94b30fefea"
+        }
+      ]
+    },
+    {
+      "claim": "A ZIP member carrying unix S_IFLNK mode bits + a link-target as content does NOT create a symlink: unpack writes a REGULAR file at the (contained) member path whose content is the literal target text. os.path.islink(extracted)=False; no external escape is possible.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/plugin/packager.py:185 (zf.read + atomic_write_bytes; never os.symlink)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/adv0027/probe.py + probe_nc.py (external_symlink; symlink_oracle)",
+          "raw_output": "external_symlink: [VEC external_symlink] exc=None escapes=[]; islink(extracted)=False; content='../../../../../../etc/passwd'\noracle both-states: real_symlink_islink=True (oracle CAN fire), extracted_islink=False, extracted_is_regular=True",
+          "fingerprint": "10f8ad8208b1ca31",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "platform/plugin/packager.py:178-186 unpack loop",
+          "raw_output": "unpack does: target=safe_join(dest,info.filename); atomic_write_bytes(target, zf.read(info)). It reads member CONTENT and writes a regular file; there is no os.symlink / os.link call and external_attr mode bits are never interpreted. A symlink/hardlink member is structurally impossible to materialise via this path.",
+          "fingerprint": "87b19f7668bf36c1"
+        }
+      ]
+    },
+    {
+      "claim": "Probe 2 (static): the per-member containment check is performed AFTER normalisation, not only as a bypassable pre-normalisation string check. safe_join calls os.path.abspath (normalisation) then target.relative_to(root_res) (containment) -- so the hypothesis 'only a pre-normalisation check exists' is REFUTED.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/plugin/fsops.py:71-82 safe_join",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "ast.parse(inspect.getsource(safe_join)); locate abspath vs relative_to call linenos",
+          "raw_output": "abspath call lines (fn-relative)=[4, 5], relative_to call lines=[7] -> containment_after_normalisation=True; unpack_calls_safe_join_per_member=True; check_relpath_is_pre_normalisation_string_check=True",
+          "fingerprint": "847934df2494c880"
+        },
+        {
+          "role": "verifier",
+          "method": "manual-inspection",
+          "command": "read platform/plugin/fsops.py:71-82",
+          "raw_output": "def safe_join(root, rel):\n  checked = check_relpath(rel)          # pre-normalisation string layer\n  root_res = Path(os.path.abspath(root))\n  target = Path(os.path.abspath(root_res / Path(str(checked))))  # NORMALISE\n  try:\n    target.relative_to(root_res)          # CONTAINMENT, after normalisation\n  except ValueError: raise PluginError('E_IO', ...)\n  return target",
+          "fingerprint": "8b44ad0e603b2666"
+        }
+      ]
+    },
+    {
+      "claim": "The extraction path applies NO uncompressed-size cap: a high-ratio member is fully decompressed into memory by zf.read(info) (no max_length) and written whole to disk. Measured member 67108864 B uncompressed / 65232 B compressed (ratio 1028.8:1) drove unpack peak-traced-memory to 148453193 B (>= member size) and wrote 67108864 B to disk. install's free-space preflight checks only the COMPRESSED archive size, so a small archive that expands hugely is admitted -- a decompression-bomb DoS (CWE-409) on offline import of an untrusted package.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/plugin/packager.py:185 (zf.read, no max_length); platform/plugin/lifecycle.py:299 (preflight uses compressed size)",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python %TEMP%/adv0027/probe.py  (BOMB block, tracemalloc around packager.unpack)",
+          "raw_output": "[BOMB] uncomp=67108864 comp=65232 ratio=1028.8 peak=148453193 wrote=67108864 zf_read_has_max_length_cap=False install_preflight_uses_compressed_size=True fully_materialised_in_memory=True",
+          "fingerprint": "09483064e695814f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "platform/plugin/packager.py:185 + platform/plugin/lifecycle.py:299",
+          "raw_output": "unpack: atomic_write_bytes(target, zf.read(info)) -- zf.read(info) has NO max_length argument, so the entire member is decompressed into one bytes object before the write. No per-member or total uncompressed budget anywhere in unpack/_stage. install: need = archive.stat().st_size (COMPRESSED on-disk size) is the only size gate, and it runs before extraction; _verify_staged (hash check) runs AFTER the bytes are already materialised, so it cannot prevent the exhaustion.",
+          "fingerprint": "61ea4d1cf6ff7e9b"
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-control-benign-complete-correct",
+      "name": "control: a benign archive must extract completely and correctly (required test)",
+      "command": "python %TEMP%/adv0027/probe.py  (CONTROL A benign)",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "benign: all_members_present=True, content_byte_exact=True, escapes=[], roundtrip_ok=True"
+    },
+    {
+      "id": "T2-device-name-explicit-not-crash",
+      "name": "device-name member handled explicitly on Windows; a crash would be a DISTINCT finding (required test)",
+      "command": "python %TEMP%/adv0027/probe.py  (device_* vectors, sys_platform=win32)",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "All 7 device members (nul, con, aux, com1, lpt1, nul.txt, sub/con) raised PluginError E_IO (handled refusal); 0 raw crashes, 0 escapes, 0 device writes."
+    },
+    {
+      "id": "T3-install-e2e-refuses-traversal",
+      "name": "the real offline-import verb lifecycle.install refuses a traversal package at stage time",
+      "command": "python %TEMP%/adv0027/probe.py  (INSTALL E2E)",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "lifecycle.install(traversal.zip) -> exception={'code': 'E_IO', 'msg': \"E_IO: parent-directory segment escapes the root: '../ESCAPED_adv0027_trav.txt'\", 'type': 'PluginError'}; marker files under prefix=[]"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-escape-enumeration-both-states",
+      "kind": "adversarial-payload",
+      "description": "The 'files outside the destination root' escape detector must FIRE on a known-vulnerable extractor and be SILENT on the program. Bad state: a NAIVE extractor (os.path.join(dest,name)+open) on the SAME traversal archive. Good state: the program's packager.unpack on the traversal archive AND on a benign archive.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "naive extractor: files_outside_dest_ESCAPES=['ESCAPED_adv0027_trav.txt'] (escaped=True)",
+      "good_state_output": "program unpack traversal: escapes=[]; benign: escapes=[]"
+    },
+    {
+      "id": "NC2-reserved-device-detector-both-states",
+      "kind": "known-broken-fixture",
+      "description": "is_reserved_segment must FIRE on an exact reserved stem and be SILENT on near-miss names that merely share a prefix -- proving it is not a naive substring match that would reject legitimate files.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bad names fired: {'com1': \"E_IO: E_IO: reserved device name in path: 'com1' (segment 'com1')\", 'con': \"E_IO: E_IO: reserved device name in path: 'con' (segment 'con')\", 'console.log/con': \"E_IO: E_IO: reserved device name in path: 'console.log/con' (segment 'con')\"}",
+      "good_state_output": "near-miss names extracted (no false positive): ['common/data.md', 'config.txt', 'console.log', 'income.txt'] all_present=True"
+    },
+    {
+      "id": "NC3-symlink-islink-oracle-both-states",
+      "kind": "adversarial-payload",
+      "description": "The os.path.islink oracle used to prove 'no symlink materialised' must itself discriminate: it returns True on a genuine symlink (fires) and False on the program's extracted member (silent).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "os.symlink(target,link) -> islink=True (oracle fires on a real symlink)",
+      "good_state_output": "program-extracted symlink member -> islink=False, is_regular=True, content='/etc/shadow'"
+    },
+    {
+      "id": "NC4-tracemalloc-instrument-discriminates",
+      "kind": "other",
+      "description": "The peak-memory instrument backing the decompression-bomb finding must discriminate: it reports a large peak for the bomb (fires) and a tiny peak for a benign extraction (silent), proving the bomb reading is real memory materialisation, not measurement noise.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bomb unpack peak_traced_memory=148453193 B (>= 67108864 B member => fully materialised)",
+      "good_state_output": "benign unpack peak_traced_memory=308943 B (tiny; << any attack member)"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "<none>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "The catalog requires 'one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report'. This unit was in fact produced by anthropic/claude-opus-5 (catalog assigns openai/gpt-5-codex), so an Anthropic reviewer is SAME-vendor and does not satisfy the rule. A qualifying independent refuter is openai/gpt-5-codex (reachable via mcp__codex__codex), re-deriving from %TEMP%/adv0027/probe.py + probe_nc.py + results.json. Not run: this unit's tool_permissions do not include a cross-vendor dispatch tool, and the in-session peer agents (main, bleed-audit, retire-crux, routing-hermetic) are all anthropic (same-vendor). Self-certification is the exact failure this program exists to prevent, so SUCCESS is withheld rather than self-granted."
+  },
+  "defects": [
+    {
+      "id": "ADV-0027-D1",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Decompression bomb (CWE-409) in the offline-import extraction path: plugin.packager.unpack (packager.py:185) does atomic_write_bytes(target, zf.read(info)) with no max_length, fully decompressing each member into memory and writing it whole to disk with no per-member or total uncompressed-size cap. plugin.lifecycle.install's free-space preflight (lifecycle.py:299) checks only the COMPRESSED archive size, and _verify_staged runs AFTER extraction, so a small crafted package that expands to many GB causes memory/disk exhaustion during install of an untrusted package. Measured 64 MiB member from 65,232 B (ratio 1028.8:1) drove unpack peak-memory to 148,453,193 B and wrote 67,108,864 B. Not a path escape and not code exec; the transactional journal rmtree's staging on failure, so impact is a transient install-time DoS. Fix: cap cumulative and per-member uncompressed size (compare zi.file_size against a budget; stream zf.open(info) with a bounded read) before writing."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0027"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only (layer-1 jsonschema against receipt_core) + in-process jsonschema against command-center/schema/exploit-proof.schema.json",
+      "artifact_path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py <OUT> --schema-only  AND  jsonschema(exploit-proof)",
+        "raw_output": "gate --schema-only: SCHEMA-VALID:ADV-0027 (layer 1 only - this is NOT a completion verdict) (exit 0) | jsonschema(exploit-proof.schema.json, kind==exploit-proof enforced): VALID (0 errors)",
+        "fingerprint": "b6ca06422f4e18ee"
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T21:33:01Z",
+    "ended_at": "2026-08-11T21:33:01Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): no hypothesis failed twice; every attack vector produced a terminal measurement on first attempt."
+  },
+  "failure": {
+    "classification": [
+      "blocked-on-independent-cross-vendor-review",
+      "sandbox-escape",
+      "platform-portability",
+      "supply-chain"
+    ],
+    "reason": "The measurement is COMPLETE and every control is recorded (8 attack vectors driven through the real offline-import extraction call packager.unpack, plus one end-to-end lifecycle.install; benign round-trip control; naive-extractor positive control; reserved-device and symlink-oracle both-states controls; and the static Probe 2). SUCCESS is withheld, not because anything is unmeasured, but because the receipt schema's SUCCESS branch is structurally unreachable for this unit: it requires reviewer.verdict==PASS with independent==true and manifest_registration.registered==true. (a) The mandated independent cross-vendor refuter has not run -- no cross-vendor dispatch tool is in this unit's tool_permissions. (b) This unit may write only its own output_path, so it cannot register in ARTIFACT-MANIFEST.json. The single defect (D1) is P2, which the SUCCESS branch permits, so it is NOT a blocker. The full 12-condition gate marker on this file is FAILED with c1 (not a SUCCESS terminal state -- honestly BLOCKED), c3 (raw re-hash != the digest-basis sha, by construction for a self-describing receipt), c9 (reviewer not run) and c11 (manifest not registered) unsatisfied -- all expected, none indicating an unmeasured probe or a broken control.",
+    "blocked_on": "openai/gpt-5-codex refuter re-deriving the verdicts from %TEMP%/adv0027/probe.py + probe_nc.py + results.json (NOT from this report); and an owner decision on defect ADV-0027-D1 (add an uncompressed-size cap to unpack).",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "read the reviewer + manifest_registration blocks of this receipt",
+        "raw_output": "reviewer.verdict=='NOT-REVIEWED', reviewer.independent==false, manifest_registration.registered==false",
+        "fingerprint": "d7878fba93f65247",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "platform/schema/receipt.schema.json $defs.receipt_core SUCCESS-branch",
+        "raw_output": "The state==SUCCESS branch requires reviewer{verdict:PASS,independent:true}, manifest_registration.registered:true, downstream_consumers executed, and forbids open P0/P1 defects. This receipt satisfies the P0/P1 clause (only P2 open) but fails the reviewer and manifest clauses, so SUCCESS is structurally unavailable -- BLOCKED is the honest state.",
+        "fingerprint": "3b0a9b5bcc433d1a"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "artifacts[0].sha256 is the DIGEST BASIS, not the raw self-hash: a file cannot contain its own SHA-256. The value is sha256 of this file's exact bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters. artifacts[0].bytes is the true on-disk size. The gate's condition 3 (raw re-hash == recorded) will therefore report a mismatch; that is expected for a self-describing receipt and is one reason this receipt is BLOCKED, not SUCCESS.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "b = OUT.read_bytes(); basis = b.replace(recorded_sha.encode(), b'0'*64, 1); assert hashlib.sha256(basis).hexdigest() == recorded_sha; assert len(b) == recorded_bytes."
+    },
+    {
+      "claim": "The decompression-bomb finding's host-crash-at-scale is a LINEAR extrapolation, not executed to OOM: the member was bounded at 64 MiB so the sandbox survives. The CONFIRMED part is the measured mechanism (no cap; full in-memory + on-disk materialisation scaling 1:1 with attacker-chosen uncompressed size). Also note a single deflate member's ratio ceiling is ~1032:1 (measured 1028.8), so the classic '10000:1' single-member figure is not reachable with plain deflate -- the DoS lever is the unbounded uncompressed SIZE, not an extreme ratio.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "On a disposable VM, call plugin.lifecycle.install with a package whose member is ~4-16 GiB uncompressed (still ~MBs compressed) and observe MemoryError/disk-full during _stage plus journal rollback (rmtree staging); confirm no cap intervenes first."
+    }
+  ],
+  "report": {
+    "kind": "exploit-proof",
+    "question": "Does the install/import path accept an archive containing ../ traversal entries, absolute paths, symlinks pointing outside the extraction root, or a Windows device name - and where does each land?",
+    "answer": "NO for every path-hostile vector. Relative traversal, absolute, drive-absolute and UNC members are refused with PluginError E_IO by check_relpath before any byte is written (0 escapes); Windows device names (nul/con/aux/com*/lpt*, incl. dotted/nested) are refused the same clean way on the real win32 target (handled, not a crash); a symlink member is written as a CONTAINED REGULAR FILE (unpack reads content, never calls os.symlink) so no external symlink exists; ZIP has no hardlink member type. Nothing lands outside the destination root. Defense is layered: a pre-normalisation string check (check_relpath) AND a post-normalisation containment check (safe_join's os.path.abspath + relative_to), applied per member. The ONE real exposure is orthogonal to path-hostility: the compression-ratio member is decompressed with NO uncompressed-size cap (zf.read has no max_length; preflight sizes only the compressed archive) -> a decompression-bomb DoS on offline import (P2).",
+    "control_ids": [
+      "NC1-escape-enumeration-both-states",
+      "NC2-reserved-device-detector-both-states",
+      "NC3-symlink-islink-oracle-both-states",
+      "NC4-tracemalloc-instrument-discriminates"
+    ],
+    "observations": [
+      {
+        "name": "relative-traversal (../)",
+        "measured": "REFUTED",
+        "method": "crafted zip through packager.unpack + install; escape enumeration",
+        "anchor": "platform/plugin/fsops.py:58-60"
+      },
+      {
+        "name": "absolute-path (/abs)",
+        "measured": "REFUTED",
+        "method": "crafted zip through packager.unpack",
+        "anchor": "platform/plugin/fsops.py:50-53"
+      },
+      {
+        "name": "drive-absolute (C:/abs)",
+        "measured": "REFUTED",
+        "method": "crafted zip through packager.unpack",
+        "anchor": "platform/plugin/fsops.py:54-57"
+      },
+      {
+        "name": "UNC (//host, \\\\host)",
+        "measured": "REFUTED",
+        "method": "crafted zip through packager.unpack (both spellings)",
+        "anchor": "platform/plugin/fsops.py:49-53"
+      },
+      {
+        "name": "external-symlink",
+        "measured": "REFUTED",
+        "method": "S_IFLNK zip member; os.path.islink oracle both-states",
+        "anchor": "platform/plugin/packager.py:185"
+      },
+      {
+        "name": "hardlink",
+        "measured": "REFUTED",
+        "method": "not representable in ZIP; member extracted as contained regular file",
+        "anchor": "platform/plugin/packager.py:185"
+      },
+      {
+        "name": "device-name (nul/con/com*/lpt*)",
+        "measured": "REFUTED",
+        "method": "7 crafted zips on win32; clean PluginError E_IO, not a crash",
+        "anchor": "platform/plugin/fsops.py:29-42"
+      },
+      {
+        "name": "post-normalisation-containment (Probe 2)",
+        "measured": "REFUTED",
+        "method": "AST: abspath then relative_to + source read",
+        "anchor": "platform/plugin/fsops.py:71-82"
+      },
+      {
+        "name": "compression-ratio-bomb (10000:1)",
+        "measured": "CONFIRMED",
+        "method": "tracemalloc around packager.unpack + static no-cap review",
+        "anchor": "platform/plugin/packager.py:185"
+      }
+    ]
+  },
+  "extensions": {
+    "digest_basis": "artifacts[0].sha256 = SHA-256 over this file's bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters (a file cannot contain its own digest). artifacts[0].bytes is the true on-disk size. See residual_unknowns[0] for the 3-line check.",
+    "verdict_per_target": {
+      "relative_traversal": "REFUTED",
+      "absolute_path": "REFUTED",
+      "drive_absolute": "REFUTED",
+      "unc": "REFUTED",
+      "external_symlink": "REFUTED",
+      "hardlink": "REFUTED",
+      "device_name": "REFUTED",
+      "post_normalisation_containment": "REFUTED",
+      "compression_ratio_bomb": "CONFIRMED"
+    },
+    "substrate": {
+      "os_name": "nt",
+      "python": "3.14.6",
+      "scratch": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0027",
+      "sys_platform": "win32",
+      "target_containment": "plugin.fsops.safe_join (fsops.py:71) + check_relpath (fsops.py:45)",
+      "target_unpack": "plugin.packager.unpack (packager.py:169)"
+    }
+  }
+}
