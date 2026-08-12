@@ -1,0 +1,52 @@
+fix(measure-guard): the charter promised a two-directional ratchet; the code only printed
+
+`.quality/charter.yml` was read rather than assumed, and its `p2-delivery` entry -- added by a
+sibling lane when it found main charter-red -- says of this gate:
+
+    "Ratchets on a two-directional baseline (vacuous_declarations 3,
+     units_declaring_a_vacuous_contract 23): it fails if the count RISES, and equally if it FALLS
+     without the baseline being lowered, so the gate cannot silently loosen."
+
+The gate did not do the second half. `improvements()` printed `IMPROVED ...` and returned; only
+`regressions()` fed the failure list, matching `wudeps`. So a governing document made a promise
+about this code that the code did not keep.
+
+Two ways to reconcile that, and only one is right here. Weakening the charter sentence would have
+made the document true and the estate no safer, and this session has already found the opposite
+shape three times: a generated "## Verdict:" line that outlived the hazard it warned about, a
+doctor printing a PASS over a file it could not find, and a build wave reporting delivered_verified
+from a filter that never read the status field. The promise is also simply correct -- a baseline
+left high after the badness is gone keeps authorising it, which is how a ratchet drifts into slack.
+So the CODE was brought up to the CHARTER.
+
+`ratchet_findings()` now returns both directions, and the falling message says what to edit rather
+than only that something moved. `regressions()` and `improvements()` keep their existing meanings
+so the two directions stay separately assertable, which is what let the new test pin them apart.
+
+Verified after the change, all four independently:
+  python -m pytest tools/measure-guard/tests/test_unitgate.py -q   -> 21 passed
+  python tools/measure-guard/unitgate.py                            -> SUCCESS (3 / 23, at baseline)
+  python command-center/p2-wave/_i2_redproof.py                     -> GREEN twice, RED on all 4
+  bash .quality/charter_check.sh -> OK, 7 gates consistent incl. p2-delivery
+
+Also lands _i4_percontract.py: the settling experiment the last adversarial refutation NAMED --
+"run the garbage + field-deletion probe on EVERY unit's declared schema, not on one hand-picked
+unit" -- executed over all 53 committed artifacts instead of the 1 the build lane's verifier used.
+Result: all 53 reject unrelated garbage and the empty object; 52 also reject a single-key deletion.
+
+Two corrections it forced on ME, recorded rather than folded in silently:
+  * run 1 reported WFA-0001 as a SURVIVING mutation. It is not. That artifact is a JSON Schema pack
+    whose first key is `$schema`, and it also carries `$id` -- a schema with `$id` and no `$schema`
+    is still valid and still discriminating, so the contract was right and my mutation was not a
+    corruption. An overclaim in the probe, not a defect in the predicate; the CLAIM was narrowed.
+  * the obvious form of this probe is a no-op and would have reported a perfect 53/53. Every
+    artifact self-declares BLOCKED, so the full predicate rejects all of them at condition 5 no
+    matter what is done to their bodies. It probes the CONTRACT LAYER directly instead.
+
+And one finding for the owner, REPORTED not gated: 4 committed artifacts are rejected by their own
+declared, discriminating contract -- ADV-0007 (6 errors), ADV-0022 (12), ADV-0041 (1), and ADV-0040
+which passes from the worktree but not from the blob. All four sit under command-center/adversarial/,
+which the wave floor forbids this lane from touching and a live sibling wave is still writing;
+gating them would make an unrelated sibling commit a red build, which is the same reasoning
+suitefloor's `casualty` note already records for this exact directory. None is a live false green:
+all four are rejected by the predicate today.

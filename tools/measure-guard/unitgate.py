@@ -342,6 +342,7 @@ def regressions(report: dict) -> list[str]:
 
 
 def improvements(report: dict) -> list[str]:
+    """Counts that got BETTER. These fail too -- see `regressions`."""
     out = []
     got_decl = len(report["vacuous_declarations"])
     if got_decl < BASELINE["vacuous_declarations"]:
@@ -354,6 +355,31 @@ def improvements(report: dict) -> list[str]:
         out.append(
             f"units_declaring_a_vacuous_contract {got_units} < baseline "
             f"{BASELINE['units_declaring_a_vacuous_contract']} -- lower the baseline"
+        )
+    return out
+
+
+def ratchet_findings(report: dict) -> list[str]:
+    """The ratchet, in BOTH directions -- a rise and an unrecorded fall are both failures.
+
+    `wudeps` only prints its improvements, and this gate did the same until `.quality/charter.yml`
+    was read rather than assumed. The charter's `p2-delivery` entry promises: "it fails if the count
+    RISES, and equally if it FALLS without the baseline being lowered, so the gate cannot silently
+    loosen." That was a stronger promise than the code kept.
+
+    Two ways to reconcile a governing document with the code it governs; only one of them is right
+    here. Weakening the charter sentence would have made the document true and the estate no safer,
+    and this program has already found the opposite defect three times (a generated verdict that
+    outlived its inputs, a health row that passed over a missing input). The promise is also simply
+    correct: an improvement nobody records is exactly how a ratchet drifts into slack, because the
+    baseline keeps authorising a badness that no longer exists. So the CODE was brought up to the
+    CHARTER, and the failure message says which direction moved and what to edit.
+    """
+    out = list(regressions(report))
+    for line in improvements(report):
+        out.append(
+            f"{line} (an improvement is a failure here on purpose: leaving the baseline high "
+            "re-authorises a badness that no longer exists)"
         )
     return out
 
@@ -437,7 +463,7 @@ def main(argv: list[str] | None = None) -> int:
 
     for line in improvements(report):
         print(f"  IMPROVED {line}")
-    findings += regressions(report)
+    findings += ratchet_findings(report)
 
     if findings:
         for line in findings:

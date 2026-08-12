@@ -272,6 +272,7 @@ def _report(decl: list[str], units: int) -> dict:
 
 def test_ratchet_is_silent_at_the_baseline() -> None:
     rep = _report(["a", "b", "c"], ug.BASELINE["units_declaring_a_vacuous_contract"])
+    assert ug.ratchet_findings(rep) == []
     assert ug.regressions(rep) == []
     assert ug.improvements(rep) == []
 
@@ -290,11 +291,23 @@ def test_ratchet_fires_when_more_units_adopt_a_vacuous_contract() -> None:
     assert len(ug.regressions(rep)) == 1
 
 
-def test_ratchet_reports_an_improvement_so_the_floor_gets_lowered() -> None:
-    """An unreported improvement is how a ratchet quietly stops ratcheting."""
+def test_ratchet_ALSO_fires_when_the_count_falls_without_the_baseline_being_lowered() -> (
+    None
+):
+    """The direction `wudeps` only prints, and the direction the charter promises will FAIL.
+
+    `.quality/charter.yml` says of this gate: "it fails if the count RISES, and equally if it FALLS
+    without the baseline being lowered, so the gate cannot silently loosen." That sentence was
+    written about this code before the code did it. A baseline left high after the badness is gone
+    keeps authorising it, which is exactly how a ratchet drifts into slack -- so the code was
+    brought up to the charter rather than the charter down to the code.
+    """
     rep = _report(["a"], 1)
     assert len(ug.improvements(rep)) == 2
     assert ug.regressions(rep) == []
+    findings = ug.ratchet_findings(rep)
+    assert len(findings) == 2
+    assert all("lower the baseline" in f for f in findings)
 
 
 # --------------------------------------------------------------------------------------------
