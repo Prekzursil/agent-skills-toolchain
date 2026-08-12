@@ -1,0 +1,341 @@
+{
+ "artifacts": [
+  {
+   "bytes": 3663,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/_r2_imp0440_census.py",
+   "role": "control",
+   "sha256": "a9bf8d7820924df882f49737fef266fa0e68a2b175e8ab86fb5040017059911f"
+  },
+  {
+   "bytes": 24610,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/_build_IMP0440.py",
+   "role": "control",
+   "sha256": "405ebd1d2660f77c4eab5d6c9c5bda2208673c35a6ed33b3845a1a13c4faf559"
+  },
+  {
+   "bytes": 8757,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/measure-guard/blobread.py",
+   "role": "supporting",
+   "sha256": "5de0e25bccaef796703dcc2957afee8aadad9e8ea44f993d6df016f8a964ce75"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/measure-guard/blobread.py",
+   "consumer": "command-center/p2-wave/_r2_verify_committed.py (blob-level re-verify)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python command-center/p2-wave/_r2_verify_committed.py",
+    "exit_code": 0,
+    "fingerprint": "edd18c83f531af55e24217b79d93cae1",
+    "method": "command",
+    "raw_output": "reads committed blobs with git show <rev>:<path>, the recipe this unit confirms is correct; 0 CRLF on 5/5 artifacts",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/measure-guard/blobread.py:56",
+   "claim": "PREMISE PARTLY REFUTED: the row says 'implement ONE blob_bytes(rev, path) helper', but tools/measure-guard/blobread.py already exists (8757 B) and REFUSES the archive route by measurement rather than by comment. Its function is named `read_blob(path, rev)` rather than `blob_bytes(rev, path)` -- same capability, different name and argument order. Its test suite tools/measure-guard/tests/test_blobread.py passes (exit 0).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "parse public defs of tools/measure-guard/blobread.py",
+     "exit_code": 0,
+     "fingerprint": "0bd31ec17ff340731e9ed14e22a6f7bd",
+     "method": "static-analysis",
+     "raw_output": "{\n \"row_says_implement_ONE_helper\": true,\n \"helper_already_present\": true,\n \"helper_path\": \"tools/measure-guard/blobread.py\",\n \"helper_bytes\": 8757,\n \"helper_public_api\": [\n  \"read_blob\",\n  \"_tar_member\",\n  \"crlf_count\",\n  \"lf_normalised\",\n  \"digest\",\n  \"three_route_comparison\",\n  \"main\"\n ],\n \"helper_named_blob_bytes\": false,\n \"helper_equivalent_function\": \"read_blob\",\n \"migration_tool_already_ran\": true,\n \"helper_tests_present\": true\n}",
+     "role": "source"
+    },
+    {
+     "command": "python -m pytest -q tools/measure-guard/tests/test_blobread.py",
+     "exit_code": 0,
+     "fingerprint": "a188e4e28c467bc731cb483823a4e48d",
+     "method": "test-run",
+     "raw_output": "........                                                                 [100%]\n8 passed in 7.14s\n",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "REFUTED"
+  },
+  {
+   "anchor": "rules/common/windows-shell.md:112",
+   "claim": "Three-route comparison, on TWO files so a single-file artefact cannot explain it: command-center/ready_units.py archive=19927B/437CRLF vs cat-file=19490B/0CRLF vs show=19490B/0CRLF, identical after LF normalisation. `git show <rev>:<path>` equals `git cat-file -p` byte for byte, so the program floor's claim that BOTH return CRLF is false -- only archive converts.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "git archive|cat-file|show on command-center/ready_units.py",
+     "exit_code": 0,
+     "fingerprint": "6aa0e5dc4cfc32d42680805746292948",
+     "method": "byte-compare",
+     "raw_output": "{\n \"target\": \"command-center/ready_units.py\",\n \"routes\": {\n  \"git archive + tar -x\": {\n   \"bytes\": 19927,\n   \"crlf\": 437\n  },\n  \"git cat-file -p\": {\n   \"bytes\": 19490,\n   \"crlf\": 0\n  },\n  \"git show <rev>:<path>\": {\n   \"bytes\": 19490,\n   \"crlf\": 0\n  }\n },\n \"identical_after_lf_normalisation\": true,\n \"archive_differs_from_blob\": true,\n \"cat_file_equals_show\": true\n}",
+     "role": "source"
+    },
+    {
+     "command": "same three routes on a DIFFERENT file (tools/measure-guard/blobread.py)",
+     "exit_code": 0,
+     "fingerprint": "8ce341e5daddf6d73262aa250df08f08",
+     "method": "command",
+     "raw_output": "{\n \"target\": \"tools/measure-guard/blobread.py\",\n \"routes\": {\n  \"git archive + tar -x\": {\n   \"bytes\": 8974,\n   \"crlf\": 217\n  },\n  \"git cat-file -p\": {\n   \"bytes\": 8757,\n   \"crlf\": 0\n  },\n  \"git show <rev>:<path>\": {\n   \"bytes\": 8757,\n   \"crlf\": 0\n  }\n },\n \"identical_after_lf_normalisation\": true,\n \"archive_differs_from_blob\": true,\n \"cat_file_equals_show\": true\n}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/fix_blob_recipe.py:40-47",
+   "claim": "Census answer to the row's exact question: 263 lines in the repo mention `git archive`; 101 are prose, comments, catalog rows or measurement tables (use-vs-mention); 2 are real invocations, of which 2 are whole-tree materialisation (--format=tar/--output), which is the CORRECT use of git archive, and 0 are provenance prescriptions. The migration was already performed by command-center/fix_blob_recipe.py.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "git grep -n -I 'git archive'",
+     "exit_code": 0,
+     "fingerprint": "c9b2702030f97b2ac20d20f3e72cae6b",
+     "method": "command",
+     "raw_output": "{\n \"total_hits\": 263,\n \"mentions_use_vs_mention\": 101,\n \"data_files_not_classifiable_as_prescriptions\": 160,\n \"real_invocations\": 2,\n \"provenance_prescriptions_remaining\": []\n}",
+     "role": "source"
+    },
+    {
+     "command": "plant a wrong-recipe line inside the scanned tree and re-run the census",
+     "exit_code": 0,
+     "fingerprint": "1ade3c434dc8bacb9068d6a0af6842da",
+     "method": "other",
+     "raw_output": "planted-found=True; silent-after-removal=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure": {
+  "blocked_on": "cross-tree edit authority for the single-helper consolidation (T5 FAIL) + independent-claude-reviewer re-measuring on a different file",
+  "classification": [
+   "scope-exceeded",
+   "reviewer-absent",
+   "self-review-is-not-review"
+  ],
+  "reason": "HALF the target is met and half is NOT, stated at that scope. The removal half is complete: 0 archive-based provenance recipes remain, proven with a plant-one control. The consolidation half is NOT: the row demands every provenance path route through ONE helper, and 37 executable files still implement their own `git cat-file -p` call. They are all CORRECT, so this is duplication rather than a defect, but it is not what the row asks for. Re-routing them means editing platform/, tools/ and command-center files this lane does not own while sibling lanes are writing the same tree, so it is reported rather than narrowed away. Also BLOCKED on the reviewer gate like every other unit."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "registered": false
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "planted `git archive $SHA | tar -x -C $TMP` -> census reported it",
+   "description": "The census is only evidence if it CAN find a wrong recipe. A wrong-recipe line was planted inside the scanned tree, the census re-run, then the plant removed and the census re-run again. A grep that returns 0 without this control is indistinguishable from a broken pattern.",
+   "fired_on_bad_state": true,
+   "good_state_output": "after removal the census reports 0 provenance prescriptions again",
+   "id": "IMP0440-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "archive 19927B/437CRLF differs from the blob",
+   "description": "The three-route comparison must show a DIFFERENCE (archive != blob) and must also show the two blob routes AGREE. A comparison where everything is equal would be consistent with a broken reader.",
+   "fired_on_bad_state": true,
+   "good_state_output": "cat-file and show are byte-identical, 0 CRLF, and all three match after LF normalisation",
+   "id": "IMP0440-C2",
+   "kind": "other",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "opus",
+  "role": "systems-implementer",
+  "vendor": "anthropic"
+ },
+ "profile": "selfimprove-measure-artifact",
+ "report": {
+  "census": {
+   "data_files_not_classifiable_as_prescriptions": 160,
+   "legitimate_whole_tree_packaging": [
+    ".agents/skills/workflow-authoring/templates/governed-run-orchestrator.md:2177:git archive --format=tar.gz --output=\"$RUN_CONTROL_DIR/subject.tar.gz\" \\",
+    "skills/workflow-authoring/templates/governed-run-orchestrator.md:2177:git archive --format=tar.gz --output=\"$RUN_CONTROL_DIR/subject.tar.gz\" \\"
+   ],
+   "mentions_use_vs_mention": 101,
+   "provenance_prescriptions_remaining": [],
+   "real_invocations": 2,
+   "total_hits": 263
+  },
+  "kind": "blob-recipe-census",
+  "own_cat_file_implementations": [
+   "_refute_f1_codex_stubs.py",
+   "_refute_f4_atomicity.py",
+   "_refute_f6_probe.py",
+   "_refute_f6_probe2.py",
+   "_refute_f6_probe3.py",
+   "ci/check_skill_dual_write.py",
+   "ci/tests/test_check_skill_dual_write.py",
+   "command-center/authz_head_diff.py",
+   "command-center/build/_b9_blob_recipe.py",
+   "command-center/casualty/verify_blob_parity.py",
+   "command-center/eol_probe.py",
+   "command-center/fix_blob_recipe.py",
+   "command-center/p11_probe_d1.py",
+   "command-center/p11_probe_floors.py",
+   "command-center/p11_probe_mutation.py",
+   "command-center/p11_probe_registry2.py",
+   "command-center/p11_probe_reruns.py",
+   "command-center/p11_probe_testdelta.py",
+   "command-center/p11_probe_tracking.py",
+   "command-center/p11_probe_wave3.py",
+   "command-center/triage_noremote.py",
+   "command-center/wave3_d3_audit.py",
+   "command-center/wave3_floor_audit.py",
+   "docs/workflow-sota/_int_blobcheck.py",
+   "hooks/_shared/projid_migrate.py",
+   "platform/coordination/normalize_eol.py",
+   "platform/lib/foundry/registry.py",
+   "platform/lib/test_schema_resolver.py",
+   "platform/lib/wfdsl/authz_census.py",
+   "platform/lib/wfdsl/test_work_unit_authorization.py",
+   "tools/d001-dual-write/tests/d001_fixtures.py",
+   "tools/gitcrypt-worktree/tests/fixtures_lib.py",
+   "tools/gitcrypt-worktree/tests/test_gitcrypt_worktree.py",
+   "tools/measure-guard/tests/test_vendordrift.py",
+   "tools/measure-guard/vendordrift.py",
+   "tools/monitorcore/_blob_parity.py",
+   "tools/monitorcore/_blob_ruff.py"
+  ],
+  "premise": {
+   "helper_already_present": true,
+   "helper_bytes": 8757,
+   "helper_equivalent_function": "read_blob",
+   "helper_named_blob_bytes": false,
+   "helper_path": "tools/measure-guard/blobread.py",
+   "helper_public_api": [
+    "read_blob",
+    "_tar_member",
+    "crlf_count",
+    "lf_normalised",
+    "digest",
+    "three_route_comparison",
+    "main"
+   ],
+   "helper_tests_present": true,
+   "migration_tool_already_ran": true,
+   "row_says_implement_ONE_helper": true
+  },
+  "three_route": {
+   "file_a": {
+    "archive_differs_from_blob": true,
+    "cat_file_equals_show": true,
+    "identical_after_lf_normalisation": true,
+    "routes": {
+     "git archive + tar -x": {
+      "bytes": 19927,
+      "crlf": 437
+     },
+     "git cat-file -p": {
+      "bytes": 19490,
+      "crlf": 0
+     },
+     "git show <rev>:<path>": {
+      "bytes": 19490,
+      "crlf": 0
+     }
+    },
+    "target": "command-center/ready_units.py"
+   },
+   "file_b": {
+    "archive_differs_from_blob": true,
+    "cat_file_equals_show": true,
+    "identical_after_lf_normalisation": true,
+    "routes": {
+     "git archive + tar -x": {
+      "bytes": 8974,
+      "crlf": 217
+     },
+     "git cat-file -p": {
+      "bytes": 8757,
+      "crlf": 0
+     },
+     "git show <rev>:<path>": {
+      "bytes": 8757,
+      "crlf": 0
+     }
+    },
+    "target": "tools/measure-guard/blobread.py"
+   }
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "The two surviving `git archive` invocations are whole-tree materialisation (a cohort tarball and a sanitized staging tree), not provenance reads, so they are correct and must not be changed.",
+   "settling_experiment": "Read docs/cyberstrike-adoption/operator-safe-to-start-gate.ps1:73-80 and the governed-run-orchestrator template at ~:2177: both extract an ENTIRE tree, never one blob.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "The classifier splits invocation from mention with a regex, so a novel phrasing could be misfiled. The plant-one control proves it detects the canonical wrong recipe; it does not prove it detects every phrasing.",
+   "settling_experiment": "Plant three further phrasings (a PowerShell `git -C $x archive`, a Makefile rule, a YAML `run:` step) and require the census to find all three.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s"
+ },
+ "reviewer": {
+  "independent": false,
+  "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review",
+  "verdict": "NOT-REVIEWED"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0440:BLOB-HELPER-SINGLE-SOURCE",
+ "spec_anchor": "rules/common/windows-shell.md:8b",
+ "state": "BLOCKED",
+ "tests": [
+  {
+   "assertions": 1,
+   "command": "python -m pytest -q tools/measure-guard/tests/test_blobread.py",
+   "id": "T1-helper-unit-test-on-a-known-file",
+   "output_tail": "8 passed in 7.14s",
+   "result": "PASS"
+  },
+  {
+   "assertions": 3,
+   "command": "git archive|cat-file|show on command-center/ready_units.py",
+   "id": "T2-three-route-comparison-file-A",
+   "output_tail": "{\"git archive + tar -x\": {\"bytes\": 19927, \"crlf\": 437}, \"git cat-file -p\": {\"bytes\": 19490, \"crlf\": 0}, \"git show <rev>:<path>\": {\"bytes\": 19490, \"crlf\": 0}}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 3,
+   "command": "same three routes on tools/measure-guard/blobread.py",
+   "id": "T3-three-route-comparison-file-B",
+   "output_tail": "{\"git archive + tar -x\": {\"bytes\": 8974, \"crlf\": 217}, \"git cat-file -p\": {\"bytes\": 8757, \"crlf\": 0}, \"git show <rev>:<path>\": {\"bytes\": 8757, \"crlf\": 0}}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 263,
+   "command": "git grep -n -I 'git archive' | classify invocation vs prose vs packaging",
+   "id": "T4-zero-archive-provenance-recipes-remain",
+   "output_tail": "0 provenance prescriptions; 2 legitimate packaging invocations preserved",
+   "result": "PASS"
+  },
+  {
+   "assertions": 37,
+   "command": "git grep -l cat-file | exclude tools/measure-guard/blobread.py",
+   "id": "T5-single-helper-consolidation",
+   "output_tail": "37 executable files still implement their own cat-file read instead of importing the one helper: ['_refute_f1_codex_stubs.py', '_refute_f4_atomicity.py', '_refute_f6_probe.py', '_refute_f6_probe2.py', '_refute_f6_probe3.py', 'ci/check_skill_dual_write.py', 'ci/tests/test_check_skill_dual_write.py', 'command-center/authz_head_diff.py', 'command-center/build/_b9_blob_recipe.py', 'command-center/casualty/verify_blob_parity.py', 'command-center/eol_probe.py', 'command-center/fix_blob_recipe.py']",
+   "result": "FAIL"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-12T08:05:22+00:00",
+  "started_at": "2026-08-12T08:05:09+00:00"
+ },
+ "unit_id": "IMP-0440"
+}

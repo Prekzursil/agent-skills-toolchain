@@ -1,0 +1,286 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8054,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipt_validate.py",
+   "role": "primary",
+   "sha256": "db7936dfc33dcc2e061505b554fd7f5d09a6d14a239a6a185ac8cced73e42f72"
+  },
+  {
+   "bytes": 371,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/.gitkeep",
+   "role": "primary",
+   "sha256": "6b64534be413d6af0d047e5381f5f67dfea9807e1a7c264c301be12e3d7f99bf"
+  },
+  {
+   "bytes": 2946,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/_r2_cc0002_gap.py",
+   "role": "control",
+   "sha256": "061cb212d66d20cd17148948b8e31e0f2d6bae1f0de94f4a917ade124f6065d1"
+  },
+  {
+   "bytes": 2772,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/_r2_cc0002_premise.py",
+   "role": "control",
+   "sha256": "ec536a3b7425fa08697e7e97dd1f800720221a6259993093cd9a84f0cd935b70"
+  },
+  {
+   "bytes": 15922,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/_build_CC0002.py",
+   "role": "control",
+   "sha256": "47da1a5999a17b65f8c46ba7381d120fdef72158a141a5c560b59bdc75791f85"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipt_validate.py",
+   "consumer": "command-center/receipt_validate.py (admission check over receipts/)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python command-center/receipt_validate.py command-center/receipts/*.json",
+    "exit_code": 0,
+    "fingerprint": "9ef42c46642537af803270f513dce89b",
+    "method": "command",
+    "raw_output": "ACCEPT:BLD-0023 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nACCEPT:IMP-0433 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nACCEPT:TST-0334 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nACCEPT:TST-0350 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 4 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)\n",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/schema/receipt.schema.json:1",
+   "claim": "The unit premise is REFUTED on three of its four asserted absences: receipt.schema.json is present (5882 B, git-tracked), command-center/receipts/ exists with 4 receipts on disk (['BLD-0023.json', 'IMP-0433.json', 'TST-0334.json', 'TST-0350.json']), and an emitter exists (42480 B). The fourth -- a committed .gitkeep -- was genuinely absent and is created by this unit.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python command-center/p2-wave/_r2_cc0002_premise.py",
+     "exit_code": 0,
+     "fingerprint": "245240321a80b52bfa0a10a50f273610",
+     "method": "file-read",
+     "raw_output": "{\"emitter_bytes\": 42480, \"emitter_present\": true, \"gitkeep_present_before_this_unit\": false, \"receipts_actually_on_disk\": [\"BLD-0023.json\", \"IMP-0433.json\", \"TST-0334.json\", \"TST-0350.json\"], \"receipts_dir_actually_present\": true, \"row_says_ZERO_receipts_on_disk\": true, \"row_says_receipts_dir_ABSENT\": true, \"row_says_schema_ABSENT\": true, \"schema_actually_present\": true, \"schema_bytes\": 5882, \"validator_layer1_2_present\": true}",
+     "role": "source"
+    },
+    {
+     "command": "git ls-files --error-unmatch command-center/schema/receipt.schema.json",
+     "exit_code": 0,
+     "fingerprint": "3e1f26a6017721a00cccade3cb621219",
+     "method": "command",
+     "raw_output": "tracked=True; gitkeep tracked=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "REFUTED"
+  },
+  {
+   "anchor": "platform/lib/receipt_schema_gate.py:194-205",
+   "claim": "The REAL gap the row's mutant list exposes: the pre-existing validator platform/lib/receipt_schema_gate.py ACCEPTS a receipt whose unit_id is not in the catalog (`SCHEMA-VALID:ZZZ-9999`, exit 0). No catalog cross-reference exists in that file -- the tokens WORK-UNIT-CATALOG and work_units do not appear in it -- so this is a hole, not a use-vs-mention miss. Closed by C3 in receipt_validate.py.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python platform/lib/receipt_schema_gate.py <m3-mutant> --schema-only",
+     "exit_code": 0,
+     "fingerprint": "e7682fd488957e467e7ded4b1f14b2e4",
+     "method": "command",
+     "raw_output": "SCHEMA-VALID:ZZZ-9999 (layer 1 only - this is NOT a completion verdict)\n",
+     "role": "source"
+    },
+    {
+     "command": "grep WORK-UNIT-CATALOG|work_units in platform/lib/receipt_schema_gate.py",
+     "exit_code": 0,
+     "fingerprint": "bca6d8ae3c500c963e364fd00eb4388e",
+     "method": "static-analysis",
+     "raw_output": "'WORK-UNIT-CATALOG' present=False; 'work_units' present=False -- the cross-reference is absent from the file, not merely unused",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/receipt_validate.py:self_test",
+   "claim": "All four contracted mutants are now rejected, each on its OWN condition (C1 parse, C2 schema x2, C3 catalog), and the golden receipt is ACCEPTED -- so the validator is two-sided rather than a reject-everything stub. The four receipts already on disk all pass admission (exit 0).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python command-center/receipt_validate.py --self-test",
+     "exit_code": 0,
+     "fingerprint": "2db906c9a16631b2e8320855f9153415",
+     "method": "test-run",
+     "raw_output": "  CONTROL golden                     want=ACCEPT got=ACCEPT OK  C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\n  CONTROL m1-missing-sentinel        want=REJECT got=REJECT OK  C2 schema-invalid (1): <root>: 'sentinel' is a required property\n  CONTROL m2-empty-evidence          want=REJECT got=REJECT OK  C2 schema-invalid (1): evidence: [] should be non-empty\n  CONTROL m3-unit-id-not-in-catalog  want=REJECT got=REJECT OK  C3 unit_id 'ZZZ-9999' is not one of the 2007 catalog units\n  CONTROL m4-unparseable             want=REJECT got=REJECT OK  C1 unparseable JSON: JSONDecodeError\nSUCCESS:receipt-validate self-test 1 golden ACCEPTED, 4 mutants REJECTED each on its own condition (C1 parse, C2 schema x2, C3 catalog cross-reference)\n",
+     "role": "source"
+    },
+    {
+     "command": "python command-center/receipt_validate.py <the 4 real receipts>",
+     "exit_code": 0,
+     "fingerprint": "ce8b94df3bda229d875ddd26f8246ee8",
+     "method": "command",
+     "raw_output": "ACCEPT:BLD-0023 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nACCEPT:IMP-0433 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nACCEPT:TST-0334 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nACCEPT:TST-0350 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 4 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)\n",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure": {
+  "blocked_on": "independent reviewer who authors an unanticipated fifth mutant (reviewer_requirement)",
+  "classification": [
+   "reviewer-absent",
+   "self-review-is-not-review"
+  ],
+  "reason": "Every test this row contracts for ran and passed, but receipt_core forbids state SUCCESS without reviewer.verdict=PASS and independent=true, and this row's reviewer_requirement is specifically 'one independent reviewer who writes a FIFTH mutant the author did not anticipate and confirms it is rejected'. A fifth mutant written by the author is by definition one the author anticipated, so this condition is unsatisfiable from inside the build lane. BLOCKED on the reviewer, not on the work."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "registered": false
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "4/4 mutants rejected on codes C1/C2/C2/C3",
+   "description": "Each of the four contracted mutants must be REJECTED and the golden ACCEPTED. A validator silent on both states measures nothing; one that rejects both is equally useless, so the accept side is asserted too.",
+   "fired_on_bad_state": true,
+   "good_state_output": "golden TST-0334 ACCEPTED and all 4 on-disk receipts ADMITTED",
+   "id": "CC0002-C1",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "no-argument invocation rc=1: FAILED:receipt-validate no input; an empty walk is not a pass",
+   "description": "An empty walk must FAIL CLOSED. A validator that exits 0 when given nothing to check is the ci-hygiene no-op gate in its purest form.",
+   "fired_on_bad_state": true,
+   "good_state_output": "4 real receipts rc=0",
+   "id": "CC0002-C2",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "pre-existing gate accepted the m3 mutant with rc=0",
+   "description": "Before writing a validator, the EXISTING one was executed against all four mutants. It rejected three and accepted m3, so only the m3 gap was built. Skipping this control is how a duplicate validator gets shipped.",
+   "fired_on_bad_state": true,
+   "good_state_output": "new admission check rejects it on C3 while still accepting the golden",
+   "id": "CC0002-C3",
+   "kind": "other",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "opus",
+  "role": "schema-author",
+  "vendor": "anthropic"
+ },
+ "profile": "selfimprove-measure-artifact",
+ "report": {
+  "gap_closed": "catalog cross-reference (C3): unit_id must be one of the 2,007 catalog ids; the pre-existing validator accepted ZZZ-9999",
+  "kind": "receipt-substrate-verification",
+  "mutant_matrix": {
+   "golden": "ACCEPT",
+   "m1-missing-sentinel": "REJECT C2 schema",
+   "m2-empty-evidence": "REJECT C2 schema",
+   "m3-unit-id-not-in-catalog": "REJECT C3 catalog cross-reference (NEW)",
+   "m4-unparseable": "REJECT C1 parse"
+  },
+  "premise": {
+   "emitter_bytes": 42480,
+   "emitter_present": true,
+   "gitkeep_present_before_this_unit": false,
+   "receipts_actually_on_disk": [
+    "BLD-0023.json",
+    "IMP-0433.json",
+    "TST-0334.json",
+    "TST-0350.json"
+   ],
+   "receipts_dir_actually_present": true,
+   "row_says_ZERO_receipts_on_disk": true,
+   "row_says_receipts_dir_ABSENT": true,
+   "row_says_schema_ABSENT": true,
+   "schema_actually_present": true,
+   "schema_bytes": 5882,
+   "validator_layer1_2_present": true
+  },
+  "receipts_admitted": [
+   "BLD-0023.json",
+   "IMP-0433.json",
+   "TST-0334.json",
+   "TST-0350.json"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Admission is not completion. This validator answers 'is this a well-formed receipt for a real unit', NOT 'is this unit done'. The 12-condition predicate in receipt_schema_gate.py answers the latter and rejects every receipt on disk today, correctly, on the reviewer gate.",
+   "settling_experiment": "Run `python platform/lib/receipt_schema_gate.py command-center/receipts/TST-0334.json --repo-root .` and observe c9=UNSATISFIED while admission passes.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "C4 (sentinel embeds unit_id) duplicates condition 5 of the completion predicate. It is repeated at admission because the completion predicate is not runnable as an accept/reject instrument for a BLOCKED receipt.",
+   "settling_experiment": "If layer 2 ever gains an --admission-only mode, delete C4 here and delegate.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "Two strikes then pivot; prefer narrowing the schema over adding permissive optional fields on retry."
+ },
+ "reviewer": {
+  "independent": false,
+  "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review",
+  "verdict": "NOT-REVIEWED"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CC-0002",
+ "spec_anchor": "_USER-PROMPTS.md:10627-10648",
+ "state": "BLOCKED",
+ "tests": [
+  {
+   "assertions": 1,
+   "command": "python command-center/receipt_validate.py --self-test  (golden case)",
+   "id": "T1-golden-receipt-validates",
+   "output_tail": "CONTROL golden want=ACCEPT got=ACCEPT",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "python command-center/receipt_validate.py --self-test  (m1..m4)",
+   "id": "T2-four-mutants-each-fail",
+   "output_tail": "4/4 rejected, each asserted against its own condition code",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "python command-center/receipt_validate.py command-center/receipts/*.json",
+   "id": "T3-admission-over-the-real-receipts",
+   "output_tail": "SUCCESS:receipt-validate 4 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "python command-center/receipt_validate.py   (no arguments)",
+   "id": "T4-fails-closed-on-empty-input",
+   "output_tail": "rc=1: FAILED:receipt-validate no input; an empty walk is not a pass",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "stat + git ls-files command-center/receipts/.gitkeep",
+   "id": "T5-gitkeep-substrate-committed",
+   "output_tail": "bytes=371 tracked_at_build_time=True (staged in this unit's commit)",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-12T07:56:20+00:00",
+  "started_at": "2026-08-12T07:56:19+00:00"
+ },
+ "unit_id": "CC-0002"
+}
