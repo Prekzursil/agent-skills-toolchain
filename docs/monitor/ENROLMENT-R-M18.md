@@ -281,3 +281,84 @@ delete the row): R-M18's evidence says `[cockpit]` sits at line 58 of "all three
 copies". There are 2 real registries plus 1 TEST FIXTURE
 (`tools/monitorcore/tests/fixtures/monitors.toml`, whose line 58 is empty). Correctly scoped:
 2 of 2 real registries carry it.
+
+---
+
+## S5 CORRECTED (round 2, 2026-08-12) -- the section above is REFUTED as written
+
+The paragraph beginning *"A SUCCESS receipt REQUIRES an INDEPENDENT reviewer verdict of PASS"*
+quotes the schema accurately and then draws a conclusion **wider than the clause**. It is left
+in place above rather than deleted, per fan-out-contract C2, and superseded here.
+
+**What was refuted, and by what.** An adversarial audit validated
+`command-center/receipts/BLD-0023.json` (which carries `state: "BLOCKED"` and
+`reviewer.independent: false`) against the schema and got **0 errors**; flipping only its
+`state` to `"SUCCESS"` produced **7** errors. I re-ran that pair independently as LEG 3 / LEG 4
+below and reproduce both numbers. So the reviewer clause lives inside an
+`if state == "SUCCESS"` branch (`platform/schema/receipt.schema.json`, `$defs/receipt_core`,
+`allOf[0]`) and does **not** prevent a receipt from existing -- only a SUCCESS one. Round 1's
+"this lane must NOT write R-M18.json" was therefore the right ACTION for the wrong REASON.
+
+**The real blocker, re-measured and mechanically independent** (round 1 read the `state`
+conditional; this reads the `unit_id` pattern). Command:
+
+```
+python tools/monitorcore/_r2_rm18_receipt.py
+```
+
+```
+[schema] $defs/unit_id pattern = ^[A-Z][A-Z0-9]*-[0-9]{4}$
+[probe ] re.fullmatch(pattern, 'R-M18')    -> None
+[ctrl  ] re.fullmatch(pattern, 'BLD-0023') -> <re.Match ... match='BLD-0023'>
+
+[LEG 1] receipt as R-M18 declares itself       -> 2 error(s)
+         unit_id:  'R-M18' does not match '^[A-Z][A-Z0-9]*-[0-9]{4}$'
+         sentinel: 'SUCCESS:R-M18' does not match the sentinel pattern
+[LEG 2 control] identical body, id RM-0018     -> 0 error(s)
+[LEG 3 control] BLD-0023 as-is                 -> 0 error(s)
+[LEG 4 control] BLD-0023, state -> SUCCESS     -> 7 error(s)
+FAILED:R-M18-receipt not written
+```
+
+LEG 2 is the load-bearing control: the **same body** under a conformant id validates cleanly,
+so every other field of the receipt is already correct and the id shape is the entire
+structural blocker. LEG 3/LEG 4 prove the validator is not inert.
+
+`command-center/schema/receipt.schema.json` -- the path the catalog's `defaults.output_schema`
+names -- is a generated shim whose only content is
+`"$ref": ".../platform/schema/receipt.schema.json#/$defs/receipt_core"`, so the strict pattern
+is the one that applies to `command-center/receipts/*.json`.
+
+**Blast radius: R-M18 is 1 of 103, not a special case.** Measured over
+`command-center/WORK-UNIT-CATALOG.json` with a two-sided control:
+
+| population | ids | match `^[A-Z][A-Z0-9]*-[0-9]{4}$` |
+|---|---|---|
+| `items` (the REGISTER rows: R-A, R-B, R-H, R-M, D-0, S-0, T-0, T-1, T-2) | 103 | **0** |
+| `work_units` | 2,007 | **2,007** |
+| receipts already on disk (`command-center/receipts/*.json`) | 6 | 6 |
+
+All 103 register rows declare `command-center/receipts/<ID>.json` as `output_path`, and not one
+of those ids can be a `unit_id`. A one-sided reading ("0 of 103 match") would have been a
+detector failure; the `work_units` column is the positive control that the matcher fires.
+
+**What now unblocks R-M18, precisely.** Two steps, both outside this lane's file scope
+(`tools/monitorcore/**`, `tools/measure-guard/**`, `docs/monitor/**`):
+
+1. **Resolve the id shape.** Either (a) give the row a conformant id (`RM-0018`) in
+   `command-center/sources/REGISTER.md` **and** `WORK-UNIT-CATALOG.json`, keeping `R-M18` as an
+   alias so the 19 cross-references and R-M06's `dependencies` still resolve -- small, and it
+   fixes one row; or (b) widen `$defs/unit_id` to admit the family -- one edit, but it changes
+   the schema 674 catalogued units share, so it needs its own review. **(a) is the smaller
+   blast radius.** Do not "fix" it by hand-writing a receipt that skips validation.
+2. **Then** an independent reviewer records `verdict: PASS`, `independent: true`, and the
+   receipt is emitted through a validating emitter. `_r2_rm18_receipt.py` already builds the
+   full body (artifacts, three evidence items with source/verifier probe pairs, failure
+   classification, residual unknown) and writes **only** if validation returns zero errors --
+   it exits 1 and writes nothing today.
+
+**UNVERIFIED, inline:** whether the R-M family was ever *intended* to emit receipts, or whether
+REGISTER rows are a different artifact class that inherited `defaults.output_schema` by
+accident. Settling experiment: check whether any of the 103 has ever had a receipt on disk --
+as of 2026-08-12 none has, while 6 `work_units`-shaped receipts do. That asymmetry is
+consistent with either reading, which is why it stays UNVERIFIED.
