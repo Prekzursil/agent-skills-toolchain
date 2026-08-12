@@ -5,6 +5,18 @@ sweep worked); gate-sast went RED with 12 findings, 9 of them on tracked files. 
 exactly two remedies -- fix the code, or a reasoned inline `# nosemgrep: <rule-id> -- <reason>`. No
 baseline file, no blanket disable.
 
+UPDATE @ ae8205a4, measured from the real CI run (31617966828), NOT from local green. This script
+was NOT the clean win the paragraph above implies, and the record is corrected rather than edited:
+  * gate-secrets  -> SUCCESS. The gitleaks work held.
+  * gate-sast     -> STILL RED, 3 findings, ALL of them in THIS FILE: the fixer cleared 9 findings
+                     across the tree and then became the only remaining one. Fourth instance on
+                     this estate of a tool committing the defect class it was built to fix.
+  * gate-lint-format -> RED, and it was GREEN before this script ran. The `patch_md5` regex below
+                     inserted `, usedforsecurity=False` into three casualty files and pushed those
+                     lines past the format limit. A self-inflicted regression, not pre-existing.
+Both are remedied in the same commit as this note: the three files reformatted with the pinned
+ruff 0.15.17, and the three bare hash call sites here waived per-line (see prove_digest_unchanged).
+
 THE TWO THINGS THIS MUST NOT BREAK:
 
 1. PUBLISHED DIGESTS. _build_adv0022.py:57-58 compute P1_MD5/P2_MD5, which the casualty receipts
@@ -54,13 +66,41 @@ MD5_CALL = re.compile(r"hashlib\.md5\((?![^()]*usedforsecurity)")
 
 
 def prove_digest_unchanged() -> bool:
+    """Prove `usedforsecurity=False` leaves the md5 digest byte-identical.
+
+    THE BARE HASH CALLS BELOW ARE THE MEASUREMENT AND CANNOT BE REMOVED, which is why this is
+    the one place in the repo where the weak-hash rule is waived rather than satisfied.
+
+    The whole function compares md5(x) against md5(x, usedforsecurity=False). Passing the kwarg
+    on BOTH sides would compare a value to itself -- the assertion would still pass, and it
+    would prove nothing. The sha1 call is the control: without a pair the comparison is KNOWN
+    to distinguish, "the two digests match" is indistinguishable from a comparison that always
+    returns True. So both the bare md5 and the sha1 are load-bearing.
+
+    This ran into itself once already: the first version of this script cleared 9 md5 findings
+    across the tree and then became the only remaining finding, because the fixer trips the rule
+    it fixes. That is the fourth instance of a tool committing its own defect class on this
+    estate, and the reason the waiver is per-line and reasoned rather than a file-level exclude.
+    """
     probes = [b"", b"x", b"method|command", b"a" * 4096, bytes(range(256))]
-    same = all(
-        hashlib.md5(p).hexdigest() == hashlib.md5(p, usedforsecurity=False).hexdigest()
-        for p in probes
-    )
+
+    # KEEP EACH BARE CALL ON ITS OWN SHORT LINE. A `# nosemgrep` only suppresses a finding on
+    # its own line or the line immediately above. The first attempt at this waiver wrote
+    # `return hashlib.md5(p).hexdigest()  # nosemgrep: ...` -- ruff format then split the call
+    # across three lines and left the comment two lines BELOW `hashlib.md5(`, silently
+    # un-suppressing it. Short statements are what keep the formatter from moving the comment.
+    def bare(p: bytes) -> str:
+        h = hashlib.md5(p)  # nosemgrep: quality.opengrep.python-weak-hash-md5-sha1
+        return h.hexdigest()
+
+    def flagged(p: bytes) -> str:
+        return hashlib.md5(p, usedforsecurity=False).hexdigest()
+
+    same = all(bare(p) == flagged(p) for p in probes)
     # The control must be able to FAIL, or "same" proves nothing about the comparison working.
-    control = hashlib.md5(b"x").hexdigest() != hashlib.sha1(b"x").hexdigest()
+    h_md5 = hashlib.md5(b"x")  # nosemgrep: quality.opengrep.python-weak-hash-md5-sha1
+    h_sha1 = hashlib.sha1(b"x")  # nosemgrep: quality.opengrep.python-weak-hash-md5-sha1
+    control = h_md5.hexdigest() != h_sha1.hexdigest()
     print(
         f"  digest-preservation proof: identical={same} control_discriminates={control}"
     )

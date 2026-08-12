@@ -26,7 +26,9 @@ def rd(n):
 
 
 def fp(method, command):
-    return hashlib.md5(f"{method}|{command}".encode("utf-8"), usedforsecurity=False).hexdigest()
+    return hashlib.md5(
+        f"{method}|{command}".encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
 
 
 def probe(role, method, command, raw, exit_code=0):

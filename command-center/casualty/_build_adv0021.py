@@ -25,7 +25,9 @@ def rd(name: str) -> str:
 
 
 def fp(method: str, command: str) -> str:
-    return hashlib.md5(f"{method}|{command}".encode("utf-8"), usedforsecurity=False).hexdigest()
+    return hashlib.md5(
+        f"{method}|{command}".encode("utf-8"), usedforsecurity=False
+    ).hexdigest()
 
 
 P1_RAW = rd("adv0021_probe1_out.ORIGINAL.json")
