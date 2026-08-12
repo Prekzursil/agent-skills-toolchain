@@ -85,14 +85,27 @@ def main() -> int:
         # ---- MANGLED CONTROL: the gate must FIRE on deliberately bad formatting.
         ctl = tmp / "control"
         ctl.mkdir()
-        src = target / "probe_capability.py"
-        (ctl / "mangled.py").write_bytes(
-            src.read_bytes().replace(b"import argparse", b"import   argparse\nx  =  1")
-        )
+        # The mangle must not depend on the file's CONTENT.  Two earlier versions did and
+        # both misreported: a hardcoded filename crashed on a commit that lacked it, and a
+        # search-and-replace on `import argparse` silently no-op'd on a file without it, so
+        # the control read as "did not fire" when nothing had been mangled at all.
+        # APPENDING is content-independent, always syntactically valid (unlike prepending,
+        # which breaks `from __future__` and makes ruff exit 2 = error, not 1 = would-
+        # reformat), and always mis-formatted because of the doubled spaces.
+        candidates = sorted(target.glob("*.py"))
+        if not candidates:
+            print("FAILED:blob-gate no extracted .py to mangle (fail closed)")
+            return 1
+        src = candidates[0]
+        (ctl / "mangled.py").write_bytes(src.read_bytes() + b"\n\nx  =  1\n")
         shutil.copy(tmp / "ruff.toml", ctl / "ruff.toml")
         rc_ctl, out_ctl = ruff(["format", "--check"], ctl / "mangled.py", ctl)
-        fired = rc_ctl != 0
-        print(f"MANGLED control fires: {fired} (rc={rc_ctl}) -- must be True")
+        # rc must be exactly 1 (would reformat). rc=2 means ruff ERRORED, which would also
+        # be "non-zero" and would let a broken control masquerade as a firing one.
+        fired = rc_ctl == 1
+        print(f"MANGLED control fires: {fired} (rc={rc_ctl}, want 1) -- must be True")
+        if not fired:
+            print(f"  control output: {out_ctl.splitlines()[-2:]}")
 
         ok = rc_check == 0 and rc_fmt == 0 and fired and crlf == 0
         print(

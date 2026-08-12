@@ -128,6 +128,15 @@ real scan over b9dce830: rc=0, 1 commit scanned, no leaks found
 SUCCESS:secrets-gate
 ```
 
+**The mangled control failed twice more before it was trustworthy, both times because the
+mangle depended on the file's CONTENT.** v1 hardcoded `probe_capability.py`, which crashed
+on the second commit that does not contain it. v2 globbed for any `.py` but mangled by
+replacing `import argparse` — a silent no-op on a file without it, so the control reported
+"did not fire" when nothing had been mangled. v3 **appends** `x  =  1`, which is
+content-independent, always mis-formatted, and always syntactically valid (prepending breaks
+`from __future__` and makes ruff exit **2 = error**, which is non-zero and would let a broken
+control masquerade as a firing one — so the check now demands **exactly** rc=1).
+
 **My first secrets control was INERT and I nearly recorded it as diligence.** An
 `AKIA` + 16-identical-chars synthetic fires under **neither** the repo `.gitleaks.toml`
 **nor** gitleaks' own defaults — measured as a 2×2 over {default, repo} × {low, high
