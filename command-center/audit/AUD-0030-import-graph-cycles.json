@@ -1,0 +1,710 @@
+{
+ "artifacts": [
+  {
+   "bytes": 817,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/control-scc.json",
+   "role": "supporting",
+   "sha256": "928537f3a3187ab6eb574f4a33f429ef7f1297e88dc7521f89a2b2651404017b"
+  },
+  {
+   "bytes": 53733,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/probe1-ast-graph.json",
+   "role": "supporting",
+   "sha256": "95bb47f72326b40763ccbc4e6a8ab1bd8cb4e6f609abd8a05acd11b796aa6486"
+  },
+  {
+   "bytes": 17280,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/probe2-runtime-trace.json",
+   "role": "supporting",
+   "sha256": "bfe902f47a828da70575c2e62732dc2fb65367c7351c85cc2f7f950838f51981"
+  },
+  {
+   "bytes": 66,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/cycle-fixture/fixture_mod_a.py",
+   "role": "fixture",
+   "sha256": "133bac07c2d035bf4c9f46b7d97d021ee9112c1adbcd3eb1969236c6be83e82a"
+  },
+  {
+   "bytes": 66,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/cycle-fixture/fixture_mod_b.py",
+   "role": "fixture",
+   "sha256": "a6dd15e05d8c8a6934c2939d3436e045dfdd55c80c6c1acca30e5b8abba063d5"
+  },
+  {
+   "bytes": 64,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/cycle-fixture/fixture_ok_a.py",
+   "role": "fixture",
+   "sha256": "a58bbf9fc1d0460e0146c575044b8eda9fc4811c00f43a3f77ec94bdc3ff526c"
+  },
+  {
+   "bytes": 24,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0030/cycle-fixture/fixture_ok_b.py",
+   "role": "fixture",
+   "sha256": "8483513a9c34e82770dc96d14e8a90a91a5cc965c6295c4b76b871146766dbe8"
+  },
+  {
+   "bytes": 20834,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/_build_AUD0030.py",
+   "role": "control",
+   "sha256": "c673bf498d6ee63b3959895e1383a71f6f5d892cc7a56c29f983756a112f0aad"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0030-import-graph-cycles.json",
+   "consumer": "command-center/ready_units.py (artifact_delivered contract check)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "schema_resolver.validate_artifact(doc, 'command-center/schema/audit-graph.schema.json')",
+    "exit_code": 0,
+    "fingerprint": "49e897dd156a2c2496e6699333a2c740",
+    "method": "schema-validate",
+    "raw_output": "validated before write; emitter refuses to persist an invalid artifact",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0030/probe1-ast-graph.json",
+   "claim": "The tools/ Python import graph is 679 modules and 265 internal edges, containing 1 import cycle(s).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python command-center/p2-wave/_build_AUD0030.py (ast.parse over tools/**/*.py, iterative Tarjan SCC)",
+     "exit_code": 0,
+     "fingerprint": "222257c6242732e9b3695bf58d94ad7b",
+     "method": "static-analysis",
+     "raw_output": "modules=679 internal_edges=265 cycles=1 files_scanned=679\ntools/lib exists=True python_files_under_tools_lib=0\ncycles: [['tools.crcp.crcp.sentinel', 'tools.crcp.crcp.write_path']]\ntop fan-in: [('tools.monitorcore.monitorcore.redact', 10), ('tools.monitorcore.monitorcore.codex_tail', 9), ('tools.monitorcore.monitorcore.contract', 9), ('tools.monitorcore.monitorcore.report_doc', 9), ('tools.mcpapply.tests.conftest', 8), ('tools.monitorcore.monitorcore.textsafe', 7), ('tools.agentrail.tests.fakes', 6), ('tools.command-center.catalog', 6), ('tools.crcp.crcp.envelope', 6), ('tools.crcp.crcp.bridge', 5), ('tools.mcp-manager.core.models', 5), ('tools.monitorcore.monitorcore.group_tree', 5)]\ntop unresolved (external) imports: [('__future__', 573), ('json', 289), ('pathlib', 269), ('sys', 232), ('os', 191), ('agentspec', 166), ('typing', 165), ('pytest', 159), ('dataclasses', 135), ('omniaudit', 128), ('monitorcore', 111), ('time', 98)]",
+     "role": "source"
+    },
+    {
+     "command": "python.exe -c '__import__(<module>)' in a FRESH interpreter per module, recording sys.modules deltas (25 modules, 15s each)",
+     "exit_code": 0,
+     "fingerprint": "a38cc6cd50123fcd7d8451500b704057",
+     "method": "command",
+     "raw_output": "runtime trace: attempted=25 importable=22 failed=3 modules_with_runtime_only_internal_imports=17\n  tools.crcp.crcp.sentinel: ok=True delta=88 \n  tools.crcp.crcp.write_path: ok=True delta=87 \n  tools.monitorcore.monitorcore.redact: ok=True delta=5 \n  tools.monitorcore.monitorcore.codex_tail: ok=True delta=26 \n  tools.monitorcore.monitorcore.contract: ok=True delta=23 \n  tools.monitorcore.monitorcore.report_doc: ok=True delta=20 \n  tools.mcpapply.tests.conftest: ok=False delta=187 err=ModuleNotFoundError: No module named 'mcpctl'\n  tools.monitorcore.monitorcore.textsafe: ok=True delta=4 \n  tools.agentrail.tests.fakes: ok=False delta=24 err=ModuleNotFoundError: No module named 'agentrail'\n  tools.command-center.catalog: ok=True delta=5 \n  tools.crcp.crcp.envelope: ok=True delta=35 \n  tools.crcp.crcp.bridge: ok=True delta=85 \n  tools.mcp-manager.core.models: ok=True delta=19 \n  tools.monitorcore.monitorcore.group_tree: ok=True delta=28 \n  tools.taskwatch_monitor.probes.base: ok=False delta=19 err=ModuleNotFoundError: No module named 'core'\n  tools.crcp.crcp.auth: ok=True delta=72 \n  tools.crcp.crcp.bus: ok=True delta=68 \n  tools.crcp.crcp.http_secure: ok=True delta=65 \n  tools.event-ledger.ledger: ok=True delta=6 \n  tools.mcp.fb-messenger-mcp.fbmcp.common: ok=True delta=22 \n  tools.monitorcore.monitorcore.nav: ok=True delta=29 \n  tools.monitorcore.monitorcore.timeline: ok=True delta=19 \n  tools.search-expansion.searxng_config: ok=True delta=21 \n  tools.taskwatch_monitor.core.models: ok=True delta=19 \n  tools.crcp.crcp: ok=True delta=3 ",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0030/probe2-runtime-trace.json",
+   "claim": "The runtime trace of 25 targeted modules found 17 module(s) pulling in internal imports the AST scan did not record.",
+   "confidence": "likely",
+   "probes": [
+    {
+     "command": "python.exe -c '__import__(<module>)' in a FRESH interpreter per module, recording sys.modules deltas (25 modules, 15s each)",
+     "exit_code": 0,
+     "fingerprint": "a38cc6cd50123fcd7d8451500b704057",
+     "method": "command",
+     "raw_output": "runtime trace: attempted=25 importable=22 failed=3 modules_with_runtime_only_internal_imports=17\n  tools.crcp.crcp.sentinel: ok=True delta=88 \n  tools.crcp.crcp.write_path: ok=True delta=87 \n  tools.monitorcore.monitorcore.redact: ok=True delta=5 \n  tools.monitorcore.monitorcore.codex_tail: ok=True delta=26 \n  tools.monitorcore.monitorcore.contract: ok=True delta=23 \n  tools.monitorcore.monitorcore.report_doc: ok=True delta=20 \n  tools.mcpapply.tests.conftest: ok=False delta=187 err=ModuleNotFoundError: No module named 'mcpctl'\n  tools.monitorcore.monitorcore.textsafe: ok=True delta=4 \n  tools.agentrail.tests.fakes: ok=False delta=24 err=ModuleNotFoundError: No module named 'agentrail'\n  tools.command-center.catalog: ok=True delta=5 \n  tools.crcp.crcp.envelope: ok=True delta=35 \n  tools.crcp.crcp.bridge: ok=True delta=85 \n  tools.mcp-manager.core.models: ok=True delta=19 \n  tools.monitorcore.monitorcore.group_tree: ok=True delta=28 \n  tools.taskwatch_monitor.probes.base: ok=False delta=19 err=ModuleNotFoundError: No module named 'core'\n  tools.crcp.crcp.auth: ok=True delta=72 \n  tools.crcp.crcp.bus: ok=True delta=68 \n  tools.crcp.crcp.http_secure: ok=True delta=65 \n  tools.event-ledger.ledger: ok=True delta=6 \n  tools.mcp.fb-messenger-mcp.fbmcp.common: ok=True delta=22 \n  tools.monitorcore.monitorcore.nav: ok=True delta=29 \n  tools.monitorcore.monitorcore.timeline: ok=True delta=19 \n  tools.search-expansion.searxng_config: ok=True delta=21 \n  tools.taskwatch_monitor.core.models: ok=True delta=19 \n  tools.crcp.crcp: ok=True delta=3 ",
+     "role": "verifier"
+    },
+    {
+     "command": "python command-center/p2-wave/_build_AUD0030.py (ast.parse over tools/**/*.py, iterative Tarjan SCC)",
+     "exit_code": 0,
+     "fingerprint": "222257c6242732e9b3695bf58d94ad7b",
+     "method": "static-analysis",
+     "raw_output": "modules=679 internal_edges=265 cycles=1 files_scanned=679\ntools/lib exists=True python_files_under_tools_lib=0\ncycles: [['tools.crcp.crcp.sentinel', 'tools.crcp.crcp.write_path']]\ntop fan-in: [('tools.monitorcore.monitorcore.redact', 10), ('tools.monitorcore.monitorcore.codex_tail', 9), ('tools.monitorcore.monitorcore.contract', 9), ('tools.monitorcore.monitorcore.report_doc', 9), ('tools.mcpapply.tests.conftest', 8), ('tools.monitorcore.monitorcore.textsafe', 7), ('tools.agentrail.tests.fakes', 6), ('tools.command-center.catalog', 6), ('tools.crcp.crcp.envelope', 6), ('tools.crcp.crcp.bridge', 5), ('tools.mcp-manager.core.models', 5), ('tools.monitorcore.monitorcore.group_tree', 5)]\ntop unresolved (external) imports: [('__future__', 573), ('json', 289), ('pathlib', 269), ('sys', 232), ('os', 191), ('agentspec', 166), ('typing', 165), ('pytest', 159), ('dataclasses', 135), ('omniaudit', 128), ('monitorcore', 111), ('time', 98)]",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/lib/package.json",
+   "claim": "The row names 'tools/ and tools/lib/', but tools/lib holds 0 Python files -- it is a JavaScript package. The graph is therefore tools/ only, which is the whole Python surface the row was reaching for.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python command-center/p2-wave/_build_AUD0030.py (ast.parse over tools/**/*.py, iterative Tarjan SCC)",
+     "exit_code": 0,
+     "fingerprint": "222257c6242732e9b3695bf58d94ad7b",
+     "method": "static-analysis",
+     "raw_output": "modules=679 internal_edges=265 cycles=1 files_scanned=679\ntools/lib exists=True python_files_under_tools_lib=0\ncycles: [['tools.crcp.crcp.sentinel', 'tools.crcp.crcp.write_path']]\ntop fan-in: [('tools.monitorcore.monitorcore.redact', 10), ('tools.monitorcore.monitorcore.codex_tail', 9), ('tools.monitorcore.monitorcore.contract', 9), ('tools.monitorcore.monitorcore.report_doc', 9), ('tools.mcpapply.tests.conftest', 8), ('tools.monitorcore.monitorcore.textsafe', 7), ('tools.agentrail.tests.fakes', 6), ('tools.command-center.catalog', 6), ('tools.crcp.crcp.envelope', 6), ('tools.crcp.crcp.bridge', 5), ('tools.mcp-manager.core.models', 5), ('tools.monitorcore.monitorcore.group_tree', 5)]\ntop unresolved (external) imports: [('__future__', 573), ('json', 289), ('pathlib', 269), ('sys', 232), ('os', 191), ('agentspec', 166), ('typing', 165), ('pytest', 159), ('dataclasses', 135), ('omniaudit', 128), ('monitorcore', 111), ('time', 98)]",
+     "role": "source"
+    },
+    {
+     "command": "python.exe -c '__import__(<module>)' in a FRESH interpreter per module, recording sys.modules deltas (25 modules, 15s each)",
+     "exit_code": 0,
+     "fingerprint": "a38cc6cd50123fcd7d8451500b704057",
+     "method": "command",
+     "raw_output": "runtime trace: attempted=25 importable=22 failed=3 modules_with_runtime_only_internal_imports=17\n  tools.crcp.crcp.sentinel: ok=True delta=88 \n  tools.crcp.crcp.write_path: ok=True delta=87 \n  tools.monitorcore.monitorcore.redact: ok=True delta=5 \n  tools.monitorcore.monitorcore.codex_tail: ok=True delta=26 \n  tools.monitorcore.monitorcore.contract: ok=True delta=23 \n  tools.monitorcore.monitorcore.report_doc: ok=True delta=20 \n  tools.mcpapply.tests.conftest: ok=False delta=187 err=ModuleNotFoundError: No module named 'mcpctl'\n  tools.monitorcore.monitorcore.textsafe: ok=True delta=4 \n  tools.agentrail.tests.fakes: ok=False delta=24 err=ModuleNotFoundError: No module named 'agentrail'\n  tools.command-center.catalog: ok=True delta=5 \n  tools.crcp.crcp.envelope: ok=True delta=35 \n  tools.crcp.crcp.bridge: ok=True delta=85 \n  tools.mcp-manager.core.models: ok=True delta=19 \n  tools.monitorcore.monitorcore.group_tree: ok=True delta=28 \n  tools.taskwatch_monitor.probes.base: ok=False delta=19 err=ModuleNotFoundError: No module named 'core'\n  tools.crcp.crcp.auth: ok=True delta=72 \n  tools.crcp.crcp.bus: ok=True delta=68 \n  tools.crcp.crcp.http_secure: ok=True delta=65 \n  tools.event-ledger.ledger: ok=True delta=6 \n  tools.mcp.fb-messenger-mcp.fbmcp.common: ok=True delta=22 \n  tools.monitorcore.monitorcore.nav: ok=True delta=29 \n  tools.monitorcore.monitorcore.timeline: ok=True delta=19 \n  tools.search-expansion.searxng_config: ok=True delta=21 \n  tools.taskwatch_monitor.core.models: ok=True delta=19 \n  tools.crcp.crcp: ok=True delta=3 ",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure": {
+  "blocked_on": "fresh-context Claude reviewer (reviewer_requirement)",
+  "classification": [
+   "reviewer-absent",
+   "self-review-is-not-review"
+  ],
+  "reason": "Both named probes ran and the SCC control discriminates in both directions, but receipt_core requires reviewer.verdict=PASS with independent=true for state SUCCESS and this row names a fresh-context Claude reviewer who must try to FALSIFY the headline count."
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "registered": false
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "cycle fixture -> 1 cycle(s) [2]",
+   "description": "A planted two-module cycle must yield exactly one SCC of length 2, and a structurally identical ACYCLIC pair must yield zero. Without the second half an always-zero detector would look correct on a clean repo.",
+   "fired_on_bad_state": true,
+   "good_state_output": "acyclic fixture -> 0 cycle(s)",
+   "id": "AUD0030-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "auditor",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "control_ids": [
+   "AUD0030-C1"
+  ],
+  "cycles": [
+   [
+    "tools.crcp.crcp.sentinel",
+    "tools.crcp.crcp.write_path"
+   ]
+  ],
+  "edge_count": 265,
+  "kind": "audit-graph",
+  "module_count": 679,
+  "observations": [
+   {
+    "anchor": "tools/**/*.py excluding vendor",
+    "measured": 679,
+    "method": "static-analysis",
+    "name": "python_modules_in_tools"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0030/probe1-ast-graph.json",
+    "measured": 265,
+    "method": "static-analysis",
+    "name": "internal_import_edges"
+   },
+   {
+    "anchor": "Tarjan SCC over the AST graph",
+    "measured": 1,
+    "method": "static-analysis",
+    "name": "import_cycles"
+   },
+   {
+    "anchor": "fan_in table",
+    "measured": "tools.monitorcore.monitorcore.redact",
+    "method": "static-analysis",
+    "name": "highest_fan_in_module"
+   },
+   {
+    "anchor": "fan_in table",
+    "measured": 10,
+    "method": "static-analysis",
+    "name": "highest_fan_in_count"
+   },
+   {
+    "anchor": "tools/lib -- the row names it, but it holds no Python",
+    "measured": 0,
+    "method": "file-read",
+    "name": "python_files_under_tools_lib"
+   },
+   {
+    "anchor": "bounded sample: all cycle members + top fan-in",
+    "measured": 25,
+    "method": "command",
+    "name": "runtime_trace_modules_attempted"
+   },
+   {
+    "anchor": "probe2-runtime-trace.json",
+    "measured": 22,
+    "method": "command",
+    "name": "runtime_trace_importable"
+   },
+   {
+    "anchor": "runtime delta minus AST edges",
+    "measured": 17,
+    "method": "command",
+    "name": "modules_with_runtime_only_internal_imports"
+   }
+  ],
+  "runtime_only_imports": [
+   {
+    "module": "tools.crcp.crcp.sentinel",
+    "runtime_only_imports": [
+     "tools.crcp.crcp.artifact_store",
+     "tools.crcp.crcp.bridge",
+     "tools.crcp.crcp.credential_snapshot",
+     "tools.crcp.crcp.envelope",
+     "tools.crcp.crcp.sse_contract"
+    ]
+   },
+   {
+    "module": "tools.crcp.crcp.write_path",
+    "runtime_only_imports": [
+     "tools.crcp.crcp.artifact_store",
+     "tools.crcp.crcp.credential_snapshot"
+    ]
+   },
+   {
+    "module": "tools.monitorcore.monitorcore.contract",
+    "runtime_only_imports": [
+     "tools.monitorcore.monitorcore.timeline"
+    ]
+   },
+   {
+    "module": "tools.monitorcore.monitorcore.textsafe",
+    "runtime_only_imports": [
+     "tools",
+     "tools.monitorcore",
+     "tools.monitorcore.monitorcore"
+    ]
+   },
+   {
+    "module": "tools.command-center.catalog",
+    "runtime_only_imports": [
+     "tools",
+     "tools.command-center"
+    ]
+   },
+   {
+    "module": "tools.crcp.crcp.bridge",
+    "runtime_only_imports": [
+     "tools.crcp.crcp.artifact_store"
+    ]
+   },
+   {
+    "module": "tools.mcp-manager.core.models",
+    "runtime_only_imports": [
+     "tools",
+     "tools.mcp-manager",
+     "tools.mcp-manager.core"
+    ]
+   },
+   {
+    "module": "tools.monitorcore.monitorcore.group_tree",
+    "runtime_only_imports": [
+     "tools.monitorcore.monitorcore.ctx",
+     "tools.monitorcore.monitorcore.redact",
+     "tools.monitorcore.monitorcore.textsafe"
+    ]
+   },
+   {
+    "module": "tools.crcp.crcp.bus",
+    "runtime_only_imports": [
+     "tools",
+     "tools.crcp",
+     "tools.crcp.crcp"
+    ]
+   },
+   {
+    "module": "tools.crcp.crcp.http_secure",
+    "runtime_only_imports": [
+     "tools",
+     "tools.crcp",
+     "tools.crcp.crcp"
+    ]
+   },
+   {
+    "module": "tools.event-ledger.ledger",
+    "runtime_only_imports": [
+     "tools",
+     "tools.event-ledger"
+    ]
+   },
+   {
+    "module": "tools.mcp.fb-messenger-mcp.fbmcp.common",
+    "runtime_only_imports": [
+     "tools",
+     "tools.mcp",
+     "tools.mcp.fb-messenger-mcp",
+     "tools.mcp.fb-messenger-mcp.fbmcp"
+    ]
+   },
+   {
+    "module": "tools.monitorcore.monitorcore.nav",
+    "runtime_only_imports": [
+     "tools.monitorcore.monitorcore.codex_tail",
+     "tools.monitorcore.monitorcore.ctx",
+     "tools.monitorcore.monitorcore.event_feed",
+     "tools.monitorcore.monitorcore.redact",
+     "tools.monitorcore.monitorcore.textsafe"
+    ]
+   },
+   {
+    "module": "tools.monitorcore.monitorcore.timeline",
+    "runtime_only_imports": [
+     "tools",
+     "tools.monitorcore",
+     "tools.monitorcore.monitorcore"
+    ]
+   },
+   {
+    "module": "tools.search-expansion.searxng_config",
+    "runtime_only_imports": [
+     "tools",
+     "tools.search-expansion"
+    ]
+   },
+   {
+    "module": "tools.taskwatch_monitor.core.models",
+    "runtime_only_imports": [
+     "tools",
+     "tools.taskwatch_monitor",
+     "tools.taskwatch_monitor.core"
+    ]
+   },
+   {
+    "module": "tools.crcp.crcp",
+    "runtime_only_imports": [
+     "tools",
+     "tools.crcp"
+    ]
+   }
+  ],
+  "top_fan_in": [
+   [
+    "tools.monitorcore.monitorcore.redact",
+    10
+   ],
+   [
+    "tools.monitorcore.monitorcore.codex_tail",
+    9
+   ],
+   [
+    "tools.monitorcore.monitorcore.contract",
+    9
+   ],
+   [
+    "tools.monitorcore.monitorcore.report_doc",
+    9
+   ],
+   [
+    "tools.mcpapply.tests.conftest",
+    8
+   ],
+   [
+    "tools.monitorcore.monitorcore.textsafe",
+    7
+   ],
+   [
+    "tools.agentrail.tests.fakes",
+    6
+   ],
+   [
+    "tools.command-center.catalog",
+    6
+   ],
+   [
+    "tools.crcp.crcp.envelope",
+    6
+   ],
+   [
+    "tools.crcp.crcp.bridge",
+    5
+   ],
+   [
+    "tools.mcp-manager.core.models",
+    5
+   ],
+   [
+    "tools.monitorcore.monitorcore.group_tree",
+    5
+   ],
+   [
+    "tools.taskwatch_monitor.probes.base",
+    5
+   ],
+   [
+    "tools.crcp.crcp.auth",
+    4
+   ],
+   [
+    "tools.crcp.crcp.bus",
+    4
+   ],
+   [
+    "tools.crcp.crcp.http_secure",
+    4
+   ],
+   [
+    "tools.event-ledger.ledger",
+    4
+   ],
+   [
+    "tools.mcp.fb-messenger-mcp.fbmcp.common",
+    4
+   ],
+   [
+    "tools.monitorcore.monitorcore.nav",
+    4
+   ],
+   [
+    "tools.monitorcore.monitorcore.timeline",
+    4
+   ],
+   [
+    "tools.search-expansion.searxng_config",
+    4
+   ],
+   [
+    "tools.taskwatch_monitor.core.models",
+    4
+   ],
+   [
+    "tools.crcp.crcp",
+    3
+   ],
+   [
+    "tools.crcp.crcp.write_path",
+    3
+   ],
+   [
+    "tools.mcp-manager.core",
+    3
+   ]
+  ],
+  "unresolved_external_import_roots": [
+   [
+    "__future__",
+    573
+   ],
+   [
+    "json",
+    289
+   ],
+   [
+    "pathlib",
+    269
+   ],
+   [
+    "sys",
+    232
+   ],
+   [
+    "os",
+    191
+   ],
+   [
+    "agentspec",
+    166
+   ],
+   [
+    "typing",
+    165
+   ],
+   [
+    "pytest",
+    159
+   ],
+   [
+    "dataclasses",
+    135
+   ],
+   [
+    "omniaudit",
+    128
+   ],
+   [
+    "monitorcore",
+    111
+   ],
+   [
+    "time",
+    98
+   ],
+   [
+    "subprocess",
+    91
+   ],
+   [
+    "collections",
+    90
+   ],
+   [
+    "core",
+    87
+   ],
+   [
+    "urllib",
+    81
+   ],
+   [
+    "mcpctl",
+    78
+   ],
+   [
+    "re",
+    67
+   ],
+   [
+    "agentrail",
+    62
+   ],
+   [
+    "argparse",
+    62
+   ],
+   [
+    "mcpapply",
+    62
+   ],
+   [
+    "datetime",
+    51
+   ],
+   [
+    "hashlib",
+    50
+   ],
+   [
+    "schrodinger",
+    45
+   ],
+   [
+    "tempfile",
+    43
+   ],
+   [
+    "shutil",
+    38
+   ],
+   [
+    "importlib",
+    34
+   ],
+   [
+    "threading",
+    30
+   ],
+   [
+    "unittest",
+    30
+   ],
+   [
+    "openmm",
+    30
+   ],
+   [
+    "crcp",
+    26
+   ],
+   [
+    "io",
+    24
+   ],
+   [
+    "mcp",
+    22
+   ],
+   [
+    "uuid",
+    20
+   ],
+   [
+    "probes",
+    20
+   ],
+   [
+    "enum",
+    17
+   ],
+   [
+    "sqlite3",
+    17
+   ],
+   [
+    "asyncio",
+    17
+   ],
+   [
+    "rdkit",
+    17
+   ],
+   [
+    "types",
+    16
+   ]
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "The runtime trace covers 25 of 679 modules -- all cycle members plus the highest fan-in, not the whole graph. Host RAM is ~4.5 GB and each module costs a fresh interpreter, so a full trace was not attempted.",
+   "settling_experiment": "Re-run with RUNTIME_BUDGET set to the module count on a host with headroom; any additional runtime-only edge is the finding.",
+   "verdict": "PARTIAL"
+  },
+  {
+   "claim": "Import targets are resolved by longest-prefix match against known module paths, so a module shadowed by a same-named third-party package could be mis-attributed as internal.",
+   "settling_experiment": "Compare each resolved internal edge against the runtime sys.modules[...].__file__ for that name and flag any whose resolved file is outside the repo.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "independent": false,
+  "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review",
+  "verdict": "NOT-REVIEWED"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0030 import graph and cycle census emitted; both probes recorded verbatim",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0030",
+ "state": "BLOCKED",
+ "tests": [
+  {
+   "assertions": 2,
+   "command": "tarjan(build_graph(fixture_mod_a, fixture_mod_b))",
+   "id": "ctl-planted-two-module-cycle",
+   "output_tail": "cycles=1 lengths=[2] (want exactly one of length 2)",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "tarjan(build_graph(fixture_ok_a, fixture_ok_b))",
+   "id": "ctl-acyclic-fixture-silent",
+   "output_tail": "cycles=0 (want 0)",
+   "result": "PASS"
+  },
+  {
+   "assertions": 25,
+   "command": "fresh interpreter per module, sys.modules delta",
+   "id": "runtime-trace-executed",
+   "output_tail": "22/25 importable",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-12T06:25:00Z",
+  "started_at": "2026-08-12T05:55:00Z"
+ },
+ "unit_id": "AUD-0030"
+}
