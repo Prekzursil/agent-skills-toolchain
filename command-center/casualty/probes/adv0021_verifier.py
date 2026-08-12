@@ -10,6 +10,7 @@ so a silent detector is caught (both-states rule).
 
 Read-only. Writes nothing; prints a JSON blob between sentinels.
 """
+
 from __future__ import annotations
 
 import ast
@@ -21,8 +22,18 @@ import re
 ROOT = r"C:/Users/Prekzursil/source/ast-integrate"
 PLUG = os.path.join(ROOT, "platform/plugin")
 
-MODULES = ["cli.py", "lifecycle.py", "packager.py", "fsops.py", "journal.py",
-           "deploy.py", "manifest.py", "proc.py", "payload.py", "cache.py"]
+MODULES = [
+    "cli.py",
+    "lifecycle.py",
+    "packager.py",
+    "fsops.py",
+    "journal.py",
+    "deploy.py",
+    "manifest.py",
+    "proc.py",
+    "payload.py",
+    "cache.py",
+]
 
 out: dict = {"probe": "ADV-0021-verifier-ast-and-exec", "checks": {}}
 
@@ -75,14 +86,27 @@ payloads = {
 out["checks"]["V1_semver_regex_executed"] = {
     "pattern_literal": semver_literal,
     "pattern_anchor": "platform/plugin/manifest.py:SEMVER_RE",
-    "accepts": {k: bool(compiled.match(v)) for k, v in payloads.items()} if compiled else None,
-    "detector_control_rejects_garbage": (not bool(compiled.match(payloads["control_must_reject"])))
-    if compiled else None,
+    "accepts": {k: bool(compiled.match(v)) for k, v in payloads.items()}
+    if compiled
+    else None,
+    "detector_control_rejects_garbage": (
+        not bool(compiled.match(payloads["control_must_reject"]))
+    )
+    if compiled
+    else None,
 }
 
 # ------------------------------------------------- V2: signature verification
-SIG_VERBS = {"verify_signature", "check_signature", "verify", "gpg_verify",
-             "cosign_verify", "minisign_verify", "verify_detached", "load_public_key"}
+SIG_VERBS = {
+    "verify_signature",
+    "check_signature",
+    "verify",
+    "gpg_verify",
+    "cosign_verify",
+    "minisign_verify",
+    "verify_detached",
+    "load_public_key",
+}
 HASH_VERBS = {"sha256", "archive_sha256", "content_hash"}
 sig_hits, hash_hits = [], []
 for m in MODULES:
@@ -90,7 +114,11 @@ for m in MODULES:
     for n in ast.walk(t):
         if isinstance(n, ast.Call):
             f = n.func
-            nm = f.id if isinstance(f, ast.Name) else (f.attr if isinstance(f, ast.Attribute) else "")
+            nm = (
+                f.id
+                if isinstance(f, ast.Name)
+                else (f.attr if isinstance(f, ast.Attribute) else "")
+            )
             if nm in SIG_VERBS:
                 sig_hits.append(f"{m}:{n.lineno}:{nm}")
             if nm in HASH_VERBS:
@@ -101,7 +129,7 @@ out["checks"]["V2_signature_calls_ast"] = {
     "detector_control_hash_verb_callsites_count": len(hash_hits),
     "detector_control_sample": hash_hits[:6],
     "interpretation": "0 signature callsites WITH a non-zero hash-verb control proves the "
-                      "absence is real and the AST walker is not inert",
+    "absence is real and the AST walker is not inert",
 }
 
 # ------------------------------------- V3: containment on version_dir vs deploy
@@ -125,8 +153,13 @@ out["checks"]["V3_version_dir_containment_ast"] = {
 
 # --------------------------------------------- V4: decompression / size bound
 # AST: any Compare node whose operands mention an uncompressed-size attribute.
-SIZE_TOKENS = {"file_size", "compress_size", "max_uncompressed", "decompress_limit",
-               "uncompressed_size"}
+SIZE_TOKENS = {
+    "file_size",
+    "compress_size",
+    "max_uncompressed",
+    "decompress_limit",
+    "uncompressed_size",
+}
 FREE_TOKENS = {"disk_usage", "free", "dir_size"}
 size_cmps, free_cmps = [], []
 for m in ("packager.py", "lifecycle.py", "fsops.py", "cache.py"):
@@ -144,7 +177,7 @@ out["checks"]["V4_expansion_bound_ast"] = {
     "detector_control_freespace_comparisons_count": len(free_cmps),
     "detector_control_sample": free_cmps[:4],
     "interpretation": "0 size-ratio comparisons WITH >0 free-space comparisons proves the "
-                      "Compare-node walker fires and the ratio cap is genuinely absent",
+    "Compare-node walker fires and the ratio cap is genuinely absent",
 }
 
 # ------------------------------------------------- V5: CLI exception surface
@@ -157,16 +190,23 @@ for n in ast.walk(t_c):
 out["checks"]["V5_cli_exception_handlers_ast"] = {
     "handlers": handlers,
     "handler_count": len(handlers),
-    "catches_broad_exception": any("Exception" == h.split(":")[-1] or "BaseException" in h
-                                   for h in handlers),
+    "catches_broad_exception": any(
+        "Exception" == h.split(":")[-1] or "BaseException" in h for h in handlers
+    ),
 }
 
 # ------------------------------------------- V6: test-gap, by AST not by grep
 # The dead agent's T1 lane token-SEARCHED the six test modules. This instead parses
 # each test module and reasons over test FUNCTION NAMES plus every string constant,
 # which is a different mechanism over the same question.
-TEST_MODULES = ["test_cli.py", "test_foundation.py", "test_health.py",
-                "test_lifecycle.py", "test_package.py", "test_schemas.py"]
+TEST_MODULES = [
+    "test_cli.py",
+    "test_foundation.py",
+    "test_health.py",
+    "test_lifecycle.py",
+    "test_package.py",
+    "test_schemas.py",
+]
 # DETECTOR-DEFECT NOTE (found and fixed during this build, recorded so it is not
 # silently deleted): a first pass matched bare substrings and reported 3 spurious
 # "zip_decompression_bomb" tests because the token "ratio" occurs inside the word
@@ -176,13 +216,30 @@ TEST_MODULES = ["test_cli.py", "test_foundation.py", "test_health.py",
 # tested AT THIS BOUNDARY".
 BEHAVIOURS = {
     # behaviour -> (must match one of A) AND (must match one of B)
-    "version_string_traversal": ((r"version", r"semver"), (r"traversal", r"\.\.", r"escape", r"outside", r"slip")),
-    "provenance_live_path_escape": ((r"provenance", r"live_path", r"livepath"), (r"escape", r"outside", r"traversal", r"\.\.")),
-    "zip_decompression_bomb": ((r"zip", r"archive", r"unpack", r"decompress"), (r"bomb", r"ratio", r"expansion", r"quota", r"limit", r"cap")),
-    "package_signature": ((r"signature", r"signed", r"gpg", r"cosign", r"pubkey", r"trust[_ ]?anchor"), None),
+    "version_string_traversal": (
+        (r"version", r"semver"),
+        (r"traversal", r"\.\.", r"escape", r"outside", r"slip"),
+    ),
+    "provenance_live_path_escape": (
+        (r"provenance", r"live_path", r"livepath"),
+        (r"escape", r"outside", r"traversal", r"\.\."),
+    ),
+    "zip_decompression_bomb": (
+        (r"zip", r"archive", r"unpack", r"decompress"),
+        (r"bomb", r"ratio", r"expansion", r"quota", r"limit", r"cap"),
+    ),
+    "package_signature": (
+        (r"signature", r"signed", r"gpg", r"cosign", r"pubkey", r"trust[_ ]?anchor"),
+        None,
+    ),
 }
 ADJACENT = {  # the weaker "is this attack tested ANYWHERE" reading, reported separately
-    "any_traversal_test": (r"traversal", r"zip[_ ]?slip", r"unsafe[_ ]?path", r"outside[_ ]the[_ ]prefix"),
+    "any_traversal_test": (
+        r"traversal",
+        r"zip[_ ]?slip",
+        r"unsafe[_ ]?path",
+        r"outside[_ ]the[_ ]prefix",
+    ),
 }
 found: dict[str, list[str]] = {k: [] for k in BEHAVIOURS}
 adjacent: dict[str, list[str]] = {k: [] for k in ADJACENT}
@@ -201,11 +258,19 @@ for m in TEST_MODULES:
     s = io.open(p, encoding="utf-8").read()
     t = ast.parse(s, filename=m)
     for n in ast.walk(t):
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith("test"):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name.startswith(
+            "test"
+        ):
             test_fn_total += 1
-            hay = n.name.lower() + " " + " ".join(
-                c.value.lower() for c in ast.walk(n)
-                if isinstance(c, ast.Constant) and isinstance(c.value, str))
+            hay = (
+                n.name.lower()
+                + " "
+                + " ".join(
+                    c.value.lower()
+                    for c in ast.walk(n)
+                    if isinstance(c, ast.Constant) and isinstance(c.value, str)
+                )
+            )
             for beh, (grp_a, grp_b) in BEHAVIOURS.items():
                 hit_a = any(wb(tok, hay) for tok in grp_a)
                 hit_b = True if grp_b is None else any(wb(tok, hay) for tok in grp_b)
@@ -220,20 +285,21 @@ out["checks"]["V6_test_gap_ast"] = {
     "test_functions_parsed": test_fn_total,
     "modules_parsed": TEST_MODULES,
     "behaviour_hits_at_the_specific_boundary": found,
-    "behaviours_with_zero_tests_at_the_specific_boundary": [k for k, v in found.items() if not v],
+    "behaviours_with_zero_tests_at_the_specific_boundary": [
+        k for k, v in found.items() if not v
+    ],
     "adjacent_coverage_weaker_reading": adjacent,
     "detector_control_diverged_test_functions": control_hits,
     "detector_control_count": len(control_hits),
-    "detector_defect_found_and_fixed":
-        "A substring pass reported 3 false zip_decompression_bomb hits because 'ratio' is a "
-        "substring of 'migration'. Fixed with word-boundary + conjunctive matching. The false "
-        "hits were test_dry_run_migration_moves_nothing, "
-        "test_a_failing_step_rolls_the_migration_back, test_migration_ledger_serialises.",
+    "detector_defect_found_and_fixed": "A substring pass reported 3 false zip_decompression_bomb hits because 'ratio' is a "
+    "substring of 'migration'. Fixed with word-boundary + conjunctive matching. The false "
+    "hits were test_dry_run_migration_moves_nothing, "
+    "test_a_failing_step_rolls_the_migration_back, test_migration_ledger_serialises.",
     "interpretation": "The AST walker is proven live by the 'diverged' positive control (4 test "
-                      "functions). behaviour_hits_at_the_specific_boundary answers the unit's "
-                      "actual question; adjacent_coverage_weaker_reading is reported separately "
-                      "so the finding is not overstated - traversal IS tested elsewhere in the "
-                      "suite, just not at the version-string boundary that D1b exploited.",
+    "functions). behaviour_hits_at_the_specific_boundary answers the unit's "
+    "actual question; adjacent_coverage_weaker_reading is reported separately "
+    "so the finding is not overstated - traversal IS tested elsewhere in the "
+    "suite, just not at the version-string boundary that D1b exploited.",
 }
 
 print("ADV0021_V_BEGIN")

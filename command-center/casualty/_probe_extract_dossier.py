@@ -60,7 +60,15 @@ def role_of(rec: dict) -> str:
 def ident_arg(name: str, inp: dict) -> str:
     if not isinstance(inp, dict):
         return ""
-    for k in ("file_path", "notebook_path", "path", "command", "pattern", "query", "url"):
+    for k in (
+        "file_path",
+        "notebook_path",
+        "path",
+        "command",
+        "pattern",
+        "query",
+        "url",
+    ):
         v = inp.get(k)
         if isinstance(v, str) and v:
             return v[:400].replace("\n", " ")
@@ -97,7 +105,9 @@ def main(argv: list[str]) -> int:
                     continue
                 if role == "assistant":
                     texts += 1
-                    worklog.append(f"\n### [rec {i}] assistant text #{texts}\n\n{txt}\n")
+                    worklog.append(
+                        f"\n### [rec {i}] assistant text #{texts}\n\n{txt}\n"
+                    )
             elif t == "tool_use":
                 tool_calls += 1
                 name = b.get("name", "?")
@@ -108,7 +118,9 @@ def main(argv: list[str]) -> int:
                     if fp:
                         written.append(str(fp))
 
-    (OUT / f"{unit}-spawn-prompt.txt").write_text(spawn or "<<NO USER MESSAGE FOUND>>", encoding="utf-8")
+    (OUT / f"{unit}-spawn-prompt.txt").write_text(
+        spawn or "<<NO USER MESSAGE FOUND>>", encoding="utf-8"
+    )
     (OUT / f"{unit}-worklog.md").write_text(
         f"# {unit} worklog (recovered from {fname})\n\n"
         f"records={len(recs)} tool_calls={tool_calls} assistant_texts={texts}\n\n"
@@ -119,9 +131,15 @@ def main(argv: list[str]) -> int:
     for p in sorted(dict.fromkeys(written)):
         q = Path(p)
         idx.append(
-            {"path": p, "exists": q.is_file(), "bytes": q.stat().st_size if q.is_file() else 0}
+            {
+                "path": p,
+                "exists": q.is_file(),
+                "bytes": q.stat().st_size if q.is_file() else 0,
+            }
         )
-    (OUT / f"{unit}-scratch-index.json").write_text(json.dumps(idx, indent=2), encoding="utf-8")
+    (OUT / f"{unit}-scratch-index.json").write_text(
+        json.dumps(idx, indent=2), encoding="utf-8"
+    )
 
     alive = sum(1 for e in idx if e["exists"])
     print(

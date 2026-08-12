@@ -3,6 +3,7 @@ plus the top-level shape of a known-COMPLETE exemplar (ADV-0024).
 
 Read-only. No writes outside stdout.
 """
+
 import json
 import os
 
@@ -30,4 +31,6 @@ if os.path.exists(rec_p):
         pv = props[pk]
         t = pv.get("type")
         req = pv.get("required")
-        print(f"  - {pk}: type={t} required={req} keys={[x for x in pv.keys() if x not in ('description',)][:8]}")
+        print(
+            f"  - {pk}: type={t} required={req} keys={[x for x in pv.keys() if x not in ('description',)][:8]}"
+        )

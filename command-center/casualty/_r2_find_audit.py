@@ -5,6 +5,7 @@ Two-signal identification (never a bare text match):
   S2: the record's own 'label'/'key' field naming an audit phase.
 Prints candidates with sizes so the caller can pick, then dumps the chosen result.
 """
+
 import json
 import os
 import sys

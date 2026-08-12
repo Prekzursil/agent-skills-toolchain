@@ -81,7 +81,11 @@ def main(argv: list[str]) -> int:
         # S2: first user-role message = spawn prompt
         spawn = ""
         for r in recs:
-            role = (r.get("message") or {}).get("role") if isinstance(r.get("message"), dict) else r.get("role")
+            role = (
+                (r.get("message") or {}).get("role")
+                if isinstance(r.get("message"), dict)
+                else r.get("role")
+            )
             if role == "user":
                 spawn = " ".join(
                     b.get("text", "") for b in blocks(r) if b.get("type") == "text"
@@ -90,7 +94,11 @@ def main(argv: list[str]) -> int:
         written = []
         for r in recs:
             for b in blocks(r):
-                if b.get("type") == "tool_use" and b.get("name") in ("Write", "Edit", "NotebookEdit"):
+                if b.get("type") == "tool_use" and b.get("name") in (
+                    "Write",
+                    "Edit",
+                    "NotebookEdit",
+                ):
                     inp = b.get("input") or {}
                     fp = inp.get("file_path") or inp.get("notebook_path")
                     if fp:
@@ -104,9 +112,22 @@ def main(argv: list[str]) -> int:
                 break
 
         for w in wanted:
-            s1 = [p for p in written if w.lower() in p.lower() or w.replace("-", "").lower() in p.lower()]
+            s1 = [
+                p
+                for p in written
+                if w.lower() in p.lower() or w.replace("-", "").lower() in p.lower()
+            ]
             # spawn prompt: require the id near a build/unit context word, not a bare mention
-            s2 = bool(re.search(rf"(?:build|unit[_ -]?id|UNIT|you are)\D{{0,80}}{w}", spawn, re.I)) or spawn.upper().count(w) >= 3
+            s2 = (
+                bool(
+                    re.search(
+                        rf"(?:build|unit[_ -]?id|UNIT|you are)\D{{0,80}}{w}",
+                        spawn,
+                        re.I,
+                    )
+                )
+                or spawn.upper().count(w) >= 3
+            )
             s3 = w.lower() in jlabel.lower()
             if s1 or s2 or s3:
                 hits[w].append(

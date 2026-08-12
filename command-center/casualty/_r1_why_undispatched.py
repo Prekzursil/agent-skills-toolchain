@@ -8,13 +8,16 @@ undispatched units should depend on something that COMPLETED INSIDE this wave, w
 dispatched ones should not. If ADV-0038's dependencies were already satisfied before launch,
 the hypothesis does not explain it and must be narrowed.
 """
+
 from __future__ import annotations
 
 import json
 import os
 
 ROOT = r"C:/Users/Prekzursil/source/ast-integrate"
-cat = json.load(open(os.path.join(ROOT, "command-center/WORK-UNIT-CATALOG.json"), encoding="utf-8"))
+cat = json.load(
+    open(os.path.join(ROOT, "command-center/WORK-UNIT-CATALOG.json"), encoding="utf-8")
+)
 units = {u["id"]: u for u in cat["work_units"]}
 
 ADV_DIR = os.path.join(ROOT, "command-center/adversarial")
@@ -35,8 +38,10 @@ for t in TARGETS:
     print(f"   title: {u.get('title')}")
     for d in deps:
         if d.startswith("ADV-"):
-            print(f"     dep {d}: artifact_on_disk={d in on_disk}  "
-                  f"(completed IN this wave => would not have been READY at launch)")
+            print(
+                f"     dep {d}: artifact_on_disk={d in on_disk}  "
+                f"(completed IN this wave => would not have been READY at launch)"
+            )
         else:
             print(f"     dep {d}: bucket-level dependency, not a unit id")
 
@@ -44,7 +49,9 @@ for t in TARGETS:
 print("\n" + "=" * 70)
 print("COMPARISON GROUP - dispatched ADV units that also depend on another ADV unit.")
 print("If the snapshot hypothesis were the whole story, this group should be EMPTY;")
-print("any member is a counterexample, because it was dispatched despite an in-wave dep.")
+print(
+    "any member is a counterexample, because it was dispatched despite an in-wave dep."
+)
 counterexamples = []
 for uid, u in sorted(units.items()):
     if not uid.startswith("ADV-"):
@@ -60,8 +67,12 @@ print(f"   counterexample count: {len(counterexamples)}")
 
 print("\n" + "=" * 70)
 print("VERDICT INPUTS (interpretation is left to the report, not asserted here):")
-print(f"  ADV-0002 has an ADV-* dependency: "
-      f"{[d for d in units['ADV-0002'].get('dependencies', []) if d.startswith('ADV-')]}")
-print(f"  ADV-0038 has an ADV-* dependency: "
-      f"{[d for d in units['ADV-0038'].get('dependencies', []) if d.startswith('ADV-')]}")
+print(
+    f"  ADV-0002 has an ADV-* dependency: "
+    f"{[d for d in units['ADV-0002'].get('dependencies', []) if d.startswith('ADV-')]}"
+)
+print(
+    f"  ADV-0038 has an ADV-* dependency: "
+    f"{[d for d in units['ADV-0038'].get('dependencies', []) if d.startswith('ADV-')]}"
+)
 print(f"  dispatched units with an ADV-* dependency: {len(counterexamples)}")

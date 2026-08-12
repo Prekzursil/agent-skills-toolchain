@@ -4,6 +4,7 @@ Deliberately NOT deleting them: deleting the evidence of a defect is how the def
 back. But a reader must not be able to lift the 6 false CASUALTY verdicts out of the old
 file without seeing why they are wrong, so the banner goes at the top of each document.
 """
+
 import json
 import os
 

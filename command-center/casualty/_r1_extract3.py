@@ -1,11 +1,14 @@
 """Round-1 extraction pass 3: ADV-0021 probe1 STRIDE inputs + sibling conventions."""
+
 import json
 import os
 
 ROOT = r"C:/Users/Prekzursil/source/ast-integrate"
 PO = os.path.join(ROOT, "command-center/casualty/probe-output")
 
-p1 = json.load(open(os.path.join(PO, "adv0021_probe1_out.ORIGINAL.json"), encoding="utf-8"))
+p1 = json.load(
+    open(os.path.join(PO, "adv0021_probe1_out.ORIGINAL.json"), encoding="utf-8")
+)
 
 print("=" * 18, "verb_call_graph", "=" * 18)
 for verb, calls in p1["verb_call_graph"].items():
@@ -45,14 +48,27 @@ print("=" * 18, "modules", "=" * 18)
 print(p1["modules"])
 
 print()
-print("=" * 18, "SIBLING CONVENTION: ADV-0024 extensions/downstream/report tail", "=" * 18)
-d24 = json.load(open(os.path.join(ROOT, "command-center/adversarial/ADV-0024-packager-secret-and-bloat-refusal.json"), encoding="utf-8"))
+print(
+    "=" * 18, "SIBLING CONVENTION: ADV-0024 extensions/downstream/report tail", "=" * 18
+)
+d24 = json.load(
+    open(
+        os.path.join(
+            ROOT,
+            "command-center/adversarial/ADV-0024-packager-secret-and-bloat-refusal.json",
+        ),
+        encoding="utf-8",
+    )
+)
 print("state:", d24["state"])
 print("sentinel:", d24["sentinel"][:400])
 print("min_bytes_threshold:", d24["min_bytes_threshold"])
 print("artifacts:", json.dumps(d24["artifacts"], indent=1)[:900])
 print("extensions.self_digest_recipe:", d24["extensions"]["self_digest_recipe"])
-print("downstream_consumers[0]:", json.dumps(d24["downstream_consumers"][0], indent=1)[:1500])
+print(
+    "downstream_consumers[0]:",
+    json.dumps(d24["downstream_consumers"][0], indent=1)[:1500],
+)
 print("manifest_registration:", json.dumps(d24["manifest_registration"]))
 print("reviewer:", json.dumps(d24["reviewer"])[:700])
 print("failure:", json.dumps(d24["failure"])[:900])

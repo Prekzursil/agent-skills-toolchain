@@ -7,10 +7,10 @@ key-by-key diff so a formatting-only delta is not reported as a substantive one.
 
 Read-only apart from stdout.
 """
+
 import hashlib
 import json
 import os
-import sys
 
 PO = r"C:/Users/Prekzursil/source/ast-integrate/command-center/casualty/probe-output"
 
@@ -45,7 +45,8 @@ def walk(o, prefix=""):
 
 
 report = {"generated_at_epoch": None, "pairs": []}
-import time
+import time  # noqa: E402  (deliberate: PAIRS/report must be defined before the run)
+
 report["generated_at_epoch"] = int(time.time())
 
 for a, b, kind in PAIRS:
@@ -62,15 +63,26 @@ for a, b, kind in PAIRS:
     row["byte_identical"] = row["sha256"][a] == row["sha256"][b]
     if kind == "json":
         try:
-            da, db = json.load(open(pa, encoding="utf-8")), json.load(open(pb, encoding="utf-8"))
+            da, db = (
+                json.load(open(pa, encoding="utf-8")),
+                json.load(open(pb, encoding="utf-8")),
+            )
             fa, fb = walk(da), walk(db)
             keys = set(fa) | set(fb)
-            diffs = [k for k in sorted(keys) if fa.get(k, "<ABSENT>") != fb.get(k, "<ABSENT>")]
+            diffs = [
+                k
+                for k in sorted(keys)
+                if fa.get(k, "<ABSENT>") != fb.get(k, "<ABSENT>")
+            ]
             row["semantic_leaf_count"] = len(keys)
             row["semantic_diff_count"] = len(diffs)
             row["semantic_diff_sample"] = [
-                {"key": k, "original": str(fa.get(k, "<ABSENT>"))[:200],
-                 "rerun": str(fb.get(k, "<ABSENT>"))[:200]} for k in diffs[:12]
+                {
+                    "key": k,
+                    "original": str(fa.get(k, "<ABSENT>"))[:200],
+                    "rerun": str(fb.get(k, "<ABSENT>"))[:200],
+                }
+                for k in diffs[:12]
             ]
         except Exception as e:  # noqa: BLE001
             row["semantic_error"] = repr(e)
@@ -82,9 +94,13 @@ for a, b, kind in PAIRS:
         row["only_in_original"] = sorted(sa - sb)[:25]
         row["only_in_rerun"] = sorted(sb - sa)[:25]
         row["line_diff_count"] = len(sa ^ sb)
-    row["verdict"] = ("BYTE-IDENTICAL" if row["byte_identical"]
-                      else ("SEMANTIC-IDENTICAL" if row.get("semantic_diff_count") == 0
-                            else "DIFFERS"))
+    row["verdict"] = (
+        "BYTE-IDENTICAL"
+        if row["byte_identical"]
+        else (
+            "SEMANTIC-IDENTICAL" if row.get("semantic_diff_count") == 0 else "DIFFERS"
+        )
+    )
     report["pairs"].append(row)
 
 out = os.path.join(os.path.dirname(PO), "RERUN-EQUIVALENCE.json")

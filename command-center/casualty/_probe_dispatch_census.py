@@ -55,7 +55,9 @@ def first_user_text(recs: list[dict]) -> str:
             return content
         if isinstance(content, list):
             return " ".join(
-                b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"
+                b.get("text", "")
+                for b in content
+                if isinstance(b, dict) and b.get("type") == "text"
             )
     return ""
 
@@ -83,7 +85,9 @@ def main(argv: list[str]) -> int:
         f"CONTROL: positive(finds known-dispatched ADV-0021+ADV-0022)={ctrl_pos} "
         f"negative(does not invent ADV-9999)={ctrl_neg}"
     )
-    print(f"transcripts scanned: {scanned}; distinct units dispatched: {len(dispatched)}")
+    print(
+        f"transcripts scanned: {scanned}; distinct units dispatched: {len(dispatched)}"
+    )
 
     on_disk = {}
     for f in ADV.glob("*.json"):
@@ -116,9 +120,13 @@ def main(argv: list[str]) -> int:
         "dispatched_no_artifact": only_disp,
         "artifact_not_dispatched_here": only_disk,
     }
-    (OUT / "ADV-DISPATCH-CENSUS.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    (OUT / "ADV-DISPATCH-CENSUS.json").write_text(
+        json.dumps(payload, indent=2), encoding="utf-8"
+    )
     if not (ctrl_pos and ctrl_neg):
-        print("FAILED:dispatch detector control failed -- numbers above may not be cited")
+        print(
+            "FAILED:dispatch detector control failed -- numbers above may not be cited"
+        )
         return 1
     print("\nSUCCESS:dispatch")
     return 0

@@ -227,6 +227,31 @@ carries this lane's own message.
    something external notices."* The instrument now exists and is control-proven; wiring it is an
    orchestrator action outside this lane's file scope.
 
+## R2-I. CI hygiene — the lane's share of a repo-wide red, and one conflict I refused to paper over
+
+Measured with the CI-pinned `uvx ruff@0.15.17`, not the ambient one. Main is broadly red:
+**145 files would be reformatted repo-wide and 29 lint errors**, of which this lane owned **41
+files and 10 errors**. `_r2_lint_lane.py` fixes the lane's share and leaves a stated residual.
+
+**The conflict.** Five scripts under `probes/` are **byte-identical to the dead agents' scratch
+originals** — I re-measured the sha256 against
+`%TEMP%/claude/…/30bd50d4-…/scratchpad/` rather than trusting the audit: 5/5 LOCKED,
+`adv0021_verifier.py` correctly NOT locked (it was authored in round 1, so it has no scratch
+twin). The audit's *"prior work recovered, not redone"* finding rests entirely on that match.
+Reformatting them would satisfy a style gate **by destroying the evidence that the work was
+recovered rather than re-authored** — and there is no per-file escape from `ruff format` that
+does not itself change the bytes.
+
+So: 37 lane python files formatted and lint-clean (`All checks passed!`, `37 files already
+formatted`), provenance verified unchanged before AND after, and the 5 locked files deliberately
+left red. **The durable fix is one line outside this lane's file scope:** add
+`command-center/casualty/probes/` to `extend-exclude` in the ROOT `ruff.toml`. Two E402s in
+`_build_adv0021.py` and one in `_r1_rerun_diff.py` are deliberate late imports and now carry a
+scoped `# noqa: E402` with the reason, rather than being silenced repo-wide.
+
+**All 12 verification steps still pass after the reformat** — the reformat is behaviour-preserving
+and that was checked, not assumed.
+
 ## R2-H. Detector failures I caught in MYSELF this round (five)
 
 Recorded because a program whose dominant failure mode is the false green cannot afford a lane

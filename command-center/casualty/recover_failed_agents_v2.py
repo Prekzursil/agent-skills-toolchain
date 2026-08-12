@@ -38,6 +38,7 @@ DEFECT 3 - the label join (advisory)
 SELF-TEST: `--selftest` runs both states and asserts v2 fixes each defect while the original
 still exhibits it. Run it before trusting any output.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,8 +49,12 @@ from pathlib import Path
 
 REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
 SESSION = "30bd50d4-5a72-4c19-8fd5-85b6430c7b7d"
-WF_ROOT = (Path("C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil") / SESSION
-           / "subagents" / "workflows")
+WF_ROOT = (
+    Path("C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil")
+    / SESSION
+    / "subagents"
+    / "workflows"
+)
 SUBSTANTIAL = 8192
 UNIT_DECL = re.compile(r"YOUR WORK UNIT:\s*([A-Z][A-Z0-9]*-\d{4})")
 
@@ -79,8 +84,10 @@ def blocks(recs: list[dict]):
             yield r, {"type": "text", "text": content}
 
 
-PATH_IN_CMD = re.compile(r"""(?:>>?|-o\s+|--output(?:-last-message)?[=\s]+)\s*["']?([^\s"'|;&]+)"""
-                         r"""|["']([A-Za-z]:[\\/][^"']{6,})["']""")
+PATH_IN_CMD = re.compile(
+    r"""(?:>>?|-o\s+|--output(?:-last-message)?[=\s]+)\s*["']?([^\s"'|;&]+)"""
+    r"""|["']([A-Za-z]:[\\/][^"']{6,})["']"""
+)
 
 
 def agent_facts(path: Path) -> dict:
@@ -125,11 +132,18 @@ def agent_facts(path: Path) -> dict:
         if m0:
             own_unit = m0.group(1)
     declared_units = {own_unit} if own_unit else set()
-    return {"label": label or path.stem, "written": sorted(dict.fromkeys(written)),
-            "bash_paths": sorted(dict.fromkeys(bash_paths)), "last_text": last_text,
-            "ended": ended, "records": len(recs), "bytes": path.stat().st_size,
-            "declared_units": declared_units, "own_unit": own_unit,
-            "raw_mentions": raw.upper()}
+    return {
+        "label": label or path.stem,
+        "written": sorted(dict.fromkeys(written)),
+        "bash_paths": sorted(dict.fromkeys(bash_paths)),
+        "last_text": last_text,
+        "ended": ended,
+        "records": len(recs),
+        "bytes": path.stat().st_size,
+        "declared_units": declared_units,
+        "own_unit": own_unit,
+        "raw_mentions": raw.upper(),
+    }
 
 
 def catalog_output_paths() -> dict[str, str]:
@@ -151,10 +165,14 @@ def harvest_labels() -> dict[str, str]:
             doc = json.loads(f.read_text(encoding="utf-8"))
         except Exception:  # noqa: BLE001
             continue
-        for coll in (doc if isinstance(doc, list) else doc.values()):
+        for coll in doc if isinstance(doc, list) else doc.values():
             if isinstance(coll, list):
                 for row in coll:
-                    if isinstance(row, dict) and row.get("agentId") and row.get("label"):
+                    if (
+                        isinstance(row, dict)
+                        and row.get("agentId")
+                        and row.get("label")
+                    ):
                         out[row["agentId"]] = row["label"]
     return out
 
@@ -187,34 +205,46 @@ def report(run: str, wanted: list[str]) -> int:
     labels = harvest_labels()
     hits, facts = identify(transcripts, wanted)
 
-    raw_mentions = {w: sum(1 for f in facts.values() if w in f["raw_mentions"]) for w in wanted}
+    raw_mentions = {
+        w: sum(1 for f in facts.values() if w in f["raw_mentions"]) for w in wanted
+    }
     print(f"run {run}: {len(transcripts)} transcripts scanned")
     print("IDENTIFICATION (v2 two-signal vs the v1 raw-text match):")
     for w in wanted:
-        print(f"  {w}: v1 raw-text would match {raw_mentions[w]}/{len(transcripts)} transcripts; "
-              f"v2 identifies {len(hits[w])}")
+        print(
+            f"  {w}: v1 raw-text would match {raw_mentions[w]}/{len(transcripts)} transcripts; "
+            f"v2 identifies {len(hits[w])}"
+        )
     if not any(hits.values()):
-        print(f"FAILED:recover-v2 two-signal identification matched nothing for {wanted}")
+        print(
+            f"FAILED:recover-v2 two-signal identification matched nothing for {wanted}"
+        )
         return 1
 
     for w in wanted:
         for tpath, signal in hits[w]:
             f = facts[tpath]
             aid = tpath.stem.replace("agent-", "")
-            absent_note = ("<absent from harvest -> the agent returned null, "
-                           "which corroborates a death>")
+            absent_note = (
+                "<absent from harvest -> the agent returned null, "
+                "which corroborates a death>"
+            )
             lab = labels.get(aid, absent_note)
             print(f"\n=== {w}  [{tpath.name}]  via {signal}")
             print(f"    harvest_label={lab}")
-            print(f"    records={f['records']} transcript={f['bytes']:,}B "
-                  f"terminal_record={f['ended']}")
+            print(
+                f"    records={f['records']} transcript={f['bytes']:,}B "
+                f"terminal_record={f['ended']}"
+            )
 
             declared = outputs.get(w, "")
             found: list[tuple[str, int, str]] = []
             if declared:
                 q = REPO / declared
-                print(f"    declared output_path: {declared}  exists={q.is_file()}"
-                      + (f"  {q.stat().st_size:,}B" if q.is_file() else ""))
+                print(
+                    f"    declared output_path: {declared}  exists={q.is_file()}"
+                    + (f"  {q.stat().st_size:,}B" if q.is_file() else "")
+                )
                 if q.is_file():
                     found.append((declared, q.stat().st_size, "declared output_path"))
             for p in f["written"]:
@@ -224,7 +254,9 @@ def report(run: str, wanted: list[str]) -> int:
             for p in f["bash_paths"]:
                 q = Path(p) if Path(p).is_absolute() else REPO / p
                 if q.is_file():
-                    found.append((str(q), q.stat().st_size, "Bash-written (v1 BLIND to this)"))
+                    found.append(
+                        (str(q), q.stat().st_size, "Bash-written (v1 BLIND to this)")
+                    )
 
             seen, uniq = set(), []
             for pth, size, how in found:
@@ -233,9 +265,11 @@ def report(run: str, wanted: list[str]) -> int:
                     seen.add(k)
                     uniq.append((pth, size, how))
             if not uniq:
-                print("    NO ARTIFACT FOUND on disk by any of the three routes "
-                      "(declared output_path, Write/Edit, Bash) -- only NOW is a total loss "
-                      "a defensible reading.")
+                print(
+                    "    NO ARTIFACT FOUND on disk by any of the three routes "
+                    "(declared output_path, Write/Edit, Bash) -- only NOW is a total loss "
+                    "a defensible reading."
+                )
             for pth, size, how in sorted(uniq, key=lambda x: -x[1])[:12]:
                 tag = "SUBSTANTIAL" if size >= SUBSTANTIAL else "stub"
                 print(f"    [on disk {tag:11}] {size:>9,}B  via {how}")
@@ -261,31 +295,41 @@ def selftest() -> int:
     hits, facts = identify(transcripts, wanted)
 
     # D1: over-match. v1 = raw text anywhere; v2 = two-signal.
-    v1_match = sum(1 for f in facts.values()
-                   if any(w in f["raw_mentions"] for w in wanted))
+    v1_match = sum(
+        1 for f in facts.values() if any(w in f["raw_mentions"] for w in wanted)
+    )
     v2_match = sum(len(v) for v in hits.values())
-    d1_v1_broken = v1_match > len(wanted) * 2      # v1 grossly over-matches
-    d1_v2_fixed = v2_match == len(wanted)          # exactly one transcript per unit
+    d1_v1_broken = v1_match > len(wanted) * 2  # v1 grossly over-matches
+    d1_v2_fixed = v2_match == len(wanted)  # exactly one transcript per unit
 
     # D2: under-count. ADV-0021's skeleton exists on disk but not in its Write list.
     outputs = catalog_output_paths()
     decl = outputs.get("ADV-0021", "")
     on_disk = (REPO / decl).is_file() if decl else False
     t21 = hits["ADV-0021"][0][0] if hits["ADV-0021"] else None
-    in_write_list = bool(t21) and any("ADV-0021" in p.upper() for p in facts[t21]["written"])
-    d2_v1_broken = on_disk and not in_write_list   # v1 would print WROTE NOTHING
-    d2_v2_fixed = on_disk                          # v2 finds it via declared output_path
+    in_write_list = bool(t21) and any(
+        "ADV-0021" in p.upper() for p in facts[t21]["written"]
+    )
+    d2_v1_broken = on_disk and not in_write_list  # v1 would print WROTE NOTHING
+    d2_v2_fixed = on_disk  # v2 finds it via declared output_path
 
     print("BOTH-STATES CONTROL for recover_failed_agents_v2")
-    print(f"  D1 over-match   : v1 matches {v1_match}/{len(transcripts)} transcripts "
-          f"(broken={d1_v1_broken}); v2 identifies {v2_match} for {len(wanted)} units "
-          f"(fixed={d1_v2_fixed})")
-    print(f"  D2 under-count  : ADV-0021 declared artifact on disk={on_disk}, "
-          f"present in its Write list={in_write_list} -> v1 would print WROTE NOTHING "
-          f"(broken={d2_v1_broken}); v2 finds it via declared output_path (fixed={d2_v2_fixed})")
+    print(
+        f"  D1 over-match   : v1 matches {v1_match}/{len(transcripts)} transcripts "
+        f"(broken={d1_v1_broken}); v2 identifies {v2_match} for {len(wanted)} units "
+        f"(fixed={d1_v2_fixed})"
+    )
+    print(
+        f"  D2 under-count  : ADV-0021 declared artifact on disk={on_disk}, "
+        f"present in its Write list={in_write_list} -> v1 would print WROTE NOTHING "
+        f"(broken={d2_v1_broken}); v2 finds it via declared output_path (fixed={d2_v2_fixed})"
+    )
     ok = d1_v1_broken and d1_v2_fixed and d2_v1_broken and d2_v2_fixed
-    print("SUCCESS:recover-v2-selftest" if ok
-          else "FAILED:recover-v2-selftest a control did not reproduce")
+    print(
+        "SUCCESS:recover-v2-selftest"
+        if ok
+        else "FAILED:recover-v2-selftest a control did not reproduce"
+    )
     return 0 if ok else 1
 
 

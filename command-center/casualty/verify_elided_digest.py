@@ -18,6 +18,7 @@ printed nothing and exited 0, so a zero-input invocation was indistinguishable f
 passing verifications -- in a tool whose entire purpose is anti-fabrication. That is the
 ci-hygiene "empty walk must fail closed" shape. It now refuses, non-zero, with a marker.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,8 +31,10 @@ FAIL = 0
 
 PATHS = sys.argv[1:]
 if not PATHS:
-    print("FAILED:elided-digest no inputs -- an empty walk is a detector failure, not a pass. "
-          "usage: python verify_elided_digest.py <receipt.json> [...]")
+    print(
+        "FAILED:elided-digest no inputs -- an empty walk is a detector failure, not a pass. "
+        "usage: python verify_elided_digest.py <receipt.json> [...]"
+    )
     raise SystemExit(2)
 
 
@@ -64,10 +67,18 @@ for path in PATHS:
     print(f"  declared sha256      : {declared}")
     print(f"  recomputed (elided)  : {good}   MATCH={ok_good}")
     print(f"  naive whole-file sha : {naive}")
-    print("    ^ this is what a plain re-hash sees; it CANNOT equal the declared value,")
-    print("      because the file would then have to contain its own digest (a fixed point).")
-    print(f"  mutated-state digest : {bad}   CHANGED={ok_bad}  (control: detector is live)")
-    print(f"  declared bytes       : {declared_bytes}  on-disk {on_disk_bytes}  MATCH={ok_bytes}")
+    print(
+        "    ^ this is what a plain re-hash sees; it CANNOT equal the declared value,"
+    )
+    print(
+        "      because the file would then have to contain its own digest (a fixed point)."
+    )
+    print(
+        f"  mutated-state digest : {bad}   CHANGED={ok_bad}  (control: detector is live)"
+    )
+    print(
+        f"  declared bytes       : {declared_bytes}  on-disk {on_disk_bytes}  MATCH={ok_bytes}"
+    )
     print(f"  VERDICT: {'SUCCESS' if ok else 'FAILED'}:elided-digest {path}")
 
 sys.exit(FAIL)

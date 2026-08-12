@@ -2,6 +2,7 @@
 confirm ORIGINAL vs RERUN agree on every verdict (not merely on diff-count).
 Read-only apart from stdout.
 """
+
 import json
 import os
 
@@ -32,8 +33,13 @@ for tag in ("ORIGINAL", "RERUN"):
     print(f"    results n={len(res)}")
     if tag == "ORIGINAL":
         print("    item keys:", list(res[0].keys()) if res else None)
-    verd = [(r.get("id") or r.get("case"), r.get("verdict") or r.get("result") or r.get("status"))
-            for r in res]
+    verd = [
+        (
+            r.get("id") or r.get("case"),
+            r.get("verdict") or r.get("result") or r.get("status"),
+        )
+        for r in res
+    ]
     print("    verdict vector:", json.dumps(verd))
 
 print()
@@ -49,10 +55,14 @@ for tag in ("ORIGINAL", "RERUN"):
             # verdict vector only
             def vv(o):
                 out = []
-                for comp, block in (o.get("components") or o.get("results") or {}).items() \
-                        if isinstance(o.get("components") or o.get("results"), dict) else []:
+                for comp, block in (
+                    (o.get("components") or o.get("results") or {}).items()
+                    if isinstance(o.get("components") or o.get("results"), dict)
+                    else []
+                ):
                     out.append((comp, block))
                 return out
+
             print("   (verdict vector printed via ops below)")
     except Exception as e:  # noqa: BLE001
         print(f"--- {tag} NOT json ({e}); first 2500 chars:")

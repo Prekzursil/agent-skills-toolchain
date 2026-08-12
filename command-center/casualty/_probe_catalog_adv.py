@@ -62,7 +62,9 @@ def main(argv: list[str]) -> int:
                 "owner_gate": u.get("owner_gate") or u.get("owner_gated"),
             }
         )
-    (OUT / "ADV-UNIT-INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
+    (OUT / "ADV-UNIT-INDEX.json").write_text(
+        json.dumps(index, indent=2), encoding="utf-8"
+    )
 
     for uid in wanted:
         u = by_id.get(uid)

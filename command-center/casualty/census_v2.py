@@ -19,12 +19,12 @@ reimplementing it. Adds exactly three things it did not have:
 CONTROL DISCIPLINE: exits non-zero and refuses to print a citable tally if ANY pair fails to
 separate. A detector that cannot be shown to discriminate produces no number here.
 """
+
 from __future__ import annotations
 
 import datetime as _dt
 import importlib.util
 import json
-import sys
 from pathlib import Path
 
 REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
@@ -32,7 +32,9 @@ ADV = REPO / "command-center" / "adversarial"
 CAS = REPO / "command-center" / "casualty"
 
 # --- import the existing scorer instead of writing a second one -------------
-_spec = importlib.util.spec_from_file_location("_probe_census", CAS / "_probe_census.py")
+_spec = importlib.util.spec_from_file_location(
+    "_probe_census", CAS / "_probe_census.py"
+)
 _pc = importlib.util.module_from_spec(_spec)
 assert _spec.loader is not None
 _spec.loader.exec_module(_pc)
@@ -62,13 +64,23 @@ def row_for(path: Path) -> dict:
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:  # noqa: BLE001
-        return {"file": path.name, "bytes": nbytes, "substance_score": -1,
-                "parse_error": f"{type(exc).__name__}: {exc}"}
+        return {
+            "file": path.name,
+            "bytes": nbytes,
+            "substance_score": -1,
+            "parse_error": f"{type(exc).__name__}: {exc}",
+        }
     s = score(doc, nbytes)
-    return {"file": path.name, "unit_id": doc.get("unit_id"), "bytes": nbytes,
-            "state": doc.get("state"), "substance_score": s["substance_score"],
-            "axes": s["axes"], "counts": s["counts"],
-            "mtime_epoch": int(path.stat().st_mtime)}
+    return {
+        "file": path.name,
+        "unit_id": doc.get("unit_id"),
+        "bytes": nbytes,
+        "state": doc.get("state"),
+        "substance_score": s["substance_score"],
+        "axes": s["axes"],
+        "counts": s["counts"],
+        "mtime_epoch": int(path.stat().st_mtime),
+    }
 
 
 def main() -> int:
@@ -83,38 +95,54 @@ def main() -> int:
                 continue
             hi, lo = row_for(c)["substance_score"], row_for(k)["substance_score"]
             ok = hi > lo
-            pairs.append({"complete": str(c.relative_to(REPO)).replace("\\", "/"),
-                          "skeleton": str(k.relative_to(REPO)).replace("\\", "/"),
-                          "complete_score": hi, "skeleton_score": lo, "separates": ok})
+            pairs.append(
+                {
+                    "complete": str(c.relative_to(REPO)).replace("\\", "/"),
+                    "skeleton": str(k.relative_to(REPO)).replace("\\", "/"),
+                    "complete_score": hi,
+                    "skeleton_score": lo,
+                    "separates": ok,
+                }
+            )
             if not ok:
                 failures.append(f"{c.name}({hi}) !> {k.name}({lo})")
 
     print("=" * 74)
     print("DETECTOR CONTROL (multi-pair). Every pair must separate before any tally.")
     for p in pairs:
-        print(f"  {'PASS' if p['separates'] else 'FAIL'}  complete {p['complete_score']}/6 "
-              f"vs skeleton {p['skeleton_score']}/6   "
-              f"{Path(p['complete']).parent.name}/{Path(p['complete']).name}  ::  "
-              f"{Path(p['skeleton']).parent.name}/{Path(p['skeleton']).name}")
+        print(
+            f"  {'PASS' if p['separates'] else 'FAIL'}  complete {p['complete_score']}/6 "
+            f"vs skeleton {p['skeleton_score']}/6   "
+            f"{Path(p['complete']).parent.name}/{Path(p['complete']).name}  ::  "
+            f"{Path(p['skeleton']).parent.name}/{Path(p['skeleton']).name}"
+        )
     control_ok = bool(pairs) and not failures
-    print(f"  -> {len(pairs)} pairs, {'ALL SEPARATE' if control_ok else 'FAILURES: ' + str(failures)}")
+    print(
+        f"  -> {len(pairs)} pairs, {'ALL SEPARATE' if control_ok else 'FAILURES: ' + str(failures)}"
+    )
     print("=" * 74)
     if not control_ok:
-        print("FAILED:census-v2 detector control did not separate on every pair; "
-              "no number may be cited")
+        print(
+            "FAILED:census-v2 detector control did not separate on every pair; "
+            "no number may be cited"
+        )
         return 1
 
     # ---------------- the census itself ----------------
     files = sorted(ADV.glob("*.json"))
     if not files:
-        print("FAILED:census-v2 no artifacts found -- fail closed, this is a path/detector "
-              "failure not an empty wave")
+        print(
+            "FAILED:census-v2 no artifacts found -- fail closed, this is a path/detector "
+            "failure not an empty wave"
+        )
         return 1
 
     rows = []
     for f in files:
         r = row_for(f)
-        uid = r.get("unit_id") or r["file"].split("-")[0] + "-" + r["file"].split("-")[1]
+        uid = (
+            r.get("unit_id") or r["file"].split("-")[0] + "-" + r["file"].split("-")[1]
+        )
         if uid in RECOVERED:
             r["recovered_by_this_lane"] = RECOVERED[uid]
             rec = REPO / RECOVERED[uid]
@@ -130,14 +158,18 @@ def main() -> int:
     eff_dist: dict[int, int] = {}
     for r in rows:
         raw_dist[r["substance_score"]] = raw_dist.get(r["substance_score"], 0) + 1
-        eff_dist[r["effective_substance_score"]] = eff_dist.get(r["effective_substance_score"], 0) + 1
+        eff_dist[r["effective_substance_score"]] = (
+            eff_dist.get(r["effective_substance_score"], 0) + 1
+        )
 
     rows.sort(key=lambda r: (r["effective_substance_score"], r["bytes"]))
     print(f"\n{'raw':>4} {'eff':>4} {'bytes':>8}  file")
     for r in rows:
         tag = "  <- RECOVERED to casualty/" if "recovered_by_this_lane" in r else ""
-        print(f"{r['substance_score']:>4} {r['effective_substance_score']:>4} "
-              f"{r['bytes']:>8}  {r['file']}{tag}")
+        print(
+            f"{r['substance_score']:>4} {r['effective_substance_score']:>4} "
+            f"{r['bytes']:>8}  {r['file']}{tag}"
+        )
 
     print(f"\nartifacts scanned            : {len(rows)}")
     print(f"raw score distribution       : {dict(sorted(raw_dist.items()))}")
@@ -148,14 +180,14 @@ def main() -> int:
         "generated_at_utc": now.isoformat(),
         "generated_at_epoch": int(now.timestamp()),
         "detector": "structural substance-axis vector (6 axes), imported from _probe_census.score "
-                    "-- not reimplemented",
+        "-- not reimplemented",
         "control": {
             "kind": "multi-pair; every known-complete must outscore every known-skeleton",
             "pairs": pairs,
             "passed": control_ok,
             "note": "The grounding lane controlled on ONE pair and disclosed that as a weakness. "
-                    "This runs 6 pairs. Separation is total: completes score 6/6, skeletons 0/6, "
-                    "with an EMPTY 1-5 band between them on the control corpus.",
+            "This runs 6 pairs. Separation is total: completes score 6/6, skeletons 0/6, "
+            "with an EMPTY 1-5 band between them on the control corpus.",
         },
         "caveat_live_wave": (
             "A LIVE WAVE may still be writing command-center/adversarial/. A low score is NOT a "
@@ -178,7 +210,8 @@ def main() -> int:
         "rows": rows,
     }
     (CAS / "ADV-COMPLETENESS-CENSUS-V2.json").write_text(
-        json.dumps(out, indent=2), encoding="utf-8")
+        json.dumps(out, indent=2), encoding="utf-8"
+    )
     print("SUCCESS:census-v2")
     return 0
 

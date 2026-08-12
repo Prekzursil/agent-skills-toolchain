@@ -77,7 +77,9 @@ def main(argv: list[str]) -> int:
     scores = {r.get("file"): r.get("substance_score") for r in census["rows"]}
 
     disp_path = OUT / "ADV-DISPATCH-CENSUS.json"
-    disp = json.loads(disp_path.read_text(encoding="utf-8")) if disp_path.is_file() else {}
+    disp = (
+        json.loads(disp_path.read_text(encoding="utf-8")) if disp_path.is_file() else {}
+    )
     agent_of = {k: v[0] for k, v in (disp.get("adv_dispatched") or {}).items() if v}
 
     rows = []
@@ -105,16 +107,22 @@ def main(argv: list[str]) -> int:
                 "G2_artifact_stale": g2,
                 "G3_agent_stale": g3,
                 "verdict": (
-                    "CASUALTY" if (g1 and g2 and g3)
-                    else "MID-FLIGHT" if g1
+                    "CASUALTY"
+                    if (g1 and g2 and g3)
+                    else "MID-FLIGHT"
+                    if g1
                     else "SUBSTANTIVE"
                 ),
             }
         )
 
     print(f"now={time.strftime('%Y-%m-%dT%H:%M:%S')} STALE_SEC={STALE_SEC}")
-    print(f"\n{'unit':<10}{'score':>6}{'bytes':>9}{'art_age':>9}{'agent_age':>11}  verdict")
-    for r in sorted(rows, key=lambda x: (x["score"] if x["score"] is not None else 9, x["bytes"])):
+    print(
+        f"\n{'unit':<10}{'score':>6}{'bytes':>9}{'art_age':>9}{'agent_age':>11}  verdict"
+    )
+    for r in sorted(
+        rows, key=lambda x: (x["score"] if x["score"] is not None else 9, x["bytes"])
+    ):
         print(
             f"{r['unit']:<10}{str(r['score']):>6}{r['bytes']:>9}{r['artifact_age_s']:>9}"
             f"{str(r['agent_transcript_age_s']):>11}  {r['verdict']}"

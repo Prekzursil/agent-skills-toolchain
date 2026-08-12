@@ -3,11 +3,14 @@ top-level shape of a known-COMPLETE sibling artifact (ADV-0024, exploit-proof)
 and a known-COMPLETE threat-model sibling if one exists.
 Read-only.
 """
+
 import json
 import os
 
 ROOT = r"C:/Users/Prekzursil/source/ast-integrate"
-rec = json.load(open(os.path.join(ROOT, "platform/schema/receipt.schema.json"), encoding="utf-8"))
+rec = json.load(
+    open(os.path.join(ROOT, "platform/schema/receipt.schema.json"), encoding="utf-8")
+)
 print("top $ref:", rec.get("$ref"))
 defs = rec.get("$defs", {})
 print("$defs keys:", list(defs.keys()))
@@ -40,5 +43,7 @@ for f in ("ADV-0024-", "ADV-0033-", "ADV-0036-"):
         except Exception as e:
             print(f"\n{h}: UNPARSEABLE {e}")
             continue
-        print(f"\n===== {h} ({os.path.getsize(p)} B) kind={d.get('report',{}).get('kind')}")
+        print(
+            f"\n===== {h} ({os.path.getsize(p)} B) kind={d.get('report', {}).get('kind')}"
+        )
         print(json.dumps(shape(d, 0, 2), indent=1)[:4000])

@@ -59,7 +59,11 @@ def probes_of(ev: dict) -> list:
 def score(doc: dict, nbytes: int) -> dict:
     ev = doc.get("evidence") if isinstance(doc.get("evidence"), list) else []
     tests = doc.get("tests") if isinstance(doc.get("tests"), list) else []
-    negs = doc.get("negative_controls") if isinstance(doc.get("negative_controls"), list) else []
+    negs = (
+        doc.get("negative_controls")
+        if isinstance(doc.get("negative_controls"), list)
+        else []
+    )
     rep = doc.get("report") if isinstance(doc.get("report"), dict) else {}
     obs = rep.get("observations") if isinstance(rep.get("observations"), list) else []
 
@@ -72,10 +76,12 @@ def score(doc: dict, nbytes: int) -> dict:
         all_probes.extend([p for p in ps if isinstance(p, dict)])
         if any(is_real(p.get("raw_output")) for p in ps if isinstance(p, dict)):
             real_ev += 1
-    fps = {p.get("fingerprint") for p in all_probes if is_real(str(p.get("fingerprint", "")))}
-    real_obs = sum(
-        1 for o in obs if isinstance(o, dict) and is_real(o.get("measured"))
-    )
+    fps = {
+        p.get("fingerprint")
+        for p in all_probes
+        if is_real(str(p.get("fingerprint", "")))
+    }
+    real_obs = sum(1 for o in obs if isinstance(o, dict) and is_real(o.get("measured")))
     thr = doc.get("min_bytes_threshold")
     thr = thr if isinstance(thr, int) and thr > 0 else 4096
 
@@ -136,7 +142,9 @@ def main(argv: list[str]) -> int:
 
     files = sorted(ADV.glob("*.json"))
     if not files:
-        print("FAILED:census no artifacts found -- detector or path is wrong, not an empty dir")
+        print(
+            "FAILED:census no artifacts found -- detector or path is wrong, not an empty dir"
+        )
         return 1
 
     rows = []
@@ -146,8 +154,12 @@ def main(argv: list[str]) -> int:
             doc = json.loads(f.read_text(encoding="utf-8"))
         except Exception as exc:  # noqa: BLE001
             rows.append(
-                {"file": f.name, "bytes": nbytes, "parse_error": f"{type(exc).__name__}: {exc}",
-                 "substance_score": -1}
+                {
+                    "file": f.name,
+                    "bytes": nbytes,
+                    "parse_error": f"{type(exc).__name__}: {exc}",
+                    "substance_score": -1,
+                }
             )
             continue
         s = score(doc, nbytes)
@@ -193,9 +205,9 @@ def main(argv: list[str]) -> int:
     (OUT / "ADV-COMPLETENESS-CENSUS.json").write_text(
         json.dumps(
             {
-                "generated_at_utc": __import__("datetime").datetime.now(
-                    __import__("datetime").timezone.utc
-                ).isoformat(),
+                "generated_at_utc": __import__("datetime")
+                .datetime.now(__import__("datetime").timezone.utc)
+                .isoformat(),
                 "detector": "structural substance-axis vector (6 axes); see module docstring",
                 "control": {"passed": ctrl_ok, "detail": ctrl_msg},
                 "caveat": (
@@ -212,7 +224,9 @@ def main(argv: list[str]) -> int:
         encoding="utf-8",
     )
     if not ctrl_ok:
-        print("FAILED:census detector control did not separate -- no number above may be cited")
+        print(
+            "FAILED:census detector control did not separate -- no number above may be cited"
+        )
         return 1
     print("SUCCESS:census")
     return 0

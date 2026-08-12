@@ -1,4 +1,5 @@
 """Round-1 extraction pass 2: correct field names; full verdict vectors; equivalence."""
+
 import json
 import os
 
@@ -12,7 +13,7 @@ def L(n):
 def strip_sentinel(txt, begin):
     i = txt.find(begin)
     if i >= 0:
-        txt = txt[i + len(begin):]
+        txt = txt[i + len(begin) :]
     j = txt.rfind("}")
     return txt[: j + 1]
 
@@ -38,14 +39,23 @@ for tag in ("ORIGINAL", "RERUN"):
     raw = open(L(f"adv0022_probe1_out.{tag}.txt"), encoding="utf-8").read()
     d = json.loads(strip_sentinel(raw, "ADV0022_JSON_BEGIN"))
     print(f"--- {tag} keys={list(d.keys())}")
-    print("  detector_integrity.discriminates =", d["detector_integrity"]["discriminates"])
+    print(
+        "  detector_integrity.discriminates =", d["detector_integrity"]["discriminates"]
+    )
     print("  meta =", json.dumps(d["meta"]))
-    for sect in ("narrow_component", "wide_component_control", "wide_component", "control"):
+    for sect in (
+        "narrow_component",
+        "wide_component_control",
+        "wide_component",
+        "control",
+    ):
         if sect in d:
             blk = d[sect]
             print(f"  {sect}.declared = {blk.get('declared')}")
             for op in blk.get("ops", []):
-                print(f"    {op['op']:26s} {op['outcome']:10s} escaped={op.get('escaped_declaration')} tool={op.get('required_tool')}")
+                print(
+                    f"    {op['op']:26s} {op['outcome']:10s} escaped={op.get('escaped_declaration')} tool={op.get('required_tool')}"
+                )
     print("  summary =", json.dumps(d.get("summary"), indent=1)[:2500])
 
 print()
@@ -57,8 +67,13 @@ for k, v in d.items():
     if k == "checks":
         for ck, cv in v.items():
             n = len(cv) if isinstance(cv, list) else cv
-            print(f"  checks.{ck}: {'list[%d]' % len(cv) if isinstance(cv, list) else json.dumps(cv)[:400]}")
-            if isinstance(cv, list) and ck != "_control_scanner_finds_known_present_callers":
+            print(
+                f"  checks.{ck}: {'list[%d]' % len(cv) if isinstance(cv, list) else json.dumps(cv)[:400]}"
+            )
+            if (
+                isinstance(cv, list)
+                and ck != "_control_scanner_finds_known_present_callers"
+            ):
                 for it in cv[:12]:
                     print("      -", str(it)[:250])
     else:

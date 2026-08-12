@@ -1,5 +1,6 @@
 """Inspect the ADV-0021 receipt: mitigated cells, routing of unmitigated cells,
 and any prose field that carries the two overclaims the audit confirmed."""
+
 import json
 from pathlib import Path
 
@@ -15,7 +16,9 @@ cells = None
 for holder, key in ((rep, "stride_matrix"), (doc, "stride_matrix"), (rep, "cells")):
     if isinstance(holder.get(key), list):
         cells = holder[key]
-        print(f"cells found at {'report' if holder is rep else 'root'}.{key}: {len(cells)}")
+        print(
+            f"cells found at {'report' if holder is rep else 'root'}.{key}: {len(cells)}"
+        )
         break
 if cells is None:
     print("NO CELLS FOUND — dumping report shape")
@@ -34,11 +37,20 @@ unmit = [c for c in cells if c.get("status") == "unmitigated"]
 routed, unrouted = [], []
 for c in unmit:
     blob = json.dumps(c)
-    (routed if "ADV-00" in blob.replace(doc.get("unit_id", "ADV-0021"), "") else unrouted).append(c)
+    (
+        routed
+        if "ADV-00" in blob.replace(doc.get("unit_id", "ADV-0021"), "")
+        else unrouted
+    ).append(c)
 print(f"\nunmitigated={len(unmit)} routed={len(routed)} unrouted={len(unrouted)}")
 for c in unrouted:
-    print("  UNROUTED:", c.get("boundary_id"), c.get("stride"),
-          "| disposition:", str(c.get("disposition"))[:220])
+    print(
+        "  UNROUTED:",
+        c.get("boundary_id"),
+        c.get("stride"),
+        "| disposition:",
+        str(c.get("disposition"))[:220],
+    )
 
 print("\n=== tests_required_closure ===")
 print(json.dumps(rep.get("tests_required_closure"), indent=2)[:1500])

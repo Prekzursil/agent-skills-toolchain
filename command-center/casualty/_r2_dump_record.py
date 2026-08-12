@@ -1,10 +1,13 @@
 """Dump one transcript record (and the tool_use that produced it) in full."""
+
 import json
 import sys
 from pathlib import Path
 
-SESSION = Path("C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil"
-               "/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/subagents")
+SESSION = Path(
+    "C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil"
+    "/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/subagents"
+)
 
 
 def texts(rec):
@@ -18,7 +21,12 @@ def texts(rec):
             if not isinstance(c, dict):
                 continue
             if c.get("type") == "tool_use":
-                out.append(("tool_use:" + str(c.get("name")), json.dumps(c.get("input"))[:3000]))
+                out.append(
+                    (
+                        "tool_use:" + str(c.get("name")),
+                        json.dumps(c.get("input"))[:3000],
+                    )
+                )
             elif c.get("type") == "tool_result":
                 cc = c.get("content")
                 if isinstance(cc, str):

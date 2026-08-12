@@ -1,4 +1,5 @@
 """Dump one journal record's result to a readable text file."""
+
 import json
 import os
 import sys
@@ -20,7 +21,9 @@ def main():
             rec = json.loads(line)
             res = rec.get("result")
             with open(out, "w", encoding="utf-8") as ofh:
-                ofh.write(f"# agentId={rec.get('agentId')}\n# type={rec.get('type')}\n\n")
+                ofh.write(
+                    f"# agentId={rec.get('agentId')}\n# type={rec.get('type')}\n\n"
+                )
                 if isinstance(res, dict):
                     for k, v in res.items():
                         ofh.write(f"\n===== {k} =====\n")

@@ -20,6 +20,7 @@ which applies export-time EOL conversion and hands back CRLF on Windows.
 Control: also reports the worktree bytes and CRLF counts for both, so a difference is
 visible rather than assumed.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -36,35 +37,57 @@ TARGETS = [
 
 
 def blob_bytes(rev: str, path: str, cwd: Path = REPO) -> bytes:
-    return subprocess.run(["git", "cat-file", "-p", f"{rev}:{path}"],
-                          cwd=cwd, capture_output=True, check=True).stdout
+    return subprocess.run(
+        ["git", "cat-file", "-p", f"{rev}:{path}"],
+        cwd=cwd,
+        capture_output=True,
+        check=True,
+    ).stdout
 
 
 def elide_digest(raw: bytes, declared: str) -> str:
-    return hashlib.sha256(re.sub(declared.encode(), b"0" * 64, raw, count=1)).hexdigest()
+    return hashlib.sha256(
+        re.sub(declared.encode(), b"0" * 64, raw, count=1)
+    ).hexdigest()
 
 
 def fresh_clone_check() -> int:
     """Clone this repo into a throwaway directory and re-derive both digests there."""
     import shutil
     import tempfile
+
     bad = 0
-    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO,
-                          capture_output=True, text=True, check=True).stdout.strip()
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
     tmp = Path(tempfile.mkdtemp(prefix="r2_fresh_clone_"))
     dest = tmp / "clone"
     try:
         url = "file:///" + str(REPO).replace("\\", "/")
-        r = subprocess.run(["git", "clone", "--depth", "1", "--no-hardlinks", url, str(dest)],
-                           capture_output=True, text=True)
+        r = subprocess.run(
+            ["git", "clone", "--depth", "1", "--no-hardlinks", url, str(dest)],
+            capture_output=True,
+            text=True,
+        )
         print("=== FRESH CLONE")
         print(f"  source      : {url}")
-        print(f"  clone rc    : {r.returncode}  {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else ''}")
+        print(
+            f"  clone rc    : {r.returncode}  {r.stderr.strip().splitlines()[-1] if r.stderr.strip() else ''}"
+        )
         if r.returncode != 0:
             print("  FAILED:fresh-clone clone did not complete")
             return 1
-        chead = subprocess.run(["git", "rev-parse", "HEAD"], cwd=dest,
-                               capture_output=True, text=True, check=True).stdout.strip()
+        chead = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=dest,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
         print(f"  origin HEAD : {head}")
         print(f"  clone  HEAD : {chead}   SAME={chead == head}")
         if chead != head:
@@ -77,18 +100,28 @@ def fresh_clone_check() -> int:
             d_blob, d_wt = elide_digest(cb, declared), elide_digest(cw, declared)
             crlf = bytes([13, 10])
             print(f"  --- {rel}")
-            print(f"      clone blob     bytes {len(cb):>8} CRLF {cb.count(crlf):>5} "
-                  f"digest MATCH={d_blob == declared}")
-            print(f"      clone CHECKOUT bytes {len(cw):>8} CRLF {cw.count(crlf):>5} "
-                  f"digest MATCH={d_wt == declared}")
+            print(
+                f"      clone blob     bytes {len(cb):>8} CRLF {cb.count(crlf):>5} "
+                f"digest MATCH={d_blob == declared}"
+            )
+            print(
+                f"      clone CHECKOUT bytes {len(cw):>8} CRLF {cw.count(crlf):>5} "
+                f"digest MATCH={d_wt == declared}"
+            )
             if d_blob != declared or d_wt != declared:
-                print("      FAILED:fresh-clone a reviewer who clones this repo cannot "
-                      "reproduce the declared digest")
+                print(
+                    "      FAILED:fresh-clone a reviewer who clones this repo cannot "
+                    "reproduce the declared digest"
+                )
                 bad = 1
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    print("SUCCESS:fresh-clone both receipts reproduce their declared digest from a clone "
-          "that never saw this working tree" if not bad else "FAILED:fresh-clone")
+    print(
+        "SUCCESS:fresh-clone both receipts reproduce their declared digest from a clone "
+        "that never saw this working tree"
+        if not bad
+        else "FAILED:fresh-clone"
+    )
     return bad
 
 
@@ -107,9 +140,11 @@ for rel in TARGETS:
 
     declared = re.search(rb'"sha256":\s*"([0-9a-f]{64})"', bl).group(1).decode()
     elided_blob = hashlib.sha256(
-        re.sub(declared.encode(), b"0" * 64, bl, count=1)).hexdigest()
+        re.sub(declared.encode(), b"0" * 64, bl, count=1)
+    ).hexdigest()
     elided_wt = hashlib.sha256(
-        re.sub(declared.encode(), b"0" * 64, wt, count=1)).hexdigest()
+        re.sub(declared.encode(), b"0" * 64, wt, count=1)
+    ).hexdigest()
 
     print(f"=== {rel}")
     crlf = bytes([13, 10])
@@ -119,10 +154,14 @@ for rel in TARGETS:
     print(f"  recomputed from BLOB   : {elided_blob}  MATCH={elided_blob == declared}")
     print(f"  recomputed from WORKTREE: {elided_wt}  MATCH={elided_wt == declared}")
     if elided_blob != declared:
-        print("  FAILED:blob-parity the STORED BLOB at HEAD does not reproduce this digest")
+        print(
+            "  FAILED:blob-parity the STORED BLOB at HEAD does not reproduce this digest"
+        )
         fail = 1
     else:
-        print("  SUCCESS:blob-parity the STORED BLOB at HEAD reproduces the declared digest "
-              "(this mode makes NO clone; run --fresh-clone for that)")
+        print(
+            "  SUCCESS:blob-parity the STORED BLOB at HEAD reproduces the declared digest "
+            "(this mode makes NO clone; run --fresh-clone for that)"
+        )
 
 sys.exit(fail)

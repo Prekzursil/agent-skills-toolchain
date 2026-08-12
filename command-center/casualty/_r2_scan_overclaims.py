@@ -3,7 +3,7 @@
 Detector control (both-states): each pattern is paired with a KNOWN-PRESENT token so a zero
 hit means real absence, not a broken matcher.
 """
-import json
+
 import re
 from pathlib import Path
 
@@ -13,7 +13,11 @@ CAS = ROOT / "command-center" / "casualty"
 # (id, regex, control-regex that MUST hit somewhere in the corpus)
 PATTERNS = [
     ("OC1-routed-named", r"every unmitigated cell", r"unmitigated"),
-    ("OC2-all-mitigated-bypassed", r"(bypass for every|for every cell marked mitigated|All satisfied)", r"mitigated"),
+    (
+        "OC2-all-mitigated-bypassed",
+        r"(bypass for every|for every cell marked mitigated|All satisfied)",
+        r"mitigated",
+    ),
     ("OC3-c5-convention", r"c1/c5|c1 and c5|family convention", r"c5"),
     ("OC4-c3-cannot", r"cannot be satisfied|fixed point", r"c3"),
     ("OC5-fresh-clone", r"fresh[- ]clone|fresh clone", r"blob"),
@@ -44,8 +48,10 @@ for pid, pat, ctrl in PATTERNS:
     ctrl_hits = sum(1 for t in corpus.values() if creg.search(t))
     if ctrl_hits == 0:
         failed_controls.append(pid)
-    print(f"\n=== {pid}  (control {ctrl!r} hits {ctrl_hits} files -> "
-          f"{'OK' if ctrl_hits else 'DETECTOR BROKEN'})")
+    print(
+        f"\n=== {pid}  (control {ctrl!r} hits {ctrl_hits} files -> "
+        f"{'OK' if ctrl_hits else 'DETECTOR BROKEN'})"
+    )
     for p, text in corpus.items():
         for i, line in enumerate(text.splitlines(), 1):
             if reg.search(line):
