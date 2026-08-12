@@ -267,6 +267,39 @@ introduced by round 3: round 2 degrades the same way. The three `.cmd` shims now
 keep 5.1 as a fallback, and a **PowerShell host** row makes the fallback visible instead of
 mysterious.
 
+### Round 4 (2026-08-12) — the wiring itself is now a CI gate
+
+Rounds 1-3 all fixed the same underlying thing: a long-lived reference pointing at a tree that was
+stale, disposable, or absent. Every one of those fixes was enforced only by somebody remembering
+to re-run a command. `cs_wiring_check.py` makes that automatic — it is pure repository inspection
+(no WSL, no daemon, no scheduled task, no Windows), so it runs in CI on every pull request via the
+`gate-cs-wiring` step in `.github/workflows/skill-dual-write.yml`:
+
+```
+python scripts/claude-science/cs_wiring_check.py     # exit 0 wired / 1 broken / 2 NOT-CHECKED
+python -m pytest ci/tests/test_cs_wiring.py -q       # the both-states proof, 14 mutations
+```
+
+| code | the wire it guards | the round that cut it |
+|---|---|---|
+| `W1-route` | both slash commands invoke `~/.local/bin/cs.ps1`, never a checkout | round 2 / D1 |
+| `W2-twin` | `commands/` ↔ `agent-self/config/commands/`, and the two skill roots | — |
+| `W3-description` | both commands keep a frontmatter description (the pick surface) | — |
+| `W4-docs-deploy` | every installed-bin path the docs name is in `install.ps1`'s list | round 4 |
+| `W5-install-src` | every name `install.ps1` deploys exists (the copy is `Test-Path`-guarded, so an omission is silent) | — |
+| `W6-seam-deploy` | `cs-lib.sh`/`cs.conf` keep their names, and every script that sources them is deployed | round 3 / R2 |
+| `W7-deploy-src` | `cs-deploy.sh` derives SRC from `BASH_SOURCE` | round 3 / R2 |
+| `W8-monitor` | exactly one `[csmon]` stanza per register, pointing at a file that exists | — |
+| `W9-config-bypass` | no port/distro/backup-root literal in code outside the seam | round 1 |
+| `W10-sh-eol` | `*.sh` stay LF (real WSL bash rejects `then\r`) | — |
+
+`exit 2` is a deliberate third state: a root the checker cannot read says NOT-CHECKED and never
+renders green, matching the doctor's contract. Two of the ten rules were written twice because the
+first version was wrong in the instrument rather than the repo — `W6` asked whether a file
+*contained* the string `cs-lib.sh`, which `cs-deploy.sh` does six times because it DEPLOYS it
+(use-vs-mention), and `W9` flagged the checker's own pattern table (a probe matching its own
+command line). Both are recorded in the file rather than quietly deleted.
+
 ## Reliability hardening (2026-07-07)
 
 Following a live reliability audit (the recurring pain was **"off/wedged when

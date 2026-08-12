@@ -81,6 +81,20 @@ jobs:
       # ~/.claude tree and this is a LOCAL operator command, not a CI gate over it.
       - name: gate-skill-deploy-hop self-test
         run: python -m pytest ci/tests/test_deploy_skills_daily.py -q
+      # The Claude Science WIRING gate. Named explicitly for the same reason as L10/L11: the
+      # `ci/tests` glob above would already collect it, and the glob is one refactor away from
+      # not containing it. Hermetic -- it reads only committed files under scripts/claude-science,
+      # commands/, agent-self/config/commands/ and the two skill roots, and copies them into
+      # tmp_path to mutate; it needs no WSL, no daemon, no scheduled task and no Windows.
+      # It lives HERE rather than in quality.yml because `.quality/charter_check.sh` scans ONLY
+      # quality.yml bidirectionally, so a `gate-` marker there without a matching charter slug
+      # turns the existing lint job red -- the same reasoning that put this whole workflow in its
+      # own file. WHAT IT CATCHES: the defect class that cost this lane three rounds -- a slash
+      # command routed at a stale checkout, a deployer pinned to one, a documented probe that
+      # install.ps1 never deployed, a seam file dropped from the deploy list, a config literal
+      # escaping the seam. Every one of its ten codes has a paired mutation in the same file.
+      - name: gate-cs-wiring self-test
+        run: python -m pytest ci/tests/test_cs_wiring.py -q
       # Exact route comparison catches stale names and old skills/ routes; the
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest

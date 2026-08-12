@@ -137,6 +137,25 @@ in `D:\Backups\claude-science` around a doctor run —
 python ~/.local/bin/test-cs-backup-readonly.py check ~/.local/bin/cs-doctor.ps1
 ```
 
+Both of those measure **this box**. The third check measures the **wiring** — that the slash
+command still routes to the installed dispatcher, that everything the docs tell you to run is
+actually in `install.ps1`'s deploy list, that the config seam has no bypass, that `csmon` is still
+registered. It is pure repo inspection (no WSL, no daemon, no scheduled task), so unlike the two
+above it runs in **CI on every pull request** and is the only one of the three that cannot be
+forgotten:
+
+```
+python scripts/claude-science/cs_wiring_check.py
+```
+
+Ten invariants, each with a paired mutation in `ci/tests/test_cs_wiring.py` that cuts exactly that
+wire and asserts the gate goes red — run `python -m pytest ci/tests/test_cs_wiring.py -q` to watch
+both directions. It exists because this toolset's recurring defect is not a bug in the code, it is
+a reference left pointing at a stale, disposable or absent tree: the slash command ran a
+detached-HEAD checkout, the watchdog was registered against a git worktree, `cs-deploy.sh`
+installed from that same stale tree, and the read-only probe two paragraphs above was documented
+for weeks while `install.ps1` never deployed it.
+
 ## Gotchas
 
 - **Wedge ≠ crash.** The daemon rarely crashes; the usual failure is the RAM/

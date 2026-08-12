@@ -13,9 +13,15 @@ $distro = $script:CSDistro
 # --- 1. Windows scripts -> ~\.local\bin (kept together so $PSScriptRoot cross-refs resolve) ---
 # cs.conf MUST travel with them: cs-lib.ps1 resolves it via $PSScriptRoot, so a deploy that omitted
 # it would silently fall back to the in-script defaults and the config seam would be a no-op.
+# test-cs-backup-readonly.py is here for the same reason its .ps1 sibling is: SKILL.md documents
+# `python ~/.local/bin/test-cs-backup-readonly.py` as the falsification recipe for the read-only
+# claim, and until 2026-08-12 this list did not contain it -- the file existed on this box only
+# because it had been hand-copied, so a fresh install left the documented probe pointing at
+# nothing. cs_wiring_check.py's W4 now compares this list against every ~/.local/bin path the
+# docs name, so the two cannot drift apart again silently.
 $winDir = Join-Path $env:USERPROFILE '.local\bin'
 New-Item -ItemType Directory -Force -Path $winDir | Out-Null
-foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs.conf', 'cs-doctor.ps1', 'cs-watchdog.ps1', 'cs-recover.ps1', 'cs-recover.cmd', 'cs-start.ps1', 'cs-start.cmd', 'register-tasks.ps1', 'test-cs-doctor-failclosed.ps1') {
+foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs.conf', 'cs-doctor.ps1', 'cs-watchdog.ps1', 'cs-recover.ps1', 'cs-recover.cmd', 'cs-start.ps1', 'cs-start.cmd', 'register-tasks.ps1', 'test-cs-doctor-failclosed.ps1', 'test-cs-backup-readonly.py') {
   $src = Join-Path $here $f
   if (Test-Path $src) { Copy-Item $src (Join-Path $winDir $f) -Force; Write-Information -InformationAction Continue "[win] $f" }
 }
