@@ -1,0 +1,37 @@
+test(p2): red-proof the delivery gate against four known-broken states
+
+A gate seen only green is indistinguishable from a no-op, so this drives the REAL binary CI runs --
+tools/measure-guard/unitgate.py, not a re-implementation -- through one control and four mutations,
+requiring exit 0 on the control and exit 1 on every mutation:
+
+  CONTROL unmodified                     want=GREEN exit=0  OK
+  M1 predicate regression (4b reverted)  want=RED   exit=1  OK
+      FINDING predicate self-test FAILED: CONTROL VACUOUS (state:=SUCCESS mutant): want=False got=True (delivered)
+  M2 dark contract checker               want=RED   exit=1  OK
+      DARK contract checker UNAVAILABLE -- every contract would go unchecked
+  M3 forged completion in the catalog    want=RED   exit=1  OK
+      FINDING RP-FORGED claims completion its contract does not support
+  M4 CI wiring removed                   want=RED   exit=1  OK
+      quality.yml does not invoke the gate: the predicate is unreachable from CI again
+  CONTROL re-run (leak check)            want=GREEN exit=0  OK
+
+Attribution is checked, not just redness: M1 fires on the exact defect the adversarial verifier
+refuted the build lane over, and the control is re-run at the END so a mutation that leaked into
+global state would show up as a control that stopped being green.
+
+NOTHING IN THE SHARED WORKING TREE IS MUTATED -- sibling lanes are writing this repo. Each broken
+state is injected through an input seam: a temp COPY of the predicate for M1/M2, a temp catalog
+(the real 5.3 MB file plus one row pointing at the already-tracked known-forged artifact) for M3,
+and the committed workflow blob with one line deleted for M4. The repo, the blobs and the resolver
+stay real throughout. M1's anchor count is asserted to be exactly 1 before mutating, so a silent
+no-op mutation fails loudly instead of manufacturing a red.
+
+Also _i3_blobfmt.py: CI-parity over the STORED BLOBS of every file this lane committed, read with
+`git ls-files -s` + `git cat-file -p` (never `git archive`, which hands back Windows CRLF), into a
+scratch tree INSIDE the repo so ruff.toml still applies -- a bare temp dir would fall back to ruff
+defaults and manufacture a false red. A mis-formatted control is planted in the same run so the
+silence on the real files means something.
+
+Verified separately, with a control proving the shadow took effect: the 21 tests in
+test_unitgate.py pass with `jsonschema` shadowed to raise on import, so the claim that they run
+under the pytest-only measure-guard step is measured rather than assumed.
