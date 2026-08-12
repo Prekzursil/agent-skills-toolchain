@@ -1,0 +1,38 @@
+TMPROOT=C:\Users\PREKZU~1\AppData\Local\Temp\adv0021b_lljrf110
+
+########## FIX1_zip_bomb ##########
+[A2b.archive] MEASURED :: archive=521945B declares uncompressed file_size=536870912B (ratio 1029:1); lifecycle.preflight would require max(521945*3, 33554432) = 33554432B free
+[A2b.unpack] BYPASSED :: unpack wrote 536870912B from a 521945B archive; expansion 1029x exceeds the 33554432B preflight budget by 503316480B; no ratio or size cap exists
+
+########## FIX2_absence_controls ##########
+[A2c.absence] ABSENT :: uncompressed-size cap: searched ['packager.py', 'lifecycle.py', 'fsops.py', 'cache.py'] for ['file_size', 'compress_size', 'max_uncompressed', 'decompress_limit'] -> NO HITS
+[A2c.detector-control] PROVEN :: same matcher, same files, known-present tokens ['ZIP_DEFLATED', 'zipfile'] -> ['packager.py:ZIP_DEFLATED', 'packager.py:zipfile']
+[A3c.absence] ABSENT :: publisher signature / pinned hash: searched ['packager.py', 'lifecycle.py', 'manifest.py', 'policy.py'] for ['signature', 'gpg', 'cosign', 'minisign', 'public_key', 'pubkey', 'expected_sha', 'trust_anchor'] -> NO HITS
+[A3c.detector-control] PROVEN :: same matcher, same files, known-present tokens ['archive_sha256', 'sha256'] -> ['lifecycle.py:archive_sha256', 'lifecycle.py:sha256', 'packager.py:archive_sha256', 'packager.py:sha256']
+[C1c.absence] ABSENT :: live-target allowlist / denylist policy: searched ['deploy.py', 'policy.py', 'manifest.py'] for ['target_allowlist', 'ALLOWED_TARGETS', 'FORBIDDEN_TARGETS', 'denylist'] -> NO HITS
+[C1c.detector-control] PROVEN :: same matcher, same files, known-present tokens ['deploy_targets', 'safe_join'] -> ['deploy.py:deploy_targets', 'deploy.py:safe_join', 'manifest.py:deploy_targets']
+[A4c.absence] ABSENT :: install-time content scan: searched ['lifecycle.py', 'packager.py'] for ['scan_secrets', 'classify_forbidden', 'validate_package'] -> NO HITS
+[A4c.detector-control] PROVEN :: same matcher, same files, known-present tokens ['_verify_staged', 'content_hash'] -> ['lifecycle.py:_verify_staged', 'lifecycle.py:content_hash']
+[B1c.absence] ABSENT :: safe_join applied to the version directory: searched ['lifecycle.py'] for ['safe_join(self.versions', 'safe_join(prefix.versions', 'check_relpath(version'] -> NO HITS
+[B1c.detector-control] PROVEN :: same matcher, same files, known-present tokens ['safe_join', 'version_dir'] -> ['lifecycle.py:safe_join', 'lifecycle.py:version_dir']
+
+########## FIX3_lock ##########
+[E1b.orphan-clear] BYPASSED :: --clear-stale-lock on a FRESH orphaned lock (mtime is NOW, so stale_after=3600 would NOT consider it stale): exit=0; lock_exists_after=False; stdout='SUCCESS:health-check'
+[E1b.holder] ALIVE :: holder subprocess pid=12812 says 'LOCKED'; lock_exists=True
+[E1b.steal-live] BLOCKED-BY-OS :: exit=1; lock_exists_after=True; stderr_tail=PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\adv0021b_lljrf110\\FIX3_lock\\pfx_lock2\\state\\prefix.lock'
+[E1b.classification] UNCLASSIFIED-CRASH :: exit=1 traceback_in_stderr=True taxonomy_code_present=False; cli.main catches only PluginError/KeyboardInterrupt (cli.py:390-395)
+
+########## FIX4_state_tamper ##########
+[D1b.arbitrary-read] BYPASSED :: version_dir('../../OUTSIDE_TREE2') resolved OUTSIDE the prefix and its manifest parsed: name='attacker-controlled-name' version='9.9.9'; no safe_join guards version_dir (journal.py:81-82)
+[D1b.terminal-state] CLASSIFIED :: `projection` on a tampered installed.json: exit=0; traceback=False; stderr_tail=<none>
+[D1b.control-good] SILENT-AND-CORRECT :: untampered projection: exit=0; stdout='SUCCESS:projection'
+
+########## FIX5_test_coverage ##########
+[T1.version-string-traversal] UNTESTED :: searched 6 test files (['test_cli.py', 'test_foundation.py', 'test_health.py', 'test_lifecycle.py', 'test_package.py', 'test_schemas.py']) -> NO HITS
+[T1.provenance-live_path-escape] UNTESTED :: searched 6 test files (['test_cli.py', 'test_foundation.py', 'test_health.py', 'test_lifecycle.py', 'test_package.py', 'test_schemas.py']) -> NO HITS
+[T1.zip-decompression-bomb] UNTESTED :: searched 6 test files (['test_cli.py', 'test_foundation.py', 'test_health.py', 'test_lifecycle.py', 'test_package.py', 'test_schemas.py']) -> NO HITS
+[T1.package-signature] UNTESTED :: searched 6 test files (['test_cli.py', 'test_foundation.py', 'test_health.py', 'test_lifecycle.py', 'test_package.py', 'test_schemas.py']) -> NO HITS
+[T1.detector-control] PROVEN :: known-present token 'diverged' found in ['test_cli.py', 'test_lifecycle.py', 'test_schemas.py']
+
+RESULTS_JSON=command-center\casualty\probe-output\adv0021_results_b.RERUN.json
+CASE_COUNT=24

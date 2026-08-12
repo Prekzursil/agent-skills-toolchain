@@ -1,0 +1,54 @@
+{
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+    "model": "gpt-5-codex",
+    "role": "security-exploit-engineer",
+    "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0022 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0022 <reason>.",
+  "dependencies": [
+    "B07",
+    "B06"
+  ],
+  "evidence_requirement": "Probe 1: author a component declaring read-only permissions that attempts, in order, a subprocess spawn, a network call, a file write outside its root, and an invocation of a wider-permission sibling; record which succeed. Probe 2 (mechanically different): audit the enforcement point statically to determine whether the permission set is enforced at call time or merely recorded in metadata - a metadata-only permission is escaped by construction.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+    "sandbox-escape",
+    "supply-chain",
+    "overclaim"
+  ],
+  "id": "ADV-0022",
+  "inputs": [
+    "every component manifest with a declared permission set",
+    "the enforcement point that is supposed to constrain execution",
+    "_USER-PROMPTS.md:11346 (marketplace package has malicious or excessive permissions)"
+  ],
+  "mechanism": "capability-escape probe from inside a narrowly-declared component, paired with a static check of whether enforcement exists at all",
+  "not_a_duplicate_because": "ADV-0036 audits permissions that are DECLARED TOO WIDE (least privilege); this proves whether a NARROW declaration is even enforceable. Opposite direction.",
+  "output_path": "command-center/adversarial/ADV-0022-declared-permission-escape.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Can a component whose manifest declares a narrow tool_permissions set reach capability outside that set - by shelling out, by importing a library that performs I/O, or by invoking another component with wider permissions?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11346, 10804",
+  "tests_required": [
+    "control: a component that declares the wide permissions it uses must run unimpeded, proving the enforcement is not blocking everything",
+    "all attempts run inside a disposable sandbox; no attempt targets a live credential or a third-party system"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Declared-versus-actual tool permission escape for skills, hooks and workflow steps",
+  "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write",
+    "mcp__cloud-hub__modal_sandbox_create",
+    "mcp__cloud-hub__modal_sandbox_exec",
+    "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+}
