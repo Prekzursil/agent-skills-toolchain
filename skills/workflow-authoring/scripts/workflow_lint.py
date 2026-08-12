@@ -14,10 +14,25 @@ recorded authoring footguns. Every check is grounded in ``../SKILL.md``:
     * meta-missing         -- no ``export const meta`` (SKILL.md rule 1 + checklist)
     * meta-not-object      -- ``meta`` is not an object literal
     * meta-not-literal     -- ``meta`` has a computed/non-literal field (rule 3 + cache-cliff rule 8)
+    * sandbox-forbidden    -- ``require`` / ``import`` / ``eval`` / ``new Function`` / ``process.``
+                              (the vm sandbox has no module loader and codeGeneration.strings=false)
   WARN (advisory; exit 0 unless --strict)
-    * args-parse-if-string -- ``args.<field>`` with no parse-if-string guard (SKILL.md rule 2)
+    * args-unguarded       -- ``args.<field>`` with no absent-args guard (see below)
     * agent-schema         -- an ``agent(...)`` call with no ``schema:`` option (SKILL.md rule 7)
     * parallel-filter-boolean -- a ``parallel(...)`` result not passed through ``.filter(Boolean)`` (rule 5)
+    * barrier-without-timeout -- a ``parallel(...)`` over ``agent(...)`` with no per-agent timeout
+                              (design item H6; one hung agent freezes the whole phase)
+    * prefer-pipeline      -- two barriers separated only by a pure transform (the runtime's own
+                              smell test: "that middle transform doesn't need the barrier")
+    * budget-loop-unguarded -- ``while (budget.remaining() ...)`` with no ``budget.total`` guard
+                              (with no target, remaining() is Infinity -> runs to the 1000-agent cap)
+
+CORRECTION, 2026-08-12 -- ``args-parse-if-string`` was RENAMED to ``args-unguarded`` because
+its premise was measured FALSE. The installed runtime's own tool doc says ``args`` is "the value
+passed as Workflow's ``args`` input, **verbatim** (undefined if not provided)". It is NOT coerced
+to a string. The real footgun is the *absent* case: with no args, ``args.<field>`` throws a
+TypeError. A caller who stringifies a list does reach the script with one string, but that is a
+caller-side mistake, not the runtime contract, so the guard is now advisory in both directions.
 
 METHOD (stated honestly; no overclaiming)
     Python's standard library has no JavaScript parser, so this is NOT a full AST
@@ -530,8 +545,14 @@ def _check_banned(masked: str, path: str, findings: list[Finding]) -> None:
 
 
 _ARGS_ACCESS = re.compile(r"\bargs\s*\.\s*([A-Za-z_$][\w$]*)")
+# Any of these is an acceptable guard: a parse-if-string coercion (for a caller who
+# stringified), or a plain absent-args default (`args ?? {}` / `args || {}` /
+# `args && ...`), or an explicit `typeof args` probe.
 _ARGS_GUARD = re.compile(
-    r"JSON\s*\.\s*parse\s*\(\s*args\b|typeof\s+args\s*===?\s*['\"]string['\"]"
+    r"JSON\s*\.\s*parse\s*\(\s*args\b"
+    r"|typeof\s+args\b"
+    r"|\bargs\s*(?:\?\?|\|\||&&)"
+    r"|\bargs\s*===?\s*(?:undefined|null)"
 )
 
 
@@ -551,13 +572,63 @@ def _check_args(masked: str, path: str, findings: list[Finding]) -> None:
                 path,
                 line,
                 WARN,
-                "args-parse-if-string",
-                "args arrives as ONE string, not a parsed object (SKILL.md rule 2). "
-                f"Reading args.{m.group(1)} without a parse-if-string guard "
-                "(typeof args === 'string' ? JSON.parse(args) : args) silently reads "
-                "undefined. Parse args, or have agents auto-discover their input.",
+                "args-unguarded",
+                "args is delivered VERBATIM and is `undefined` when the workflow is "
+                f"invoked with none, so reading args.{m.group(1)} unguarded throws a "
+                "TypeError. Guard it: `const a = args ?? {}`. (A caller who passes a "
+                "JSON-ENCODED string instead of a JSON value does reach the script with "
+                "one string -- add `typeof args === 'string' ? JSON.parse(args) : args` "
+                "if that is possible. The older 'args always arrives as one string' "
+                "wording was measured false against the installed runtime.)",
             )
         )
+
+
+# --------------------------------------------------------------------------- #
+# Sandbox reality: the workflow body runs in a Node `vm` context built with
+# codeGeneration.strings=false and NO module loader. These are not style
+# preferences -- each one is a guaranteed runtime failure, so they are ERRORs.
+# --------------------------------------------------------------------------- #
+_FORBIDDEN = (
+    (
+        re.compile(r"\brequire\s*\("),
+        "require() -- the workflow sandbox has no module loader",
+    ),
+    (
+        re.compile(r"\bimport\s*\("),
+        "dynamic import() -- throws in the workflow sandbox",
+    ),
+    (
+        re.compile(r"^[ \t]*import\s+[^\n(]*\bfrom\b", re.MULTILINE),
+        "a static `import ... from` -- the script is not an ES module",
+    ),
+    (
+        re.compile(r"\beval\s*\("),
+        "eval() -- blocked by codeGeneration.strings=false",
+    ),
+    (
+        re.compile(r"\bnew\s+Function\s*\("),
+        "new Function() -- blocked by codeGeneration.strings=false",
+    ),
+    (
+        re.compile(r"\bprocess\s*\.\s*[A-Za-z_$]"),
+        "process.* -- no Node.js API is exposed to the sandbox",
+    ),
+)
+
+
+def _check_sandbox(masked: str, path: str, findings: list[Finding]) -> None:
+    for rx, what in _FORBIDDEN:
+        for m in rx.finditer(masked):
+            findings.append(
+                Finding(
+                    path,
+                    _line_at(masked, m.start()),
+                    ERROR,
+                    "sandbox-forbidden",
+                    f"{what}. Paste the code inline, or do the work inside an agent().",
+                )
+            )
 
 
 _AGENT_CALL = re.compile(r"\bagent\s*\(")
@@ -592,11 +663,34 @@ _ASSIGN_BEFORE = re.compile(
 )
 
 
-def _var_has_filter(masked: str, name: str, from_idx: int) -> bool:
+# `.filter(Boolean)` is one way to be null-tolerant; a `.map(...)` that NAMES
+# `null` is a stronger one -- it TYPES the drop instead of deleting it, which is
+# what the H6 `settle()` helper does (design item H3: the runtime yields null for
+# at least three different causes, and filtering throws that distinction away, so
+# "12 of 15 returned" becomes unauditable). Recognising it keeps the rule from
+# firing on the very helper that `barrier-without-timeout` recommends.
+_MAP_AFTER = re.compile(r"\s*\)?\s*\.\s*map\s*\(")
+
+
+def _maps_nulls(masked: str, at: int) -> bool:
+    """True if a ``.map(...)`` starting at ``at`` mentions ``null`` in its body."""
+    m = _MAP_AFTER.match(masked, at)
+    if m is None:
+        return False
+    body_close = _match_bracket(masked, m.end() - 1)
+    if body_close is None:
+        return False
+    return "null" in masked[m.end() : body_close]
+
+
+def _var_is_null_tolerant(masked: str, name: str, from_idx: int) -> bool:
+    """True if ``name`` is later `.filter(Boolean)`-ed or null-typed by a `.map`."""
     pattern = re.compile(r"\b" + re.escape(name) + r"\b")
     for um in pattern.finditer(masked, from_idx):
         end = _member_chain_end(masked, um.end())
         if _FILTER_CHAIN.search(masked, um.end(), end):
+            return True
+        if _maps_nulls(masked, um.end()):
             return True
     return False
 
@@ -608,8 +702,12 @@ def _check_parallel_filter(masked: str, path: str, findings: list[Finding]) -> N
             continue
         if _FILTER_AFTER.match(masked, close + 1):
             continue
+        if _maps_nulls(masked, close + 1):
+            continue
         assign = _ASSIGN_BEFORE.search(masked, 0, m.start())
-        if assign is not None and _var_has_filter(masked, assign.group(1), close + 1):
+        if assign is not None and _var_is_null_tolerant(
+            masked, assign.group(1), close + 1
+        ):
             continue
         findings.append(
             Finding(
@@ -624,15 +722,155 @@ def _check_parallel_filter(masked: str, path: str, findings: list[Finding]) -> N
         )
 
 
+# --------------------------------------------------------------------------- #
+# H6 -- barrier-without-timeout.
+#
+# `parallel()` is a BARRIER: it settles only when EVERY thunk settles. One agent
+# that never returns therefore freezes the whole phase. Measured on this estate:
+# a 13-hour deadlock, and 11 lanes stalled behind one hung reviewer. The fix is
+# templates/h6-timeout-heartbeat.md -- wrap each thunk in `withTimeout(...)`, or
+# call `settle(...)` instead of `parallel(...)`.
+#
+# HONEST SCOPE, so the WARN does not overclaim: the wrapper unblocks the BARRIER.
+# It does NOT kill the agent -- the dropped agent keeps running and keeps its
+# concurrency slot until it dies on its own.
+# --------------------------------------------------------------------------- #
+_TIMEOUT_WRAPPER = re.compile(
+    r"\bwithTimeout\s*\(|\bsettle\s*\(|\bPromise\s*\.\s*race\s*\("
+)
+
+
+def _check_barrier_timeout(masked: str, path: str, findings: list[Finding]) -> None:
+    for m in _PARALLEL_CALL.finditer(masked):
+        close = _match_bracket(masked, m.end() - 1)
+        if close is None:
+            continue
+        body = masked[m.end() : close]
+        if not _AGENT_CALL.search(body):
+            continue
+        if _TIMEOUT_WRAPPER.search(body):
+            continue
+        findings.append(
+            Finding(
+                path,
+                _line_at(masked, m.start()),
+                WARN,
+                "barrier-without-timeout",
+                "parallel(...) fans out agent() calls with no per-agent timeout. "
+                "parallel is a BARRIER, so ONE agent that never returns freezes the "
+                "whole phase (measured: a 13-hour deadlock; 11 lanes behind one hung "
+                "reviewer). Wrap each thunk with withTimeout(), or use settle() -- see "
+                "templates/h6-timeout-heartbeat.md (design item H6). Note the wrapper "
+                "unblocks the BARRIER only; the dropped agent keeps running and keeps "
+                "its concurrency slot.",
+            )
+        )
+
+
+# --------------------------------------------------------------------------- #
+# prefer-pipeline -- the RUNTIME's own smell test, quoted verbatim from the
+# installed tool doc:
+#
+#     Smell test: if you wrote
+#       const a = await parallel(...)
+#       const b = transform(a)     // flatten, map, filter - no cross-item dependency
+#       const c = await parallel(b.map(...))
+#     that middle transform doesn't need the barrier.
+#
+# The runtime also enumerates the THREE shapes where a barrier IS correct, so the
+# rule stays silent on all three by requiring that the span between the two
+# barriers contains no cross-item aggregation marker:
+#   1. dedup/merge across the full set   -> new Set / .reduce / .sort / Object.*
+#   2. early-exit when the count is zero -> .length
+#   3. stage N's prompt cites "the other findings" -> .join / JSON.stringify
+# DETECTOR LIMIT, stated rather than hidden: this is a lexical proximity check,
+# not dataflow. A cross-item dependency expressed without any of these markers
+# will still be flagged -- which is why it is a WARN, never an ERROR.
+# --------------------------------------------------------------------------- #
+_AGGREGATION_MARKER = re.compile(
+    r"\.\s*(?:length|reduce|sort|join|every|some|find|findIndex|includes|indexOf)\b"
+    r"|\bnew\s+Set\s*\(|\bJSON\s*\.\s*stringify\s*\(|\bObject\s*\.\s*[A-Za-z]"
+)
+
+
+def _check_prefer_pipeline(masked: str, path: str, findings: list[Finding]) -> None:
+    barriers = list(_PARALLEL_CALL.finditer(masked))
+    for first, second in zip(barriers, barriers[1:]):
+        close = _match_bracket(masked, first.end() - 1)
+        if close is None:
+            continue
+        assign = _ASSIGN_BEFORE.search(masked, 0, first.start())
+        if assign is None:
+            continue
+        span = masked[close + 1 : second.start()]
+        if not re.search(r"\b" + re.escape(assign.group(1)) + r"\b", span):
+            continue
+        if _AGGREGATION_MARKER.search(span):
+            continue
+        findings.append(
+            Finding(
+                path,
+                _line_at(masked, second.start()),
+                WARN,
+                "prefer-pipeline",
+                "two parallel() barriers separated only by a pure transform of "
+                f"`{assign.group(1)}` (no cross-item aggregation between them). The "
+                'runtime\'s own guidance is "DEFAULT TO pipeline()": a barrier is '
+                "justified only by dedup/merge across the full set, an early exit on "
+                "zero, or a stage that cites the other items. Otherwise the transform "
+                "belongs inside a pipeline() stage and the barrier wait is pure "
+                "latency.",
+            )
+        )
+
+
+# --------------------------------------------------------------------------- #
+# budget-loop-unguarded -- the runtime's own warning, quoted from the tool doc:
+# "Guard on budget.total: with no target set, remaining() is Infinity and the
+#  loop would run straight to the 1000-agent cap."
+# --------------------------------------------------------------------------- #
+_WHILE_CALL = re.compile(r"\bwhile\s*\(")
+_BUDGET_REMAINING = re.compile(r"\bbudget\s*\.\s*remaining\s*\(")
+_BUDGET_TOTAL = re.compile(r"\bbudget\s*\.\s*total\b")
+
+
+def _check_budget_loop(masked: str, path: str, findings: list[Finding]) -> None:
+    for m in _WHILE_CALL.finditer(masked):
+        close = _match_bracket(masked, m.end() - 1)
+        if close is None:
+            continue
+        cond = masked[m.end() : close]
+        if not _BUDGET_REMAINING.search(cond):
+            continue
+        if _BUDGET_TOTAL.search(cond):
+            continue
+        findings.append(
+            Finding(
+                path,
+                _line_at(masked, m.start()),
+                WARN,
+                "budget-loop-unguarded",
+                "while (budget.remaining() ...) with no budget.total guard. When the "
+                "user set no token target, budget.total is null and remaining() is "
+                "Infinity, so this loop runs straight to the 1000-agent lifetime cap. "
+                "Write `while (budget.total && budget.remaining() > 50_000)`.",
+            )
+        )
+
+
 def lint_text(text: str, path: str = "<workflow>") -> list[Finding]:
     """Lint workflow source ``text``; return findings sorted by (line, check)."""
     masked = mask_code(text)
     findings: list[Finding] = []
     _check_meta(text, masked, path, findings)
     _check_banned(masked, path, findings)
+    _check_sandbox(masked, path, findings)
     _check_args(masked, path, findings)
     _check_agent_schema(masked, path, findings)
     _check_parallel_filter(masked, path, findings)
+    _check_barrier_timeout(masked, path, findings)
+    _check_prefer_pipeline(masked, path, findings)
+    _check_budget_loop(masked, path, findings)
     findings.sort(key=lambda f: (f.line, f.check))
     return findings
 

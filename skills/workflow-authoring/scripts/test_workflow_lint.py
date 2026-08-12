@@ -41,7 +41,9 @@ const parsed = typeof args === 'string' ? JSON.parse(args) : args
 phase('One')
 const SCHEMA = { type: 'object', additionalProperties: false, required: ['answer'] }
 const one = await agent('do a thing for ' + parsed.topic, { label: 'one', schema: SCHEMA })
-const many = (await parallel(items.map((it) => () => agent(it, { schema: SCHEMA })))).filter(Boolean)
+const many = (
+  await parallel(items.map((it) => () => withTimeout(() => agent(it, { schema: SCHEMA }), 600000, it)))
+).filter(Boolean)
 return { one, many }
 """
 
@@ -305,12 +307,12 @@ def test_banned_calls_ignored_in_strings_and_comments():
 
 
 # --------------------------------------------------------------------------- #
-# args-as-string guard (warn)
+# args-unguarded guard (warn)
 # --------------------------------------------------------------------------- #
 def test_args_without_guard_warns():
     src = "export const meta = { name: 'x' }\nconst t = args.topic\n"
     findings = wl.lint_text(src)
-    a = [f for f in findings if f.check == "args-parse-if-string"]
+    a = [f for f in findings if f.check == "args-unguarded"]
     assert len(a) == 1
     assert a[0].level == wl.WARN
     assert a[0].line == 2
@@ -319,25 +321,25 @@ def test_args_without_guard_warns():
 def test_args_json_parse_guard_suppresses_warning():
     src = "export const meta = { name: 'x' }\nconst p = JSON.parse(args)\nconst t = p.topic\nconst u = args.other\n"
     findings = wl.lint_text(src)
-    assert not [f for f in findings if f.check == "args-parse-if-string"]
+    assert not [f for f in findings if f.check == "args-unguarded"]
 
 
 def test_args_typeof_guard_suppresses_warning():
     src = "export const meta = { name: 'x' }\nconst p = typeof args === 'string' ? JSON.parse(args) : args\nconst t = args.topic\n"
     findings = wl.lint_text(src)
-    assert not [f for f in findings if f.check == "args-parse-if-string"]
+    assert not [f for f in findings if f.check == "args-unguarded"]
 
 
 def test_args_string_method_access_not_flagged():
     src = "export const meta = { name: 'x' }\nconst parts = args.split(' ')\nconst n = args.length\n"
     findings = wl.lint_text(src)
-    assert not [f for f in findings if f.check == "args-parse-if-string"]
+    assert not [f for f in findings if f.check == "args-unguarded"]
 
 
 def test_args_multiple_fields_deduped_by_line():
     src = "export const meta = { name: 'x' }\nconst t = args.a + args.b\nconst u = args.c\n"
     findings = wl.lint_text(src)
-    warns = [f for f in findings if f.check == "args-parse-if-string"]
+    warns = [f for f in findings if f.check == "args-unguarded"]
     # two lines carry structured access -> two warnings (deduped per line)
     assert sorted(f.line for f in warns) == [2, 3]
 
@@ -561,7 +563,7 @@ def test_main_warnings_only_returns_zero(tmp_path):
     )
     code, out, err = _run_main([str(p)])
     assert code == 0
-    assert "WARN[args-parse-if-string]" in out
+    assert "WARN[args-unguarded]" in out
 
 
 def test_main_strict_fails_on_warning(tmp_path):
@@ -861,6 +863,177 @@ def test_resume_template_discloses_the_unproven_durability_half():
     block = _template_block()
     assert "UNVERIFIED" in block
     assert "page-cache" in block or "power" in block
+
+
+# --------------------------------------------------------------------------- #
+# NEW RULES, 2026-08-12. Every one is BOTH-STATES in a single test: a broken
+# fixture that MUST produce the finding AND a fixed fixture that MUST NOT. A rule
+# with only a positive fixture is half a detector
+# (rules/common/single-signal-verification.md 3b). Written with plain loops rather
+# than pytest.mark.parametrize so the module stays stdlib-only and `python
+# test_workflow_lint.py` keeps working.
+# --------------------------------------------------------------------------- #
+_HEAD = "export const meta = { name: 'x' }\n"
+_TEMPLATES = pathlib.Path(__file__).resolve().parents[1] / "templates"
+
+
+def _checks(src: str) -> list[str]:
+    return [f.check for f in wl.lint_text(_HEAD + src)]
+
+
+# --- sandbox-forbidden (ERROR) ---------------------------------------------- #
+def test_sandbox_forbidden_both_states():
+    broken = [
+        "const x = require('fs')\n",
+        "const m = await import('./x.js')\n",
+        "import fs from 'node:fs'\n",
+        "const v = eval('1+1')\n",
+        "const f = new Function('return 1')\n",
+        "const p = process.env.HOME\n",
+    ]
+    for src in broken:
+        hits = [f for f in wl.lint_text(_HEAD + src) if f.check == "sandbox-forbidden"]
+        assert len(hits) == 1, (src, hits)
+        assert hits[0].level == wl.ERROR, src
+
+    fixed = [
+        # the same tokens as MENTIONS -- in a comment and in a string. The mask
+        # must keep them silent, else the rule is unusable on any workflow whose
+        # PROMPT text discusses these APIs (use-vs-mention).
+        "// do not call require() or eval() here\n",
+        "const prompt = 'never use process.env or new Function()'\n",
+        # near-miss identifiers must not trip the word boundaries
+        "const requires = ['a']\nconst imported = 1\nconst reprocess = 2\n",
+        "export const other = { a: 1 }\n",
+    ]
+    for src in fixed:
+        assert "sandbox-forbidden" not in _checks(src), src
+
+
+# --- barrier-without-timeout (WARN), design item H6 -------------------------- #
+def test_barrier_without_timeout_both_states():
+    bare = (
+        "const r = (await parallel(u.map((x) => () => "
+        "agent(x, { schema: S })))).filter(Boolean)\n"
+    )
+    hits = [
+        f for f in wl.lint_text(_HEAD + bare) if f.check == "barrier-without-timeout"
+    ]
+    assert len(hits) == 1, hits
+    assert hits[0].level == wl.WARN
+    assert hits[0].line == 2
+
+    fixed = [
+        # withTimeout wrapper (the shipped H6 helper)
+        "const r = (await parallel(u.map((x) => () => withTimeout(() => "
+        "agent(x, { schema: S }), 600000, x)))).filter(Boolean)\n",
+        # a hand-written Promise.race
+        "const r = (await parallel(u.map((x) => () => Promise.race(["
+        "agent(x, { schema: S }), t])))).filter(Boolean)\n",
+        # settle() -- no bare barrier at all
+        "const r = await settle(u.map((x) => () => agent(x, { schema: S })), 600000)\n",
+        # a barrier with no agent() inside is not this rule's business
+        "const r = (await parallel(u.map((x) => () => f(x)))).filter(Boolean)\n",
+        # unbalanced call -> skipped, never crashes
+        "const r = parallel(agent(\n",
+    ]
+    for src in fixed:
+        assert "barrier-without-timeout" not in _checks(src), src
+
+
+# --- prefer-pipeline (WARN) -------------------------------------------------- #
+def test_prefer_pipeline_both_states():
+    smell = (
+        "const a = await parallel(f1)\n"
+        "const b = a.flat().map((x) => x.id)\n"
+        "const c = await parallel(b.map((x) => () => g(x)))\n"
+    )
+    hits = [f for f in wl.lint_text(_HEAD + smell) if f.check == "prefer-pipeline"]
+    assert len(hits) == 1, hits
+    assert hits[0].level == wl.WARN
+    assert hits[0].line == 4
+
+    # The runtime enumerates exactly THREE shapes where a barrier IS correct.
+    # The rule must stay silent on all three, or authors will disable it.
+    legitimate = [
+        # 1. dedup/merge across the FULL set before expensive downstream work
+        "const a = await parallel(f1)\n"
+        "const b = [...new Set(a.flat())]\n"
+        "const c = await parallel(b.map((x) => () => g(x)))\n",
+        # 2. early-exit when the total count is zero
+        "const a = await parallel(f1)\n"
+        "if (a.length === 0) return 'none'\n"
+        "const c = await parallel(a.map((x) => () => g(x)))\n",
+        # 3. stage N's prompt references "the other findings"
+        "const a = await parallel(f1)\n"
+        "const ctx = a.join('|')\n"
+        "const c = await parallel(a.map((x) => () => g(x, ctx)))\n",
+        # a reduce-based merge is cross-item too
+        "const a = await parallel(f1)\nconst b = a.reduce(r, 0)\n"
+        "const c = await parallel([b])\n",
+        # only ONE barrier -- nothing to compare
+        "const a = await parallel(f1)\n",
+        # the second barrier does not consume the first one's result
+        "const a = await parallel(f1)\nconst z = 1\nconst c = await parallel(f2)\n",
+        # the first barrier is not assigned to anything
+        "await parallel(f1)\nconst q = 2\nconst c = await parallel(f2)\n",
+        # unbalanced first barrier -> skipped
+        "const a = await parallel(\nconst c = await parallel(b)\n",
+    ]
+    for src in legitimate:
+        assert "prefer-pipeline" not in _checks(src), src
+
+
+# --- budget-loop-unguarded (WARN) -------------------------------------------- #
+def test_budget_loop_unguarded_both_states():
+    broken = (
+        "while (budget.remaining() > 50000) {\n  await agent('x', {schema: S})\n}\n"
+    )
+    hits = [
+        f for f in wl.lint_text(_HEAD + broken) if f.check == "budget-loop-unguarded"
+    ]
+    assert len(hits) == 1, hits
+    assert hits[0].level == wl.WARN
+    assert hits[0].line == 2
+
+    fixed = [
+        "while (budget.total && budget.remaining() > 50000) {\n  f()\n}\n",
+        "while (i < 3) {\n  f()\n}\n",  # no budget in the condition at all
+        "while (budget.remaining\n",  # unbalanced -> skipped, never crashes
+    ]
+    for src in fixed:
+        assert "budget-loop-unguarded" not in _checks(src), src
+
+
+# --- the H6 template itself must be lint-clean ------------------------------- #
+def test_h6_template_block_is_lint_clean():
+    """The paste-in helper must not trip the linter that recommends it."""
+    path = _TEMPLATES / "h6-timeout-heartbeat.md"
+    md = path.read_text(encoding="utf-8")
+    block = md[md.index("<!-- H6-BEGIN -->") : md.index("<!-- H6-END -->")]
+    body = block[block.index("```js") + 5 : block.rindex("```")]
+    src = _HEAD + body + "\nconst r = await settle([], 1000, [])\nreturn r.length\n"
+    findings = wl.lint_text(src, str(path))
+    assert findings == [], [wl.format_finding(f) for f in findings]
+
+
+def test_parallel_null_typing_map_is_accepted_both_states():
+    """A `.map()` that NAMES null types the drop; a `.map()` that does not, does not."""
+    typed = "const r = (await parallel(t)).map((x) => (x === null ? DROP : x))\n"
+    assert "parallel-filter-boolean" not in _checks(typed)
+
+    untyped = "const r = (await parallel(t)).map((x) => x.id)\n"
+    assert "parallel-filter-boolean" in _checks(untyped)
+
+    unbalanced = "const r = (await parallel(t)).map(\n"
+    assert "parallel-filter-boolean" in _checks(unbalanced)
+
+
+def test_resume_template_points_at_the_h6_template():
+    """The H6 pointer added to resume-wired-fanout.md must not rot silently."""
+    text = (_TEMPLATES / "resume-wired-fanout.md").read_text(encoding="utf-8")
+    assert "h6-timeout-heartbeat.md" in text
+    assert "withTimeout(" in text
 
 
 # --------------------------------------------------------------------------- #

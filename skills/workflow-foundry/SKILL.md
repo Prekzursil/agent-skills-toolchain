@@ -142,6 +142,52 @@ stopped pipeline RE-RUNS its first stage**
 (`09-WORKFLOW-BLUEPRINT-LIBRARY.md:1767`). Budget the re-run, or make stage 1 idempotent
 and cheap.
 
+### L4b — When you genuinely need a barrier, BOUND it (design item H6, now shipped)
+
+The sentence above — "`parallel()` … has **no per-agent timeout**" — was true and had no
+remedy until 2026-08-12. It has one now:
+**`skills/workflow-authoring/templates/h6-timeout-heartbeat.md`**, a paste-in block giving
+`withTimeout(thunk, ms, label)` and `settle(thunks, ms, labels)`. It is a *template*, not a
+library, because the workflow sandbox has no module loader — `require` is undefined and
+`import()` throws, so a helper physically cannot be imported.
+
+`settle()` is a drop-in for `parallel()` that returns an index-aligned array with **no nulls
+and no holes**: each slot is a real result or a typed drop-receipt
+`{ __h6: true, __endReason: 'timeout' | 'threw' | 'null', label, ms }`. Type the drop rather
+than `.filter(Boolean)`-ing it away — the runtime produces `null` for at least three
+different causes (user skipped the agent · the subagent died on a terminal error · our own
+timeout), and collapsing them is exactly what makes "12 of 15 lenses returned" unauditable.
+
+**Scope it honestly. It unblocks the BARRIER; it does NOT kill the agent.** The dropped agent
+keeps running, keeps one of the **14** concurrency slots (`min(16, cores-2)` on this box —
+so one hung agent is ~7% of the fan-out's throughput for as long as it lives), and keeps
+spending `budget` until it dies on its own. The design doc's word "killed"
+(`docs/audit-design-2026-07-13/B3-migration-verification.md:262`) is an overclaim against
+this mechanism; do not reuse it. Settling experiment: read `budget.spent()` at the timeout
+receipt and again at workflow end — a rise proves the agent lived on.
+
+Both-states proof, per L6: `tools/wf-timeout/test_h6_timeout.py` (20 tests) extracts the
+block from the template and executes it in a Node `vm` context built like the real sandbox.
+The **known-broken control** — a bare `parallel()` over five thunks, one never resolving —
+is *required* to report `hung: true` (measured 1507.9 ms, watchdog-bounded); `settle()` over
+the identical thunks returns in **175.0 ms** with exactly one `timeout` receipt and four
+intact survivors. Static enforcement: `workflow_lint`'s `barrier-without-timeout`, which
+fires on **15 of 15** barrier calls across all 10 saved workflows today.
+
+### L4c — A spec that binds nothing is not a control
+
+Standing example, measured 2026-08-12: `platform/workflows/` declares **911
+`timeout_seconds` fields and 35 `on_timeout` handlers** across 115 blueprints (97 of 115
+files), and `platform/workflows/shared-prod-shard-fanout-build.json` records the incident
+those declarations exist to prevent — *"chain 9's job was submitted with no job-level
+timeout and ran for 11 hours against a hung unit."* But `platform/lib/wfdsl/` has
+validate/semantics/expr/resolve/capabilities/mutations and **no compiler or executor**, so
+all 911 bind nothing, and the substrate that actually runs (`~/.claude/workflows/*.js`) had
+**zero**. Before citing a declared timeout/retry/failure policy as a control, find the code
+that enforces it. Do **not** answer this by building a second orchestration runtime — lift
+the semantics onto the native globals instead
+(`docs/axis-c-design-2026-07-13/research-sota-cross-vendor-orchestration.md:9`).
+
 ## L5 — Write as you go
 
 MEASURED: one review unit ran **70 minutes**, produced **691 KB** of transcript, completed a

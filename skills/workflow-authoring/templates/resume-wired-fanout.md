@@ -146,15 +146,28 @@ const WRITE_AHEAD = (id) =>
   `If you cannot finish, run --mark-failed ${id} instead. Do NOT mark done on a partial result: a ` +
   `wrongly-done unit is silently skipped forever, which is worse than being re-driven.\n\n`
 
+// REQUIRED PREAMBLE: paste the H6 block from templates/h6-timeout-heartbeat.md
+// above this line. It defines withTimeout() and is what stops ONE hung unit from
+// freezing this entire fan-out -- parallel() is a BARRIER, so without it the wave
+// waits forever on its slowest dead agent (measured: a 13-hour deadlock). The
+// wrapper unblocks the BARRIER only; the dropped agent keeps running and keeps
+// its slot. Red-proof: tools/wf-timeout/test_h6_timeout.py.
+const UNIT_TIMEOUT_MS = 1800000
+
 const results = (
   await parallel(
     queue.map(
       (u) => () =>
-        agent(WRITE_AHEAD(u.id) + `WORK UNIT ${u.id}\n\n${u.body}`, {
-          label: `unit:${u.id}`,
-          phase: 'Fan-out',
-          schema: UNIT_SCHEMA,
-        }),
+        withTimeout(
+          () =>
+            agent(WRITE_AHEAD(u.id) + `WORK UNIT ${u.id}\n\n${u.body}`, {
+              label: `unit:${u.id}`,
+              phase: 'Fan-out',
+              schema: UNIT_SCHEMA,
+            }),
+          UNIT_TIMEOUT_MS,
+          u.id,
+        ),
     ),
   )
 ).filter(Boolean)

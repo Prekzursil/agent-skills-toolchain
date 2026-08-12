@@ -20,9 +20,27 @@ shared git index.
 
 ## 1. The runtime API (the whole surface)
 
-A workflow file is NOT a plain ES module. The runner injects three globals —
-`agent`, `parallel`, `phase` — reads your `export const meta`, wraps the body so
-top-level `await` and a trailing top-level `return` are legal, and executes it.
+A workflow file is NOT a plain ES module. The runner injects **eight** globals —
+`agent`, `parallel`, **`pipeline`**, `phase`, `log`, `args`, `budget`, `workflow`
+(plus `console`, `setTimeout`, `clearTimeout`) — reads your `export const meta`,
+wraps the body so top-level `await` and a trailing top-level `return` are legal,
+and executes it in a Node `vm` context.
+
+> **CORRECTED 2026-08-12.** This section previously said "injects three globals —
+> `agent`, `parallel`, `phase`". That was measured wrong against the installed
+> runtime, and the omission of `pipeline` is not cosmetic: **0 of the 10 saved
+> workflows on this box use `pipeline()`** while 15 barrier calls do, even though
+> the runtime's own tool doc says **"DEFAULT TO pipeline()"**. The globals list,
+> the `args` contract (rule 2), and the effort enum below were all re-derived from
+> the installed binary; see `docs/workflow-sota/GROUNDING-NOTES.md` §3 and the
+> verbatim dump at `docs/workflow-sota/RUNTIME-API-DUMP.txt`.
+
+The sandbox is real, not advisory: `codeGeneration.strings = false` (no `eval`,
+no `new Function`), no module loader (`require` is undefined, `import()` throws),
+no filesystem or Node API, and `Date.now()` / argless `new Date()` / `Math.random()`
+are **shimmed to throw** — not merely discouraged. `runInContext` caps only the
+*synchronous* body at 30 s; it does **not** bound an awaited agent, which is why
+per-agent timeouts are your problem (rule 5b).
 
 ```js
 export const meta = {
@@ -39,7 +57,7 @@ const ground = await agent('prompt string', {
   label: 'ground',        // stable id for this agent (used in logs/telemetry)
   phase: 'Ground',        // which declared phase this belongs to
   schema: SCHEMA,         // JSON-schema; the runtime RETURNS a parsed object
-  effort: 'high',         // reasoning effort: 'low' | 'medium' | 'high' | 'xhigh'
+  effort: 'high',         // 'low' | 'medium' | 'high' | 'xhigh' | 'max'
   model: 'opus',          // 'opus' (default, deepest) or 'fable' for wide fan-out
 })
 
@@ -57,18 +75,54 @@ return { ...ground, results }   // top-level return is the workflow's result
   **Pass an array of zero-arg thunks** (`() => agent(...)`), not an array of
   already-started promises — the thunks let the runtime schedule/limit them.
 - `phase(title)` is telemetry/structure; call it once per phase before its work.
+- `pipeline(items, stage1, stage2, ...)` → runs each item through **all** stages
+  independently, with **no barrier between stages**. Item A can be in stage 3
+  while item B is still in stage 1. Wall-clock = the slowest single-item chain,
+  not the sum of the slowest-per-stage. Every stage callback receives
+  `(prevResult, originalItem, index)`. A stage that throws drops that item to
+  `null` and skips its remaining stages. **This is the default for multi-stage
+  work.** Caveat measured elsewhere: `pipeline()` is not a cacheable resume unit —
+  resuming a stopped pipeline re-runs its first stage
+  (`skills/workflow-foundry/SKILL.md` L4).
+- `log(msg)` → a progress line in the run view. The only output channel from the
+  script body itself.
+- `budget` → `{ total: number|null, spent(): number, remaining(): number }`. The
+  target is a **HARD ceiling**: once `spent() >= total`, further `agent()` calls
+  **throw**. `total` is `null` when the user set no target, and `remaining()` is
+  then `Infinity` — so always guard a budget loop on `budget.total` (rule 5c).
+- `workflow(nameOrRef, args?)` → run another saved workflow inline. The child
+  shares this run's concurrency cap, agent counter, abort signal and budget.
+  **Nesting is one level only**; `workflow()` inside a child throws.
+- Concurrency is capped at `min(16, cores - 2)` per workflow (**14** on this
+  box), with a **1000-agent lifetime cap** as a runaway backstop.
+- Native resume: `Workflow({ scriptPath, resumeFromRunId })` replays the longest
+  unchanged prefix of `agent()` calls from cache. Same script + same args = 100%
+  cache hit. Before diagnosing an empty result, read
+  `<transcriptDir>/journal.jsonl` — it records each agent's actual return value.
 
 ---
 
-## 2. args-as-string (the recorded gotcha)
+## 2. `args` is delivered VERBATIM (corrected — the old "one string" rule was false)
 
-A Workflow receives its invocation arguments as **one single string**, not a
-parsed array or object. If you expect structured input, **parse it yourself**
-inside the workflow, and design for the common case where there is no reliable
-arg channel at all: **have the agents auto-discover their input from live files**
-(Read/Glob) rather than relying on args being threaded in. The saved gate
-Workflows do exactly this — they tell each reviewer where to find the plan/design
-doc and let it locate + Read it. Do not assume `argv[1]` semantics.
+> **This rule previously said the opposite** and the linter enforced it. Measured
+> against the installed runtime's own tool doc, `args` is *"the value passed as
+> Workflow's `args` input, **verbatim** (undefined if not provided)"*. Pass a JSON
+> array and the script receives an array. The lint check was renamed
+> `args-parse-if-string` → **`args-unguarded`** and re-messaged.
+
+Two things are still true and are the actual footguns:
+
+1. **`args` is `undefined` when the workflow is invoked with none**, so a bare
+   `args.topic` throws a TypeError. Guard it: `const a = args ?? {}`.
+2. **A caller who passes a JSON-*encoded string* instead of a JSON value** does
+   reach the script with one string, and `args.filter` / `args.map` then throw.
+   That is a caller-side mistake, not the runtime contract; add
+   `typeof args === 'string' ? JSON.parse(args) : args` when a caller may do it.
+
+Independently of both: design for there being no reliable arg channel at all —
+**have the agents auto-discover their input from live files** (Read/Glob). The
+saved gate Workflows do exactly this: they tell each reviewer where to find the
+plan/design doc and let it locate + Read it.
 
 ## 3. Never call `Date.now()` (or `Math.random()`, `new Date()`) in workflow JS
 
@@ -114,6 +168,53 @@ const reviews = (await parallel(reviewers.map((r) => () =>
   agent(r.prompt, { label: `review:${r.role}`, schema: REVIEW_SCHEMA })
 ))).filter(Boolean)   // a throwing reviewer becomes null -> dropped, phase completes
 ```
+
+## 5b. Bound every fanned-out agent — design item H6 (SHIPPED)
+
+Rule 5 says a *thrown* agent becomes `null`. A **hung** one is worse: the barrier
+waits forever. That is not hypothetical here — a 13-hour deadlock and 11 lanes
+stalled behind one hung reviewer are both on the record, and
+`platform/workflows/shared-prod-shard-fanout-build.json` records an 11-hour hung
+production unit. Measured 2026-08-12: **15 of 15 barrier calls across all 10 saved
+workflows had zero timeout protection** (`Promise.race` 0, `setTimeout` 0,
+`AbortController` 0).
+
+The fix ships as a paste-in block, because the sandbox has no module loader and a
+helper therefore cannot be imported:
+
+**`templates/h6-timeout-heartbeat.md`** — `withTimeout(thunk, ms, label)` and
+`settle(thunks, ms, labels)`. `settle()` is a drop-in for `parallel()` that
+returns an index-aligned array with **no nulls and no holes**: every slot is
+either a real result or a typed drop-receipt `{ __h6: true, __endReason:
+'timeout' | 'threw' | 'null', label, ms }`.
+
+Type the drop, do not filter it away (design item H3): the runtime yields `null`
+for at least three different causes — the user skipped the agent, the subagent
+died on a terminal error, and (with H6) our own timeout — and `.filter(Boolean)`
+erases that distinction, which is what makes "12 of 15 lenses returned"
+unauditable today.
+
+**Honest scope, do not widen it.** `Promise.race` unblocks the **barrier**; it
+does **not** kill the agent. The dropped agent keeps running, keeps one of the 14
+concurrency slots, and keeps spending `budget` until it dies on its own. The
+design doc's word "killed" (`B3-migration-verification.md:262`) is an overclaim
+against this mechanism. Settling experiment: read `budget.spent()` at the timeout
+receipt and again at workflow end; a rise proves the agent lived on.
+
+Red-proof (`tools/wf-timeout/test_h6_timeout.py`, 20 tests): the helper is
+extracted from the template and executed in a Node `vm` context configured like
+the real sandbox. The **known-broken control** — a bare `parallel()` over the same
+five thunks, one never resolving — is required to report `hung: true` (measured:
+1507.9 ms, watchdog); `settle()` over the identical thunks returns in 175.0 ms
+with exactly one `timeout` receipt and four intact survivors.
+
+## 5c. Guard every budget loop on `budget.total`
+
+`budget.total` is `null` when the user set no token target, and `remaining()` is
+then `Infinity`. An unguarded `while (budget.remaining() > 50_000)` therefore runs
+straight to the **1000-agent lifetime cap**. Write
+`while (budget.total && budget.remaining() > 50_000)`. Linted as
+`budget-loop-unguarded`.
 
 ## 6. Per-work-unit pipelines, not one fat barrier
 
@@ -370,9 +471,22 @@ prompt cache, and **WARNS** on the recorded footguns — every check maps to a r
 |---|---|---|
 | ERROR | `no-date-now` · `no-math-random` · `no-argless-new-date` | 3 — banned non-determinism (`Date.now()` / `Math.random()` / argless `new Date()`) |
 | ERROR | `meta-missing` · `meta-not-object` · `meta-not-literal` | 1 + 8 — a pure-literal `export const meta` |
-| WARN  | `args-parse-if-string` | 2 — `args.<field>` with no parse-if-string guard |
+| ERROR | `sandbox-forbidden` | 1 — `require` / `import` / `eval` / `new Function` / `process.*`, none of which exist in the vm sandbox |
+| WARN  | `args-unguarded` | 2 — `args.<field>` with no absent-args guard (**renamed** from `args-parse-if-string`, whose premise was measured false) |
 | WARN  | `agent-schema` | 7 — an `agent()` fan-in with no `schema:` option |
-| WARN  | `parallel-filter-boolean` | 5 — a `parallel()` result not passed through `.filter(Boolean)` |
+| WARN  | `parallel-filter-boolean` | 5 — a `parallel()` result that is neither `.filter(Boolean)`-ed nor null-typed by a `.map()` |
+| WARN  | `barrier-without-timeout` | 5b — a `parallel()` over `agent()` with no `withTimeout` / `settle` / `Promise.race` (design item H6) |
+| WARN  | `prefer-pipeline` | 6 — two barriers separated only by a pure transform; the runtime's own smell test |
+| WARN  | `budget-loop-unguarded` | 5c — `while (budget.remaining() …)` with no `budget.total` guard |
+
+Measured against the 10 saved workflows on 2026-08-12: the pre-change linter
+reported **12** findings (11 `agent-schema` + 1 `parallel-filter-boolean`); the
+updated one reports **27** — a delta of exactly the **15 `barrier-without-timeout`**
+hits, one for every barrier call on the box, with **no change to any pre-existing
+check**. `prefer-pipeline` fires **0** times on that corpus (the live workflows use
+one barrier per phase, not the two-barrier-with-transform smell), so its only
+current evidence is its both-states fixture — it is a prospective rule, not a
+demonstrated catch.
 
 `--strict` also fails on warnings; `--json` emits machine-readable findings with `file:line`.
 The linter is a **stdlib-only lexical pass** — it MASKS comment + string/template bodies before

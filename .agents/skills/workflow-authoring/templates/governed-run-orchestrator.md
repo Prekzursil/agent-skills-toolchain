@@ -2657,7 +2657,14 @@ const verifierRoles = [
   'scope-coverage-and-no-abandonment',
   'artifact-vcs-ci-memory-receipts',
 ]
+// H6: this IS one of the three legitimate barriers (the roles are compared as a
+// set), so it stays a barrier -- but a barrier still deadlocks on one hung
+// verifier, so every thunk is bounded. Paste the H6 block from
+// templates/h6-timeout-heartbeat.md above this to define withTimeout(). It
+// unblocks the BARRIER only; the dropped agent keeps running and keeps its slot.
+const FINAL_VERIFY_TIMEOUT_MS = 1800000
 const rawFinal = await parallel(verifierRoles.map((role) => () =>
+  withTimeout(() =>
   agent(`${BASE_CONTEXT}
 
 ROLE: ${role}
@@ -2673,8 +2680,9 @@ EXACT_MAIN_SHA: ${integrationReceipt.origin_main_sha}`, {
     phase: 'Final verify',
     schema: VERIFY_SCHEMA,
     effort: 'xhigh',
-  })
+  }), FINAL_VERIFY_TIMEOUT_MS, role)
 ))
+// null here is a DROP, not a verdict: a dropped verifier must never read as PASS.
 const finalVerifiers = rawFinal.map((result, index) => ({
   role: verifierRoles[index],
   result: result
