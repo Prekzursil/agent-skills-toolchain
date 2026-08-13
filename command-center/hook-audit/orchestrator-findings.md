@@ -92,3 +92,32 @@ The third notice in the same firing -- `POTENTIAL-CREDENTIAL kind=transcript
 id=sha256:839ca3224e60` -- is NOT a false positive and is NOT cleared. It is a standing owner
 notice; per AGENTS.md 9 no agent action clears it and no agent may rotate the credential.
 Classification remains UNKNOWN (scan incomplete), which is not the same as clean.
+
+## 5. The wire-check fix is COMMITTED BUT NOT DEPLOYED -- measured, and it explains the repeat
+
+Commit `95761504 fix(wire-check): stop the cp1252 silent-empty that made every finding a false
+positive` landed in the repo. The hook kept firing the same false positives on the very next turn.
+
+Measured, not inferred:
+
+    hooks/wire-check/check.py     repo@95761504 sha256 5682886ea301
+                                  live ~/.claude/hooks/wire-check/check.py  70b68818763e   DIFFER
+    hooks/wire-check/test_wire_check_decode.py   live: DOES NOT EXIST
+    hooks/wire-check/test_wire_check_noise.py    live: DOES NOT EXIST
+
+So the running hook is the UNPATCHED copy. The cp1252 silent-empty is still live, which is why
+`main()` / `report()` / `toks()` in one-shot `_audit_s2_*.py` scripts are still reported as
+referenced 0x. The repo being green here proves nothing about the guard the session actually runs.
+
+**This is the repo-is-source-of-truth / live-is-deploy-target gap, caught in the act.** It is the
+same shape as the two consumer-with-no-producer defects: a fix exists and nothing carries it to
+where it executes. Note the asymmetry that makes it easy to miss -- a repo-side test suite for this
+hook would go GREEN while every live firing stays wrong.
+
+NOT deployed by the orchestrator, deliberately: nine lanes were mid-flight, hand-copying a
+deployed hook is the exact anti-pattern the harness-vcs-hygiene rule names, and the sanctioned
+repo->live path should be used rather than guessed. Handing it to the HOOKRESEARCH lane with the
+verification recipe: after deploying, re-hash both sides to confirm they match, then feed the hook
+a single-file script whose function is called only at module level and require it to stay SILENT --
+and feed it a genuinely unreferenced function and require it to FIRE. Silence alone is not proof
+the fix landed; the guard was already silent on the things it should catch.
