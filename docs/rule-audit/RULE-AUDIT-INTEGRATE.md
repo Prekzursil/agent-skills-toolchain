@@ -61,20 +61,32 @@ already use, and it touches no file a sibling lane is editing.
 
 All eight gates were executed. None is unrunnable; two exit non-zero *by design*:
 
-| gate | rc (this box) | wall | meaning |
-|---|---|---|---|
-| `rule_audit.py --self-test` | 0 | 1.2 s | 19 detector controls |
-| `r2_pathrefs.py --self-test` | 0 | 2.8 s | 6 gate-level states |
-| `r2_control_count_gate.py` | 0 | 1.6 s | prose == tool == AST == group sum == 19 |
-| `r2_failclosed_mutation.py` | 0 | 3.1 s | control fires on mutant, silent on real |
-| `r4_receipt_argv_gate.py` | 0 | 0.5 s | 52 documented invocations parse |
-| `r4_credential_rule_gate.py` | **1** | 0.2 s | the credential inversion is real and unfixed |
-| `r2_pathrefs.py` (bare) | **2** | 110.5 s | known defect tracked, no NEW finding |
-| `r3_corpus_parity_gate.py` (bare) | 0 | 89.0 s | 3 trees / 254 files declared == swept |
+> **ROUND-2 CORRECTION — this table's header was wrong.** It read "rc (this box)" over a single
+> `wall` column, but six of the eight rows were measured with HOME redirected to an empty temp
+> dir (`_b3_portability.win-bare-nohome.json`, where `~/.claude` does not exist) and only two
+> against the real tree (`_b2_slowgate_probe.json`). A verifier re-ran `r2_pathrefs --self-test`
+> on this box and measured 235.4 / 124.8 / 116.1 s against the 2.8 s published here — REFUTED as
+> scoped, and reproduced exactly (2.6 / 3.5 s) once the world is named. No exit code changed.
+> Provenance and mechanism: `RULE-AUDIT-BUILD-R2.md`, `_b10_gate_timing.before.json`.
+
+| gate | rc | wall, `~/.claude` ABSENT (runner) | wall, real `~/.claude` (this box) | meaning |
+|---|---|---|---|---|
+| `rule_audit.py --self-test` | 0 | 1.2 s | 1.7 s | 19 detector controls |
+| `r2_pathrefs.py --self-test` | 0 | 2.8 s | **97.9 / 142.9 / 210.1 s** | 6 gate-level states |
+| `r2_control_count_gate.py` | 0 | 1.6 s | 2.4 s | prose == tool == AST == group sum == 19 |
+| `r2_failclosed_mutation.py` | 0 | 3.1 s | 4.6 s | control fires on mutant, silent on real |
+| `r4_receipt_argv_gate.py` | 0 | 0.5 s | 0.6 s | every documented invocation parses (52 at R1, 63 now — the docs grew; the gate counts, this table will not) |
+| `r4_credential_rule_gate.py` | **1** | 0.2 s | 0.7 s | the credential inversion is real and unfixed |
+| `r2_pathrefs.py` (bare) | **2** | 3.3 s (rc=1) | 110.5 s | known defect tracked, no NEW finding |
+| `r3_corpus_parity_gate.py` (bare) | 0 | 3.6 s (rc=1) | 89.0 s | 3 trees / 254 files declared == swept |
 
 The two that first appeared to "time out" were slow, not hung — a 120 s cap sat almost exactly
-on `r2_pathrefs`'s 110.5 s runtime. A cap is not a diagnosis; re-measuring with a 900 s cap
-distinguished them.
+on `r2_pathrefs`'s 110.5 s **real-HOME** runtime. A cap is not a diagnosis; re-measuring with a
+900 s cap distinguished them. The same gate is 2.6-3.5 s where `~/.claude` is absent, which is
+the world every runner is in. BUILD-R2 changed `in_claude_home()` to consult one shared index
+instead of walking per name, which provably removes N-1 of N tree traversals — **no wall-clock
+speedup is claimed**, because this box swings ~6x on the same command; see
+`RULE-AUDIT-BUILD-R2.md` §5, where the first draft of that claim was refuted by the next run.
 
 ### What is deliberately NOT wired, and why
 

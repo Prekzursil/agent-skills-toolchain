@@ -49,6 +49,7 @@ zero-file walk (a sweep that scanned nothing must never report "no broken pointe
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -114,6 +115,7 @@ KNOWN_DEFECTS: dict[tuple[str, str, str], str] = {
 
 _basename_index: dict[str, int] | None = None
 _home_cache: dict[str, bool] = {}
+_home_index: set[str] | None = None
 
 # ~/.claude holds the plugin cache (where the VERIFY lane found codex-rescue.md) but also
 # multi-GB of session transcripts. Walk only the directories that can hold a cited artifact.
@@ -140,20 +142,62 @@ def basename_index() -> dict[str, int]:
     return _basename_index
 
 
+def home_index() -> set[str]:
+    """Every entry name under the bounded ~/.claude search dirs, from ONE walk.
+
+    BUILD-R2.  The lookup below used to walk all seven subtrees PER DISTINCT NAME with nothing
+    shared between names: measured 31.06 s per lookup, 29.8 s of it in ``plugins`` alone
+    (``_b10_gate_timing.before.json``).  So this sweep's runtime scaled with the number of
+    unresolved pointers -- it was slowest exactly when it had the most to report, and a
+    three-name ``--self-test`` cost 98-210 s on the owner's box while costing 2.6 s on a runner
+    where the roots do not exist.  That 60x gap is what made a mixed-world timing table possible
+    in the first place.  One walk, reused.
+
+    Built with ``os.walk`` rather than ``Path.rglob("*")`` after measuring both: the pathlib
+    form allocates a Path per visited entry and took 110.5 s (``_b11`` first run), which is
+    MORE than the 31 s a single legacy lookup cost -- an "optimisation" that lost. Same
+    traversal, same non-symlink-following recursion, same name set; strings instead of objects.
+    """
+    global _home_index
+    if _home_index is None:
+        names: set[str] = set()
+        for sub in HOME_SEARCH_DIRS:
+            root = HOME / ".claude" / sub
+            if root.is_dir():
+                for _dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+                    names.update(dirnames)
+                    names.update(filenames)
+        _home_index = names
+    return _home_index
+
+
 def in_claude_home(name: str) -> bool:
     """Bounded lookup for a basename under ~/.claude.
 
     Without this the sweep re-reports codex-rescue.md as MISSING -- a finding the VERIFY lane
     already refuted by locating it in the plugin cache. A detector that re-raises a known-refuted
     finding is a detector failure, not a finding.
+
+    EQUIVALENCE (why the index is allowed to replace the walk): ``root.rglob(name)`` yields the
+    entries -- files AND directories -- whose name equals ``name`` at any depth, and
+    ``home_index()`` collects exactly those names from ``root.rglob("*")``, i.e. the same
+    traversal with the same symlink rules.  The ONE case where set membership and rglob diverge
+    is a name carrying a glob metacharacter, which rglob treats as a PATTERN; that case keeps
+    the original per-name walk rather than silently changing a verdict.  Both branches are
+    executed against the pre-change body in ``_b11_home_index_equivalence.py`` over a corpus of
+    present-early / present-late / absent / metacharacter names, with a control proving the
+    comparator can report a mismatch.
     """
     if name not in _home_cache:
-        found = False
-        for sub in HOME_SEARCH_DIRS:
-            root = HOME / ".claude" / sub
-            if root.is_dir() and next(root.rglob(name), None) is not None:
-                found = True
-                break
+        if any(ch in name for ch in "*?["):
+            found = False
+            for sub in HOME_SEARCH_DIRS:
+                root = HOME / ".claude" / sub
+                if root.is_dir() and next(root.rglob(name), None) is not None:
+                    found = True
+                    break
+        else:
+            found = name in home_index()
         _home_cache[name] = found
     return _home_cache[name]
 

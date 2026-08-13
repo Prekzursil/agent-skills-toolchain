@@ -74,18 +74,35 @@ section, i.e. by its own sentinel uncitable. Now filled with the measured integr
 
 ### The measured gate table that chose the plan
 
-| gate | rc | wall | in CI? |
-|---|---|---|---|
-| `rule_audit.py --self-test` | 0 | 1.2 s | wired |
-| `r2_pathrefs.py --self-test` | 0 | 2.8 s | wired |
-| `r2_control_count_gate.py` | 0 | 1.6 s | wired |
-| `r2_failclosed_mutation.py` | 0 | 3.1 s | wired |
-| `r4_receipt_argv_gate.py` | 0 | 0.5 s | wired |
-| `r4_credential_rule_gate.py` | 1 | 0.2 s | wired at **expected rc=1** (owner action) |
-| `rule_audit.py` bare | 0 | 1.3 s | **excluded — fail-OPEN without `~/.claude`** |
-| `r2_pathrefs.py` bare | 2 | 110.5 s | excluded — needs live tree (fails closed) |
-| `lazy_predict.py` | 0 → **1** no-HOME | 0.7 s | excluded — needs live tree |
-| `r3_corpus_parity_gate.py` | 0 → **1** no-HOME | 89.0 s | excluded — needs live tree |
+> **ROUND-2 CORRECTION. The `wall` column as first published is REFUTED.** It held one
+> unlabelled column of numbers from **two different environments**: eight rows came from
+> `_b3_portability.win-bare-nohome.json`, where HOME is redirected to an empty temp dir and
+> `~/.claude` does not exist, and two rows (110.5 s, 89.0 s) came from `_b2_slowgate_probe.json`,
+> measured against the real `~/.claude`. An adversarial verifier re-ran the `r2_pathrefs
+> --self-test` cell with a real HOME and measured 235.4 / 124.8 / 116.1 s against the published
+> 2.8 s, and refuted it. **The verifier is right and the original cell was mis-scoped, not
+> mis-measured** — 2.8 s reproduces exactly, in the world `_b3` measured. The wrong wording is
+> kept here rather than deleted; the corrected table below names the world of every number.
+> Exit codes were never in question and none changed. Provenance, the fresh two-world
+> re-measurement and the mechanism: `RULE-AUDIT-BUILD-R2.md`, `_b10_gate_timing.before.json`.
+
+| gate | rc | wall, `~/.claude` ABSENT (runner world) | wall, real `~/.claude` (this box) | in CI? |
+|---|---|---|---|---|
+| `rule_audit.py --self-test` | 0 | 1.2 s | 1.7 s | wired |
+| `r2_pathrefs.py --self-test` | 0 | 2.8 s *(published as if it were this box)*; 2.6 / 3.5 s re-measured | **97.9 / 142.9 / 210.1 s** | wired |
+| `r2_control_count_gate.py` | 0 | 1.6 s | 2.4 s | wired |
+| `r2_failclosed_mutation.py` | 0 | 3.1 s | 4.6 s | wired |
+| `r4_receipt_argv_gate.py` | 0 | 0.5 s | 0.6 s | wired |
+| `r4_credential_rule_gate.py` | 1 | 0.2 s | 0.7 s | wired at **expected rc=1** (owner action) |
+| `rule_audit.py` bare | 0 | 1.3 s | not re-measured | **excluded — fail-OPEN without `~/.claude`** |
+| `r2_pathrefs.py` bare | 2 (1 no-HOME) | 3.3 s | 110.5 s | excluded — needs live tree (fails closed) |
+| `lazy_predict.py` | 0 → **1** no-HOME | 0.7 s | not re-measured | excluded — needs live tree |
+| `r3_corpus_parity_gate.py` | 0 → **1** no-HOME | 3.6 s | 89.0 s | excluded — needs live tree |
+
+The two columns differ by up to 60x on one row because `r2_pathrefs.in_claude_home()` walks
+seven `~/.claude` subtrees per **distinct unresolved basename**, with no shared index — 29.8 s
+of it in `plugins` alone. With HOME redirected those roots do not exist, every walk
+short-circuits, and the same run is seconds. Measured, not inferred: `_b10_gate_timing.py`.
 
 ## 3. Detector controls — every check seen in BOTH states
 
