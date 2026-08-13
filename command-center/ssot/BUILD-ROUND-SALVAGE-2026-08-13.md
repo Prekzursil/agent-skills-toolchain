@@ -219,6 +219,46 @@ spawns; only a repo that neither decided pays one `cat-file`), and the walk now 
 `walk-paths.json`, because `full-sweep.json` recorded *"911 scanned"* and discarded the paths —
 so the expensive half could not be reused and had to be re-walked from scratch.
 
+### S4a. A FOURTH detector failure — my own walk count is 59% junction aliases
+
+The walk finished and reported **4,447** `.git` locations against the prior round's 911. That
+5x jump is not the box growing; it is my walk counting the same directories twice. The tell was
+in its own distribution:
+
+```
+  2553  C:/Users/Prekzursil/Local Settings/Application Data
+   835  C:/Users/Prekzursil/Local Settings/Temp
+    50  C:/Users/Prekzursil/Documents/GitHub
+    50  C:/Users/Prekzursil/My Documents/GitHub      <- the same 50, second alias
+```
+
+`Local Settings` and `My Documents` are legacy Windows compatibility **junctions** onto
+`AppData/Local` and `Documents`. `SKIP` excludes `AppData` *by name*, so the walk refuses the
+real path and then walks straight into it through the alias. **`Documents/GitHub` and
+`My Documents/GitHub` at exactly 50 each** is the estate's own §3c tell: a suspiciously equal
+pair is a collection-level mistake far more often than a real quantity.
+
+`dedupe_walk.py` resolves every path with `os.path.realpath` and collapses aliases, offline
+against `walk-paths.json` — no re-walk. Its control has to discriminate before the number
+counts: a known alias pair must resolve equal *and* a genuinely distinct pair must not.
+
+```
+CONTROL: 'Documents' == 'My Documents' -> True; 'Documents' == 'source' -> False; discriminates=True
+raw walk entries      : 4447
+distinct real paths   : 1840
+junction duplicates   : 2607
+```
+
+**So 4,447 is not a count of anything and must not be cited.** The honest figure for `.git`
+locations is **1,840 distinct**. This also means any "belongs" total from that run needs the
+same realpath collapse before it is trusted — a single physical checkout reachable through a
+junction would otherwise be counted twice, inflating the very number this section exists to
+correct. That is why S4's total is still reported as UNKNOWN rather than as 4,447-derived.
+
+The generalisable rule, which is the durable part: **on Windows, a `SKIP` list keyed on
+directory NAMES does not exclude a directory — it excludes one route to it.** Junctions give
+the same bytes a second name, and `AppData` has had exactly such an alias since Vista.
+
 ## S5. Definition of Done
 
 | DoD item | status | evidence |
