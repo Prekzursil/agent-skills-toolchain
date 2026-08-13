@@ -72,7 +72,9 @@ def main() -> int:
     # ---------- 2/3. spot-verify with an independent signal
     hist_rows = [r for r in distinct if r["sig_history"]]
     cont_only = [
-        r for r in distinct if r["sig_content"] and not r["sig_history"] and not r["sig_name"]
+        r
+        for r in distinct
+        if r["sig_content"] and not r["sig_history"] and not r["sig_name"]
     ]
 
     random.seed(7)
@@ -85,13 +87,17 @@ def main() -> int:
         ok = subj == root_subject
         hist_ok += ok
         print(f"  [{'OK ' if ok else 'BAD'}] {r['path'][:78]}")
-    print(f"  HISTORY spot-check: {hist_ok}/{len(sample)} confirmed by commit-subject read")
+    print(
+        f"  HISTORY spot-check: {hist_ok}/{len(sample)} confirmed by commit-subject read"
+    )
 
     print(f"\n--- CONTENT-ONLY rows: {len(cont_only)} (the suspect class) ---")
     cont_confirmed, cont_refuted = [], []
     for r in cont_only:
         # independent test: does this checkout carry a path only this repo has?
-        marker = git(r["path"], "cat-file", "-e", "HEAD:docs/ssot/SSOT-CLONE-INVENTORY.md")
+        marker = git(
+            r["path"], "cat-file", "-e", "HEAD:docs/ssot/SSOT-CLONE-INVENTORY.md"
+        )
         has_repo_topology = (
             subprocess.run(
                 ["git", "-C", r["path"], "cat-file", "-e", "HEAD:REPO-TOPOLOGY.md"],
