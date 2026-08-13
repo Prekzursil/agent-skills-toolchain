@@ -220,6 +220,17 @@ Six, all caught by running the thing rather than reading it:
    looking.
 6. **I read the gate's exit code through a pipe** (`… | head -60; echo $?`) and recorded a 0 that
    belonged to `head`. Every exit code in this document is measured without a pipe.
+7. **I ran the check I liked and nearly called it CI.** `ruff check` passed throughout, so I
+   committed. The quality workflow runs **both** `ruff check .` and `ruff format --check .`, and
+   four of the five new files would have been reformatted — a red `gate-lint-format` job on
+   shared main, the exact shape that red-blocks every sibling lane. Fixed in a follow-up commit.
+   Local ruff is 0.15.17, the same as the CI pin — *verified*, not assumed, because a local green
+   against a different version proves nothing about the LF blob CI checks out.
+   One non-cosmetic consequence: the formatter split `axis_manifest(report)  # comment` across
+   three lines, breaking `_b3_mutation_control.py`'s M10 anchor. The harness reported
+   `NOT-APPLIED` instead of a misleading `SURVIVED`/`CAUGHT` — that fail-closed branch earned
+   itself on its first real use. Re-verified after formatting: same 20 hazards of 71, 53 tests,
+   12/12 mutations.
 
 One more, worth its own line because it was a *wrong inference I nearly published*: the
 `SENSITIVE ARTIFACT REPORT` hook fired five times with an identical `sha256:ee4704cabe65` across
