@@ -257,13 +257,47 @@ left the trap armed for the next author.
 
 - **Whether all ~86 `quality.yml` steps pass.** I measured `gate-lint-format` only. Everything
   said here about "the gate" is scoped to ruff.
-- **`command-center/hook-audit/check_citations.py` remains unreachable** — hardcoded Windows
-  root, referenced by no workflow. Named, not fixed: it is the hook-audit lane's file.
+- **`command-center/hook-audit/check_citations.py`: half of this claim went stale while I
+  wrote it, and re-checking is the only reason I know.** §1 cited it as hardcoding
+  `REPO = Path("C:/…")`, measured at `f1ce459e`. Sibling commit `6f30510a` then made it
+  portable — it now derives its root from `git rev-parse --show-toplevel`. Correctly scoped at
+  `6f30510a`: **it is portable now, and still invoked by no workflow** (`grep -rn
+  "check_citations" .github/workflows/` → 0 hits). The reachability half stands; the
+  portability half does not, and the round-1 wording is kept above rather than deleted. This is
+  the lane's own D1 shape — a point-in-time reading published as a standing fact — and I only
+  avoided shipping it by re-running the probe at the commit I was publishing into.
 - **Nothing is pushed.** `origin/main` is behind by this lane's commits plus the siblings'.
 - The round-2 verifier's F1–F4 (an audit citing a residual that is not in the repo; a
   six-probe-scoped "6 receipts" that is 14 at full scope; a vacuous-control shape in the
   auditor's DoD-4; a stale restatement of the blast-radius number) are **unchanged** — all were
   non-blocking and none was a defect in the builder's code.
+
+## 4.6 Final verification, re-executed after the last commit
+
+Every proof below was re-run against the FINAL state, not quoted from the earlier run, because
+the gate itself changed in `f3a1410c`/`f1c57145` and a receipt measured before a fix is a
+receipt for different code.
+
+| probe | rev | verdict |
+|---|---|---|
+| `check_published_commands.py` | HEAD | **rc 0** — 236 commands / 269 docs / 2 example-marked / 0 NEW / 0 stale |
+| `_i5_ci_wiring_verify` | `268b5747` | **WIRING-PROVEN** 5/5 |
+| `_i3_integration_redproof` | `268b5747` | **INTEGRATION-PROVEN** 8/8 |
+| `_i8_final_integrity` | `6f30510a` | **INTEGRITY-OK** 5/5 |
+| `_r2_gate_now` | `f1014b19~1`, `f1c57145`, HEAD | rc 0 / rc 0 / 0 would-reformat, 6/6 controls each |
+| `.quality/charter_check.sh` | HEAD | `OK -- 7 gates consistent` |
+
+`_i8_final_integrity.out.json`: all five of this round's commits are ancestors of HEAD;
+**0 foreign paths and 0 deletions** in any of them (files 2/1/19/3/2, every path either
+`.github/workflows/no-runtime-junk.yml` or `command-center/slop-report/`); frozen evidence
+**UNTOUCHED** — `casualty/probes` 7 files and `p2-wave/probes` 25 files, each with 0 commits
+touching, 0 tracked diff and 0 dirty lines since `c488f55b~1`, under a hasher proven
+non-constant (stable re-hash equal, mutated differs) and a count floor > 0, because silence
+about a nonexistent pathspec is indistinguishable from silence about an untouched one.
+
+Scope, stated because the round-1 version of this sentence is what got refuted: this says
+*these commits are clean at these revs*. It does **not** say main is green today. The tree
+moved at least eight times while this round ran.
 
 ## 5. My own failures this round, recorded rather than dropped
 
@@ -282,3 +316,12 @@ left the trap armed for the next author.
    most recent precedent (`f087a6f6 feat(casualty): wire the recovered lane into CI, with the
    proof it can go red`). Reading `.quality/charter_check.sh` first showed the reverse check
    would have failed the build on my own step name.
+4. **I shipped the gate red, then broke it again fixing it.** §4.4 is the full account: the
+   marker landed on line 86 while the command sat on line 85 (markdown wrapping), and the
+   paragraph documenting that occurrence reproduced the literal a second time unmarked. Four
+   instances of one class in one lane. **Knowing about the trap did not help once** — the fix
+   each time came from running the instrument and reading `example-marked 0`, a number I had
+   printed and skimmed past on the first pass.
+5. **My §4.5 residual went stale between writing it and committing it**, and only a re-check
+   caught it: a sibling made the hook-audit gate portable while I was describing it as
+   hardwired. Corrected in place, old wording kept.
