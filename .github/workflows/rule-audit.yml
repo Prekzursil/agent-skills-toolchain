@@ -1,0 +1,111 @@
+name: rule-audit
+
+# The rule audit's gates were UNREACHABLE. Searching every *.yml/*.yaml/*.toml/*.cfg/*.ini in
+# the repo, plus all of ci/, for the eight gate filenames built over four audit rounds and
+# three adversarial rounds returned ZERO matches:
+#
+#   rule_audit.py  lazy_predict.py  r2_control_count_gate.py  r2_failclosed_mutation.py
+#   r2_pathrefs.py  r3_corpus_parity_gate.py  r4_credential_rule_gate.py
+#   r4_receipt_argv_gate.py
+#
+# The search was controlled in BOTH directions before that absence was believed: the same
+# search finds the wired `test_rules_integrity` at quality.yml:768 (positive fires) and is
+# silent on a bogus token (no false positives). So the absence is real, not a broken matcher.
+#
+# A gate nobody invokes is indistinguishable from one that does not exist. Concretely, this is
+# why repo-vs-live rule drift grew from 28 files to 29 while 167 rules tests stayed green:
+# every one of those tests reads rules/ and agent-self/config/rules/, and not one asserts on
+# load semantics or on the deployed tree.
+#
+# WHY ITS OWN FILE AND NOT A JOB IN quality.yml. quality.yml is a CLOSED gate set policed
+# bidirectionally by .quality/charter_check.sh: a `gate-<slug>` marker there with no matching
+# `- slug:` in .quality/charter.yml turns the existing lint job red, and
+# ci/tests/test_charter_consistency.py pins that in both directions. charter_check.sh reads
+# ONLY quality.yml, so a separate workflow carries no charter obligation -- the shape
+# no-runtime-junk.yml, skill-dual-write.yml, p2next-rail-count.yml and mcp-audit.yml already
+# use. It also touches no file a sibling lane is editing.
+#
+# NO fetch-depth: 0 HERE. Unlike mcp-audit.yml, this gate reads no historical blob and shells
+# to no git command, so the default shallow checkout is sufficient.
+#
+# WHY tiktoken IS INSTALLED. Measured under WSL Ubuntu 24.04 (python 3.12.3) with HOME
+# redirected to an empty directory -- the runner's world -- BEFORE this file was written:
+#   * rule_audit.py --self-test fails 2/19 controls without it, namely
+#     `encoder is tiktoken/cl100k_base` and `known string -> known count`, because Counter
+#     silently degrades to "ESTIMATE chars/4" and round(len("hello world")/4) == 3, not 2.
+#     Those two controls exist to stop estimate-derived token numbers being certified exact.
+#   * r2_control_count_gate.py and r2_failclosed_mutation.py cascade red off that same
+#     self-test. The latter correctly reports "control is inert" rather than passing, because
+#     both its arms fail and it can no longer tell them apart.
+# UNVERIFIED, disclosed inline rather than at the end: "with tiktoken installed Linux goes
+# 19/19" was NOT executed on Linux -- this box's WSL has no DNS ("Temporary failure in name
+# resolution"), so tiktoken could not be installed there. It is derived from the mechanism
+# above (only the 3-control `encoder` group touches tiktoken, and the third control passes
+# either way) plus Windows-with-tiktoken measuring 19/19. SETTLING EXPERIMENT: the first run
+# of this workflow. If it goes red on the self-test step, the derivation was wrong and the
+# CI_PLAN must drop those three entries.
+#
+# FAILURE MODE OF THE DOWNLOAD IS LOUD, NOT SILENT. tiktoken.get_encoding("cl100k_base")
+# fetches the BPE file on first use. If that fetch fails, Counter's except-branch catches it
+# and falls back to the estimate -- which makes the encoder control FIRE and this job go red.
+# It never degrades to a quiet pass. That is a network dependency at gate time (ci-hygiene
+# section 2) and it is accepted deliberately: the alternative is deleting the control that
+# stops estimates being reported as measurements.
+#
+# WHAT IS DELIBERATELY NOT WIRED, with the reason recorded in ci_gate.py's EXCLUDED table:
+# lazy_predict.py and r3_corpus_parity_gate.py both read ~/.claude, which does not exist on a
+# runner, and both fail CLOSED there (measured rc 0 -> 1). rule_audit.py run BARE is worse and
+# is the reason the plan uses --self-test: with no ~/.claude it prints "SUCCESS:rule_audit"
+# and exits 0 while the entire live tree scanned to zero files. Wiring that would have been a
+# permanently green gate measuring nothing.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rule-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rule-audit:
+    name: gate-rule-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: install tiktoken
+        run: pip install tiktoken==0.13.0
+      # BOTH-STATES CONTROL FOR THE GATE ITSELF, first. Twelve cases: every check this gate
+      # makes, exercised against a known-broken input (must FIRE) and a known-good one (must
+      # stay SILENT) -- including the three ways it could go inert, a CI_PLAN that shrank, an
+      # allowlist that shrank, and an expected-FAIL entry that quietly started passing.
+      - name: gate-rule-audit self-test
+        run: python docs/rule-audit/ci_gate.py --self-test
+      # The gate. Six planned invocations over six gates with their REAL exit codes captured
+      # per child (never through a pipe -- a pipeline reports the LAST command's status, which
+      # turns a red gate green), every *.py in the directory asserted to be planned or
+      # excluded-with-a-reason, plus the two in-repo invariants:
+      #   * the always-on rule set is exactly the measured 8 (DoD-1). A rule that gains a
+      #     `paths:` selector is DEMOTED out of every turn-0 prompt, which is the inverse of
+      #     the intuition and which nothing else in this repo detects.
+      #   * the load-semantics divergence between the two in-repo DEPLOY SOURCES -- rules/ via
+      #     scripts/sync-rules.ps1 and agent-self/config/rules/ via agent-self/bootstrap.ps1 --
+      #     is exactly the 3 allowlisted files. Both invariants are read from the two in-repo
+      #     trees only, so they need no ~/.claude and no tokenizer and mean the same thing here
+      #     as on the owner's box.
+      # One entry is pinned at rc=1 on purpose: r4_credential_rule_gate. The credential
+      # inversion in agent-self/config/AGENTS.md is REAL and unfixed, and repairing it is the
+      # owner's call (AGENTS.md section 9 -- an agent does not change credential policy). The
+      # day it is repaired this entry goes red and whoever repaired it promotes the gate to a
+      # blocking rc=0 in the same change. That keeps a known defect TRACKED rather than
+      # silently tolerated.
+      - name: gate-rule-audit
+        run: python docs/rule-audit/ci_gate.py
