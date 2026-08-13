@@ -391,7 +391,28 @@ see. Any future cleaner must match `control*`/`fixture*` as a name prefix on fil
    filename. Excluded with the reason recorded rather than silently dropped, along with the 2
    `{{USER_HOME}}` templating pairs the bootstrap declares at `agent-self/bootstrap.ps1:4`.
 
-## 7. ARTIFACTS
+## 7. POST-COMMIT VERIFICATION — this round's commit, at its own rev
+
+Committed as `e525e063`, **13 files, all under `command-center/slop-report/`, 0 foreign paths,
+0 deletions** (`git show --stat --name-only`). Every probe below was executed against the
+committed state, not quoted from an earlier run.
+
+| probe | rev | result |
+|---|---|---|
+| `check_published_commands.py` | `e525e063` | **rc 0** — 254 commands / 279 docs / 0 NEW / 0 stale; 2 inherited baselined rows still open |
+| `check_published_commands.py --self-test` | `e525e063` | **rc 0** — including *marker suppresses the target it names* and *marker does NOT suppress another target* |
+| `_r2_gate_now.py --rev e525e063` | `e525e063` | **`ruff check` rc 0, `format --check` rc 0, 0 would-reformat**, `all_controls_pass: true` (C1 EOL pin · C2 nested config · C3a/C3b mangle · C4 strict subset · C5 anchor) |
+| frozen evidence | lane start and lane end | `git status --porcelain` → **0 lines** on both `casualty/probes` and `p2-wave/probes` |
+
+Note the gate corpus grew to 279 documents *because* this report joined it — my report publishes
+`python command-center/slop-report/_g2_census.py`, and the gate is satisfied only because that
+target was committed in the same commit. That is the lane's own central rule applied to itself.
+
+Scope, stated because this is exactly the sentence round 2 got refuted on: this says *this commit
+is clean at this rev, on ruff and on the published-command gate*. It does **not** say main is
+green today, and it says nothing about the ~84 other `quality.yml` steps.
+
+## 8. ARTIFACTS
 
 All under `command-center/slop-report/`, all untracked (this round's own bucket (b) — per R1's
 own logic, if this report is committed these producers should be committed with it):
