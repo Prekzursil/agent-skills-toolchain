@@ -30,6 +30,19 @@ extend-exclude = [
     # it, 12 reformat + 5 lint (F401, E741, three E702). If these ever become maintained source
     # rather than a frozen snapshot, delete this line and format them properly.
     "command-center/ssot/salvaged-from-scratch/**",
+    # Salvage of the 5 files the SSOT lane measured as UNREACHABLE from any git ref: 2 living
+    # only in the staged index of the `D:/wt-salvage-probe` linked worktree (an index dies with
+    # `git worktree remove`, and the blobs are loose objects in the SHARED canonical store that
+    # `git gc --prune` may collect), and 3 in an unpushed commit in an independent clone. Their
+    # value is byte-identity with the source blob -- `salvage-atrisk.json` records each file's
+    # git SHA and a roundtrip hash proving the copy matches, so `ruff format` rewriting them
+    # would break the one property that makes them evidence. Same trade-off as the snapshot
+    # above. Measured both states: with this line `ruff format --check` is green; without it,
+    # 2 of the 5 would be reformatted (`ci/tests/test_codex_profiles.py`,
+    # `tools/monitorcore/r0_monitor_live_gate.py`); `ruff check` passes either way. If this
+    # content is ever restored as maintained source, it belongs at its real path, formatted --
+    # not here.
+    "command-center/ssot/salvaged-at-risk/**",
     # Cited-but-ignored root probe scripts, committed byte-unchanged by the SLOP lane.
     # 45 of the 123 `command-center/_*.py` are named inside committed artifacts, so a clone
     # needs them or those citations dangle (see the .gitignore EXCEPTION 2 block). They are
