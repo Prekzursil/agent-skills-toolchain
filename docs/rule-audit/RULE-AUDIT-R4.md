@@ -82,14 +82,18 @@ invocations: 35  tier1(real parser)=25  tier2(flag literals)=10  marked-invalid=
 FAILED:r4_receipt_argv_gate 10 violation(s)                                          rc=1
 
 $ python docs/rule-audit/r4_receipt_argv_gate.py         AFTER the fix
-scanned 15 markdown file(s), 26 script(s)
-invocations: 44  tier1(real parser)=32  tier2(flag literals)=12  marked-invalid=10
-SUCCESS:r4_receipt_argv_gate 44 documented invocation(s) parse against the tool they
-name (10 quoted-as-broken, and each verified to REALLY be broken)                    rc=0
+scanned 16 corpus file(s), 28 script(s)
+invocations: 45  tier1(real parser)=33  tier2(flag literals)=12  marked-invalid=11
+SUCCESS:r4_receipt_argv_gate 45 documented invocation(s) parse against the tool they
+name (11 quoted-as-broken, and each verified to REALLY be broken)                    rc=0
 ```
 
-The corpus grows from 35 invocations to 44 because this report is itself in it: an artifact that
-quotes commands is a receipt surface, and it is measured by the same gate as the ones it corrects.
+The corpus grows from 35 invocations to 45 because **this report is inside it**: a document that
+quotes commands is itself a receipt surface, measured by the same gate as the ones it corrects.
+The totals above are therefore true of the run that produced them and move whenever this file is
+edited — the stable claims are the VERDICT (0 violations) and the two site lists, not the totals.
+The gate caught this report twice while it was being written, and caught the commit message of
+`aa50e309` quoting the defect: those are its intended behaviour, not noise.
 
 Design points that are load-bearing rather than decorative:
 
@@ -134,8 +138,10 @@ count rots.
 
 ```
 r4_receipt_argv_gate.py --self-test  SUCCESS all 27 gate-level states passed          rc=0
-r4_receipt_argv_gate.py              SUCCESS 44 invocations, 10 quoted-as-broken      rc=0
+r4_receipt_argv_gate.py              SUCCESS 45 invocations, 11 quoted-as-broken      rc=0
 _r4_mark_mentions.py                 SUCCESS content sha unchanged on both files      rc=0
+_r4_mention_composition.py           SUCCESS 114 mentions, cross-check AGREE at 56     rc=0
+r4_credential_rule_gate.py           FAILED  4 violations -- tracker, owner action rc=1 (by design)
 rule_audit.py --self-test            CONTROL-GROUPS: classifier=6 drift=4 crlf=2
                                      encoder=3 failclosed=4 TOTAL=19 -> SUCCESS (19)  rc=0
 rule_audit.py --json <p> --md <p>    SUCCESS; JSON + TABLES sha256-identical          rc=0
@@ -161,23 +167,76 @@ repo-wide, so an unformatted probe here reds the SHARED gate for every lane. Bot
 committed state, and the staged blobs were checked at LF (`git cat-file -p`), not the CRLF working
 tree — the check that round 2 of this lane got wrong.
 
+## 4b. Two round-3 residuals, measured (added after the must-fix landed in `aa50e309`)
+
+**The highest-severity finding now has a mechanical tracker.** Residual 4 of the round-3
+adversary was that §3.1 — a §9 security non-negotiable INVERTED in a deploy source that
+`bootstrap.ps1:45` force-copies over `~/.claude` — was tracked only in prose, while a
+*lower*-severity out-of-scope defect had a `KNOWN_DEFECTS` entry. `r4_credential_rule_gate.py`
+asserts two invariants on `agent-self/config/AGENTS.md`, plus a live-comparison arm:
+
+```
+control extractor finds §9 / returns None for an absent one            PASS / PASS
+control a repaired deploy source scores clean                          PASS
+control INV-1 fires when the bullet is removed / INV-2 when re-added   PASS / PASS
+control a document with no §9 at all is UNMEASURABLE, not clean        PASS
+live arm (~/.claude/AGENTS.md): RAN
+VIOLATION INV-1 the §9 bullet forbidding the agent to rotate/revoke/regenerate is ABSENT
+VIOLATION INV-2 §9/§9b instructs the agent to rotate, which is the banned action
+VIOLATION live §9 carries the protective bullet and the deploy source does not
+VIOLATION live §9b says leave rotation to the owner; the deploy source omits that
+FAILED:r4_credential_rule_gate 4 violation(s) -- owner action                          rc=1
+```
+
+It exits **1 today by design** — the defect is real and out of this lane's write scope — and it
+turns green by itself when the owner fixes the deploy source. It is a tracker, not a green.
+Its own positive control caught a bug in it before it produced a verdict: `\b` after
+`re.escape("9.")` matches nothing (two non-word characters, so no boundary), so every arm was
+reporting "no §9 section" — broken extractor and clean document producing the same silence.
+UNVERIFIED, inline: three arms are regex-based, so a REWORDED protective bullet would read as
+absent; the settling experiment is to reword it in a copy and check the gate still passes.
+
+**The MENTION exemption's composition, and why nobody had stated it.** `_r4_mention_composition.py`
+re-classifies the same tokens through `r2_pathrefs`'s own functions:
+
+```
+114 bare-filename mentions across 3 trees:  58 EXACT · 52 BASENAME-ONLY · 4 MISSING
+resolving NOWHERE:  check_no_regression.py x2  ·  AGENTS.override.md x2
+cross-check: non-EXACT here = 56  ==  r2_pathrefs bare-filename MENTIONS = 56   AGREE
+control: a name that certainly exists classifies EXACT
+```
+
+The round-3 adversary's `52 + 4 = 56` reproduces **exactly**, by an instrument that walks the
+trees rather than reading its output — and the 56 is now placed in context as the non-EXACT
+subset of 114. The mechanical reason the composition was never published: `name_mentions=`,
+`basename_only=` and `missing=` are printed **only in `r2_pathrefs.py`'s SUCCESS branch**
+(`:325-330`), and the tracked-defect branch above it returns 2, so those counters are unreachable
+in the state the gate has been in for three rounds. The tool volunteers its own exemption
+composition only when it has nothing to exempt.
+
+**Residual 2 (`in_claude_home` under-reports) was measured and deliberately NOT fixed.** The
+claim is confirmed: `check_no_regression.py` really is at
+`~/.claude/harness-restore-20260806/check_no_regression.py`, and `HOME_SEARCH_DIRS` has no glob
+for `harness-restore-*`, so it is labelled MISSING. The naive fix costs **12.27 s** per run —
+measured: one walk of that tree is 37,977 files / 14,445 distinct basenames — against a gate that
+currently runs in about a second, to correct a verdict LABEL that the round-3 adversary already
+proved cannot change any outcome (the helper runs only after the EXACT check fails, so it can
+mislabel a KIND but never manufacture a false EXACT). Paying a 12x slowdown on a gate other
+receipts depend on, at the end of a round, for a label, is the wrong trade. Disclosed, not closed.
+
 ## 5. Residuals — measured, disclosed, NOT closed
 
 1. **`agent-self/config/AGENTS.md` §9/§9b is still inverted.** It omits the live "NEVER remove,
    rotate, revoke, regenerate … any API key or token" bullet entirely and its §9b says "rotate,
    don't just delete" where live says leave rotation to the owner. `bootstrap.ps1:45` force-copies
-   `config/*` over `~/.claude`. This is the highest-severity finding in the whole audit, it is
-   OUT of this lane's write scope (`AGENTS.md` is propose-only), and it is still tracked only in
-   prose. **Owner action.** UNVERIFIED: whether anyone has run `bootstrap.ps1` on a machine since
-   the inversion landed — settling experiment is the `~/.claude/AGENTS.md` mtime versus the
-   `agent-self` commit date.
-2. **`in_claude_home()` under-reports** (`r2_pathrefs.py`): `HOME_SEARCH_DIRS` omits
-   `~/.claude/harness-restore-*`, so `check_no_regression.py` — which does exist there — is
-   labelled MISSING. Zero verdict impact, proven structurally by the round-3 adversary: the helper
-   runs only AFTER the EXACT check fails, so it can mislabel a verdict KIND but can never
-   manufacture a false EXACT. Not fixed here.
-3. **The MENTION exemption's composition is still unstated** in the artifact (round-3 adversary
-   residual 2). Not fixed here.
+   `config/*` over `~/.claude`. This is the highest-severity finding in the whole audit and it is
+   OUT of this lane's write scope (`AGENTS.md` is propose-only), so round 4 gave it a mechanical
+   tracker (§4b) instead of a fix. **Still an owner action; the tracker changes nothing on disk.**
+   UNVERIFIED: whether anyone has run `bootstrap.ps1` since the inversion landed — settling
+   experiment is the `~/.claude/AGENTS.md` mtime versus the `agent-self` commit date.
+2. **`in_claude_home()` under-reports** (`r2_pathrefs.py`) — CONFIRMED and costed in §4b, then
+   deliberately left alone: the fix costs 12.27 s per run to correct a label with no verdict
+   impact. Open, with the price of closing it now measured rather than guessed.
 4. **Two corrected always-on rules remain undeployed** to `~/.claude/rules/`
    (`harness-vcs-hygiene.md` teaching a data-loss command, `cross-vendor-dispatch.md` §1
    contradicting always-on `AGENTS.md` §4a). Unchanged by this round, and deliberately: deploying

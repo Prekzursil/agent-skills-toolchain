@@ -438,7 +438,10 @@ def run(docs: list[Path]) -> int:
     for doc in docs:
         invocations += extract(doc.read_text(encoding="utf-8"), doc.name)
 
-    print(f"scanned {len(docs)} markdown file(s), {len(scripts)} script(s)")
+    # "file(s)", not "markdown file(s)": the corpus is markdown PLUS the commit-message
+    # templates, and a label that names only half of what it counted is the same species of
+    # wrong sentence this gate exists to catch.
+    print(f"scanned {len(docs)} corpus file(s), {len(scripts)} script(s)")
     if not docs or not invocations:
         print(
             "FAILED:r4_receipt_argv_gate zero invocations extracted -- the extractor "
