@@ -87,15 +87,29 @@ res["P2_synthetic_crlf"] = {
 }
 
 # ---- what the SHELL detector said, reproduced here for the record ---------
-shell = subprocess.run(
-    f'git -C "{REPO}" cat-file -p {rev}:command-center/slop-report/_aud2_commits.py '
-    f"| grep -c $'\\r'",
-    shell=True,
+# Was a `git cat-file -p | grep -c $'\r'` pipeline under shell=True, which turned gate-sast red
+# (quality.opengrep.python-subprocess-shell-true). Rewritten as an argument list: shell=True with
+# an interpolated path is a real injection surface, and the rule is right to reject it here rather
+# than be waived for a convenience pipeline.
+#
+# CAREFUL -- `grep -c PATTERN` counts LINES CONTAINING the pattern, not occurrences of it. Counting
+# CR bytes instead would silently change a recorded measurement. Equivalence was MEASURED before
+# this edit, not reasoned: both routes returned '0' on this blob, AND a synthetic control with a
+# known answer of 3 returned 3, so the agreement is a reading rather than two zeros coinciding.
+_blob = subprocess.run(
+    [
+        "git",
+        "-C",
+        REPO,
+        "cat-file",
+        "-p",
+        f"{rev}:command-center/slop-report/_aud2_commits.py",
+    ],
     capture_output=True,
-    text=True,
-    executable="/bin/bash" if os.path.exists("/bin/bash") else None,
+).stdout
+res["shell_detector_output"] = str(
+    sum(1 for _line in _blob.split(b"\n") if b"\r" in _line)
 )
-res["shell_detector_output"] = shell.stdout.strip()
 
 res["controls_pass"] = (
     res["P1_known_old_blob"]["reader_reports_lf"]
