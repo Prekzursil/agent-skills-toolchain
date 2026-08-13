@@ -30,6 +30,16 @@ import sys
 DAILY = "C:/Users/Prekzursil/.claude/skills.daily"
 REPO = "C:/Users/Prekzursil/source/ast-integrate"
 PRE_REV = "1e9cfe81~1"
+# ROUND-3 FIX. This was `git_desc("HEAD", n)` below, described in round 2 as
+# "the frozen R1 git blob".  HEAD IS NOT FROZEN.  It resolved to 1e9cfe81 only
+# because round 2 had not committed yet; four commits later it resolves to the
+# ROUND-2 (already-fixed) text, so the control compared the fixed state against
+# itself and reported `NOT DISCRIMINATING -- do not cite the numbers below`.
+# Measured at round-3 HEAD before this line existed.  The round-2 sentence
+# "anchored to the frozen R1 git blob, not to disk" is therefore REFUTED: it was
+# anchored to a MOVING reference and merely looked frozen at the moment it ran.
+# Pinned to the immutable round-1 SHA.
+R1_REV = "1e9cfe81"
 EDITED = [
     "transcribe",
     "tdd-workflow",
@@ -125,10 +135,10 @@ def main():
             missing.append(n)
         else:
             pre[n] = d
-        # R1 = the round-1 state, frozen in the HEAD blob. The both-states control
-        # below must keep working AFTER round 2 repairs the disk, so it is anchored
-        # to this committed blob rather than to whatever is currently on disk.
-        d1 = git_desc("HEAD", n)
+        # R1 = the round-1 state, frozen at an IMMUTABLE SHA (see R1_REV above).
+        # The both-states control below must keep working after round 2 repairs the
+        # disk AND after any number of later commits, so it may never name HEAD.
+        d1 = git_desc(R1_REV, n)
         if d1 is not None:
             r1[n] = d1
 

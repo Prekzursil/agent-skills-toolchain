@@ -1,7 +1,17 @@
 # LANE SKILLS2 — grounding artifact (write-as-you-go)
 
-STATUS: **MEASURED**, round 2. Every verdict below names the probe that produced it and the
+STATUS: **MEASURED**, round 3. Every verdict below names the probe that produced it and the
 control that proves the probe can fail. Raw stdout for each is committed beside this file.
+
+ROUND-3 RE-ENTRY: **the round-2 verifier's findings never reached this unit** — the handed-down
+`PRIOR ROUNDS` JSON is truncated mid-round-1-audit and no round-2 audit report exists on disk
+(searched; the verifier's only trace is four of this lane's probe outputs, re-run and left
+modified in the working tree). Round 3 therefore could not close a list; it re-derived
+independently and found four defects, three of them in this lane's own committed work — a
+mis-measured fleet constant, an unexecuted prediction inside a handback, an untested assumption
+that would have destroyed live work, and a control anchored to `HEAD` while calling itself
+frozen. Corrections are marked **ROUND-3 CORRECTION** inline. Detail: `SKILLS2-ROUND3.md`.
+The status of the actual round-2 findings is **NOT-CHECKED**.
 
 ROUND-2 RE-ENTRY: an independent audit returned PARTIAL and a third-pass adversarial verifier
 returned `build_is_sound=TRUE, audit_holds=TRUE, must_fix=EMPTY`. Round 2 fixed what was
@@ -12,8 +22,15 @@ reviewers re-executed all four and passed them; what changed is the scope of thr
 one undisclosed regression, and one code defect that is now fixed and proven executably.
 
 COVERAGE — what is NOT measured, stated up front:
+- **(round 3)** the round-2 verifier's actual findings: **NOT-CHECKED**, never received.
+- **(round 3)** two reported-but-unfixed defects: `bc-drive-plus` silently loses 440 of its 793
+  description chars to a ` #` YAML comment, and 7 fleet frontmatters are not valid YAML. Both are
+  latent (no repo tool strict-parses `SKILL.md`; the renderer is lenient) and both are owner
+  trade-offs, not free fixes — see `SKILLS2-ROUND3.md` §R3-F.
 - **(round 2)** why the render budget `B` moves between sessions is UNVERIFIED; only *that* it
-  moves is measured, on three samples.
+  moves is measured, on three samples. Round 3's 4th sample **cannot** help: same orchestrator,
+  near-identical preamble, so H-CONST and H-SESSION predict the same result. It is a
+  reproducibility and transcription check, not a fourth vote.
 - **(round 2)** `dead_button_crawl.mjs` is now a second confirmed two-way-diverged file
   (repo 286 lines / live 367). Its union merge is NOT done and is handed to the owner; only the
   main-guard was repaired.
@@ -62,6 +79,16 @@ a render-path bug, not empty files (`_s2_budget_refit.py` §0, `_s2_render_probe
    - frontmatter keys: the bare group carries `metadata`/`license`/`origin`, but `origin`
      appears on 59 fleet skills that render fine. Not causal.
      `_s2_render_probe.py` §3.
+   - **ROUND-3 ADDITION — YAML *well-formedness*, the sub-hypothesis nobody had tested.**
+     The brief named "a frontmatter key the parser rejects"; round 1 tested extra *keys* and
+     never tested whether the frontmatter **parses at all**. Measured: **7** fleet skills carry
+     frontmatter a strict YAML parser rejects (`ScannerError`, an unquoted plain scalar holding
+     `": "`) — `agent-as-judge`, `cv-studio`, `diff-blind-test-synth`, `execution-grounded-bon`,
+     `refactor-equivalence`, `rubric-verifier`, `workflow-foundry`. **6 of the 7 render their
+     descriptions in full.** If a parse failure suppressed a description, those six would be the
+     first to go dark. The seventh (`workflow-foundry`) is bare but sits at rank ≥307 *inside*
+     the truncation zone, so it is **confounded** and is evidence for neither side.
+     `_s2_r3_yamldiag.py`.
 
 ### H-BUDGET is confirmed, and it survives an out-of-sample test
 
@@ -105,6 +132,17 @@ The fitter cannot fit an arbitrary 30-set. **DISCRIMINATING.** `_s2_budget_refit
   parser; `_s2_r2_finalverify.py` V1). The folded-blind parser reports 106,618 — a **−8,843**
   error, the same trap round 1 caught in itself and round 2 reproduced deliberately as a
   control.
+
+  > **ROUND-3 CORRECTION — 115,461 is an OVERCOUNT of what the renderer charges, by 440.**
+  > Rounds 1–3 all used one hand-rolled parser. A mechanically independent one (PyYAML 6.0.3)
+  > disagrees by 7,253 chars, fully attributed: 7 files it **rejects** outright (6,766) and 4
+  > folded-scalar **re-spacings** (487). Which one does the renderer follow? The injected listing
+  > — an external signal this lane does not produce — settles it: `bc-drive-plus` renders exactly
+  > as far as the strict parse and no further, because a ` #` opens a YAML comment 353 chars in.
+  > Loader-faithful fleet total: **115,021**. Every absolute char figure in items 1 and 4 carries
+  > a **±440 (0.38%) systematic error**. **The verdict is unchanged** — sensitivity test:
+  > re-fitting sample 4 on loader-faithful lengths gives `B=102,600` at *the same* 2 mismatches /
+  > 328. `_s2_r3_loaderparse.py`, `_s2_r3_yamldiag.py`, `SKILLS2-ROUND3.md` §R3-B.
 - The budget `B` is **session-dependent**. Three independent samples, three different sessions:
 
   | sample | bare skills | boundary (cumulative desc chars) |
@@ -189,6 +227,24 @@ intact**. The 12 offered `ui-audit` files are all unrelated to it. `_s2_vault_ga
 This is the shape the ground floor warns about: a plan that *looks* like it covers `ui-audit`
 by file count, whose intersection with the actual defect is empty. Closing the vault no-op
 needs a targeted merge of those six files, not the deploy hop.
+
+> **ROUND-3 CORRECTION — "a targeted merge of those six files" was an UNTESTED assumption, and
+> it is destructive for one of them.** The sentence assumes the six are one-way behind the repo.
+> Nobody measured the direction — even though round 2 measured exactly that for the *seventh*
+> file and found the opposite of what two earlier reports assumed. Measured now
+> (`_s2_r3_vault.py`, reconstruction checked in both directions, differ validated against the
+> known-two-way `dead_button_crawl.mjs`): five of the six —`axe_scan`, `capture`, `layout_lint`,
+> `run_audit`, `visual_diff` — have **11 repo-only lines and exactly 1 vault-only line, and that
+> line is the old guard the repo deliberately replaced**, so a copy destroys nothing.
+> **`critique.mjs` is different: 281 repo-only against 19 vault-only, 18 of them substantive** —
+> a Claude-facing critique-input/rubric path that exists only in the vault. It is a **third**
+> two-way-diverged file after `workflow-authoring` and `dead_button_crawl.mjs`, and copying it
+> would delete live work.
+> **Correctly scoped claim:** *five of the six close with a scoped copy; `critique.mjs` needs a
+> union merge and is handed to the owner with the other two.*
+> Note on method: set arithmetic alone calls all six "two-way", because a one-line **replacement**
+> leaves one unique line on each side. The question that matters is *would a copy destroy work*,
+> so the vault-only lines are classified rather than counted.
 
 **Detector-control caveat, disclosed:** the use-vs-mention split in `_s2_vault_gap.py` is
 **partially inert** — it found 0 mention-only files, and it mislabels
@@ -341,6 +397,20 @@ byte-identical.
 > description lines into `~/.agents/skills` and re-run the dry-run — `needs_merge` must return
 > to 397. Round 2 re-ran the dry-run and it still reads **403**, so round 2 added none of its
 > own (its 3 edits and the guard fix all touch files that were already `DIVERGED`).
+>
+> **ROUND-3: that settling experiment has now been RUN, and the prediction holds.** A prediction
+> inside a handback is a claim, not a receipt. `_s2_r3_vault.py` executed it through the real
+> `deploy-skills-daily.plan()` classifier on a temp COPY of the seven skill directories — the
+> real `~/.agents/skills` was never written, and the guard census re-confirms it (6 vault files
+> still on the old lexical guard, unchanged). State A: `DIVERGED 7`, all seven `SKILL.md`
+> refused. State B, after the *minimal* action the handback specifies (replace the description
+> line, not the file): `IDENTICAL 6 / DIVERGED 1`, **6 reconciled** — i.e. 403 → 397 exactly as
+> predicted. Six of the seven differ from the vault by **exactly one line**.
+> Controls: the two states give different verdicts (identical counts would make the probe inert),
+> and `tdd-workflow` — 4 differing lines, already `DIVERGED` before round 1, therefore *not* part
+> of the +6 — is a built-in negative control that must NOT reconcile, and did not. My first
+> version copied whole files, reported the self-contradicting *"7 of 6 reconciled"*, and killed
+> that control; recorded rather than deleted.
 
 Census, re-derived independently (`_s2_appendonly_and_negcase.py` §B, 328 skills): states
 WHEN 257 (brief: 261) · states a NEGATIVE case **79** (brief: 69) · says what it RETURNS
