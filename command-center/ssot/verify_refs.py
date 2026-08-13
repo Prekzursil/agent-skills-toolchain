@@ -9,6 +9,7 @@ Detector controls (both-states test):
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -169,8 +170,6 @@ res["code_hits"] = code_hits
 print()
 print("=" * 78)
 print("CLAUDE SESSION DIRS - which checkouts have been used as a cwd, and how recently")
-import datetime
-
 proj = Path("C:/Users/Prekzursil/.claude/projects")
 rows = []
 if proj.is_dir():

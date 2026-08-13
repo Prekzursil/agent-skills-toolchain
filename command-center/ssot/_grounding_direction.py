@@ -7,17 +7,22 @@ Two questions the one-directional read cannot answer:
        Measured BOTH directions: lines only-in-scratch AND lines only-in-main.
 Read-only.
 """
+
 import json
 import subprocess
 
 CANON = "C:/Users/Prekzursil/source/agent-skills-toolchain"
 INTEG = "C:/Users/Prekzursil/source/ast-integrate"
-B5 = "C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-1521081161/_b5-toolchain"
+B5 = (
+    "C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-1521081161/_b5-toolchain"
+)
 MCPCTL = "C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-425276811/ast"
 
 
 def git(repo, *args, timeout=120):
-    p = subprocess.run(["git", "-C", repo] + list(args), capture_output=True, timeout=timeout)
+    p = subprocess.run(
+        ["git", "-C", repo] + list(args), capture_output=True, timeout=timeout
+    )
     return p.returncode, p.stdout.decode("utf-8", "replace")
 
 
@@ -35,7 +40,9 @@ def lines(text):
 out = {}
 
 # ---------------- Q-A: does tools/mcp-manager exist on main at all?
-rc, tree = git(INTEG, "ls-tree", "-r", "--name-only", "origin/main", "tools/mcp-manager/")
+rc, tree = git(
+    INTEG, "ls-tree", "-r", "--name-only", "origin/main", "tools/mcp-manager/"
+)
 main_files = [x for x in tree.splitlines() if x.strip()]
 rc, tree_b5 = git(B5, "ls-tree", "-r", "--name-only", "80130e1f", "tools/mcp-manager/")
 b5_files = [x for x in tree_b5.splitlines() if x.strip()]
@@ -52,13 +59,21 @@ out["QA_mcp_manager"] = {
 }
 # was it ever there, then deleted? search main history for the path
 rc, hist = git(
-    INTEG, "log", "--oneline", "-15", "--diff-filter=D", "origin/main", "--",
+    INTEG,
+    "log",
+    "--oneline",
+    "-15",
+    "--diff-filter=D",
+    "origin/main",
+    "--",
     "tools/mcp-manager/",
 )
 out["QA_mcp_manager"]["main_deletion_commits"] = [
     x for x in hist.splitlines() if x.strip()
 ]
-rc, anyhist = git(INTEG, "log", "--oneline", "-10", "origin/main", "--", "tools/mcp-manager/")
+rc, anyhist = git(
+    INTEG, "log", "--oneline", "-10", "origin/main", "--", "tools/mcp-manager/"
+)
 out["QA_mcp_manager"]["main_history_touching_path"] = [
     x for x in anyhist.splitlines() if x.strip()
 ]
@@ -67,8 +82,16 @@ out["QA_mcp_manager"]["main_history_touching_path"] = [
 pairs = [
     (MCPCTL, "4a4f7c97", "tools/mcpctl/mcpctl/safety.py"),
     (MCPCTL, "4a4f7c97", "tools/mcpctl/tests/test_safety.py"),
-    ("C:/Users/Prekzursil/source/_wu/CRCP-SEC", "c7ffc20f", "tools/crcp/crcp/auth_broker.py"),
-    ("C:/Users/Prekzursil/source/_wu/CRCP-SEC", "c7ffc20f", "tools/crcp/crcp/__main__.py"),
+    (
+        "C:/Users/Prekzursil/source/_wu/CRCP-SEC",
+        "c7ffc20f",
+        "tools/crcp/crcp/auth_broker.py",
+    ),
+    (
+        "C:/Users/Prekzursil/source/_wu/CRCP-SEC",
+        "c7ffc20f",
+        "tools/crcp/crcp/__main__.py",
+    ),
 ]
 qb = []
 for repo, sha, path in pairs:

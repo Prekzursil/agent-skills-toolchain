@@ -8,6 +8,7 @@ Question answered: for each stranded commit, are the files it touched byte-ident
 origin/main, a superset, or genuinely absent?
 Read-only.
 """
+
 import hashlib
 import json
 import os
@@ -18,12 +19,21 @@ INTEG = "C:/Users/Prekzursil/source/ast-integrate"
 
 TARGETS = [
     # (scratch checkout, sha, label)
-    ("C:/Users/Prekzursil/source/_wu/CRCP-SEC", "c7ffc20f",
-     "fix(crcp): scope OpenAI bearer to allowlist  [SECURITY]"),
-    ("C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-425276811/ast", "4a4f7c97",
-     "fix(mcpctl): strip control bytes BEFORE redacting  [SECURITY]"),
-    ("C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-1521081161/_b5-toolchain",
-     "80130e1f", "feat(mcp-manager): dead-MCP detector"),
+    (
+        "C:/Users/Prekzursil/source/_wu/CRCP-SEC",
+        "c7ffc20f",
+        "fix(crcp): scope OpenAI bearer to allowlist  [SECURITY]",
+    ),
+    (
+        "C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-425276811/ast",
+        "4a4f7c97",
+        "fix(mcpctl): strip control bytes BEFORE redacting  [SECURITY]",
+    ),
+    (
+        "C:/Users/Prekzursil/.claude/agent-worktrees-salvage/agent-1521081161/_b5-toolchain",
+        "80130e1f",
+        "feat(mcp-manager): dead-MCP detector",
+    ),
 ]
 
 
@@ -60,7 +70,8 @@ rc2, bogus = git_raw(INTEG, "cat-file", "-p", "origin/main:__no_such_file_xyz__.
 out["controls"]["reader_returns_real_file"] = len(real) > 0
 out["controls"]["reader_empty_on_missing"] = len(bogus) == 0
 out["controls"]["reader_ok"] = (
-    out["controls"]["reader_returns_real_file"] and out["controls"]["reader_empty_on_missing"]
+    out["controls"]["reader_returns_real_file"]
+    and out["controls"]["reader_empty_on_missing"]
 )
 
 for repo, sha, label in TARGETS:
@@ -87,10 +98,14 @@ for repo, sha, label in TARGETS:
         else:
             state = "DIFFERS"
             differs += 1
-        detail.append({
-            "path": p, "state": state,
-            "scratch_bytes": len(scratch_blob), "main_bytes": len(main_blob),
-        })
+        detail.append(
+            {
+                "path": p,
+                "state": state,
+                "scratch_bytes": len(scratch_blob),
+                "main_bytes": len(main_blob),
+            }
+        )
     row["absent_from_main"] = absent
     row["byte_identical_on_main"] = same
     row["differs"] = differs
@@ -100,7 +115,9 @@ for repo, sha, label in TARGETS:
     elif absent > 0:
         row["verdict"] = f"AT RISK - {absent} file(s) absent from main"
     else:
-        row["verdict"] = f"DIVERGED - {differs} file(s) differ; needs two-directional line diff"
+        row["verdict"] = (
+            f"DIVERGED - {differs} file(s) differ; needs two-directional line diff"
+        )
     out["targets"].append(row)
 
 print(json.dumps(out, indent=2, default=str))

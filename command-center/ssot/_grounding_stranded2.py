@@ -4,6 +4,7 @@ Fix vs v1: one `git cat-file --batch-check` process per store instead of one `ca
 spawn per commit (v1 needed ~16k Windows spawns and blew a 900s budget).
 Read-only. Both-states controls on every detector.
 """
+
 import json
 import os
 import subprocess
@@ -23,7 +24,10 @@ FAKE = "dead" * 10  # 40 hex chars, valid shape, cannot exist
 def git(repo, *args, timeout=180):
     try:
         p = subprocess.run(
-            ["git", "-C", repo] + list(args), capture_output=True, text=True, timeout=timeout
+            ["git", "-C", repo] + list(args),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except Exception as exc:  # noqa: BLE001
@@ -38,7 +42,10 @@ def batch_present(repo, shas, timeout=300):
     try:
         p = subprocess.run(
             ["git", "-C", repo, "cat-file", "--batch-check"],
-            input=payload, capture_output=True, text=True, timeout=timeout,
+            input=payload,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
     except Exception:  # noqa: BLE001
         return set()
@@ -108,7 +115,9 @@ for path in SCRATCH:
     # describe up to 25, newest first by committer date
     desc = []
     for sha in stranded[:25]:
-        rc, meta, _ = git(path, "show", "-s", "--format=%h|%ad|%an|%s", "--date=short", sha)
+        rc, meta, _ = git(
+            path, "show", "-s", "--format=%h|%ad|%an|%s", "--date=short", sha
+        )
         desc.append(meta)
     row["stranded_sample"] = desc
     out["checkouts"].append(row)
