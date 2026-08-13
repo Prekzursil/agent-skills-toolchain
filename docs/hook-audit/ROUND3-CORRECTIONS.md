@@ -227,11 +227,23 @@ path regex required a `hooks/` prefix, so it scored the known-path-wired positiv
 `checkpoint` NAME-ONLY for the right verdict by the wrong measurement — and every other
 directory as dark along with it.
 
-**Reported, not fixed** (this lane reports before editing `hooks/**`): `wire.py --check`
+~~**Reported, not fixed** (this lane reports before editing `hooks/**`): `wire.py --check`
 prints a `FAILED:` marker and **exits 0** (measured: `EXIT=0` beside `FAILED:checkpoint-wiring`).
 A check that cannot return non-zero cannot be wired as a gate — the same class as everything
 else in this audit. The fix is one line plus a red-first test; it is not made here because an
-unproven one-line change to a `hooks/` file is exactly what this program keeps punishing.
+unproven one-line change to a `hooks/` file is exactly what this program keeps punishing.~~
+
+**REFUTED IN ROUND 4 — the paragraph above is false and is kept only as the finding.**
+`wire.py` fails closed. `hooks/checkpoint/wire.py:228` is `return 0 if verdict == "CLEAN"
+else 1` and `:232` is `sys.exit(main())`; a verifier read `$LASTEXITCODE` on both trees, and
+`_r4_wire_exit.py` spawns the script and reads the real process exit status in both verdict
+states —
+<!-- cite: id=R4-r3-find file=R4-WIRE-EXIT.json path=repo_finding_rc value=1 -->
+FINDING → 1,
+<!-- cite: id=R4-r3-clean file=R4-WIRE-EXIT.json path=repo_clean_rc value=0 -->
+CLEAN → 0, arms discriminating. The parenthetical `(measured: EXIT=0 ...)` is the defect:
+it asserts an instrument reading without naming the instrument, and no instrument that reads
+a process exit status can return 0 here. This wording sent round 4 to fix working code.
 
 ## What did NOT change, and must not be read as fixed
 

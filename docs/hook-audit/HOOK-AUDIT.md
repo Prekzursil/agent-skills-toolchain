@@ -50,33 +50,106 @@ P4-other 2. All
 
 ### P1 — the 25 live dispatcher checks (in-process, mirrors `dispatch.py`)
 
-> **CORRECTED IN ROUND 2 -- read `ROUND2-CORRECTIONS.md` C1-C2 before citing this table.**
-> Two defects, both confirmed by an independent verifier. (a) It cited
-> `H4-TIMING-live.json`, which was **never committed**; that file is now tracked. (b) The
-> wire-check row is a **point reading of a moving input** and does not reproduce -- the same
-> tool gave 11,590 ms (46.4%) to the verifier and a 4,406 ms median to round 2. A controlled
-> dose arm shows run time tracks the session diff (5.86x the ripgrep walks -> 4.42x the
-> time), so **the "135.8% - OVER" verdict is withdrawn as a standing property of the hook**
-> and survives only as "true of one moment with a ~250-file diff". Kept verbatim below
-> rather than deleted, because the refuted wording is the finding.
+> **CORRECTED IN ROUND 2, AND THE WHOLE TABLE WITHDRAWN IN ROUND 4.** Round 2 withdrew one
+> row: the wire-check reading is a point sample of a moving input (the same tool gave
+> 11,590 ms to the verifier and a 4,406 ms median to round 2; run time tracks the session
+> diff), so "135.8% - OVER" survives only as "true of one moment with a ~250-file diff".
+> **Round 4 withdrew the other six.** An independent verifier resolved every number in the
+> original table against `H4-TIMING-live.json` -- the only committed evidence for this
+> measurement -- and found NONE of them present: they diverge **1.7x to 10.9x**. I confirmed
+> that independently by reading the committed blob myself (`git show
+> HEAD:command-center/hook-audit/H4-TIMING-live.json`); the corrected table below is that
+> blob. The gate built to catch exactly this drift printed SUCCESS, because the table carried
+> **zero** markers and the per-document floor was satisfied 30 lines higher up — that is
+> `check_citations.py` hole **H4**, closed in round 4 and proven red-first against this very
+> table. The refuted wording is kept below the corrected table, not deleted, because it is
+> the finding.
 
-| check | budget | measured | % |
+**Resolved against committed evidence** — one in-process run mirroring `dispatch.py`, live
+tree. `%` is of the check's own declared budget, which is NOT the enforceable ceiling; see
+the budget-ceiling correction two paragraphs down.
+
+| check | budget | measured | % of check budget |
 |---|---|---|---|
-| **wire-check** (live copy) | 25 s | **33,938 ms** (REFUTED, see above) | **135.8% - OVER** |
+| wire-check (live copy) | 25 s | <!-- cite: id=R4-t-wc file=H4-TIMING-live.json path=checks.8.run_ms value=6541.6 --> 6,541.6 ms | <!-- cite: id=R4-t-wcp file=H4-TIMING-live.json path=checks.8.pct_of_budget value=26.2 --> 26.2% |
+| open-loops/resurface | 8 s | <!-- cite: id=R4-t-ol file=H4-TIMING-live.json path=checks.4.run_ms value=351.6 --> 351.6 ms | <!-- cite: id=R4-t-olp file=H4-TIMING-live.json path=checks.4.pct_of_budget value=4.4 --> 4.4% |
+| monitor-autolaunch | 6 s | <!-- cite: id=R4-t-ma file=H4-TIMING-live.json path=checks.23.run_ms value=7.8 --> 7.8 ms | <!-- cite: id=R4-t-map file=H4-TIMING-live.json path=checks.23.pct_of_budget value=0.1 --> 0.1% |
+| **git-hygiene** | 90 s | <!-- cite: id=R4-t-gh file=H4-TIMING-live.json path=checks.9.run_ms value=0.3 --> 0.3 ms — **NOT A MEASUREMENT**, see below | — |
+| the other 21 checks | 5–25 s | max <!-- cite: id=R4-t-hb file=H4-TIMING-live.json path=checks.3.run_ms value=12.7 --> 12.7 ms (`heartbeat`) | <!-- cite: id=R4-t-hbp file=H4-TIMING-live.json path=checks.3.pct_of_budget value=0.2 --> ≤ 0.2% |
+
+| event (whole dispatcher, real subprocess) | budget | measured | % |
+|---|---|---|---|
+| SessionStart | 20 s | <!-- cite: id=R4-e-ss file=H4-TIMING-live.json path=events.0.wall_ms value=349.1 --> 349.1 ms | <!-- cite: id=R4-e-ssp file=H4-TIMING-live.json path=events.0.pct_of_budget value=1.7 --> 1.7% |
+| Stop | 35 s | <!-- cite: id=R4-e-st file=H4-TIMING-live.json path=events.1.wall_ms value=14895.7 --> 14,895.7 ms | <!-- cite: id=R4-e-stp file=H4-TIMING-live.json path=events.1.pct_of_budget value=42.6 --> 42.6% |
+| PostToolUse | 15 s | <!-- cite: id=R4-e-po file=H4-TIMING-live.json path=events.2.wall_ms value=137.9 --> 137.9 ms | <!-- cite: id=R4-e-pop file=H4-TIMING-live.json path=events.2.pct_of_budget value=0.9 --> 0.9% |
+| PreToolUse | 15 s | <!-- cite: id=R4-e-pr file=H4-TIMING-live.json path=events.3.wall_ms value=236.3 --> 236.3 ms | <!-- cite: id=R4-e-prp file=H4-TIMING-live.json path=events.3.pct_of_budget value=1.6 --> 1.6% |
+
+<!-- uncited-table: reason=verbatim round-1 wording, REFUTED in round 4 and preserved as the finding; every number in it is unbacked and the corrected values are the cited tables above -->
+
+| REFUTED round-1 table | budget | measured | % |
+|---|---|---|---|
+| **wire-check** (live copy) | 25 s | **33,938 ms** | **135.8% - OVER** |
 | open-loops/resurface | 8 s | 981 ms | 12.3% |
 | monitor-autolaunch | 6 s | 73 ms | 1.2% |
 | **all other 22 checks** | 5–90 s | **≤ 23 ms** | **≤ 0.3%** |
 
-Whole-event, as a real subprocess: SessionStart 3,798 ms / 20 s = 19.0% · **Stop 24,976 ms /
-35 s = 71.4%** · PostToolUse 1,115 ms / 15 s = 7.4% · PreToolUse 1,416 ms / 15 s = 9.4%.
+*(and, in prose, the four whole-event numbers: SessionStart 3,798 ms / 19.0% · Stop 24,976 ms
+/ 71.4% · PostToolUse 1,115 ms / 7.4% · PreToolUse 1,416 ms / 9.4% — all four unbacked.)*
 
-**Answer to "are other checks near their budgets?": no.** *(Round-2 rescope. The original
-sentence continued "- one is, and it is over", naming the live wire-check; that half is
-REFUTED, see C2. What survives is the mechanism, which is independent of the timing: when a
-check DOES exceed its budget, `dispatch.py:368-372` **drops its output entirely**
+**The `git-hygiene` row is the throttle, not the check.** `hooks/git-hygiene/check.py`
+returns 0 before doing any work when its `.last-run` stamp is younger than
+`GIT_HYGIENE_THROTTLE_SEC` (default 900 s), so `0.3 ms` is the cost of the early return —
+understated by a factor of
+<!-- cite: id=R4-gh-fac file=R4-GITHYGIENE-RANGE.json path=understatement_factor_vs_h4 value=53003 -->
+**53,003**. That row is why "all other checks are ≤ 0.3% of budget" was able to absorb the
+single most expensive check in the fleet. Measured on the guarded path
+(`_r4_githygiene_range.py`, throttle defeated with the env knob rather than by deleting a
+stamp, so the live 15-minute clock is untouched; arms separated by
+<!-- cite: id=R4-gh-ratio file=R4-GITHYGIENE-RANGE.json path=ratio_defeated_over_effective value=137.4 -->
+137.4x, stamp restored byte- and mtime-exact):
+<!-- cite: id=R4-gh-mine file=R4-GITHYGIENE-RANGE.json path=B_throttle_defeated.ms value=15901.0 -->
+**15,901 ms** on the repo copy. Across five samples from four different probes the range is
+<!-- cite: id=R4-gh-lo file=R4-GITHYGIENE-RANGE.json path=range_ms.0 value=11800.0 -->
+**11.8 s** to
+<!-- cite: id=R4-gh-hi file=R4-GITHYGIENE-RANGE.json path=range_ms.1 value=32700.0 -->
+**32.7 s** — load-dependent, so quote the range, never a point.
+
+**The denominator was also wrong, and this is the round-4 finding.** Round 2 raised
+git-hygiene 30 s → 90 s, and round 3 called 18.7 s "20.7% of the CURRENT 90 s budget, NOT
+over budget". **90 s is not reachable.** The dispatcher is ONE command the harness runs under
+the *event* timeout, and Stop's is 35 s; when that expires the harness kills the dispatcher
+process, so `dispatch.py`'s own `_receipt(..., "timeout")` never runs and **every check on
+that event loses its output, not just the slow one**. `_r4_budget_ceiling.py` (controls
+discriminate: a synthetic 90 s-in-35 s is flagged, a synthetic 5 s-in-35 s is not; fails
+closed below 20 checks compared) finds
+<!-- cite: id=R4-bc-live file=R4-BUDGET-CEILING.json path=live_violation_count value=1 -->
+**1** such pair live and
+<!-- cite: id=R4-bc-repo file=R4-BUDGET-CEILING.json path=repo_violation_count value=2 -->
+**2** in the repo:
+<!-- cite: id=R4-bc-un file=R4-BUDGET-CEILING.json path=live.violations.0.unreachable_s value=55.0 -->
+**55 s of git-hygiene's 90 s is unreachable in both trees**, and the repo additionally has
+`edit-checkpoints` at 15 s inside a 15 s PreToolUse event — the /rollback producer the deploy
+plan proposes arming, declared a budget it can never spend. So the honest pair of numbers for
+the guarded path is
+<!-- cite: id=R4-gh-p90 file=R4-GITHYGIENE-RANGE.json path=range_pct_of_declared_90s_check_budget.1 value=36.3 -->
+**≤ 36.3% of the declared 90 s** but
+<!-- cite: id=R4-gh-p35 file=R4-GITHYGIENE-RANGE.json path=range_pct_of_enforced_35s_event_budget.1 value=93.4 -->
+**up to 93.4% of the enforced 35 s event ceiling it shares with eight other checks**.
+
+**Answer to "are other checks near their budgets?": no — with one exception that the
+throttled row hid.** *(Round-2 rescope, round-4 requalification. The 21 unremarkable checks
+are ≤ 12.7 ms and that is unchanged by the correction. `wire-check` at 26.2% is not near its
+budget on a normal diff. `git-hygiene` IS near a budget — not its own 90 s, but the 35 s
+event ceiling, at up to 93.4% of it. What survives from round 2 unchanged is the mechanism:
+when a check exceeds its budget `dispatch.py:368-372` **drops its output entirely**
 (`_receipt(event, label, "timeout"); continue`), so an over-budget check is not slow, it is
-silenced. That remains true, and remains why the deadline shipped in DoD 4 matters -- but the
-live wire-check is not observed reaching it on a normal diff.)*
+silenced — and when the EVENT budget goes first, all nine are.)*
+
+UNVERIFIED, inline: I did not observe a live Stop event actually hitting the 35 s ceiling —
+the arithmetic and the 32.7 s sample say it is reachable, not that it has happened. Settling
+experiment: let the 15-minute throttle expire, then time the whole Stop dispatcher as a
+subprocess (`_h4_timing.py` measures it) on a session with a large diff, and record whether
+the harness kills it.
 
 ### P2/P3 — 35 of 42 settings entries timed as real subprocesses
 
@@ -168,10 +241,30 @@ from the inert set** rather than pick a side, and named the settling experiment:
 > inert set can include it — the disagreement was a use-vs-mention error on the other side,
 > not a scope difference on mine.
 >
-> Reported, NOT fixed (this lane reports before editing `hooks/**`): **`wire.py --check`
+> ~~Reported, NOT fixed (this lane reports before editing `hooks/**`): **`wire.py --check`
 > prints `FAILED:` and still exits 0** — measured. A check that cannot return non-zero cannot
 > be used as a gate, which is the same "a guard that cannot go red" class this audit is about.
-> One-line fix, needs its own red-first test.
+> One-line fix, needs its own red-first test.~~
+>
+> **REFUTED IN ROUND 4. `wire.py` fails closed; there was never a defect here.** The word
+> "measured" in the struck sentence was doing work no measurement supported — whatever was
+> read, it was not the process exit status. Three mechanically different signals now agree:
+> the source (`hooks/checkpoint/wire.py:228` `return 0 if verdict == "CLEAN" else 1`, invoked
+> at `:232` through `sys.exit(main())`), the verifier's shell and PowerShell
+> `$LASTEXITCODE` reads, and `_r4_wire_exit.py`, which SPAWNS the script and reads the real
+> exit code on **both** trees. That probe carries the control the original claim lacked —
+> observing one verdict cannot distinguish "always 0" from "tracks the verdict", so it drives
+> both through the same binary using `--settings`/`--manifest` overrides:
+> <!-- cite: id=R4-w-find file=R4-WIRE-EXIT.json path=repo_finding_rc value=1 -->
+> FINDING → **rc 1**,
+> <!-- cite: id=R4-w-clean file=R4-WIRE-EXIT.json path=repo_clean_rc value=0 -->
+> synthetic CLEAN → **rc 0**, live tree identical, and
+> <!-- cite: id=R4-w-disc file=R4-WIRE-EXIT.json path=arms_discriminate value=True -->
+> `arms_discriminate=True` (it publishes INCONCLUSIVE if they ever agree).
+> **Cost of the error:** round 3 handed round 4 a one-line fix inside `hooks/**` for working
+> code. The class is worth more than the instance — a *self-reported* "measured" with no
+> named instrument is not evidence, and this audit shipped one while auditing for exactly
+> that.
 
 Detector controls, both directions, all passed: wired-control (`wire-check`) found = True;
 synthetic absent-control found = False; and — the control the synthetic one cannot supply —
@@ -220,11 +313,23 @@ Controlled A/B, HEAD blob vs worktree, interleaved over the same tree (`B3-AB-BU
 > numbers below are ~7x high for the C2 reason (a much larger diff that day); the ORDERING
 > and the finding counts reproduce exactly, and that is all this A/B ever supported.
 
-| arm | wall | % of 25 s budget | findings emitted |
+**Re-measured, and resolved against committed evidence** (`B3-AB-BUDGET.json`, two rounds
+interleaved; the unfixed control is pinned at `95761504~1` and the file asserts
+`head_blob_already_had_encoding_kwarg=false` or the comparison is void):
+
+| arm | wall (r1 / r2) | % of 25 s budget (r1) | findings emitted |
 |---|---|---|---|
-| HEAD (unfixed) | 26,366 / 26,687 ms | **105.5% / 106.7%** (REFUTED) | **6** |
+| HEAD (unfixed) | <!-- cite: id=R4-ab-u1 file=B3-AB-BUDGET.json path=runs.0.wall_ms value=3834.2 --> 3,834.2 / <!-- cite: id=R4-ab-u2 file=B3-AB-BUDGET.json path=runs.3.wall_ms value=4147.6 --> 4,147.6 ms | <!-- cite: id=R4-ab-up file=B3-AB-BUDGET.json path=runs.0.pct_of_budget value=15.3 --> 15.3% | <!-- cite: id=R4-ab-uf file=B3-AB-BUDGET.json path=runs.0.finding_count value=6 --> **6** |
+| encoding fix only (reconstructed) | <!-- cite: id=R4-ab-m1 file=B3-AB-BUDGET.json path=runs.1.wall_ms value=16304.9 --> 16,304.9 / <!-- cite: id=R4-ab-m2 file=B3-AB-BUDGET.json path=runs.4.wall_ms value=16470.9 --> 16,470.9 ms | <!-- cite: id=R4-ab-mp file=B3-AB-BUDGET.json path=runs.1.pct_of_budget value=65.2 --> 65.2% | <!-- cite: id=R4-ab-mf file=B3-AB-BUDGET.json path=runs.1.finding_count value=1 --> 1 |
+| fix + deadline (shipped) | <!-- cite: id=R4-ab-s1 file=B3-AB-BUDGET.json path=runs.2.wall_ms value=8025.6 --> 8,025.6 / <!-- cite: id=R4-ab-s2 file=B3-AB-BUDGET.json path=runs.5.wall_ms value=7061.2 --> 7,061.2 ms | <!-- cite: id=R4-ab-sp file=B3-AB-BUDGET.json path=runs.2.pct_of_budget value=32.1 --> 32.1% | <!-- cite: id=R4-ab-sf file=B3-AB-BUDGET.json path=runs.2.finding_count value=0 --> 0 |
+
+<!-- uncited-table: reason=verbatim round-1 wording, REFUTED; its middle arm never had committed evidence at all and the corrected values are the cited table above -->
+
+| REFUTED round-1 arm | wall | % of 25 s budget | findings emitted |
+|---|---|---|---|
+| HEAD (unfixed) | 26,366 / 26,687 ms | **105.5% / 106.7%** | **6** |
 | encoding fix only | 64,996 / 69,625 ms (NO COMMITTED EVIDENCE) | 260.0% / 278.5% | 0 |
-| fix + deadline (shipped) | **15,492 / 17,485 ms** (REFUTED) | **62.0% / 69.9%** | 0 |
+| fix + deadline (shipped) | **15,492 / 17,485 ms** | **62.0% / 69.9%** | 0 |
 
 **All 6 findings the unfixed hook emitted against this repo were false positives**, and the
 fixed hook emits none. This defect is live in the DEPLOYED tree too, by a second

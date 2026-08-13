@@ -21,6 +21,20 @@ exactly as it shipped, because pointing at the wrong repo IS the defect.
   UNTRACKED           evidence file never committed             new: FAIL (regression
                       guard on round 2's fix)
   BADROOT             HOOK_AUDIT_REPO with no docs/hook-audit    new: FAIL closed
+
+ROUND 4 adds H4, the hole that let the flagship deliverable publish 7 unbacked numbers with
+the gate GREEN: a table carrying no marker was not "unbacked", it was invisible. The control
+here is the PRE-ROUND-4 gate (pinned blob), which must PASS the uncited table -- otherwise
+"the new gate fails it" would not be evidence that anything changed. Four scoping controls
+run beside it, because a rule that fails every table would also fail this one:
+
+  H4 UNCITED TABLE    annotated doc + a measurement table with no marker
+                      old: SUCCESS          new: FAIL naming UNCITED-MEASUREMENT-TABLE
+  H4 CITED INSIDE     the same table with a cite: marker in a cell        new: SUCCESS
+  H4 WAIVER           the same table under `uncited-table: reason=...`    new: SUCCESS
+  H4 WAIVER NO REASON the same waiver with the reason omitted             new: FAIL
+  H4 PROSE TABLE      a table with no measurement in it                   new: SUCCESS
+  H4 CLASSIFIER       the gate's own both-states self-check               (True, True)
 """
 
 from __future__ import annotations
@@ -96,6 +110,35 @@ def make_fixture(
 # lane's commit) reproduced inside the test written to catch that family. A blob sha cannot
 # drift; the guard below makes sure it is still the unfixed file.
 PRE_R3_GATE_BLOB = "66855eed4857e47a7ea03c35e52d89812a605eac"
+
+# The gate as it shipped at the END of round 3 -- the control for H4. Pinned as a blob for
+# the same reason as above: `HEAD` would become the round-4 gate the moment this lands, and
+# the control would be comparing the new gate with itself.
+PRE_R4_GATE_BLOB = "b7262302f035576497a15955ec4fc78ca4b4315f"
+
+MEASURE_TABLE = (
+    "\n| check | budget | measured | % |\n|---|---|---|---|\n"
+    "| wire-check | 25 s | 33,938 ms | 135.8% |\n"
+)
+PROSE_TABLE = "\n| half | state |\n|---|---|\n| PreCompact | NOT-WIRED |\n"
+
+
+def pinned_gate(tmp: Path, blob: str, name: str, *, must_lack: str) -> Path:
+    """Materialise a historical gate, refusing if it already contains the fix under test."""
+    p = subprocess.run(
+        ["git", "cat-file", "-p", blob], cwd=str(REPO), capture_output=True, timeout=60
+    )
+    src = p.stdout.decode("utf-8", "replace")
+    if not src.strip():
+        raise SystemExit(f"FAILED:cite-gate-test cannot read pinned blob {blob[:12]}")
+    if must_lack in src:
+        raise SystemExit(
+            f"FAILED:cite-gate-test the pinned blob {blob[:12]} ALREADY contains "
+            f"{must_lack!r} -- this control would compare the new gate with itself"
+        )
+    out = tmp / name
+    out.write_text(src, encoding="utf-8")
+    return out
 
 
 def old_gate(tmp: Path, retarget: Path | None) -> Path:
@@ -234,6 +277,89 @@ def main() -> int:
         rc_b, out_b = run_gate(GATE, clean, env_root=str(bad))
         case("BADROOT the new gate fails closed", rc_b, 1)
         case("BADROOT says it refuses to guess", "refusing to guess" in out_b, True)
+
+        # ---- H4 UNCITED MEASUREMENT TABLE ---------------------------------------
+        # The doc keeps its valid citation, so the per-document floor is satisfied and the
+        # ONLY rule that can fire is the new one. Without that, H4 would be re-testing H3.
+        def with_table(sub: str, table: str) -> Path:
+            root = make_fixture(tmp / sub, doc_value="1.0", blob_value="1.0")
+            doc = root / "docs" / "hook-audit" / "DOC.md"
+            doc.write_text(doc.read_text(encoding="utf-8") + table, encoding="utf-8")
+            return root
+
+        h4 = with_table("h4", MEASURE_TABLE)
+        old4 = pinned_gate(
+            tmp,
+            PRE_R4_GATE_BLOB,
+            "old_gate_r3.py",
+            must_lack="UNCITED-MEASUREMENT-TABLE",
+        )
+        rc_o4, _ = run_gate(old4, h4, env_root=str(h4))
+        case(
+            "H4 control: the PRE-R4 gate PASSES an uncited measurement table",
+            rc_o4,
+            0,
+            "-- if this is not 0 the hole was already closed and H4 measures nothing",
+        )
+        rc_n4, out_n4 = run_gate(GATE, h4, env_root=str(h4))
+        case("H4 the new gate FAILS it", rc_n4, 1)
+        case(
+            "H4 the failure names the rule",
+            "UNCITED-MEASUREMENT-TABLE" in out_n4,
+            True,
+        )
+
+        cited = with_table(
+            "h4cited",
+            MEASURE_TABLE.replace(
+                "| 135.8% |",
+                "| 135.8% <!-- cite: id=T1 file=E.json path=metrics.value value=1.0 --> |",
+            ),
+        )
+        rc_c4, _ = run_gate(GATE, cited, env_root=str(cited))
+        case(
+            "H4 CITED-INSIDE control: a marker in a cell PASSES",
+            rc_c4,
+            0,
+            "-- stops the rule passing H4 by failing every table",
+        )
+
+        waived = with_table(
+            "h4waived",
+            "\n<!-- uncited-table: reason=quotes refuted wording verbatim -->"
+            + MEASURE_TABLE,
+        )
+        rc_w4, _ = run_gate(GATE, waived, env_root=str(waived))
+        case("H4 WAIVER with a reason PASSES", rc_w4, 0)
+
+        noreason = with_table("h4noreason", "\n<!-- uncited-table: -->" + MEASURE_TABLE)
+        rc_r4, out_r4 = run_gate(GATE, noreason, env_root=str(noreason))
+        case("H4 WAIVER without a reason FAILS", rc_r4, 1)
+        case("H4 that failure says so", "no reason=" in out_r4, True)
+
+        prose = with_table("h4prose", PROSE_TABLE)
+        rc_p4, _ = run_gate(GATE, prose, env_root=str(prose))
+        case(
+            "H4 PROSE-TABLE control: a table with no measurement PASSES",
+            rc_p4,
+            0,
+            "-- the rule is scoped to measurements, not to tables",
+        )
+
+        # The classifier's own both-states control, called directly rather than inferred
+        # from a green run: a silent classifier reports zero violations forever.
+        sys.path.insert(0, str(HERE))
+        import importlib
+
+        cc = importlib.import_module("check_citations")
+        case(
+            "H4 CLASSIFIER fires on a measurement table",
+            cc.classifier_selfcheck()[0],
+            True,
+        )
+        case(
+            "H4 CLASSIFIER silent on a prose table", cc.classifier_selfcheck()[1], True
+        )
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

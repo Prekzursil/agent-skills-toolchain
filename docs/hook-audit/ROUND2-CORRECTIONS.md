@@ -25,6 +25,8 @@ a document standing wider than its evidence — the estate's dominant defect sha
 `hooks/wire-check/check.py` change re-verified clean; what follows repairs the sentences and
 the evidence trail, and records the refuted wordings rather than deleting them.
 
+<!-- uncited-table: reason=an index of REFUTED round-1 wordings; the quoted numbers are the refuted ones and every corrected value is cited in its own section below (C2 gives the range, C4 gives 17.8 percent) -->
+
 | # | Round-1 wording (now REFUTED) | What is true |
 |---|---|---|
 | C1 | per-check table cited `H4-TIMING-live.json` | that file was never committed — a citation to nothing |
