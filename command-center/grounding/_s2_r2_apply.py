@@ -51,20 +51,107 @@ TREES = {
 PRE_REV = "1e9cfe81~1"
 
 NEG_CLAUSE = re.compile(
-    r"(do not use|don't use|never use|not for|not the|not a )[^.;]*[.;]?", re.I)
-POS_WHEN = re.compile(r"\b(use when|use this when|when the user|when a user|"
-                      r"triggers?|use this|use for|use to|use at)\b", re.I)
+    r"(do not use|don't use|never use|not for|not the|not a )[^.;]*[.;]?", re.I
+)
+POS_WHEN = re.compile(
+    r"\b(use when|use this when|when the user|when a user|"
+    r"triggers?|use this|use for|use to|use at)\b",
+    re.I,
+)
 WORD = re.compile(r"[a-z][a-z0-9+/.-]{2,}")
 STOP = {
-    "the", "and", "for", "with", "from", "you", "your", "use", "used", "using", "when",
-    "that", "this", "into", "onto", "not", "but", "are", "was", "its", "it's", "has",
-    "have", "any", "all", "one", "two", "per", "via", "out", "off", "own", "new", "old",
-    "asks", "ask", "asked", "user", "users", "want", "wants", "need", "needs", "needed",
-    "give", "gives", "get", "gets", "run", "runs", "make", "makes", "does", "each",
-    "also", "only", "just", "than", "then", "them", "they", "their", "there", "here",
-    "what", "which", "while", "will", "can", "may", "must", "should", "would", "could",
-    "over", "under", "after", "before", "such", "same", "other", "another", "more",
-    "most", "many", "much", "some", "every", "still", "even", "very", "own",
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "you",
+    "your",
+    "use",
+    "used",
+    "using",
+    "when",
+    "that",
+    "this",
+    "into",
+    "onto",
+    "not",
+    "but",
+    "are",
+    "was",
+    "its",
+    "it's",
+    "has",
+    "have",
+    "any",
+    "all",
+    "one",
+    "two",
+    "per",
+    "via",
+    "out",
+    "off",
+    "own",
+    "new",
+    "old",
+    "asks",
+    "ask",
+    "asked",
+    "user",
+    "users",
+    "want",
+    "wants",
+    "need",
+    "needs",
+    "needed",
+    "give",
+    "gives",
+    "get",
+    "gets",
+    "run",
+    "runs",
+    "make",
+    "makes",
+    "does",
+    "each",
+    "also",
+    "only",
+    "just",
+    "than",
+    "then",
+    "them",
+    "they",
+    "their",
+    "there",
+    "here",
+    "what",
+    "which",
+    "while",
+    "will",
+    "can",
+    "may",
+    "must",
+    "should",
+    "would",
+    "could",
+    "over",
+    "under",
+    "after",
+    "before",
+    "such",
+    "same",
+    "other",
+    "another",
+    "more",
+    "most",
+    "many",
+    "much",
+    "some",
+    "every",
+    "still",
+    "even",
+    "very",
+    "own",
 }
 
 
@@ -98,7 +185,11 @@ def survives(word: str, target_words: set[str]) -> bool:
     for t in target_words:
         if len(word) >= 4 and len(t) >= 4 and (word in t or t in word):
             return True
-        if len(word) >= 5 and len(t) >= 5 and (t.startswith(word[:5]) or word.startswith(t[:5])):
+        if (
+            len(word) >= 5
+            and len(t) >= 5
+            and (t.startswith(word[:5]) or word.startswith(t[:5]))
+        ):
             return True
     return False
 
@@ -143,7 +234,9 @@ def find_desc(text: str):
 def pre_desc(name: str, rev: str = PRE_REV) -> str | None:
     out = subprocess.run(
         ["git", "show", "%s:.agents/skills/%s/SKILL.md" % (rev, name)],
-        cwd=str(REPO), capture_output=True)
+        cwd=str(REPO),
+        capture_output=True,
+    )
     if out.returncode != 0:
         return None
     d = find_desc(out.stdout.decode("utf-8", "replace").replace("\r\n", "\n"))
@@ -153,10 +246,12 @@ def pre_desc(name: str, rev: str = PRE_REV) -> str | None:
 # ---------------------------------------------------------------- candidates
 ROWS = {
     "transcribe": {
-        "new": ("Use when asked to transcribe speech to text from audio/video, with "
-                "diarization to label speakers in recordings, interviews or meetings. "
-                "Do NOT use for WORD-LEVEL caption or karaoke timing -- use "
-                "reframe-transcribe."),
+        "new": (
+            "Use when asked to transcribe speech to text from audio/video, with "
+            "diarization to label speakers in recordings, interviews or meetings. "
+            "Do NOT use for WORD-LEVEL caption or karaoke timing -- use "
+            "reframe-transcribe."
+        ),
         # Declared, accepted losses vs the PRE-round-1 baseline. Each is either a
         # modifier ("optional"), a container word the text no longer needs
         # ("files", "extract"), or a compound whose head word survives
@@ -164,19 +259,23 @@ ROWS = {
         "accepts": ["files", "known-speaker", "hints", "extract", "label", "optional"],
     },
     "screenshot": {
-        "new": ("Use when the user asks for a desktop, system or OS-level screenshot "
-                "(full screen, a window, or a pixel region), or when tool-specific "
-                "capture is unavailable. NOT for a web page or app UI (use playwright "
-                "or ui-audit)."),
+        "new": (
+            "Use when the user asks for a desktop, system or OS-level screenshot "
+            "(full screen, a window, or a pixel region), or when tool-specific "
+            "capture is unavailable. NOT for a web page or app UI (use playwright "
+            "or ui-audit)."
+        ),
         # "specific" survives only inside the compound "tool-specific"; the
         # standalone use ("specific app or window") is dropped, declared here.
         "accepts": ["explicitly", "capabilities", "specific"],
     },
     "research-ops": {
-        "new": ("Thin router for the research stack. Use when you want fresh facts, "
-                "comparisons, enrichment, or evidence-backed recommendations -- it "
-                "picks the right skill. NOT the full multi-source pass (use "
-                "deep-research)."),
+        "new": (
+            "Thin router for the research stack. Use when you want fresh facts, "
+            "comparisons, enrichment, or evidence-backed recommendations -- it "
+            "picks the right skill. NOT the full multi-source pass (use "
+            "deep-research)."
+        ),
         "accepts": ["operator", "entry", "routes", "duplicating", "research", "rather"],
     },
     # C-LEN detector control: must be refused by P3.
@@ -202,8 +301,12 @@ def main() -> int:
     c_when_fixed = positive_when(new_t)
     c_lex_broken = lost_words(pre_t, cur_t)
     c_lex_fixed = lost_words(pre_t, new_t)
-    print("  P5 positive-WHEN on CURRENT transcribe : %s  (must be False)" % c_when_broken)
-    print("  P5 positive-WHEN on NEW     transcribe : %s  (must be True)" % c_when_fixed)
+    print(
+        "  P5 positive-WHEN on CURRENT transcribe : %s  (must be False)" % c_when_broken
+    )
+    print(
+        "  P5 positive-WHEN on NEW     transcribe : %s  (must be True)" % c_when_fixed
+    )
     print("  P6 lost-words CURRENT vs PRE           : %s" % c_lex_broken)
     print("  P6 lost-words NEW     vs PRE           : %s" % c_lex_fixed)
     # The audit named "speech" AND "speakers" as lost. Measured with a
@@ -213,8 +316,12 @@ def main() -> int:
     named = {"speech", "speaker"} & set(c_lex_broken)
     ok_ctrl = (not c_when_broken) and c_when_fixed and named
     print("  gates name the audited loss(es) of speech/speakers:", sorted(named))
-    print("  CONTROL:", "LIVE -- both gates discriminate" if ok_ctrl else
-          "DEAD -- no claim below may be cited")
+    print(
+        "  CONTROL:",
+        "LIVE -- both gates discriminate"
+        if ok_ctrl
+        else "DEAD -- no claim below may be cited",
+    )
     if not ok_ctrl:
         return 1
     print()
@@ -249,7 +356,9 @@ def main() -> int:
             refusals.append((name, "P3 no PRE baseline at %s" % PRE_REV))
             continue
         if len(new) > len(base):
-            refusals.append((name, "P3 exceeds PRE baseline %d -> %d" % (len(base), len(new))))
+            refusals.append(
+                (name, "P3 exceeds PRE baseline %d -> %d" % (len(base), len(new)))
+            )
             continue
         if ": " in new or '"' in new:
             refusals.append((name, "P4 unsafe YAML plain scalar"))
@@ -257,31 +366,58 @@ def main() -> int:
         if not positive_when(new):
             refusals.append((name, "P5 no positive WHEN after stripping negatives"))
             continue
-        undeclared = [w for w in lost_words(base, new)
-                      if w not in {norm(a) for a in spec["accepts"]}]
+        undeclared = [
+            w
+            for w in lost_words(base, new)
+            if w not in {norm(a) for a in spec["accepts"]}
+        ]
         if undeclared:
-            refusals.append((name, "P6 undeclared word loss vs baseline: %s" % undeclared))
+            refusals.append(
+                (name, "P6 undeclared word loss vs baseline: %s" % undeclared)
+            )
             continue
-        rows.append((name, len(old), len(new), len(base), found, new,
-                     lost_words(base, new), lost_words(old, new)))
+        rows.append(
+            (
+                name,
+                len(old),
+                len(new),
+                len(base),
+                found,
+                new,
+                lost_words(base, new),
+                lost_words(old, new),
+            )
+        )
 
     print("=" * 78)
-    print("%-16s %6s %6s %6s %7s  %s" % ("skill", "base", "old", "new", "d(base)", "action"))
+    print(
+        "%-16s %6s %6s %6s %7s  %s"
+        % ("skill", "base", "old", "new", "d(base)", "action")
+    )
     for name, lo, ln, bs, _f, _n, _lb, _lo2 in rows:
-        print("%-16s %6d %6d %6d %+7d  %s"
-              % (name, bs, lo, ln, ln - bs, "APPLY" if apply else "WOULD-APPLY"))
+        print(
+            "%-16s %6d %6d %6d %+7d  %s"
+            % (name, bs, lo, ln, ln - bs, "APPLY" if apply else "WOULD-APPLY")
+        )
     print()
     for name, _lo, _ln, _bs, _f, _n, lb, lo2 in rows:
-        print("  %-16s declared losses vs baseline=%s ; words dropped vs current=%s"
-              % (name, lb, lo2))
+        print(
+            "  %-16s declared losses vs baseline=%s ; words dropped vs current=%s"
+            % (name, lb, lo2)
+        )
     print()
     for name, why in refusals:
         print("REFUSED %-20s %s" % (name, why))
     ctrl_refused = any(n == CONTROL for n, _ in refusals)
     print()
-    print("C-LEN: oversized candidate %s"
-          % ("REFUSED by P3 -- length gate live" if ctrl_refused else
-             "ACCEPTED -- GATE DEAD, cite nothing"))
+    print(
+        "C-LEN: oversized candidate %s"
+        % (
+            "REFUSED by P3 -- length gate live"
+            if ctrl_refused
+            else "ACCEPTED -- GATE DEAD, cite nothing"
+        )
+    )
     if not ctrl_refused:
         return 1
     net_base = sum(r[2] - r[3] for r in rows)
@@ -311,27 +447,46 @@ def main() -> int:
                 d = find_desc(read(root / target / "SKILL.md"))
                 seen.add(d[1] if d else None)
             ok = seen == {ROWS[name]["new"]}
-            print("  %-16s %s" % (name, "OK -- identical in all 3" if ok else "MISMATCH"))
+            print(
+                "  %-16s %s" % (name, "OK -- identical in all 3" if ok else "MISMATCH")
+            )
             if not ok:
                 bad_w.append(name)
         print()
-        print("%s:s2-r2-negcase applied=%d mismatched=%d"
-              % ("FAILED" if bad_w else "SUCCESS", len(applied), len(bad_w)))
+        print(
+            "%s:s2-r2-negcase applied=%d mismatched=%d"
+            % ("FAILED" if bad_w else "SUCCESS", len(applied), len(bad_w))
+        )
         if bad_w:
             return 1
 
     (REPO / "command-center/grounding/S2-R2-APPLY.json").write_text(
-        json.dumps({
-            "applied": applied,
-            "planned": [{"skill": r[0], "baseline": r[3], "old": r[1], "new": r[2],
-                         "delta_vs_baseline": r[2] - r[3], "delta_vs_current": r[2] - r[1],
-                         "declared_losses": r[6]} for r in rows],
-            "refusals": [{"skill": n, "why": w} for n, w in refusals],
-            "control_len_refused": ctrl_refused,
-            "control_when_fires_on_broken": not c_when_broken,
-            "control_lex_names": sorted(named),
-            "net_vs_baseline": net_base, "net_vs_current": net_cur,
-        }, indent=1), encoding="utf-8")
+        json.dumps(
+            {
+                "applied": applied,
+                "planned": [
+                    {
+                        "skill": r[0],
+                        "baseline": r[3],
+                        "old": r[1],
+                        "new": r[2],
+                        "delta_vs_baseline": r[2] - r[3],
+                        "delta_vs_current": r[2] - r[1],
+                        "declared_losses": r[6],
+                    }
+                    for r in rows
+                ],
+                "refusals": [{"skill": n, "why": w} for n, w in refusals],
+                "control_len_refused": ctrl_refused,
+                "control_when_fires_on_broken": not c_when_broken,
+                "control_lex_names": sorted(named),
+                "net_vs_baseline": net_base,
+                "net_vs_current": net_cur,
+            },
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
     return 0
 
 

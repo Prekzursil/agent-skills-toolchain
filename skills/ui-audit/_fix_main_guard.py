@@ -84,7 +84,7 @@ def main():
         if OLD not in text:
             skipped.append((p.name, "guard not found"))
             continue
-        add_import = needs_import(text)          # decide on the ORIGINAL text
+        add_import = needs_import(text)  # decide on the ORIGINAL text
         out = text.replace(OLD, NEW)
         if add_import:
             out = insert_import(out)
@@ -92,7 +92,9 @@ def main():
         # must also IMPORT it. Without this the ReferenceError is swallowed by the
         # guard's own catch and the repair is invisible -- exit 0, nothing fixed.
         if "realpathSync" in out and "import { realpathSync }" not in out:
-            print(f"FAILED:fix-main-guard {p.name} uses realpathSync without importing it")
+            print(
+                f"FAILED:fix-main-guard {p.name} uses realpathSync without importing it"
+            )
             return 1
         p.write_bytes(out.encode("utf-8"))
         patched.append(p.name)

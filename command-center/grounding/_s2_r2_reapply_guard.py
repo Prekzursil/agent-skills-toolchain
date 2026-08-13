@@ -21,6 +21,7 @@ Controls:
   * the post-condition (guard references realpathSync => file imports it) must hold.
   * the executable both-states probe is re-run separately; THAT is the proof.
 """
+
 import hashlib
 import io
 import subprocess
@@ -34,11 +35,14 @@ TOOL = "_fix_main_guard.py"
 
 
 def blob(relpath):
-    out = subprocess.run(["git", "show", "HEAD:%s" % relpath], cwd=str(REPO),
-                         capture_output=True)
+    out = subprocess.run(
+        ["git", "show", "HEAD:%s" % relpath], cwd=str(REPO), capture_output=True
+    )
     if out.returncode != 0:
-        raise SystemExit("cannot read HEAD blob for %s: %s"
-                         % (relpath, out.stderr.decode("utf-8", "replace")[:200]))
+        raise SystemExit(
+            "cannot read HEAD blob for %s: %s"
+            % (relpath, out.stderr.decode("utf-8", "replace")[:200])
+        )
     return out.stdout
 
 
@@ -53,7 +57,10 @@ def main():
         same = len(set(hs.values())) == 1
         print("  %-24s %s  identical=%s" % (name, list(hs.values()), same))
         if not same:
-            print("  REFUSED: trees diverge at HEAD for %s -- not a mechanical re-apply" % name)
+            print(
+                "  REFUSED: trees diverge at HEAD for %s -- not a mechanical re-apply"
+                % name
+            )
             return 1
 
     print()
@@ -66,8 +73,7 @@ def main():
         print("  wrote %s (%d bytes)" % (dst, len(fixed)))
     else:
         print("  %s already identical" % dst)
-    print("  tool sha now: %s / %s"
-          % (sha(src.read_bytes()), sha(dst.read_bytes())))
+    print("  tool sha now: %s / %s" % (sha(src.read_bytes()), sha(dst.read_bytes())))
 
     print()
     print("=== 2. rewind the target to HEAD bytes (LF preserved, no git checkout) ===")
@@ -81,8 +87,9 @@ def main():
     print("=== 3. run the CORRECTED tool in each tree ===")
     rc = 0
     for t in TREES:
-        r = subprocess.run([sys.executable, str(REPO / t / TOOL)],
-                           capture_output=True, text=True)
+        r = subprocess.run(
+            [sys.executable, str(REPO / t / TOOL)], capture_output=True, text=True
+        )
         rc |= r.returncode
         head = [x for x in r.stdout.splitlines() if not x.startswith("  skipped")]
         print("  %-30s exit=%d  %s" % (t, r.returncode, " | ".join(head)))
@@ -103,8 +110,10 @@ def main():
         no_old = "resolve(process.argv[1]) === resolve(__filename)" not in text
         crlf = text.count("\r\n")
         hashes.append(sha(p.read_bytes()))
-        print("  %-30s import=%-5s __isMain=%-5s old-guard-gone=%-5s crlf=%d"
-              % (t, has_import, has_guard, no_old, crlf))
+        print(
+            "  %-30s import=%-5s __isMain=%-5s old-guard-gone=%-5s crlf=%d"
+            % (t, has_import, has_guard, no_old, crlf)
+        )
         ok &= has_import and has_guard and no_old and crlf == 0
     print("  both trees byte-identical:", len(set(hashes)) == 1)
     ok &= len(set(hashes)) == 1

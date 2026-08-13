@@ -35,17 +35,38 @@ OUT = Path(
 )
 
 PRIOR_BARE = {
-    "ui-drive", "ui-invariant-walk", "vercel-deploy", "verification-loop",
-    "video-convert", "video-join-concat", "video-resize-aspect", "video-stabilize",
-    "voice-analyze", "voice-apply", "voice-blend", "voice-create", "volatility-3",
-    "webapp-testing", "windbg-command-cookbook", "windbg-preview",
-    "windows-virtualization-conflict-triage", "winui-app", "workflow-foundry",
-    "workflow-monitor", "writing-plans", "wsl-vmware-cutover", "x-api", "x64dbg",
-    "yeet", "zero-issue-coding",
+    "ui-drive",
+    "ui-invariant-walk",
+    "vercel-deploy",
+    "verification-loop",
+    "video-convert",
+    "video-join-concat",
+    "video-resize-aspect",
+    "video-stabilize",
+    "voice-analyze",
+    "voice-apply",
+    "voice-blend",
+    "voice-create",
+    "volatility-3",
+    "webapp-testing",
+    "windbg-command-cookbook",
+    "windbg-preview",
+    "windows-virtualization-conflict-triage",
+    "winui-app",
+    "workflow-foundry",
+    "workflow-monitor",
+    "writing-plans",
+    "wsl-vmware-cutover",
+    "x-api",
+    "x64dbg",
+    "yeet",
+    "zero-issue-coding",
 }
 FLIPS = {
-    "use-image-clipboard", "using-git-worktrees",
-    "verification-before-completion", "writing-skills",
+    "use-image-clipboard",
+    "using-git-worktrees",
+    "verification-before-completion",
+    "writing-skills",
 }
 NOW_BARE = PRIOR_BARE | FLIPS
 
@@ -90,7 +111,9 @@ byname = {r["name"]: r for r in rows}
 broken = [n for n in sorted(NOW_BARE) if byname.get(n, {}).get("chars", 0) == 0]
 print(f"  fleet scanned      : {len(rows)}")
 print(f"  bare names checked : {len(NOW_BARE)}")
-print(f"  premise breaks     : {broken if broken else 'NONE -- all 30 have real text on disk'}")
+print(
+    f"  premise breaks     : {broken if broken else 'NONE -- all 30 have real text on disk'}"
+)
 
 
 def predict_bare(B: int, overhead: int = 0) -> set[str]:
@@ -151,7 +174,9 @@ print("=" * 78)
 print("4. DETECTOR CONTROL (rule 3c) -- can this fitter fit ANY 30-skill set?")
 print("   H1 'budget explains it' => true set fits far better than decoys.")
 print("   H2 'fitter is inert'    => decoys fit about as well. Same PASS shape, so")
-print("                              without this control the section-1 fit proves nothing.")
+print(
+    "                              without this control the section-1 fit proves nothing."
+)
 B_true, w_true = fit(NOW_BARE)
 print(f"  TRUE observed 30      : best mismatches={w_true:3d} (B={B_true})")
 rng = random.Random(20260812)
@@ -163,12 +188,16 @@ alpha30 = set(NAMES[:30])
 long30 = {r["name"] for r in sorted(rows, key=lambda r: -r["chars"])[:30]}
 w_alpha = fit(alpha30)[1]
 w_long = fit(long30)[1]
-print(f"  200 RANDOM 30-subsets : best mismatches min={min(decoy_scores)} "
-      f"median={sorted(decoy_scores)[100]} max={max(decoy_scores)}")
+print(
+    f"  200 RANDOM 30-subsets : best mismatches min={min(decoy_scores)} "
+    f"median={sorted(decoy_scores)[100]} max={max(decoy_scores)}"
+)
 print(f"  alphabetically FIRST 30 : mismatches={w_alpha}")
 print(f"  LONGEST-description 30  : mismatches={w_long}")
 inert = min(decoy_scores) <= w_true
-print(f"  CONTROL VERDICT: {'INERT -- fitter fits anything; section 1 is void' if inert else 'DISCRIMINATING -- true set fits strictly better than every decoy'}")
+print(
+    f"  CONTROL VERDICT: {'INERT -- fitter fits anything; section 1 is void' if inert else 'DISCRIMINATING -- true set fits strictly better than every decoy'}"
+)
 
 print()
 print("=" * 78)

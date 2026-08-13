@@ -51,16 +51,22 @@ with tempfile.TemporaryDirectory() as td:
     v_mod = drift.classify_pair(t / "deployed.md", t / "modified.md")
     print(f"  APPEND a line   -> {v_app}")
     print(f"  MODIFY the desc -> {v_mod}")
-    print(f"  CONTROL: verdicts differ? {v_app != v_mod}"
-          f"{'' if v_app != v_mod else '   <== INERT, probe proves nothing'}")
+    print(
+        f"  CONTROL: verdicts differ? {v_app != v_mod}"
+        f"{'' if v_app != v_mod else '   <== INERT, probe proves nothing'}"
+    )
     safe_shape = v_app == drift.RIGHT_AHEAD and v_mod == drift.DIVERGED
     print(f"  VERDICT: deploy hop is APPEND-ONLY = {safe_shape}")
-    print("   -> a description EDIT authored in the repo can never reach skills.daily"
-          if safe_shape else "   -> append-only claim NOT reproduced")
+    print(
+        "   -> a description EDIT authored in the repo can never reach skills.daily"
+        if safe_shape
+        else "   -> append-only claim NOT reproduced"
+    )
 
 NEG = re.compile(
     r"\b(do not use|don't use|not for|never use|rather than|instead of|"
-    r"use \w[\w-]* instead|NOT a |is not a )", re.I
+    r"use \w[\w-]* instead|NOT a |is not a )",
+    re.I,
 )
 SIB = re.compile(r"\buse\s+`?([a-z][a-z0-9-]{3,})`?\b", re.I)
 RET = re.compile(r"\b(returns?|emits?|produces?|outputs?)\b", re.I)
@@ -111,14 +117,36 @@ fam = defaultdict(list)
 for n in recs:
     fam[n.split("-")[0]].append(n)
 BARE = {
-    "ui-drive", "ui-invariant-walk", "vercel-deploy", "verification-loop",
-    "video-convert", "video-join-concat", "video-resize-aspect", "video-stabilize",
-    "voice-analyze", "voice-apply", "voice-blend", "voice-create", "volatility-3",
-    "webapp-testing", "windbg-command-cookbook", "windbg-preview",
-    "windows-virtualization-conflict-triage", "winui-app", "workflow-foundry",
-    "workflow-monitor", "writing-plans", "wsl-vmware-cutover", "x-api", "x64dbg",
-    "yeet", "zero-issue-coding", "use-image-clipboard", "using-git-worktrees",
-    "verification-before-completion", "writing-skills",
+    "ui-drive",
+    "ui-invariant-walk",
+    "vercel-deploy",
+    "verification-loop",
+    "video-convert",
+    "video-join-concat",
+    "video-resize-aspect",
+    "video-stabilize",
+    "voice-analyze",
+    "voice-apply",
+    "voice-blend",
+    "voice-create",
+    "volatility-3",
+    "webapp-testing",
+    "windbg-command-cookbook",
+    "windbg-preview",
+    "windows-virtualization-conflict-triage",
+    "winui-app",
+    "workflow-foundry",
+    "workflow-monitor",
+    "writing-plans",
+    "wsl-vmware-cutover",
+    "x-api",
+    "x64dbg",
+    "yeet",
+    "zero-issue-coding",
+    "use-image-clipboard",
+    "using-git-worktrees",
+    "verification-before-completion",
+    "writing-skills",
 }
 print()
 print("  CANDIDATES: >=3 same-prefix siblings, NO negative case, currently RENDERED")
@@ -133,7 +161,9 @@ for n, nf, ch, sibs in sorted(cands, key=lambda t: (-t[1], -t[2]))[:22]:
 print(f"  total candidates: {len(cands)}")
 
 print()
-print(f"  TOTAL description chars in skills.daily: {sum(len(v) for v in recs.values())}")
+print(
+    f"  TOTAL description chars in skills.daily: {sum(len(v) for v in recs.values())}"
+)
 
 Path(REPO_ROOT / "command-center/grounding/S2-NEGCASE.json").write_text(
     json.dumps(

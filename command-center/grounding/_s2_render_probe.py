@@ -45,40 +45,76 @@ PLUGINS = Path(r"C:/Users/Prekzursil/.claude/plugins")
 # ---------------------------------------------------------------- observations
 # Prior grounding lane, recorded 2026-08-12 ~01:35 in _g5_bare_desc_probe.py.
 PRIOR_BARE = [
-    "ui-drive", "ui-invariant-walk", "vercel-deploy", "verification-loop",
-    "video-convert", "video-join-concat", "video-resize-aspect", "video-stabilize",
-    "voice-analyze", "voice-apply", "voice-blend", "voice-create", "volatility-3",
-    "webapp-testing", "windbg-command-cookbook", "windbg-preview",
-    "windows-virtualization-conflict-triage", "winui-app", "workflow-foundry",
-    "workflow-monitor", "writing-plans", "wsl-vmware-cutover", "x-api", "x64dbg",
-    "yeet", "zero-issue-coding",
+    "ui-drive",
+    "ui-invariant-walk",
+    "vercel-deploy",
+    "verification-loop",
+    "video-convert",
+    "video-join-concat",
+    "video-resize-aspect",
+    "video-stabilize",
+    "voice-analyze",
+    "voice-apply",
+    "voice-blend",
+    "voice-create",
+    "volatility-3",
+    "webapp-testing",
+    "windbg-command-cookbook",
+    "windbg-preview",
+    "windows-virtualization-conflict-triage",
+    "winui-app",
+    "workflow-foundry",
+    "workflow-monitor",
+    "writing-plans",
+    "wsl-vmware-cutover",
+    "x-api",
+    "x64dbg",
+    "yeet",
+    "zero-issue-coding",
 ]
 PRIOR_SURVIVORS = [
-    "ui-ux-pro-max", "use-image-clipboard", "using-git-worktrees",
-    "using-superpowers", "verification-before-completion",
-    "video-watermark-removal", "workflow-authoring", "writing-skills",
+    "ui-ux-pro-max",
+    "use-image-clipboard",
+    "using-git-worktrees",
+    "using-superpowers",
+    "verification-before-completion",
+    "video-watermark-removal",
+    "workflow-authoring",
+    "writing-skills",
 ]
 
 # THIS session (SKILLS2 grounding subagent), transcribed from my own system prompt.
 NOW_BARE = PRIOR_BARE + [
-    "use-image-clipboard", "using-git-worktrees",
-    "verification-before-completion", "writing-skills",
+    "use-image-clipboard",
+    "using-git-worktrees",
+    "verification-before-completion",
+    "writing-skills",
 ]
 NOW_SURVIVORS = [
-    "ui-ux-pro-max", "using-superpowers", "video-watermark-removal",
+    "ui-ux-pro-max",
+    "using-superpowers",
+    "video-watermark-removal",
     "workflow-authoring",
 ]
 
 # Plugin-namespace observations from THIS session's listing (superpowers:*).
 PLUGIN_BARE = [
-    "executing-plans", "receiving-code-review", "requesting-code-review",
-    "test-driven-development", "using-git-worktrees",
+    "executing-plans",
+    "receiving-code-review",
+    "requesting-code-review",
+    "test-driven-development",
+    "using-git-worktrees",
     "verification-before-completion",
 ]
 PLUGIN_DESC = [
-    "brainstorming", "dispatching-parallel-agents",
-    "finishing-a-development-branch", "subagent-driven-development",
-    "systematic-debugging", "using-superpowers", "writing-plans", "writing-skills",
+    "brainstorming",
+    "dispatching-parallel-agents",
+    "finishing-a-development-branch",
+    "subagent-driven-development",
+    "systematic-debugging",
+    "using-superpowers",
+    "writing-plans",
+    "writing-skills",
 ]
 
 SPEC_MAX_DESC = 1024  # Anthropic skill-spec description ceiling
@@ -127,9 +163,7 @@ def scan(root: Path) -> dict:
         if not sk.exists():
             continue
         raw = sk.read_bytes()
-        keys, desc, folded = parse_frontmatter(
-            raw.decode("utf-8", errors="replace")
-        )
+        keys, desc, folded = parse_frontmatter(raw.decode("utf-8", errors="replace"))
         out[d.name] = {
             "desc": desc or "",
             "chars": len(desc or ""),
@@ -137,9 +171,7 @@ def scan(root: Path) -> dict:
             "keys": keys,
             "mtime": sk.stat().st_mtime,
             "sha": hashlib.sha256(raw).hexdigest()[:16],
-            "desc_sha": hashlib.sha256(
-                (desc or "").encode("utf-8")
-            ).hexdigest()[:16],
+            "desc_sha": hashlib.sha256((desc or "").encode("utf-8")).hexdigest()[:16],
         }
     return out
 
@@ -151,9 +183,7 @@ def scan_plugin_skills() -> dict:
         return out
     for sk in PLUGINS.rglob("SKILL.md"):
         raw = sk.read_bytes()
-        keys, desc, folded = parse_frontmatter(
-            raw.decode("utf-8", errors="replace")
-        )
+        keys, desc, folded = parse_frontmatter(raw.decode("utf-8", errors="replace"))
         out.setdefault(sk.parent.name, []).append(
             {
                 "path": str(sk),
@@ -162,9 +192,9 @@ def scan_plugin_skills() -> dict:
                 "folded": folded,
                 "mtime": sk.stat().st_mtime,
                 "sha": hashlib.sha256(raw).hexdigest()[:16],
-                "desc_sha": hashlib.sha256(
-                    (desc or "").encode("utf-8")
-                ).hexdigest()[:16],
+                "desc_sha": hashlib.sha256((desc or "").encode("utf-8")).hexdigest()[
+                    :16
+                ],
             }
         )
     return out
@@ -176,7 +206,9 @@ plug = scan_plugin_skills()
 print("=" * 78)
 print("0. INVENTORY")
 print(f"  skills.daily dirs with SKILL.md : {len(daily)}")
-print(f"  ~/.claude/skills is junction    : {JUNCTION.is_symlink() or JUNCTION.exists()}")
+print(
+    f"  ~/.claude/skills is junction    : {JUNCTION.is_symlink() or JUNCTION.exists()}"
+)
 print(f"  plugin skill NAMES              : {len(plug)}")
 print(f"  plugin SKILL.md files           : {sum(len(v) for v in plug.values())}")
 
@@ -207,13 +239,19 @@ gjson = Path(
     r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/G-BARE-DESC.json"
 )
 obs_ts = gjson.stat().st_mtime if gjson.exists() else None
-print(f"  prior observation recorded at : "
-      f"{dt.datetime.fromtimestamp(obs_ts):%Y-%m-%d %H:%M:%S}" if obs_ts else "  ?")
+print(
+    f"  prior observation recorded at : "
+    f"{dt.datetime.fromtimestamp(obs_ts):%Y-%m-%d %H:%M:%S}"
+    if obs_ts
+    else "  ?"
+)
 print(f"  DESCRIBED -> BARE  (n={len(flips)}) : {flips}")
 print(f"  BARE -> DESCRIBED  (n={len(unflips)}): {unflips}")
 print(f"  survivors in BOTH  (n={len(stable_surv)}): {stable_surv}")
 print()
-print(f"  {'flipped skill':40s} {'chars':>6s} {'SKILL.md mtime':>20s}  changed-since-obs?")
+print(
+    f"  {'flipped skill':40s} {'chars':>6s} {'SKILL.md mtime':>20s}  changed-since-obs?"
+)
 for n in flips:
     r = daily.get(n)
     if not r:
@@ -230,14 +268,16 @@ for n in flips:
 print()
 print("=" * 78)
 print("2. DISCRIMINATOR -- same description text, two namespaces, different render")
-print(f"  {'name':34s} {'user chars':>10s} {'plug chars':>10s} desc-sha match  user/plug render")
+print(
+    f"  {'name':34s} {'user chars':>10s} {'plug chars':>10s} desc-sha match  user/plug render"
+)
 for n in sorted(set(PLUGIN_BARE) | set(PLUGIN_DESC)):
     u = daily.get(n)
     ps = plug.get(n, [])
     if not ps:
         continue
     p = ps[0]
-    same = (u and u["desc_sha"] == p["desc_sha"])
+    same = u and u["desc_sha"] == p["desc_sha"]
     urender = "BARE" if n in NOW_BARE else ("DESC" if u else "-")
     prender = "BARE" if n in PLUGIN_BARE else "DESC"
     print(
@@ -279,14 +319,10 @@ group_stats(list(daily), "WHOLE FLEET")
 
 folded_all = sorted(n for n, v in daily.items() if v["folded"])
 print(f"\n  folded-scalar skills fleet-wide (n={len(folded_all)}): {folded_all}")
-print(f"  of those, BARE this session: "
-      f"{sorted(set(folded_all) & set(NOW_BARE))}")
-over = sorted(
-    (v["chars"], n) for n, v in daily.items() if v["chars"] > SPEC_MAX_DESC
-)
+print(f"  of those, BARE this session: {sorted(set(folded_all) & set(NOW_BARE))}")
+over = sorted((v["chars"], n) for n, v in daily.items() if v["chars"] > SPEC_MAX_DESC)
 print(f"\n  descriptions > {SPEC_MAX_DESC} spec max (n={len(over)}): {over}")
-print(f"  of those, BARE this session: "
-      f"{sorted(n for _, n in over if n in NOW_BARE)}")
+print(f"  of those, BARE this session: {sorted(n for _, n in over if n in NOW_BARE)}")
 
 # ------------------------------------------------------------ budget arithmetic
 print()
@@ -306,9 +342,7 @@ out = {
     "now_bare": NOW_BARE,
     "flips_described_to_bare": flips,
     "flips_bare_to_described": unflips,
-    "flip_mtimes": {
-        n: daily[n]["mtime"] for n in flips if n in daily
-    },
+    "flip_mtimes": {n: daily[n]["mtime"] for n in flips if n in daily},
     "prior_observation_ts": obs_ts,
     "folded_fleet": folded_all,
     "over_spec_desc": over,

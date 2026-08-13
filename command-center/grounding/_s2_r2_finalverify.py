@@ -9,6 +9,7 @@ Checks, each with the number that would falsify it:
   V5 main-guard state across all four trees
   V6 no CRLF introduced into any file this lane wrote
 """
+
 import io
 import json
 import subprocess
@@ -17,19 +18,40 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from _s2_r2_apply import (  # noqa: E402
-    ROWS, TREES, content_words, find_desc, norm, pre_desc, read, survives,
+    ROWS,
+    TREES,
+    content_words,
+    find_desc,
+    norm,
+    pre_desc,
+    read,
+    survives,
 )
 
 REPO = Path(r"C:/Users/Prekzursil/source/ast-integrate")
 EXPECT_FLEET = 115461
-ALL_SEVEN = ["transcribe", "tdd-workflow", "security-review", "screenshot",
-             "e2e-testing", "python-testing", "research-ops"]
+ALL_SEVEN = [
+    "transcribe",
+    "tdd-workflow",
+    "security-review",
+    "screenshot",
+    "e2e-testing",
+    "python-testing",
+    "research-ops",
+]
 # Losses declared across rounds 1 and 2 (round-1 rows had no gate; their losses are
 # enumerated here so V3 is a real gate over the whole lane, not just round 2).
 DECLARED = {
     "transcribe": ["files", "known-speaker", "hints", "extract", "label", "optional"],
     "screenshot": ["explicitly", "capabilities", "specific"],
-    "research-ops": ["operator", "entry", "routes", "duplicating", "research", "rather"],
+    "research-ops": [
+        "operator",
+        "entry",
+        "routes",
+        "duplicating",
+        "research",
+        "rather",
+    ],
     # Round-1 rows had no recall gate; their losses are enumerated here so V3 is a
     # gate over the WHOLE lane. Each is a meta/filler word whose subject survives:
     #   tdd-workflow    "this skill"->-, "refactoring code"->refactoring, "including"->-
@@ -43,20 +65,32 @@ DECLARED = {
     #                   ("python"/"testing" are recovered from the skill NAME, which V3
     #                    now checks mechanically rather than by assertion)
     "tdd-workflow": ["skill", "code", "including"],
-    "security-review": ["skill", "working", "creating", "implementing", "provide",
-                        "comprehensive"],
+    "security-review": [
+        "skill",
+        "working",
+        "creating",
+        "implementing",
+        "provide",
+        "comprehensive",
+    ],
     "e2e-testing": ["integration", "management", "strategies"],
     "python-testing": ["methodology", "requirements"],
 }
 GUARD_TREES = {
     "repo/skills": REPO / "skills/ui-audit/dead_button_crawl.mjs",
     "repo/.agents": REPO / ".agents/skills/ui-audit/dead_button_crawl.mjs",
-    "live/daily": Path("C:/Users/Prekzursil/.claude/skills.daily/ui-audit/dead_button_crawl.mjs"),
-    "live/vault": Path("C:/Users/Prekzursil/.agents/skills/ui-audit/dead_button_crawl.mjs"),
+    "live/daily": Path(
+        "C:/Users/Prekzursil/.claude/skills.daily/ui-audit/dead_button_crawl.mjs"
+    ),
+    "live/vault": Path(
+        "C:/Users/Prekzursil/.agents/skills/ui-audit/dead_button_crawl.mjs"
+    ),
 }
 WROTE = [
-    "skills/ui-audit/dead_button_crawl.mjs", ".agents/skills/ui-audit/dead_button_crawl.mjs",
-    "skills/ui-audit/_fix_main_guard.py", ".agents/skills/ui-audit/_fix_main_guard.py",
+    "skills/ui-audit/dead_button_crawl.mjs",
+    ".agents/skills/ui-audit/dead_button_crawl.mjs",
+    "skills/ui-audit/_fix_main_guard.py",
+    ".agents/skills/ui-audit/_fix_main_guard.py",
 ]
 
 
@@ -89,7 +123,9 @@ def desc_folded_aware(p):
             if rest in (">", ">-", "|", "|-", ">+", "|+"):
                 i += 1
                 chunk = []
-                while i < len(body) and (body[i].strip() == "" or body[i][:1] in (" ", "\t")):
+                while i < len(body) and (
+                    body[i].strip() == "" or body[i][:1] in (" ", "\t")
+                ):
                     chunk.append(body[i].strip())
                     i += 1
                 return " ".join(x for x in chunk if x)
@@ -108,10 +144,19 @@ def main():
     print("=== V1 fleet description chars ===")
     fleet = sum(len(desc_folded_aware(daily / n / "SKILL.md")) for n in names)
     blind = sum(len(desc_of(daily / n / "SKILL.md") or "") for n in names)
-    print("  %d skills, %d chars (expect %d) -> %s"
-          % (len(names), fleet, EXPECT_FLEET, "OK" if fleet == EXPECT_FLEET else "MISMATCH"))
-    print("  folded-blind parser would report %d (%+d) -- the round-1 trap, reproduced"
-          % (blind, blind - fleet))
+    print(
+        "  %d skills, %d chars (expect %d) -> %s"
+        % (
+            len(names),
+            fleet,
+            EXPECT_FLEET,
+            "OK" if fleet == EXPECT_FLEET else "MISMATCH",
+        )
+    )
+    print(
+        "  folded-blind parser would report %d (%+d) -- the round-1 trap, reproduced"
+        % (blind, blind - fleet)
+    )
     ok &= fleet == EXPECT_FLEET
 
     print()
@@ -134,12 +179,18 @@ def main():
         # primary key -- so "python"/"testing" for python-testing are recoverable.
         surface = set(content_words(now)) | {norm(x) for x in n.split("-")}
         lost = [w for w in content_words(base) if not survives(w, surface)]
-        undeclared = [w for w in lost if not survives(w, {norm(x) for x in DECLARED[n]})]
-        gained = [w for w in content_words(now) if not survives(w, set(content_words(base)))]
+        undeclared = [
+            w for w in lost if not survives(w, {norm(x) for x in DECLARED[n]})
+        ]
+        gained = [
+            w for w in content_words(now) if not survives(w, set(content_words(base)))
+        ]
         total_lost += len(lost)
         flag = "OK" if not undeclared else "UNDECLARED LOSS"
-        print("  %-16s lost=%-2d declared-ok=%-5s gained=%-2d %s"
-              % (n, len(lost), not undeclared, len(gained), flag))
+        print(
+            "  %-16s lost=%-2d declared-ok=%-5s gained=%-2d %s"
+            % (n, len(lost), not undeclared, len(gained), flag)
+        )
         if undeclared:
             print("      undeclared: %s" % undeclared)
         ok &= not undeclared
@@ -162,8 +213,10 @@ def main():
         new = "__isMain(process.argv[1], __filename)" in txt
         imp = "import { realpathSync }" in txt
         good = (not old) and new and imp
-        print("  %-14s old-guard=%-5s __isMain=%-5s imports=%-5s %s"
-              % (t, old, new, imp, "OK" if good else "STILL BROKEN"))
+        print(
+            "  %-14s old-guard=%-5s __isMain=%-5s imports=%-5s %s"
+            % (t, old, new, imp, "OK" if good else "STILL BROKEN")
+        )
         ok &= good
 
     print()
@@ -176,14 +229,30 @@ def main():
 
     print()
     print("=== V7 dual-write gate ===")
-    r = subprocess.run([sys.executable, "ci/check_skill_dual_write.py"],
-                       cwd=str(REPO), capture_output=True, text=True)
-    print("  exit=%d  %s" % (r.returncode, (r.stdout or r.stderr).strip().splitlines()[-1:]))
+    r = subprocess.run(
+        [sys.executable, "ci/check_skill_dual_write.py"],
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+    )
+    print(
+        "  exit=%d  %s"
+        % (r.returncode, (r.stdout or r.stderr).strip().splitlines()[-1:])
+    )
     ok &= r.returncode == 0
 
     (REPO / "command-center/grounding/S2-R2-FINALVERIFY.json").write_text(
-        json.dumps({"fleet": fleet, "lane_delta": delta, "total_lost_words": total_lost,
-                    "all_ok": bool(ok)}, indent=1), encoding="utf-8")
+        json.dumps(
+            {
+                "fleet": fleet,
+                "lane_delta": delta,
+                "total_lost_words": total_lost,
+                "all_ok": bool(ok),
+            },
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
     print()
     print("%s:s2-r2-finalverify" % ("SUCCESS" if ok else "FAILED"))
     return 0 if ok else 1

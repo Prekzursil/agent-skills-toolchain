@@ -72,9 +72,7 @@ NEW = {
         "skill. NOT the full multi-source pass (use deep-research)."
     ),
     # DETECTOR CONTROL -- deliberately longer than the original. P3 MUST refuse this.
-    "__control_too_long": (
-        "x" * 4000
-    ),
+    "__control_too_long": ("x" * 4000),
 }
 CONTROL = "__control_too_long"
 NEW[CONTROL] = NEW[CONTROL]
@@ -130,7 +128,9 @@ for name, new in NEW.items():
     else:
         cur = {v[1][1] for v in found.values()}
         if len(cur) != 1:
-            refusals.append((name, f"P2 description differs across trees ({len(cur)} variants)"))
+            refusals.append(
+                (name, f"P2 description differs across trees ({len(cur)} variants)")
+            )
             continue
         old = cur.pop()
         if len(new) > len(old):
@@ -155,7 +155,9 @@ for name, lo, ln, dl, found, new_text in rows:
             text = read(p)
             lines = text.split("\n")
             cr = "\r" if lines[idx].endswith("\r") else ""
-            lines[idx] = f'description: {chr(34) + new_text + chr(34) if quoted else new_text}{cr}'
+            lines[idx] = (
+                f"description: {chr(34) + new_text + chr(34) if quoted else new_text}{cr}"
+            )
             write(p, "\n".join(lines))
         applied.append(name)
 print()
@@ -165,8 +167,10 @@ for name, why in refusals:
 ctrl_refused = any(n == CONTROL for n, _ in refusals)
 print()
 print("=" * 78)
-print(f"DETECTOR CONTROL: the deliberately-oversized candidate was "
-      f"{'REFUSED by P3 -- length gate is live' if ctrl_refused else 'ACCEPTED -- GATE IS DEAD, no budget claim here may be cited'}")
+print(
+    f"DETECTOR CONTROL: the deliberately-oversized candidate was "
+    f"{'REFUSED by P3 -- length gate is live' if ctrl_refused else 'ACCEPTED -- GATE IS DEAD, no budget claim here may be cited'}"
+)
 print(f"net description-char delta: {sum(r[3] for r in rows):+d}")
 
 if apply:
@@ -183,7 +187,9 @@ if apply:
         print(f"  {name:26s} {'OK -- identical in all 3' if ok else 'MISMATCH'}")
         if not ok:
             bad.append(name)
-    print(f"\n{'FAILED' if bad else 'SUCCESS'}:s2-negcase applied={len(applied)} mismatched={len(bad)}")
+    print(
+        f"\n{'FAILED' if bad else 'SUCCESS'}:s2-negcase applied={len(applied)} mismatched={len(bad)}"
+    )
 
 Path(
     r"C:/Users/Prekzursil/source/ast-integrate/command-center/grounding/S2-NEGCASE-APPLIED.json"

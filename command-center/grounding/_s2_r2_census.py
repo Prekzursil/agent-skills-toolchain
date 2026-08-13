@@ -19,6 +19,7 @@ DETECTOR CONTROL (rule 3c -- state the hypotheses before the control runs):
   NEW must also be shown non-vacuous: it must return True on texts that really do
   state a positive WHEN, not merely False on everything.
 """
+
 import io
 import json
 import os
@@ -29,16 +30,28 @@ import sys
 DAILY = "C:/Users/Prekzursil/.claude/skills.daily"
 REPO = "C:/Users/Prekzursil/source/ast-integrate"
 PRE_REV = "1e9cfe81~1"
-EDITED = ["transcribe", "tdd-workflow", "security-review", "screenshot",
-          "e2e-testing", "python-testing", "research-ops"]
+EDITED = [
+    "transcribe",
+    "tdd-workflow",
+    "security-review",
+    "screenshot",
+    "e2e-testing",
+    "python-testing",
+    "research-ops",
+]
 
 OLD_WHEN = re.compile(r"\b(use when|when the user|triggers?|use this)\b", re.I)
 # A negative clause runs from its marker to the end of the sentence.
 NEG_CLAUSE = re.compile(
     r"(do not use|don't use|do NOT use|never use|not for|NOT for|NOT the|NOT a )"
-    r"[^.;]*[.;]?", re.I)
-POS_WHEN = re.compile(r"\b(use when|use this when|when the user|when a user|"
-                      r"triggers?|use this|use for|use to|use at)\b", re.I)
+    r"[^.;]*[.;]?",
+    re.I,
+)
+POS_WHEN = re.compile(
+    r"\b(use when|use this when|when the user|when a user|"
+    r"triggers?|use this|use for|use to|use at)\b",
+    re.I,
+)
 
 
 def new_when(desc):
@@ -70,7 +83,9 @@ def desc_from_text(text):
             if rest in (">", ">-", "|", "|-", ">+", "|+"):
                 i += 1
                 chunk = []
-                while i < len(body) and (body[i].strip() == "" or body[i][:1] in (" ", "\t")):
+                while i < len(body) and (
+                    body[i].strip() == "" or body[i][:1] in (" ", "\t")
+                ):
                     chunk.append(body[i].strip())
                     i += 1
                 return " ".join(x for x in chunk if x)
@@ -82,17 +97,25 @@ def desc_from_text(text):
 
 
 def git_desc(rev, name):
-    out = subprocess.run(["git", "show", "%s:.agents/skills/%s/SKILL.md" % (rev, name)],
-                         cwd=REPO, capture_output=True)
+    out = subprocess.run(
+        ["git", "show", "%s:.agents/skills/%s/SKILL.md" % (rev, name)],
+        cwd=REPO,
+        capture_output=True,
+    )
     if out.returncode != 0:
         return None
     return desc_from_text(out.stdout.decode("utf-8", "replace"))
 
 
 def main():
-    names = [d for d in sorted(os.listdir(DAILY))
-             if os.path.isfile(os.path.join(DAILY, d, "SKILL.md"))]
-    post = {d: desc_from_text(read_raw(os.path.join(DAILY, d, "SKILL.md"))) for d in names}
+    names = [
+        d
+        for d in sorted(os.listdir(DAILY))
+        if os.path.isfile(os.path.join(DAILY, d, "SKILL.md"))
+    ]
+    post = {
+        d: desc_from_text(read_raw(os.path.join(DAILY, d, "SKILL.md"))) for d in names
+    }
 
     pre, r1 = dict(post), dict(post)
     missing = []
@@ -111,13 +134,15 @@ def main():
 
     print("=== DETECTOR CONTROL: both states, both detectors ===")
     print("  %-18s %-6s %-9s %-9s" % ("case", "state", "OLD", "NEW"))
-    cases = [("transcribe", "PRE", pre["transcribe"]),
-             ("transcribe", "R1", r1["transcribe"]),
-             ("transcribe", "R2", post["transcribe"]),
-             ("research-ops", "PRE", pre["research-ops"]),
-             ("research-ops", "R1", r1["research-ops"]),
-             ("research-ops", "R2", post["research-ops"]),
-             ("tdd-workflow", "R2", post["tdd-workflow"])]
+    cases = [
+        ("transcribe", "PRE", pre["transcribe"]),
+        ("transcribe", "R1", r1["transcribe"]),
+        ("transcribe", "R2", post["transcribe"]),
+        ("research-ops", "PRE", pre["research-ops"]),
+        ("research-ops", "R1", r1["research-ops"]),
+        ("research-ops", "R2", post["research-ops"]),
+        ("tdd-workflow", "R2", post["tdd-workflow"]),
+    ]
     table = {}
     for nm, st, txt in cases:
         o, n = bool(OLD_WHEN.search(txt)), new_when(txt)
@@ -127,35 +152,59 @@ def main():
     # state). OLD must be blind to that regression (True/True) while NEW must see
     # it (True/False). Anchoring to R1 rather than to disk keeps the control alive
     # after round 2 repairs the file.
-    inert = (table[("transcribe", "PRE")][0] and table[("transcribe", "R1")][0]
-             and table[("transcribe", "PRE")][1] and not table[("transcribe", "R1")][1])
+    inert = (
+        table[("transcribe", "PRE")][0]
+        and table[("transcribe", "R1")][0]
+        and table[("transcribe", "PRE")][1]
+        and not table[("transcribe", "R1")][1]
+    )
     nonvacuous = table[("tdd-workflow", "R2")][1] and table[("transcribe", "PRE")][1]
-    print("  H1 OLD-is-inert-here (True/True) while NEW discriminates (True/False):", inert)
+    print(
+        "  H1 OLD-is-inert-here (True/True) while NEW discriminates (True/False):",
+        inert,
+    )
     print("  NEW is non-vacuous (returns True on real positive-WHEN text):", nonvacuous)
-    print("  CONTROL:", "DISCRIMINATING" if inert and nonvacuous else
-          "NOT DISCRIMINATING -- do not cite the numbers below")
+    print(
+        "  CONTROL:",
+        "DISCRIMINATING"
+        if inert and nonvacuous
+        else "NOT DISCRIMINATING -- do not cite the numbers below",
+    )
     if not (inert and nonvacuous):
         return 1
     print()
 
     print("=== CENSUS: fleet-wide, three states ===")
-    print("  PRE = pre-round-1 (%s) | R1 = round-1 as committed (HEAD) | R2 = now" % PRE_REV)
+    print(
+        "  PRE = pre-round-1 (%s) | R1 = round-1 as committed (HEAD) | R2 = now"
+        % PRE_REV
+    )
     states = {"PRE": pre, "R1": r1, "R2": post}
-    print("  fleet skills: %d   (PRE reconstructed for the %d edited, %d missing)"
-          % (len(names), len(EDITED) - len(missing), len(missing)))
+    print(
+        "  fleet skills: %d   (PRE reconstructed for the %d edited, %d missing)"
+        % (len(names), len(EDITED) - len(missing), len(missing))
+    )
     counts = {}
     for lab, st in states.items():
-        counts[lab] = (sum(1 for d in names if OLD_WHEN.search(st[d])),
-                       sum(1 for d in names if new_when(st[d])))
+        counts[lab] = (
+            sum(1 for d in names if OLD_WHEN.search(st[d])),
+            sum(1 for d in names if new_when(st[d])),
+        )
     print("  %-5s %-12s %-12s" % ("state", "OLD detector", "NEW detector"))
     for lab in ("PRE", "R1", "R2"):
         print("  %-5s %-12d %-12d" % (lab, counts[lab][0], counts[lab][1]))
-    print("  round-1 delta   OLD %+d   NEW %+d"
-          % (counts["R1"][0] - counts["PRE"][0], counts["R1"][1] - counts["PRE"][1]))
-    print("  round-2 delta   OLD %+d   NEW %+d"
-          % (counts["R2"][0] - counts["R1"][0], counts["R2"][1] - counts["R1"][1]))
-    print("  net vs PRE      OLD %+d   NEW %+d"
-          % (counts["R2"][0] - counts["PRE"][0], counts["R2"][1] - counts["PRE"][1]))
+    print(
+        "  round-1 delta   OLD %+d   NEW %+d"
+        % (counts["R1"][0] - counts["PRE"][0], counts["R1"][1] - counts["PRE"][1])
+    )
+    print(
+        "  round-2 delta   OLD %+d   NEW %+d"
+        % (counts["R2"][0] - counts["R1"][0], counts["R2"][1] - counts["R1"][1])
+    )
+    print(
+        "  net vs PRE      OLD %+d   NEW %+d"
+        % (counts["R2"][0] - counts["PRE"][0], counts["R2"][1] - counts["PRE"][1])
+    )
     print()
 
     def lost(det, a, b):
@@ -169,10 +218,14 @@ def main():
     print("  ROUND 1 (the regression):")
     print("    lost a WHEN per OLD detector :", lost_old_r1)
     print("    lost a WHEN per NEW detector :", lost_new_r1)
-    print("    MASKED by OLD (real regression it could not see):",
-          sorted(set(lost_new_r1) - set(lost_old_r1)))
-    print("    MIS-ATTRIBUTED by OLD (flagged, but the NEW detector says fine):",
-          sorted(set(lost_old_r1) - set(lost_new_r1)))
+    print(
+        "    MASKED by OLD (real regression it could not see):",
+        sorted(set(lost_new_r1) - set(lost_old_r1)),
+    )
+    print(
+        "    MIS-ATTRIBUTED by OLD (flagged, but the NEW detector says fine):",
+        sorted(set(lost_old_r1) - set(lost_new_r1)),
+    )
     print("  ROUND 2 (after the repair):")
     print("    lost a WHEN per OLD detector :", lost_old_r2)
     print("    lost a WHEN per NEW detector :", lost_new_r2)
@@ -180,22 +233,35 @@ def main():
     print("=== the 7 edited skills, NEW detector, per state ===")
     print("  %-18s %-6s %-6s %-6s" % ("skill", "PRE", "R1", "R2"))
     for n in EDITED:
-        print("  %-18s %-6s %-6s %-6s"
-              % (n, new_when(pre[n]), new_when(r1[n]), new_when(post[n])))
+        print(
+            "  %-18s %-6s %-6s %-6s"
+            % (n, new_when(pre[n]), new_when(r1[n]), new_when(post[n]))
+        )
 
-    out = {"fleet": len(names),
-           "counts": {k: {"old": v[0], "new": v[1]} for k, v in counts.items()},
-           "round1": {"lost_old": lost_old_r1, "lost_new": lost_new_r1,
-                      "masked": sorted(set(lost_new_r1) - set(lost_old_r1)),
-                      "misattributed": sorted(set(lost_old_r1) - set(lost_new_r1))},
-           "round2": {"lost_old": lost_old_r2, "lost_new": lost_new_r2},
-           "control_discriminating": bool(inert and nonvacuous)}
-    with io.open(REPO + "/command-center/grounding/S2-R2-CENSUS.json", "w",
-                 encoding="utf-8", newline="\n") as f:
+    out = {
+        "fleet": len(names),
+        "counts": {k: {"old": v[0], "new": v[1]} for k, v in counts.items()},
+        "round1": {
+            "lost_old": lost_old_r1,
+            "lost_new": lost_new_r1,
+            "masked": sorted(set(lost_new_r1) - set(lost_old_r1)),
+            "misattributed": sorted(set(lost_old_r1) - set(lost_new_r1)),
+        },
+        "round2": {"lost_old": lost_old_r2, "lost_new": lost_new_r2},
+        "control_discriminating": bool(inert and nonvacuous),
+    }
+    with io.open(
+        REPO + "/command-center/grounding/S2-R2-CENSUS.json",
+        "w",
+        encoding="utf-8",
+        newline="\n",
+    ) as f:
         f.write(json.dumps(out, indent=1))
     print()
-    print("SUCCESS:s2-r2-census r1_masked=%d r2_open=%d"
-          % (len(set(lost_new_r1) - set(lost_old_r1)), len(lost_new_r2)))
+    print(
+        "SUCCESS:s2-r2-census r1_masked=%d r2_open=%d"
+        % (len(set(lost_new_r1) - set(lost_old_r1)), len(lost_new_r2))
+    )
     return 0
 
 

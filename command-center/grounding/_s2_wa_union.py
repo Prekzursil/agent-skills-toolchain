@@ -35,12 +35,18 @@ repo_only = sum(j2 - j1 for tag, _, _, j1, j2 in ops if tag in ("insert", "repla
 
 print("=" * 78)
 print("0. RECONSTRUCTION CONTROL")
-print(f"  live lines  {len(lv):4d}  = common {common} + live-only {live_only}"
-      f"  -> {'OK' if common + live_only == len(lv) else 'BROKEN'}")
-print(f"  repo lines  {len(rp):4d}  = common {common} + repo-only {repo_only}"
-      f"  -> {'OK' if common + repo_only == len(rp) else 'BROKEN'}")
-print(f"  two-directional? live-only>0 AND repo-only>0 : "
-      f"{live_only > 0 and repo_only > 0}")
+print(
+    f"  live lines  {len(lv):4d}  = common {common} + live-only {live_only}"
+    f"  -> {'OK' if common + live_only == len(lv) else 'BROKEN'}"
+)
+print(
+    f"  repo lines  {len(rp):4d}  = common {common} + repo-only {repo_only}"
+    f"  -> {'OK' if common + repo_only == len(rp) else 'BROKEN'}"
+)
+print(
+    f"  two-directional? live-only>0 AND repo-only>0 : "
+    f"{live_only > 0 and repo_only > 0}"
+)
 if live_only == 0 or repo_only == 0:
     print("  ! not two-directional -- the premise of this item is wrong")
 
@@ -61,9 +67,15 @@ for tag, i1, i2, j1, j2 in ops:
     if tag in ("delete", "replace") and i2 > i1:
         sec = section_of(lv, i1)
         block = lv[i1:i2]
-        hunks.append({"section": sec, "live_lines": f"{i1 + 1}-{i2}", "n": i2 - i1,
-                      "text": block,
-                      "repo_replacement": rp[j1:j2] if tag == "replace" else []})
+        hunks.append(
+            {
+                "section": sec,
+                "live_lines": f"{i1 + 1}-{i2}",
+                "n": i2 - i1,
+                "text": block,
+                "repo_replacement": rp[j1:j2] if tag == "replace" else [],
+            }
+        )
 for h in hunks:
     print(f"\n  --- live {h['live_lines']} ({h['n']} lines) under {h['section']}")
     for t in h["text"]:
@@ -87,8 +99,11 @@ for sec, idxs in repo_sections.items():
     print(f"  {len(idxs):4d} lines  {sec}")
 
 out = {
-    "repo_lines": len(rp), "live_lines": len(lv), "common": common,
-    "live_only": live_only, "repo_only": repo_only,
+    "repo_lines": len(rp),
+    "live_lines": len(lv),
+    "common": common,
+    "live_only": live_only,
+    "repo_only": repo_only,
     "two_directional": live_only > 0 and repo_only > 0,
     "live_only_hunks": [
         {k: v for k, v in h.items() if k != "repo_replacement"} for h in hunks
