@@ -1,0 +1,35 @@
+fix(slop): the gate forbade its own documentation -- caught by running it, fixed structurally
+
+Running the gate immediately after committing the report that describes it returned rc 1:
+
+  [NEW] command-center/slop-report/SLOP-INTEGRATE-R1.md:85 -> scripts/render_docx.py
+
+Not the literal I was guarding. SLOP-INTEGRATE-R1.md sec 4.4 had just been written saying
+the hazard was handled "by discipline -- this document names that path but never in command
+form", with a declared marker named as the fallback "if that discipline ever proves too
+fragile". It proved too fragile in the very next command, against a DIFFERENT literal: sec 2.2
+quotes an example of the citer-relative convention, which resolves from skills/doc/SKILL.md
+and does not resolve from command-center/slop-report/. The gate was right by its own rule and
+useless in fact -- it cannot tell an illustration from an instruction.
+
+That is use-vs-mention recursing a third time in this lane: first the census outputs that
+refuted the original gate design, then the round-1 hardcoded sentinel, now the gate's own
+prose. It caught me inside the paragraph warning about it, which is the argument for a
+mechanism over discipline.
+
+FIX. `<!-- published-command-example: <target> -->` declares one quotation. The escape is
+deliberately weak and that weakness is the point: it must NAME the exact target, on the same
+line, so it can suppress only what its author looked at and typed out. It cannot silence a
+file, a directory or a line. Two new --self-test checks hold it to that:
+
+  example_marker_suppresses_the_target_it_names       -> must suppress
+  example_marker_does_NOT_suppress_another_target     -> must NOT suppress
+
+so it cannot decay into a mute button, and --report prints the count of declared examples so
+the escape is visible and auditable rather than invisible. --self-test is now 7/7.
+
+Rejected alternative: reword the sentence. That makes the gate green in one edit and leaves
+the trap armed for the next author.
+
+sec 4.4 of the report is rewritten to record the failure, the rc 1 output verbatim, and why
+the marker replaced discipline -- rather than quietly deleting the sentence that was wrong.

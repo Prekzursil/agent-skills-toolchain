@@ -83,8 +83,10 @@ instruction. That exclusion is declared in the source, counted, and printed by `
 ### 2.2 Two resolution roots
 
 `python scripts/render_docx.py` inside `skills/doc/SKILL.md` is citer-relative, not
-repo-relative. Resolving against the repo root alone reports **~83 false violations** across
-the skill packs. A target passes if it resolves as tracked under **either** root.
+repo-relative. <!-- published-command-example: scripts/render_docx.py --> Resolving against
+the repo root alone reports **~83 false violations** across the skill packs. A target passes
+if it resolves as tracked under **either** root. (That sentence carries the gate's example
+marker, and §4.4 records why it has to.)
 
 ### 2.3 The baseline is a ratchet, not a mute button
 
@@ -218,15 +220,38 @@ segment and either add the third root or baseline what remains.
 covered. `python -m` is deliberately out: a module name is not a path and resolving it needs an
 import graph, not a set lookup. The other three are simply unmeasured.
 
-### 4.4 The gate constrains its own documentation — a sharp edge, disclosed
+### 4.4 The gate forbade its own documentation. Discipline failed inside one commit.
 
-Because this file is a tracked `.md` under `command-center/`, it is **inside the gate's own
-corpus**. Writing the literal invocation of the baselined target into this document would
-create a NEW violation from a NEW citer and red the gate. That is the round-1 sentinel-poisoning
-shape recursing one more level: *writing the bug report poisons it.* Handled here by discipline
-— this document names that path but never in command form — and verified by re-running the gate
-after committing this file. If that discipline ever proves too fragile, the fix is a declared
-`<!-- published-command-ok: ... -->` marker, not a wider exclusion.
+This file is a tracked `.md` under `command-center/`, so it is **inside the gate's own
+corpus**. The first version of this section said the hazard was handled "by discipline — this
+document names that path but never in command form", with a declared marker named as the
+fallback *"if that discipline ever proves too fragile"*.
+
+**It proved too fragile in the very next command.** Running the gate immediately after
+committing this report returned `rc 1`:
+
+```
+[NEW] command-center/slop-report/SLOP-INTEGRATE-R1.md:85 -> scripts/render_docx.py
+```
+
+Not the literal I was guarding. §2.2 quotes `python scripts/render_docx.py` as an *example* of
+the citer-relative convention; from `skills/doc/SKILL.md` it resolves, from
+`command-center/slop-report/` it does not. The gate was right by its own rule and useless in
+fact: **it cannot tell an illustration from an instruction.** That is use-vs-mention recursing
+a third time in this lane — first the census outputs (§2.1), then the round-1 sentinel, now the
+gate's own prose — and the third time it caught me while I was writing the paragraph warning
+about it.
+
+Fixed structurally rather than by trying harder. `<!-- published-command-example: <target> -->`
+declares one quotation, and the escape is deliberately weak: **it must name the exact target,
+on the same line.** It cannot silence a file, a directory or a line, so it suppresses only what
+its author looked at and typed out. Two `--self-test` checks hold it to that — a marker naming
+the target suppresses, a marker naming a *different* target does not — so it cannot decay into
+a mute button. `--report` prints the count of declared examples, so the escape is visible and
+auditable rather than invisible.
+
+Cost of the alternative I rejected: rewording one sentence would have made the gate green and
+left the trap armed for the next author.
 
 ### 4.5 Not established
 

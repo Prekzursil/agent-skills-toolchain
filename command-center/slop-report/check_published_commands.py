@@ -72,6 +72,18 @@ CMD = re.compile(
     r"([A-Za-z0-9_][A-Za-z0-9_./-]*/[A-Za-z0-9_.-]+\.py)"
 )
 
+# A document that DISCUSSES command conventions has to be able to quote one. Without an
+# escape, this gate forbids its own documentation: the first report describing it quoted
+# `python scripts/render_docx.py` as an example of the citer-relative convention and the gate
+# flagged it -- correctly by its own rule, uselessly in fact. Discipline was tried first and
+# failed inside one commit, against a DIFFERENT literal than the author was guarding.
+#
+# The escape is deliberately weak: it must NAME the exact target, on the same line. It cannot
+# blanket-silence a file, a directory or a line, so it can suppress only the thing its author
+# looked at and typed out. `--self-test` proves a marker naming a different target does NOT
+# suppress.
+EXAMPLE = re.compile(r"<!--\s*published-command-example:\s*(\S+?)\s*-->")
+
 # Corpus roots this repo authors.
 INCLUDE_PREFIXES = ("command-center/", "docs/")
 
@@ -150,18 +162,25 @@ def resolve(target: str, citer: str, tracked: set[str]) -> tuple[bool, str | Non
     return False, None
 
 
-def scan(root: str, tracked: set[str], corpus: list[str]) -> tuple[list[dict], int]:
+def scan(
+    root: str, tracked: set[str], corpus: list[str]
+) -> tuple[list[dict], int, int]:
     findings: list[dict] = []
     total = 0
+    examples = 0
     for path in corpus:
         for lineno, line in enumerate(blob(root, path).splitlines(), 1):
+            marked = {m.group(1) for m in EXAMPLE.finditer(line)}
             for m in CMD.finditer(line):
                 total += 1
                 target = m.group(1)
+                if target in marked:
+                    examples += 1
+                    continue
                 ok, _ = resolve(target, path, tracked)
                 if not ok:
                     findings.append({"citer": path, "line": lineno, "target": target})
-    return findings, total
+    return findings, total, examples
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -199,12 +218,24 @@ def main(argv: list[str] | None = None) -> int:
         # And prove the EXTRACTOR fires on a realistic line, not just the resolver.
         line = f"run `python {bad}` to regenerate"
         extracted = [m.group(1) for m in CMD.finditer(line)]
+        # The escape must suppress ONLY the target it names, or it is a mute button.
+        marked_same = {
+            m.group(1)
+            for m in EXAMPLE.finditer(f"<!-- published-command-example: {bad} -->")
+        }
+        other = f"command-center/slop-report/_zz_other_{uuid.uuid4().hex}.py"
+        marked_other = {
+            m.group(1)
+            for m in EXAMPLE.finditer(f"<!-- published-command-example: {other} -->")
+        }
         checks = {
             "known_bad_is_flagged": not bad_ok,
             "known_good_is_clean": good_ok,
             "extractor_finds_the_command": extracted == [bad],
             "states_distinguishable": (not bad_ok) and good_ok,
             "corpus_nonempty": len(corpus) > 0,
+            "example_marker_suppresses_the_target_it_names": bad in marked_same,
+            "example_marker_does_NOT_suppress_another_target": bad not in marked_other,
         }
         for k, v in checks.items():
             print(f"   {'ok ' if v else 'FAIL'} {k}")
@@ -216,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         print("SUCCESS:published-cmds-selftest")
         return 0
 
-    findings, total = scan(root, tracked, corpus)
+    findings, total, examples = scan(root, tracked, corpus)
 
     # Baseline: violations INHERITED from another lane's tree. Keyed on (citer, target), never
     # on a line number, which drifts on every edit of the document.
@@ -234,6 +265,9 @@ def main(argv: list[str] | None = None) -> int:
             f"excluded          {len(excluded)} harvested transcripts under {list(EXCLUDE_PREFIXES)}"
         )
         print(f"commands found    {total}")
+        print(
+            f"example-marked    {examples} (declared quotations, each naming its target)"
+        )
         print(
             f"violations        {len(findings)} "
             f"({len(baseline)} baselined, {len(new)} new, {len(stale)} stale rows)"
