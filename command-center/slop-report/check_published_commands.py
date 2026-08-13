@@ -85,12 +85,26 @@ CMD = re.compile(
 EXAMPLE = re.compile(r"<!--\s*published-command-example:\s*(\S+?)\s*-->")
 
 # Corpus roots this repo authors.
-INCLUDE_PREFIXES = ("command-center/", "docs/")
+#
+# `platform/` was added by SLOP build round 3. Leaving it out is precisely how 14
+# published `python <path>` commands pointing at files that existed on ONE disk
+# shipped without this gate saying a word. Measured cost of adding it, with a
+# strict-superset control: corpus 288 -> 815 documents, and 19 rows surfaced that
+# the narrow corpus could not see (`_r3_widen.py`).
+INCLUDE_PREFIXES = ("command-center/", "docs/", "platform/")
 
 # Verbatim recordings of other sessions -- a record, not an instruction. Counted, not hidden.
+#
+# `platform/routing/fixtures/` is the same category for a different reason: it is a
+# fixture HOME tree of third-party skill docs, used as INPUT to the routing tests.
+# Their `python scripts/foo.py` lines are relative to a deployed skill's own home,
+# not to this repository, so resolving them here is a category error -- 9 of the 19
+# rows above were that, and every one is a false positive. Excluding them is what
+# makes the widening usable rather than a source of noise nobody can act on.
 EXCLUDE_PREFIXES = (
     "command-center/grounding/harvest-split/",
     "command-center/harvest/",
+    "platform/routing/fixtures/",
 )
 
 

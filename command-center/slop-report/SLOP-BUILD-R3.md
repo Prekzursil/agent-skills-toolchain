@@ -15,12 +15,12 @@ measuring anything and no verdict here may be cited.
 |---|---|
 | B1 twin-parity guard extended from 7 declared pairs to full-surface discovery | **SHIPPED**, executed, both-states red-proof |
 | B1 direction + sync-safety of every divergent pair | **MEASURED**, 3 instruments, one of them self-corrected |
-| B2 `platform/` bucket-(b) commit decision | UNKNOWN - not yet measured (this milestone) |
-| B3 `$null` deletion | UNKNOWN - not yet measured (this milestone) |
+| B2 `platform/` bucket-(b) commit decision | **SHIPPED** — 14 committed byte-unchanged, both states controlled |
+| B3 `$null` deletion | **SHIPPED** — deleted, zero collateral proven |
 | B4 duplicate-directory proposals | NOT ATTEMPTED — grounding says propose-only, and it already did |
-| B5 published-command gate corpus widening | UNKNOWN - not yet measured (this milestone) |
-| B6 cache + empty-dir sweep | NOT ATTEMPTED this milestone |
-| frozen evidence untouched | UNKNOWN - not yet measured (this milestone) |
+| B5 published-command gate corpus widening | **SHIPPED** — `platform/` added; surfaced 7 more one-disk files, all committed |
+| B6 cache + empty-dir sweep | **DECLINED with the reason** — not a quiesce point |
+| frozen evidence untouched | **VERIFIED** — 0 dirty lines on both directories |
 | the ~84 non-ruff `quality.yml` steps | NOT-CHECKED — out of this lane's reach, unchanged from grounding |
 
 ---
@@ -171,7 +171,7 @@ Untracked by tree: `command-center` 174 · `platform` 102 · `docs` 40 · `<root
 | bucket | what | disposition this round |
 |---|---|---|
 | **(a) committed evidence** | 45 root probes, the slop-report artifacts, `check_published_commands.py` + baseline + CI wiring | keep; **not rebuilt** |
-| **(b) evidence NOT committed** | 14 `platform/` files cited by a published `python <path>` in a tracked report; 111 mention-only; my own 11 `_r3_*` probes | **14 + 11 COMMITTED this round.** The 111 mention-only remain — basename mention is the weak signal and this lane has paid for use-vs-mention three times |
+| **(b) evidence NOT committed** | 14 `platform/` files cited by a published `python <path>`, **+7 more the widened gate then surfaced**; 111 mention-only; my own `_r3_*` probes | **21 + probes COMMITTED this round.** The 111 mention-only remain — basename mention is the weak signal and this lane has paid for use-vs-mention three times |
 | **(c) reproducible** | 2,719 cache files / 60.1 MB. **0** of the 149 `platform/`+`docs/` files qualify — not one has a tracked producer | regeneration re-demonstrated, **sweep declined this round** — see below |
 | **(d) dead** | `$null` (0 B) · 13 empty dirs · 24 zero-reference files (130 KB) | **`$null` DELETED.** The rest need a quiesce point |
 
@@ -231,9 +231,69 @@ Unchanged from grounding G4 and deliberately not acted on. `tools/monitorcore/mo
 not evidence both consumers are dead. `tools/editor/metaswarm` and `ralph-hats/references` need
 "where does this capability land afterwards" answered by an owner first.
 
-## B5 — published-command gate corpus
+## B5 — the gate corpus now includes `platform/`, and it immediately found 7 more one-disk files
 
-UNKNOWN - not yet measured at this milestone.
+`platform/` sat **outside** the published-command gate's corpus
+(`INCLUDE_PREFIXES = ("command-center/", "docs/")`). That is not incidental to B2 — it is the
+mechanism. A committed report could publish `python platform/.../_probe_x.py` against a gitignored
+file and no gate would ever notice. Measured with `_r3_widen.py`, which monkeypatches the
+**shipped** module's prefixes and calls its own `scan()` rather than reimplementing the resolver
+(5 controls, including strict-superset and a uuid target that must resolve UNRUNNABLE):
+
+| | narrow corpus | widened |
+|---|---|---|
+| documents scanned, first measurement | 288 | 815 |
+| NEW unrunnable surfaced | — | **19** |
+
+**9 of those 19 were false positives**, all from
+`platform/routing/fixtures/home/.agents/skills/**/SKILL.md` — a fixture HOME tree of third-party
+skill docs used as *input* to the routing tests. Their `python scripts/foo.py` lines are relative to
+a deployed skill's own home, not to this repo, so resolving them here is a category error. This is
+the "third path root the resolver does not model" that INTEGRATE-R1 §4.2 predicted. Added to
+`EXCLUDE_PREFIXES`, the same treatment `command-center/harvest/` already gets for verbatim dumps.
+
+After that exclusion: corpus **290 → 321** documents, and **10** genuine NEW rows.
+
+* **7 targets existed on disk** — bucket (b), the dangerous one, a clone could not run any of them.
+  All 7 committed byte-unchanged.
+* **1 target does not exist at all** — `platform/lib/ssot/verify.py`, cited by
+  `platform/architecture/generated-ssot.md`. Not bucket (b); a published command naming a file
+  nobody has. Carried as a **baseline row with an owner and a settling action**, because whether it
+  was never written or was renamed is a judgement only the owning lane can make.
+
+Gate now: **344 commands / 321 documents / 1 unrunnable (1 baselined) / 0 NEW / 0 stale**, rc 0,
+self-test rc 0 including both marker controls.
+
+### Two narrow exemptions, each controlled both ways
+
+The 7 were gitignored by `platform/**/_probe_*.py` and `platform/**/_gen_*.py`, and 6 of 7 fail
+`ruff format --check` (all 7 pass `ruff check`). Two exemptions were needed, and both are narrower
+than the precedent they follow:
+
+1. **`.gitignore` EXCEPTION 3** — negates exactly the 7 cited scripts, mirroring EXCEPTION 2's
+   argument for `command-center/`. Control, both halves (`_r3_ignore_control.py`): of the **52**
+   `platform/**/_probe_*.py` on disk, the 7 negated are visible **7/7**, and all **46** uncited
+   siblings are **still ignored, 46/46**. A rule that had accidentally un-ignored the tree would
+   look identical without that second half.
+2. **`ruff.toml [format] exclude`** — format-only, for the 6. This is strictly narrower than the
+   `extend-exclude` entry the repo uses for `command-center/_*.py`, because `ruff check` **stays
+   live** on them. Control: the exclusion applies to *discovery*, so naming the files explicitly on
+   the command line bypasses it — the check that matters is CI's own `ruff format --check .`, and
+   in that mode the 6 are excluded while the same run still reports 59 other would-reformat files.
+   A global disable would have reported 0.
+
+The `[lint.per-file-ignores]` entry from B2 and this `[format]` block are deliberately different
+mechanisms: one file has a lint error, six have format differences, and each gets the narrowest
+tool for its own problem rather than one blunt exclusion for both.
+
+### The baseline is now a real ratchet
+
+Committing the 14 made both inherited rows **stale**, and the gate did what a ratchet should — it
+went **red** and told me to delete them rather than letting the floor drift into slack. Deleted. The
+floor went **2 → 0**, then back to **1** for the genuinely-missing target above, with an owner and a
+settling action attached. Their `settling_action` had proposed deleting the unused binding at
+`_p12_refute_predicate.py:107`; that was **not** done, because it edits another lane's evidence
+bytes. The per-file ignore removes the reason instead of re-recording it.
 
 ## B6 — cache sweep DECLINED this round, with the reason
 
