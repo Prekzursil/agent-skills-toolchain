@@ -47,7 +47,7 @@ MUTATIONS = [
     (
         "M3-regex-as-path",
         "classify a regex as a lost PATH by testing path-ness first",
-        "    if _REGEX_META.search(value):\n        return f\"RE:{value[:80]}\" if len(value) >= 12 else \"\"\n",
+        '    if _REGEX_META.search(value):\n        return f"RE:{value[:80]}" if len(value) >= 12 else ""\n',
         "",
     ),
     (
@@ -59,14 +59,14 @@ MUTATIONS = [
     (
         "M5-control-always-true",
         "make the plausibility control unfalsifiable, so an unreadable live tree reports clean",
-        'isinstance(found, int) and found >= MIN_PLAUSIBLE_CHECKS',
-        'True',
+        "isinstance(found, int) and found >= MIN_PLAUSIBLE_CHECKS",
+        "True",
     ),
     (
         "M6-command-leaks-full-line",
         "return the whole command line, which can carry a token in an env prefix",
         '            return os.path.basename(posix)\n    return os.path.basename(tokens[-1].replace("\\\\", "/")) if tokens else ""',
-        '            return os.path.basename(posix)\n    return command',
+        "            return os.path.basename(posix)\n    return command",
     ),
     (
         "M7-settings-reads-everything",
@@ -107,7 +107,7 @@ MUTATIONS = [
     (
         "M10-wiredness-union",
         "take wiredness from both trees, so the gate asserts the live harness runs an undeployed file",
-        "    axis_manifest(report)  # emits the manifest findings; its own union is not the live set\n    live: set[str] = set()",
+        "    axis_manifest(report)\n    live: set[str] = set()",
         "    live: set[str] = axis_manifest(report)",
     ),
 ]
@@ -117,27 +117,50 @@ def run_case(mutation_id: str, old: str, new: str) -> dict:
     source = GATE.read_text(encoding="utf-8")
     occurrences = source.count(old)
     if occurrences != 1:
-        return {"id": mutation_id, "outcome": "NOT-APPLIED",
-                "detail": f"anchor appears {occurrences} times, expected exactly 1"}
+        return {
+            "id": mutation_id,
+            "outcome": "NOT-APPLIED",
+            "detail": f"anchor appears {occurrences} times, expected exactly 1",
+        }
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         shutil.copy2(VENDOR, work / VENDOR.name)
         shutil.copy2(TESTS, work / TESTS.name)
-        (work / GATE.name).write_text(source.replace(old, new), encoding="utf-8", newline="")
+        (work / GATE.name).write_text(
+            source.replace(old, new), encoding="utf-8", newline=""
+        )
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", str(work / TESTS.name), "-q", "-p", "no:cacheprovider"],
-            capture_output=True, text=True, cwd=work, timeout=300,
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                str(work / TESTS.name),
+                "-q",
+                "-p",
+                "no:cacheprovider",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=work,
+            timeout=300,
         )
     caught = proc.returncode != 0
     tail = [ln for ln in proc.stdout.splitlines() if ln.strip()][-1:] or ["<no output>"]
-    return {"id": mutation_id, "outcome": "CAUGHT" if caught else "SURVIVED",
-            "returncode": proc.returncode, "tail": tail[0][:160]}
+    return {
+        "id": mutation_id,
+        "outcome": "CAUGHT" if caught else "SURVIVED",
+        "returncode": proc.returncode,
+        "tail": tail[0][:160],
+    }
 
 
 def main() -> int:
     baseline = subprocess.run(
         [sys.executable, "-m", "pytest", str(TESTS), "-q", "-p", "no:cacheprovider"],
-        capture_output=True, text=True, cwd=HERE, timeout=300,
+        capture_output=True,
+        text=True,
+        cwd=HERE,
+        timeout=300,
     )
     if baseline.returncode != 0:
         print("FAILED:b3-mutation baseline suite is already red -- fix that first")
@@ -162,7 +185,9 @@ def main() -> int:
         print(f"FAILED:b3-mutation {len(unapplied)} mutation(s) could not be applied")
         return 2
     if survived:
-        print(f"FAILED:b3-mutation {len(survived)} mutation(s) SURVIVED -- the tests have a hole")
+        print(
+            f"FAILED:b3-mutation {len(survived)} mutation(s) SURVIVED -- the tests have a hole"
+        )
         return 1
     print(f"SUCCESS:b3-mutation {len(rows)}/{len(rows)} mutations caught")
     return 0

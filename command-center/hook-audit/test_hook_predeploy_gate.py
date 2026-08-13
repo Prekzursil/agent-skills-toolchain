@@ -35,8 +35,16 @@ import hook_predeploy_gate as gate  # noqa: E402
     ("repo", "live", "expected"),
     [
         ("def f():\n    return 1\n", "def f():\n    return 1\n", "EQUAL"),
-        ("def f():\n    pass\ndef g():\n    pass\n", "def f():\n    pass\n", "REPO-AHEAD"),
-        ("def f():\n    pass\n", "def f():\n    pass\ndef g():\n    pass\n", "LIVE-AHEAD"),
+        (
+            "def f():\n    pass\ndef g():\n    pass\n",
+            "def f():\n    pass\n",
+            "REPO-AHEAD",
+        ),
+        (
+            "def f():\n    pass\n",
+            "def f():\n    pass\ndef g():\n    pass\n",
+            "LIVE-AHEAD",
+        ),
         (
             "def f():\n    pass\ndef g():\n    pass\n",
             "def f():\n    pass\ndef h():\n    pass\n",
@@ -185,8 +193,12 @@ def test_settings_reader_touches_only_the_hooks_subtree(tmp_path: Path) -> None:
         "apiKeyHelper": "TOP_SECRET_VALUE",
         "env": {"ANTHROPIC_API_KEY": "REDACTED-PLACEHOLDER-NOT-A-KEY"},
         "hooks": {
-            "Stop": [{"matcher": ".*", "hooks": [{"command": 'python "/h/hooks/a/b.py"',
-                                                  "timeout": 5}]}]
+            "Stop": [
+                {
+                    "matcher": ".*",
+                    "hooks": [{"command": 'python "/h/hooks/a/b.py"', "timeout": 5}],
+                }
+            ]
         },
     }
     path = tmp_path / "settings.json"
@@ -257,8 +269,12 @@ _DOC = "the ghost-hook writes ~/.claude/ghost/index.ndjson"
 def _promise(wired: set[str], age: float | None, text: str = _DOC) -> gate.Report:
     report = gate.Report()
     gate.axis_promises(
-        report, {"d.md": text}, wired, {"ghost-hook"},
-        age_fn=lambda _root: age, stale_hours=168.0,
+        report,
+        {"d.md": text},
+        wired,
+        {"ghost-hook"},
+        age_fn=lambda _root: age,
+        stale_hours=168.0,
     )
     return report
 
@@ -288,7 +304,10 @@ def test_promise_is_silent_when_the_producer_is_wired() -> None:
 
 def test_promise_is_silent_on_a_bare_mention() -> None:
     """use-vs-mention: naming a hook is not a dependency on it."""
-    assert _promise(set(), 700.0, "see also the ghost-hook, unrelated here").hazards() == []
+    assert (
+        _promise(set(), 700.0, "see also the ghost-hook, unrelated here").hazards()
+        == []
+    )
 
 
 def test_promise_is_silent_with_no_artifact_path() -> None:
@@ -308,7 +327,9 @@ def test_artifact_roots(text: str, expected: set) -> None:
     assert gate.artifact_roots(text) == expected
 
 
-def test_age_of_a_file_artifact_is_measured_not_reported_absent(tmp_path, monkeypatch) -> None:
+def test_age_of_a_file_artifact_is_measured_not_reported_absent(
+    tmp_path, monkeypatch
+) -> None:
     """The measured bug: walking a FILE yields nothing, so it read as "produces nothing".
 
     That claim was falsifiable by looking -- `~/.claude/settings.json` plainly exists -- and a
@@ -373,7 +394,9 @@ def test_wiredness_is_the_live_side_only(tmp_path, monkeypatch) -> None:
     assert "undeployed/check.py" not in wired
 
 
-def test_wiredness_includes_hooks_registered_only_in_settings(tmp_path, monkeypatch) -> None:
+def test_wiredness_includes_hooks_registered_only_in_settings(
+    tmp_path, monkeypatch
+) -> None:
     """Both blocking security hooks reach the harness this way, not via the manifest."""
     settings = tmp_path / "settings.json"
     settings.write_text(
@@ -383,7 +406,9 @@ def test_wiredness_includes_hooks_registered_only_in_settings(tmp_path, monkeypa
                     "PreToolUse": [
                         {
                             "matcher": "Bash",
-                            "hooks": [{"command": 'python "/h/hooks/no-force-push/hook.py"'}],
+                            "hooks": [
+                                {"command": 'python "/h/hooks/no-force-push/hook.py"'}
+                            ],
                         }
                     ]
                 }
@@ -402,13 +427,17 @@ def test_wiredness_includes_hooks_registered_only_in_settings(tmp_path, monkeypa
 # --------------------------------------------------------------- fail-closed behaviour
 
 
-def test_gate_fails_closed_when_the_live_tree_is_unreadable(tmp_path, monkeypatch, capsys) -> None:
+def test_gate_fails_closed_when_the_live_tree_is_unreadable(
+    tmp_path, monkeypatch, capsys
+) -> None:
     """A gate that reports clean because it could not measure is worse than no gate.
 
     ci-hygiene 1: any empty walk returns non-zero, never "nothing found -> pass".
     """
     monkeypatch.setattr(gate, "LIVE_HOOKS", tmp_path / "hooks")
-    monkeypatch.setattr(gate, "LIVE_MANIFEST", tmp_path / "hooks" / "_dispatch" / "manifest.json")
+    monkeypatch.setattr(
+        gate, "LIVE_MANIFEST", tmp_path / "hooks" / "_dispatch" / "manifest.json"
+    )
     monkeypatch.setattr(gate, "LIVE_SETTINGS", tmp_path / "settings.json")
     rc = gate.main(["--quiet"])
     out = capsys.readouterr().out
@@ -418,7 +447,9 @@ def test_gate_fails_closed_when_the_live_tree_is_unreadable(tmp_path, monkeypatc
     # what let a mutation making C9 unfalsifiable survive: the name prints either way, and a
     # different control was carrying the exit code.
     assert "C9_manifest_reader_plausible=FAIL" in out
-    assert "C9_manifest_reader_plausible" in out.split("controls:")[1].split("stats:")[0]
+    assert (
+        "C9_manifest_reader_plausible" in out.split("controls:")[1].split("stats:")[0]
+    )
 
 
 def test_controls_are_reported_on_every_run(capsys) -> None:
@@ -435,7 +466,9 @@ def test_report_emits_a_terminal_state_marker(capsys) -> None:
     """AGENTS.md 4: terminal-state output, never open-ended prose."""
     gate.main(["--quiet"])
     out = capsys.readouterr().out
-    assert ("SUCCESS:hook-predeploy-gate" in out) or ("FAILED:hook-predeploy-gate" in out)
+    assert ("SUCCESS:hook-predeploy-gate" in out) or (
+        "FAILED:hook-predeploy-gate" in out
+    )
 
 
 if __name__ == "__main__":

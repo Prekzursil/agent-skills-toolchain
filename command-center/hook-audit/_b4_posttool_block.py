@@ -76,19 +76,28 @@ def main() -> int:
 
     cases = [
         run_case("A1_credential_shape_no_marker", f'KEY = "{_SHAPE}"\n'),
-        run_case("A2_same_shape_with_placeholder_marker", f'KEY = "{_SHAPE}"  # EXAMPLE\n'),
+        run_case(
+            "A2_same_shape_with_placeholder_marker", f'KEY = "{_SHAPE}"  # EXAMPLE\n'
+        ),
         run_case("A3_no_credential_shape", 'KEY = "nothing to see"\n'),
     ]
     by_name = {c["case"]: c for c in cases}
 
     controls = {
         "A1_fires_rc2": by_name["A1_credential_shape_no_marker"]["returncode"] == 2,
-        "A1_names_the_block": by_name["A1_credential_shape_no_marker"]["blocked_message"],
-        "A2_placeholder_exempt_rc0": by_name["A2_same_shape_with_placeholder_marker"]["returncode"] == 0,
+        "A1_names_the_block": by_name["A1_credential_shape_no_marker"][
+            "blocked_message"
+        ],
+        "A2_placeholder_exempt_rc0": by_name["A2_same_shape_with_placeholder_marker"][
+            "returncode"
+        ]
+        == 0,
         "A3_clean_rc0": by_name["A3_no_credential_shape"]["returncode"] == 0,
     }
     controls["detector_discriminates"] = (
-        controls["A1_fires_rc2"] and controls["A2_placeholder_exempt_rc0"] and controls["A3_clean_rc0"]
+        controls["A1_fires_rc2"]
+        and controls["A2_placeholder_exempt_rc0"]
+        and controls["A3_clean_rc0"]
     )
     # The load-bearing observation: the hook ran to completion and the file it objected to is
     # STILL THERE. The hook has no power to unwrite it -- at PostToolUse the tool already ran.
@@ -100,7 +109,9 @@ def main() -> int:
     OUT.write_text(json.dumps(result, indent=2), encoding="utf-8", newline="\n")
     print(json.dumps(result, indent=2))
     if not controls["detector_discriminates"]:
-        print("FAILED:b4-posttool detector does not discriminate -- rc 2 proves nothing")
+        print(
+            "FAILED:b4-posttool detector does not discriminate -- rc 2 proves nothing"
+        )
         return 1
     print("SUCCESS:b4-posttool detector discriminates across all three states")
     return 0

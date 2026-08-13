@@ -69,7 +69,15 @@ LIVE_SETTINGS = LIVE_ROOT / "settings.json"
 MIN_PLAUSIBLE_CHECKS = 5
 
 #: Manifest fields whose difference changes behaviour. `comment` is prose, reported separately.
-BEHAVIOUR_FIELDS = ("script", "args", "matcher", "timeout", "isolate", "side_effect", "emits")
+BEHAVIOUR_FIELDS = (
+    "script",
+    "args",
+    "matcher",
+    "timeout",
+    "isolate",
+    "side_effect",
+    "emits",
+)
 
 SKIP_DIRS = {"__pycache__", "_fleet-backups", ".pytest_cache", ".mypy_cache"}
 
@@ -303,7 +311,10 @@ def axis_manifest(report: Report) -> set[str]:
     wired: set[str] = set()
     live_total = 0
     for event in events:
-        live_checks, repo_checks = manifest_checks(live, event), manifest_checks(repo, event)
+        live_checks, repo_checks = (
+            manifest_checks(live, event),
+            manifest_checks(repo, event),
+        )
         live_total += len(live_checks)
         for name in sorted(set(live_checks) | set(repo_checks)):
             entry = live_checks.get(name) or repo_checks.get(name) or {}
@@ -311,12 +322,16 @@ def axis_manifest(report: Report) -> set[str]:
                 wired.add(str(entry["script"]))
             if name not in live_checks:
                 report.add(
-                    "A", "WARN", f"{event}/{name}",
+                    "A",
+                    "WARN",
+                    f"{event}/{name}",
                     "in repo, NOT deployed -- the live harness does not run it",
                 )
             elif name not in repo_checks:
                 report.add(
-                    "A", "HAZARD", f"{event}/{name}",
+                    "A",
+                    "HAZARD",
+                    f"{event}/{name}",
                     "live-only -- a repo->live manifest deploy would UNWIRE it",
                 )
             else:
@@ -330,7 +345,9 @@ def _diff_fields(report: Report, event: str, name: str, repo: dict, live: dict) 
     for key in BEHAVIOUR_FIELDS:
         if repo.get(key) != live.get(key):
             report.add(
-                "A", "WARN", f"{event}/{name}",
+                "A",
+                "WARN",
+                f"{event}/{name}",
                 f"{key}: repo={repo.get(key)!r} live={live.get(key)!r}",
             )
 
@@ -346,7 +363,10 @@ def _body_severity(rel: str, is_wired: bool) -> tuple[str, str]:
     if is_wired:
         return "HAZARD", "WIRED LIVE -- the live harness runs this file today"
     if rel.rsplit("/", 1)[-1].startswith("test_"):
-        return "INFO", "test file -- the live tree's copy is never executed by the harness"
+        return (
+            "INFO",
+            "test file -- the live tree's copy is never executed by the harness",
+        )
     if rel.endswith(".json"):
         return "INFO", "data/state file -- differing content is not a behaviour fork"
     return "WARN", "present in the tree but not wired to any event"
@@ -363,18 +383,24 @@ def axis_bodies_and_markers(report: Report, wired: set[str]) -> None:
 
     tally: dict[str, int] = {}
     for rel in shared:
-        verdict = classify_direction(read_text(repo_files[rel]), read_text(live_files[rel]))
+        verdict = classify_direction(
+            read_text(repo_files[rel]), read_text(live_files[rel])
+        )
         tally[verdict] = tally.get(verdict, 0) + 1
         if verdict in {"EQUAL", "REPO-AHEAD"}:
             continue
         is_wired = rel in wired
         severity, why = _body_severity(rel, is_wired)
         report.add(
-            "B", severity, rel,
+            "B",
+            severity,
+            rel,
             f"{verdict} ({why}) -- repo->live copy would lose live content",
         )
         if rel.endswith(".py"):
-            _report_lost_markers(report, rel, repo_files[rel], live_files[rel], is_wired)
+            _report_lost_markers(
+                report, rel, repo_files[rel], live_files[rel], is_wired
+            )
     report.stats["direction_tally"] = tally
 
 
@@ -382,11 +408,15 @@ def _report_lost_markers(
     report: Report, rel: str, repo_path: Path, live_path: Path, is_wired: bool
 ) -> None:
     lost = markers(read_text(live_path)) - markers(read_text(repo_path))
-    hard = sorted(m for m in lost if m.split(":", 1)[0] in {"ENV", "PATH", "EXIT2", "RE"})
+    hard = sorted(
+        m for m in lost if m.split(":", 1)[0] in {"ENV", "PATH", "EXIT2", "RE"}
+    )
     soft = sorted(m for m in lost if m.startswith("MSG:"))
     if hard:
         report.add(
-            "C", "HAZARD" if is_wired else "WARN", rel,
+            "C",
+            "HAZARD" if is_wired else "WARN",
+            rel,
             f"{len(hard)} capability marker(s) exist ONLY live: {'; '.join(hard[:6])}",
         )
     if soft:
@@ -403,12 +433,16 @@ def axis_settings(report: Report) -> None:
         repo_tails = sorted(e["script"] for e in repo.get(event, []))
         if event not in repo:
             report.add(
-                "D", "HAZARD", event,
+                "D",
+                "HAZARD",
+                event,
                 f"live-only event ({len(live_tails)} hook(s): {', '.join(live_tails)}) -- "
                 "a repo->live settings deploy would DELETE it",
             )
         elif event not in live:
-            report.add("D", "WARN", event, "repo-only event -- declared but not deployed")
+            report.add(
+                "D", "WARN", event, "repo-only event -- declared but not deployed"
+            )
         elif live_tails != repo_tails:
             report.add("D", "WARN", event, f"repo={repo_tails} live={live_tails}")
 
@@ -452,15 +486,19 @@ def axis_promises(
     stale. `HOOK_GATE_STALE_HOURS` tunes the threshold; the tightening, if it ever misfires, is
     proximity between the hook name and the path.
     """
-    limit = stale_hours if stale_hours is not None else float(
-        os.environ.get("HOOK_GATE_STALE_HOURS", "168")
+    limit = (
+        stale_hours
+        if stale_hours is not None
+        else float(os.environ.get("HOOK_GATE_STALE_HOURS", "168"))
     )
     cache: dict[str, float | None] = {}
 
     def age_of(root: str) -> float | None:
         if root not in cache:
             cache[root] = (
-                age_fn(root) if age_fn else _newest_age_hours(root, fresh_before_hours=limit)
+                age_fn(root)
+                if age_fn
+                else _newest_age_hours(root, fresh_before_hours=limit)
             )
         return cache[root]
 
@@ -479,7 +517,9 @@ def axis_promises(
             else:
                 continue
             report.add(
-                "P", "HAZARD", name,
+                "P",
+                "HAZARD",
+                name,
                 f"points the reader at ~/.claude/{root}, which {state}; the doc also names "
                 f"unwired hook(s) {', '.join(unwired)}. The pairing is document-scoped -- the "
                 "load-bearing claim is the dead artifact, not that those hooks produce it",
@@ -496,7 +536,9 @@ def artifact_roots(text: str) -> set[str]:
     return roots
 
 
-def _newest_age_hours(root: str, fresh_before_hours: float | None = None) -> float | None:
+def _newest_age_hours(
+    root: str, fresh_before_hours: float | None = None
+) -> float | None:
     """Hours since the newest write anywhere under `~/.claude/<root>`, or None if absent.
 
     mtime distinguishes "written in the last T" and nothing else -- never stalled-vs-done. That
@@ -552,10 +594,17 @@ def lint_if_on_non_tool_event(report: Report, sources: dict[str, dict]) -> None:
                 if entry.get("if") in (None, ""):
                     continue
                 if event in vendor.IF_EVALUATED_EVENTS:
-                    report.add("L1", "INFO", f"{origin}:{event}", "`if` on a tool event -- valid")
+                    report.add(
+                        "L1",
+                        "INFO",
+                        f"{origin}:{event}",
+                        "`if` on a tool event -- valid",
+                    )
                 else:
                     report.add(
-                        "L1", "HAZARD", f"{origin}:{event}/{entry.get('script')}",
+                        "L1",
+                        "HAZARD",
+                        f"{origin}:{event}/{entry.get('script')}",
                         f"carries `if`={entry['if']!r} on a NON-tool event -- never evaluated, "
                         "so the hook silently never runs",
                     )
@@ -582,7 +631,9 @@ def lint_budget_ceiling(report: Report) -> None:
                 declared = check.get("timeout")
                 if isinstance(declared, (int, float)) and declared > ceiling:
                     report.add(
-                        "L2", "WARN", f"{label}:{event}/{name}",
+                        "L2",
+                        "WARN",
+                        f"{label}:{event}/{name}",
                         f"declares {declared}s inside a {ceiling}s event budget -- "
                         f"{declared - ceiling}s unreachable",
                     )
@@ -594,18 +645,24 @@ def lint_budget_ceiling(report: Report) -> None:
 def run_controls(report: Report) -> None:
     """Both-states controls. A silence only counts once the probe has FIRED on a broken state."""
     equal = classify_direction("def f():\n    return 1\n", "def f():\n    return 1\n")
-    ahead = classify_direction("def f():\n    pass\ndef g():\n    pass\n", "def f():\n    pass\n")
-    behind = classify_direction("def f():\n    pass\n", "def f():\n    pass\ndef g():\n    pass\n")
-    diverged = classify_direction("def f():\n    pass\ndef g():\n    pass\n",
-                                  "def f():\n    pass\ndef h():\n    pass\n")
+    ahead = classify_direction(
+        "def f():\n    pass\ndef g():\n    pass\n", "def f():\n    pass\n"
+    )
+    behind = classify_direction(
+        "def f():\n    pass\n", "def f():\n    pass\ndef g():\n    pass\n"
+    )
+    diverged = classify_direction(
+        "def f():\n    pass\ndef g():\n    pass\n",
+        "def f():\n    pass\ndef h():\n    pass\n",
+    )
     report.controls["C1_direction_equal"] = equal == "EQUAL"
     report.controls["C2_direction_repo_ahead"] = ahead == "REPO-AHEAD"
     report.controls["C3_direction_live_ahead"] = behind == "LIVE-AHEAD"
     report.controls["C4_direction_diverged"] = diverged == "DIVERGED"
 
     base = 'import os\nX = os.environ.get("KEEP_ME")\n'
-    report.controls["C5_marker_loss_detected"] = (
-        "ENV:KEEP_ME" in (markers(base) - markers("import os\n"))
+    report.controls["C5_marker_loss_detected"] = "ENV:KEEP_ME" in (
+        markers(base) - markers("import os\n")
     )
     report.controls["C6_marker_no_false_loss"] = not (markers(base) - markers(base))
     report.controls["C6b_regex_not_labelled_path"] = classify_literal(
@@ -616,30 +673,50 @@ def run_controls(report: Report) -> None:
     ).startswith("PATH:")
 
     lint = Report()
-    lint_if_on_non_tool_event(lint, {
-        "synthetic": {"Stop": [{"if": "Edit(*.ts)", "script":"broken.py"}]},
-    })
+    lint_if_on_non_tool_event(
+        lint,
+        {
+            "synthetic": {"Stop": [{"if": "Edit(*.ts)", "script": "broken.py"}]},
+        },
+    )
     report.controls["C7_if_lint_fires_on_broken"] = bool(lint.hazards())
     clean = Report()
-    lint_if_on_non_tool_event(clean, {
-        "synthetic": {"PreToolUse": [{"if": "Edit(*.ts)", "script":"ok.py"}]},
-    })
+    lint_if_on_non_tool_event(
+        clean,
+        {
+            "synthetic": {"PreToolUse": [{"if": "Edit(*.ts)", "script": "ok.py"}]},
+        },
+    )
     report.controls["C8_if_lint_silent_on_valid"] = not clean.hazards()
 
     doc = {"d.md": "the ghost-hook writes ~/.claude/ghost/index.ndjson"}
 
-    def _promise(wired_set: set[str], age: float | None, text: dict[str, str] | None = None) -> Report:
+    def _promise(
+        wired_set: set[str], age: float | None, text: dict[str, str] | None = None
+    ) -> Report:
         out = Report()
-        axis_promises(out, text or doc, wired_set, {"ghost-hook"},
-                      age_fn=lambda _root: age, stale_hours=168.0)
+        axis_promises(
+            out,
+            text or doc,
+            wired_set,
+            {"ghost-hook"},
+            age_fn=lambda _root: age,
+            stale_hours=168.0,
+        )
         return out
 
-    report.controls["C11_promise_fires_on_stale_artifact"] = bool(_promise(set(), 700.0).hazards())
-    report.controls["C11b_promise_fires_on_absent_artifact"] = bool(_promise(set(), None).hazards())
+    report.controls["C11_promise_fires_on_stale_artifact"] = bool(
+        _promise(set(), 700.0).hazards()
+    )
+    report.controls["C11b_promise_fires_on_absent_artifact"] = bool(
+        _promise(set(), None).hazards()
+    )
     # The regression control for a false positive this axis actually produced: `event-ledger` is
     # named by a command, is not wired under its own directory name, and is 0.6 h fresh because
     # something else writes it. Config alone must NOT be enough to raise a hazard.
-    report.controls["C12_promise_silent_when_artifact_is_fresh"] = not _promise(set(), 0.6).hazards()
+    report.controls["C12_promise_silent_when_artifact_is_fresh"] = not _promise(
+        set(), 0.6
+    ).hazards()
     report.controls["C13_promise_silent_when_producer_wired"] = not _promise(
         {"ghost-hook/hook.py"}, 700.0
     ).hazards()
@@ -677,7 +754,8 @@ def wired_live(report: Report) -> set[str]:
        so the denominator is what runs today. The repo-declared-but-undeployed case is a
        different finding and axis A already reports it.
     """
-    axis_manifest(report)  # emits the manifest findings; its own union is not the live set
+    # Emits the manifest findings as a side effect; its own union is NOT the live set.
+    axis_manifest(report)
     live: set[str] = set()
     if LIVE_MANIFEST.is_file():
         doc = json.loads(read_text(LIVE_MANIFEST))
@@ -695,7 +773,11 @@ def wired_live(report: Report) -> set[str]:
 def hook_dir_names() -> set[str]:
     if not REPO_HOOKS.is_dir():
         return set()
-    return {p.name for p in REPO_HOOKS.iterdir() if p.is_dir() and not p.name.startswith("_")}
+    return {
+        p.name
+        for p in REPO_HOOKS.iterdir()
+        if p.is_dir() and not p.name.startswith("_")
+    }
 
 
 def command_docs() -> dict[str, str]:
@@ -711,10 +793,13 @@ def build_report() -> Report:
     axis_bodies_and_markers(report, wired)
     axis_promises(report, command_docs(), wired, hook_dir_names())
     axis_settings(report)
-    lint_if_on_non_tool_event(report, {
-        "repo-settings": settings_hooks(REPO_SETTINGS),
-        "live-settings": settings_hooks(LIVE_SETTINGS),
-    })
+    lint_if_on_non_tool_event(
+        report,
+        {
+            "repo-settings": settings_hooks(REPO_SETTINGS),
+            "live-settings": settings_hooks(LIVE_SETTINGS),
+        },
+    )
     lint_budget_ceiling(report)
     run_controls(report)
     return report
@@ -729,11 +814,17 @@ def main(argv: list[str] | None = None) -> int:
     report = build_report()
     failed = [k for k, ok in report.controls.items() if not ok]
 
-    print("  controls: " + ", ".join(f"{k}={'ok' if v else 'FAIL'}"
-                                     for k, v in sorted(report.controls.items())))
+    print(
+        "  controls: "
+        + ", ".join(
+            f"{k}={'ok' if v else 'FAIL'}" for k, v in sorted(report.controls.items())
+        )
+    )
     print("  stats: " + json.dumps(report.stats, sort_keys=True))
     if not args.quiet:
-        for finding in sorted(report.findings, key=lambda f: (f.severity, f.axis, f.subject)):
+        for finding in sorted(
+            report.findings, key=lambda f: (f.severity, f.axis, f.subject)
+        ):
             print("  " + finding.line())
 
     if args.json:
@@ -756,7 +847,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     hazards = report.hazards()
     if hazards:
-        print(f"FAILED:hook-predeploy-gate {len(hazards)} HAZARD(s) of {len(report.findings)} findings")
+        print(
+            f"FAILED:hook-predeploy-gate {len(hazards)} HAZARD(s) of {len(report.findings)} findings"
+        )
         return 1
     print(f"SUCCESS:hook-predeploy-gate 0 hazards of {len(report.findings)} findings")
     return 0
