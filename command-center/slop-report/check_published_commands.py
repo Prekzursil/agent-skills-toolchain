@@ -1,0 +1,294 @@
+r"""check_published_commands.py -- a committed document may not publish a command that a
+clone cannot run.
+
+WHY THIS EXISTS
+---------------
+The SLOP lane found 45 probe scripts that committed artifacts named while `.gitignore:76`
+(`command-center/_*.py`) kept every one of them untracked. On the author's disk the
+citations resolved; in any clone they resolved to nothing. The lane carried those 45 into
+git. Nothing prevented the 46th -- and there was one, in a directory the lane never looked
+at (`platform/lib/`, cited from two committed command-centre reports).
+
+This gate is the class fix. It does not read prose and it does not trust a claim: for every
+tracked document it finds each published `python <path>` invocation and requires <path> to
+be TRACKED IN GIT. A tracked target is reproducible by anyone; an untracked one is a promise
+only the author can keep.
+
+COUNT THE FIELD, NOT THE DOCUMENT
+---------------------------------
+The obvious version of this gate is refuted, and the refutation is why the scope is narrow.
+Grepping tracked artifacts for an untracked script's BASENAME reports 103-158 hits, but 157
+of the citers are the SLOP lane's own census outputs (`_slop_measure*.out.json`) whose whole
+job is to ENUMERATE untracked filenames. A census that lists a file is measuring it, not
+depending on it -- the use-vs-mention failure this repo has already paid for twice. A JSON
+array element "_foo.py" cannot match `python <path>`, so that entire noise class disappears
+by construction rather than by an exception list.
+
+RESOLUTION -- two roots, because both conventions are in live use:
+  * repo-root-relative   `python command-center/slop-report/_r2_gate_now.py`
+  * citer-dir-relative   `python scripts/render_docx.py` inside skills/doc/SKILL.md
+A target that resolves as TRACKED under EITHER root passes. Requiring repo-root only would
+report ~83 false violations across the skill packs.
+
+CORPUS -- tracked `.md` under the paths this repo authors, minus harvested transcripts.
+`command-center/grounding/harvest-split/` and `command-center/harvest/` are verbatim dumps of
+past agent sessions. A transcript quoting a command another session ran is a record, not this
+repo publishing an instruction; gating it would fire on the recording. That exclusion is
+declared, counted and printed (`--report`), never silent.
+
+DETECTOR CONTROLS -- this gate is itself a detector, so both states are proven:
+  * fail-closed on ZERO commands found. A corpus that yields no invocations measures
+    nothing, and a silent pass there is the exact defect this gate exists to prevent.
+  * `--self-test` runs the resolver against a synthetic KNOWN-BAD target (an untracked
+    path generated at runtime, so no committed byte can contain it) and a synthetic
+    KNOWN-GOOD target (this file, which is tracked), and requires bad->violation,
+    good->clean. A gate that has never gone red is indistinguishable from a no-op.
+  * the sentinel is generated with `uuid4` rather than hardcoded. A fixed sentinel name
+    poisons its own corpus the moment the gate and its receipt are committed -- measured on
+    this lane's round-1 control, which shipped asserting `quiet == 0` and yields `quiet == 2`
+    to everyone who reruns it.
+
+PORTABILITY -- the repo root comes from `git rev-parse --show-toplevel`, not a literal. The
+sibling gate `command-center/hook-audit/check_citations.py` hardcodes
+`REPO = Path("C:/Users/Prekzursil/source/ast-integrate")` and therefore cannot run on a CI
+runner at all, which is one reason it is not wired into any workflow.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import subprocess
+import uuid
+from pathlib import Path, PurePosixPath
+
+BASELINE = "command-center/slop-report/published-commands-baseline.json"
+
+# `python foo/bar.py`, `python3 -u foo/bar.py`, backticked or bare. The path must contain a
+# slash: a bare `foo.py` has no unambiguous root to resolve against.
+CMD = re.compile(
+    r"\bpython3?(?:\.exe)?\s+(?:-[A-Za-z]\s+)*"
+    r"([A-Za-z0-9_][A-Za-z0-9_./-]*/[A-Za-z0-9_.-]+\.py)"
+)
+
+# Corpus roots this repo authors.
+INCLUDE_PREFIXES = ("command-center/", "docs/")
+
+# Verbatim recordings of other sessions -- a record, not an instruction. Counted, not hidden.
+EXCLUDE_PREFIXES = (
+    "command-center/grounding/harvest-split/",
+    "command-center/harvest/",
+)
+
+
+def git(root: str, *args: str, check: bool = True) -> str:
+    r = subprocess.run(
+        ["git", "-C", root, *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if check and r.returncode != 0:
+        raise SystemExit(
+            f"FAILED:published-cmds git {args} rc={r.returncode}: {r.stderr[:400]}"
+        )
+    return r.stdout
+
+
+def repo_root() -> str:
+    r = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if r.returncode != 0:
+        raise SystemExit("FAILED:published-cmds not inside a git work tree")
+    return r.stdout.strip()
+
+
+def norm(p: str) -> str:
+    """Collapse `a/./b` and `a/../b` without touching the filesystem."""
+    parts: list[str] = []
+    for seg in PurePosixPath(p).parts:
+        if seg == ".":
+            continue
+        if seg == ".." and parts and parts[-1] != "..":
+            parts.pop()
+            continue
+        parts.append(seg)
+    return "/".join(parts)
+
+
+def in_corpus(path: str) -> bool:
+    return (
+        path.endswith(".md")
+        and path.startswith(INCLUDE_PREFIXES)
+        and not path.startswith(EXCLUDE_PREFIXES)
+    )
+
+
+def blob(root: str, path: str) -> str:
+    r = subprocess.run(
+        ["git", "-C", root, "cat-file", "-p", f"HEAD:{path}"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    return r.stdout if r.returncode == 0 else ""
+
+
+def resolve(target: str, citer: str, tracked: set[str]) -> tuple[bool, str | None]:
+    """True + the resolved path if <target> is tracked under either root."""
+    for cand in (norm(target), norm(str(PurePosixPath(citer).parent / target))):
+        if cand in tracked:
+            return True, cand
+    return False, None
+
+
+def scan(root: str, tracked: set[str], corpus: list[str]) -> tuple[list[dict], int]:
+    findings: list[dict] = []
+    total = 0
+    for path in corpus:
+        for lineno, line in enumerate(blob(root, path).splitlines(), 1):
+            for m in CMD.finditer(line):
+                total += 1
+                target = m.group(1)
+                ok, _ = resolve(target, path, tracked)
+                if not ok:
+                    findings.append({"citer": path, "line": lineno, "target": target})
+    return findings, total
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--report", action="store_true", help="print corpus stats and exit 0"
+    )
+    ap.add_argument(
+        "--self-test",
+        action="store_true",
+        help="prove the gate can FAIL: synthetic known-bad must be caught, known-good must not",
+    )
+    a = ap.parse_args(argv)
+
+    root = repo_root()
+    tracked = {p for p in git(root, "ls-files").splitlines() if p}
+    all_md = [p for p in tracked if p.endswith(".md")]
+    corpus = sorted(p for p in tracked if in_corpus(p))
+    excluded = sorted(
+        p
+        for p in all_md
+        if p.startswith(INCLUDE_PREFIXES) and p.startswith(EXCLUDE_PREFIXES)
+    )
+
+    if a.self_test:
+        # Both states, against the REAL resolver, with a runtime-random sentinel so no
+        # committed byte can contain it.
+        bad = f"command-center/slop-report/_zz_absent_{uuid.uuid4().hex}.py"
+        # Tracked since SLOP round 1. If it is ever renamed the self-test fails CLOSED,
+        # which is the correct direction for a control.
+        good = "command-center/slop-report/_b1_cited_probes.py"
+        citer = "command-center/slop-report/SLOP-INTEGRATE-R1.md"
+        bad_ok, _ = resolve(bad, citer, tracked)
+        good_ok, _ = resolve(good, citer, tracked)
+        # And prove the EXTRACTOR fires on a realistic line, not just the resolver.
+        line = f"run `python {bad}` to regenerate"
+        extracted = [m.group(1) for m in CMD.finditer(line)]
+        checks = {
+            "known_bad_is_flagged": not bad_ok,
+            "known_good_is_clean": good_ok,
+            "extractor_finds_the_command": extracted == [bad],
+            "states_distinguishable": (not bad_ok) and good_ok,
+            "corpus_nonempty": len(corpus) > 0,
+        }
+        for k, v in checks.items():
+            print(f"   {'ok ' if v else 'FAIL'} {k}")
+        if not all(checks.values()):
+            print(
+                "FAILED:published-cmds-selftest the gate cannot distinguish its two states"
+            )
+            return 1
+        print("SUCCESS:published-cmds-selftest")
+        return 0
+
+    findings, total = scan(root, tracked, corpus)
+
+    # Baseline: violations INHERITED from another lane's tree. Keyed on (citer, target), never
+    # on a line number, which drifts on every edit of the document.
+    rows = json.loads((Path(root) / BASELINE).read_text(encoding="utf-8"))["entries"]
+    baseline = {(r["citer"], r["target"]) for r in rows}
+    live = {(f["citer"], f["target"]) for f in findings}
+    new = [f for f in findings if (f["citer"], f["target"]) not in baseline]
+    stale = sorted(baseline - live)
+
+    if a.report:
+        print(
+            f"corpus            {len(corpus)} tracked .md under {list(INCLUDE_PREFIXES)}"
+        )
+        print(
+            f"excluded          {len(excluded)} harvested transcripts under {list(EXCLUDE_PREFIXES)}"
+        )
+        print(f"commands found    {total}")
+        print(
+            f"violations        {len(findings)} "
+            f"({len(baseline)} baselined, {len(new)} new, {len(stale)} stale rows)"
+        )
+        for f in findings:
+            tag = "BASELINED" if (f["citer"], f["target"]) in baseline else "NEW"
+            print(f"   [{tag}] {f['citer']}:{f['line']} -> {f['target']}")
+        for c, t in stale:
+            print(f"   [STALE-BASELINE] {c} -> {t}")
+        return 0
+
+    if total == 0:
+        print("FAILED:published-cmds ZERO published commands found in a corpus of")
+        print(
+            f"       {len(corpus)} documents. A gate that measures nothing passes silently,"
+        )
+        print(
+            "       which is the defect it exists to prevent. Fix the extractor or the corpus."
+        )
+        return 1
+
+    for f in new:
+        print(
+            f"!! {f['citer']}:{f['line']} publishes `python {f['target']}` "
+            f"but {f['target']} is NOT tracked -- unrunnable in a clone"
+        )
+    # A baseline that can only grow is a mute button. This makes it a ratchet.
+    for c, t in stale:
+        print(
+            f"!! STALE BASELINE ROW: {c} -> {t} no longer violates. Delete the row from "
+            f"{BASELINE} so the floor drops instead of drifting into slack."
+        )
+    print(
+        f"\n== {total} published commands across {len(corpus)} documents; "
+        f"{len(findings)} unrunnable ({len(baseline)} inherited/baselined), "
+        f"{len(new)} NEW, {len(stale)} stale baseline row(s)"
+    )
+    if new or stale:
+        if new:
+            print(
+                f"FAILED:published-cmds {len(new)} NEW published command(s) name an untracked path."
+            )
+            print(
+                "       Either `git add` the target (it is evidence someone is expected to rerun)"
+            )
+            print("       or stop publishing it as a command.")
+        if stale:
+            print(f"FAILED:published-cmds {len(stale)} baseline row(s) are stale.")
+        return 1
+    print(
+        f"SUCCESS:published-cmds no NEW unrunnable published command "
+        f"({len(baseline)} inherited row(s) still open, see {BASELINE})"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
