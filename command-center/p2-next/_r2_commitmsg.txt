@@ -1,0 +1,59 @@
+fix(p2next): the published command did not reproduce its own number -- and 41 was the wrong tree
+
+An independent auditor CONFIRMED two defects in round 1. Both are fixed here, plus a third of the
+same class that nobody had looked for, plus one refuted sentence rescoped rather than deleted.
+
+DEFECT 1 (confirmed) -- re-running vendor_satisfiability.py printed 47/4 where the artifact it
+silently overwrote said 41/10, and that overwrite turned this lane's own verifier red. Cause: rule D
+inverted ANY requirement naming the producer's vendor, so round 1's own rewrite of failure.blocked_on
+on the six AUD receipts knocked them out of rule A and into an inverted rule D. A classifier whose
+answer depends on its author's later edits is not a measurement.
+  - rule D now inverts only when the requirement carries a cross-vendor CLAUSE (else D2).
+  - NEW rule A2. Gating rule D alone would have been worse than the bug: it moved SEVEN units, and
+    the seventh was BLD-0023, whose own blocked_on says "plus one cross-vendor refuter". That would
+    have sent a same-vendor reviewer at a unit whose operative field forbids one -- the exact
+    letter-vs-purpose failure this lane exists to avoid. Caught by reading the receipt.
+  - _b20_final_verify.py now RE-DERIVES the split instead of reading the producer's artifact.
+  - both scripts default to CHECK-only and exit 1 on drift; --write regenerates. Re-running a
+    published command can no longer corrupt the deliverable.
+  - STABILITY check: every unit is classified at 899ff779^ AND at HEAD and the verdicts must agree.
+
+DEFECT 3 (confirmed) -- 41 was measured against the WORKTREE, which carries a sibling lane's
+UNCOMMITTED edit flipping ADV-0041 to SUCCESS. Committed tree: 52 blocked / 42 rail-blocked / 10
+satisfiable. Both scripts now default to --basis committed and print both numbers. Two round-1
+errors cancelled -- minus ADV-0041, plus BLD-0023 -- so 41 was right by coincidence, not derivation.
+
+NOT IN ANY FINDING I WAS GIVEN -- split_review_gate.py had the SAME defect on both halves (worktree
+basis, unconditional overwrite). Measured by hashing the artifact around a run: it drifted, and the
+committed bytes were restored and hash-verified. Fixing it exposed a third disagreement: my own two
+instruments returned 41 and 42. Resolved from the raw field, not by preferring the newer script --
+classify() never read blocked_on. Added as a fourth source; both now return 42/10.
+
+REFUTED SENTENCE, rescoped in place with the original kept verbatim -- "137 tag occurrences" is
+emitted by no instrument here; it came from P2NEXT-GROUNDING.md:43. Measured 114 (committed, deduped)
+/ 113 (auditor, worktree) / 132 (recursive, not deduped, and 18 of those live in one receipt). The
+narrower criticism survives: an occurrence sum answers a question nobody asked. The unit-level number
+is 31 -- FEWER than the 42 the ladder resolves, because 11 rail-blocked units carry their
+cross-vendor demand only in blocked_on prose.
+
+UNCHANGED, re-verified, not re-litigated: the satisfiable SET is the same 10 ids on both bases; all
+10 remain reviewed, receipted, independent PASS and ADMITTED; no same-vendor substitution occurred;
+condition 11 is still the last gate.
+
+EVERY DETECTOR CARRIES A BOTH-STATES CONTROL, and each was shown to fire:
+  _r2_control_stability.py  v2 ladder monkeypatched back -> 6 units move (all AUD, A -> D-invert);
+                            shipped ladder -> 0. Fails closed below 40 units compared.
+  _r2_control_b20.py        verifier with the expectation mutated 42->41 -> rc=1 "count moved to 42";
+                            unmutated -> rc=0.
+  _r2_reconcile.py          pre-fix classify() -> 1 disagreement (BLD-0023); post-fix -> 0.
+  _r2_probe_splitgate.py    proves the drift by hash, then restores the committed bytes by hash.
+
+Gates: ruff 0.15.17 check "All checks passed!" + format "40 files already formatted"; unitgate
+SUCCESS; receipt_validate 10/10 ADMITTED; _b20 SUCCESS with problems: [].
+
+HANDED OVER, not patched (outside the declared file scope): CROSS-VENDOR-RAIL-STATUS.md:1 and :4
+still say 43; measured is 42 of 52 committed / 41 of 51 worktree.
+
+UNRESOLVED and not mine: the sibling's uncommitted ADV-0041 asserts an openai reviewer PASS while
+this lane's premise is that the openai rail is DOWN. Both cannot be true. Settling experiment named
+in P2NEXT-BUILD-R2.md sec 2.

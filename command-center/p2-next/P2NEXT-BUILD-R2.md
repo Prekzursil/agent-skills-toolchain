@@ -169,8 +169,16 @@ python command-center/p2-next/_r2_reconcile.py                  # both states: 1
 python command-center/p2-next/_r2_tagcensus.py                  # 114 / 31 units; refutes 137
 python command-center/p2-next/_r2_probe_splitgate.py            # the drift probe (restores what it perturbs)
 python command-center/p2-next/_b20_final_verify.py              # the 10 from committed blobs + RE-DERIVED counts
+python command-center/p2-next/_r2_blobcheck.py                  # ruff over the COMMITTED blobs (LF), control fires
 python command-center/p2-next/_audit7_adv0041.py                # ADV-0041 at worktree/HEAD/3 commits
+python command-center/p2-next/_audit8_cause.py                  # pre/post-edit token scan behind defect 1
 ```
+
+`_r2_blobcheck.py` is a HEAD-basis sibling of `docs/rule-audit/_r2_blobcheck.py`, which another lane
+wrote for the *staged index*. Theirs is the better pre-commit tool and was not edited; it simply
+fails closed here because this lane's work is already committed, so `--cached` is empty. The two
+differ in exactly one line of input. Measured: **10 blobs, 0 CRLF, ruff format + check both rc=0
+under the repo's real `ruff.toml`, and a mangled blob makes the same invocation exit 1.**
 
 ## 7. Residuals, inline
 
