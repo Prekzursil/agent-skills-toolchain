@@ -3,9 +3,10 @@
 Round 2 of at most 4. Two CONFIRMED defects fixed in code, three overclaims rescoped with the
 refuted wording kept rather than deleted, and one cosmetic miscount corrected.
 
-MEASURED AT: the tree moved **four times** while this round ran —
-`ea37057f → 5365fa5c → f009c680 → …`. Every number below therefore carries the rev it was
-measured at. That is not pedantry: it is the entire content of defect D1.
+MEASURED AT: the tree moved **five times** while this round ran —
+`ea37057f → 5365fa5c → f009c680 → 61e69cf2 → (my 3) → 7aa86f16`. Every number below therefore
+carries the rev it was measured at. That is not pedantry: it is the entire content of defect D1,
+and within this single round the gate went **red → green** between two of my own readings.
 
 COVERAGE: D1, D2, O1, O2, O3, O4 all measured and executed. NOT executed, deliberately, reasons
 inline: the sibling-owned CI red (§D1), bucket (d) empty dirs, the 48.9 MB cache sweep.
@@ -40,9 +41,14 @@ lanes and produced four different answers — **and none of them was a measureme
 | 1 | BUILD r1 | `fa87d1a2` | rc 0 | rc 1, **8** files | GREEN |
 | 2 | AUDIT | `ebe02d62` | **rc 1 (E402)** | rc 1, **14** files | format green, check **red** |
 | 3 | VERIFY | `76de68e7` | rc 0 | rc 1, **8** files | GREEN |
-| 4 | **BUILD r2 (this)** | **`f009c680`** | **rc 0** | **rc 1, 16 files** | **format still RED on 2** |
+| 4 | BUILD r2 (this) | `f009c680` | rc 0 | rc 1, **16** files | format still RED on 2 |
+| 5 | **BUILD r2, 40 min later** | **`61e69cf2` and `ebcd0bc1`** | **rc 0** | **rc 0, 0 files** | **moot — already GREEN** |
 
-Reading 4 is mine, measured just now: `_r2_gate_now.out.json`, all 6 controls PASS.
+Readings 4 and 5 are both mine, both with 6/6 controls PASS
+(`_r2_gate_now.out.json`, `_r2_postgate_before.out.json`, `_r2_postgate_after.out.json`).
+**They are 40 minutes apart and they disagree**, because sibling commit `d22c8564`
+(*"style: ruff format the 16 files CI flagged, pinned 0.15.17"*) landed in between. The gate
+was red for the whole of readings 1–4 and is green now. I did not fix it; a sibling did.
 
 ```
 gate @ f009c680 (2026-08-13T03:20:35+00:00): ruff check rc=0, format --check rc=1
@@ -73,11 +79,13 @@ Considered and rejected: a gate that fails when a doc cites a rev that is no lon
 tree that moved 4× in one round it would fire constantly and be muted within a day — a nag, not
 a control.
 
-**Still not fixed by me, still deliberate:** all 16 red files belong to sibling lanes
-(`command-center/grounding/`, `skills/ui-audit/`). My declared scope is
-`command-center/slop-report/**`. Reformatting a sibling's in-flight evidence to clear a gate I
-did not red is the collision this repo already paid for once. Handed back measured, with the
-widen option's now-reduced value stated: it clears 14 of 16, not 16 of 16.
+**Not fixed by me, and the decision is now vindicated by events.** All 16 red files belonged to
+sibling lanes (`command-center/grounding/`, `skills/ui-audit/`); my declared scope is
+`command-center/slop-report/**`. Round 1 and round 2 both declined to reformat a sibling's
+in-flight evidence to clear a gate they did not red, and handed it back measured instead —
+and the owning lane then fixed it itself in `d22c8564`, which is the outcome a collision would
+have destroyed. **The correct move on someone else's red is to measure it, name it, and hand
+it back.**
 
 *likely (55–80%)* that `ruff format` on those 16 is behaviourally safe — nothing suggests a
 digest lock, but round 1's lock detector failed its own positive control, so this is not
@@ -151,9 +159,14 @@ does) and must still FAIL. If it ever reaches 0, the negative control has died.
   at rc 0. It is **not** a green gate: the surviving 2 are
   `skills/ui-audit/_fix_main_guard.py` and its `.agents/skills/` mirror, outside
   `command-center/` entirely, which no `command-center` glob can reach.
-- **Residual, inline:** this is a snapshot of a tree that moved 4× in one round. Settling
-  experiment: `python command-center/slop-report/_r2_gate_now.py` re-measures both states with
-  its controls at any rev.
+- **And at `ebcd0bc1` the question is moot** — sibling `d22c8564` formatted the 16, so the gate
+  is green with the committed config and widening would buy nothing while costing 208 files of
+  lint coverage. **Do not widen.** The round-1 decision table offered widening as one of two
+  fixes; the third option — *wait for the owning lane* — is the one that actually happened and
+  cost nothing.
+- **Residual, inline:** every line above is a snapshot of a tree that moved 5× in one round.
+  Settling experiment: `python command-center/slop-report/_r2_gate_now.py` re-measures both
+  states with its controls at any rev.
 
 ## O2 — "144 tracked files leave the gate". REFUTED as published, rescoped and reconciled.
 
@@ -216,7 +229,7 @@ cannot be told apart from a detector that always passes.
 
 ---
 
-## My own failures this round (2), recorded because deleting them would hide the correction
+## My own failures this round (3), recorded because deleting them would hide the correction
 
 1. **I rebuilt the defect I was fixing, inside the fix.** `_r2_d2_reproduce.py` v1 executed the
    *live* `_b1_control.py`. It reproduced D2 correctly — and would have stopped reproducing it
@@ -231,20 +244,59 @@ cannot be told apart from a detector that always passes.
    **Restoring "to HEAD" and restoring "to what was there" are different operations**, and in a
    tree with live sibling work only the second is safe. Now it writes back the exact
    pre-existing bytes and asserts `restored_to_preexisting_bytes`.
+3. **I committed D1 into my own residual list — in the document whose thesis is D1.** The first
+   version of §Residual said *"the 16 red files are **still** red"*: present tense, no rev, in a
+   round whose entire argument is that an un-anchored gate claim is stale on arrival. It was
+   false **40 minutes** after I measured it (sibling `d22c8564`). Caught by re-running my own
+   probe at the commit I was publishing into instead of quoting the reading I already had.
+   **The rule is not "know about the trap".** Round 1 knew. The auditor knew — and published a
+   stale number while documenting staleness. The verifier knew. I knew, wrote the rule, shipped
+   the probe, and *still* typed "still red". Only re-executing at the publication rev caught it,
+   which is the argument for the probe rather than for discipline.
 
-## Frozen evidence — untouched
+## Post-commit verification — the narrow question that does not rot
 
-`command-center/casualty/probes` and `command-center/p2-wave/probes/*/control` were never opened
-for write in this round. No probe here reads or writes either path; re-checked at round end.
+Round 1 asked "is main green" and published the answer as a standing fact. That question rots
+hourly. `_r2_postcommit.out.json` asks one that cannot: **do this round's commits introduce any
+gate failure, between two pinned revs?**
+
+`git log 61e69cf2..ebcd0bc1` is *exactly* this round's three commits — no sibling interleaved —
+so the delta is wholly attributable.
+
+| | `61e69cf2` (parent of my first commit) | `ebcd0bc1` (my last commit) |
+|---|---|---|
+| `ruff check .` | rc 0 | rc 0 |
+| `ruff format --check .` | rc 0, 0 would-reformat | rc 0, 0 would-reformat |
+| files ruff considered | 2159 | **2176** |
+
+`new_failures_introduced: []` · `failing_files_touched_by_this_round: []` · 7/7 checks · both
+readings 6/6 controls. **This round added zero gate failures**, and the `+17 considered` proves
+ruff actually saw the new files rather than skipping them: 17 `.py` **added** plus
+`_b1_control.py` **modified** (already counted) = the 18 `.py` this round touched. Exact.
+
+Scope, stated because the round-1 version of this sentence is what got refuted: this says
+*these three commits are clean between these two revs*. It does **not** say main is green today.
+
+## Frozen evidence — UNTOUCHED, four signals plus a non-constant hasher
+
+`_r2_frozen.out.json`, verdict `UNTOUCHED`. For `command-center/casualty/probes` (7 files) and
+`command-center/p2-wave/probes` (25 files), across `61e69cf2..HEAD`: **S1** no commit touches
+either path · **S2** no tracked diff · **S3** nothing dirty in the worktree · **S4** every file
+hashes. The hasher is proven non-constant on a temp **copy** (stable re-hash equal, mutated copy
+differs), because "all files hashed OK" is exactly what a constant-returning hasher prints. No
+frozen file was opened for write at any point in this round.
 
 ## Residual (round 2)
 
-1. **The 16 red files are still red and still not mine.** Widening now clears 14 of 16, not
-   16 of 16 — a materially worse option than round 1 advertised. Owner call.
+1. **The gate red is GONE — and not by me.** Sibling `d22c8564` formatted the 16 files. The
+   standing recommendation flips: **do not widen the ruff exclusion.** It would now buy nothing
+   and cost 208 files of lint coverage. (The first draft of this line said the 16 were "still
+   red" — see §My own failures #3.)
 2. `git clean -Xdf` still destroys the 78 uncited root probe scripts. The R0 ban stands.
 3. Bucket (d) (13 empty dirs incl. `platform/~/`) and the 48.9 MB cache sweep: still not
    executed, still because sibling lanes are live in this tree.
 4. **UNVERIFIED:** whether any committed receipt declares a digest of the 45 committed probe
-   scripts or of the 16 currently-red files. Round 1's lock detector failed its positive
-   control and I did not rebuild it this round. Settling experiment named in §D1.
+   scripts. Round 1's lock detector failed its positive control and I did not rebuild it this
+   round. Settling experiment named in §D1. This is why every carried file — the 45 in round 1,
+   the 29 in round 2 — was committed byte-unchanged.
 5. Nothing pushed. `origin/main` is behind by this lane's commits plus the siblings'.

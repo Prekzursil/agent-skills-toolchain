@@ -1,0 +1,57 @@
+test(slop): the gate went red -> green between two of my own readings, 40 minutes apart
+
+Round 1's third commit existed to publish a gate reading and was stale on arrival (D1).
+This commit publishes a reading too -- but a rev-pinned one, produced by a committed
+re-runnable probe, answering a question that cannot rot.
+
+DID THIS ROUND ADD ANY GATE FAILURE? (_r2_postcommit.out.json, 7/7, both readings 6/6
+controls)
+
+  61e69cf2 (parent of my first commit)  check rc 0  format rc 0, 0 reformat  2159 considered
+  ebcd0bc1 (my last commit)             check rc 0  format rc 0, 0 reformat  2176 considered
+
+  new_failures_introduced: []
+  failing_files_touched_by_this_round: []
+
+`git log 61e69cf2..ebcd0bc1` is exactly this round's three commits, no sibling
+interleaved, so the delta is wholly attributable. The +17 considered proves ruff
+actually SAW the new files instead of skipping them: 17 .py added plus _b1_control.py
+modified = the 18 .py this round touched. Exact, no residual.
+
+Scope, stated because the round-1 version of this sentence is what got refuted: this
+says these three commits are clean between these two revs. It does NOT say main is
+green today.
+
+THE READING THAT CHANGED THE RECOMMENDATION
+
+40 minutes before those runs I measured f009c680: format rc 1, 16 files red. At
+61e69cf2 and ebcd0bc1: rc 0, zero red. Sibling d22c8564 ("style: ruff format the 16
+files CI flagged") landed in between. Five gate readings now exist across three lanes
+and four revs, every one correct at its rev and none of them a measurement error.
+
+Consequences:
+  * DO NOT WIDEN the ruff exclusion. Round 1 offered widening as one of two fixes; at
+    ebcd0bc1 it would buy nothing and cost 208 files of lint coverage.
+  * The third option -- wait for the owning lane -- is what actually happened, cost
+    nothing, and is the outcome a cross-lane collision would have destroyed. Round 1
+    and round 2 both declined to reformat a sibling's in-flight evidence. Vindicated.
+
+MY THIRD OWN FAILURE THIS ROUND, recorded rather than quietly corrected
+
+The first draft of my own residual list said "the 16 red files are STILL red": present
+tense, no rev anchor, inside the document whose entire thesis is that an un-anchored
+gate claim is stale on arrival. It was false 40 minutes later.
+
+Round 1 knew about this trap. The auditor knew -- and published a stale number while
+documenting staleness. The verifier knew. I knew, wrote the rule, shipped the probe,
+and still typed "still red". Nothing but re-executing at the publication rev caught it.
+That is the argument for the probe rather than for discipline.
+
+DoD4: frozen evidence UNTOUCHED (_r2_frozen.out.json). casualty/probes 7 files,
+p2-wave/probes 25 files; four signals across 61e69cf2..HEAD -- no commit touches either
+path, no tracked diff, nothing dirty, every file hashes -- plus a hasher proven
+non-constant on a temp COPY, because "all files hashed OK" is exactly what a
+constant-returning hasher prints. No frozen file was opened for write in this round.
+
+_r2_gate_now.py gains --out so a second rev can be measured without clobbering the
+rev-anchored default receipt.

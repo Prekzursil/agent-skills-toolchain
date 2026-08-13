@@ -115,6 +115,12 @@ def main(argv=None):
     ap.add_argument(
         "--rev", default=None, help="rev to measure (default: current HEAD)"
     )
+    ap.add_argument(
+        "--out",
+        default=None,
+        help="receipt path (default: _r2_gate_now.out.json). Use this when measuring a "
+        "SECOND rev, so the rev-anchored default receipt is not clobbered.",
+    )
     args = ap.parse_args(argv)
 
     rev = (
@@ -236,9 +242,12 @@ def main(argv=None):
         f"before citing this line."
     )
 
-    pathlib.Path(__file__).with_suffix(".out.json").write_text(
-        json.dumps(res, indent=1), encoding="utf-8", newline="\n"
+    dst = (
+        pathlib.Path(args.out)
+        if args.out
+        else pathlib.Path(__file__).with_suffix(".out.json")
     )
+    dst.write_text(json.dumps(res, indent=1), encoding="utf-8", newline="\n")
     print(json.dumps(res, indent=1)[:6000])
     shutil.rmtree(tmp, ignore_errors=True)
     return 0 if res["all_controls_pass"] else 1
