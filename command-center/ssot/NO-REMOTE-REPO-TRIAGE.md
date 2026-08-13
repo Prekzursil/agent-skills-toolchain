@@ -65,7 +65,32 @@ Control for that claim: the same `log --all -- <path>` returns 49 commits for
 `tools/mcp/cloud-hub/**`, so the query does find live paths — the 10 commits ending in a retirement
 are a real history, not an artifact of a broken filter.
 
-## Recommendation
+## CORRECTION 2026-08-13, ~20 minutes after this file was committed — DO NOT RETIRE `scratch` YET
+
+The retire-safe verdict below is **WITHDRAWN for `scratch`**. It was measured correctly and
+published wrongly: the directory was under ACTIVE WRITE by the running lanes, so the census
+expired almost immediately.
+
+Re-measured: **21 files modified in `scratch` in the preceding 12 hours, and ALL 21 have content
+present nowhere in the canonical object store.** Five are lane verification deliverables —
+`VERIFY-MCPRESEARCH-r3.md`, `_ADVVER_DOCS_R3.md`, `_VERIFY-docs-r3.md`, `P2NEXT-ADVVERIFY.md`,
+`_S2_AUDIT_NOTES.md` — plus the probes they ran. Deleting on the strength of the verdict below
+would have destroyed running verification work.
+
+Those 21 files are snapshotted into `command-center/ssot/salvaged-from-scratch/` (84,885 B, `cp -p`,
+source untouched). They are copies of LIVE files and may be partial; that directory's README says
+so and says not to cite them as final verdicts.
+
+**The error was procedural, not arithmetic.** A uniqueness census is a snapshot; a snapshot of a
+moving target cannot license a deletion. The missing step was one cheap command —
+`find <dir> -newermt '10 minutes ago'` — because "what is in here" and "is anything still filling
+it" are different questions and only the second licenses a retire verdict. The original wording is
+kept below rather than edited away, so the mistake stays legible.
+
+`chk` is unaffected: 1 commit, 0 uncommitted, nothing written to it during the wave. Its verdict
+stands.
+
+## Recommendation (ORIGINAL WORDING — superseded for `scratch` by the correction above)
 
 **Both are safe to retire; ~221 MB reclaimed.** Their only unique content is deliberately-deleted
 code, duplicated across both, and everything else is either in canonical or regenerable. Not
