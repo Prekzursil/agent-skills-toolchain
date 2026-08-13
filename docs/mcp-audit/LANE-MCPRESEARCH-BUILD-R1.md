@@ -104,6 +104,20 @@ Code was right; the sentence was wider than its evidence. **The verdict does not
 A side effect worth naming: `search-hub` now also discloses that one of its own
 sub-capabilities is dead — a fact the old per-server field could not represent.
 
+## A gap the new evidence file exposed in the old table
+
+Auditing `s4-evidence.json` against `S4_DECLINED` surfaced four rows — `chrome-devtools`
+and the three `playwright` variants — that were **neither measured nor declined**:
+handshake-verified, no in-session call, and no recorded reason for not having one.
+
+`S4_DECLINED`'s own comment says *"recording the reason is the difference between a
+measured gap and a silent one"*, so omitting them contradicted the map's stated purpose.
+Each now carries why (every tool drives a live browser session; two attach to the owner's
+real logged-in Chrome profile, so no read-only probe exists).
+
+Measured after: rows with neither evidence nor a recorded reason **4 → 0**. All 23 rows
+now carry either a real-call result (server-level or per-backend) or a written reason.
+
 ## Detector controls — every new guard, seen RED
 
 | Control | Broken state fires? | Good state silent? |
