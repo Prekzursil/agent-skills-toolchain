@@ -21,11 +21,21 @@ cited line numbers, counted claims) — same residual the BUILD discloses; and a
 | `r2_failclosed_mutation.py` | MUTANT rc=1 naming `FAIL STATE A ... rc=0`; PRISTINE rc=0 | 0 |
 | `r2_pathrefs.py` / `--self-test` | `scanned=176 unwaived=0 waived=2 mentions=48`; 3 gate states pass | 0 / 0 |
 | `_r2_blobcheck.py` (post-commit) | `FAILED:r2_blobcheck no staged .py files -- fail closed` | **1** |
-| `rule_audit.py --json --md` | `SUCCESS:rule_audit`; regenerated JSON **and** MD byte-identical (`cmp`) | 0 |
+| `rule_audit.py --json <p> --md <p>` | `SUCCESS:rule_audit`; regenerated JSON **and** MD byte-identical (`cmp`) | 0 |
 | `lazy_predict.py` | `16/16 injected reproduced, 1/1 withheld` | 0 |
 | `_adv_indep_classify.py` / `_adv_readme_block.py` | `compared=254 mismatches=0` / block matches tree | 0 |
 | `pytest ci/tests/test_rules_*.py` | 167 passed | 0 |
 | `ruff check` / `ruff format --check` on `docs/rule-audit/` | clean / 19 files formatted | 0 |
+
+**REFUTED in round 4 — corrected in place, recorded rather than deleted.** The `rule_audit.py` row
+above previously read `rule_audit.py --json --md`, with no values. <!--argv-invalid--> It exits **2** with
+`error: argument --json: expected one argument` and writes nothing, so this table certified `0` for
+a command that cannot run, and the `cmp` beside it was vacuous — the artifacts were unchanged
+because nothing was written. The underlying claim holds when the command is run as it was actually
+run (real paths: `SUCCESS:rule_audit`, rc=0, both artifacts sha256-identical). This is an overclaim
+in an ADVERSARIAL artifact: the round-2 adversary re-executed eleven receipts and transcribed the
+twelfth. `r4_receipt_argv_gate.py` now parses every documented invocation here with the tool's own
+parser, and this line was one of the ten it failed on before the fix.
 
 Commit `7770f6e8`: 9 files, all under `docs/rule-audit/`. Foreign paths NONE. Detector control:
 the same filter on sibling `de77c002` emits `command-center/hook-audit/orchestrator-findings.md`,

@@ -272,11 +272,25 @@ r2_control_count_gate.py            SUCCESS 4 live prose claim(s) == tool 19
                                     == AST 19 == group sum 19                        rc=0
 r2_failclosed_mutation.py           SUCCESS mutant rc=1, pristine rc=0               rc=0
 lazy_predict.py                     SUCCESS 16/16 injected, 1/1 withheld             rc=0
-rule_audit.py --json --md           regenerated: JSON and TABLES byte-identical      rc=0
+rule_audit.py --json <p> --md <p>   regenerated: JSON and TABLES byte-identical      rc=0
 pytest ci/tests/test_rules_*.py     167 passed in 0.84s                              rc=0
 uvx ruff@0.15.17 check              All checks passed!
 uvx ruff@0.15.17 format --check     20 files already formatted
 ```
+
+**REFUTED in round 4, and corrected in place rather than deleted.** This row previously read
+`rule_audit.py --json --md` — no values — and certified it `rc=0`. <!--argv-invalid--> That argv is
+an argparse usage error: `--md` is consumed as the VALUE of `--json`, and the tool exits **2**
+having written **0 bytes**. So the paired "byte-identical" was VACUOUS as written — the artifacts
+were unchanged precisely because nothing was written, which is the §3c shape (a control that cannot
+distinguish the two hypotheses) inside a receipt table. Measured round 4, exit code captured with no
+pipe in the way: `EXACT_RC=2`, `rule_audit.py: error: argument --json: expected one argument`.
+
+The CLAIM the row supports survives: run with real paths the invocation returns `SUCCESS:rule_audit`
+rc=0 and both artifacts are sha256-identical to the committed ones (`rule-audit.json` 123,434 B,
+`RULE-AUDIT-TABLES.md` 6,412 B). Only the sentence was wider than its evidence. Round 4 also built
+`r4_receipt_argv_gate.py`, which parses every documented invocation in this directory with the
+tool's own parser; it FAILED on this exact line before the fix and passes after it.
 
 `r2_pathrefs.py` exiting 2 is the honest state, not a broken gate: a real broken pointer is live in
 a tree this lane may not write to. `rc=1` (a new or drifted finding) is what would demand action.

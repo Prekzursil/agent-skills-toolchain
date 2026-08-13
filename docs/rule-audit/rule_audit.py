@@ -491,7 +491,16 @@ def self_test() -> int:
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """Expose the REAL parser so a gate can validate a documented argv without running it.
+
+    Extracted from ``main()`` in round 4. A committed receipt certified
+    ``rule_audit.py --json --md`` as ``rc=0`` when it is an argparse usage error (``--md`` is
+    eaten as the VALUE of ``--json``), and nothing in the repo could tell, because the only copy
+    of the argument contract lived inside a function that has to RUN to reveal it.
+    ``r4_receipt_argv_gate.py`` selects its strong tier on the presence of this accessor, so
+    deleting it silently downgrades that gate -- do not inline it back.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--json", type=Path, help="write the machine-readable report here"
@@ -502,7 +511,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--self-test", action="store_true", help="run the detector controls and exit"
     )
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
 
     if args.self_test:
         return self_test()
