@@ -89,10 +89,19 @@ def make_fixture(
     return root
 
 
+# The pre-round-3 gate, pinned as a BLOB sha (`6f30510a~1:.../check_citations.py`), not as
+# `HEAD`. The first version of this file read HEAD, which was correct for exactly as long as
+# it took to commit the fix -- after that the "old gate" control WAS the new gate and three
+# cases went red. That is round 2's blob-gate defect (`HEAD~1 HEAD` drifting onto a sibling
+# lane's commit) reproduced inside the test written to catch that family. A blob sha cannot
+# drift; the guard below makes sure it is still the unfixed file.
+PRE_R3_GATE_BLOB = "66855eed4857e47a7ea03c35e52d89812a605eac"
+
+
 def old_gate(tmp: Path, retarget: Path | None) -> Path:
     """The gate as it was before round 3, optionally pointed at the fixture."""
     p = subprocess.run(
-        ["git", "show", "HEAD:command-center/hook-audit/check_citations.py"],
+        ["git", "cat-file", "-p", PRE_R3_GATE_BLOB],
         cwd=str(REPO),
         capture_output=True,
         timeout=60,
@@ -100,7 +109,13 @@ def old_gate(tmp: Path, retarget: Path | None) -> Path:
     src = p.stdout.decode("utf-8", "replace")
     if not src.strip():
         raise SystemExit(
-            "FAILED:cite-gate-test cannot read the pre-round-3 gate from HEAD"
+            f"FAILED:cite-gate-test cannot read the pinned pre-round-3 blob "
+            f"{PRE_R3_GATE_BLOB[:12]}"
+        )
+    if "EVIDENCE-DRIFT" in src:
+        raise SystemExit(
+            "FAILED:cite-gate-test the pinned blob ALREADY contains the round-3 fix -- "
+            "every control below would be comparing the new gate with itself"
         )
     if retarget is not None:
         # a lambda, not a template: a Windows path in a replacement STRING is parsed for

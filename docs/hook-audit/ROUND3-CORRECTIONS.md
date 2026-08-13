@@ -2,8 +2,10 @@
 
 STATUS: COMPLETE for round 3. Every number below carries a machine-checkable citation to a
 **committed** evidence file, and as of this round the checker resolves each one twice — once
-on disk and once against `HEAD` — because a worktree-only match is what let round 2's
-evidence drift go unnoticed.
+on disk and once against the staged blob this commit ships — because a worktree-only match is
+what let round 2's evidence drift go unnoticed. (The index rather than `HEAD`, so the gate is
+runnable *before* the commit that adds new evidence; for a tracked file with no staged change
+the two are the same bytes.)
 
 COVERAGE — MEASURED here: the three holes in `check_citations.py`, each with the
 pre-round-3 gate as its control; the handed-off stub-ledger phantom claim, settled
@@ -48,8 +50,8 @@ is green" would be indistinguishable from "the new gate looks at nothing".
 
 ### H1 — it read the working tree, never the shipped blob
 
-`check_one()` resolved every citation with `fp.read_text()`. A clone resolves it with
-`git show HEAD:<path>`. Those diverge in exactly one situation — the evidence file is
+`check_one()` resolved every citation with `fp.read_text()`. A clone resolves it from the
+stored blob (`git show :<path>`). Those diverge in exactly one situation — the evidence file is
 regenerated after it was staged — **which is the situation that produced C3**. The gate was
 therefore blind to the only drift direction that had actually occurred.
 
@@ -253,11 +255,23 @@ unproven one-line change to a `hooks/` file is exactly what this program keeps p
   production the settings matcher prevents that path from ever being taken. Settling
   experiment unchanged: run them on an idle box with a disposable worktree target.
 
-## One defect this round committed in its own instruments, recorded not deleted
+## Two defects this round committed in its own instruments, recorded not deleted
 
-`_b8_rollback_cost.py`'s first round-3 revision reported `warm median 224.6 ms = 1.5% of
-budget` — a 10x improvement on round 1 — and it was wrong for exactly the reason round 1 was
-wrong: 15 of its 16 samples were early returns. It was caught by reading the probe's own
+**1. The both-states test pinned its control to `HEAD`.** `test_citation_gate.py` extracted
+the "pre-round-3 gate" with `git show HEAD:...`, which was correct for exactly as long as it
+took to commit the fix. On the next run HEAD *was* the fixed gate, the three old-gate
+controls compared the new gate with itself, and the suite went red — 14 cases, 3 failed. That
+is round 2's own blob-gate defect (`HEAD~1 HEAD` drifting onto a sibling lane's commit)
+reproduced inside the test written to catch that family, in the same afternoon. Fixed by
+pinning the blob sha `66855eed4857`, plus a guard that refuses to run if the pinned blob
+already contains `EVIDENCE-DRIFT`. The failure is the useful part: a control that silently
+becomes a copy of the thing under test is worse than no control, and only a re-run after the
+commit exposes it. **Run a both-states suite again AFTER committing the fix** — this one
+would have shipped green and rotted otherwise.
+
+**2. The first B8 revision measured the wrong path.** It reported `warm median 224.6 ms =
+1.5% of budget` — a 10x improvement on round 1 — and it was wrong for exactly the reason
+round 1 was wrong: 15 of its 16 samples were early returns. It was caught by reading the probe's own
 `index_records: 1` in the output rather than by review, which is the same signal that had
 been sitting unread in the committed round-1 file. The two-phase split and its fail-closed
 control exist because of that, and the intermediate number is not cited anywhere.
