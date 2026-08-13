@@ -82,11 +82,11 @@ instruction. That exclusion is declared in the source, counted, and printed by `
 
 ### 2.2 Two resolution roots
 
-`python scripts/render_docx.py` inside `skills/doc/SKILL.md` is citer-relative, not
-repo-relative. <!-- published-command-example: scripts/render_docx.py --> Resolving against
+`python scripts/render_docx.py` <!-- published-command-example: scripts/render_docx.py -->
+inside `skills/doc/SKILL.md` is citer-relative, not repo-relative. Resolving against
 the repo root alone reports **~83 false violations** across the skill packs. A target passes
-if it resolves as tracked under **either** root. (That sentence carries the gate's example
-marker, and §4.4 records why it has to.)
+if it resolves as tracked under **either** root. (That line carries the gate's example marker,
+which must sit on the SAME LINE as the command it excuses; §4.4 records why it has to.)
 
 ### 2.3 The baseline is a ratchet, not a mute button
 
@@ -234,8 +234,8 @@ committing this report returned `rc 1`:
 [NEW] command-center/slop-report/SLOP-INTEGRATE-R1.md:85 -> scripts/render_docx.py
 ```
 
-Not the literal I was guarding. §2.2 quotes `python scripts/render_docx.py` as an *example* of
-the citer-relative convention; from `skills/doc/SKILL.md` it resolves, from
+Not the literal I was guarding. §2.2 quotes `python scripts/render_docx.py` <!-- published-command-example: scripts/render_docx.py -->
+as an *example* of the citer-relative convention; from `skills/doc/SKILL.md` it resolves, from
 `command-center/slop-report/` it does not. The gate was right by its own rule and useless in
 fact: **it cannot tell an illustration from an instruction.** That is use-vs-mention recursing
 a third time in this lane — first the census outputs (§2.1), then the round-1 sentinel, now the
