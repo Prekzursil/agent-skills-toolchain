@@ -3,8 +3,9 @@
 Measured 2026-08-13 in `C:/Users/Prekzursil/source/ast-integrate` @ `main`. Every number below
 was produced by a command named beside it. Counts are SNAPSHOTS.
 
-COVERAGE: S1–S3 measured and shipped. S4 (full-disk re-enumeration total) is RUNNING — its
-row says so explicitly and carries no verdict until it lands.
+COVERAGE: S1, S2, S3, S3b measured and shipped. **S4 (the corrected full-disk checkout total)
+DID NOT COMPLETE** — the sweep outran the round. Its section carries `UNKNOWN` and no number
+from it may be cited; the ≥27 floor comes from S3/S3b, which did complete.
 
 Baseline at start: HEAD `27da3215`, `origin/main` `27da3215` (0 ahead / 0 behind), 265 dirty.
 
@@ -165,45 +166,97 @@ silently re-creating the exact blind spot it was written to close, since `scratc
 by nothing else. Fixed by hashing both raw and LF-normalised bytes. **This is the third time in
 this round a tool reproduced the defect class it was built to catch.**
 
-## S4. Full-disk re-enumeration — RUNNING, no verdict yet
+## S3b. The two missed checkouts, classified on every DoD axis
 
-`enumerate_checkouts.py` re-sweeps `C:/Users/Prekzursil` and `D:/` applying all three signals,
-and diffs the result against `all25.json`. It exceeded a 900 s foreground budget and was moved
-to a background run per AGENTS.md §4a.
+So the enumeration finding does not leave two known checkouts unclassified.
+`classify_missed.py`, using the same two independent worktree-vs-clone signals the inventory
+used, each first shown to discriminate on a checkout of known kind:
 
-**Corrected total: UNKNOWN — not yet measured.** What is already established without it: the
-inventory's 25 is a **floor, not a count**, and at least 2 real checkouts sit outside it
-(≥27). The exact figure and the per-checkout classification for any newly-found checkout are
-NOT measured in this round and must not be cited from here.
+```
+CONTROL known linked worktree    dotgit=FILE  common=outside   expected=worktree
+CONTROL known main checkout      dotgit=DIR   common=inside    expected=main-checkout
+control discriminates FILE vs DIR: True
+```
+
+| checkout | kind (A / B, agree) | commits | origin | dirty `-uall` | staged | inbound refs |
+|---|---|---|---|---|---|---|
+| `~/source/_advver_M14/chk` | **independent clone** (DIR / inside, agree) | 1 | none | 0 | 0 | **0** |
+| `~/source/_advver_M14/scratch` | **independent clone** (DIR / inside, agree) | **0** | none | **7,803** | 0 | **0** |
+
+Both signals agree on both, so neither row is a detector artifact.
+
+`scratch` is the worst shape on this box: **0 commits and 7,803 uncommitted entries** — nothing
+in it is in git anywhere, so its entire contents are one `rm -rf` from gone, with no remote and
+no history to recover from. That is what the prior round's near-miss was about, and it is why
+its retire-safe verdict was withdrawn. Unique content for both was already measured by
+`NO-REMOTE-REPO-TRIAGE.md` (7 unique files, all deliberately-retired ChatGPT-web orchestrator
+code) plus the 21 live files already snapshotted into `salvaged-from-scratch/`.
+
+Neither is referenced by anything — consistent with the inventory's finding that 23 of 25
+checkouts are referenced by nothing.
+
+## S4. Full-disk re-enumeration — DID NOT COMPLETE IN THIS ROUND
+
+`enumerate_checkouts.py` re-sweeps `C:/Users/Prekzursil` and `D:/` applying all three signals
+and diffs against `all25.json`. It exceeded a 900 s foreground budget, was moved to a
+background run per AGENTS.md §4a, and **still had not finished its filesystem walk when this
+round ended.** Its control passed (`reachable=21531 positive=True negative=False`), so the
+CRLF fix is confirmed working; the walk is simply expensive (`full-sweep.json` records 911 git
+checkouts, and `D:/` at depth 7 is the cost).
+
+**Corrected total: UNKNOWN — not measured. Do not cite a number from this round.**
+
+What IS established without it, and is safe to cite:
+
+- The inventory's **25 is a floor, not a count** (S3, proven both-states).
+- **At least 27** checkouts exist; the 2 beyond the table are classified in S3b.
+- The classification of the original 25 is **unaffected** — the defect is in *which* checkouts
+  get enumerated, not in how an enumerated one is classified.
+
+Cost work done so this is cheap next time rather than repeated: `classify()` is now
+spawn-frugal (the NAME and CONTENT signals read `.git/config` and file bytes directly, 0
+spawns; only a repo that neither decided pays one `cat-file`), and the walk now persists to
+`walk-paths.json`, because `full-sweep.json` recorded *"911 scanned"* and discarded the paths —
+so the expensive half could not be reused and had to be re-walked from scratch.
 
 ## S5. Definition of Done
 
 | DoD item | status | evidence |
 |---|---|---|
-| every clone classified worktree-vs-clone by measurement | **PASS, with a disclosed floor** | inventory §1 for the 25 (two independent signals); S3 proves the enumerator's identity test is name-bound, so 25 is a floor — the classification of the 25 is unaffected |
-| unique-content measured per clone | **PASS** | inventory §2/§2b; S1 re-measures the 2 at-risk checkouts on the corrected reachability test |
-| inbound-reference measured per clone | **PASS** | inventory §3 — 8 field-level refs, 23 of 25 referenced by nothing (not re-run; best-evidenced part of the prior art) |
+| every clone classified worktree-vs-clone by measurement | **PASS for 27, with a disclosed floor** | inventory §1 for the 25 (two independent signals) + S3b for the 2 it missed (same two signals, controls shown to discriminate). S3 proves the enumerator is name-bound, so 27 is a floor — but every checkout *known* to exist is now classified |
+| unique-content measured per clone | **PASS** | inventory §2/§2b; S1 re-measures the 2 at-risk checkouts on the corrected reachability test; S3b for the 2 missed (via `NO-REMOTE-REPO-TRIAGE.md`) |
+| inbound-reference measured per clone | **PASS** | inventory §3 — 8 field-level refs, 23 of 25 referenced by nothing (not re-run; best-evidenced part of the prior art); S3b measures 0 for the 2 missed |
 | a one-sentence SSOT rule written | **PASS** | inventory §5, mirrored into the repo-root `CLAUDE.md` `<!-- SSOT-WIRE -->` block, CI-gated |
 | nothing deleted | **PASS** | read-only against every source; writes confined to `command-center/ssot/**` plus the declared `ruff.toml` line |
 
 ## S6. Residual — what is NOT done
 
-1. **S4's corrected total is unmeasured** (running). The floor of ≥27 is safe to cite; a
-   specific number is not.
+1. **S4's corrected total is unmeasured** — the sweep did not finish inside this round. The
+   floor of ≥27 is safe to cite; a specific number is not. **Settling experiment:** re-run
+   `python command-center/ssot/enumerate_checkouts.py` under `longrun` with a multi-hour
+   budget; it is now spawn-frugal and persists `walk-paths.json`, so a later run can skip the
+   walk entirely.
 2. **The enumeration fix is a script, not a repair of the inventory table.** `all25.json` and
-   the inventory's §1 table still say 25. I did not rewrite the table, because doing so on a
-   partial sweep would replace a known-low number with an unverified one. **Settling
-   experiment:** let S4 finish, then regenerate the table from `enumerate-checkouts.json`.
-3. **The mcpctl DIVERGED set is still open** (inventory §4, 5 files, `safety.py` +17 scratch-only
+   the inventory's §1 table still say 25, and `docs/ssot/SSOT-CLONE-INVENTORY.md` is NOT edited
+   by this round. I deliberately did not rewrite the table on a partial sweep: replacing a
+   known-low number with an unverified one is worse than a disclosed floor. The repo-root
+   `CLAUDE.md` SSOT block also still says 25 and is CI-gated against the inventory
+   (`ssot_wiring_check.py`), so the two must be corrected **together** or the gate goes red —
+   which is the gate working, not a bug.
+3. **`enumerate_checkouts.py` has never been run to completion**, so its end-to-end output is
+   UNVERIFIED [uncertain, 20-55%] beyond the control and the classify path, both of which were
+   exercised. `enum_defect_proof.py` — which shares the signal logic — did run to completion
+   with all 7 assertions passing, so the *signals* are proven even though the *sweep* is not.
+4. **The mcpctl DIVERGED set is still open** (inventory §4, 5 files, `safety.py` +17 scratch-only
    / +11 main-only). Unchanged by this round. **Settling experiment:** run the scratch
    `test_safety.py` against main's `safety.py` and see which assertions fail.
-4. **The `mcp-manager` port decision is still open** and is judgement, not a differ — see S2.
-5. **Nothing retired.** The precondition stands: retire nothing until its work is on a pushed
+5. **The `mcp-manager` port decision is still open** and is judgement, not a differ — see S2.
+6. **Nothing retired.** The precondition stands: retire nothing until its work is on a pushed
    branch. This round removes the *data-loss* exposure for 5 files; a copy in an evidence
    directory is not the same as the work being landed where it belongs, so it does not by
    itself license retiring either checkout.
-6. **Local `main` is ahead of `origin/main` and not pushed** — pushing was not in scope.
-7. **`git worktree remove` follows junctions and deletes their targets** (measured 2026-08-10,
+7. **Local `main` is ahead of `origin/main` and not pushed** — pushing was not in scope.
+8. **`git worktree remove` follows junctions and deletes their targets** (measured 2026-08-10,
    destructive, NOT re-verified here). Never run a `worktree` subcommand from the Codex plugin
    cache: `git worktree repair` rewrites links *bidirectionally*, so running it there would
    repoint the real live worktrees at the cache.
