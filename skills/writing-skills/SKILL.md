@@ -196,6 +196,30 @@ When the description was changed to just "Use when executing implementation plan
 
 **The trap:** Descriptions that summarize workflow create a shortcut Claude will take. The skill body becomes documentation Claude skips.
 
+**The description is a BUDGETED, SHARED resource.** Every installed skill's description is
+charged at session start, and the client truncates the listing in order once a cumulative
+budget is hit. Measured 2026-08-12: 26-30 CURATED skills rendered with NO description at all
+and so could not be auto-picked, while their SKILL.md carried real text on disk (up to 1,750
+chars). Diagnosed as budget truncation in listing order, NOT a per-file parse failure. So a long
+description does not only cost you — it can push a LATER skill out of the listing entirely.
+
+Two rules follow, and CI enforces both:
+
+- **One line, under 1,024 chars.** A folded or literal YAML block scalar (`description: >`)
+  makes the surface non-deterministic to budget.
+- **Adding a negative case must be budget-neutral.** "Do NOT use for X, use Y instead" is the
+  cheapest recall win available — measured on this repo's 346 canonical skills, 264 say WHEN to
+  use but only 60 state a negative case — so pay for the clause by tightening the positive half
+  rather than by growing the description.
+
+```bash
+python ci/check_skill_description_ratchet.py   # shrink-only ratchet + advisory surface total
+```
+
+It is a ratchet, not a ceiling: descriptions that already exceed the limit are pinned in
+`ci/skill-description-exemptions.txt`, and the gate REFUSES a stale pin — so that list can only
+get shorter. Fix a skill and delete its line in the same change.
+
 ```yaml
 # ❌ BAD: Summarizes workflow - Claude may follow this instead of reading skill
 description: Use when executing plans - dispatches subagent per task with code review between tasks

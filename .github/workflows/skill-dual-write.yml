@@ -107,6 +107,29 @@ jobs:
       # exits 1 on drift, 0 at parity, 3 fail-closed and 2 on misconfiguration.
       - name: gate-ssot-wiring self-test
         run: python -m pytest ci/tests/test_ssot_wiring.py -q
+      # The DESCRIPTION RATCHET. Named explicitly for the same reason as L10/L11/cs-wiring/
+      # ssot-wiring: the `ci/tests` glob above already collects it and is one refactor away
+      # from not doing so. Hermetic (tmp_path only) apart from two cases that read the
+      # committed skill roots. WHAT IT CATCHES: a skill's `description` is the ENTIRE lexical
+      # recall surface for auto-selection and it is charged against a client-side truncation
+      # budget -- measured 2026-08-12, 26-30 CURATED skills rendered with NO description in a
+      # live session and so could not be auto-picked at all, while their SKILL.md carried real
+      # text on disk. Nothing in this repo charged that: `check_skill_context_budget.py`
+      # enforces a real ceiling but only over the curated DAILY tier (`ci/skills-allowlist`),
+      # never the 337-346 skill fleet. The suite proves the gate FIRES on each defect class,
+      # including the 4,000-char description this lane itself once stamped over 7 real ones.
+      - name: gate-skill-description-ratchet self-test
+        run: python -m pytest ci/tests/test_skill_description_ratchet.py -q
+      # The suite above proves the tool works; this step is the tool USED on the real tree.
+      # It is a shrink-only RATCHET, not a ceiling: an absolute limit would be RED at HEAD (5
+      # descriptions already exceed the 1,024-char spec max, 6 already use folded scalars) and
+      # would red-block main and every sibling PR, so that debt is pinned in
+      # `ci/skill-description-exemptions.txt` and the gate refuses a STALE pin -- the list can
+      # only get shorter. The cumulative surface is printed ADVISORY and never blocks, because
+      # the truncation boundary is session-dependent (two sessions fitted the same fleet 13
+      # skills apart) and blocking on a one-session number would be an overclaim.
+      - name: gate-skill-description-ratchet
+        run: python ci/check_skill_description_ratchet.py
       # Exact route comparison catches stale names and old skills/ routes; the
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest
