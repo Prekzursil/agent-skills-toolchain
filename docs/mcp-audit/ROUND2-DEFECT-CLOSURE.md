@@ -154,13 +154,19 @@ Round 1 disclosed 60 repo-wide offenders; the verifier measured 51 for the same 
 | round-1 verifier | 51 |
 | round-2 open | 46 |
 | round-2, 03:33:57Z | 27 |
-| round-2, 03:41:06Z (**8 minutes later**) | 31 |
+| round-2, 03:41:06Z | 31 |
+| round-2, 03:52:41Z | 37 |
 
-A dozen sibling lanes commit into this shared worktree while the audit runs. The repo-wide
-count therefore has a half-life of minutes — it moved by 4 in eight minutes *inside this
-one round* — and quoting it without a timestamp manufactures a disagreement between two
-honest observers. `ruff-census.json` is regenerated on every run and is the source of
-truth for the current reading; the table above is history, not a live figure.
+Six readings, **60 → 51 → 46 → 27 → 31 → 37**, three of them inside a nineteen-minute
+window of this one round. A dozen sibling lanes commit into this shared worktree while the
+audit runs, so the repo-wide count has a half-life of minutes, and quoting it without a
+timestamp manufactures a disagreement between two honest observers — which is exactly what
+happened between the round-1 build and the round-1 verifier.
+
+`ruff-census.json` is a **timestamped snapshot**, not a live figure: whatever is committed
+records the moment it was taken, and re-running the script overwrites it with the current
+reading. The stable, actionable number is `in_scope`, which has been **0** at every one of
+those readings.
 
 `_r2_ruff_census.py` replaces the number with a measurement: in-scope vs out-of-scope **by
 owner**, UTC-stamped, written to `ruff-census.json`, with the exit code driven by the
