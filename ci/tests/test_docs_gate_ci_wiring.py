@@ -76,6 +76,15 @@ GATE_CMD = (
 WIRING_CMD = (
     "python -m pytest ci/tests/test_docs_gate_ci_wiring.py -q -p no:cacheprovider"
 )
+# Round 4 added a third suite to the SAME step (no new step, no new charter
+# slug, no change to the step's position relative to the py3.12 pivot).
+# skill-dual-write.yml already sweeps `ci/tests`, but only on `pull_request` --
+# and this program's commits land by direct push to main, so a suite reachable
+# only through that sweep never runs on the commit that ships it. Naming it here
+# is what puts it on the push path.
+PROMISES_CMD = (
+    "python -m pytest ci/tests/test_command_doc_promises.py -q -p no:cacheprovider"
+)
 
 # quality.yml:1444 -- "KEEP THE py3.12 STEPS LAST in this job -- this action
 # repoints the default `python` to 3.12, so no 3.11 step may follow them."
@@ -181,7 +190,11 @@ def wiring_violations(quality_text: str) -> list[str]:
                 "so its bare `python` is the 3.12 interpreter, not the job's 3.11"
             )
 
-    for label, cmd in (("gate", GATE_CMD), ("wiring", WIRING_CMD)):
+    for label, cmd in (
+        ("gate", GATE_CMD),
+        ("wiring", WIRING_CMD),
+        ("promises", PROMISES_CMD),
+    ):
         if cmd not in lines:
             bad.append(f"{label}-command-missing: no run line invoking {cmd!r}")
 
@@ -307,7 +320,10 @@ def test_control_fires_when_the_step_moves_below_the_py312_pivot() -> None:
     )
     assert wiring_violations(text) == [], "precondition: the real file is clean"
 
-    step_block = f"      {STEP_LINE}\n        run: |\n          {GATE_CMD}\n          {WIRING_CMD}\n"
+    step_block = (
+        f"      {STEP_LINE}\n        run: |\n"
+        f"          {GATE_CMD}\n          {WIRING_CMD}\n          {PROMISES_CMD}\n"
+    )
     moved = text.replace(step_block, "", 1)
     assert moved != text, "control precondition: the step block was not found verbatim"
     moved = moved.rstrip("\n") + "\n" + step_block
