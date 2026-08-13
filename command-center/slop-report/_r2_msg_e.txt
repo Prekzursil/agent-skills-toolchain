@@ -1,0 +1,31 @@
+test(slop): my own prediction was refuted 2 -> 6, and the refutation is why the fix is right
+
+I predicted in SLOP-BUILD-R2.md that after this round's commits the legacy sentinel's
+citer count would drop 2 -> 1: the receipt no longer carries the literal, only
+_b1_control.py does. Measured at 43cb7a62: SIX.
+
+  SLOP-BUILD-R2.md  _VERIFY-SLOP-R1.json  _b1_control.py
+  _r2_d2_reproduce.py  _r2_fix_verify.py  _r2_msg_a.txt
+
+Every one is a file that TALKS ABOUT the sentinel -- this report, the probes that
+reference it, my own commit message, the verifier's findings. Use-vs-mention: to a
+fixed-string grep there is no difference between using a name and discussing it.
+
+That is not a footnote, it is the load-bearing reason the fix takes the shape it does.
+The corpus of citers grows monotonically with every word written about the bug, so a
+hardcoded sentinel CANNOT be rescued by being careful about what you commit -- writing
+the bug report poisons it. Round 1's defect was structural, not careless, and runtime
+generation is the only sound repair.
+
+The invariant that matters is not the count. Executed here, not asserted
+(_r2_predcheck.out.json, 4/4, verdict PREDICTION-REFUTED-FIX-HOLDS):
+
+  --sentinel legacy -> rc 1   negative control still armed (>=1 citer)
+  default (random)  -> rc 0   fix still holds (0 citers, a runtime name is in no blob)
+  states distinguishable
+
+If that count ever reaches 0 the negative control has died; growth is harmless.
+
+Recorded as a refutation rather than quietly deleted, per the same rule this round
+applied to round 1's three overclaims. A prediction that fails and is written down is
+worth more than one that was never made.

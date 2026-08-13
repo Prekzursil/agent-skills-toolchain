@@ -141,9 +141,29 @@ Also de-rotted: `fire_citer_count` grows with the repo (248 → 256 in two commi
 assert **relations** — `fire ≥ 1`, `quiet == 0`, `fire > quiet` — never a pinned number, and the
 receipt carries `measured_at_rev` and `counts_drift_with_tree: true`.
 
-**Falsifiable prediction, checked in §post-commit:** after this commit the legacy control's
-`quiet` count drops 2 → **1** (the receipt no longer contains the literal; the script still
-does) and must still FAIL. If it ever reaches 0, the negative control has died.
+**Falsifiable prediction — I made one, and it was REFUTED. The refutation is the best argument
+for the fix.**
+
+I predicted the legacy sentinel's citer count would drop **2 → 1** after this round's commits,
+reasoning that the receipt no longer carries the literal while the script still does. Measured
+at `43cb7a62`: **6**.
+
+```
+SLOP-BUILD-R2.md · _VERIFY-SLOP-R1.json · _b1_control.py
+_r2_d2_reproduce.py · _r2_fix_verify.py · _r2_msg_a.txt
+```
+
+Every one of those is a file that *talks about* the sentinel — this document, the probes that
+reference it, my own commit message, the verifier's report. **Use-vs-mention: to a fixed-string
+grep there is no difference between using a name and discussing it.** The corpus of citers grows
+monotonically with every word written about the bug, so a hardcoded sentinel cannot be rescued
+by being careful about what you commit — *writing the bug report poisons it*. That is not a
+side-effect of the fix; it is the reason the fix has to be runtime generation rather than
+discipline. Round 1's mistake was structural, not careless.
+
+The invariant that actually matters is unaffected and verified at `43cb7a62`:
+`--sentinel legacy` → **rc 1** (armed, still correctly failing), default random → **rc 0**.
+The number is free to grow; if it ever reaches **0**, the negative control has died.
 
 ---
 
