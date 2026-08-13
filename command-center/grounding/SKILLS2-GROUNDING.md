@@ -1,9 +1,24 @@
 # LANE SKILLS2 — grounding artifact (write-as-you-go)
 
-STATUS: **MEASURED**, round 1. Every verdict below names the probe that produced it and the
+STATUS: **MEASURED**, round 2. Every verdict below names the probe that produced it and the
 control that proves the probe can fail. Raw stdout for each is committed beside this file.
 
+ROUND-2 RE-ENTRY: an independent audit returned PARTIAL and a third-pass adversarial verifier
+returned `build_is_sound=TRUE, audit_holds=TRUE, must_fix=EMPTY`. Round 2 fixed what was
+CONFIRMED. Corrections are marked **ROUND-2 CORRECTION** inline at the sentence they repair,
+with the refuted wording **kept, not deleted**, so the dead end is not re-walked. Round-2 detail
+and its work-list live in `SKILLS2-ROUND2.md`. Nothing in the four DoD verdicts changed — both
+reviewers re-executed all four and passed them; what changed is the scope of three sentences,
+one undisclosed regression, and one code defect that is now fixed and proven executably.
+
 COVERAGE — what is NOT measured, stated up front:
+- **(round 2)** why the render budget `B` moves between sessions is UNVERIFIED; only *that* it
+  moves is measured, on three samples.
+- **(round 2)** `dead_button_crawl.mjs` is now a second confirmed two-way-diverged file
+  (repo 286 lines / live 367). Its union merge is NOT done and is handed to the owner; only the
+  main-guard was repaired.
+- **(round 2)** the +6 vault drift round 1 created is disclosed and handed back, NOT closed —
+  `~/.agents/skills` is outside this lane's declared write scope.
 - The *identity* of the priority/exemption term that lets 2 skills survive the budget is
   **UNVERIFIED** (item 1, §Residual). The budget itself is measured.
 - The exact value of the per-description truncation cap is **UNVERIFIED** (item 1, §Second
@@ -78,14 +93,44 @@ The fitter cannot fit an arbitrary 30-set. **DISCRIMINATING.** `_s2_budget_refit
 
 ### Arithmetic, and what it means for the fix
 
-- 328 skills, **115,478** description chars total; budget fitted at **~108,144**.
-- The fleet is **~7,300 chars OVER**. That is the entire defect.
-- **Rewriting the 26 descriptions cannot fix this** — the orchestrator's instruction not to
-  is confirmed by measurement, not taken on faith. The levers are (a) fewer curated skills,
-  (b) shorter descriptions *somewhere*, or (c) raising the budget if it is configurable.
-  Quantified: the 11 over-spec descriptions hold 13,155 chars; capping all 11 at the 1,024
-  spec ceiling frees **1,891** chars = 26% of the need. Removing ~28 median-length skills
-  (263 chars) frees ~7,364 = the whole need. **Not applied — owner's call.**
+> **ROUND-2 CORRECTION — the earlier wording here was REFUTED and is kept, struck, so the
+> dead end is not re-walked.** It read: *"328 skills, 115,478 description chars total; budget
+> fitted at ~108,144. The fleet is ~7,300 chars OVER. **That is the entire defect.**"* Two
+> things were wrong with that sentence (not with the code): it quoted the **pre-edit** fleet
+> total while item 4 below claims net −22, and — the substantive error — it presented `B` as a
+> **fleet constant** when it is a **per-session** value. The mechanism was right; the number
+> was scoped to one session and written as if it were universal.
+
+- Fleet: **328 skills, 115,461 description chars** (measured with the folded-scalar-aware
+  parser; `_s2_r2_finalverify.py` V1). The folded-blind parser reports 106,618 — a **−8,843**
+  error, the same trap round 1 caught in itself and round 2 reproduced deliberately as a
+  control.
+- The budget `B` is **session-dependent**. Three independent samples, three different sessions:
+
+  | sample | bare skills | boundary (cumulative desc chars) |
+  |---|---:|---:|
+  | round-1 build | 30 | fitted `B` = 108,144 |
+  | independent audit | 29 | 102,511 – 105,336 |
+  | round-2 build (this session) | 30 | 102,511 – 105,239, best fit **103,025** (2 mismatches / 328) |
+
+  Spread **5,633 chars = 21.4 median descriptions**, i.e. the boundary moves by ~13 skills
+  between sessions. `_s2_r2_boundary.py`, verdict `H-SESSION`. The two hypotheses were stated
+  before the probe ran and predict different tables.
+  *Corroboration that both transcriptions are accurate rather than merely similar:* the audit's
+  upper bound and mine differ by **97** chars — exactly the length of `writing-skills`, the one
+  skill that renders in their session and not in mine.
+- **Correctly scoped claim:** *in any single session the fleet overruns the render budget by
+  roughly 7,300–13,000 chars; ~7,300 is a one-session **lower bound**, not a fleet constant.*
+- **Rewriting the 26 descriptions cannot fix this** — unchanged, and it does not depend on the
+  refuted number: every sample puts the boundary far below the fleet total. The levers are
+  (a) fewer curated skills, (b) shorter descriptions *somewhere*, (c) raising the budget if it
+  is configurable.
+  Re-quantified: the 11 over-spec descriptions hold 13,155 chars; capping all 11 at the 1,024
+  spec ceiling frees **1,891** chars — that figure reproduces exactly in all three samples, but
+  it covers **15–26% of the need depending on the session** (26% only in the round-1 session;
+  15–19% in the other two). **Not applied — owner's call.**
+- UNVERIFIED: what makes `B` move between sessions. Settling experiment: run the same probe in
+  N sessions whose prompt size is deliberately varied and regress `B` on total prompt tokens.
 
 ### Residual — the honest gap
 
@@ -152,12 +197,63 @@ string literal) as a USE. The six vault files were therefore confirmed individua
 reading their guard lines, not by trusting the classifier. The result does not rest on the
 inert half.
 
-**New finding, in scope, NOT fixed:** the repo itself has a **seventh** `ui-audit` entry point
-still on the old guard — `.agents/skills/ui-audit/dead_button_crawl.mjs:280`
-(`if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {`). So "fixed 6/6
-in the repo" is true of the six named files and misses this one. Left for the owner: it is a
-one-line change but it must land in `skills/` and `.agents/skills/` together for the
-dual-write gate, and this lane had no mandate to touch it.
+**New finding, in scope — FIXED IN ROUND 2, and the round-1 framing of it was wrong twice.**
+The repo had a **seventh** `ui-audit` entry point on the old guard —
+`dead_button_crawl.mjs:280` in both repo trees. Round 1 called it "a one-line change"; the
+audit went further and called the repair "a copy-back, not new authorship, because the LIVE
+trees already carry `__isMain`". **Both sentences are REFUTED by the diff** (`_s2_r2_deadbutton.py`,
+reconstruction control passed in both directions): repo 286 lines vs live 367, two-directional,
+**8 significant repo-only lines against 56 significant live-only lines**. Live is not the same
+file plus a guard fix — it replaced the simple `__uiAuditMut` mutation *counter* with a
+signature-based noise-attribution engine (`__uiAuditSigs`, `onPageError`, `noisiest`,
+`attributed`, `throwing`). A whole-file copy-back would have imported 56 unreviewed lines. This
+file is a second `workflow-authoring`: genuinely two-way diverged, permanently refused by the
+deploy hop, and it needs a union-merge decision, **which is still open and handed to the owner.**
+
+What round 2 *did* fix is the guard alone, in both repo trees, using the repo's own
+`_fix_main_guard.py` — no live content imported. Proven executably, both states, same inode:
+
+| state | canonical path | via a junction |
+|---|---|---|
+| before | exit 1, 157 chars of output — `main()` ran | **exit 0, 0 chars — `main()` never ran** |
+| after | exit 1, 157 chars | exit 1, 157 chars — `main()` ran |
+
+The canonical leg is the discriminating control: had it also been silent the probe would be
+broken and the script says so instead of returning a verdict. `_s2_r2_guard_exec.ps1`.
+
+**A premise this probe had to correct in itself first:** the initial version used a Windows 8.3
+short path (`PREKZU~1`) as the "lexically different" spelling and reported `GUARD IS FIXED`
+while the guard was broken. Measured with `_s2_r2_guardvals.mjs`: Node keeps the short form on
+**both** sides, so `resolve()` matches and that spelling never triggers the bug. A junction —
+which is exactly how `~/.claude/skills` → `skills.daily` is set up, and the mechanism the repair
+tool's own docstring describes — gives `LEXICAL match: false`, `REALPATH match: true`. The
+control was rebuilt on the measured mechanism, not the assumed one.
+
+**And the first repair did not repair — the fix tool commits the defect class it exists to
+fix.** Running `_fix_main_guard.py` unmodified produced a file that *looked* patched
+(`__isMain` present, old guard gone, `node --check` clean, 11/1 diff in both trees) and the
+both-states probe still reported `GUARD IS BROKEN`. Root cause:
+
+```python
+out = text.replace(OLD, NEW)
+if needs_import(out):            # <-- called on the PATCHED text
+```
+
+`needs_import` is `"realpathSync" not in text.split(OLD)[0]`. After the replace, `OLD` is gone,
+so `split(OLD)` returns the whole document — and `NEW` itself contains the token `realpathSync`.
+The check therefore always answered *"already imported"* and **the import was never inserted**.
+The patched guard then raised `ReferenceError`, which its own `catch` swallowed, falling back to
+precisely the broken lexical compare. A silent no-op inside the tool written to fix silent
+no-ops, invisible to every static check because the file parses and the fallback is by design.
+Fixed at the call site (`needs_import(text)`) plus a hard post-condition that fails loudly if a
+file references `realpathSync` without importing it, in both repo trees. The `.mjs` files were
+then rewound to their HEAD bytes and re-patched **by the corrected tool**, so what is on disk is
+the tool's output rather than a hand edit (`_s2_r2_reapply_guard.py`; rewind via `git show`
+bytes, never `git checkout`, which would have applied EOL conversion and turned a 12-line change
+into a whole-file CRLF diff — verified `crlf=0` on all four written files).
+
+Only the executable both-states probe caught this. Every cheaper signal — the diff, the
+syntax check, the presence of `__isMain`, the tool's own exit 0 — said the repair had landed.
 
 ---
 
@@ -207,29 +303,88 @@ differ**, so the probe is not inert (`S2-NEGCASE.out.txt` §A). Consequence: a d
 edit authored only in the repo can never reach the loaded tree. So each edit was applied to
 **all three trees at once**, which also leaves them IDENTICAL and creates no new drift.
 
-| skill | old | new | Δ | negative case added |
-|---|---:|---:|---:|---|
-| `transcribe` | 216 | 216 | +0 | → `reframe-transcribe` for word-level timing |
-| `tdd-workflow` | 171 | 171 | +0 | → `test-driven-development` for the bare red-green loop |
-| `security-review` | 209 | 208 | −1 | → `security-scan` for `.claude` config scanning |
-| `screenshot` | 220 | 208 | −12 | → `playwright` / `ui-audit` for web or app UI |
-| `e2e-testing` | 133 | 133 | +0 | → `webapp-testing` for driving a live app |
-| `python-testing` | 119 | 117 | −2 | → `test-driven-development` for the TDD process |
-| `research-ops` | 215 | 208 | −7 | → `deep-research` for the full multi-source pass |
+| skill | baseline | round 1 | round 2 | Δ vs baseline | negative case added |
+|---|---:|---:|---:|---:|---|
+| `transcribe` | 216 | 216 | **214** | −2 | → `reframe-transcribe` for word-level timing |
+| `tdd-workflow` | 171 | 171 | 171 | +0 | → `test-driven-development` for the bare red-green loop |
+| `security-review` | 209 | 208 | 208 | −1 | → `security-scan` for `.claude` config scanning |
+| `screenshot` | 220 | 208 | **216** | −4 | → `playwright` / `ui-audit` for web or app UI |
+| `e2e-testing` | 133 | 133 | 133 | +0 | → `webapp-testing` for driving a live app |
+| `python-testing` | 119 | 117 | 117 | −2 | → `test-driven-development` for the TDD process |
+| `research-ops` | 215 | 208 | **207** | −8 | → `deep-research` for the full multi-source pass |
 
-**net −22 chars.** Preconditions enforced and refused-on-failure: skill present in all three
-trees; description byte-identical across all three before the edit; `len(new) <= len(old)`;
-no `": "` or `"` so it stays a valid plain YAML scalar.
+**Round 1: net −22. Round 2: net −17 vs the same pre-round-1 baseline** (+5 against round 1,
+spent restoring lost recall words and a positive `Use when` opener). The ceiling was re-anchored
+in round 2 from `len(new) <= len(round-1)` to `len(new) <= len(pre-round-1 baseline)`, so the
+lane's cumulative effect on the render budget stays ≤ 0 measured from where it found the fleet.
+Preconditions enforced and refused-on-failure: skill present in all three trees; description
+byte-identical across all three before the edit; the length ceiling; no `": "` or `"` so it
+stays a valid YAML scalar; **round 2 adds** a positive-WHEN gate and the lexical-recall gate.
+All three round-2 rows were refused on first run until every word loss was declared.
 
 *Detector control:* a deliberately oversized candidate (4,000 chars) is in the table and
 **was refused by the length gate** in every run — so "budget-neutral" is a measured property,
-not an assertion. Verification after the write: dual-write gate `OK`; deploy-drift reports
-**none** of the 7 in `needs_merge` (no new drift); all three trees byte-identical.
+not an assertion. Verification after the write: dual-write gate `OK`; all three trees
+byte-identical.
+
+> **ROUND-2 CORRECTION — "no new drift created" was REFUTED, and the refuted wording is kept
+> here rather than deleted.** It was true of the `skills.daily` deploy target and **false for
+> the `~/.agents/skills` vault**: 6 of the 7 edited skills were byte-IDENTICAL to the vault
+> before the edit and DIFFER after, moving `needs_merge` 397 → 403 (`IDENTICAL` 226 → 220,
+> `DIVERGED` 96 → 102 — the arithmetic matches to the file). Because a description MODIFY
+> classifies `DIVERGED` — this lane's own executable proof — those 6 are now permanently
+> refused by the deploy hop, i.e. the item-4 edit added 6 files to the very orphan pile item 2
+> exists to diagnose.
+> **Correctly scoped claim:** *no new drift against `skills.daily`; +6 newly-diverged files
+> against the vault.* The vault is outside this lane's declared write scope, so the remedy is
+> this sentence plus a **handback**, never a write. Settling experiment (owner): copy the
+> description lines into `~/.agents/skills` and re-run the dry-run — `needs_merge` must return
+> to 397. Round 2 re-ran the dry-run and it still reads **403**, so round 2 added none of its
+> own (its 3 edits and the guard fix all touch files that were already `DIVERGED`).
 
 Census, re-derived independently (`_s2_appendonly_and_negcase.py` §B, 328 skills): states
 WHEN 257 (brief: 261) · states a NEGATIVE case **79** (brief: 69) · says what it RETURNS
 **54** (brief: 54 — exact). The negative-case gap is marker-definition width, not a
 contradiction; the brief's direction is confirmed.
+
+> **ROUND-2 CORRECTION — the WHEN census moved 257 → 256 and round 1 did not disclose it.**
+> Worse than an omission: the count was right **by accident** and the attribution was wrong in
+> both directions. The round-1 regex `\b(use when|when the user|triggers?|use this)\b` matches
+> `"Do NOT use when …"` — a NEGATIVE clause — as a positive statement of when to use a skill.
+> Measured with a detector that strips negative clauses first (`_s2_r2_census.py`, control
+> anchored to the frozen round-1 blob so it keeps discriminating after its own fix):
+>
+> | | round-1 detector | negative-aware detector |
+> |---|---|---|
+> | skill it says lost a WHEN | `research-ops` | `transcribe` |
+> | verdict | **mis-attributed** — `research-ops` only changed marker wording (`Use when the user wants` → `Use for`) and still states when to use itself | **the real regression** — `transcribe` lost its only positive opener; the sole surviving `use when` sits inside `Do NOT use when` |
+>
+> Both detectors report a net of −1, which is why the regression was invisible: the total was
+> correct while naming the wrong skill and masking the right one. **Round 2 repaired
+> `transcribe`**; the census is now `PRE 268 → R1 267 → R2 268`, **net +0 vs pre-round-1**, and
+> **0** skills lost a WHEN. Disclosed limitation: the negative-aware detector accepts
+> `use for` / `use to` as positive markers, which is why `research-ops` passes it; under a
+> stricter marker set it would fail too, and round 2 restored its `Use when` opener anyway.
+
+> **ROUND-2 CORRECTION — "Do NOT shorten descriptions" was an explicit instruction and round 1
+> deviated from it.** Round 1 framed this as the brief being refuted on cost; the brief was
+> *also* protecting the lexical recall surface, and that part was not refuted. Resolving the
+> two reviewers who disagreed on the count (audit said 5 of 7 shorter, verifier said 4): from
+> the raw deltas the **verifier is right — 4 of 7** were shorter after round 1
+> (`security-review` −1, `screenshot` −12, `python-testing` −2, `research-ops` −7).
+> Round 2 replaces the char-length proxy with a **mechanical lexical-recall gate**: every
+> content word in the pre-round-1 baseline must survive in the new description **or in the
+> skill name**, and any remaining loss must be declared per skill or the row is refused. It
+> refused all three round-2 rows on first run until each loss was enumerated. Under it, all
+> seven skills this lane touched now pass with **zero undeclared losses**, and the lane's
+> cumulative length delta is **−17 chars vs the pre-round-1 baseline** (`_s2_r2_finalverify.py`
+> V3/V4). Restored: `speech` and `speakers` (transcribe), `system` (screenshot), and a positive
+> `Use when` opener on both `transcribe` and `research-ops`.
+> One refinement of the audit's own finding: with a substring-aware matcher only **`speech`**
+> was a true loss — `speakers` remained reachable inside `known-speaker hints`. Both are
+> restored regardless. Newly declared loss, disclosed inline: `transcribe` no longer says
+> `known-speaker hints` (216 chars cannot hold the opener, `diarization`, and that phrase at
+> once); `speakers` and `diarization` both survive.
 
 ### Self-inflicted defect, its blast radius, and the revert
 
