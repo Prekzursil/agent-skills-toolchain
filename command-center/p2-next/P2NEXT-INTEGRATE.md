@@ -163,9 +163,13 @@ Two things in that output matter more than the eight OKs:
    owner should read both before deciding.
 5. **NOT-CHECKED: `codex login` itself.** Owner-only credential write. Not attempted;
    `~/.codex/auth.json` not read for value.
-6. **NOT-CHECKED: full CI.** Run here: `ruff check`, `ruff format --check`, the gate self-test, the
-   gate, `vendor_satisfiability.py`, `split_review_gate.py`, `check_published_commands.py`,
-   `unitgate.py`, `charter_check.sh`. The suite has roughly 25 steps and they were not all run.
+6. **NOT-CHECKED: full CI.** Run here, all green after the commit: the gate self-test, the gate,
+   `vendor_satisfiability.py`, `split_review_gate.py`, `check_published_commands.py`,
+   `unitgate.py`, `charter_check.sh`, and `_i4_blobcheck.py` — which format-checks the COMMITTED
+   BLOBS rather than the working tree, carrying `ruff.toml` into the temp tree so the check is not
+   run against a default line length, and mangling one extracted file to prove the detector fires
+   (5 blobs, 0 CRLF bytes, clean; control rc=1). The suite has roughly 25 steps and they were not
+   all run.
 7. **Two files in `command-center/p2-next/` are ruff-format-dirty and are NOT this lane's**
    (`_a3_idem_and_137.py`, `_a3_preedit.py`, both untracked, authored by the audit lane). They were
    deliberately left alone. If that lane commits them unformatted, the lint job goes red for a
