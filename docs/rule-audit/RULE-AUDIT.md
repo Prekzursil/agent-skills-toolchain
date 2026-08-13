@@ -133,6 +133,17 @@ Nine, each verified against the source it describes rather than argued. Severity
 document order. "Applied" means this lane changed it; "proposed" means it is outside this lane's
 file scope and the exact patch is in §5.
 
+**Exhaustiveness is UNVERIFIED, and I have direct evidence against it.** The lane's Definition of
+Done asks for *every* rule-vs-reality contradiction; what is defensible is "nine found, each
+measured, each with a correction". Two of the nine (§3.9 `install.sh`, §7.3 `ruff format`) are
+absent from the grounding lane's list and surfaced only because I read the files rather than the
+finding list — so a third reader would likely find a tenth. There is no closed procedure here: the
+list is the union of what two lanes happened to read, not the output of an enumerator over all
+rule-to-source claims. Settling experiment, and the only thing that would make "every" honest:
+extract every checkable assertion in `rules/**` that names a file, line, command, or count, and
+assert each mechanically — i.e. grow `ci/tests/test_rules_*.py` toward that set. Until then treat
+this section as a floor, not a census.
+
 ### 3.1 `agent-self/config/AGENTS.md` inverts the §9 credential non-negotiable — CONFIRMED, highest severity, PROPOSED
 
 The repo's versioned copy of the behavior contract is **missing the entire live §9 opening
