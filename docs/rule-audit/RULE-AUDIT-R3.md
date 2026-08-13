@@ -12,7 +12,9 @@ Every number below came from a command run in this session. Nothing was carried 
 including the adversary's own findings: I re-derived the defect with different instruments before
 accepting it.
 
-COVERAGE: D1-D5 MEASURED (table below). UNMEASURED and disclosed inline: the token estimator is
+COVERAGE: D1-D5 MEASURED (table below), plus one axis neither the adversary nor any prior round
+raised — whether the DECLARED corpus is itself complete (§5b: measured, three trees is right, with
+the discriminator named). UNMEASURED and disclosed inline: the token estimator is
 still `cl100k_base`, not Anthropic's tokenizer (±10-20%; `/context` is the only first-party receipt
 and a subagent cannot invoke it); the non-path contradiction axes (command invocations, cited line
 numbers, counted claims) remain unswept on all three trees; and `agent-self/bootstrap.ps1` was
@@ -190,6 +192,45 @@ The mutant reproduces round 2's `176` exactly. That is the strongest single line
 gate is not asserted to catch the defect, it is **observed** catching it, in the same invocation
 that reports the green.
 
+### 5b. But is the DECLARED corpus itself right? — consistency vs completeness
+
+The obvious attack on §5: the gate binds the sweep to `rule_audit.TREES`, so if *that* were missing
+a tree both sides would agree at two and the gate would report parity on an incomplete corpus. The
+three-tree corpus had been inherited unquestioned since round 1. Measured now:
+
+```
+$ find . -type d -name rules -not -path "*/.git/*" -not -path "*/node_modules/*" -not -path "*/vendor/*"
+./rules                                   <- corpus
+./agent-self/config/rules                 <- corpus
+./skills/code-security/rules              ./skills/llm-security/rules
+./.agents/skills/code-security/rules      ./.agents/skills/llm-security/rules
+$ find "$HOME/.claude" -maxdepth 4 -type d -name rules      -> 101 hits
+```
+
+**Verdict: three is right, and here is the discriminator rather than an assertion.** The four
+skill-bundled directories hold 82 markdown files that are *not* injectable rules:
+
+* **different frontmatter schema.** 78 of 82 carry frontmatter, but the vocabulary is
+  `title / impact / impactDescription / tags` — a security-catalogue schema. The rule corpus's
+  vocabulary is `paths:`, the key that gates lazy injection. Presence of frontmatter is not the
+  discriminator; its *schema* is. Had I checked only "does it have frontmatter", 78 files would
+  have looked like rules.
+* **not deployed to the rule tree.** `find ~/.claude/rules -name code-injection.md` returns nothing;
+  `~/.claude/rules/` holds `README.md` plus 14 language directories and nothing else. They deploy
+  to `~/.claude/skills/` and load through skill progressive disclosure, not turn-0 injection.
+* **first-party negative evidence.** My own turn-0 context carried the 8 no-frontmatter live rules
+  and no skill rule; the 16 path-scoped rules injected after I read `.py` files were all from
+  `~/.claude/rules/`. The harness itself never treats these as rules.
+
+Of the 101 `~/.claude` hits, exactly one — `~/.claude/rules` — is the live tree. The other 100 are
+`agent-worktrees/`, `agent-worktrees-salvage/`, `scratch/`, `toolchain-audit/` and dated backups:
+disposable clones, which is the same conclusion this repo's own `CLAUDE.md` SSOT block reaches
+about the 25 checkouts on this box. They are excluded deliberately, and now on the record.
+
+This is a **one-time measurement, not a gate** — a fifth tree added tomorrow would not fire
+anything. Automating it (walk for `rules/` dirs, discriminate by frontmatter schema, fail on an
+unknown one) is the natural next gate and is listed as residual.
+
 ## 6. D5 — a receipt nobody could re-run
 
 `_r2_blobcheck.py` read the **staged index**. Round 2 ran it, printed `SUCCESS:r2_blobcheck`, and
@@ -287,6 +328,11 @@ enumerators agree). All six sweep states and both parity bindings fire as report
 the same invocation as the green). 167/167. `ruff format` semantics-preserving (4/4 `cmp`).
 Round-2's blob receipt now reproduces at `--rev 7770f6e8` (executed).
 
+**ALMOST CERTAIN (90-99%)** — that three trees is the complete rule corpus **as of this commit**
+(§5b: an exhaustive `find` on both roots, plus a named discriminator — frontmatter schema — and
+first-party evidence that the harness never injects the 82 skill-bundled files). Not gated, so the
+band applies to today, not to tomorrow.
+
 **LIKELY (55-80%)** — that the three-tree path sweep now finds everything on this axis. It found
 exactly 5 positional claims and I adjudicated all 5, but a tree newly under an instrument deserves
 more than one clean run before "closed", and `GENERIC` still drops five common basenames by design.
@@ -324,6 +370,11 @@ anything the round-2 audit cleared; I re-ran it, and it reproduced.
 6. **The parity gate's own fail-closed paths are unexercised.** They are one `TREES = {}` away from
    a control; I ran out of falsifiable value before contriving it, and say so rather than listing
    them as proven.
+6b. **Corpus completeness is measured once, not gated.** §5b establishes that three trees is the
+   right corpus and names the discriminator (frontmatter *schema*, not presence), but nothing
+   fires if a fourth appears. Next gate: walk for `rules/` directories, classify each by
+   frontmatter schema, fail on an unrecognised one. Until then §5b is a snapshot dated to this
+   commit.
 7. **`/context` still not run** (a subagent cannot), so every token figure remains an estimate.
 8. **`ci/tests` cannot go fully green on Windows** — one pre-existing `os.fsdecode(b"\xff")`
    failure, proven pre-existing in a fresh clone by the VERIFY lane. Not this lane's.
