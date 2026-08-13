@@ -3,9 +3,18 @@
 STATUS: complete and measured. Every number below was produced by a command in this round;
 where something was not executed it says so inline, next to the claim.
 
-COVERAGE: §1 grounding re-verification, §2 what shipped, §3 detector controls, §4 DoD, §5
-residual, §6 commits — all measured. The one derived-not-executed claim is the tiktoken repair
-(§5), which names its settling experiment.
+COVERAGE: grounding re-verification, what shipped, detector-control evidence, DoD status,
+residual and commits are all measured. The one derived-not-executed claim is the tiktoken
+repair, which names its settling experiment inline beside it.
+
+That COVERAGE sentence originally numbered its sections, and the phrase "§3 detector
+controls" <!--count-historical--> was parsed by this lane's own `r2_control_count_gate` as a
+prose claim of three controls against the tool's emitted 19 — a real mismatch, and one the
+working tree hid: the doc was rewritten *after* the last full gate run, so only the
+fresh-clone run caught it. The gate was right and the sentence was wrong. Recorded rather
+than quietly reworded, because it is the cleanest demonstration in this round that these
+gates do what they claim — and the quoted phrase above needs the
+`<!--count-historical-->` marker for exactly the use-vs-mention reason the gate documents.
 
 ## 0. What this round did NOT do
 
