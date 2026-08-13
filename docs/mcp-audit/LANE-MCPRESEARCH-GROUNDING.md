@@ -34,8 +34,22 @@ EXITCODE=0
 ```
 
 That is a **third** platform for the portability claim: the lane measured Ubuntu 24.04 /
-py3.12 and CI pins py3.11; this run adds win32 / py**3.14.6**. Residual §8.2 narrows but does
-not close — none of the three is a real GitHub runner.
+py3.12 and CI pins py3.11; this run adds win32 / py**3.14.6**.
+
+The pin itself was then run, because a sibling had *just* landed `dfea977d fix(mcp-audit):
+commit the 3.11 f-string fix the lane wrote but never landed` — i.e. this lane had already
+shipped one py3.11 `SyntaxError`, so "3.11 is probably fine" was not available as an
+assumption:
+
+```
+$ py -3.11 command-center/mcp-audit/ci_gate.py
+SUCCESS:mcp-audit-ci-gate 15/15 gates behaved, 2/2 artifacts byte-identical
+EXITCODE=0
+```
+
+**Four Python versions across two OSes now agree** (3.11 CI-pinned + 3.12 + 3.14.6, win32 +
+Ubuntu 24.04). Residual §8.2 narrows to the runner ENVIRONMENT alone; the interpreter-version
+risk is now measured rather than assessed.
 
 | axis | artifact | state |
 |---|---|---|
@@ -239,8 +253,10 @@ printed, or modified.
 ## 8. Residual — named, with settling experiments
 
 1. **7 of 12 cloud-hub backends unprobed** (157 tools). → one cheap read-only call each.
-2. **`mcp-audit.yml` has never run on a real GitHub runner.** Three local platforms now agree
-   (win32/3.14.6, ubuntu/3.12, and 3.11 pinned-but-unrun). → first `workflow_dispatch`.
+2. **`mcp-audit.yml` has never run on a real GitHub runner.** Narrowed, not closed: the gate
+   is green on CI's exact pin (3.11) plus 3.12 and 3.14.6, on win32 and Ubuntu 24.04, so the
+   interpreter-version risk is measured. What remains unmeasured is the runner ENVIRONMENT
+   (network egress, clean checkout, Actions-provided git). → first `workflow_dispatch`.
 3. **R1 still open:** producer → `mcpctl` four null fields + `monitorcore` pane. Out of scope
    here. The §3b blocker (producer not reproducible off the owner's box) is already removed.
 4. **`S4_EXECUTED` is still a hand-typed dict of literals** inside `rank_disposition.py:107` —
@@ -250,6 +266,28 @@ printed, or modified.
    angr + frida-mcp + the cloud-hub backend map).
 6. **The 5-7 server ceiling is an external consensus figure, not a local measurement.** No
    degradation was measured on this box. Cited as context, not as a finding.
+
+## 9. Detector note — `git show | grep $'\r'` in Git Bash is a false-positive CRLF check
+
+Recorded because round 4 of this lane spent itself on a false CRLF claim, and this round
+nearly published a second one. Verifying the new commit, `grep -c $'\r'` over
+`git show HEAD:<path>` reported **CR on every file** — including `ci_gate.py`, a blob
+`_r4_selfcheck` had *just* certified as 0-CRLF in the same run. Two claims that cannot both
+be true is a detector failure, not a finding.
+
+Controlled by reading the same blob byte-wise instead of through a Git Bash pipe:
+
+| path | `git show \| grep -c $'\r'` | `git cat-file -p \| grep -c $'\r'` | python, byte count |
+|---|---|---|---|
+| `ci_gate.py` | 340 | 340 | **CR=0** |
+| `_g2_drift_probe.py` | 128 | — | **CR=0** |
+| `LANE-MCPRESEARCH-GROUNDING.md` | 258 | — | **CR=0** |
+
+`git show` and `git cat-file` **agreed with each other and were both wrong** — the MSYS pipe
+re-inserts CR, so the grep measures the pipe, not the blob. The repo convention
+("`git show`/`git cat-file` return the stored blob, 0 CRLF") is correct *at the byte level*;
+it stops being true the moment the output crosses a Git Bash pipe into `grep`. Read blob bytes
+in Python (`subprocess` + `.count(b"\r")`), never `git show … | grep`.
 
 ---
 
