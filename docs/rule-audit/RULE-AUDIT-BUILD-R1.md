@@ -109,6 +109,25 @@ notices changed frontmatter. `_b8` copies both trees to a temp dir, mutates the 
 `text=True`, which decodes as cp1252 on Windows and rendered `§` as `Â§`. That was my probe,
 not the gates. Fixed with `encoding="utf-8"`; the gate now prints `§9` correctly.
 
+### Clone and CI-simulation results
+
+Working-tree green is not clone green, so both were run — and the clone run **caught a real
+red** the working tree hid (see the COVERAGE note at the top: a prose claim in this very
+document). After the fix:
+
+| environment | result |
+|---|---|
+| working tree | `SUCCESS:rule-audit-ci-gate 6/6 gates behaved, always-on=8, divergence=3` |
+| fresh `git clone` at HEAD | self-test 12/12; gate **rc=0**, 6/6, 39 tracked `.py`, no ghosts |
+| fresh clone **+ no `~/.claude`** (closest local approximation of a runner) | gate **rc=0**, 6/6 |
+
+In the no-home simulation `r4_credential_rule_gate` reports **2** violations instead of 4 —
+its live-tree arm cannot run there — and still exits 1, which is exactly what the plan pins
+it at. That is the designed degradation, verified rather than assumed.
+
+**Still unmeasured in that simulation:** POSIX, and tiktoken absence. Those are the two
+remaining differences between this box and `ubuntu-latest`, and they are the residual in §5.
+
 ## 4. DoD status, item by item
 
 - **DoD-1 — every rule classified always-on vs lazy by measured frontmatter: PASS.**
@@ -136,9 +155,10 @@ not the gates. Fixed with `encoding="utf-8"`; the gate now prints `§9` correctl
   **no DNS**. Derived from the mechanism (only the 3-control `encoder` group touches tiktoken;
   its third control passes either way) plus Windows-with-tiktoken at 19/19.
   **Settling experiment: the first runner execution of the new workflow.**
-- **The workflow has never run on a runner.** Everything here is local execution plus a fresh
-  clone. Confidence that it goes green there is *likely*, not certain, and the tiktoken step is
-  the specific risk.
+- **The workflow has never run on a runner.** Everything here is local execution, a fresh
+  clone, and a fresh clone with no `~/.claude`. The last of those is green, which removes the
+  live-tree unknown; what remains is POSIX and tiktoken. Confidence that the workflow goes
+  green on its first runner execution is *likely* (55-80%), not certain.
 - **Network at gate time** (`tiktoken.get_encoding` fetches the BPE file). Accepted: the failure
   mode is loud — a failed fetch makes the encoder control fire and the job go red, never a quiet
   pass.
