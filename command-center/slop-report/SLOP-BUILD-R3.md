@@ -2,9 +2,11 @@
 
 LANE: SLOP (build — implement and commit for real)
 REPO: `C:/Users/Prekzursil/source/ast-integrate`, branch `main`
-MEASURED AT: `ab3667d5` at lane start → `12f9e861` → `a144c27a` mid-run. **HEAD moved twice
-under me inside ~40 minutes**, both times from a sibling lane committing to `main` in this same
-worktree, so every number below carries its rev.
+MEASURED AT: `ab3667d5` at lane start → `12f9e861` → `a144c27a` → `aff7ebad` → `f48de18b` →
+`0ba338e4`. **HEAD moved at least six times under me**, every time from a sibling lane committing
+to `main` in this same worktree, so every number below carries its rev and none of them is a
+standing fact. This is also why each of my three commits names explicit paths: a bare
+`git commit` here would sweep whatever a sibling left in the index.
 
 If this file still reads as a skeleton with `UNKNOWN - not yet measured`, the unit died before
 measuring anything and no verdict here may be cited.
@@ -235,7 +237,7 @@ not evidence both consumers are dead. `tools/editor/metaswarm` and `ralph-hats/r
 
 `platform/` sat **outside** the published-command gate's corpus
 (`INCLUDE_PREFIXES = ("command-center/", "docs/")`). That is not incidental to B2 — it is the
-mechanism. A committed report could publish `python platform/.../_probe_x.py` against a gitignored
+mechanism. A committed report could publish `python platform/.../_probe_x.py` <!-- published-command-example: platform/.../_probe_x.py --> against a gitignored
 file and no gate would ever notice. Measured with `_r3_widen.py`, which monkeypatches the
 **shipped** module's prefixes and calls its own `scan()` rather than reimplementing the resolver
 (5 controls, including strict-superset and a uuid target that must resolve UNRUNNABLE):
@@ -247,7 +249,7 @@ file and no gate would ever notice. Measured with `_r3_widen.py`, which monkeypa
 
 **9 of those 19 were false positives**, all from
 `platform/routing/fixtures/home/.agents/skills/**/SKILL.md` — a fixture HOME tree of third-party
-skill docs used as *input* to the routing tests. Their `python scripts/foo.py` lines are relative to
+skill docs used as *input* to the routing tests. Their `python scripts/foo.py` <!-- published-command-example: scripts/foo.py --> lines are relative to
 a deployed skill's own home, not to this repo, so resolving them here is a category error. This is
 the "third path root the resolver does not model" that INTEGRATE-R1 §4.2 predicted. Added to
 `EXCLUDE_PREFIXES`, the same treatment `command-center/harvest/` already gets for verbatim dumps.
@@ -317,19 +319,75 @@ silent skip — the grounding said "at a quiesce point" and this is not one.
 `command-center/p2-wave/probes` **0 dirty lines** (25 tracked). No file under either path was
 opened for write by this lane.
 
+### The widened gate's first catch was my own report
+
+Committing this document put two ILLUSTRATIVE commands into the gate's corpus —
+`python platform/.../_probe_x.py` and `python scripts/foo.py`, written as prose examples of the
+defect being described. The gate flagged both, correctly: it cannot tell an example from an
+instruction. Fixed with the mechanism the gate ships for exactly this,
+`<!-- published-command-example: <target> -->`, whose two self-test controls assert that a marker
+suppresses the target it names and does **not** suppress a different one.
+
+Worth recording rather than quietly patching: this is the module docstring's own warning about a
+gate poisoning its corpus the moment its receipt is committed, reproduced on the commit that
+widened it.
+
 ## A red gate that is NOT this lane
 
-`python command-center/slop-report/_r2_gate_now.py --rev <rev>` at my first commit `51b98feb`:
-`ruff check` rc 0, **`ruff format --check` rc 1 with 6 would-reformat**. All six are
-`docs/rule-audit/*.py`, another lane's files. Run at my commit's PARENT `a144c27a`: **the same 6**.
-So `gate-lint-format` on `main` was already red when I arrived and my commit added nothing to it.
-Not fixed here — those look like `_<lane><n>_` evidence probes, and reformatting another lane's
-evidence is the move this lane has declined twice. Remedy is theirs: format them, or add the
-`ruff.toml` entry the repo already uses for that class.
+`gate-lint-format` on `main` was red twice during this lane, and **neither time was it this lane**.
+Both were established by running the gate replica at my commit AND at its parent — the same
+measurement on both sides, not an argument.
+
+| rev | `ruff check` | `ruff format --check` | whose |
+|---|---|---|---|
+| `a144c27a` (my milestone-1 parent) | rc 0 | **rc 1, 6 would-reformat** | `docs/rule-audit/*.py` |
+| `51b98feb` (milestone 1) | rc 0 | rc 1, **the same 6** | inherited |
+| `26155108` (milestone 2) | rc 0 | **rc 0, 0 would-reformat** | that lane fixed its own 6 in between |
+| `f48de18b` (my milestone-3 parent) | rc 0 | **rc 1, 1 would-reformat** | `command-center/hook-audit/_g5_vendorcaps.py` |
+| `68fa5e23` (milestone 3) | rc 0 | rc 1, **the same 1** | inherited |
+
+The second one is attributed two ways: the file is in none of my three commits
+(`git show --name-only` over all three), and the commit that introduced it (`bac65640`,
+hook-audit lane) is an **ancestor of my parent**.
+
+Not fixed here. Both are `_<lane><n>_` evidence probes, and reformatting another lane's evidence is
+the move this lane has declined twice and been vindicated for. The remedy is theirs, and this round
+shipped two narrower tools for it than the one the repo had: `[lint.per-file-ignores]` and
+`[format] exclude`.
+
+## FINAL STATE
+
+| check | result |
+|---|---|
+| `pytest ci/tests -q` | **781 passed, 1 skipped, 1 failed** — the failure is the pre-existing Windows-only `0xff` filename test, proven at HEAD without my changes |
+| `pytest ci/tests/test_deployed_hook_twin_parity.py -q` | **125 passed** (was 21) |
+| `_r3_redproof.py` | **10/10**, ratchet red in the broken fixture and green in the clean one |
+| `_r3_twinsurface.py` | 195 / 161 / 34, 5 controls |
+| `check_published_commands.py` | 344 commands / 321 documents / 1 unrunnable (1 baselined) / 0 NEW / 0 stale |
+| `check_published_commands.py --self-test` | rc 0, both marker controls |
+| `_r2_gate_now.py --rev 68fa5e23` | `ruff check` rc 0; `format --check` rc 1 on **one foreign file**, proven inherited |
+| frozen evidence | `git status --porcelain` on both dirs → **0 lines**, at lane start and lane end |
 
 ## Commits
 
-Milestone 1 — `51b98feb` `fix(twin-parity): the gate guarded 7 pairs of 195, so 27 drifted unseen`.
-15 files: the gate + 13 probe/artifact files + this report. 0 foreign paths, 0 deletions.
+| rev | what | files | foreign paths | deletions outside my own files |
+|---|---|---|---|---|
+| `51b98feb` | twin-parity guard: 7 declared pairs → full-surface discovery | 15 | 0 | 0 |
+| `26155108` | 14 one-disk `platform/` probes committed; `$null` deleted; `[lint.per-file-ignores]` | 21 | 0 | 0 |
+| `68fa5e23` | gate corpus widened to `platform/`; 7 more one-disk files; `.gitignore` EXCEPTION 3; `[format] exclude` | 17 | 0 | 0 |
+| this one | example markers on two illustrative commands in this report + final state | 1 | 0 | 0 |
 
-Milestone 2 — listed once landed.
+## RESIDUALS, disclosed rather than closed
+
+* **30 twin pairs are declared but not reconciled.** The guard records them; it does not fix them.
+  `hooks/precompact-basicmemory/capture.ps1` is the one I would send to a human first.
+* **111 mention-only `platform/`+`docs/` files stay uncommitted.** Basename mention is the weak
+  signal; several citers are census outputs whose job is to list filenames. Settling experiment:
+  extend the gate's `CMD` pattern beyond `python <path>` to the other ways a doc can promise a file.
+* **`platform/lib/ssot/verify.py`** — published but nonexistent, now a baseline row with an owner.
+* **Cache sweep and the 13 empty dirs** — proven safe, not executed, not a quiesce point.
+* **`NUL`'s writer is still unidentified** (R10, unchanged). Not deleted.
+* **The ~84 non-ruff `quality.yml` steps** — NOT-CHECKED, out of reach from here. Nothing in this
+  report claims main is green; it claims these specific gates are, at these specific revs.
+* **UNVERIFIED**: whether any committed receipt digest-locks the carried probe bytes. Unchanged
+  from round 2, and the reason both exemptions this round preserve bytes rather than reformatting.
