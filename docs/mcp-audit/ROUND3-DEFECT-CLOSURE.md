@@ -219,8 +219,13 @@ section is a captured `returncode`.
 
 ## Every gate, re-executed, with its real exit code
 
-`python _r3_gate_sweep.py` → `SUCCESS:gate-sweep 9/9 gates behaved, exit codes captured`,
-exit 0. Receipt: `command-center/mcp-audit/_r3_gate_sweep.out.txt`.
+`python _r3_gate_sweep.py --rev bfec0543` → `SUCCESS:gate-sweep 9/9 gates behaved, exit
+codes captured`, exit 0. Receipt: `command-center/mcp-audit/_r3_gate_sweep.out.txt`.
+
+The `--rev` matters: it points the DoD ledger at the **committed blob** of this round's
+commit rather than the working tree, so the green below is about bytes a reviewer can
+fetch. A `WORKTREE` run prints `[WORKTREE pre-flight, NOT a shipped verdict]` in its own
+marker precisely so a pre-flight can never be quoted as this line.
 
 | gate | rc | want | marker |
 |---|---|---|---|
@@ -231,8 +236,14 @@ exit 0. Receipt: `command-center/mcp-audit/_r3_gate_sweep.out.txt`.
 | `_r2_redproof_invariants` | 0 | 0 | `SUCCESS:r2-redproof 4/4 A-mutations caught, B injection complete and its control fired` |
 | `_r2_corroborate` | 0 | 0 | `SUCCESS:r2-corroborate 16/16 agree on count AND names` |
 | `_r3_redproof_liveness` | 0 | 0 | `SUCCESS:r3-redproof A ok, B 5/5 mutations caught, C the widened predicate sees the gap the old one skipped` |
-| `_r2_dod_check` @ current | 0 | 0 | `SUCCESS:dod-check 4/4 DoD items PASS, 5/5 negative controls fired` |
-| `_r2_dod_check` @ `630bb8af` | 1 | **1** | `FAILED:dod-check ['DoD3']` |
+| `_r2_dod_check` @ `bfec0543` (this commit) | 0 | 0 | `SUCCESS:dod-check 4/4 DoD items PASS, 5/5 negative controls fired` |
+| `_r2_dod_check` @ `630bb8af` (round 2) | 1 | **1** | `FAILED:dod-check ['DoD3']` |
+
+Repo gates over this commit's blobs, both with their controls: `_verify_blob_gate.py
+bfec0543` → 6 blobs, **0 CRLF**, `ruff check` rc=0, `ruff format --check` rc=0, MANGLED
+control fires rc=1 → `SUCCESS:blob-gate`. `_verify_secrets_gate.py bfec0543` → committed
+synthetic-secret control fires rc=1, real scan `no leaks found` →
+`SUCCESS:secrets-gate`. Commit scope: 13 files, **0 out of scope**.
 
 Ruff, pinned `0.15.17`: five of this lane's files were reformatted to clear the repo gate.
 Behaviour preserved by **re-execution, not assumption** — `disposition.json` and
