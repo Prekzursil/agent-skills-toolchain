@@ -41,7 +41,10 @@ def main() -> int:
         except subprocess.TimeoutExpired:
             rec["state"] = "HUNG_OR_OVER_900S"
         rec["wall_sec"] = round(time.monotonic() - started, 1)
-        print(f"{name}: {rec['state']} rc={rec.get('returncode')} {rec['wall_sec']}s", flush=True)
+        print(
+            f"{name}: {rec['state']} rc={rec.get('returncode')} {rec['wall_sec']}s",
+            flush=True,
+        )
         out.append(rec)
 
     (HERE / "_b2_slowgate_probe.json").write_text(

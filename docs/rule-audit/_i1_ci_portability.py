@@ -94,8 +94,14 @@ def main() -> int:
         rc_a, m_a = run(s, argv, None)
         rc_b, m_b = run(s, argv, fake_home)
         rows.append(
-            {"script": s, "argv": argv, "rc_home": rc_a, "rc_nohome": rc_b,
-             "marker_home": m_a, "marker_nohome": m_b}
+            {
+                "script": s,
+                "argv": argv,
+                "rc_home": rc_a,
+                "rc_nohome": rc_b,
+                "marker_home": m_a,
+                "marker_nohome": m_b,
+            }
         )
         flag = "SAME" if rc_a == rc_b else "DIFF"
         print(f"{flag}  {s:32} home rc={rc_a:<3} nohome rc={rc_b:<3}")
@@ -107,7 +113,9 @@ def main() -> int:
         json.dumps(rows, indent=1) + "\n", encoding="utf-8", newline="\n"
     )
     same = sum(1 for r in rows if r["rc_home"] == r["rc_nohome"])
-    print(f"\nSUCCESS:i1-portability {len(rows)} scripts measured, {same} rc-stable across states")
+    print(
+        f"\nSUCCESS:i1-portability {len(rows)} scripts measured, {same} rc-stable across states"
+    )
     return 0
 
 

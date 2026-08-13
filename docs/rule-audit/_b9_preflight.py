@@ -61,4 +61,6 @@ print()
 if unclassified or ghosts:
     print("FAILED:b9_preflight the commit as planned would turn CI red")
     raise SystemExit(1)
-print(f"SUCCESS:b9_preflight post-commit inventory is complete ({len(post_commit)} files)")
+print(
+    f"SUCCESS:b9_preflight post-commit inventory is complete ({len(post_commit)} files)"
+)

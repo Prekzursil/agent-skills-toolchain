@@ -63,7 +63,7 @@ def marker_of(stdout: str) -> str:
     for line in reversed(lines):
         if line.startswith(("SUCCESS:", "FAILED:")):
             return line.strip()[:160]
-    return (lines[-1].strip()[:160] if lines else "<no stdout>")
+    return lines[-1].strip()[:160] if lines else "<no stdout>"
 
 
 def main() -> int:

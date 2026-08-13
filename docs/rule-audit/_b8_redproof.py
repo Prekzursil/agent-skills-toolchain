@@ -40,7 +40,7 @@ PATHS_FRONTMATTER = '---\npaths: ["**/*"]\n---\n'
 
 def strip_frontmatter(text: str) -> str:
     match = rule_audit.FRONTMATTER_RE.match(text)
-    return text[match.end():] if match else text
+    return text[match.end() :] if match else text
 
 
 def evaluate(repo_root: Path, self_root: Path) -> list[str]:
@@ -86,7 +86,9 @@ def main() -> int:
             newline="\n",
         )
         fired = evaluate(m1_repo, m1_self)
-        cases.append((f"DEMOTE {ALWAYS_ON_VICTIM} via paths: -> fires", bool(fired), True))
+        cases.append(
+            (f"DEMOTE {ALWAYS_ON_VICTIM} via paths: -> fires", bool(fired), True)
+        )
         if fired:
             print(f"  m1 says: {fired[0][:150]}")
 
@@ -102,7 +104,9 @@ def main() -> int:
             newline="\n",
         )
         fired = evaluate(m2_repo, m2_self)
-        cases.append((f"PROMOTE {LAZY_VICTIM} by stripping paths: -> fires", bool(fired), True))
+        cases.append(
+            (f"PROMOTE {LAZY_VICTIM} by stripping paths: -> fires", bool(fired), True)
+        )
         if fired:
             print(f"  m2 says: {fired[0][:150]}")
 
@@ -115,7 +119,9 @@ def main() -> int:
         shutil.copytree(pristine_self, m3_self)
         victim = m3_self / LAZY_VICTIM
         if not victim.is_file():
-            print(f"FAILED:b8_redproof {LAZY_VICTIM} absent from agent-self -- pick another")
+            print(
+                f"FAILED:b8_redproof {LAZY_VICTIM} absent from agent-self -- pick another"
+            )
             return 1
         victim.write_text(
             strip_frontmatter(victim.read_text(encoding="utf-8")),
@@ -157,7 +163,9 @@ def main() -> int:
     if bad:
         print(f"FAILED:b8_redproof {len(bad)} case(s) misbehaved: {bad}")
         return 1
-    print(f"SUCCESS:b8_redproof {len(cases)}/{len(cases)} states behaved on REAL file bytes")
+    print(
+        f"SUCCESS:b8_redproof {len(cases)}/{len(cases)} states behaved on REAL file bytes"
+    )
     return 0
 
 

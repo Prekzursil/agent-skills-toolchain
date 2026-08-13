@@ -149,14 +149,13 @@ _LIVE_DEP = (
     "reads the live ~/.claude tree; measured rc 0 -> 1 with HOME redirected to an empty dir "
     "(_i1_ci_portability.json), so on a runner it fails closed and cannot be a CI gate"
 )
-_LANE_PROBE = (
-    "one-shot lane probe retained as the evidence trail; a measurement, not a per-PR assertion"
-)
+_LANE_PROBE = "one-shot lane probe retained as the evidence trail; a measurement, not a per-PR assertion"
 
 EXCLUDED: dict[str, str] = {
     SELF: "this gate itself",
     # --- shipped gates that genuinely cannot run on a runner -------------------------
-    "lazy_predict.py": _LIVE_DEP + " (FAILED:lazy_predict live rules tree scanned to zero)",
+    "lazy_predict.py": _LIVE_DEP
+    + " (FAILED:lazy_predict live rules tree scanned to zero)",
     "r3_corpus_parity_gate.py": _LIVE_DEP
     + " (FAILED:r3_corpus_parity the mutation did not turn the gate red -- gate inert)",
     # --- probes that read the live tree ----------------------------------------------
@@ -248,7 +247,7 @@ def always_on_problems(measured: set[str], expected: set[str]) -> list[str]:
     for rel in sorted(expected - measured):
         problems.append(
             f"always-on set LOST {rel!r}: it gained a `paths:` selector, which DEMOTES it out "
-            "of the turn-0 prompt (adding `paths: [\"**/*\"]` does this). Intentional? remove "
+            'of the turn-0 prompt (adding `paths: ["**/*"]` does this). Intentional? remove '
             "it from ALWAYS_ON"
         )
     return problems
@@ -285,7 +284,9 @@ def measure_trees() -> tuple[set[str], set[str]]:
     if not repo:
         raise RuntimeError("repo rules/ tree scanned to zero files -- detector broken")
     if not agent_self:
-        raise RuntimeError("agent-self rules tree scanned to zero files -- detector broken")
+        raise RuntimeError(
+            "agent-self rules tree scanned to zero files -- detector broken"
+        )
     always_on = {
         rel
         for rel, info in repo.items()
@@ -324,15 +325,28 @@ def self_test() -> int:
     good = planned | set(EXCLUDED)
     u, g = classify(good)
     cases.append(("classify / complete inventory", bool(u or g), False))
-    cases.append(("classify / unclassified file", bool(classify(good | {"_new.py"})[0]), True))
     cases.append(
-        ("classify / planned file absent from disk", bool(classify(good - {"rule_audit.py"})[1]), True)
+        ("classify / unclassified file", bool(classify(good | {"_new.py"})[0]), True)
+    )
+    cases.append(
+        (
+            "classify / planned file absent from disk",
+            bool(classify(good - {"rule_audit.py"})[1]),
+            True,
+        )
     )
 
-    ok_rows = [{"label": "a", "rc": 0, "expect": 0}, {"label": "b", "rc": 1, "expect": 1}]
+    ok_rows = [
+        {"label": "a", "rc": 0, "expect": 0},
+        {"label": "b", "rc": 1, "expect": 1},
+    ]
     cases.append(("verdict / all as expected", bool(verdict(ok_rows)), False))
     cases.append(
-        ("verdict / a gate went red", bool(verdict([{"label": "a", "rc": 1, "expect": 0}])), True)
+        (
+            "verdict / a gate went red",
+            bool(verdict([{"label": "a", "rc": 1, "expect": 0}])),
+            True,
+        )
     )
     # Without this, the both-states pair silently degrades into a one-state check.
     cases.append(
@@ -346,7 +360,11 @@ def self_test() -> int:
     base = {"common/agents.md", "common/windows-shell.md"}
     cases.append(("always_on / unchanged", bool(always_on_problems(base, base)), False))
     cases.append(
-        ("always_on / a rule was PROMOTED", bool(always_on_problems(base | {"common/x.md"}, base)), True)
+        (
+            "always_on / a rule was PROMOTED",
+            bool(always_on_problems(base | {"common/x.md"}, base)),
+            True,
+        )
     )
     cases.append(
         (
@@ -359,9 +377,15 @@ def self_test() -> int:
     dv = {"common/hooks.md"}
     cases.append(("divergence / unchanged", bool(divergence_problems(dv, dv)), False))
     cases.append(
-        ("divergence / a NEW one appeared", bool(divergence_problems(dv | {"common/y.md"}, dv)), True)
+        (
+            "divergence / a NEW one appeared",
+            bool(divergence_problems(dv | {"common/y.md"}, dv)),
+            True,
+        )
     )
-    cases.append(("divergence / one was repaired", bool(divergence_problems(set(), dv)), True))
+    cases.append(
+        ("divergence / one was repaired", bool(divergence_problems(set(), dv)), True)
+    )
 
     bad = [name for name, got, want in cases if got != want]
     for name, got, want in cases:
@@ -378,12 +402,16 @@ def self_test() -> int:
         )
         return 1
     if not any(expect != 0 for _, _, expect in CI_PLAN):
-        print("FAILED:rule-audit-ci-gate self-test no expected-FAIL entry left -- both-states lost")
+        print(
+            "FAILED:rule-audit-ci-gate self-test no expected-FAIL entry left -- both-states lost"
+        )
         return 1
     if bad:
         print(f"FAILED:rule-audit-ci-gate self-test {bad}")
         return 1
-    print(f"SUCCESS:rule-audit-ci-gate self-test {len(cases)}/{len(cases)} checks behaved")
+    print(
+        f"SUCCESS:rule-audit-ci-gate self-test {len(cases)}/{len(cases)} checks behaved"
+    )
     return 0
 
 
@@ -420,7 +448,9 @@ def main(argv: list[str] | None = None) -> int:
     for label, gate_argv, expect in CI_PLAN:
         rc, marker = run(gate_argv)
         results.append({"label": label, "rc": rc, "expect": expect})
-        print(f"  {'ok ' if rc == expect else 'BAD'} rc={rc} (want {expect})  {label:40} {marker}")
+        print(
+            f"  {'ok ' if rc == expect else 'BAD'} rc={rc} (want {expect})  {label:40} {marker}"
+        )
     problems += verdict(results)
 
     print("  -- in-repo invariants (no ~/.claude, no tokenizer) --")
