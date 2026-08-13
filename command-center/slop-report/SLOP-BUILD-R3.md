@@ -322,7 +322,7 @@ opened for write by this lane.
 ### The widened gate's first catch was my own report
 
 Committing this document put two ILLUSTRATIVE commands into the gate's corpus —
-`python platform/.../_probe_x.py` and `python scripts/foo.py`, written as prose examples of the
+`python platform/.../_probe_x.py` <!-- published-command-example: platform/.../_probe_x.py --> and `python scripts/foo.py` <!-- published-command-example: scripts/foo.py -->, written as prose examples of the
 defect being described. The gate flagged both, correctly: it cannot tell an example from an
 instruction. Fixed with the mechanism the gate ships for exactly this,
 `<!-- published-command-example: <target> -->`, whose two self-test controls assert that a marker
