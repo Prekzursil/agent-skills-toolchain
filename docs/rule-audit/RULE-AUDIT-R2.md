@@ -10,11 +10,39 @@ mechanically unrepeatable instead of just correcting the sentence.
 Every number below came from a command run in this session. Nothing was copied from a prior report
 without re-execution.
 
-COVERAGE: all 8 round-2 items MEASURED. UNMEASURED and disclosed inline: the token estimator is
-still `cl100k_base` (no `/context` receipt available to a subagent), exhaustiveness of the
-contradiction census remains unprovable (the path axis is now closed on both trees; other axes are
-not), and the new gates are re-runnable scripts, **not wired into CI** (`ci/` is outside this
-lane's file scope).
+> ## ROUND-3 CORRECTION — R2-7 is REFUTED. Read this before citing anything below.
+>
+> **The refuted wording, verbatim, kept so the record is checkable:** *"| R2-7 | is there a tenth
+> contradiction on the path axis? | **MEASURED: no.** 176 files across both trees, 0 unwaived
+> positional claims |"*
+>
+> **What refuted it.** `r2_pathrefs.py:36` defined `TREES = {"live", "repo"}`. The third rule tree,
+> `agent-self/config/rules` — 78 files, **30.7% of the 254-file corpus this lane's own DoD-1
+> defines** — was never swept. An adversarial lane added it and re-ran `main()` unchanged: `rc=1`,
+> 5 positional claims, one of them a **real broken pointer** (`agent-self/config/rules/README.md:74`
+> links `common/windows-shell.md`; that tree ships 10 `common/` files and that is not one of them).
+> So the answer to R2-7 over the corpus this document itself defines is **yes**, and it is now
+> `RULE-AUDIT.md` §3.10.
+>
+> **The corrected claim.** *No tenth contradiction on the path axis in the `live` and `repo` trees
+> (176 files); one in `agent-self` (78 files), found the moment the sweep was pointed at it.* The
+> three-tree sweep now reports `scanned=254 ... unwaived_path_claims=0 waived=3 known_defects=1`.
+>
+> **Why this is a defect and not an honestly-scoped residual:** the exclusion was never disclosed.
+> §4's bounding paragraph exists to enumerate what is uncovered and enumerated only AXES, omitting
+> the tree dimension. The instrument's scope and the sentence's scope diverged silently — the same
+> failure class this document was written to close.
+>
+> Every "both trees" / "176" below is left in place and is TRUE OF THE TWO TREES IT MEASURED; it is
+> the *census* claim built on top that was wider than its evidence. Round 3: `RULE-AUDIT-R3.md`.
+
+COVERAGE: all 8 round-2 items MEASURED **over two of the three rule trees** — see the round-3
+correction above; the tree-scope of that coverage is exactly what round 2 failed to state.
+UNMEASURED and disclosed inline: the token estimator is still `cl100k_base` (no `/context` receipt
+available to a subagent), exhaustiveness of the contradiction census remains unprovable (the path
+axis is closed on `live` + `repo`, and as of round 3 on `agent-self` too; other axes are not), and
+the new gates are re-runnable scripts, **not wired into CI** (`ci/` is outside this lane's file
+scope).
 
 ## Status
 
@@ -26,7 +54,7 @@ lane's file scope).
 | R2-4 | anchor slip `bootstrap.ps1:44` → `:45` (two sites) | **FIXED**, re-measured |
 | R2-5 | control-detail slip: `multi-ai-mingle` "3 of the same roots" | **FIXED** — measured 4 of 5; the absence verdict it controls is unaffected |
 | R2-6 | `_verify_pathrefs.py` basename-fallback masks a wrong-path reference | **FIXED** — superseded by a three-way classifier whose hidden state is proven reachable |
-| R2-7 | is there a tenth contradiction on the path axis? | **MEASURED: no.** 176 files across both trees, 0 unwaived positional claims |
+| R2-7 | is there a tenth contradiction on the path axis? | ~~**MEASURED: no.** 176 files across both trees, 0 unwaived positional claims~~ **REFUTED in round 3** — that sweep skipped `agent-self` (78 files). Over all three trees: **yes, one** (`RULE-AUDIT.md` §3.10). See the correction banner above |
 | R2-8 | gates re-run on the changed state | **GREEN** — see §6 |
 
 ## 1. R2-1/R2-2 — the overclaim, and the gate that makes it unrepeatable
@@ -105,7 +133,7 @@ deploy source — is unchanged and remains the highest-severity item in the lane
 Round 1 said the positive control found the skill in 3 roots; it is 4. The verdict that control
 supports — `context-budget` absent from 5/5 — is unaffected, and reproduced here independently.
 
-## 4. R2-6 / R2-7 — the path axis, closed on both trees
+## 4. R2-6 / R2-7 — the path axis, closed on two of the three trees (R3: the third was the one that mattered)
 
 The adversarial round disclosed that `_verify_pathrefs.py:44-46` falls back to
 `REPO.rglob(basename)`, so **a reference whose PATH is wrong but whose FILENAME exists elsewhere
@@ -116,6 +144,12 @@ read.
 `r2_pathrefs.py` supersedes it: a three-way verdict (`EXACT` / `BASENAME-ONLY` / `MISSING`) whose
 hidden middle state is driven by a control, scope widened from 8 files to **all 176** rule files in
 the live and repo trees, and markdown link targets checked alongside backticked paths.
+
+**R3: "all 176" was the tell.** The document's own DoD-1 corpus is 254 files across three trees, so
+"all" and "176" cannot both be right in the same sentence. Nobody — not this lane, not the VERIFY
+lane, not the first adversarial round — read those two numbers next to each other. The round-2
+output below is preserved verbatim as the two-tree measurement it truthfully was; the three-tree
+run follows it.
 
     detector controls (all three verdicts must be reachable):
       PASS  control EXACT         -> EXACT         (a path that resolves as written)
@@ -129,6 +163,23 @@ the live and repo trees, and markdown link targets checked alongside backticked 
       bare-filename MENTIONS (no location asserted, not findings): 48
       POSITIONAL path claims that do not resolve: 2      <- both WAIVED with a read reason
     SUCCESS:r2_pathrefs scanned=176 unwaived_path_claims=0 waived=2 name_mentions=48
+
+Round 3, same probe, `TREES` widened to the corpus this document defines:
+
+    rule files scanned: 254 across 3 trees
+    non-EXACT references: 61
+      bare-filename MENTIONS (no location asserted, not findings): 56
+      POSITIONAL path claims that do not resolve: 5
+      WAIVED  live:README.md:104  ->  ../common/coding-style.md
+      WAIVED  repo:common/cross-vendor-dispatch.md:36  ->  lib/job-control.mjs
+      TRACKED DEFECT  BASENAME-ONLY  agent-self:README.md:74  ->  common/windows-shell.md
+      TRACKED DEFECT  BASENAME-ONLY  agent-self:README.md:74  ->  common/windows-shell.md
+      WAIVED  agent-self:README.md:138  ->  ../common/coding-style.md
+    FAILED:r2_pathrefs scanned=254 unwaived_path_claims=0 waived=3 known_defects=1 still live
+    and tracked (no NEW finding; rc=2 distinguishes this from rc=1)
+
+The tracked defect fires twice on one line because the backticked path and the markdown link
+target are two independent pointer claims that happen to agree.
 
 **The 48 are not findings, and the split is a FIELD, not a judgement.** A bare filename with no
 directory component (`.coverage-thresholds.json`, `pyproject.toml`, `codex_monitor.py`) names a
@@ -149,12 +200,23 @@ Both surviving positional claims were READ at source and are benign:
 Each is a WAIVER carrying its reason, and **a waiver that stops matching fails the sweep** — a
 stale exemption widens a gate exactly the way an unexercised control does. The sweep is also a
 gate: `--self-test` drives `main()` through three states (clean → 0, one broken positional claim →
-1, stale waiver → 1), all passing, so its green is not the silent-pass shape.
+1, stale waiver → 1), all passing, so its green is not the silent-pass shape. **R3: six states
+now** — a tracked-defect bucket was added, so the matrix also pins "tracked defect, nothing new →
+2", "tracked defect plus a NEW claim → 1" (the tracked entry must not silence a new finding), and
+"stale tracked defect → 1" (fixing the source forces the entry out).
 
-**Answer to R2-7: no tenth contradiction on this axis.** That is now a measurement over 176 files
-with the previously-hidden failure mode reachable, rather than a slice over 8. It does **not** make
-the contradiction list exhaustive — other axes (command invocations, line-number citations, counted
-claims) are still unmeasured, and §3 of `RULE-AUDIT.md` remains scoped as a floor.
+~~**Answer to R2-7: no tenth contradiction on this axis.** That is now a measurement over 176 files
+with the previously-hidden failure mode reachable, rather than a slice over 8.~~
+
+**R3 — REFUTED, and this is the sentence that was wider than its evidence.** The measurement was
+over 176 files; the corpus is 254. Correctly scoped: *no tenth contradiction on the path axis in
+`live` or `repo`; one in `agent-self`* — `RULE-AUDIT.md` §3.10, found by widening `TREES`, exit
+code `2`. The code was right and the sweep worked exactly as designed; what was wrong was pointing
+it at two thirds of the corpus and reporting the result as if it covered all of it. It does **not**
+make the contradiction list exhaustive — other axes (command invocations, line-number citations,
+counted claims) are still unmeasured **and, as round 3 proved, "which trees" is an axis too**; §3
+of `RULE-AUDIT.md` remains scoped as a floor. Settling experiment for the tree dimension, now run:
+`TREES` covers all three, and the self-test fails closed on a zero-file walk of any of them.
 
 ## 5. A detector bug I shipped and caught — recorded, not quietly fixed
 
@@ -231,7 +293,9 @@ mangled copy is measuring readability, not formatting.
    exit, and each has a proven failing state.
 4. **Token figures remain `cl100k_base` estimates**, ±10-20%. `/context` is the only first-party
    receipt and a subagent cannot invoke it.
-5. **Exhaustiveness is still unproven.** The path axis is closed on both trees; command
+5. **Exhaustiveness is still unproven.** The path axis is closed on both trees ~~and that is the
+   whole corpus~~ — **R3: it is not; `agent-self` was excluded and held the tenth contradiction.
+   All three trees are swept as of round 3.** Command
    invocations, cited line numbers, and counted claims are not. Settling experiment unchanged:
    extract every checkable assertion in `rules/**` and assert it mechanically.
 6. **`ci/tests` cannot go fully green on Windows** — one pre-existing failure
@@ -244,10 +308,14 @@ mangled copy is measuring readability, not formatting.
   runtime PASS lines, AST walk, per-group sum, all agreeing, plus a mutation proving the newest
   control fires). `bootstrap.ps1:45` is the `Copy-Item` (read at the line). `multi-ai-mingle` in
   4 of 5 roots and `context-budget` in 0 of 5 (same probe, control fires). 0 unwaived positional
-  path claims across 176 files (three-way classifier with all verdicts controlled, plus three
-  gate-level states). All round-1 measurements reproduce byte-identically.
-* **LIKELY (55-80%)** — that no tenth contradiction exists anywhere in the rules corpus. The path
-  axis is now closed on both trees and found none, but that is one axis; exhaustiveness is not
+  path claims across 176 files **of the live and repo trees** (three-way classifier with all
+  verdicts controlled, plus three gate-level states) — still true as measured, and round 3 raises
+  it to 254 files across all three trees, 0 unwaived, 1 tracked. All round-1 measurements
+  reproduce byte-identically.
+* ~~**LIKELY (55-80%)** — that no tenth contradiction exists anywhere in the rules corpus.~~
+  **REFUTED at round 3: one exists, in the tree this round did not sweep.** A 55-80% band on a
+  claim whose instrument covered 69.3% of the corpus was not calibration, it was an untested
+  assumption wearing a band. The path
   provable and I say so before anyone else has to.
 * **UNCERTAIN, disclosed inline** — token totals (estimator, not Anthropic's tokenizer). The
   `bootstrap.ps1` promote-delta of +691 tok / 3 files is still a simulation; no deployer was run.
@@ -256,3 +324,12 @@ mangled copy is measuring readability, not formatting.
   why. "No tenth contradiction" is scoped to the path axis in every place it appears. The two
   detector bugs I shipped are in §5 rather than quietly patched, because a probe that mislabels a
   correct rule is the same failure class as an artifact that overclaims a control count.
+* **R3 — THE OVERCLAIM CHECK ITSELF WAS THE MISS, and it is the most transferable lesson here.**
+  The line above verified one dimension of the scoping — the AXIS — and read as diligence because
+  it PASSED. It could not have failed: the claim genuinely was axis-scoped everywhere. A check that
+  cannot come out the other way is not a check (`single-signal-verification.md` §3c, written into
+  the rules tree by this same lane, three days before this document reproduced the exact shape it
+  describes). The unexamined dimension was CORPUS, and it was one `ls` away: 176 next to a DoD that
+  says 254. Generalisation for the next self-audit: enumerate the dimensions of a scope claim
+  (axis · corpus · time · tree · tool version) and state the measured value of EACH, rather than
+  confirming the one that is already correct.

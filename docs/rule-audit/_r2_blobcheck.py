@@ -8,6 +8,14 @@ ruff.toml and manufactures a false CI-red.
 
 CONTROL: one extracted file is deliberately mangled and re-checked; if ruff does not go red on
 the mangled copy, the checker is inert and its green means nothing.
+
+Round 3: the receipt was SINGLE-USE. Round 2 ran it against the staged index, printed
+``SUCCESS:r2_blobcheck``, committed -- and from that moment the index is empty, so the same
+command returns ``FAILED ... no staged .py files -- fail closed`` for every later reader. The
+adversarial lane confirmed rc=1 post-commit and had to re-derive the evidence by hand. Fail-closed
+was the right call and stays; what was missing is a second mode. ``--rev <rev>`` reads the blobs
+of a COMMIT (``git cat-file -p <rev>:<path>``), so the evidence line stays reproducible by anyone,
+forever, from the artifact alone.
 """
 
 from __future__ import annotations
@@ -22,17 +30,14 @@ REPO = Path(__file__).resolve().parents[2]
 RUFF = ["uvx", "ruff@0.15.17"]
 
 
-def staged_python() -> list[str]:
+def changed_python(rev: str | None) -> list[str]:
+    """`.py` paths in the staged index, or in a commit when ``rev`` is given."""
+    if rev is None:
+        argv = ["diff", "--cached", "--name-only", "--diff-filter=ACM"]
+    else:
+        argv = ["show", "--name-only", "--diff-filter=ACM", "--pretty=format:", rev]
     out = subprocess.run(
-        [
-            "git",
-            "-C",
-            str(REPO),
-            "diff",
-            "--cached",
-            "--name-only",
-            "--diff-filter=ACM",
-        ],
+        ["git", "-C", str(REPO), *argv],
         capture_output=True,
         text=True,
         check=True,
@@ -40,13 +45,16 @@ def staged_python() -> list[str]:
     return [p for p in out.split("\n") if p.strip().endswith(".py")]
 
 
-def main() -> int:
-    paths = staged_python()
+def main(rev: str | None = None) -> int:
+    source = "staged index" if rev is None else f"commit {rev}"
+    prefix = "" if rev is None else rev
+    paths = changed_python(rev)
     if not paths:
         print(
-            "FAILED:r2_blobcheck no staged .py files -- nothing measured, fail closed"
+            f"FAILED:r2_blobcheck no .py files in {source} -- nothing measured, fail closed"
         )
         return 1
+    print(f"blob source: {source}")
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -54,7 +62,7 @@ def main() -> int:
         crlf = 0
         for rel in paths:
             blob = subprocess.run(
-                ["git", "-C", str(REPO), "cat-file", "-p", f":{rel}"],
+                ["git", "-C", str(REPO), "cat-file", "-p", f"{prefix}:{rel}"],
                 capture_output=True,
                 check=True,
             ).stdout
@@ -63,7 +71,7 @@ def main() -> int:
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(blob)
 
-        print(f"staged .py blobs extracted: {len(paths)}   CRLF pairs in blobs: {crlf}")
+        print(f".py blobs extracted: {len(paths)}   CRLF pairs in blobs: {crlf}")
         checks = {
             "ruff check": subprocess.run(
                 [*RUFF, "check", "."], cwd=root, capture_output=True, text=True
@@ -101,12 +109,23 @@ def main() -> int:
     print("")
     if ok:
         print(
-            f"SUCCESS:r2_blobcheck {len(paths)} staged blob(s) clean at LF, control fires"
+            f"SUCCESS:r2_blobcheck {len(paths)} blob(s) from {source} clean at LF, control fires"
         )
         return 0
-    print("FAILED:r2_blobcheck staged blobs would not pass CI, or the control is inert")
+    print(
+        f"FAILED:r2_blobcheck blobs from {source} would not pass CI, or the control is inert"
+    )
     return 1
 
 
+def parse_rev(argv: list[str]) -> str | None:
+    for i, arg in enumerate(argv):
+        if arg == "--rev" and i + 1 < len(argv):
+            return argv[i + 1]
+        if arg.startswith("--rev="):
+            return arg.split("=", 1)[1]
+    return None
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(parse_rev(sys.argv[1:])))

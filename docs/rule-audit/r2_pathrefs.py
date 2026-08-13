@@ -1,4 +1,4 @@
-"""R2: broken-pointer sweep over EVERY rule in the live and repo trees, three-way classified.
+"""Broken-pointer sweep over EVERY rule in ALL THREE rule trees, three-way classified.
 
 Why this exists
 ---------------
@@ -18,9 +18,30 @@ Round 2 fixes both halves:
         MISSING       the filename exists nowhere
   * the control set now includes a synthetic BASENAME-ONLY case, so the sweep is proven able to
     reach the hidden state before any of its silence is believed,
-  * scope widens from 8 files to all rules in BOTH trees (live is what agents read at turn 0;
-    repo is what the CI gates read), and markdown link targets are checked as well as backticked
-    paths -- a link is a pointer too.
+  * scope widens from 8 files to all rules in EVERY tree, and markdown link targets are checked as
+    well as backticked paths -- a link is a pointer too.
+
+Round 3 fixes the round-2 defect an adversarial lane proved executable. ``TREES`` held only
+``live`` and ``repo``; ``agent-self/config/rules`` -- 78 files, 30.7% of the 254-file corpus the
+artifact's own DoD defines, and the tree ``agent-self/bootstrap.ps1:45`` force-copies over
+``~/.claude`` -- was never swept, while the artifact answered "is there a tenth contradiction on
+the path axis?" with "MEASURED: no". Widening the sweep found one. That earlier answer is REFUTED,
+not deleted: see ``RULE-AUDIT-R2.md`` §4 and ``RULE-AUDIT.md`` §3.10.
+
+Three buckets, because collapsing them is how a real defect gets green-washed:
+
+    unwaived      an unadjudicated broken pointer -- the thing this sweep exists to catch
+    WAIVERS       READ at source and found benign (use-vs-mention, or a quoted example whose
+                  relative path is correct from the directory it is quoted FROM)
+    KNOWN_DEFECTS READ at source and found REAL, but the file is outside this lane's write scope.
+                  Loudly reported, never folded into a pass, and -- like a waiver -- an entry that
+                  stops matching FAILS the sweep, so fixing the source forces the entry out.
+
+Exit codes: ``0`` nothing outstanding · ``1`` an unknown broken pointer, or a stale WAIVER /
+KNOWN_DEFECTS entry (something NEW or DRIFTED -- act on it) · ``2`` no new findings, but a tracked
+real defect is still live. 2 is still a FAILED marker; it only distinguishes "known and tracked"
+from "new", so this sweep keeps working as a regression gate while the tracked defect waits on an
+owner with write access to that tree.
 
 Read-only. Emits a terminal SUCCESS:/FAILED: marker and exits non-zero on a broken control or a
 zero-file walk (a sweep that scanned nothing must never report "no broken pointers").
@@ -33,7 +54,13 @@ from pathlib import Path
 
 HOME = Path.home()
 REPO = Path(__file__).resolve().parents[2]
-TREES: dict[str, Path] = {"live": HOME / ".claude" / "rules", "repo": REPO / "rules"}
+TREES: dict[str, Path] = {
+    "live": HOME / ".claude" / "rules",
+    "repo": REPO / "rules",
+    # Round 3: the tree round 2 silently excluded. bootstrap.ps1:45 force-copies it over
+    # ~/.claude, so a broken pointer here ships to a fresh machine.
+    "agent-self": REPO / "agent-self" / "config" / "rules",
+}
 
 EXTENSIONS = "py|ps1|sh|md|json|yml|yaml|toml|mjs|js|jsonl"
 BACKTICK_RE = re.compile(rf"`([A-Za-z0-9_./-]+\.(?:{EXTENSIONS}))`")
@@ -60,6 +87,29 @@ WAIVERS: dict[tuple[str, str, str], str] = {
         "lib/job-control.mjs",
     ): "use-vs-mention: the same sentence states the companion is NOT present in this repo. "
     "The rule names the file to describe a historical mechanism, it does not depend on it.",
+    (
+        "agent-self",
+        "README.md",
+        "../common/coding-style.md",
+    ): "the SAME illustrative override note as the live:README.md waiver above -- read both, the "
+    "sentence is identical and is quoted from the rules/golang/ perspective, where ../common/ "
+    "is correct. Probe limitation (it resolves relative to the containing file), not a defect.",
+}
+
+# Adjudicated REAL broken pointers whose source file is outside this lane's write scope. Distinct
+# from WAIVERS on purpose: a waiver says "not a defect", this says "a defect, tracked, and this
+# sweep is not allowed to go green while it is live". Each entry names its tracking anchor, and a
+# stale entry fails the sweep so a fix cannot leave a lie behind.
+KNOWN_DEFECTS: dict[tuple[str, str, str], str] = {
+    (
+        "agent-self",
+        "README.md",
+        "common/windows-shell.md",
+    ): "REAL and live. agent-self/config/rules/README.md:74 links [`common/windows-shell.md`]"
+    "(common/windows-shell.md) while describing it as the cross-tool rule; that tree ships 10 "
+    "common/ files and windows-shell.md is not one of them (ls, find and git ls-files all agree). "
+    "Tracked as RULE-AUDIT.md 3.10 with its correction; agent-self/** is propose-only for this "
+    "lane, so the fix is proposed, not applied.",
 }
 
 _basename_index: dict[str, int] | None = None
@@ -234,6 +284,7 @@ def main() -> int:
 
     unwaived: list[tuple[str, str, int, str, str]] = []
     fired: set[tuple[str, str, str]] = set()
+    defects_fired: set[tuple[str, str, str]] = set()
     for tree_name, rel, lineno, token, verdict in path_claims:
         key = (tree_name, rel, normalise_token(token))
         if key in WAIVERS:
@@ -241,21 +292,36 @@ def main() -> int:
             print(
                 f"  WAIVED  {tree_name}:{rel}:{lineno}  ->  {token}\n            {WAIVERS[key]}"
             )
+        elif key in KNOWN_DEFECTS:
+            defects_fired.add(key)
+            print(
+                f"  TRACKED DEFECT  {verdict}  {tree_name}:{rel}:{lineno}  ->  {token}"
+                f"\n            {KNOWN_DEFECTS[key]}"
+            )
         else:
             unwaived.append((tree_name, rel, lineno, token, verdict))
             print(f"  {verdict:<13} {tree_name}:{rel}:{lineno}  ->  {token}")
 
-    # A waiver that no longer matches anything is a stale exemption silently widening the gate.
+    # An entry that no longer matches anything is a stale exemption silently widening the gate --
+    # true of a waiver, and equally true of a tracked defect somebody has since fixed.
     stale = [k for k in WAIVERS if k not in fired]
+    stale += [k for k in KNOWN_DEFECTS if k not in defects_fired]
     for key in stale:
-        print(f"  STALE WAIVER (no longer matches): {key}")
+        print(f"  STALE ENTRY (no longer matches, remove it): {key}")
 
     print("")
     if unwaived or stale:
         print(
-            f"FAILED:r2_pathrefs unwaived_path_claims={len(unwaived)} stale_waivers={len(stale)}"
+            f"FAILED:r2_pathrefs unwaived_path_claims={len(unwaived)} stale_entries={len(stale)}"
         )
         return 1
+    if defects_fired:
+        print(
+            f"FAILED:r2_pathrefs scanned={scanned} unwaived_path_claims=0 "
+            f"waived={len(fired)} known_defects={len(defects_fired)} still live and tracked "
+            f"(no NEW finding; rc=2 distinguishes this from rc=1)"
+        )
+        return 2
     print(
         f"SUCCESS:r2_pathrefs scanned={scanned} unwaived_path_claims=0 "
         f"waived={len(fired)} name_mentions={len(name_mentions)} "
@@ -270,26 +336,33 @@ def self_test() -> int:
 
     The classifier controls above show the three verdicts are reachable. They do NOT show that
     the gate goes red when something is actually wrong -- a sweep that always exits 0 is the
-    silent-pass shape. These three states drive main() itself.
+    silent-pass shape, and one that always exits non-zero is just as inert. These six states drive
+    main() itself and pin every exit code the contract promises.
     """
     import contextlib
     import io
     import tempfile
 
-    global TREES, WAIVERS
-    real_trees, real_waivers = TREES, WAIVERS
+    global TREES, WAIVERS, KNOWN_DEFECTS
+    real_trees, real_waivers, real_defects = TREES, WAIVERS, KNOWN_DEFECTS
     failures: list[str] = []
 
     def state(
-        name: str, tree_body: str, waivers: dict, expect_rc: int, expect_in: str
+        name: str,
+        tree_body: str,
+        waivers: dict,
+        expect_rc: int,
+        expect_in: str,
+        defects: dict | None = None,
     ) -> None:
-        global TREES, WAIVERS
+        global TREES, WAIVERS, KNOWN_DEFECTS
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "rules"
             (root / "common").mkdir(parents=True)
             (root / "common" / "probe.md").write_text(tree_body, encoding="utf-8")
             TREES = {"synthetic": root}
             WAIVERS = waivers
+            KNOWN_DEFECTS = defects or {}
             with contextlib.redirect_stdout(io.StringIO()) as out:
                 rc = main()
             text = out.getvalue()
@@ -304,6 +377,11 @@ def self_test() -> int:
     broken = (
         "A rule citing `no_such_dir/definitely_absent_xyz.py` as if it were there.\n"
     )
+    tracked = {
+        ("synthetic", "common/probe.md", "no_such_dir/definitely_absent_xyz.py"): (
+            "adjudicated real, source outside write scope"
+        )
+    }
 
     print("gate-level controls (main() must go red for a real defect):")
     state("clean tree -> exit 0", clean, {}, 0, "unwaived_path_claims=0")
@@ -313,15 +391,42 @@ def self_test() -> int:
         clean,
         {("synthetic", "common/probe.md", "gone/never.py"): "no longer matches"},
         1,
-        "STALE WAIVER",
+        "STALE ENTRY",
+    )
+    # The rc=2 bucket only earns its keep if BOTH halves are proven: a tracked defect must not
+    # read as clean (it exits 2, not 0), and it must not silence a NEW one (that is still rc=1).
+    state(
+        "tracked defect, nothing new -> exit 2",
+        broken,
+        {},
+        2,
+        "known_defects=1",
+        defects=tracked,
+    )
+    state(
+        "tracked defect + a NEW broken claim -> exit 1",
+        broken
+        + "and also `other_dir/second_absent_xyz.py` which nobody adjudicated.\n",
+        {},
+        1,
+        "unwaived_path_claims=1",
+        defects=tracked,
+    )
+    state(
+        "stale tracked defect -> exit 1",
+        clean,
+        {},
+        1,
+        "STALE ENTRY",
+        defects={("synthetic", "common/probe.md", "gone/never.py"): "already fixed"},
     )
 
-    TREES, WAIVERS = real_trees, real_waivers
+    TREES, WAIVERS, KNOWN_DEFECTS = real_trees, real_waivers, real_defects
     print("")
     if failures:
         print(f"FAILED:r2_pathrefs-self-test {failures}")
         return 1
-    print("SUCCESS:r2_pathrefs-self-test all 3 gate-level controls passed")
+    print("SUCCESS:r2_pathrefs-self-test all 6 gate-level states passed")
     return 0
 
 

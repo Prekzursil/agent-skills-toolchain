@@ -132,15 +132,19 @@ sentinel `paths: ["**/*.__never_load__"]`.
 
 ## 3. Contradictions — rule vs reality, with the correction (DoD item 3)
 
-Nine, each verified against the source it describes rather than argued. Severity ordering, not
+Ten, each verified against the source it describes rather than argued. Severity ordering, not
 document order. "Applied" means this lane changed it; "proposed" means it is outside this lane's
 file scope and the exact patch is in §5.
 
 **Exhaustiveness is UNVERIFIED, and I have direct evidence against it.** The lane's Definition of
-Done asks for *every* rule-vs-reality contradiction; what is defensible is "nine found, each
-measured, each with a correction". Two of the nine (§3.9 `install.sh`, §7.3 `ruff format`) are
-absent from the grounding lane's list and surfaced only because I read the files rather than the
-finding list — so a third reader would likely find a tenth. There is no closed procedure here: the
+Done asks for *every* rule-vs-reality contradiction; what is defensible is "ten found, each
+measured, each with a correction". Two of the first nine (§3.9 `install.sh`, §7.3 `ruff format`)
+are absent from the grounding lane's list and surfaced only because I read the files rather than
+the finding list — so a third reader would likely find a tenth. **That prediction was correct and
+is now closed: §3.10 is the tenth**, found in round 3 by an adversarial lane that widened the
+`r2_pathrefs.py` sweep to the third rule tree. Note *how* it was found — not by another reader,
+but by pointing an instrument at a region the previous sweep silently excluded. There is no closed
+procedure here: the
 list is the union of what two lanes happened to read, not the output of an enumerator over all
 rule-to-source claims. Settling experiment, and the only thing that would make "every" honest:
 extract every checkable assertion in `rules/**` that names a file, line, command, or count, and
@@ -312,6 +316,42 @@ installation route was unrunnable.
 
 This one is **not in the grounding lane's list** — it surfaced from reading the file rather than
 the finding list. **Correction applied** — §4.2.
+
+### 3.10 `agent-self/config/rules/README.md:74` points at a rule that tree does not ship — CONFIRMED, PROPOSED, NEW in round 3
+
+The README of the `agent-self` rules tree writes, of the rules `bootstrap.ps1` installs:
+
+> a rule that calls itself cross-tool (for example [`common/windows-shell.md`](common/windows-shell.md)) is NOT in Codex's instruction chain until you add a pointer yourself
+
+Both the backticked path and the link target are positional claims relative to that README's own
+directory, i.e. `agent-self/config/rules/common/windows-shell.md`. **That file does not exist.**
+Three mechanically independent signals agree — `ls agent-self/config/rules/common/` returns 10
+files (`agents, code-review, coding-style, development-workflow, git-workflow, hooks, patterns,
+performance, security, testing`), `find agent-self -name 'windows-shell*'` returns nothing, and
+`git ls-files agent-self/config/rules/common` lists the same 10, so it is not an ignored or
+untracked file either. Positive control: the same basename IS present in the other two trees
+(`rules/common/windows-shell.md`, `~/.claude/rules/common/windows-shell.md`), which is exactly why
+the sweep verdict is BASENAME-ONLY rather than MISSING — a wrong pointer, not a nonexistent file.
+
+**Blast radius, stated at its real size and no larger.** This is a documentation pointer, not an
+instruction that changes agent behaviour, so severity is well below §3.1-§3.3. It is not inert
+either: `agent-self/bootstrap.ps1:45` force-copies `config/*` over `~/.claude`, so on a machine
+that already has `~/.claude/rules/common/windows-shell.md` from another route the link happens to
+resolve, while a **fresh bootstrap** ships a README pointing at a file it never installed.
+
+**Correction (PROPOSED — `agent-self/**` is outside this lane's write scope).** Either ship the
+file the README promises (copy `rules/common/windows-shell.md` into
+`agent-self/config/rules/common/`, which also closes part of §3.4's parity gap), or, if that tree
+is deliberately a smaller subset, change the example to one of the 10 rules it does ship. The
+first is preferable: the sentence's whole point is that a *cross-tool* rule needs a Codex pointer,
+and `windows-shell.md` is the cross-tool rule.
+
+**Why it was invisible until round 3, which is the more useful finding.** `r2_pathrefs.py` swept
+`live` and `repo` and omitted `agent-self` — 78 files, 30.7% of the corpus this document defines
+as 254 files across three trees — while `RULE-AUDIT-R2.md` answered "is there a tenth
+contradiction on the path axis?" with "MEASURED: no". The instrument's scope and the sentence's
+scope had silently diverged. Fixed in round 3 (`TREES` now carries all three trees); the refuted
+wording is recorded in `RULE-AUDIT-R2.md` §4 rather than deleted.
 
 ## 4. Corrections applied to `rules/` (DoD item 4 — nothing rewritten without evidence)
 
