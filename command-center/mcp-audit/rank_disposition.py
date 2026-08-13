@@ -8,7 +8,7 @@ signal over-counts the live fleet 2.3x (53 "Connected" vs 23 actually mounted).
   config_state     S1  mcpctl over the 5 on-disk JSON scopes  -- "what the config says"
   host_reachable   S2  ``claude mcp list``                    -- "can a fresh process connect"
   session_mounted  S3  the mcp__* namespaces in this session  -- "can the model see it"
-  call_verified    S4  a real call succeeded, by EITHER method -- "does it actually work"
+  call_verified    S4  a real call succeeded, by EITHER method -- see the SCOPE below
 
 S4 HAS TWO METHODS AND THE ROW CARRIES BOTH.  A stdio server is verified by a real
 ``initialize`` + ``tools/list`` handshake (``handshake_verified``); an HTTP-transport
@@ -68,7 +68,15 @@ S4_LEGEND = (
     "S4 union: a real call succeeded by EITHER method -- a stdio "
     "initialize+tools/list handshake, or a real in-session tool call. "
     "Read call_method for which one, handshake_verified/s4_executed for "
-    "the halves. Enforced by assert_signal_consistency()."
+    "the halves. Enforced by assert_signal_consistency(). "
+    "SCOPE, and it is narrower than 'the server works': call_method="
+    "'stdio-handshake' proves the PROCESS starts and ADVERTISES a tool surface; "
+    "it does not prove any tool executes. Counter-example executed 2026-08-13 by "
+    "the integrate lane -- searxng ships handshake_verified=true with 4 tools, "
+    "while a real in-session searxng_instance_info call returned "
+    "available=false, its backing instance at 127.0.0.1:8890 unreachable. "
+    "call_method='in-session-tool-call' IS the stronger evidence. A consumer "
+    "must not read this field as capability-in-use."
 )
 
 # Same discipline one level down: the liveness/cost block is measurable ONLY from a stdio
@@ -393,8 +401,23 @@ def main(argv: list[str] | None = None) -> int:
                 else ("in-session-tool-call" if S4_EXECUTED.get(name) else None)
             ),
             # --- inventory (DoD: scope + source file)
-            "definition_scope": spec.get("definition_scope"),
-            "source_file": spec.get("source_file"),
+            #
+            # LIVE CONFIG FIRST, COMMITTED EVIDENCE AS FALLBACK.  ``load_specs()`` reads
+            # ``~/.claude.json`` and ``~/.mcp.json`` -- files that exist only on the box that
+            # produced the sweep.  Without the fallback this producer cannot reproduce its own
+            # artifact anywhere else: on a CI runner ``specs`` is empty and all 23 rows lose
+            # BOTH of DoD1's inventory fields, silently, as nulls.  Measured on Ubuntu 24.04
+            # in a full clone: regenerated 27,688 B against a committed 28,636 B, differing on
+            # exactly ``definition_scope`` and ``source_file``, 23 rows of 23.
+            #
+            # The fallback is the round-2 capability sweep, which is COMMITTED and recorded
+            # both fields per row at probe time, so the values are the same evidence, not a
+            # guess.  Byte-identity of the regenerated artifact is asserted on both platforms
+            # by ci_gate.py's determinism check, which is what makes this claim falsifiable
+            # rather than an assurance.
+            "definition_scope": spec.get("definition_scope")
+            or cap.get("definition_scope"),
+            "source_file": spec.get("source_file") or cap.get("source_file"),
             "config_basis": conf.get("basis"),
             "transport": cap.get("transport") or conf.get("transport"),
             # --- capability + cost

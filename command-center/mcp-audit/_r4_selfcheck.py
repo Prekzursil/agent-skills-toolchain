@@ -54,10 +54,16 @@ def main(argv: list[str]) -> int:
             f"  {'BAD' if crlf else 'ok '} crlf={crlf:5}  lines={b.count(b'\n'):5}  {p}"
         )
 
-    fired = None
-    if (REPO / CTRL).exists():
-        fired = blob("HEAD", CTRL).count(b"\r\n") > 0
-        print(f"  positive control (a blob that IS CRLF) fires: {fired}")
+    # FAIL CLOSED when the control is ABSENT.  This used to leave ``fired = None`` and fall
+    # through to ``fired is False`` -> False, so deleting the fixture would have turned a
+    # proven sweep into an unproven one that still printed "control fired" in its marker.
+    # "Control missing" and "control passed" must never be the same outcome; that identity
+    # is the single most expensive failure shape in this repo's ledger.
+    if not (REPO / CTRL).exists():
+        print(f"FAILED:r4-selfcheck positive control missing at {CTRL} (fail closed)")
+        return 1
+    fired = blob("HEAD", CTRL).count(b"\r\n") > 0
+    print(f"  positive control (a blob that IS CRLF) fires: {fired}")
     if bad or fired is False:
         print(f"FAILED:r4-selfcheck crlf_blobs={bad} control_fired={fired}")
         return 1

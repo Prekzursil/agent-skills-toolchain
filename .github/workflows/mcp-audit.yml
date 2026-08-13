@@ -1,0 +1,86 @@
+name: mcp-audit
+
+# The MCP fleet audit's gates were UNREACHABLE.  `grep -rn "mcp-audit" .github/` returned zero
+# matches while command-center/mcp-audit/ held ~20 executable gates built over four rounds of
+# defect closure: a DoD ledger with seven negative controls, three invariant red-proofs
+# (assert_reversible / assert_signal_consistency / assert_liveness_consistency), an EOL
+# both-states probe, and a set-arithmetic overlap report. None of them ran on any push or PR.
+#
+# A gate nobody invokes is indistinguishable from one that does not exist. disposition.json
+# could be hand-edited, a mounted server could vanish from the 23-row inventory, or a producer
+# could stop reproducing the artifact it shipped -- and all three would land on main green.
+# That is the same "fixed producer that nothing invokes" shape p2next-rail-count.yml exists to
+# close, in a different lane.
+#
+# WHY ITS OWN FILE AND NOT A JOB IN quality.yml. quality.yml is a CLOSED gate set policed
+# bidirectionally by .quality/charter_check.sh: a `gate-<slug>` marker there with no matching
+# `- slug:` in .quality/charter.yml turns the EXISTING lint job red, and
+# ci/tests/test_charter_consistency.py pins that in both directions. charter_check.sh reads ONLY
+# quality.yml, so a separate workflow carries no charter obligation -- the shape
+# no-runtime-junk.yml, skill-dual-write.yml and p2next-rail-count.yml already use. It also
+# touches no file a sibling lane is editing, and lets this job set its own fetch-depth.
+#
+# WHY fetch-depth: 0. Four gates read PINNED historical blobs -- b9dce830 (the round-1 defect
+# reproduction), 630bb8af (the both-states control that must FAIL), 673cd180 and 2caafe53 (the
+# false-CRLF sentences). On the default shallow checkout those revisions are simply absent and
+# every one of them fails closed.
+#
+# PORTABILITY IS MEASURED, NOT ASSUMED. Every gate was authored on Windows. Measured on Ubuntu
+# 24.04 in a full clone before this file was written: 11 of 15 passed. The four failures were
+# real and would have shipped a permanently RED job --
+#   * _r2_dod_check.dod1 used host-bound pathlib.Path(...).is_absolute(), so all 23 recorded
+#     Windows source_file paths read as relative on POSIX (displayed as only four, because
+#     main() truncated with problems[:4]);
+#   * probe_capability's SHIM state and redproof_control's no-pathext-resolve mutation
+#     regress a Windows-only PATHEXT defect that is unobservable on POSIX;
+#   * _r4_redproof PART B scored "the old gate is not blind" off the path noise above rather
+#     than off the absence it was actually testing.
+# All four were fixed and re-measured at 15/15 on the same clone. See
+# command-center/mcp-audit/_i1_ci_portability.py and docs/mcp-audit/INTEGRATION.md.
+#
+# RED-PROOF for this wiring, with the pre-existing CI measured blind to the same injections:
+# command-center/mcp-audit/I-REDPROOF.json
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mcp-audit:
+    name: gate-mcp-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      # BOTH-STATES CONTROL FOR THE GATE ITSELF, first. Eight cases: every check exercised
+      # against a known-broken input (must FIRE) and a known-good one (must stay SILENT),
+      # including the two ways this gate could be inert -- a CI_PLAN that shrank to nothing,
+      # and an expected-FAIL entry that quietly started passing.
+      - name: gate-mcp-audit self-test
+        run: python command-center/mcp-audit/ci_gate.py --self-test
+      # The gate. Runs 15 planned invocations over 14 gates, captures each REAL exit code
+      # (never through a pipe -- a pipeline reports the LAST command's status, which turns a
+      # red gate green), asserts that every *.py in the directory is either planned or
+      # excluded-with-a-reason, and re-runs both producers into a temp file to require
+      # byte-identity with the committed artifact.
+      #
+      # REV: the PR HEAD, not the checkout HEAD. On a pull_request event actions/checkout
+      # leaves HEAD at the MERGE commit, whose `git show --name-only` lists no paths, and
+      # _r4_selfcheck fails closed on an empty path list. github.sha is correct for push.
+      - name: gate-mcp-audit
+        run: >-
+          python command-center/mcp-audit/ci_gate.py
+          --rev ${{ github.event.pull_request.head.sha || github.sha }}

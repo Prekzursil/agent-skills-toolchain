@@ -388,10 +388,23 @@ def run_control() -> tuple[bool, list[dict[str, Any]]]:
     """
     fixture = HOST_DIR / "_fake_mcp_server.py"
     py = sys.executable
-    shim_dir = pathlib.Path(tempfile.mkdtemp(prefix="mcpaudit-shim-"))
-    shim = shim_dir / "auditshim.cmd"
-    shim.write_text(f'@echo off\r\n"{py}" "{fixture}" %*\r\n', encoding="ascii")
-    os.environ["PATH"] = f"{shim_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+    # SHIM is a WINDOWS-ONLY state.  It regresses the defect that CreateProcess does not
+    # apply PATHEXT, so a bare ``auditshim`` naming ``auditshim.cmd`` fails to launch.  POSIX
+    # has no PATHEXT and no ``.cmd``: the defect cannot exist there, so the state is not
+    # merely inconvenient, it is UNOBSERVABLE -- and a control that cannot fail is not a
+    # control.  Measured on Ubuntu 24.04 before this branch existed: SHIM reported
+    # ``FileNotFoundError: 'auditshim'`` and turned the whole gate red, which would have made
+    # ``--control`` permanently red on ubuntu-latest.  It is therefore skipped on POSIX with
+    # the reason recorded, and EXPECTED_STATES below makes an accidental skip loud instead of
+    # silently shrinking the control to whatever happened to run.
+    windows = os.name == "nt"
+    shim_dir: pathlib.Path | None = None
+    shim: pathlib.Path | None = None
+    if windows:
+        shim_dir = pathlib.Path(tempfile.mkdtemp(prefix="mcpaudit-shim-"))
+        shim = shim_dir / "auditshim.cmd"
+        shim.write_text(f'@echo off\r\n"{py}" "{fixture}" %*\r\n', encoding="ascii")
+        os.environ["PATH"] = f"{shim_dir}{os.pathsep}{os.environ.get('PATH', '')}"
     cases = [
         (
             "GOOD",
@@ -429,19 +442,22 @@ def run_control() -> tuple[bool, list[dict[str, Any]]]:
                 "env_names": [],
             },
         ),
-        (
-            "SHIM",
-            {
-                "name": "_control_shim",
-                "transport": "stdio",
-                "command": "auditshim",
-                "args": [],
-                "definition_scope": "control",
-                "source_file": str(shim),
-                "env_names": [],
-            },
-        ),
     ]
+    if windows:
+        cases.append(
+            (
+                "SHIM",
+                {
+                    "name": "_control_shim",
+                    "transport": "stdio",
+                    "command": "auditshim",
+                    "args": [],
+                    "definition_scope": "control",
+                    "source_file": str(shim),
+                    "env_names": [],
+                },
+            )
+        )
     rows: list[dict[str, Any]] = []
     ok = True
     for state, spec in cases:
@@ -458,7 +474,22 @@ def run_control() -> tuple[bool, list[dict[str, Any]]]:
             f"  control {state:8} -> call_verified={row['call_verified']} "
             f"tools={row['tool_count']} passed={passed}"
         )
-    shutil.rmtree(shim_dir, ignore_errors=True)
+    if shim_dir is not None:
+        shutil.rmtree(shim_dir, ignore_errors=True)
+    # FLOOR.  Without this, dropping a case from ``cases`` -- or a future platform branch
+    # that skips one by accident -- would leave the surviving states green and the control
+    # would report success over a shrunken set.  The count is asserted, not assumed.
+    expected_states = 4 if windows else 3
+    if len(rows) != expected_states:
+        print(
+            f"  CONTROL FLOOR: executed {len(rows)} states, expected {expected_states} "
+            f"on {'nt' if windows else 'posix'} (fail closed)"
+        )
+        ok = False
+    if not windows:
+        print(
+            "  control SHIM     -> SKIPPED (posix: no PATHEXT, no .cmd; state unobservable)"
+        )
     return ok, rows
 
 

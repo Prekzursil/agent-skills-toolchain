@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -93,6 +94,56 @@ def blob(rev: str, path: str) -> dict:
     return json.loads(out.stdout)
 
 
+def absolute_in_any_flavour(src: str) -> bool:
+    """Is ``src`` an absolute path in EITHER the Windows or the POSIX flavour?
+
+    INTEGRATE-lane fix, measured not reasoned.  ``pathlib.Path`` binds to the HOST flavour,
+    so the recorded Windows config path ``C:\\Users\\Prekzursil\\.claude.json`` reports
+    ``is_absolute() == False`` on Linux -- to ``PurePosixPath`` a backslash is an ordinary
+    filename character.  Measured on Ubuntu 24.04 against the identical committed blob:
+    23 of 23 rows failed, printed as only four because ``main()`` truncates with
+    ``problems[:4]``.  The same blob passes on Windows.  Wiring the ledger into
+    ``ubuntu-latest`` unchanged would therefore have shipped a permanently RED job -- the
+    exact landmine a sibling lane hit and documented.
+
+    ``source_file`` records where a measurement CAME FROM, so its flavour is a property of
+    the producing machine, not of whatever host is re-checking it.  The shape check is
+    therefore flavour-independent; the on-disk check below is not, and is scoped.
+    """
+    return (
+        pathlib.PureWindowsPath(src).is_absolute()
+        or pathlib.PurePosixPath(src).is_absolute()
+    )
+
+
+def native_to_host(src: str) -> bool:
+    """Can this host meaningfully ask whether ``src`` EXISTS?
+
+    Only when the recorded path's flavour matches the running platform.  A Windows drive
+    path is never on a Linux runner's disk, so an existence check there measures the
+    platform, not the artifact.
+    """
+    return bool(pathlib.PureWindowsPath(src).drive) == (os.name == "nt")
+
+
+def existence_coverage(rows: list[dict[str, Any]]) -> tuple[int, int]:
+    """(rows whose source_file existence WAS checked here, rows where it could not be).
+
+    Reported by ``main()`` so a weaker check on a foreign host is visible in the log rather
+    than silently folded into a PASS.
+    """
+    checked = skipped = 0
+    for r in rows:
+        src = (r.get("source_file") or "").strip()
+        if not src or not absolute_in_any_flavour(src):
+            continue
+        if native_to_host(src):
+            checked += 1
+        else:
+            skipped += 1
+    return checked, skipped
+
+
 def dod1(rows: list[dict[str, Any]]) -> list[str]:
     """Scope + absolute source file on every row, and no mounted server may vanish."""
     bad = []
@@ -103,9 +154,9 @@ def dod1(rows: list[dict[str, Any]]) -> list[str]:
             if not r.get(field):
                 bad.append(f"{r['name']}: empty {field}")
         src = r.get("source_file") or ""
-        if src and not pathlib.Path(src).is_absolute():
+        if src and not absolute_in_any_flavour(src):
             bad.append(f"{r['name']}: source_file not absolute")
-        elif src and not pathlib.Path(src).exists():
+        elif src and native_to_host(src) and not pathlib.Path(src).exists():
             bad.append(f"{r['name']}: source_file missing on disk")
     return bad
 
@@ -175,7 +226,12 @@ def break_for(control: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if r.get("name") in EXPECTED_MOUNTED:
                 return bad[:i] + bad[i + 1 :]
         return bad
-    if control == "blank-source-file":
+    if control == "relative-source-file":
+        # The branch that had NO control, which is why a platform bug lived in it.  A
+        # relative path must be rejected on BOTH flavours, so this control also proves the
+        # flavour-aware rewrite did not turn the check into a no-op that accepts anything.
+        bad[0]["source_file"] = "relative/not-absolute.json"
+    elif control == "blank-source-file":
         bad[0]["source_file"] = ""
     elif control == "flip-call-verified":
         bad[0]["call_verified"] = not bad[0]["call_verified"]
@@ -203,9 +259,10 @@ CHECKS: dict[
     "DoD1": (
         "inventory: scope + source file per row, and no server missing",
         dod1,
-        # BOTH branches: a malformed row, and an ABSENT one.  Round 3 controlled only the
-        # first, so a shrinking table passed.
-        ["blank-source-file", "drop-a-mounted-row"],
+        # THREE branches: a malformed row, an ABSENT one, and a RELATIVE source_file.
+        # Round 3 controlled only the first, so a shrinking table passed; nothing at all
+        # controlled the absoluteness branch, which is where the host-flavour bug hid.
+        ["blank-source-file", "drop-a-mounted-row", "relative-source-file"],
     ),
     "DoD2": (
         "liveness vs capability by a real call",
@@ -251,7 +308,14 @@ def main(argv: list[str]) -> int:
         for control, ok in fired.items():
             print(f"       negative control {control:34} fires: {ok}")
         if problems:
-            print(f"       problems: {problems[:4]}")
+            print(f"       problems ({len(problems)} total): {problems[:4]}")
+        if item == "DoD1":
+            checked, skipped = existence_coverage(rows)
+            print(
+                f"       source_file on-disk check: {checked} verified here, "
+                f"{skipped} not checkable (recorded flavour is foreign to "
+                f"{'nt' if os.name == 'nt' else 'posix'}; shape still enforced)"
+            )
         if state == "FAIL":
             failed.append(item)
 

@@ -170,15 +170,35 @@ def part_b() -> bool:
     print(
         f"  mutation: drop the row for {victim!r} ({len(rows)} -> {len(dropped)} rows)"
     )
-    old_sees = bool(old["dod1"](dropped))
-    new_sees = bool(new["dod1"](dropped))
+
+    # SCOPED TO THE PROPERTY UNDER TEST, not to the total problem count.
+    #
+    # The original form asked `bool(old["dod1"](dropped))` -- "did the old gate say
+    # anything at all?".  That is a control that cannot distinguish the two hypotheses the
+    # moment the old gate emits ANY unrelated complaint.  Measured on Ubuntu 24.04: the
+    # round-3 code extracted from 673cd180 uses host-bound `pathlib.Path(...).is_absolute()`,
+    # so on POSIX it objects to all 23 recorded Windows paths and `old_sees` is True -- the
+    # gate scored "not blind" while remaining just as blind to the ABSENCE it was being
+    # tested on, and part_b went red on a correct tree.
+    #
+    # The claim is "the old predicate cannot notice a MISSING server", so the measurement is
+    # whether either gate emits a problem naming that server's absence.  Unrelated noise is
+    # counted and printed, never folded into the verdict.
+    def flags_absence(problems: list[str]) -> bool:
+        return any(victim in p and "absent" in p for p in problems)
+
+    old_problems = old["dod1"](dropped)
+    new_problems = new["dod1"](dropped)
+    old_sees = flags_absence(old_problems)
+    new_sees = flags_absence(new_problems)
+    old_noise = len(old_problems) - (1 if old_sees else 0)
     print(
-        f"  round-3 dod1 on the shrunken table -> {len(old['dod1'](dropped))} problems "
-        f"(PASS = blind: {not old_sees})"
+        f"  round-3 dod1 on the shrunken table -> flags {victim!r} absent: {old_sees} "
+        f"(PASS = blind: {not old_sees}; {old_noise} unrelated problems, host-flavour noise)"
     )
     print(
-        f"  round-4 dod1 on the shrunken table -> {len(new['dod1'](dropped))} problems "
-        f"(fires: {new_sees})"
+        f"  round-4 dod1 on the shrunken table -> flags {victim!r} absent: {new_sees} "
+        f"({len(new_problems)} problems total)"
     )
     clean = not new["dod1"](rows)
     print(f"  round-4 dod1 on the CURRENT table  -> silent: {clean}")

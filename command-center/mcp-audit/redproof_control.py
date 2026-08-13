@@ -11,6 +11,7 @@ Run: ``python redproof_control.py``  ->  ``SUCCESS:redproof-control`` / exit 0.
 
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 from typing import Any
@@ -99,17 +100,37 @@ def main() -> int:
     # reported "mutation survived" for a mutation the control was in fact catching.
     # Caught by measuring run_control() directly and getting the opposite answer --
     # a self-contradicting output is a detector failure, not a finding.
-    pc.RESOLVE_SHIMS = False
-    try:
-        shim_ok, _shim_rows = pc.run_control()
-    finally:
-        pc.RESOLVE_SHIMS = True
-    shim_red = not shim_ok
-    print(f"mutation {'no-pathext-resolve':18} -> control red? {shim_red}")
-    if not shim_red:
-        failures.append("no-pathext-resolve")
+    #
+    # WINDOWS-ONLY.  ``run_control`` skips the SHIM state on POSIX (no PATHEXT, no ``.cmd``),
+    # so reverting the fix there changes nothing observable and the mutation would be scored
+    # as a SURVIVOR -- a red gate reporting a defect that cannot exist on the host.  Measured
+    # on Ubuntu 24.04 before this branch: the baseline itself was already red.  Skipping it is
+    # only safe because ``pathext_applicable`` is asserted below, so the mutation cannot go
+    # missing on Windows without the count check firing.
+    pathext_applicable = os.name == "nt"
+    if pathext_applicable:
+        pc.RESOLVE_SHIMS = False
+        try:
+            shim_ok, _shim_rows = pc.run_control()
+        finally:
+            pc.RESOLVE_SHIMS = True
+        shim_red = not shim_ok
+        print(f"mutation {'no-pathext-resolve':18} -> control red? {shim_red}")
+        if not shim_red:
+            failures.append("no-pathext-resolve")
+    else:
+        print(
+            f"mutation {'no-pathext-resolve':18} -> SKIPPED "
+            "(posix: SHIM state unobservable, mutation has no effect to detect)"
+        )
 
-    total = len(MUTATIONS) + 1
+    total = len(MUTATIONS) + (1 if pathext_applicable else 0)
+    expected_total = 4 if pathext_applicable else 3
+    if total != expected_total:
+        print(
+            f"FAILED:redproof-control ran {total} mutations, expected {expected_total}"
+        )
+        return 1
     if failures:
         print(f"FAILED:redproof-control survivors={failures}")
         return 1
