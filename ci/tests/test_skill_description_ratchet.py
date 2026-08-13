@@ -42,9 +42,7 @@ PROJECTED_SKILL_ROOT = REPO_ROOT / "skills"
 # Assert the COMMAND, not the file name: a document that merely names the script in
 # prose is a mention, not a route an agent can run (use-vs-mention).
 INVOCATION_MARKER = "python ci/check_skill_description_ratchet.py"
-WORKFLOW_EXPLICIT_MARKER = (
-    "python -m pytest ci/tests/test_skill_description_ratchet.py"
-)
+WORKFLOW_EXPLICIT_MARKER = "python -m pytest ci/tests/test_skill_description_ratchet.py"
 WORKFLOW_GLOB_MARKER = "python -m pytest ci/tests tools/d001-dual-write/tests"
 
 
@@ -174,7 +172,7 @@ def test_a_malformed_exemption_is_a_config_error(clean: tuple[Path, Path]) -> No
 
 
 def test_an_empty_walk_fails_closed(tmp_path: Path) -> None:
-    """"Found nothing, therefore pass" is the no-op gate ci-hygiene #1 forbids."""
+    """ "Found nothing, therefore pass" is the no-op gate ci-hygiene #1 forbids."""
     root = tmp_path / "skills"
     root.mkdir()
     exemptions = tmp_path / "exempt.txt"
@@ -203,7 +201,9 @@ def test_crlf_and_lf_measure_the_same_length(tmp_path: Path) -> None:
         directory.mkdir(parents=True)
         text = "---\nname: alpha\ndescription: same text\n---\n\nbody\n"
         (directory / "SKILL.md").write_bytes(text.replace("\n", newline).encode())
-        lengths.append(mod.parse_description(directory / "SKILL.md", "alpha", "r").chars)
+        lengths.append(
+            mod.parse_description(directory / "SKILL.md", "alpha", "r").chars
+        )
     assert lengths[0] == lengths[1], f"CRLF/LF disagree: {lengths}"
 
 
@@ -243,11 +243,11 @@ def test_the_committed_skill_surface_is_green() -> None:
 def test_every_pinned_exemption_is_still_earned() -> None:
     """Redundant with the run above, but names the ratchet property explicitly."""
     exemptions = mod.parse_exemptions(EXEMPTIONS_PATH)
-    descriptions = mod.collect(
-        [CANONICAL_SKILL_ROOT, PROJECTED_SKILL_ROOT]
-    )
+    descriptions = mod.collect([CANONICAL_SKILL_ROOT, PROJECTED_SKILL_ROOT])
     violations, _ = mod.evaluate(descriptions, exemptions)
-    stale = [v for v in violations if v["rule"] in {"stale-exemption", "unknown-exemption"}]
+    stale = [
+        v for v in violations if v["rule"] in {"stale-exemption", "unknown-exemption"}
+    ]
     assert not stale, f"the exemptions file has drifted: {stale}"
 
 

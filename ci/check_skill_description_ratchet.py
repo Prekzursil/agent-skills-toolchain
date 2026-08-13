@@ -248,9 +248,7 @@ def collect(roots: list[Path]) -> list[Description]:
         seen_roots += 1
         for path in sorted(root.glob("*/SKILL.md")):
             if path.is_file():
-                found.append(
-                    parse_description(path, path.parent.name, root.as_posix())
-                )
+                found.append(parse_description(path, path.parent.name, root.as_posix()))
     if seen_roots == 0:
         raise ConfigurationError(
             f"none of the skill roots exist: {[r.as_posix() for r in roots]}"
