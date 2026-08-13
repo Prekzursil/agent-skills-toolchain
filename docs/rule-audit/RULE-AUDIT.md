@@ -23,9 +23,12 @@ COVERAGE
 ## How to re-run
 
 ```bash
-python docs/rule-audit/rule_audit.py --self-test                       # 20 detector controls
+python docs/rule-audit/rule_audit.py --self-test                       # 19 detector controls
 python docs/rule-audit/rule_audit.py --json out.json --md out.md       # the measurement
 python docs/rule-audit/lazy_predict.py                                 # lazy-selector both-states
+python docs/rule-audit/r2_control_count_gate.py                        # prose count == tool count
+python docs/rule-audit/r2_failclosed_mutation.py                       # mutation on control 5
+python docs/rule-audit/r2_pathrefs.py                                  # broken-pointer sweep
 python -m pytest ci/tests/test_rules_*.py -q                           # the 8 existing gates
 ```
 
@@ -155,7 +158,8 @@ owner**. Rotating on their behalf is the banned action".
 
 So the repo copy does not merely omit the rule — it instructs the **opposite** of the standing
 owner instruction, on the one clause that AGENTS.md §10 declares never overridable by any lower
-layer. `agent-self/bootstrap.ps1:44` (`Copy-Item config\* $ClaudeHome -Recurse -Force`)
+layer. `agent-self/bootstrap.ps1:45` (`Copy-Item config\* $ClaudeHome -Recurse -Force`; round 1
+said `:44`, which is that line's comment header — corrected after the VERIFY lane read it)
 force-copies `config/*` over `~/.claude`, so this is a **deploy source, not an inert snapshot**:
 one `pwsh agent-self/bootstrap.ps1` on any machine replaces the correct live contract with the
 inverted one. Nothing gates AGENTS.md parity — the two mirror gates cover 5 + 2 pinned paths,
@@ -207,7 +211,7 @@ AGENT may return = this rule). Again fixed in `rules/`, absent from live.
 
 ### 3.4 `agent-self/bootstrap.ps1` silently PROMOTES 3 rules lazy→always-on — CONFIRMED, PROPOSED
 
-`bootstrap.ps1:44` force-copies `config/*` over `~/.claude`. Three agent-self rule copies **lack
+`bootstrap.ps1:45` force-copies `config/*` over `~/.claude`. Three agent-self rule copies **lack
 the `paths:` frontmatter their live counterparts carry**, so the copy flips their load semantics:
 
 | file | repo / live | agent-self | cost once promoted |
@@ -278,7 +282,10 @@ repo.** The 13 language directories have no repo→live bridge at all.
 handles all scanning logic, token estimation, issue detection, and report formatting." Probed 5
 roots — `skills/`, `.agents/skills/`, `skills-claude-only/`, `~/.claude/skills/`,
 `~/.agents/skills/` — **ABSENT in all five**, with a positive control proving the probe can find a
-skill that exists (`multi-ai-mingle/SKILL.md` PRESENT in 3 of the same roots). The command is
+skill that exists (`multi-ai-mingle/SKILL.md` PRESENT in **4** of the same 5 roots — absent only
+from `skills-claude-only/`; round 1 said 3, re-measured 2026-08-13 and by the VERIFY lane). The
+absence verdict is unaffected either way: the control fires, so 5/5 absent is a measurement. The
+command is
 invocable and is a no-op shell. `ci/tests/test_rules_doc_contracts.py:222` gates its
 200K-denominator prose — a green gate on the documentation of an unimplemented feature.
 
@@ -398,20 +405,38 @@ tool §3.2 is about, and it runs in the wrong direction.
 
 ### 5.5 `commands/context-budget.md` (§3.7) — either implement `skills/context-budget/` or retire the command. `rule_audit.py` now covers the rules half of what it promised; `/context` covers the rest, so retiring is the cheaper option.
 
-## 6. Detector controls — 20, all passing, all able to fail
+## 6. Detector controls — 19, all passing, all able to fail
+
+**REFUTED WORDING, kept on the record rather than deleted.** Round 1 of this heading read
+"Detector controls — 20" <!--count-historical--> and the same figure appeared at §"How to
+re-run" and §9. An independent VERIFY lane and an adversarial round both measured **17**
+<!--count-historical--> by two mechanically independent methods (AST walk of `self_test()`;
+runtime PASS lines), and the round-1 build report additionally quoted the tool as printing
+`SUCCESS: all controls passed (20)` <!--count-historical--> — a line the tool never printed.
+The code was correct; three sentences were wider than it. Round 2 (a) folded in the one control
+that was asserted but never executed, (b) made the tool print its own count and per-group
+inventory, and (c) added `r2_control_count_gate.py`, which fails if any prose count in
+`docs/rule-audit/*.md` disagrees with the tool. The current figure is a quoted measurement:
+
+    CONTROL-GROUPS: classifier=6 drift=4 crlf=2 encoder=3 failclosed=4 TOTAL=19
 
 A control that cannot distinguish the two hypotheses is not a control, so each of these was
 written to have a state in which it FIRES:
 
-| control | what it would catch |
-|---|---|
-| bare / scoped / fm-without-`paths` / CRLF-frontmatter classification (6) | a classifier that reads one bucket as another; a CRLF file mis-parsed as having no frontmatter |
-| inline-list and block-list selector parsing (2) | `paths: ["a","b"]` vs `paths:\n  - a` silently yielding no selectors, which would make every rule look always-on |
-| drift detector on a clone (silent) then on a synthetic divergence (fires) (4) | a comparison that reports parity because it is comparing the wrong collection |
-| CRLF vs LF ⇒ identical sha and token count (2) | a whole-file phantom diff from line endings (§7.2) |
-| encoder identity + known-string count + monotonicity (3) | a silent fallback estimator passing as an exact count |
-| empty dir and missing dir ⇒ 0 files, `main()` exits non-zero on a zero-file repo walk (3) | a path typo reporting "the trees agree" |
-| `lazy_predict.py` negative control: `common/hooks.md` must be predicted NOT to load | a selector model that is really "load everything after the first touch" |
+| group (tool slug) | n | what it would catch |
+|---|---|---|
+| `classifier` — bare / scoped / fm-without-`paths` / CRLF-frontmatter, plus inline-list and block-list selector parsing | 6 | a classifier that reads one bucket as another; a CRLF file mis-parsed as having no frontmatter; `paths: ["a","b"]` vs `paths:\n  - a` silently yielding no selectors, which would make every rule look always-on |
+| `drift` — clone (silent) then synthetic divergence (fires) | 4 | a comparison that reports parity because it is comparing the wrong collection |
+| `crlf` — CRLF vs LF ⇒ identical sha and token count | 2 | a whole-file phantom diff from line endings (§7.2) |
+| `encoder` — identity + known-string count + monotonicity | 3 | a silent fallback estimator passing as an exact count |
+| `failclosed` — empty dir, missing dir, and **both states of** `main()` on a zero-file repo walk | 4 | a path typo reporting "the trees agree" |
+| *(separate tool)* `lazy_predict.py` negative control: `common/hooks.md` must be predicted NOT to load | — | a selector model that is really "load everything after the first touch" |
+
+The round-1 table is where the arithmetic went wrong, and it is worth naming the shape: its first
+row counted 6 classifier checks and a **second** row counted 2 of those same checks again, while
+the fail-closed row claimed 3 where only 2 ran. A hand-maintained breakdown that double-counts one
+group and over-counts another still *looks* like an inventory. The fix is not a more careful table
+— it is that the numbers above are now printed by the code that runs them.
 
 **One control caught me, and I fixed the assertion rather than the detector.** Control 2 initially
 asserted `content_differs == ["same.md"]`; the detector returned `["flip.md","same.md"]` and was
@@ -499,7 +524,7 @@ this shared tree concurrently — which is why every commit here uses explicit p
 signals, 8/8, plus a discriminating control that separates H1 from H2). User-scope `paths:` rules
 load lazily on a matching touch on 2.1.228 (16/16 predicted, 1/1 negative control, reproduced in a
 second session). All classification and drift counts (deterministic byte comparison, not
-judgement; 20 detector controls with both-states proof). `sync-from-live.ps1:477` omits `$Report`
+judgement; 19 detector controls with both-states proof). `sync-from-live.ps1:477` omits `$Report`
 (read at the line). The `agent-self/config/AGENTS.md` §9 inversion (diffed against live). The
 `context-budget` skill is absent from all 5 roots (positive control proves the probe finds skills
 that exist). 167/167 rule tests green (executed twice). The `13 → 3` correction (§7.1) and the

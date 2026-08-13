@@ -7,6 +7,14 @@ contradiction is reachable, and to give the exhaustiveness caveat a number inste
 
 DETECTOR CONTROL: a known-good path and a known-bad path are injected into the same matcher.
 If the known-bad one is not reported MISSING, the sweep is inert and its silence means nothing.
+
+SUPERSEDED 2026-08-13 by ``r2_pathrefs.py`` -- kept as the evidence for the round-1 verdict, not
+as the current instrument. The adversarial round showed ``resolve()`` below falls back to
+``REPO.rglob(basename)``, so a reference whose PATH is wrong but whose FILENAME exists elsewhere
+resolves as satisfied, and the known-bad control uses a filename absent everywhere so that
+fallback is never exercised. The successor classifies three ways (EXACT / BASENAME-ONLY /
+MISSING) with the middle state under a control, and scans 176 files across both trees instead
+of 8. Do not cite this file's "0 unresolvable" as current coverage.
 """
 
 from __future__ import annotations

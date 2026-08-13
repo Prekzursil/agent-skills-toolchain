@@ -165,19 +165,29 @@ file's last change is `f15cddbf`, predating both.
 
 ## 8. The one overclaim
 
-**"20 detector controls" — the count is 17.** Two mechanically independent counts agree: an AST
+> **SUPERSEDED IN PART, 2026-08-13 (BUILD round 2).** This section is CORRECT as a statement about
+> the round-1 code and is left intact. Two facts moved after it was written: the BUILD lane folded
+> the missing fail-closed assertion into `--self-test` (the one-line fix §8's sub-point names), so
+> the live count is now **19**, and `rule_audit.py` now prints that count and a per-group inventory
+> itself. Every number below is therefore historical; `r2_control_count_gate.py` holds the *current*
+> prose to the tool. The lines carrying those historical figures are tagged
+> `<!--count-historical-->` so the gate skips them — an explicit field, not a guess about prose.
+> Nothing here was rewritten to make the finding disappear.
+
+**"20 detector controls" — the count is 17.** <!--count-historical--> Two mechanically independent counts agree: an AST
 walk of `self_test()` finds **17** `check()` call sites, and the runtime emits **17** PASS lines
 (6 + 4 + 2 + 3 + 2 across the five groups). The builder's own enumeration in the report sums to 18,
 so no counting method yields 20. Asserted in `RULE-AUDIT.md:26`, `RULE-AUDIT.md:502`, and the
 commit message. The report additionally quotes the tool as printing
-`SUCCESS: all controls passed (20)`; the tool actually prints
+`SUCCESS: all controls passed (20)` <!--count-historical-->; the tool actually prints
 `SUCCESS:rule_audit-self-test all controls passed` — **the count in the quoted output does not
 come from the tool.** `rule_audit.py` itself claims no count anywhere; the tool is honest and the
 prose is not.
 
-Scoped version that is CONFIRMED: *"`--self-test` runs **17** detector-control assertions across
+Scoped version that is CONFIRMED: *"`--self-test` runs **17** detector-control assertions across <!--count-historical-->
 five control groups — classifier both-states (6), drift silent-then-firing (4), CRLF≡LF (2),
-encoder honesty (3), empty/missing-dir fail-closed (2) — all passing, exit 0."*
+encoder honesty (3), empty/missing-dir fail-closed (2) — all passing, exit 0."* (Round-2 state:
+`classifier=6 drift=4 crlf=2 encoder=3 failclosed=4 TOTAL=19`, printed by the tool.)
 
 Sub-point: the report lists a third fail-closed control, "`main()` returns non-zero when the repo
 walk yields zero files". That behaviour **is implemented and does work** — I supplied the missing

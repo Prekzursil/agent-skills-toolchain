@@ -37,7 +37,9 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
+import io
 import json
 import re
 import tempfile
@@ -313,15 +315,23 @@ def render_md(report: dict) -> str:
 
 def self_test() -> int:
     failures: list[str] = []
+    ran: list[str] = []
+    groups: list[list[object]] = []  # [[slug, count], ...] in declaration order
+
+    def group(slug: str, headline: str) -> None:
+        groups.append([slug, 0])
+        print(f"control {len(groups)} ({slug}): {headline}")
 
     def check(name: str, ok: bool, detail: str = "") -> None:
+        ran.append(name)
+        groups[-1][1] = int(groups[-1][1]) + 1
         print(
             f"  {'PASS' if ok else 'FAIL'}  {name}{(' -- ' + detail) if detail else ''}"
         )
         if not ok:
             failures.append(name)
 
-    print("control 1: classifier flips between the two states (both-states)")
+    group("classifier", "classifier flips between the two states (both-states)")
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         (root / "bare.md").write_text("# no frontmatter\n", encoding="utf-8")
@@ -369,8 +379,9 @@ def self_test() -> int:
             repr(scan["scoped.md"]["selectors"]),
         )
 
-    print(
-        "control 2: drift detector FIRES on a synthetic divergence and is silent on a clone"
+    group(
+        "drift",
+        "drift detector FIRES on a synthetic divergence and is silent on a clone",
     )
     with tempfile.TemporaryDirectory() as tmp:
         a_root, b_root = Path(tmp) / "a", Path(tmp) / "b"
@@ -407,8 +418,8 @@ def self_test() -> int:
             repr(dirty),
         )
 
-    print(
-        "control 3: CRLF and LF of the same content produce identical hash and token count"
+    group(
+        "crlf", "CRLF and LF of the same content produce identical hash and token count"
     )
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -421,7 +432,7 @@ def self_test() -> int:
         )
         check("CRLF == LF tokens", scan["lf.md"]["tokens"] == scan["crlf.md"]["tokens"])
 
-    print("control 4: the token counter is the real encoder, not a silent fallback")
+    group("encoder", "the token counter is the real encoder, not a silent fallback")
     counter = Counter()
     check(
         "encoder is tiktoken/cl100k_base",
@@ -435,19 +446,48 @@ def self_test() -> int:
     )
     check("longer text costs more", counter.count("a" * 400) > counter.count("a" * 40))
 
-    print("control 5: an empty scan is reported as empty, never as parity")
+    group("failclosed", "an empty scan is reported as empty, never as parity")
     with tempfile.TemporaryDirectory() as tmp:
         empty = scan_tree(Path(tmp), Counter())
         check("empty dir -> 0 files", empty == {}, repr(empty))
         check("missing dir -> 0 files", scan_tree(Path(tmp) / "nope", Counter()) == {})
+        # Round-2 addition. The build report counted "main() returns non-zero when the repo
+        # walk yields zero files" as a passing control while --self-test never exercised it;
+        # the VERIFY lane caught that and supplied the missing both-states test out-of-band
+        # (_verify_failclosed.py). Folded in here so the claim and the measurement live in the
+        # same place: a control asserted in prose but never run is not a control.
+        real_repo = TREES["repo"]
+        try:
+            TREES["repo"] = Path(tmp) / "no_such_rules_tree"
+            with contextlib.redirect_stdout(io.StringIO()) as broken_out:
+                rc_broken = main([])
+            check(
+                "STATE A repo tree missing -> main() non-zero",
+                rc_broken != 0 and "detector broken" in broken_out.getvalue(),
+                f"rc={rc_broken}",
+            )
+            TREES["repo"] = real_repo
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc_ok = main([])
+            check("STATE B repo tree present -> main() zero", rc_ok == 0, f"rc={rc_ok}")
+        finally:
+            TREES["repo"] = real_repo
 
     print("")
+    # The inventory is emitted BY THE TOOL, at runtime, from counters the checks incremented.
+    # Round 1 asserted "20 detector controls" in prose, quoted a tool line carrying that number
+    # that the tool never printed, and backed it with a hand-written table whose rows summed to
+    # something else again. Emitting the per-group counts and the total here makes both the
+    # figure and its breakdown measurements instead of sentences -- r2_control_count_gate.py
+    # then holds the prose to this line.
+    inventory = " ".join(f"{slug}={count}" for slug, count in groups)
+    print(f"CONTROL-GROUPS: {inventory} TOTAL={len(ran)}")
     if failures:
         print(
-            f"FAILED:rule_audit-self-test {len(failures)} control(s) failed: {failures}"
+            f"FAILED:rule_audit-self-test {len(failures)}/{len(ran)} control(s) failed: {failures}"
         )
         return 1
-    print("SUCCESS:rule_audit-self-test all controls passed")
+    print(f"SUCCESS:rule_audit-self-test all controls passed ({len(ran)})")
     return 0
 
 
