@@ -815,6 +815,134 @@ works), start a fresh session, then check whether that skill gained a descriptio
 different never-invoked skill lost one. UNVERIFIED as of 2026-08-13 - that experiment has not
 been run, and until it is, least-invoked-first is vendor-documented but not locally measured.
 
+### Corrections to the record (2026-08-13) - refuted, not deleted
+
+Two claims this lane shipped were REFUTED by an independent verifier. They are recorded here
+rather than quietly dropped, because the wrong remedy is the thing that gets re-derived.
+
+**REFUTED - "the vault carries 2 old-guard files".** The commit message of `1a6d2fee` says the
+vault copies *"still carry the old guard (2/2 old there; 0/2 in the three in-scope trees)"*.
+That was the 2 files THAT COMMIT HAPPENED TO TOUCH, reported as if it were a census. Re-measured
+2026-08-13 by walking every `.mjs`/`.js` in all four trees:
+
+| tree | old lexical guard | `__isMain` | guard-bearing files |
+|---|---|---|---|
+| `.agents/skills` (repo) | 0 | 10 | 10 |
+| `skills` (repo) | 0 | 10 | 10 |
+| `~/.claude/skills.daily` (live) | 0 | 10 | 10 |
+| `~/.agents/skills` (vault) | **8** | 2 | 10 |
+
+The eight are `design-studio/loop.mjs`, `design-studio-session/session.mjs`, and six of the seven
+`ui-audit/*.mjs` - `axe_scan`, `capture`, `critique`, `layout_lint`, `run_audit`, `visual_diff`
+(`dead_button_crawl` is already fixed there). **Anyone who applies the 2-file remedy leaves SIX
+silent no-ops live in the vault.** Detector control: the same classifier reports 8 on the vault and
+0 on all three in-scope trees, so it is not a matcher that says one thing everywhere.
+
+The lesson generalises past this file. A census claim must name the population it walked. "N of the
+files I touched" and "N of the files that exist" are different sentences, and only the second one
+is a census.
+
+**REFUTED - the receipt hash `e35db962688d588c` for `writing-skills/SKILL.md`.** It corresponds to
+no reachable state of that file. The stored blob at `1a6d2fee` and at HEAD is `0cda94f33b56f495`
+(33,155 B, 0 CRLF); the Windows working tree is `7c8eb3b38dd15c4c` raw and `0cda94f33b56f495`
+LF-normalised. The most plausible provenance is a mid-edit intermediate - that commit applied two
+separate inserts. The END STATE was correct and still is (all three in-scope trees identical), but a
+receipt naming no reachable state is not evidence of anything. **Publish the METHOD next to the
+hash.** On Windows one correct file has three different hashes - stored blob, raw working tree,
+LF-normalised working tree - and a bare 16-hex string does not say which was measured.
+
+### The description ratchet: proven to fire, and pointed at the wrong tree
+
+Round 1 asserted that the description instruments "do move when descriptions change" and then cited
+an UNCHANGED reading as evidence that its body-only edits cost zero listing budget. An unchanged
+reading from an instrument never run against a broken state proves nothing. Measured 2026-08-13 on a
+temp copy of the skill root, with `ci/` unmodified and the gate driven through its own
+`--root`/`--exemptions` flags:
+
+| state | exit | violations | advisory total |
+|---|---|---|---|
+| untouched skill root | 0 | 0 | 105,637 |
+| ONE description grown to 1,200 chars | **1** | 1, naming the mutated skill | 106,703 |
+| mutation reverted | 0 | 0 | 105,637 |
+
+The gate fires when broken, is silent when clean, and the advisory total moves by exactly the char
+delta (+1,066). Only now is "body insertions cost zero listing budget" resting on a live instrument.
+
+The same run exposes something larger. `ci/check_skill_description_ratchet.py` measures
+`.agents/skills` - 105,637 chars across 346 skills, exit 0. **The client loads
+`~/.claude/skills.daily` - 115,461 chars across 328 skills.** Point the SAME gate with the SAME
+exemptions file at the tree the client actually reads:
+
+```
+python ci/check_skill_description_ratchet.py --root C:/Users/Prekzursil/.claude/skills.daily
+```
+
+and it exits 1 with **18 violations**: seven unpinned over-spec descriptions (`agent-as-judge` 1143,
+`media-dub` 1312, `orchestration-patterns` 1294, `packaged-artifact-smoke` 1144, `ui-audit` 1091,
+`video-watermark-removal` 1154, `workflow-authoring` 1062), eight folded scalars, and three
+exemptions pinned to skills that exist in neither repo root (`browser-rail`,
+`codex-mixed-workflow-doctrine`, `cookie-bridge`). A gate green on a proxy while the surface the
+model actually receives is eighteen-violations red is freezing the wrong number.
+
+Two things follow. First, the fix belongs in `ci/` (outside this lane's write scope): measure both
+roots and report the delta, with a fixture that goes RED when a shared description diverges between
+them. Second, note what those seven over-spec entries are NOT: every one is below the 1,536-char
+render cap, so none of them is actually shortened by the client. They breach the agentskills.io
+PACKAGING limit of 1,024, which is a different limit for a different purpose. Do not "fix" a
+1,024 violation believing it recovers listing budget - it does not.
+
+### RIGHT-AHEAD is a DIRECTION, and you must check it before you edit
+
+The ADD-vs-REPLACE rule above is necessary but not sufficient: whether an edit is safe also depends
+on which side already holds unique lines. Measured on the three files this lane touched:
+
+| file | vault-only lines | repo-only lines | RIGHT-AHEAD |
+|---|---|---|---|
+| `writing-skills/SKILL.md` | 0 | 127 | yes - append-only edits stay deployable |
+| `design-studio/loop.mjs` | 2 | 12 | no - already orphaned by round 1 |
+| `design-studio-session/session.mjs` | 2 | 12 | no - already orphaned by round 1 |
+
+So `writing-skills` can absorb more text without cost, and the two `.mjs` files cannot be un-orphaned
+by any further additive edit - they need the hand merge. Check the direction with a line-set
+containment test before assuming an ADD is free.
+
+### The repair tool cannot reach the files that are still broken
+
+The standing remedy for the eight vault files points at `ui-audit/_fix_main_guard.py`. Run it and
+read what it actually does before believing that:
+
+```
+$ python .agents/skills/ui-audit/_fix_main_guard.py --help
+patched 0:
+  skipped axe_scan.mjs: guard not found
+  ... (12 more)
+SUCCESS:fix-main-guard patched=0
+```
+
+Three things at once. It **ignores its arguments entirely** - `sys.argv` is never read, so
+`--help`, `--root`, or any path you pass is silently discarded. It hardcodes
+`HERE = Path(__file__).resolve().parent` and globs `HERE/*.mjs`, so it can only ever repair the
+directory it is sitting in: it cannot target `~/.agents/skills`, and it cannot reach
+`design-studio/loop.mjs` or `design-studio-session/session.mjs` in ANY tree, because those are not
+in `ui-audit/`. And it prints `SUCCESS:` with `patched=0`, so a run that repaired nothing is
+indistinguishable from a run that had nothing to repair.
+
+Put those together and the failure mode is concrete: point it at what you believe is the vault,
+get `SUCCESS:fix-main-guard patched=0`, and conclude the vault is clean. It is not - it has eight
+old-guard files. The script's own docstring already documents one instance of a repair tool for the
+silent-no-op class that silently no-ops. This is a second one, in the same file.
+
+The remedy that actually works, stated so it can be executed rather than assumed: copy the script
+into each affected directory of the target tree and run it there (`ui-audit/` covers six of the
+eight; `design-studio/` and `design-studio-session/` need it separately), then verify by
+CENSUS - walk every `.mjs` and count old-guard vs `__isMain` - not by the script's own exit code.
+Do NOT run `sync-skills.ps1 -Prune`: it deletes `microsoft-foundry` and `qdx-rush`.
+
+Generalisable rule: **a repair tool that reports success by exit code, ignores its arguments, and
+scopes itself to its own directory is a hazard, not an instrument.** A repair tool should take its
+target explicitly, fail closed when the target is missing, and report the count it CHANGED next to
+the count it FOUND - `patched=0 found=0` and `patched=0 found=8` must not print the same line.
+
 ## The Bottom Line
 
 **Creating skills IS TDD for process documentation.**
