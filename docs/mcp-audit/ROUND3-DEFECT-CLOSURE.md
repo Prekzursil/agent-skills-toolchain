@@ -215,6 +215,23 @@ three gates: `python gate.py | tail -6; echo $?` reports **`tail`'s** exit statu
 gate's — a red gate reads as green. `_r3_gate_sweep.py` exists so every number in the next
 section is a captured `returncode`.
 
+### A control that disagreed, resolved by a second control instead of by a finding
+
+Checking line endings on this round's blobs I used round 2's `README.md | 328 CRLF` row as
+the positive control. It measured **0**. One reading short of writing up "round 2's CRLF
+table is wrong", which would have been false. A second, mechanically identical control on a
+different file settled it: `AGENTS.md` reads **112**, *exactly* round 2's number, so the
+detector fires and agrees. `git log -- README.md` names the cause — sibling commit
+`7aa86f16` rewrote that file to LF between the two rounds. A single control that has itself
+changed is not evidence about the instrument.
+
+Line endings on this round's blobs, for the record: every `.py` blob is **0 CRLF** (blob
+gate, both commits), while the `.md`/`.json` blobs carry CRLF (`ROUND3-DEFECT-CLOSURE.md`
+278, `disposition.json` 840) — the repo-wide pre-existing condition round 2 documented.
+`.gitattributes` pins only `*.sh eol=lf` and `*.ps1 eol=crlf`, so `.md`/`.json` take
+whatever the Windows working tree holds. Unchanged, and still not this lane's to fix: it
+needs an edit to a shared file plus a normalisation pass across every lane.
+
 ---
 
 ## Every gate, re-executed, with its real exit code
