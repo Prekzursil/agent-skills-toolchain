@@ -119,3 +119,20 @@ jobs:
               print("\n".join(failures))
               sys.exit(1)
           print("OK: crcp reports deny-by-default holds (6 denied, 2 admitted).")
+      # A committed document may not publish a command that a clone cannot run. The SLOP
+      # lane found 45 probe scripts named by committed artifacts while .gitignore kept every
+      # one untracked -- the citation resolved on the author's disk and resolved to nothing
+      # for everyone else. It carried those 45; nothing stopped the 46th, and there already
+      # is one. This gate extracts every `python <path>` invocation from the tracked .md
+      # under command-center/ and docs/ and requires <path> to be TRACKED.
+      #
+      # --self-test runs FIRST and on purpose: it proves the gate can still go RED (synthetic
+      # known-bad flagged, known-good clean) before its silence is allowed to mean anything.
+      # A gate that has never failed is indistinguishable from a no-op, and this repo has
+      # shipped that exact shape. Red-proof, in a fresh LF clone with the pre-existing CI
+      # measured blind to the same injected defect:
+      # command-center/slop-report/_i3_integration_redproof.out.json
+      - name: gate-published-commands (no doc may publish a command a clone cannot run)
+        run: |
+          python command-center/slop-report/check_published_commands.py --self-test
+          python command-center/slop-report/check_published_commands.py
