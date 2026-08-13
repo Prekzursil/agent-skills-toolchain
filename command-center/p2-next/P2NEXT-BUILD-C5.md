@@ -141,6 +141,18 @@ than its evidence.
 2. **`p2next-rail-count.yml` said "20 cases" while the gate ran 23.** Corrected to 30, with the C5
    gap named in the comment so the next reader learns what was missing rather than just seeing a
    bigger number.
+3. **`_r2_blobcheck.py` reported a green that was about the wrong files — caught after my own
+   commit.** It carries a HARDCODED `FILES` list (its lines 29-39) naming the round-2 lane's ten
+   scripts. Run against this round's commit it still printed `extracted 10 blobs ... All checks
+   passed`, and **my commit shares NONE of those ten files**. The tell was the number: "10 blobs"
+   happening to equal "10 files changed" is the suspiciously-equal reading that means a control is
+   measuring the wrong collection, not that two things agree. Replaced for this round by
+   `_c4_blobcheck_mine.py`, which **derives** the file list from `git diff-tree <rev>` (cannot go
+   stale), fails closed at zero files, carries `ruff.toml` into the temp tree (without it ruff
+   falls back to line-length 88 against this repo's 120 and manufactures a false CI-red), and
+   proves itself with a mangled-blob control. Result: **8 python blobs, 0 CRLF, format + check
+   both rc=0, control fires.** `_r2_blobcheck.py` is left untouched — it is another round's
+   artifact and correct for the files it names.
 
 ---
 
