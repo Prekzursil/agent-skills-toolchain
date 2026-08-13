@@ -8,9 +8,10 @@ both states.
 COVERAGE: three verifier findings closed — one false statement of fact, one overclaim, one
 latent gate gap — plus their blast radius in round 2, which the verifier did not name but
 which is the same claim's origin. 14 gates re-executed with captured exit codes, including
-one that holds this round's own commit to the line-ending sentence it ships (all 11 blobs,
-`.md` and `.json` included, not just the 6 `.py` the blob gate inspects). Five detector
-failures in my own round-4 instruments, all caught by controls and all recorded.
+one that holds each of this round's commits to the line-ending sentence they ship — every
+blob in the commit, `.md` and `.json` included, not just the `.py` the blob gate inspects
+(11/11 at `4c9e49ac`, 4/4 at `2feb8b25`; the count is per-commit, not cumulative). Five
+detector failures in my own round-4 instruments, all caught by controls and all recorded.
 **NOT measured:** the other ~23 CI steps; the exact mechanism of one Git-Bash grep
 misreading (disclosed inline, settling experiment named); anything outside
 `docs/mcp-audit/**` and `command-center/mcp-audit/**`.
@@ -245,7 +246,8 @@ whole reason `--rev` exists.
 | `_r4_grep_control` | 0 | 0 | `SUCCESS:r4-grep suspect detector characterised, corrected form controlled` |
 | `_r4_cr_settle` | 0 | 0 | `SUCCESS:r4-cr-settle 0 CR in every claimed blob, positive control fires` |
 | `_r4_redproof` | 0 | 0 | `SUCCESS:r4-redproof A both-states + 2 mutations, B the widened DoD1 sees the absence` |
-| `_r4_selfcheck` | 0 | 0 | `SUCCESS:r4-selfcheck 11/11 blobs 0 CRLF, control fired` |
+| `_r4_selfcheck` @ `4c9e49ac` | 0 | 0 | `SUCCESS:r4-selfcheck 11/11 blobs 0 CRLF, control fired` |
+| `_r4_selfcheck` @ `2feb8b25` | 0 | 0 | `SUCCESS:r4-selfcheck 4/4 blobs 0 CRLF, control fired` |
 | `_r2_dod_check` @ this commit | 0 | 0 | `SUCCESS:dod-check 4/4 DoD items PASS, 6/6 negative controls fired` |
 | `_r2_dod_check` @ `630bb8af` | 1 | **1** | `FAILED:dod-check ['DoD3']` |
 
