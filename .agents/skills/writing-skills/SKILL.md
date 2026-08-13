@@ -713,6 +713,108 @@ How future Claude finds your skill:
 
 **Optimize for this flow** - put searchable terms early and often.
 
+## The skill listing budget - why a well-written description can render BLANK
+
+**Read this before you "fix" a skill that Claude never auto-picks.** A description that is
+excellent on disk can still reach the model as a bare name. That is a RENDER-path budget
+mechanism, not a defect in your text, and rewriting the text does not fix it.
+
+Documented at <https://code.claude.com/docs/en/skills> (section "Skill descriptions are cut
+short"), fetched 2026-08-13. Verbatim: *"The listing always contains every skill name, but if
+you have many skills, Claude Code shortens descriptions to fit the listing's character
+budget... The budget scales at 1% of the model's context window. When the listing overflows,
+Claude Code drops descriptions starting with the skills you invoke least, so the skills you use
+most keep their full text."*
+
+Two distinct mechanisms, applied in this order:
+
+| # | Mechanism | Number | Setting |
+|---|---|---|---|
+| 1 | Per-entry SHORTENING of `description` + `when_to_use` combined | **1,536 chars** | `skillListingMaxDescChars` |
+| 2 | Whole-description DROP once the total overflows | budget = **1%** of the model's context window | `skillListingBudgetFraction`, or `SLASH_COMMAND_TOOL_CHAR_BUDGET` for a fixed char count |
+
+Drop ORDER is **least-invoked-first**. That is a cold-start trap: a new skill is by definition
+never invoked, so it is first in line to lose its description, which makes it harder for Claude
+to auto-pick, which keeps it never invoked.
+
+### 1,024 is NOT the render limit
+
+`1,024` is the **agentskills.io packaging** limit. The number that governs RENDERING is
+**1,536**. Do not shorten a description to 1,024 believing that stops it being truncated, and
+do not calibrate a lint/exemption list to 1,024 and call it a render-truncation list.
+
+### Read the instruments before writing a probe
+
+Claude Code already reports all of this. Prefer these over hand-rolled character arithmetic:
+
+- `/doctor` - an estimate of the listing's context cost and its biggest contributors.
+- `/context` - the **Skills** row reports the listing size AFTER the budget is applied, i.e.
+  what the model actually receives (accurate from v2.1.196; earlier versions over-reported).
+- `--debug` - when the listing exceeds its budget, Claude Code writes a warning to the debug log.
+- A subagent can read its OWN injected listing; an orchestrator cannot read a subagent's.
+
+### Levers, in the order worth trying
+
+1. `skillOverrides: {"<skill>": "name-only"}` - frees budget explicitly and reversibly with no
+   file edit. **Plugin skills are not affected by `skillOverrides`** - manage those via `/plugin`.
+2. De-curate the deployed tree. Fewer entries, and no capability is lost while the skill stays
+   reachable by explicit name.
+3. Raise `skillListingBudgetFraction`. **On this estate it is already `0.04` - 4x the 1% default
+   (measured 2026-08-13 by a key-presence read of `~/.claude/settings.json`; no other value was
+   read). `skillListingMaxDescChars`, `skillOverrides` and `env.SLASH_COMMAND_TOOL_CHAR_BUDGET`
+   are all unset.** The primary lever is therefore already spent here - reach for 1 and 2 first.
+
+### Standing decision: do NOT rewrite a blank-rendering description
+
+Five content-shaped hypotheses (folded YAML scalars, over-length descriptions, non-spec
+frontmatter keys, invalid YAML, outright parse failure) have each been refuted with controls -
+7 skills carrying invalid-YAML frontmatter render fine. Rewriting trades good text for nothing
+while the budget still hides the entry.
+
+One real CONTENT bug does exist and is separate: an unquoted ` #` inside a YAML scalar opens a
+comment, so everything after it is silently dropped from the description. Quote the scalar.
+
+Prior art - do not re-derive it: `command-center/grounding/SKILLS-FLEET-GROUNDING.md` already
+carried this mechanism ~18 hours before a four-round probing lane re-derived most of it by hand.
+Grep `command-center/grounding/` before starting any new measurement campaign.
+
+### ADD, never REPLACE - the deploy hop only carries RIGHT-AHEAD
+
+`scripts/deploy-skills-daily.py` (property P1) copies only files that are **RIGHT-AHEAD** -
+"repo strictly contains the deployed copy" - or RIGHT-ONLY-FILE. A DIVERGED file is never
+touched. So the moment an edit REMOVES a line that a deployed tree still has, that file can
+never be carried by the hop again and needs a hand merge forever.
+
+Measured 2026-08-13: one commit, two edit shapes, opposite outcomes.
+
+| edit shape | file | vault classification afterwards |
+|---|---|---|
+| pure INSERTION (73 added, 0 removed) | `writing-skills/SKILL.md` | **WOULD-COPY** - still RIGHT-AHEAD, 0 deployed lines lost |
+| line REPLACEMENT (12 added, 2 removed) | `design-studio/loop.mjs`, `design-studio-session/session.mjs` | **DIVERGED** - vault `needs_merge` 403 -> 405 |
+
+Both `.mjs` files were byte-identical to the vault beforehand (checked against
+`git show HEAD:<path>`, which returns the stored blob); replacing two lines each is exactly
+what made them un-deployable. The lost lines were the old `node:fs` import and the old guard.
+
+**Consequence for description work.** Editing an existing `description:` line is a REPLACEMENT,
+so every description rewrite permanently orphans that file from the deploy hop in every tree you
+do not write by hand. To add trigger phrases or a "do NOT use for X, use Y" negative case
+WITHOUT that cost, add a `when_to_use:` key instead of editing `description:`. That is a pure
+insertion, and the vendor doc says `when_to_use` is *"Appended to `description` in the skill
+listing and counts toward the 1,536-character cap"* - so it reaches the model identically.
+
+Budget still applies: adding text to an already-over-budget listing can push a marginal entry
+dark, so pair any bulk enrichment with de-curation or a `skillOverrides` `"name-only"`
+elsewhere. Enrich in ONE bulk pass that writes every tree at once, never file-by-file.
+
+### The settling experiment (not yet run)
+
+To convert "vendor doc + correlation" into a measurement on this estate: invoke a never-invoked
+skill by explicit name (the listing always keeps every NAME, so explicit invocation always
+works), start a fresh session, then check whether that skill gained a description while a
+different never-invoked skill lost one. UNVERIFIED as of 2026-08-13 - that experiment has not
+been run, and until it is, least-invoked-first is vendor-documented but not locally measured.
+
 ## The Bottom Line
 
 **Creating skills IS TDD for process documentation.**
