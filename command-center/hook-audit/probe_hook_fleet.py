@@ -39,9 +39,11 @@ import argparse
 import json
 import os
 import re
+import statistics
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
@@ -277,7 +279,17 @@ def denied(hook_dir: str | None) -> str | None:
     return None
 
 
-def run_timing(include_launchers: bool, scratch: Path) -> dict:
+def run_timing(include_launchers: bool, scratch: Path, repeat: int = 1) -> dict:
+    """Time every resolvable settings.json hook entry `repeat` times.
+
+    Reporting a SINGLE percentage here was a defect, not a shortcut. These entries have
+    2-3 s budgets and sub-2 s wall times, so a few hundred ms of Windows process-spawn
+    jitter moves the percentage by tens of points and even changes WHICH entry is worst:
+    three independent single-shot runs of this same probe produced 50.6%, 62.3% and 18.4%
+    as "the worst entry", naming three different entries. The percentage was measuring the
+    box, not the hook. With repeat>1 the row carries min/median/max and the summary reports
+    the worst MEDIAN plus the observed spread, so the number is falsifiable.
+    """
     rows = []
     for e in read_settings_entries():
         sc = entry_script(e["command"])
@@ -299,12 +311,31 @@ def run_timing(include_launchers: bool, scratch: Path) -> dict:
         m = re.search(r"\.py\s+([\w-]+)", e["command"])
         if m:
             args = [m.group(1)]
-        res = fire(sc, e["event"], e["matcher"], args, scratch, e["budget_s"] * 3 + 10)
-        pct = round(100.0 * (res["wall_ms"] / 1000.0) / e["budget_s"], 1)
-        row.update(measured=True, **res, pct_of_budget=pct, over_budget=pct > 100.0)
+        samples = []
+        for _ in range(max(1, repeat)):
+            res = fire(
+                sc, e["event"], e["matcher"], args, scratch, e["budget_s"] * 3 + 10
+            )
+            samples.append(res)
+        walls = sorted(r["wall_ms"] for r in samples)
+        med = statistics.median(walls)
+        row.update(
+            measured=True,
+            **samples[-1],
+            samples_ms=walls,
+            wall_ms_min=round(walls[0], 1),
+            wall_ms_median=round(med, 1),
+            wall_ms_max=round(walls[-1], 1),
+            pct_of_budget=round(100.0 * (med / 1000.0) / e["budget_s"], 1),
+            pct_min=round(100.0 * (walls[0] / 1000.0) / e["budget_s"], 1),
+            pct_max=round(100.0 * (walls[-1] / 1000.0) / e["budget_s"], 1),
+            over_budget=(100.0 * (walls[-1] / 1000.0) / e["budget_s"]) > 100.0,
+        )
         rows.append(row)
     measured = [r for r in rows if r.get("measured")]
+    worst = max(measured, key=lambda r: r["pct_of_budget"], default=None)
     return {
+        "repeat": max(1, repeat),
         "entries_total": len(rows),
         "entries_measured": len(measured),
         "entries_not_measured": len(rows) - len(measured),
@@ -312,14 +343,31 @@ def run_timing(include_launchers: bool, scratch: Path) -> dict:
             {
                 "event": r["event"],
                 "hook_dir": r["hook_dir"],
-                "wall_ms": r["wall_ms"],
+                "wall_ms_max": r["wall_ms_max"],
                 "budget_s": r["budget_s"],
-                "pct": r["pct_of_budget"],
+                "pct_max": r["pct_max"],
             }
             for r in measured
             if r.get("over_budget")
         ],
-        "worst_pct": max((r["pct_of_budget"] for r in measured), default=None),
+        # The headline is the worst MEDIAN; pct_min/pct_max on the same entry state how
+        # far a single-shot reading of it could have been off.
+        "worst_pct": worst["pct_of_budget"] if worst else None,
+        "worst_entry": (
+            {
+                "event": worst["event"],
+                "hook_dir": worst["hook_dir"],
+                "budget_s": worst["budget_s"],
+                "wall_ms_median": worst["wall_ms_median"],
+                "pct_min": worst["pct_min"],
+                "pct_max": worst["pct_max"],
+            }
+            if worst
+            else None
+        ),
+        "max_wall_ms_any_entry": max(
+            (r["wall_ms_max"] for r in measured), default=None
+        ),
         "rows": rows,
     }
 
@@ -404,6 +452,13 @@ def main() -> int:
     ap.add_argument("--timing", action="store_true")
     ap.add_argument("--inertness", action="store_true")
     ap.add_argument("--include-launchers", action="store_true")
+    ap.add_argument(
+        "--repeat",
+        type=int,
+        default=1,
+        help="time each entry N times; the summary then reports the worst MEDIAN "
+        "plus the observed spread instead of a single jitter-dominated reading",
+    )
     a = ap.parse_args()
     if not (a.timing or a.inertness):
         a.timing = a.inertness = True
@@ -414,11 +469,11 @@ def main() -> int:
     rc = 0
 
     if a.timing:
-        t = run_timing(a.include_launchers, scratch)
+        t = run_timing(a.include_launchers, scratch, a.repeat)
         res["timing"] = t
         print(
             f"== TIMING  {t['entries_measured']}/{t['entries_total']} entries measured "
-            f"({t['entries_not_measured']} not fired)"
+            f"({t['entries_not_measured']} not fired), repeat={t['repeat']}"
         )
         for r in sorted(
             (x for x in t["rows"] if x.get("measured")),
@@ -427,9 +482,12 @@ def main() -> int:
             flag = "!!" if r["over_budget"] else "  "
             print(
                 f"{flag} {r['event']:20s} {str(r['hook_dir'])[:26]:26s} "
-                f"{r['wall_ms']:8.1f} ms /{r['budget_s']:5.0f}s = {r['pct_of_budget']:6.1f}% "
+                f"med={r['wall_ms_median']:8.1f} ms /{r['budget_s']:5.0f}s "
+                f"= {r['pct_of_budget']:6.1f}%  (range {r['pct_min']:.1f}-{r['pct_max']:.1f}%) "
                 f"exit={r['exit']} ctx={r['emitted_ctx']}"
             )
+        print(f"   WORST by median: {t['worst_entry']}")
+        print(f"   max wall of ANY entry, any sample: {t['max_wall_ms_any_entry']} ms")
         for r in (x for x in t["rows"] if not x.get("measured")):
             print(
                 f"   {r['event']:20s} {str(r['hook_dir'])[:26]:26s} SKIPPED: {r['reason']}"
@@ -468,8 +526,42 @@ def main() -> int:
             print("FAILED:hook-fleet-inertness zero hook dirs enumerated")
             rc = 1
 
-    (OUT / "B6-FLEET.json").write_text(json.dumps(res, indent=2), encoding="utf-8")
-    print("\n" + ("SUCCESS:hook-fleet" if rc == 0 else "FAILED:hook-fleet"))
+    # MERGE, do not clobber. A `--inertness`-only run used to write {"inertness": ...}
+    # over a file that had held both sections, silently deleting the timing evidence a
+    # published table cited. The document then pointed at a key that did not exist. So:
+    # carry forward every section this run did not produce, and stamp each section with
+    # when and how it was produced, so a stale section is visible instead of implied.
+    dest = OUT / "B6-FLEET.json"
+    prior: dict = {}
+    if dest.is_file():
+        try:
+            prior = json.loads(dest.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            prior = {}
+    coverage = dict(prior.get("_coverage") or {})
+    stamp = {
+        "produced_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "argv": sys.argv[1:],
+    }
+    merged = {k: v for k, v in prior.items() if k != "_coverage"}
+    for section, payload in res.items():
+        merged[section] = payload
+        coverage[section] = stamp
+    for section in merged:
+        if section not in coverage:
+            coverage[section] = {
+                "produced_utc": "UNKNOWN-pre-dates-stamping",
+                "argv": [],
+            }
+    carried = [s for s in merged if s not in res]
+    merged["_coverage"] = coverage
+    dest.write_text(json.dumps(merged, indent=2), encoding="utf-8")
+    print(
+        f"\nwrote {dest.name}: sections={sorted(k for k in merged if k != '_coverage')}"
+    )
+    if carried:
+        print(f"   CARRIED FORWARD (not measured by this run): {carried}")
+    print("SUCCESS:hook-fleet" if rc == 0 else "FAILED:hook-fleet")
     return rc
 
 

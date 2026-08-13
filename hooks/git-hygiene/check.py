@@ -47,6 +47,9 @@ Tuning:   GIT_HYGIENE_OWNER   github owner treated as YOURS        (default: Pre
           GIT_HYGIENE_BASE    committed ref coverage compares against  (default: origin/main)
           GIT_HYGIENE_REPO    toolchain repo root for the drift + docs + coverage comparison
           GIT_HYGIENE_BUDGET  seconds of wall clock the whole check may spend (default 5)
+          GIT_HYGIENE_LIVE_STATE  os.pathsep-separated globs whose dirty state is CORRECT
+                              and must not be reported (default: accounts.json)
+          GIT_HYGIENE_NO_SKIP=1   disable the live-state filter entirely (audit the skip)
 """
 
 from __future__ import annotations
@@ -215,6 +218,9 @@ class RepoState:
     branch: str = ""  # "" means DETACHED HEAD
     upstream: str = ""
     dirty: int = 0
+    # Dirty entries filtered out as LIVE STATE (see LIVE_STATE_GLOBS). Carried so the
+    # suppression can be printed rather than silently applied.
+    dirty_excluded: int = 0
     ahead: int = 0
     unborn: bool = False  # `git init` with no commit yet -- rev-parse HEAD fails here
     is_worktree: bool = False
@@ -310,19 +316,81 @@ def _owner_of(origin: str) -> str:
     return parts[-2] if len(parts) >= 2 else ""
 
 
+# Paths that are LIVE STATE, not work in progress: dirty is their correct resting state
+# and the hook's own advice ("commit, then push") must never be followed for them. The
+# measured case is the credential-rotation pool -- `tools/mcp/*/accounts.json` in the
+# canonical toolchain checkout is modified on every rotation and a standing owner
+# constraint forbids staging it, so before this filter the hook flagged that repo on every
+# single turn forever with a remedy that is prohibited. A guard that cannot reach green
+# gets skipped, and the cost lands on the turn when one of its flags is real.
+#
+# Suppression is AUDITABLE, not silent: the excluded count is carried on RepoState and
+# printed, and GIT_HYGIENE_NO_SKIP=1 disables the filter entirely.
+LIVE_STATE_GLOBS = ("accounts.json",)
+
+
+def _live_state_globs() -> tuple[str, ...]:
+    raw = os.environ.get("GIT_HYGIENE_LIVE_STATE")
+    if raw is None:
+        return LIVE_STATE_GLOBS
+    return tuple(g for g in raw.split(os.pathsep) if g.strip())
+
+
+def _v2_path(line: str) -> str:
+    """Extract the path from one porcelain=v2 entry.
+
+    The record shapes differ and getting this wrong reintroduces the false positive
+    through a side door -- a RENAMED or UNTRACKED copy of the same file. Shapes:
+      `1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>`             -> last field
+      `2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <Xscore> <path>\t<orig>` -> field 10, pre-TAB
+      `u <XY> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>`   -> last field
+      `? <path>` / `! <path>`                                    -> rest of line
+    """
+    kind = line[0]
+    if kind in "?!":
+        return line[2:].strip()
+    parts = (
+        line.split(" ", 9) if kind == "2" else line.split(" ", 10 if kind == "u" else 8)
+    )
+    if kind == "2":
+        return parts[9].split("\t", 1)[0].strip() if len(parts) > 9 else ""
+    idx = 10 if kind == "u" else 8
+    return parts[idx].strip() if len(parts) > idx else ""
+
+
+def _is_live_state(path: str, globs: tuple[str, ...]) -> bool:
+    if not path:
+        return False
+    norm = path.replace("\\", "/")
+    base = posixpath.basename(norm)
+    return any(
+        fnmatch.fnmatch(norm, g) or fnmatch.fnmatch(base, g) or norm.endswith("/" + g)
+        for g in globs
+    )
+
+
 def _parse_status_v2(out: str):
     """Parse `git status --porcelain=v2 --branch`.
 
     One call yields oid (unborn?), head (detached?), upstream, ahead/behind and every
     dirty entry. Replaces six separate `git` spawns -- the difference between 1,322 ms
     and ~170 ms per repo, measured.
+
+    Returns (branch, upstream, ahead, dirty, unborn, dirty_excluded). `dirty` counts only
+    entries that are real work at risk; `dirty_excluded` counts the live-state paths
+    filtered out, so the suppression is visible rather than inferred.
     """
     branch, upstream, ahead, dirty, unborn = "", "", 0, 0, False
+    excluded = 0
+    globs = () if os.environ.get("GIT_HYGIENE_NO_SKIP") else _live_state_globs()
     for line in out.splitlines():
         if not line:
             continue
         if line[0] != "#":
-            dirty += 1
+            if globs and _is_live_state(_v2_path(line), globs):
+                excluded += 1
+            else:
+                dirty += 1
             continue
         parts = line.split()
         if len(parts) < 3:
@@ -339,7 +407,7 @@ def _parse_status_v2(out: str):
                 ahead = int(parts[2].lstrip("+"))
             except ValueError:
                 ahead = 0
-    return branch, upstream, ahead, dirty, unborn
+    return branch, upstream, ahead, dirty, unborn, excluded
 
 
 def read_repo_state(path) -> RepoState | None:
@@ -347,7 +415,7 @@ def read_repo_state(path) -> RepoState | None:
     dot = p / ".git"
     if not dot.exists():
         return None
-    branch, upstream, ahead, dirty, unborn = _parse_status_v2(
+    branch, upstream, ahead, dirty, unborn, excluded = _parse_status_v2(
         _git(p, "status", "--porcelain=v2", "--branch")
     )
     # One call for every remote URL: gives has_remote AND origin without a second spawn.
@@ -364,6 +432,7 @@ def read_repo_state(path) -> RepoState | None:
         branch=branch,
         upstream=upstream,
         dirty=dirty,
+        dirty_excluded=excluded,
         ahead=ahead,
         unborn=unborn,
         is_worktree=dot.is_file(),
@@ -422,10 +491,16 @@ def classify(state: RepoState, cfg: Config) -> Verdict:
     detached = state.branch == ""
     where = f"on {state.branch}" if state.branch else "at a detached HEAD"
 
+    excl = (
+        f" ({state.dirty_excluded} live-state path(s) excluded)"
+        if state.dirty_excluded
+        else ""
+    )
+
     # Nothing uncommitted and nothing unique here: a detached HEAD or an empty `git init`
     # cannot lose work it does not have. (~/Documents/Misc is exactly the latter.)
     if state.dirty == 0 and (detached or (state.unborn and ownership == NO_REMOTE)):
-        return v(ownership, False, detail="nothing at risk")
+        return v(ownership, False, detail="nothing at risk" + excl)
 
     if ownership == NO_REMOTE:
         what = (
@@ -446,7 +521,7 @@ def classify(state: RepoState, cfg: Config) -> Verdict:
             YOURS,
             True,
             SEV_DIRTY_NO_UPSTREAM,
-            f"{state.dirty} uncommitted file(s) {where}, and the branch has no upstream",
+            f"{state.dirty} uncommitted file(s) {where}, and the branch has no upstream{excl}",
             "commit, then: git push -u origin HEAD",
         )
     if state.ahead > 0:
@@ -463,7 +538,7 @@ def classify(state: RepoState, cfg: Config) -> Verdict:
             YOURS,
             True,
             SEV_DIRTY,
-            f"{state.dirty} uncommitted file(s) {where}",
+            f"{state.dirty} uncommitted file(s) {where}{excl}",
             "commit or stash",
         )
     if not state.upstream and not state.unborn:

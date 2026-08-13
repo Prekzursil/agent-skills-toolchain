@@ -1,7 +1,14 @@
 # Hook fleet audit — BUILD lane (HOOKRESEARCH), round 1
 
-STATUS: COMPLETE for round 1. Code shipped, every number below produced by a committed,
-re-runnable probe in `command-center/hook-audit/`.
+STATUS: SUPERSEDED IN PART. Read **`ROUND2-CORRECTIONS.md`** alongside this file: an
+independent verifier confirmed five defects here, all of them a SENTENCE standing wider than
+its evidence rather than broken code. The claim immediately below -- that every number was
+produced by a committed, re-runnable probe -- is itself one of them: three tables cited
+evidence that was untracked, absent, or two-thirds missing. Corrections are marked inline
+next to the original wording; nothing is deleted.
+
+STATUS (as written, round 1): COMPLETE for round 1. Code shipped, every number below produced
+by a committed, re-runnable probe in `command-center/hook-audit/`.
 
 COVERAGE — MEASURED here: per-check timing of all 25 live dispatcher checks and 35 of 42
 live `settings.json` entries against their declared budgets; the wire-check decode defect
@@ -27,9 +34,19 @@ confirming the grounding lane independently.
 
 ### P1 — the 25 live dispatcher checks (in-process, mirrors `dispatch.py`)
 
+> **CORRECTED IN ROUND 2 -- read `ROUND2-CORRECTIONS.md` C1-C2 before citing this table.**
+> Two defects, both confirmed by an independent verifier. (a) It cited
+> `H4-TIMING-live.json`, which was **never committed**; that file is now tracked. (b) The
+> wire-check row is a **point reading of a moving input** and does not reproduce -- the same
+> tool gave 11,590 ms (46.4%) to the verifier and a 4,406 ms median to round 2. A controlled
+> dose arm shows run time tracks the session diff (5.86x the ripgrep walks -> 4.42x the
+> time), so **the "135.8% - OVER" verdict is withdrawn as a standing property of the hook**
+> and survives only as "true of one moment with a ~250-file diff". Kept verbatim below
+> rather than deleted, because the refuted wording is the finding.
+
 | check | budget | measured | % |
 |---|---|---|---|
-| **wire-check** (live copy) | 25 s | **33,938 ms** | **135.8% — OVER** |
+| **wire-check** (live copy) | 25 s | **33,938 ms** (REFUTED, see above) | **135.8% - OVER** |
 | open-loops/resurface | 8 s | 981 ms | 12.3% |
 | monitor-autolaunch | 6 s | 73 ms | 1.2% |
 | **all other 22 checks** | 5–90 s | **≤ 23 ms** | **≤ 0.3%** |
@@ -37,16 +54,24 @@ confirming the grounding lane independently.
 Whole-event, as a real subprocess: SessionStart 3,798 ms / 20 s = 19.0% · **Stop 24,976 ms /
 35 s = 71.4%** · PostToolUse 1,115 ms / 15 s = 7.4% · PreToolUse 1,416 ms / 15 s = 9.4%.
 
-**Answer to "are other checks near their budgets?": no — one is, and it is over.** The
-live wire-check exceeds its 25 s budget, and `dispatch.py:368-372` **drops a timed-out
-check's output entirely** (`_receipt(event, label, "timeout"); continue`). So today's live
-wire-check is not slow, it is *silenced*: it does the work and the dispatcher throws the
-result away. Fixing that is DoD 4 below.
+**Answer to "are other checks near their budgets?": no.** *(Round-2 rescope. The original
+sentence continued "- one is, and it is over", naming the live wire-check; that half is
+REFUTED, see C2. What survives is the mechanism, which is independent of the timing: when a
+check DOES exceed its budget, `dispatch.py:368-372` **drops its output entirely**
+(`_receipt(event, label, "timeout"); continue`), so an over-budget check is not slow, it is
+silenced. That remains true, and remains why the deadline shipped in DoD 4 matters -- but the
+live wire-check is not observed reaching it on a normal diff.)*
 
 ### P2/P3 — 35 of 42 settings entries timed as real subprocesses
 
-Worst offender is **50.6%** of budget (`PreToolUse` → agent-self harness, 1,012 ms / 2 s).
-Nothing else exceeds 42%. Full table: `command-center/hook-audit/B6-FLEET.json`.
+~~Worst offender is **50.6%** of budget (`PreToolUse` -> agent-self harness, 1,012 ms / 2 s).
+Nothing else exceeds 42%.~~ **REFUTED -- see `ROUND2-CORRECTIONS.md` C3-C4.** Two defects:
+`B6-FLEET.json` did not contain a `timing` key at all (a later `--inertness`-only run of the
+producing probe had overwritten it), and the percentage was jitter on a 2 s budget -- three
+runs named three different entries as worst (50.6% / 62.3% / 18.4%). Re-measured at repeat=3
+the worst is `semantic-router` at **17.8%** (stable 17.4-18.1%), and the denominator-free
+statistic is that **no entry has ever been measured above 1,808 ms**. Full table, now actually
+present: `command-center/hook-audit/B6-FLEET.json` -> `timing`.
 
 **7 entries NOT fired, named with reasons** (a launcher fired during an audit spawns GUI
 apps on a shared machine): `re-autolaunch` (IDA/Ghidra), `workflow-monitor-autolaunch`,
@@ -130,11 +155,20 @@ trigger, and since the odds of a non-cp1252 byte rise with output size, the fail
 
 Controlled A/B, HEAD blob vs worktree, interleaved over the same tree (`B3-AB-BUDGET.json`):
 
+> **CORRECTED IN ROUND 2 -- C5.** `B3-AB-BUDGET.json` held only TWO arms; the middle row
+> came from an uncommitted one-off and was never reproducible. The probe now runs all three
+> (the middle reconstructed from the shipped file with `WIRE_CHECK_DEADLINE_S=0
+> WIRE_CHECK_NO_SKIP=1`) and pins its unfixed control at `95761504~1` -- which the original
+> did not do: it read HEAD, so once the fix merged the control would have silently voided
+> itself. Re-measured: 3,834 / 16,305 / 8,026 ms with 6 / 1 / 0 findings. The absolute
+> numbers below are ~7x high for the C2 reason (a much larger diff that day); the ORDERING
+> and the finding counts reproduce exactly, and that is all this A/B ever supported.
+
 | arm | wall | % of 25 s budget | findings emitted |
 |---|---|---|---|
-| HEAD (unfixed) | 26,366 / 26,687 ms | **105.5% / 106.7% — OVER** | **6** |
-| encoding fix only | 64,996 / 69,625 ms | 260.0% / 278.5% — OVER | 0 |
-| fix + deadline (shipped) | **15,492 / 17,485 ms** | **62.0% / 69.9% — in budget** | 0 |
+| HEAD (unfixed) | 26,366 / 26,687 ms | **105.5% / 106.7%** (REFUTED) | **6** |
+| encoding fix only | 64,996 / 69,625 ms (NO COMMITTED EVIDENCE) | 260.0% / 278.5% | 0 |
+| fix + deadline (shipped) | **15,492 / 17,485 ms** (REFUTED) | **62.0% / 69.9%** | 0 |
 
 **All 6 findings the unfixed hook emitted against this repo were false positives**, and the
 fixed hook emits none. This defect is live in the DEPLOYED tree too, by a second
