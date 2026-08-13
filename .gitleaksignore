@@ -1,0 +1,44 @@
+# gitleaks per-finding waivers. One fingerprint = one reviewed finding, pinned to
+# commit + file + rule + line. A NEW secret anywhere -- including elsewhere in the same
+# file -- produces a different fingerprint and still fails the gate. That per-finding
+# precision is why this file is used instead of a path allowlist in .gitleaks.toml.
+#
+# ---------------------------------------------------------------------------------------
+# 2026-08-13 -- SSOT clone inventory: three GIT COMMIT SHAs misread as generic-api-key.
+#
+# `command-center/ssot/unique-depth.json` is generated from `git ls-remote` and maps 397
+# refs to their head SHAs. gate-secrets went red on 3 of them at df6377ab.
+#
+# VERIFIED NOT SECRETS: `git cat-file -t <value>` returns `commit` for all three. They are
+# public repository history.
+#
+# ROOT CAUSE, measured as a set equality rather than a count match: `generic-api-key` fires
+# on a high-entropy string NEAR a keyword. The file holds 610 SHA-valued lines; exactly 3
+# have a key matching secret|credential|token|api.key|passw --
+#   line 67  refs/heads/fix/deny-credential-gaps
+#   line 84  refs/heads/fix/triage-per-edit-check-secrets
+#   line 94  refs/heads/test/deny-credential-denylist-coverage
+# -- and those 3 are EXACTLY the 3 flagged. The other 607 SHAs, identical in shape, were
+# correctly ignored. Branches named after credential-hardening work are what tripped it.
+#
+# WHY NOT A .gitleaks.toml ALLOWLIST. That was tried first and REJECTED BY ITS OWN CONTROL.
+# A `[[allowlists]]` block with `condition = "AND"`, `paths` = this file and
+# `regexes` = ^[0-9a-f]{40}$ did clear the three findings -- and also silenced a
+# high-entropy non-40-hex probe (`api_secret_key`) injected into the same file, which the
+# identical probe in a neighbouring path still caught. So `condition` was not honoured and
+# the path arm alone blindfolded the whole file. It would have hidden a real secret. Three
+# earlier control attempts were themselves broken and are recorded so the next person does
+# not repeat them: 40 literal `a` chars (no entropy, could never fire) and AWS's published
+# `wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY` (already waived as a documentation example).
+# A control must be shown to FIRE in the known-bad state before its silence means anything.
+#
+# RESIDUAL: these SHAs are branch heads, so a regenerated inventory yields different values
+# at different lines and will produce NEW fingerprints that correctly fail the gate until
+# reviewed. That is the intended behaviour, not a defect -- but it means this file needs a
+# refresh whenever the inventory is regenerated. The durable fix is to stop emitting bare
+# high-entropy values next to credential-shaped keys (e.g. prefix them `git-sha:<value>`),
+# which removes the false positive at the source; it cannot retroactively fix the committed
+# blob, which is why these three waivers still exist.
+df6377aba52ce3c73b0e503a5cd90a634b7aeaa5:command-center/ssot/unique-depth.json:generic-api-key:67
+df6377aba52ce3c73b0e503a5cd90a634b7aeaa5:command-center/ssot/unique-depth.json:generic-api-key:84
+df6377aba52ce3c73b0e503a5cd90a634b7aeaa5:command-center/ssot/unique-depth.json:generic-api-key:94
