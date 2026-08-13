@@ -58,6 +58,17 @@ name: rule-audit
 # is the reason the plan uses --self-test: with no ~/.claude it prints "SUCCESS:rule_audit"
 # and exits 0 while the entire live tree scanned to zero files. Wiring that would have been a
 # permanently green gate measuring nothing.
+#
+# BUILD-R3 ADDS TWO, and they are a matched pair -- neither is sufficient alone:
+#   r5_deploy_drift_gate.py ratchets the repo-vs-live DEPLOY drift (29 files: 7 always-on,
+#     22 lazy). On this runner it prints NOT-CHECKED and exits 0, because no runner can see the
+#     owner's home directory. A green run here therefore NEVER means "the deployed tree
+#     matches" -- only a run on the owner's box asserts that. Read its marker, not its rc.
+#   r5_driftgate_redproof.py is why the line above is not a permanently green gate measuring
+#     nothing (the exact trap called out for rule_audit.py bare). It synthesizes both trees out
+#     of the in-repo rules/ tree, so it needs no home directory, and forces that ratchet RED in
+#     both directions -- a repair (SHRANK) and a new undeployed edit (GREW) -- asserting in the
+#     same run that the two are distinguishable rather than both always printing.
 
 on:
   push:
@@ -89,7 +100,7 @@ jobs:
       # allowlist that shrank, and an expected-FAIL entry that quietly started passing.
       - name: gate-rule-audit self-test
         run: python docs/rule-audit/ci_gate.py --self-test
-      # The gate. Six planned invocations over six gates with their REAL exit codes captured
+      # The gate. Eight planned invocations over eight gates with their REAL exit codes captured
       # per child (never through a pipe -- a pipeline reports the LAST command's status, which
       # turns a red gate green), every *.py in the directory asserted to be planned or
       # excluded-with-a-reason, plus the two in-repo invariants:

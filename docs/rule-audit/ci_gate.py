@@ -41,6 +41,16 @@ mean the same thing on a runner as on the owner's box.  Everything that compares
 LIVE tree cannot run in CI at all (see EXCLUDED), which is exactly why the repo-vs-live drift
 grew from 28 to 29 files while 167 tests stayed green.
 
+  UPDATE, BUILD-R3: that last sentence stated a real hole and left it open.  It is now half
+  closed, and the half that is NOT closed is worth stating precisely rather than rounding up.
+  ``r5_deploy_drift_gate.py`` ratchets the drift SET (29 files: 7 always-on, 22 lazy) in both
+  directions, and ``r5_driftgate_redproof.py`` forces that ratchet red from trees synthesized
+  out of ``rules/``, so the comparator is proven live on a runner even though the comparison
+  itself cannot be.  What remains open: on a runner the drift is still NOT-CHECKED, because no
+  runner has the owner's home directory -- so a green CI run means "the ratchet works", never
+  "the deployed tree matches".  Only a run on the owner's box asserts the latter.  The drift
+  itself is still UNPAID; gating it was this round's job, deploying it is the owner's.
+
 PLATFORM AND DEPENDENCY, MEASURED NOT ASSUMED.  Every gate here was authored on Windows.
 Measured under WSL Ubuntu 24.04 (python 3.12.3) with HOME redirected to an empty dir, i.e. the
 runner's world:
@@ -82,6 +92,7 @@ import argparse
 import pathlib
 import subprocess
 import sys
+import time
 from typing import Any
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -108,6 +119,19 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
         "r4_credential_rule_gate (must FAIL: owner action)",
         ["r4_credential_rule_gate.py"],
         1,
+    ),
+    # BUILD-R3.  The repo-vs-live drift this file's own docstring names as ungated.  On a runner
+    # it prints NOT-CHECKED and exits 0 -- it CANNOT see the owner's home directory, and saying
+    # so is the honest answer rather than a pass.  On the owner box it enforces the ratchet.
+    ("r5_deploy_drift (NOT-CHECKED on a runner)", ["r5_deploy_drift_gate.py"], 0),
+    # ...which is exactly why the line above is not sufficient on its own: a gate that is inert
+    # in CI and has never been seen red in CI is indistinguishable from a no-op (ci-hygiene 1).
+    # This one synthesizes both trees from the in-repo rules/ tree, needs no home directory, and
+    # forces the ratchet red in BOTH directions on every PR.
+    (
+        "r5_driftgate_redproof (proves the ratchet fires)",
+        ["r5_driftgate_redproof.py"],
+        0,
     ),
 ]
 
@@ -216,6 +240,19 @@ EXCLUDED: dict[str, str] = {
         "empty tree) and requires measure_trees() to fire on each and stay silent on the "
         "untouched control. It repoints rule_audit.TREES, so it runs alone, not per PR"
     ),
+    "_b11_home_index_equivalence.py": (
+        "BUILD-R2 EQUIVALENCE PROOF for the shared ~/.claude name index that replaced the "
+        "per-name walk in r2_pathrefs.in_claude_home: it holds the verbatim pre-change body and "
+        "requires it to agree with the current one on present-early / present-late / absent / "
+        "glob-metacharacter names, with a control proving the comparator can say NO. Walks the "
+        "live tree twice (minutes) and cannot run on a runner at all"
+    ),
+    "_b10_gate_timing.py": (
+        "BUILD-R2: times every CI_PLAN gate in BOTH worlds (real HOME and HOME redirected to "
+        "an empty dir) with one clock, and asserts the parts sum to the timed whole. It exists "
+        "because R1's table merged two environments into one unlabelled column; it spawns every "
+        "gate several times (minutes on the owner box), so it is a measurement, not a per-PR gate"
+    ),
     "_b7_normalize_lf.py": (
         "BUILD-R1: strips CR bytes from a file (windows-shell section 3, agent-written .sh "
         "under real WSL bash); a utility, asserts nothing"
@@ -296,7 +333,27 @@ def measure_trees() -> tuple[set[str], set[str]]:
     return always_on, diverge
 
 
-def run(argv: list[str]) -> tuple[int, str]:
+def world() -> str:
+    """Which environment this run is in -- the label BUILD-R1's gate table did not carry.
+
+    Round 1 published one `wall` column holding numbers from two different environments: eight
+    rows came from `_b3_portability.win-bare-nohome.json` (HOME redirected to an empty temp dir)
+    and two from `_b2_slowgate_probe.json` (real HOME).  A verifier re-ran the 2.8 s cell with a
+    real HOME, measured 116-235 s, and refuted it.  Both numbers were true; the column was not
+    labelled.  So the gate now states its own world, next to its own times.
+
+    Deliberately prints no path: a CI log is a published artifact, and the home directory is an
+    identity disclosure this repo already tracks as a finding class.
+    """
+    return (
+        "live ~/.claude rules tree PRESENT (owner box: gates that walk it are minutes)"
+        if (pathlib.Path.home() / ".claude" / "rules").is_dir()
+        else "live ~/.claude rules tree ABSENT (runner world: those walks short-circuit)"
+    )
+
+
+def run(argv: list[str]) -> tuple[int, str, float]:
+    started = time.monotonic()
     proc = subprocess.run(
         [sys.executable, *argv],
         cwd=HERE,
@@ -305,6 +362,7 @@ def run(argv: list[str]) -> tuple[int, str]:
         encoding="utf-8",
         errors="replace",
     )
+    elapsed = time.monotonic() - started
     out = [ln for ln in (proc.stdout or "").splitlines() if ln.strip()]
     marker = next(
         (ln for ln in reversed(out) if ln.startswith(("SUCCESS:", "FAILED:"))),
@@ -312,7 +370,7 @@ def run(argv: list[str]) -> tuple[int, str]:
     )
     if proc.returncode != 0 and (proc.stderr or "").strip():
         marker = f"{marker}  |stderr| {proc.stderr.strip().splitlines()[-1][:110]}"
-    return proc.returncode, marker.strip()[:190]
+    return proc.returncode, marker.strip()[:190], elapsed
 
 
 # --------------------------------------------------------------------------- self-test
@@ -427,6 +485,7 @@ def main(argv: list[str] | None = None) -> int:
         f"== rule-audit CI gate ({sys.platform}, py {sys.version.split()[0]}, "
         f"encoder {rule_audit.Counter().name}) =="
     )
+    print(f"   world: {world()}")
 
     unclassified, ghosts = classify({p.name for p in HERE.glob("*.py")})
     if unclassified:
@@ -446,12 +505,20 @@ def main(argv: list[str] | None = None) -> int:
     problems: list[str] = []
     results: list[dict[str, Any]] = []
     for label, gate_argv, expect in CI_PLAN:
-        rc, marker = run(gate_argv)
-        results.append({"label": label, "rc": rc, "expect": expect})
+        rc, marker, sec = run(gate_argv)
+        results.append(
+            {"label": label, "rc": rc, "expect": expect, "sec": round(sec, 1)}
+        )
         print(
-            f"  {'ok ' if rc == expect else 'BAD'} rc={rc} (want {expect})  {label:40} {marker}"
+            f"  {'ok ' if rc == expect else 'BAD'} rc={rc} (want {expect}) {sec:7.1f}s  "
+            f"{label:40} {marker}"
         )
     problems += verdict(results)
+    # Emitted so the next evidence table is COPIED from an instrument instead of assembled by
+    # hand from two receipts measured in different worlds -- the R1 defect this round corrects.
+    print(
+        f"  -- per-gate wall time above; total {sum(r['sec'] for r in results):.1f}s in this world --"
+    )
 
     print("  -- in-repo invariants (no ~/.claude, no tokenizer) --")
     try:
