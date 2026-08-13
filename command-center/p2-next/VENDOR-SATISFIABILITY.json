@@ -1,25 +1,44 @@
 {
   "generated_by": "command-center/p2-next/vendor_satisfiability.py",
-  "supersedes": "v1 of this script, which read assigned_model_vendor_role and reported 32 SATISFIABLE / 19 RAIL_BLOCKED. That number is REFUTED - wrong field.",
-  "blocked_units": 51,
-  "assigned_vs_produced_mismatch": 22,
+  "basis": "committed",
+  "supersedes": [
+    "v1: read assigned_model_vendor_role, reported 32 SATISFIABLE / 19 RAIL_BLOCKED. REFUTED - wrong field.",
+    "v2: rule D inverted any producer-named requirement, so this lane's own receipt edits flipped 6 units and the published command reproduced 47/4 instead of 41/10. REFUTED - confirmed by an independent auditor. Gated on a cross-vendor clause, plus rule A2."
+  ],
+  "blocked_units": 52,
   "verdict_counts": {
-    "RAIL_BLOCKED": 41,
+    "RAIL_BLOCKED": 42,
     "SATISFIABLE_NOW": 10
   },
   "reviewer_vendor_counts": {
-    "openai": 41,
+    "openai": 42,
     "anthropic": 7,
     "any": 3
   },
   "rule_counts": {
-    "D:requirement names a vendor, differs from producer": 8,
+    "D:requirement names a vendor, differs from producer": 7,
     "0:cross-vendor-Anthropic req on an anthropic-produced unit -> same-vendor is disqualified by the requirement's own clause": 16,
-    "A:receipt.failure.blocked_on names the refuter vendor": 15,
-    "E:cross-vendor undirected": 8,
-    "D:requirement names produced-by vendor -> same-vendor, resolves to other": 1,
+    "A:receipt.failure.blocked_on names the refuter vendor": 11,
+    "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor": 7,
+    "E:cross-vendor undirected": 2,
+    "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for": 6,
     "F:review gate, no vendor constraint": 3
   },
+  "basis_comparison": {
+    "committed": {
+      "blocked": 52,
+      "rail_blocked": 42
+    },
+    "worktree": {
+      "blocked": 51,
+      "rail_blocked": 41
+    },
+    "only_in_committed": [
+      "ADV-0041"
+    ],
+    "only_in_worktree": []
+  },
+  "stability_problems": [],
   "units": [
     {
       "id": "ADV-0001",
@@ -119,7 +138,7 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "E:cross-vendor undirected",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
       "blocked_on": "cross-vendor independent reproduction of the D01 counterexample, plus manifest registration by an agent permitted to write command-center/ARTIFACT-MANIFEST.json",
@@ -223,7 +242,7 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "E:cross-vendor undirected",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
       "blocked_on": "two independent reviewers from DIFFERENT vendors per ADV-0017.reviewer_requirement, plus orchestrator registration in command-center/ARTIFACT-MANIFEST.json",
@@ -366,7 +385,7 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "E:cross-vendor undirected",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
       "blocked_on": "independent cross-vendor reproduction of the variant matrix + a manifest-registration step by an agent permitted to write command-center/ARTIFACT-MANIFEST.json",
@@ -418,7 +437,7 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "E:cross-vendor undirected",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
       "blocked_on": "two cross-vendor independent reviewers + owner approval + manifest registration",
@@ -483,10 +502,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "E:cross-vendor undirected",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
-      "blocked_on": "a SECOND reviewer from a third vendor (not anthropic, not openai) or a human, re-running the raw-source-only prompt at %TEMP%/adv0037v2/codex_reviewer_prompt.txt; owner-side rotation of the credentials already exposed in ~/.claude/event-ledger/GitHub-f0c32f04/events.jsonl:420-423; and orchestrator m",
+      "blocked_on": "one openai/gpt-5-codex (or other non-anthropic) reviewer plus a second differently-vendored reviewer, each re-deriving the T10 and T12 counterexamples from the raw source and re-running %TEMP%/adv0037/probe2d_isolated.py; plus orchestrator manifest registration",
       "output_path": "command-center/adversarial/ADV-0037-credential-diagnosis-path-leak.json"
     },
     {
@@ -509,11 +528,24 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "D:requirement names a vendor, differs from producer",
+      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
-      "blocked_on": "command-center/ARTIFACT-MANIFEST.json (shared file, out of unit scope)",
+      "blocked_on": "(1) the mandatory cross-vendor openai/Codex refuter; (2) registration of this artifact in command-center/ARTIFACT-MANIFEST.json by the orchestrator, which owns that shared file",
       "output_path": "command-center/adversarial/ADV-0040-corpus-pii-recall-calibrated-sweep.json"
+    },
+    {
+      "id": "ADV-0041",
+      "title": "Local path and identity disclosure in published artifacts and user-facing errors",
+      "assigned_vendor": "anthropic",
+      "produced_by_vendor": "anthropic",
+      "produced_by_known": true,
+      "reviewer_vendor": "openai",
+      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "verdict": "RAIL_BLOCKED",
+      "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+      "blocked_on": "cross-vendor Codex refuter + downstream consumer execution",
+      "output_path": "command-center/adversarial/ADV-0041-path-and-identity-disclosure.json"
     },
     {
       "id": "ADV-0042",
@@ -535,10 +567,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "anthropic",
-      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "rule": "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
-      "blocked_on": "one fresh-context Claude reviewer who never saw this transcript",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/audit/AUD-0006-uncommitted-work-census.json"
     },
     {
@@ -548,10 +580,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "anthropic",
-      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "rule": "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
-      "blocked_on": "fresh-context Claude reviewer (reviewer_requirement)",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/audit/AUD-0020-python-dep-inventory.json"
     },
     {
@@ -561,10 +593,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "anthropic",
-      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "rule": "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
-      "blocked_on": "one fresh-context Claude reviewer who never saw this transcript",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/audit/AUD-0021-node-dep-inventory.json"
     },
     {
@@ -574,10 +606,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "anthropic",
-      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "rule": "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
-      "blocked_on": "fresh-context Claude reviewer (reviewer_requirement)",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/audit/AUD-0030-import-graph-cycles.json"
     },
     {
@@ -587,10 +619,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "anthropic",
-      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "rule": "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
-      "blocked_on": "fresh-context Claude reviewer (reviewer_requirement)",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/audit/AUD-0041-ci-step-inventory.json"
     },
     {
@@ -600,10 +632,10 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "anthropic",
-      "rule": "A:receipt.failure.blocked_on names the refuter vendor",
+      "rule": "D2:requirement names the producer's vendor with NO cross-vendor clause -> same-vendor is what it asks for",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
-      "blocked_on": "fresh-context Claude reviewer (reviewer_requirement)",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/audit/AUD-0051-coverage-baseline.json"
     },
     {
@@ -613,7 +645,7 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "D:requirement names produced-by vendor -> same-vendor, resolves to other",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "An Anthropic-vendor reviewer samples ten JUSTIFIED verdicts and checks the stated reason is falsifiable rather than decorative.",
       "blocked_on": "owner decisions BS-02 (unapproved 2,048->few-dozen scope substitution, OQ-4), BS-07 (release mode, OQ-3), BS-08 (27 open owner questions, 3 literal spec placeholders) and BS-11 (239/261 mcp__ units unapproved); plus one cross-vendor refuter to re-derive the 1-of-2007 and zero-CI findings from the ra",
@@ -629,7 +661,7 @@
       "rule": "F:review gate, no vendor constraint",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "One independent reviewer who writes a fifth mutant the author did not anticipate and confirms it is rejected.",
-      "blocked_on": "independent reviewer who authors an unanticipated fifth mutant (reviewer_requirement)",
+      "blocked_on": "completion condition 11: manifest_registration.registered is false and the schema hard-rejects state=SUCCESS while it is. NOT a review blocker any more -- the reviewer_requirement is SATISFIED by an executed independent fresh-context review (see reviewer.notes). ARTIFACT-MANIFEST.json is derived by ",
       "output_path": "command-center/receipts/CC-0002.json"
     },
     {
@@ -639,7 +671,7 @@
       "produced_by_vendor": "anthropic",
       "produced_by_known": true,
       "reviewer_vendor": "openai",
-      "rule": "E:cross-vendor undirected",
+      "rule": "A2:blocked_on carries an undirected cross-vendor clause -> the other vendor",
       "verdict": "RAIL_BLOCKED",
       "reviewer_requirement": "independent-claude-reviewer plus a cross-vendor codex reviewer on strictness; both must PASS",
       "blocked_on": "independent-claude-reviewer + cross-vendor-codex-reviewer (reviewer_requirement)",
@@ -655,7 +687,7 @@
       "rule": "A:receipt.failure.blocked_on names the refuter vendor",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "independent-claude-reviewer re-measures the three-route comparison on a DIFFERENT file",
-      "blocked_on": "cross-tree edit authority for the single-helper consolidation (T5 FAIL) + independent-claude-reviewer re-measuring on a different file",
+      "blocked_on": "cross-tree edit authority for the single-helper consolidation (T5 still FAILS). NOT a review blocker any more: the reviewer_requirement -- 'independent-claude-reviewer re-measures the three-route comparison on a DIFFERENT file' -- is SATISFIED (see reviewer.notes). ALSO completion condition 11: mani",
       "output_path": "command-center/receipts/IMP-0440.json"
     },
     {
@@ -668,7 +700,7 @@
       "rule": "F:review gate, no vendor constraint",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "One independent reviewer who re-runs the probe under a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding rather than a retry.",
-      "blocked_on": "independent reviewer assignment; a committed consumer of blobread",
+      "blocked_on": "NOT a review blocker any more: the reviewer_requirement -- re-run the probe under a SECOND Windows shell and report divergence as a finding -- is SATISFIED with ZERO divergence (see reviewer.notes). The row's other stated blocker, 'a committed consumer of blobread', is now STALE: 5 committed non-tes",
       "output_path": "command-center/receipts/TST-0334.json"
     },
     {
@@ -681,7 +713,7 @@
       "rule": "F:review gate, no vendor constraint",
       "verdict": "SATISFIABLE_NOW",
       "reviewer_requirement": "One independent adversarial reviewer in a fresh context who did not author the harness under test and who must reproduce the both-states control before signing off.",
-      "blocked_on": "independent reviewer assignment; first CI execution of the wired step",
+      "blocked_on": "first CI execution of the wired step -- an external event this reviewer cannot cause. NOT a review blocker any more: the reviewer_requirement -- an independent adversarial reviewer in a fresh context who did not author the harness and who must reproduce the both-states control -- is SATISFIED (see r",
       "output_path": "command-center/receipts/TST-0350.json"
     }
   ]

@@ -1,17 +1,34 @@
 """Final verification, read from the COMMITTED blobs rather than the worktree.
 
-Answers three questions with one instrument each, and fails closed on an implausible count:
-  1. do all 10 satisfiable units now carry an independent PASS reviewer, as committed?
-  2. is the rail-blocked count still exactly 41?
+Answers four questions with one instrument each, and fails closed on an implausible count:
+  1. do all 10 satisfiable units carry an independent PASS reviewer, as committed?
+  2. is the rail-blocked remainder still what this lane published -- RE-DERIVED, not read back?
   3. does any of the 10 falsely claim SUCCESS?
+  4. does the satisfiable SET still contain exactly the units that were reviewed?
+
+ROUND-2 CHANGE (the auditor's scoped fix (b), CONFIRMED defect). v1 of this file read the count out
+of command-center/p2-next/VENDOR-SATISFIABILITY.json -- the producer's own stored artifact. That is
+not a verification: re-running the producer rewrote the file and this verifier then dutifully
+reported the new number as if it had checked it (and, when the producer was broken, went red for the
+right reason by accident). It now RE-DERIVES the split by importing the resolver and walking the
+committed receipts itself, so the two instruments are the receipt tree and the ladder -- never the
+artifact under test.
+
+ROUND-2 CHANGE 2. The expected number is 42, not 41, and it is basis-qualified. 41 was measured
+against the WORKTREE, which carries a sibling lane's UNCOMMITTED edit flipping ADV-0041 from BLOCKED
+to SUCCESS. Every commit since fb2f477f has ADV-0041 BLOCKED with blocked_on "cross-vendor Codex
+refuter". Both numbers are printed; the committed one is the one an owner should price.
 """
 
+import importlib.util
 import json
 import pathlib
 import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
+EXPECTED_RAIL_COMMITTED = 42
+EXPECTED_RAIL_WORKTREE = 41
 SAT = [
     "AUD-0006",
     "AUD-0020",
@@ -70,15 +87,41 @@ if len(rows) != 10:
     print(f"FAILED:final-verify expected 10 rows, read {len(rows)}")
     sys.exit(1)
 
-vs = json.loads(
-    (ROOT / "command-center/p2-next/VENDOR-SATISFIABILITY.json").read_text(
-        encoding="utf-8"
-    )
+# ---- RE-DERIVE the split; do not read the producer's artifact ----
+spec = importlib.util.spec_from_file_location(
+    "vs", ROOT / "command-center/p2-next/vendor_satisfiability.py"
 )
-rail = [u["id"] for u in vs["units"] if u["verdict"] == "RAIL_BLOCKED"]
-print(f"\nrail-blocked units: {len(rail)}  (expected 41)")
-if len(rail) != 41:
-    bad.append(f"rail-blocked count moved to {len(rail)}")
+vs = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(vs)
+if vs._selftest():
+    bad.append("resolver selftest does not discriminate")
+
+committed = vs.load_units("committed")
+worktree = vs.load_units("worktree")
+rail_c = [u["id"] for u in committed if u["verdict"] == vs.BLOCKED_RAIL]
+rail_w = [u["id"] for u in worktree if u["verdict"] == vs.BLOCKED_RAIL]
+sat_c = sorted(u["id"] for u in committed if u["verdict"] == vs.SAT)
+
+print(
+    f"\nRE-DERIVED committed: {len(committed)} blocked / {len(rail_c)} rail-blocked "
+    f"(expected {EXPECTED_RAIL_COMMITTED})"
+)
+print(
+    f"RE-DERIVED worktree : {len(worktree)} blocked / {len(rail_w)} rail-blocked "
+    f"(expected {EXPECTED_RAIL_WORKTREE}; differs by a sibling's uncommitted ADV-0041 edit)"
+)
+if len(rail_c) != EXPECTED_RAIL_COMMITTED:
+    bad.append(f"committed rail-blocked count moved to {len(rail_c)}")
+if len(rail_w) != EXPECTED_RAIL_WORKTREE:
+    bad.append(f"worktree rail-blocked count moved to {len(rail_w)}")
+if sat_c != sorted(SAT):
+    bad.append(f"satisfiable SET moved: {sat_c}")
+if len(committed) < 40:
+    bad.append(f"population implausibly small ({len(committed)}) -- instrument suspect")
+
+stab = vs.stability_check(committed)
+if stab:
+    bad.append(f"verdicts are not stable across this lane's own edits: {stab}")
 
 sel = subprocess.run(
     [sys.executable, "command-center/receipt_validate.py", "--self-test"],
@@ -106,7 +149,12 @@ if adm.returncode != 0:
     json.dumps(
         {
             "rows": rows,
-            "rail_blocked": len(rail),
+            "rail_blocked_committed": len(rail_c),
+            "rail_blocked_worktree": len(rail_w),
+            "blocked_committed": len(committed),
+            "blocked_worktree": len(worktree),
+            "satisfiable_set": sat_c,
+            "stability_problems": stab,
             "selftest_rc": sel.returncode,
             "admit_rc": adm.returncode,
             "problems": bad,
@@ -114,6 +162,7 @@ if adm.returncode != 0:
         indent=2,
     ),
     encoding="utf-8",
+    newline="\n",
 )
 print(f"\nproblems: {bad}")
 print("SUCCESS:final-verify" if not bad else f"FAILED:final-verify {bad}")

@@ -5,12 +5,32 @@
 COVERAGE: §1-§6 MEASURED and executed. Every number was produced by a command in §7; nothing here
 is recalled. Two residuals carry inline UNVERIFIED tags with their settling experiments named.
 
+> ## ROUND-2 CORRECTIONS — read `P2NEXT-BUILD-R2.md` before citing any number below
+>
+> An independent auditor CONFIRMED defects in this document. The corrections are applied inline
+> below, each keeping the refuted wording verbatim so the error is recorded rather than deleted:
+>
+> 1. **"41 rail-blocked" was a WORKTREE number.** On the COMMITTED tree it is **42 / 52 blocked**.
+>    The difference is `ADV-0041`, which is BLOCKED in every commit since `fb2f477f` but SUCCESS in
+>    the shared worktree via a sibling lane's UNCOMMITTED edit. (§0, §1, §2b, §4, §6.)
+> 2. **The published reproduce command did not reproduce its own number.** Re-running
+>    `vendor_satisfiability.py` printed 47/4, overwrote the committed artifact, and turned this
+>    lane's own verifier red. Root cause and fix in R2 §1. (§7.)
+> 3. **"137 tag occurrences" is REFUTED** — measured 114 on the committed basis. (§4, §6.)
+>
+> What survived the audit unchanged: the SATISFIABLE set (the same 10 ids, re-derived from the
+> pre-edit blobs), all 10 reviews and their receipts, and the finding that condition 11 — not the
+> reviewer — is the last gate.
+
 ---
 
 ## 0. Headline
 
-1. **The grounding's split is CONFIRMED by re-execution** — 51 blocked, **41 rail-blocked**, 10
-   satisfiable, 7 review-only. Not inherited; both scripts were re-run.
+1. ~~**The grounding's split is CONFIRMED by re-execution** — 51 blocked, **41 rail-blocked**, 10
+   satisfiable, 7 review-only. Not inherited; both scripts were re-run.~~
+   **REFUTED in round 2 as to the BASIS, not the arithmetic.** Those figures are true of the
+   *worktree*. Committed tree: **52 blocked, 42 rail-blocked, 10 satisfiable, 7 review-only.** The
+   satisfiable SET is unchanged and was re-derived from the pre-edit blobs (R2 §1).
 2. **All 10 satisfiable units are now REVIEWED and RECEIPTED** by an independent fresh-context
    reviewer that did not author them. 10 of 10 return **PASS**, each on an executed falsification —
    the 7 review-only rows plus `IMP-0440`, `TST-0334` and `TST-0350`, each reviewed on its own
@@ -26,13 +46,17 @@ is recalled. Two residuals carry inline UNVERIFIED tags with their settling expe
 
 ## 1. Independent re-verification of the grounding split — CONFIRMED
 
-| quantity | grounding | this lane re-ran | agree |
-|---|---|---|---|
-| BLOCKED/FAILED units | 51 | 51 | yes |
-| RAIL_BLOCKED | 41 | 41 | yes |
-| SATISFIABLE_NOW | 10 | 10 | yes |
-| required reviewer vendor | 41 openai / 7 anthropic / 3 any | identical | yes |
-| `vendor_satisfiability.py` selftest | PASS (5 cases incl. the v1 regression) | PASS | yes |
+| quantity | grounding | this lane re-ran | agree | **round 2, COMMITTED basis** |
+|---|---|---|---|---|
+| BLOCKED/FAILED units | 51 | 51 | yes | **52** (+`ADV-0041`) |
+| RAIL_BLOCKED | 41 | 41 | yes | **42** |
+| SATISFIABLE_NOW | 10 | 10 | yes | 10 — same ids |
+| required reviewer vendor | 41 openai / 7 anthropic / 3 any | identical | yes | **42 openai / 7 anthropic / 3 any** |
+| `vendor_satisfiability.py` selftest | PASS (5 cases incl. the v1 regression) | PASS | yes | PASS (8 cases, +2 v2 regressions) |
+
+Both round-1 columns were measured against the shared **worktree**. The round-2 column is the
+**committed** tree, which is what CI and any other reader sees. Neither is wrong about its own tree;
+round 1's failure was not naming the tree.
 
 ## 2. The split — receipt text quoted per unit
 
@@ -55,13 +79,16 @@ The 6 `AUD` rows and `IMP-0440` name a **Claude/same-vendor** reviewer explicitl
 is not a substitution, it is the thing the receipt asks for. `CC-0002`, `TST-0334` and `TST-0350`
 set **no vendor constraint**.
 
-### 2b. CROSS-VENDOR-REQUIRED (rail-blocked) — 41
+### 2b. CROSS-VENDOR-REQUIRED (rail-blocked) — 42 committed / 41 worktree
 
-`ADV-0001`, `ADV-0003`…`ADV-0037`, `ADV-0039`, `ADV-0040`, `ADV-0042` (39 ADV) + `BLD-0023` +
-`IMP-0433`. **Not reviewed by this lane and not receipted.** Substituting a same-vendor Claude
-reviewer would satisfy the letter and defeat the purpose. 16 of the 41 carry a requirement that is
-internally unsatisfiable (a "cross-vendor Anthropic refuter" on an Anthropic-produced unit), so
-they resolve to an `openai` refuter regardless.
+~~41: `ADV-0001`, `ADV-0003`…`ADV-0037`, `ADV-0039`, `ADV-0040`, `ADV-0042` (39 ADV) + `BLD-0023` +
+`IMP-0433`.~~ **Round-2 correction:** on the committed tree it is **42** — the same set **plus
+`ADV-0041`**, whose committed `blocked_on` reads "cross-vendor Codex refuter + downstream consumer
+execution". Round 1 read `ADV-0041` from the worktree, where a sibling lane's uncommitted edit has
+it `state=SUCCESS` with `reviewer.vendor=openai`. **Not reviewed by this lane and not receipted.**
+Substituting a same-vendor Claude reviewer would satisfy the letter and defeat the purpose. 16 of
+the 42 carry a requirement that is internally unsatisfiable (a "cross-vendor Anthropic refuter" on
+an Anthropic-produced unit), so they resolve to an `openai` refuter regardless.
 
 ## 3. The reviews — 7 of 7 PASS
 
@@ -153,13 +180,31 @@ Reviewing the last three added **four more**, each caught before it became a fal
 
 ## 4. Rail-blocked remainder — the price of `codex login`
 
-**41 units.** Re-executed, not inherited. The grounding's correction of the briefed "43 of 47"
+~~**41 units.** Re-executed, not inherited. The grounding's correction of the briefed "43 of 47"
 stands: that figure was a **tag-sum** (137 tag occurrences over 51 distinct units), not a unit
-count.
+count.~~
 
-**Caveat that must travel with the number [likely, 55-80%]:** 41 is what the receipts *demand*, not
+**ROUND-2: 42 units on the committed tree** (41 on the worktree — see the §2b correction). The
+"43 of 47" correction still stands as a correction, but **the 137 figure is REFUTED** — and the
+replacement has to be stated with its definition, because the occurrence sum is not one number:
+
+| definition | value |
+|---|---|
+| `failure.classification` + top-level, deduped per unit, committed (52 units) | **114** |
+| same, auditor's measurement on the worktree (51 units) | 113 (+1 = `ADV-0041`'s single tag) |
+| every `classification` key anywhere in the receipt, NOT deduped (`split_review_gate.py`) | **132** |
+| round-1's claim | ~~137~~ — not emitted by any instrument here |
+
+The 132-vs-114 gap is **18 tags inside one receipt** (`ADV-0009`) plus 1 (`ADV-0007`)
+(`R2-RECONCILE.json`). An "occurrence sum" that one receipt's internal nesting can move by 16% is
+the argument against quoting it at all. The answerable number is **31 distinct units carrying a
+review/refut-naming tag** — *less* than the 42 the ladder resolves, because 11 rail-blocked units
+express their cross-vendor demand only in `blocked_on` prose and never tag it. Counting the
+structured field alone therefore **under**-reports this gate by 11 units.
+
+**Caveat that must travel with the number [likely, 55-80%]:** 42 is what the receipts *demand*, not
 what would *pass*. And §5 changes the price — even a successful Codex review leaves every one of
-the 41 behind the same condition-11 wall the 7 just hit.
+the 42 behind the same condition-11 wall the 10 just hit.
 
 ## 5. R2 IS REFUTED — `render.py` does not do what the plan assumed
 
@@ -200,18 +245,30 @@ reviewer alone was never going to move that row.
   the commit that was HEAD at its `ended_at`.
 - **NOT-CHECKED** — whether `codex login` fixes the `agent/register` failure. Owner-only credential
   write; not attempted, not re-probed.
-- **NOT DONE, deliberately:** no `codex login`; no same-vendor review of any of the 41; no
+- **NOT DONE, deliberately:** no `codex login`; no same-vendor review of any of the 42; no
   `render.py` run (shared surface, wrong tool for the job); **no edits to `blocker_census.py` or
   `CROSS-VENDOR-RAIL-STATUS.md`** — both are outside the declared file scope, so their counting
-  defects are handed over rather than patched: `blocker_census.py:185-190` prints a tag-sum under a
-  unit count, and `CROSS-VENDOR-RAIL-STATUS.md` still says **43** where the measured figure is
-  **41 of 51**. No READY units were built — 449 are READY behind the same gates.
+  defects are handed over rather than patched. ~~`blocker_census.py:185-190` prints a tag-sum under
+  a unit count, and `CROSS-VENDOR-RAIL-STATUS.md` still says **43** where the measured figure is
+  **41 of 51**.~~ **Round-2 correction:** the census prints its tag figure at the END of its output
+  (`tags naming an independent/cross-vendor REVIEW gate: 33`), not "directly under" the receipt
+  count, and the figure this lane attributed to it (137) is not one the tool emits — it came from
+  `P2NEXT-GROUNDING.md:43`. The live defect is narrower and still real: **an occurrence sum
+  answers a question nobody asked**; the unit-level number is 31 (§4). And
+  `CROSS-VENDOR-RAIL-STATUS.md` says **43** where the measured figure is now **42 of 52 committed
+  / 41 of 51 worktree**. No READY units were built — 449 are READY behind the same gates.
 
 ## 7. Reproduce
 
 ```
-python command-center/p2-next/split_review_gate.py          # 51 units, counted once each
-python command-center/p2-next/vendor_satisfiability.py      # the 41/10 split, selftest-gated
+python command-center/p2-next/split_review_gate.py          # 51 units (WORKTREE basis), counted once each
+python command-center/p2-next/vendor_satisfiability.py      # ROUND 2: 42/10 committed + 41/10 worktree.
+                                                            # Default is CHECK-only and exits 1 on drift;
+                                                            # pass --write to regenerate. Round 1's form of
+                                                            # this command silently REWROTE the artifact.
+python command-center/p2-next/_r2_control_stability.py      # both-states control: the v2 ladder moves 6 units
+python command-center/p2-next/_r2_control_b20.py            # both-states control: the verifier fails closed
+python command-center/p2-next/_r2_tagcensus.py              # 114 occurrences / 31 units (refutes "137")
 python command-center/p2-next/_b3_falsify_aud0006.py        # AUD-0006 falsification
 python command-center/p2-next/_b4_falsify_aud_rest.py       # AUD-0020/0021/0030/0041/0051
 python command-center/p2-next/_b5_triage.py                 # instrument-vs-defect triage
