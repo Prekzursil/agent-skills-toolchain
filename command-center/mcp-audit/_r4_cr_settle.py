@@ -99,10 +99,11 @@ def main() -> int:
         c = cat_file(rev, DOC)
         # Both instruments must see the same SIZE too -- two readers agreeing on "0 CR"
         # while disagreeing on the byte count would mean they read different objects.
-        ok = c.count(b"\r") == cr and len(c) == len(b)
+        c_cr = c.count(b"\r")
+        ok = c_cr == cr and len(c) == len(b)
         disagree += [] if ok else [rev]
         print(
-            f"{rev:10} {len(b):8} {cr:6} {crlf:6} {lf:6} {c.count(b'\r'):>9} {str(ok):>6}"
+            f"{rev:10} {len(b):8} {cr:6} {crlf:6} {lf:6} {c_cr:>9} {str(ok):>6}"
         )
 
     # Positive control: the corrected detector must FIRE on a blob that really is CRLF, or
@@ -113,10 +114,12 @@ def main() -> int:
         ctl = cat_file("HEAD", CTRL)
         # The clause that can actually fail: BOTH instruments must SEE CR on a blob that
         # has it.  Without this, five zeros above are just two blind readers agreeing.
-        fired = raw.count(b"\r") > 0 and ctl.count(b"\r") == raw.count(b"\r")
+        raw_cr = raw.count(b"\r")
+        ctl_cr = ctl.count(b"\r")
+        fired = raw_cr > 0 and ctl_cr == raw_cr
         print(
-            f"\n  positive control {CTRL.split('/')[-1]}: git show CR={raw.count(b'\r')} "
-            f"git cat-file CR={ctl.count(b'\r')}  fires: {fired}"
+            f"\n  positive control {CTRL.split('/')[-1]}: git show CR={raw_cr} "
+            f"git cat-file CR={ctl_cr}  fires: {fired}"
         )
     else:
         print("\n  positive control blob absent; see _r4_eol_probe.py PART A instead")
