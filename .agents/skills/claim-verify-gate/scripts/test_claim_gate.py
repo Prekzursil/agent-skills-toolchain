@@ -102,6 +102,68 @@ def test_missing_verify_probe_fires() -> None:
     check("no-verify-probe fires", "no-verify-probe" in rules_of(report, "C1"))
 
 
+# The absent-SOURCE direction. The suite above covers the absent VERIFIER and was green
+# for the whole time the source hole was live -- 30 passing tests that never touched it.
+# single-signal-verification.md:75-86 requires BOTH halves of the pair to be declared.
+
+
+def test_missing_source_probe_fires() -> None:
+    report = claim_gate.evaluate(payload(source_probe=None))
+    check("no-source-probe fires", "no-source-probe" in rules_of(report, "C1"))
+    check("no-source-probe blocks", report["ok"] is False, str(report))
+
+
+def test_empty_source_probe_fires() -> None:
+    """Present-but-vacuous is the same hole: every axis normalises to ''."""
+    report = claim_gate.evaluate(payload(source_probe={"tool": "", "shell": ""}))
+    check("empty source_probe fires", "no-source-probe" in rules_of(report, "C1"))
+
+
+def test_refuted_missing_source_probe_fires() -> None:
+    report = claim_gate.evaluate(
+        payload(
+            verdict="REFUTED",
+            source_probe=None,
+            revised_text="Measured on one host only.",
+        )
+    )
+    check("REFUTED needs a source too", "no-source-probe" in rules_of(report, "C1"))
+
+
+def test_absent_source_is_not_certified_as_independent() -> None:
+    """The exact regression: this input returned violations=[], ok=true, exit 0.
+
+    Asserted in BOTH directions -- the claim must now be blocked, and it must be blocked
+    by the SOURCE rule rather than by same-probe-rerun. If same-probe-rerun were the one
+    firing, the fix would be an accident of fingerprint equality, not a declared-source
+    requirement, and it would evaporate the moment the verifier changed shape.
+    """
+    report = claim_gate.evaluate(payload(source_probe=None))
+    fired = rules_of(report, "C1")
+    check("absent source no longer certifies", report["ok"] is False, str(report))
+    check("caught by the source rule", "no-source-probe" in fired)
+    check(
+        "NOT by same-probe-rerun (which cannot fire on an absent source)",
+        "same-probe-rerun" not in fired,
+        f"fired={fired}",
+    )
+
+
+def test_unverified_does_not_need_a_source_probe() -> None:
+    """No false positive on the verdict that is allowed to declare no measurement."""
+    report = claim_gate.evaluate(
+        payload(
+            verdict="UNVERIFIED",
+            source_probe=None,
+            verify_probe=None,
+            evidence=[],
+            settling_experiment="Re-run on a second host and compare http_status.",
+        )
+    )
+    check("UNVERIFIED is exempt", "no-source-probe" not in rules_of(report, "C1"))
+    check("and still does not block", report["ok"] is True, str(report))
+
+
 def test_refuted_also_needs_independent_probe() -> None:
     same = {"tool": "pytest", "shell": "bash", "field": "exit_code"}
     report = claim_gate.evaluate(

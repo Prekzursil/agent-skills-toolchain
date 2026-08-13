@@ -8,13 +8,16 @@ model must not be trusted with, because it is answerable by an exact algorithm
 (``rules/common/fan-out-contract.md:162``: "if a question is answerable by an
 exact algorithm ... WRITE THE ALGORITHM").
 
-It answers ten yes/no questions about a claim ledger and refuses the verdict
+It answers eleven yes/no questions about a claim ledger and refuses the verdict
 when the answer is wrong. It never decides whether a claim is TRUE — only
 whether the ledger is allowed to say so.
 
 Anchors (this module ENFORCES these; it does not restate them):
   single-signal-verification.md:34  two signals must be mechanically
       independent, "not the same query re-run"         -> same-probe-rerun
+  single-signal-verification.md:75  declare the SOURCE probe, not just the
+      verifier: "an undeclared source is zero signals, not one", and a
+      mechanised gate INHERITS that obligation           -> no-source-probe
   single-signal-verification.md:40  the both-states test -> --self-test
   fan-out-contract.md:12            enumerate the vocabulary,
       never a bare tag name                            -> unknown-band
@@ -71,6 +74,7 @@ SHERMAN_KENT_BANDS = (
 
 RULES = (
     "no-verify-probe",
+    "no-source-probe",
     "same-probe-rerun",
     "no-evidence-anchor",
     "no-settling-experiment",
@@ -170,7 +174,26 @@ def _check_probes(claim: dict, verdict: str) -> list[dict]:
                 ),
             }
         ]
-    source_key = _probe_key(claim.get("source_probe"))
+    # Independence is a property of a PAIR (single-signal-verification.md:75-78: "an
+    # undeclared source is zero signals, not one"). This check must come BEFORE the
+    # fingerprint comparison, because an absent source_probe normalises to four empty
+    # strings, which any non-empty verifier trivially differs from -- so same-probe-rerun
+    # can never fire and the gate certifies a verdict that declares no producing
+    # measurement at all. Measured live before this fix: a CONFIRMED claim with no
+    # source_probe returned violations=[], ok=true, exit 0.
+    source = claim.get("source_probe")
+    if not isinstance(source, dict) or not any(_probe_key(source)):
+        return [
+            {
+                "rule": "no-source-probe",
+                "detail": (
+                    f"{verdict} needs a source_probe declaring at least one of "
+                    f"{', '.join(AXES)}: independence is a property of a pair, and an "
+                    "absent source cannot be compared against anything"
+                ),
+            }
+        ]
+    source_key = _probe_key(source)
     if source_key == _probe_key(verify):
         return [
             {
@@ -391,6 +414,7 @@ def _fixtures() -> dict[str, tuple[dict, str | None]]:
     }
     return {
         "no-verify-probe": (ledger(verify_probe=None), None),
+        "no-source-probe": (ledger(source_probe=None), None),
         "same-probe-rerun": (
             ledger(source_probe=dict(same), verify_probe=dict(same)),
             None,

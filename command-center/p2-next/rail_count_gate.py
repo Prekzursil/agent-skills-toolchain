@@ -35,8 +35,19 @@ WHAT IT CHECKS (each one fails CLOSED)
       silently yields "0 blocked units, 0 rail-blocked" would otherwise make every other check pass
       vacuously. A control must count the thing being compared and be loud when it cannot.
   C5  every unit the derivation calls same-vendor-satisfiable actually carries an independent
-      reviewer PASS. This is the lane's DoD item 2 held open over time: if a future edit creates a
-      satisfiable-but-unreviewed unit, that is newly reachable work and the owner should see it.
+      reviewer PASS, AND that PASS carries a review behind it -- notes over a calibrated floor
+      that name a falsification attempt. This is the lane's DoD item 2 held open over time: if a
+      future edit creates a satisfiable-but-unreviewed unit, that is newly reachable work and the
+      owner should see it.
+      Until this round C5 was VERDICT-SHAPED ONLY, and this file's own header claimed "every
+      check in both states" while C5 had no self-test case at all. Measured consequence
+      (`_g3_c5_content_probe.py`): emptying EVERY reviewer note across all ten satisfiable units
+      changed nothing -- reviewed=10, problems=0 -- while flipping a verdict fired on all ten, so
+      the probe could see failure and the silence was a real gap rather than a dead detector.
+      The floor is calibrated on the committed receipts (1027-2092 chars), not invented; the
+      resolvable-evidence-anchor half is REPORTED AND NOT ENFORCED, because 0 of 10 receipts
+      carry one and a gate that fails every existing input on its first run is a gate that gets
+      switched off. See MIN_REVIEW_NOTES and check_reviewed.
 
 DETECTOR CONTROL. `--self-test` runs every check against a KNOWN-BROKEN input and requires it to
 FIRE, then against the known-good input and requires SILENCE -- including the ways this gate could
@@ -92,6 +103,34 @@ RAIL_TOPIC = re.compile(r"cross[-_ ]?vendor|review rail|\brail\b|blocked units",
 #: collapses to a handful means the catalog or the resolver changed shape, not that the queue
 #: emptied. Chosen well under the observed floor so ordinary churn cannot trip it.
 MIN_BLOCKED = 40
+
+#: C5 used to read ONLY `verdict` and `independent`. Measured by `_g3_c5_content_probe.py`:
+#: emptying EVERY reviewer note across all ten satisfiable units changed nothing (reviewed=10,
+#: problems=0), while flipping a verdict DID fire (problems=10) -- so the probe could see failure
+#: and the silence was informative. A check that proves a review HAPPENED but not that it SAID
+#: anything is a receipt reader, not a gate.
+#:
+#: CALIBRATED, NOT INVENTED. The ten committed receipts carry 1027-2092 chars of reviewer notes
+#: (`_c1_calibrate_floor.py`). 200 sits ~5x below the observed minimum, so a terse-but-genuine
+#: review passes and only an emptied or stub note fails. The risk this floor is chosen against is
+#: a FALSE POSITIVE on a short valid review, not a tight fit to today's data.
+MIN_REVIEW_NOTES = 200
+
+#: A review must name how it tried to BREAK the claim, not merely that it agreed. All ten
+#: committed receipts already do. The detector is controlled in BOTH directions by
+#: `_c2_control_detectors.py`: it is silent on bland approval prose, and stripping the matched
+#: vocabulary out of every real note silences it -- so 10/10 is a measurement rather than a regex
+#: catching incidental words.
+_FALSIFICATION = re.compile(
+    r"falsif|refut|mutat|counter-?example|tried to break|both[- ]states"
+    r"|control|disconfirm|negative case",
+    re.I,
+)
+
+#: An evidence anchor: claim_gate's own shape, reused rather than re-invented.
+#: REPORTED, NEVER BLOCKING -- see `check_reviewed`. Measured: 0 of 10 committed receipts carry
+#: one that RESOLVES to a file on disk, so enforcing it today would fail all ten.
+_ANCHOR = re.compile(r"([A-Za-z0-9_./\\-]+\.[A-Za-z0-9]{1,6}):(\d+)|https?://\S+")
 
 _spec = importlib.util.spec_from_file_location(
     "_vs_rail", Path(__file__).with_name("vendor_satisfiability.py")
@@ -306,8 +345,44 @@ def check_artifact(basis: str, derived: dict[str, int]) -> list[str]:
     return problems
 
 
-def check_reviewed(basis: str, rows: list[dict]) -> tuple[int, list[str]]:
-    """C5: every same-vendor-satisfiable unit must already carry an independent reviewer PASS."""
+def review_problems(unit_id: str, rec: dict) -> list[str]:
+    """C5 for ONE receipt: an independent PASS, AND notes that carry actual review content.
+
+    Pure over the parsed receipt so `_selftest` can drive both states without touching git.
+    The count of units carrying an independent PASS is deliberately NOT narrowed by the content
+    floor: `reviewed_satisfiable` in the RAIL-COUNT block means "carries an independent PASS",
+    C1 compares it against that, and silently redefining it here would move a published number
+    as a side effect of adding a check.
+    """
+    rv = rec.get("reviewer") or {}
+    if not (
+        str(rv.get("verdict", "")).upper() == "PASS" and rv.get("independent") is True
+    ):
+        return [
+            f"C5 {unit_id} is satisfiable by a same-vendor independent reviewer but carries "
+            f"no independent PASS (verdict={rv.get('verdict')!r}, "
+            f"independent={rv.get('independent')!r}) -- newly reachable work"
+        ]
+    notes = rv.get("notes")
+    notes = notes.strip() if isinstance(notes, str) else ""
+    if len(notes) < MIN_REVIEW_NOTES:
+        return [
+            f"C5 {unit_id} carries an independent PASS with {len(notes)} chars of reviewer "
+            f"notes (floor {MIN_REVIEW_NOTES}). A verdict with no reasoning behind it is a "
+            f"stamp, not a review, and the verdict-shaped check could not tell them apart."
+        ]
+    if not _FALSIFICATION.search(notes):
+        return [
+            f"C5 {unit_id} reviewer notes name no falsification attempt -- no control, "
+            f"mutation, counter-example or refutation. An independent reviewer who only "
+            f"records agreement has not tested the claim (all 10 committed receipts do)."
+        ]
+    return []
+
+
+def check_reviewed(basis: str, rows: list[dict]) -> tuple[int, list[str], int]:
+    """C5: every same-vendor-satisfiable unit must already carry an independent reviewer PASS
+    whose notes clear the content floor. Third return value is the ADVISORY anchor count."""
     blobs = (
         _vs.batch_blobs("HEAD", [r["output_path"] for r in rows])
         if basis == "committed"
@@ -316,7 +391,7 @@ def check_reviewed(basis: str, rows: list[dict]) -> tuple[int, list[str]]:
             for r in rows
         }
     )
-    reviewed, problems = 0, []
+    reviewed, problems, anchored = 0, [], 0
     for r in rows:
         txt = blobs.get(r["output_path"])
         rec = json.loads(txt) if txt else {}
@@ -326,13 +401,18 @@ def check_reviewed(basis: str, rows: list[dict]) -> tuple[int, list[str]]:
             and rv.get("independent") is True
         ):
             reviewed += 1
-        else:
-            problems.append(
-                f"C5 {r['id']} is satisfiable by a same-vendor independent reviewer but carries "
-                f"no independent PASS (verdict={rv.get('verdict')!r}, "
-                f"independent={rv.get('independent')!r}) -- newly reachable work"
-            )
-    return reviewed, problems
+        problems += review_problems(r["id"], rec)
+        # ADVISORY, never blocking. Reported so the gap cannot stay invisible: measured 0 of 10
+        # today, so making it blocking would fail every existing receipt at once (and the only
+        # anchor-SHAPED token in the ten is a TIMESTAMP, `2026-08-12T05:15:00`, which satisfies
+        # claim_gate's `\S+:\d+` anchor rule -- a second reason not to enforce that shape here).
+        notes = rv.get("notes")
+        for match in _ANCHOR.finditer(notes if isinstance(notes, str) else ""):
+            path = match.group(1)
+            if path is None or (REPO / path.replace("\\", "/")).exists():
+                anchored += 1
+                break
+    return reviewed, problems, anchored
 
 
 # --------------------------------------------------------------------------------------------
@@ -512,8 +592,70 @@ def _selftest() -> int:
     expect("C4 plausible", plausibility(d), False)
     expect("C4 collapsed population", plausibility({**d, "blocked_units": 0}), True)
 
+    # C5 -- the content floor. THE HEADER OF THIS FILE CLAIMED "every check in both states" while
+    # C5 had NO self-test case at all, which is how a verdict-shaped check survived: emptying every
+    # reviewer note across all ten units left it silent (`_g3_c5_content_probe.py`, whose control
+    # flipped a verdict and DID fire, so the silence was real and not a dead probe). These are that
+    # missing case, in both directions.
+    def receipt(**rv: object) -> dict:
+        base: dict = {
+            "verdict": "PASS",
+            "independent": True,
+            "notes": (
+                "Re-derived the split from the committed blobs with a separate reader, then "
+                "ran a control in both states: flipping the verdict makes the check fire, so "
+                "silence on the unmutated receipt is informative rather than dead. "
+            )
+            * 2,
+        }
+        base.update(rv)
+        return {"reviewer": base}
+
+    expect("C5 a real receipt is silent", review_problems("U-1", receipt()), False)
+    expect(
+        "C5 a FAIL verdict fires", review_problems("U-1", receipt(verdict="FAIL")), True
+    )
+    expect(
+        "C5 a non-independent PASS fires",
+        review_problems("U-1", receipt(independent=False)),
+        True,
+    )
+    # THE MEASURED GAP: this exact mutation left the pre-round check silent on all ten units.
+    expect("C5 emptied notes fire", review_problems("U-1", receipt(notes="")), True)
+    expect(
+        "C5 a stub note under the floor fires",
+        review_problems("U-1", receipt(notes="LGTM, reviewed independently.")),
+        True,
+    )
+    # ...and the way the floor itself could be inert rather than clean: length alone is satisfied
+    # by padding, so a long note that never tried to break anything must still fire.
+    expect(
+        "C5 a long note naming no falsification fires",
+        review_problems(
+            "U-1", receipt(notes="I read the unit and I agree with it. " * 12)
+        ),
+        True,
+    )
+    # ...and the FALSE-POSITIVE direction, which is what the ~5x margin under the observed
+    # 1027-char minimum exists for: a terse but genuine review must NOT be blocked.
+    expect(
+        "C5 a terse-but-real review just over the floor passes",
+        review_problems(
+            "U-1",
+            receipt(
+                notes=(
+                    "Read the receipt and the produced artifact, then tried to break the "
+                    "claim by re-running the producer against the committed blob rather "
+                    "than the worktree; the counter-example I went looking for did not "
+                    "appear, so the narrower claim stands."
+                )
+            ),
+        ),
+        False,
+    )
+
     print(
-        f"  selftest: {'PASS' if not bad else 'FAIL'} (23 cases, every check in both states)"
+        f"  selftest: {'PASS' if not bad else 'FAIL'} (30 cases, every check in both states)"
     )
     return bad
 
@@ -558,7 +700,7 @@ def main(argv: list[str] | None = None) -> int:
     catalog_units = len(json.loads(cat_txt)["work_units"]) if cat_txt else -1
 
     sat_rows = satisfiable_rows(args.basis)
-    reviewed, problems = check_reviewed(args.basis, sat_rows)
+    reviewed, problems, anchored = check_reviewed(args.basis, sat_rows)
 
     if args.doc:
         doc = Path(args.doc).read_text(encoding="utf-8")
@@ -619,6 +761,12 @@ def main(argv: list[str] | None = None) -> int:
         f"  unit-count claims examined: {len(prose_claims(doc))} in the owning doc + "
         f"{secondary_claims} on-topic in {len(SECONDARY_DOCS)} citing doc(s); "
         f"{exempted} exempted by an explicit dated marker"
+    )
+    print(
+        f"  C5 content floor: {len(sat_rows)} satisfiable receipts checked against "
+        f"{MIN_REVIEW_NOTES}-char notes + a named falsification method. "
+        f"ADVISORY (not blocking): {anchored} of {len(sat_rows)} carry a RESOLVING "
+        f"file:line/URL evidence anchor."
     )
 
     if problems:
