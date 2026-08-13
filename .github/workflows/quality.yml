@@ -1441,6 +1441,44 @@ jobs:
           pip install pytest
           python -m pytest -q
 
+      # C46, for the DOCS lane. ci/tests/ has no tree-wide step here, so a suite added
+      # there runs only if it is NAMED here -- and until this step existed, the docs
+      # executable-claim gate ran ONLY through skill-dual-write.yml's directory sweep.
+      # That workflow is `on: pull_request:` with NO `push:`, and every commit in this
+      # program lands by pushing main directly, so the gate executed on ZERO of the
+      # commits that shipped it. Measured two ways: skill-dual-write.yml's `on:` block
+      # holds exactly one event key, `pull_request`; and quality.yml is the only
+      # workflow here that both fires on a push to main and names ci/tests suites.
+      #
+      # WHAT IT GATES -- the README.md and docs/roadmap.md claims a machine can
+      # RECOMPUTE: surface counts, the shared/Claude-only split, the three
+      # Windows-snapshot MCP-server counts, the COLLECTED policy-test count, the
+      # scholarly tool surface and its names, a stale `**Latest (DATE)**` currency
+      # banner, and the two one-sided skill-root divergence counts. Every arm ships a
+      # both-states control in the same file and fails CLOSED when its claim is deleted
+      # or made unparseable, so a green run is evidence about the documents rather than
+      # evidence that the detector stopped working.
+      #
+      # The second command is the WIRING assertion for this step: it pins the step
+      # name, both run lines, the containing job, the push-to-main trigger, and the
+      # ordering constraint below, and it carries a control that fires against the real
+      # bytes of the trigger-less workflow. It lives in ci/tests/ too, so deleting this
+      # step turns skill-dual-write.yml red on the next pull request -- the step cannot
+      # quietly un-wire itself.
+      #
+      # MUST STAY ABOVE the `setup python 3.12` step below: that action repoints the
+      # default `python`, and both commands here use a bare `python`. pytest comes from
+      # the earlier steps in this job; if that ever changes this fails loudly, not
+      # silently green.
+      #
+      # Reuses the existing `gate-tests-coverage` charter slug on purpose -- a space
+      # follows the slug, which is what .quality/charter_check.sh's reverse check
+      # matches on -- so no .quality/charter.yml edit and no new charter gate.
+      - name: gate-tests-coverage docs executable claims (README + roadmap)
+        run: |
+          python -m pytest ci/tests/test_docs_executable_claims.py -q -p no:cacheprovider
+          python -m pytest ci/tests/test_docs_gate_ci_wiring.py -q -p no:cacheprovider
+
       # abbyy and the wearables package both declare `requires-python = ">=3.12"`, so pip
       # REFUSES to install on this job's 3.11 ("requires a different Python"). They get their
       # own pinned interpreter, referenced through `outputs.python-path` rather than PATH so

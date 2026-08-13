@@ -63,12 +63,34 @@ instances were fixed by hand and no gate was shipped.
 
 WHERE IT RUNS
 -------------
+Two workflows, on purpose, because one of them was demonstrably not enough.
+
 ``.github/workflows/skill-dual-write.yml`` collects ``ci/tests`` as a DIRECTORY
 (``python -m pytest ci/tests tools/d001-dual-write/tests -q``), so this suite
-runs there with no named step. ``quality.yml`` has no tree-wide ``ci/tests``
-step -- it names its suites one at a time -- so it does NOT run this file. That
-is a disclosed residual, not an oversight: adding the named step means editing a
-workflow several lanes share.
+runs there with no named step -- but that workflow's ``on:`` block holds exactly
+one event key, ``pull_request``. Every commit in this program lands by pushing
+``main`` directly, so for its first day this gate executed on ZERO of the
+commits that shipped it. Its silence meant "never invoked", not "the docs agree
+with the tree" -- which is the same defect class the suite itself exists to
+catch, one level up.
+
+``quality.yml`` is the workflow carrying ``push: branches: [main]``. It has no
+tree-wide ``ci/tests`` step -- it names its suites one at a time -- so it now
+names this one: ``gate-tests-coverage docs executable claims (README +
+roadmap)``, in the ``test-python`` job, immediately ABOVE the ``setup python
+3.12`` pivot (that action repoints the default ``python``, and this step uses a
+bare one). ``ci/tests/test_docs_gate_ci_wiring.py`` pins that step -- its name,
+both run lines, its containing job, the push-to-main trigger and that ordering
+constraint -- and lives in ``ci/tests/`` itself, so deleting the step turns
+skill-dual-write.yml red on the next pull request instead of silently
+un-wiring this gate.
+
+Residual, disclosed rather than closed: a direct push to ``main`` that deletes
+BOTH the ``quality.yml`` step and the wiring suite is caught by nothing, because
+skill-dual-write.yml has no ``push:`` trigger either. Settling experiment (owner
+action, it widens a shared workflow's blast radius): give skill-dual-write.yml a
+``push: branches: [main]`` trigger and confirm its D-001 diff gate still behaves
+when ``--base origin/main --head HEAD`` spans an empty range.
 
 DEPENDENCY BUDGET, AND THE PROBE THAT WAS REJECTED
 --------------------------------------------------
