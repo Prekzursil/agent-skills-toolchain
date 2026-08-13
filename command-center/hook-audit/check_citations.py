@@ -15,6 +15,27 @@ with nothing watching. This gate watches. It does NOT read prose and it does NOT
 claim: for each citation it OPENS the named file, walks the named JSON path, and compares
 the resolved value to the number printed in the document.
 
+ROUND 3 -- three holes in this gate itself, each measured, each closed here:
+
+  H1 IT READ THE WORKING TREE, NEVER THE SHIPPED BLOB. `fp.read_text()` resolves the file
+     on the author's disk. A clone sees the stored blob (`git show :<path>`; `blob_json`
+     explains index-not-HEAD). Those diverge exactly when
+     the evidence is regenerated after staging -- which is how C3 shipped -- so the gate
+     was blind to the one drift direction that actually occurred. Measured 2026-08-13: the
+     gate returned SUCCESS (32/32) while `C6-GATE-EVIDENCE-SIDE.json`, a CITED evidence
+     file, differed from its own committed blob in four fields. Every citation is now
+     resolved TWICE, worktree and staged blob, and a divergence is `EVIDENCE-DRIFT`.
+  H2 THE REPO ROOT WAS A HARDCODED ABSOLUTE PATH. `REPO = Path("C:/Users/.../ast-integrate")`
+     means a run from any other checkout silently validated ast-integrate's documents
+     against ast-integrate's evidence and reported on files the caller does not have --
+     the same "read the wrong tree and still say SUCCESS" shape as the round-2 blob gate.
+     The root is now derived from this file via `git rev-parse --show-toplevel`, overridable
+     with HOOK_AUDIT_REPO, and fails closed if the two expected directories are absent.
+  H3 THE ZERO-CITATION FLOOR WAS GLOBAL, NOT PER-DOCUMENT. One annotated document satisfied
+     it for the whole directory, so `HOOK-AUDIT.md` (the round-1 deliverable, and the one
+     whose tables the verifier faulted) carried 0 citations and passed. The floor is now
+     per-document, with an explicit exemption list that must name a reason.
+
 CITATION SYNTAX -- an HTML comment next to the claim, so it renders invisibly:
 
     <!-- cite: id=C4-worst file=B6-FLEET.json path=timing.worst_pct value=17.8 tol=0.05 -->
@@ -28,31 +49,63 @@ CITATION SYNTAX -- an HTML comment next to the claim, so it renders invisibly:
          (for a number that legitimately moves between runs)
 
 DETECTOR CONTROLS (this gate is itself a detector, so it needs both states proven):
-  * fail-closed on ZERO citations found. A gate that silently passes an unannotated
-    document measures nothing -- that is the exact failure it exists to prevent.
+  * fail-closed on ZERO citations found, per document. A gate that silently passes an
+    unannotated document measures nothing -- that is the exact failure it exists to prevent.
   * `--self-test` mutates each citation's expected value and asserts the checker goes RED
     for every one. A citation the checker cannot fail is not being checked.
   * the tracked-in-git check is separate from the on-disk check, because an UNCOMMITTED
     evidence file reads as present on the author's box and is absent to everyone else --
     which is precisely how `H4-TIMING-live.json` shipped as a citation to nothing.
+  * `test_citation_gate.py` builds a throwaway git repo where the blob and the worktree
+    disagree on a cited path, and requires the PRE-ROUND-3 gate to pass it and this one to
+    fail it. Without that pairing "no drift found" would be indistinguishable from "drift
+    is not looked for".
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
 
-REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
-DOCS = REPO / "docs" / "hook-audit"
-EVID = REPO / "command-center" / "hook-audit"
+# Documents that legitimately carry no citation. Each needs a REASON: an exemption without
+# one is how a per-document floor decays back into the global floor it replaced.
+NO_CITE_EXEMPT: dict[str, str] = {}
 
 CITE = re.compile(r"<!--\s*cite:\s*(?P<body>[^>]*?)\s*-->")
-
-
 FENCE = re.compile(r"^\s*(```|~~~)")
+
+
+def repo_root() -> Path:
+    """Resolve the repo THIS FILE lives in -- never a hardcoded absolute path (H2).
+
+    Order: HOOK_AUDIT_REPO env (tests point it at a fixture) -> `git rev-parse
+    --show-toplevel` from this file's directory -> two parents up. Fails closed if the
+    result does not hold both expected directories, so a wrong root can never present as
+    a clean run.
+    """
+    env = os.environ.get("HOOK_AUDIT_REPO")
+    if env:
+        return Path(env).resolve()
+    here = Path(__file__).resolve().parent
+    try:
+        p = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            cwd=str(here),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+        )
+        if p.returncode == 0 and p.stdout.strip():
+            return Path(p.stdout.strip()).resolve()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return here.parents[1]
 
 
 def _strip_fenced(text: str) -> str:
@@ -104,26 +157,52 @@ def walk(obj, path: str):
     return cur
 
 
-def tracked(rel: Path) -> bool:
-    p = subprocess.run(
-        ["git", "ls-files", "--error-unmatch", str(rel).replace("\\", "/")],
-        cwd=str(REPO),
-        capture_output=True,
+def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args], cwd=str(repo), capture_output=True, timeout=60
     )
-    return p.returncode == 0
 
 
-def check_one(c: dict, *, mutate: bool = False) -> tuple[bool, str]:
+def tracked(repo: Path, rel: Path) -> bool:
+    return (
+        _git(
+            repo, "ls-files", "--error-unmatch", str(rel).replace("\\", "/")
+        ).returncode
+        == 0
+    )
+
+
+def blob_json(repo: Path, rel: Path) -> tuple[object | None, str]:
+    """Parse the file as the INDEX holds it -- the bytes this commit will ship (H1).
+
+    The index, not `HEAD`: the defect being caught is an evidence file regenerated after it
+    was staged, and comparing against `HEAD` would make the gate unrunnable before the
+    commit that adds new evidence (a newly staged file has no HEAD copy). For a tracked file
+    with no staged change the index copy IS the HEAD copy, so the post-commit drift case is
+    covered too. `git show :<path>` emits the stored blob; `git archive` would re-apply EOL
+    conversion on Windows and hand back CRLF, so it is not used here.
+    """
+    p = _git(repo, "show", f":{str(rel).replace(chr(92), '/')}")
+    if p.returncode != 0:
+        return None, (p.stderr or b"").decode("utf-8", "replace").strip()[:160]
+    try:
+        return json.loads(p.stdout.decode("utf-8", "replace")), ""
+    except ValueError as e:
+        return None, f"blob is not valid JSON: {e}"
+
+
+def check_one(repo: Path, c: dict, *, mutate: bool = False) -> tuple[bool, str]:
     cid = c.get("id", "?")
     where = f"{c['_src']}:{c['_line']} id={cid}"
     fname = c.get("file")
     if not fname:
         return False, f"{where} -- citation has no file="
-    fp = EVID / fname
-    rel = fp.relative_to(REPO)
+    evid = repo / "command-center" / "hook-audit"
+    fp = evid / fname
+    rel = fp.relative_to(repo)
     if not fp.is_file():
         return False, f"{where} -- evidence file MISSING on disk: {rel}"
-    if not tracked(rel):
+    if not tracked(repo, rel):
         return (
             False,
             f"{where} -- evidence file is UNTRACKED (invisible in a clone): {rel}",
@@ -139,6 +218,30 @@ def check_one(c: dict, *, mutate: bool = False) -> tuple[bool, str]:
         got = walk(blob, path)
     except (KeyError, IndexError, TypeError) as e:
         return False, f"{where} -- path {path!r} does not resolve in {fname}: {e}"
+
+    # H1: the same citation, resolved against the bytes this commit ships. A worktree-only
+    # match is what let a regenerated-after-staging evidence file pass unnoticed.
+    if not mutate:
+        shipped, err = blob_json(repo, rel)
+        if shipped is None:
+            return (
+                False,
+                f"{where} -- cited evidence is not readable from the index ({rel}): {err}",
+            )
+        try:
+            got_blob = walk(shipped, path)
+        except (KeyError, IndexError, TypeError) as e:
+            return (
+                False,
+                f"{where} -- EVIDENCE-DRIFT: {path!r} resolves in the worktree copy of "
+                f"{fname} but NOT in the staged blob this commit will ship: {e}",
+            )
+        if str(got_blob) != str(got):
+            return (
+                False,
+                f"{where} -- EVIDENCE-DRIFT: {path} is {got!r} on disk but {got_blob!r} "
+                f"in the staged blob -- a clone reads the second one",
+            )
 
     if c.get("exists", "").lower() == "true" and "value" not in c:
         return True, f"{where} -- path resolves ({path} -> {got!r})"
@@ -177,9 +280,24 @@ def main() -> int:
     )
     a = ap.parse_args()
 
+    repo = repo_root()
+    docs = repo / "docs" / "hook-audit"
+    evid = repo / "command-center" / "hook-audit"
+    if not docs.is_dir() or not evid.is_dir():
+        print(
+            f"FAILED:cite-check repo root {repo} does not hold docs/hook-audit and "
+            "command-center/hook-audit -- refusing to guess, and refusing to validate "
+            "some other checkout's files (set HOOK_AUDIT_REPO to override)"
+        )
+        return 1
+
+    md_files = sorted(docs.glob("*.md"))
     cites: list[dict] = []
-    for md in sorted(DOCS.glob("*.md")):
-        cites.extend(parse_cites(md.read_text(encoding="utf-8"), md.name))
+    per_doc: dict[str, int] = {}
+    for md in md_files:
+        got = parse_cites(md.read_text(encoding="utf-8"), md.name)
+        per_doc[md.name] = len(got)
+        cites.extend(got)
 
     if not cites:
         print(
@@ -194,7 +312,7 @@ def main() -> int:
         for c in cites:
             if c.get("exists", "").lower() == "true" and "value" not in c:
                 continue
-            ok, msg = check_one(c, mutate=True)
+            ok, msg = check_one(repo, c, mutate=True)
             if ok:
                 survived.append(msg)
         print(f"== SELF-TEST mutated {len(cites)} citations")
@@ -211,14 +329,31 @@ def main() -> int:
 
     bad = []
     for c in cites:
-        ok, msg = check_one(c)
+        ok, msg = check_one(repo, c)
         print(("   " if ok else "!! ") + msg)
         if not ok:
             bad.append(msg)
-    print(f"\n== {len(cites)} citations checked, {len(bad)} unbacked")
-    if bad:
+
+    # H3: per-DOCUMENT floor. A single annotated file used to satisfy the whole directory.
+    unannotated = []
+    for name, n in sorted(per_doc.items()):
+        if n == 0 and name not in NO_CITE_EXEMPT:
+            unannotated.append(name)
+            print(
+                f"!! {name} -- ZERO citations: this document publishes numbers no gate "
+                "checks. Annotate them, or add it to NO_CITE_EXEMPT with a reason."
+            )
+    print(
+        f"\n== docs scanned: {len(md_files)}  "
+        + ", ".join(f"{k}={v}" for k, v in sorted(per_doc.items()))
+    )
+    print(
+        f"== {len(cites)} citations checked, {len(bad)} unbacked, {len(unannotated)} unannotated doc(s)"
+    )
+    if bad or unannotated:
         print(
-            f"FAILED:cite-check {len(bad)} published number(s) not backed by evidence"
+            f"FAILED:cite-check {len(bad)} published number(s) not backed by evidence, "
+            f"{len(unannotated)} document(s) with no citation at all"
         )
         return 1
     print("SUCCESS:cite-check")

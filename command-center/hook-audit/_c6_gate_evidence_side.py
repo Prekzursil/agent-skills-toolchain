@@ -21,7 +21,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
+# Derived, not hardcoded -- an absolute path here tampers with, and reports on, whichever
+# checkout the author happened to have (the H2 defect fixed in check_citations.py round 3).
+REPO = Path(__file__).resolve().parents[2]
 GATE = REPO / "command-center" / "hook-audit" / "check_citations.py"
 TARGET = REPO / "command-center" / "hook-audit" / "N1-LIVE-STATE-E2E.json"
 

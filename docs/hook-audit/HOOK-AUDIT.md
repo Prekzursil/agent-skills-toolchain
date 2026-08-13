@@ -26,11 +26,27 @@ no verdict there may be cited.
 
 ## DoD 1 — every wired hook timed against its budget
 
-**Inventory first, fail-closed.** `_b5_settings_inventory.py`: **42 entries / 20 events**,
-across four planes — P2-direct 20, P3-agent-self 16, P1-dispatcher 4, P4-other 2. All
+**Inventory first, fail-closed.** `_b5_settings_inventory.py`:
+<!-- cite: id=R3-h-entries file=B5-SETTINGS-INVENTORY.json path=total_entries value=42 -->
+**42 entries** /
+<!-- cite: id=R3-h-events file=B5-SETTINGS-INVENTORY.json path=event_count value=20 -->
+**20 events**, across four planes — P2-direct 20, P3-agent-self 16, P1-dispatcher 4,
+P4-other 2. All
+<!-- cite: id=R3-h-declared file=B5-SETTINGS-INVENTORY.json path=declared_budget_count value=42 -->
 **42/42 carry a DECLARED timeout**, so nothing silently inherits the vendor default (600 s;
-30 s for `UserPromptSubmit`). **0 of 42** use the `if` field, **0 of 42** use exec form —
-confirming the grounding lane independently.
+30 s for `UserPromptSubmit`).
+<!-- cite: id=R3-h-if file=B5-SETTINGS-INVENTORY.json path=uses_if_field_count value=0 -->
+**0 of 42** use the `if` field,
+<!-- cite: id=R3-h-exec file=B5-SETTINGS-INVENTORY.json path=uses_exec_form_count value=0 -->
+**0 of 42** use exec form — confirming the grounding lane independently.
+
+> **ROUND 3 — this document carried ZERO citations until now.** Round 2 built
+> `check_citations.py` to stop a published number drifting from its evidence, and then
+> checked only `ROUND2-CORRECTIONS.md`: the floor was global, so one annotated file
+> satisfied it for the whole directory and the round-1 tables the verifier had just faulted
+> stayed unchecked. The floor is per-document as of round 3, which is why the numbers above
+> and the fleet counts below now carry markers. Numbers in this file that are still bare are
+> superseded ones kept deliberately as refuted wording — they are labelled as such inline.
 
 ### P1 — the 25 live dispatcher checks (in-process, mirrors `dispatch.py`)
 
@@ -109,7 +125,11 @@ do-not-fire list with that reason recorded, so re-runs do not keep re-triggering
 
 **Scope of my search, stated because it disagrees with the grounding lane.** I count only
 PATH-shaped wiring references (`.../hooks/<dir>/<file>.py` plus manifest `script` fields),
-so I find **10 dark of 73** against the grounding's **24**. Mine is **not a correction** —
+so I find
+<!-- cite: id=R3-h-dark file=B6-FLEET.json path=inertness.dirs_dark value=10 -->
+**10 dark** of
+<!-- cite: id=R3-h-dirs file=B6-FLEET.json path=inertness.dirs_total value=73 -->
+**73** against the grounding's **24**. Mine is **not a correction** —
 a hook wired by MODULE NAME rather than path is invisible to my regex, so I under-report
 wiring and could produce a false "dark". That is exactly what happened for **`checkpoint`**:
 my probe calls it dark, the grounding lane records it as P3-wired. I have **excluded
