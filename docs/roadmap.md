@@ -6,9 +6,19 @@
 - Build out the Windows-first orchestration stack on top of that existing base.
 - Keep the primary execution surfaces separated:
   - `.agents/skills/` — the canonical skill root
-  - `skills/` — the generated projection of `.agents/skills/` that ships; `scripts/sync-skills.ps1`
-    deploys from it (`sync-skills.ps1:45`) and `ci/check_skill_dual_write.py --strict-parity` holds
-    the two in lockstep, so it is a permanent surface, not a temporary compatibility layer
+  - `skills/` — the shipping projection of `.agents/skills/`; `scripts/sync-skills.ps1` deploys
+    from it (`sync-skills.ps1:45`). The projection is **not complete**: measured 2026-08-13,
+    3 skill names live only in `skills/` and 12 only in `.agents/skills/`, so each root holds
+    content the other lacks. `ci/check_skill_dual_write.py` (including `--strict-parity`) is a
+    DIFF guard over changed paths, not a tree-parity guard — it stops the divergence growing but
+    does not close the backlog, which pre-dates it (those 3 landed 2026-07-18/19, the guard
+    2026-07-21). REFUTED 2026-08-13: an earlier revision of this bullet called `skills/` "the
+    generated projection" of `.agents/skills/`, said `--strict-parity` "holds the two in
+    lockstep", and concluded it is "a permanent surface, not a temporary compatibility layer".
+    All three are false while any name is one-sided; that wording came from counting one
+    direction only. Both one-sided counts are gated by
+    `ci/tests/test_docs_executable_claims.py`, so when they reach 0 this bullet must be upgraded
+    rather than left understated.
   - `tools/mcp/`
   - `tools/web/` — reserved and currently empty; see [`tools/web/README.md`](../tools/web/README.md)
 - Retain `tools/editor/` as a bounded editor-local surface.

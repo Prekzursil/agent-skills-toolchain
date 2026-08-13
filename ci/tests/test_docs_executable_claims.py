@@ -107,6 +107,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 README_PATH = REPO_ROOT / "README.md"
+ROADMAP_PATH = REPO_ROOT / "docs" / "roadmap.md"
 SCHOLARLY = REPO_ROOT / "tools" / "scholarly-access-mcp"
 RELEASE_WINDOWS = REPO_ROOT / "release" / "platforms" / "windows"
 
@@ -598,4 +599,182 @@ def test_control_gate_fires_when_a_claim_is_deleted(
     )
     assert any("surface-row-missing" in v for v in found), (
         f"an unparseable count row left the gate silent; violations were {found!r}"
+    )
+
+
+# --------------------------------------------------------------------------
+# docs/roadmap.md: the skill-root projection claim
+#
+# Added round 3 after this lane's OWN round-1 edit was refuted. That edit called
+# ``skills/`` "the generated projection of ``.agents/skills/``", said
+# ``--strict-parity`` "holds the two in lockstep", and concluded it is "a
+# permanent surface, not a temporary compatibility layer". It was written from a
+# ONE-DIRECTIONAL count (how many names ``skills/`` has). Measured in BOTH
+# directions the roots each hold names the other lacks, so a projection claim is
+# false and the lockstep claim misreads the guard, whose own docstring says it is
+# "intentionally a DIFF guard, not a tree-parity guard".
+#
+# The arm therefore pins the two ONE-SIDED counts -- not the shared count, which
+# would change on every ordinary dual-written skill add and buy nothing: the
+# claim only becomes wrong when a name is one-sided.
+# --------------------------------------------------------------------------
+_PROJECTION_CLAIM = re.compile(
+    r"(\d+)\s+skill names live only in\s+`skills/`"
+    r"\s+and\s+(\d+)\s+only in\s+`\.agents/skills/`"
+)
+
+
+def measured_skill_root_divergence() -> dict[str, int]:
+    """Names present in exactly one skill root, measured in BOTH directions."""
+    proj = {
+        m.group(1)
+        for f in _git_ls("skills")
+        if (m := re.fullmatch(r"skills/([^/]+)/SKILL\.md", f))
+    }
+    canon = {
+        m.group(1)
+        for f in _git_ls(".agents/skills")
+        if (m := re.fullmatch(r"\.agents/skills/([^/]+)/SKILL\.md", f))
+    }
+    return {
+        "only_projection": len(proj - canon),
+        "only_canonical": len(canon - proj),
+        "projection_total": len(proj),
+        "canonical_total": len(canon),
+    }
+
+
+def roadmap_violations(roadmap: str, divergence: Mapping[str, int]) -> list[str]:
+    """Compare docs/roadmap.md's projection claim against the measured tree."""
+    bad: list[str] = []
+    match = _PROJECTION_CLAIM.search(roadmap)
+    if match is None:
+        bad.append(
+            "projection-claim-missing: docs/roadmap.md no longer states how many "
+            "skill names are one-sided. It must, while the roots diverge: "
+            f"measured only-in-skills/={divergence['only_projection']}, "
+            f"only-in-.agents/skills/={divergence['only_canonical']}."
+        )
+        return bad
+
+    claimed_proj, claimed_canon = int(match.group(1)), int(match.group(2))
+    if claimed_proj != divergence["only_projection"]:
+        bad.append(
+            f"projection-divergence: roadmap claims {claimed_proj} name(s) only in "
+            f"`skills/`, measured {divergence['only_projection']}"
+        )
+    if claimed_canon != divergence["only_canonical"]:
+        bad.append(
+            f"canonical-divergence: roadmap claims {claimed_canon} name(s) only in "
+            f"`.agents/skills/`, measured {divergence['only_canonical']}"
+        )
+    return bad
+
+
+@pytest.fixture(scope="module")
+def roadmap() -> str:
+    return ROADMAP_PATH.read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def divergence() -> dict[str, int]:
+    return measured_skill_root_divergence()
+
+
+def test_divergence_measurement_is_plausible(divergence: Mapping[str, int]) -> None:
+    """Fail closed before comparing: a collapsed pathspec must not read as parity.
+
+    Two empty sets differ by zero, which is exactly what a doc claiming perfect
+    parity wants to hear. The floors make that state loud instead of agreeable.
+    """
+    assert divergence["projection_total"] >= 100, (
+        f"skills/ measured {divergence['projection_total']} names; the pathspec "
+        "is broken, not the tree"
+    )
+    assert divergence["canonical_total"] >= 100, (
+        f".agents/skills/ measured {divergence['canonical_total']} names; the "
+        "pathspec is broken, not the tree"
+    )
+
+
+def test_roadmap_projection_claim_matches_measured_divergence(
+    roadmap: str, divergence: Mapping[str, int]
+) -> None:
+    assert roadmap_violations(roadmap, divergence) == []
+
+
+def test_control_roadmap_arm_fires_on_every_stale_divergence_count(
+    roadmap: str, divergence: Mapping[str, int]
+) -> None:
+    """Both-states control, built from the measured values so it cannot rot."""
+    for label, shifted in (
+        (
+            "projection-divergence",
+            {**divergence, "only_projection": divergence["only_projection"] + 1},
+        ),
+        (
+            "canonical-divergence",
+            {**divergence, "only_canonical": divergence["only_canonical"] + 1},
+        ),
+    ):
+        found = roadmap_violations(roadmap, shifted)
+        assert any(label in v for v in found), (
+            f"control {label}: the arm stayed silent while the measured tree "
+            f"disagreed with the doc; violations were {found!r}"
+        )
+
+
+def test_control_roadmap_arm_fires_when_the_claim_is_deleted_or_unparseable(
+    roadmap: str, divergence: Mapping[str, int]
+) -> None:
+    """A gate that can no longer find its claim must go red, not measure nothing."""
+    deleted = _PROJECTION_CLAIM.sub("the roots are in sync", roadmap)
+    found = roadmap_violations(deleted, divergence)
+    assert any("projection-claim-missing" in v for v in found), (
+        f"deleting the claim left the arm silent; violations were {found!r}"
+    )
+
+    unparseable = _PROJECTION_CLAIM.sub(
+        "a few skill names live only in `skills/` and some only in `.agents/skills/`",
+        roadmap,
+    )
+    found = roadmap_violations(unparseable, divergence)
+    assert any("projection-claim-missing" in v for v in found), (
+        f"an unparseable claim left the arm silent; violations were {found!r}"
+    )
+
+
+def test_control_roadmap_arm_distinguishes_parity_from_divergence(
+    divergence: Mapping[str, int],
+) -> None:
+    """The discriminating case: is the arm reading the CLAIM or just a number?
+
+    H1 (arm compares doc to tree): a doc asserting parity must FIRE while the
+    tree diverges, and a doc stating the true counts must stay SILENT.
+    H2 (arm merely notices digits): both look identical.
+    Only H1 can produce the asymmetry asserted below.
+    """
+    assert divergence["only_projection"] or divergence["only_canonical"], (
+        "precondition: the roots no longer diverge, so this control cannot "
+        "discriminate. Upgrade docs/roadmap.md to claim a true projection and "
+        "rewrite this control against the new claim."
+    )
+
+    claims_parity = (
+        "- `skills/` — 0 skill names live only in `skills/` and 0 only in "
+        "`.agents/skills/`, so it is a true generated projection.\n"
+    )
+    assert roadmap_violations(claims_parity, divergence), (
+        "control: a doc claiming perfect parity did not fire while the measured "
+        "tree diverges -- the arm is not comparing the claim to reality"
+    )
+
+    truthful = (
+        f"- `skills/` — {divergence['only_projection']} skill names live only in "
+        f"`skills/` and {divergence['only_canonical']} only in "
+        "`.agents/skills/`, so the projection is not complete.\n"
+    )
+    assert roadmap_violations(truthful, divergence) == [], (
+        "control: the arm fired on a doc that states the measured truth, so it "
+        "flags the presence of numbers rather than their correctness"
     )
