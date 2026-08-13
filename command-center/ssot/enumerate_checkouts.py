@@ -147,23 +147,59 @@ def walk_for_git() -> list[str]:
     return found
 
 
-def classify(path: str, reach: set[str]) -> dict:
-    origin = git(path, "config", "--get", "remote.origin.url")
-    common = git(path, "rev-parse", "--path-format=absolute", "--git-common-dir")
+def cheap_origin_and_common(path: str) -> tuple[str, str]:
+    """origin URL + git-common-dir WITHOUT spawning git.
 
-    # --- signal 1: NAME (the inventory's original test)
+    `full-sweep.json` records 911 git checkouts on this box. At ~6 spawns each that is the
+    difference between a minute and a timeout on Windows, so the two values the NAME signal
+    needs are read straight off disk:
+      .git as a FILE -> 'gitdir: <path>' (a linked worktree; strip /worktrees/<name>)
+      .git as a DIR  -> the store is that dir
+    and the origin URL is parsed out of <store>/config.
+    """
+    p = Path(path)
+    dotgit = p / ".git"
+    common, cfg = "", None
+    try:
+        if dotgit.is_file():
+            txt = dotgit.read_text(encoding="utf-8", errors="replace").strip()
+            if txt.startswith("gitdir:"):
+                gd = Path(txt.split(":", 1)[1].strip())
+                common = (
+                    str(gd.parent.parent) if gd.parent.name == "worktrees" else str(gd)
+                )
+                cfg = Path(common) / "config"
+        elif dotgit.is_dir():
+            common, cfg = str(dotgit), dotgit / "config"
+    except OSError:
+        pass
+
+    origin = ""
+    try:
+        if cfg and cfg.is_file():
+            in_origin = False
+            for line in cfg.read_text(encoding="utf-8", errors="replace").splitlines():
+                s = line.strip()
+                if s.startswith("["):
+                    in_origin = (
+                        s.replace(" ", "").lower().startswith('[remote"origin"]')
+                    )
+                elif in_origin and s.lower().startswith("url") and "=" in s:
+                    origin = s.split("=", 1)[1].strip()
+                    break
+    except OSError:
+        pass
+    return origin, common.replace("\\", "/")
+
+
+def classify(path: str, reach: set[str], full: bool = False) -> dict:
+    """Signals cheapest-first: only a repo no zero-spawn signal decided pays a spawn."""
+    origin, common = cheap_origin_and_common(path)
+
+    # --- signal 1: NAME (the inventory's original test) -- 0 spawns
     sig_name = TARGET in origin.lower() or TARGET in common.lower()
 
-    # --- signal 2: HISTORY (root commit present in this store)
-    sig_history = (
-        subprocess.run(
-            ["git", "-C", path, "cat-file", "-e", ROOT_COMMIT],
-            capture_output=True,
-        ).returncode
-        == 0
-    )
-
-    # --- signal 3: CONTENT (sentinel working-tree blobs live in canonical)
+    # --- signal 3: CONTENT (sentinel blobs live in canonical) -- 0 spawns
     hits, checked = [], 0
     for s in SENTINELS:
         f = Path(path) / s
@@ -176,21 +212,47 @@ def classify(path: str, reach: set[str]) -> dict:
             pass
     sig_content = len(hits) > 0
 
-    return {
+    # --- signal 2: HISTORY -- 1 spawn, and ONLY when still undecided.
+    # Recorded as None (unmeasured) rather than False when skipped, so a later reader
+    # cannot mistake "not needed" for "measured and negative".
+    if sig_name or sig_content:
+        sig_history = None
+    else:
+        sig_history = (
+            subprocess.run(
+                ["git", "-C", path, "cat-file", "-e", ROOT_COMMIT], capture_output=True
+            ).returncode
+            == 0
+        )
+
+    row = {
         "path": path,
         "origin": origin,
-        "git_common_dir": common.replace("\\", "/"),
+        "git_common_dir": common,
         "dotgit": "DIR" if (Path(path) / ".git").is_dir() else "FILE",
-        "branch": git(path, "rev-parse", "--abbrev-ref", "HEAD"),
-        "head": git(path, "rev-parse", "HEAD"),
-        "commits": git(path, "rev-list", "--count", "HEAD") or "0",
         "sig_name": sig_name,
         "sig_history": sig_history,
         "sig_content": sig_content,
         "content_hits": hits,
         "sentinels_checked": checked,
-        "belongs": sig_name or sig_history or sig_content,
+        "belongs": bool(sig_name or sig_history or sig_content),
     }
+    if full and row["belongs"]:
+        row["branch"] = git(path, "rev-parse", "--abbrev-ref", "HEAD")
+        row["head"] = git(path, "rev-parse", "HEAD")
+        row["commits"] = git(path, "rev-list", "--count", "HEAD") or "0"
+        row["dirty"] = len(
+            [x for x in git(path, "status", "--porcelain", "-uall").splitlines() if x]
+        )
+        if row["sig_history"] is None:
+            row["sig_history"] = (
+                subprocess.run(
+                    ["git", "-C", path, "cat-file", "-e", ROOT_COMMIT],
+                    capture_output=True,
+                ).returncode
+                == 0
+            )
+    return row
 
 
 def main() -> int:
@@ -221,9 +283,19 @@ def main() -> int:
         return 3
 
     found = walk_for_git()
-    print(f"filesystem sweep: {len(found)} git checkouts under {ROOTS}")
+    print(f"filesystem sweep: {len(found)} git checkouts under {ROOTS}", flush=True)
+    # Persist the walk: `full-sweep.json` recorded "911 scanned" but discarded the paths,
+    # so the expensive part could not be reused. It can now.
+    (OUT.parent / "walk-paths.json").write_text(
+        json.dumps({"roots": ROOTS, "maxdepth": MAXDEPTH, "paths": found}, indent=2),
+        encoding="utf-8",
+    )
 
-    rows = [classify(p, reach) for p in found]
+    rows = []
+    for i, p in enumerate(found, 1):
+        rows.append(classify(p, reach, full=True))
+        if i % 100 == 0:
+            print(f"  classified {i}/{len(found)}", flush=True)
     mine = [r for r in rows if r["belongs"]]
 
     # by-signal breakdown -- this is what makes the enumeration defect legible
