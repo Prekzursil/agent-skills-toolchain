@@ -23,8 +23,8 @@
       "verdict": "CONFIRMED",
       "band": "almost-certain",
       "source_probe": "python tools/command-center/validate.py -> SUCCESS:cc-validate items=103 open=69 reachable=all",
-      "verifier_probe": "Fourteen mutated-catalog tests prove each check can go RED (dangling dep, cycle, closed-depends-on-open, dead end, phantom gate, evidence-free disposition, dropped item, tampered snapshot, stale graph, duplicate id, malformed id, empty catalog). A green detector never shown red measures nothing.",
-      "evidence": "tools/command-center/tests/test_validate.py, 23 tests"
+      "verifier_probe": "Seventeen mutated-catalog tests prove each check can go RED (dangling dep, cycle, closed-depends-on-open, dead end, phantom gate, evidence-free disposition, dropped item, tampered snapshot, blank register digest, deleted register digest, stale graph, duplicate id, malformed id, empty catalog). A green detector never shown red measures nothing -- and, as CC-11 records, neither does one that was only ever shown a WRONG input and never a MISSING one.",
+      "evidence": "tools/command-center/tests/test_validate.py, 26 tests"
     },
     {
       "id": "CC-3",
@@ -100,6 +100,25 @@
       "verifier_probe": null,
       "evidence": "This lane wrote only to the repo, which is the source of truth. No deploy was run: sync-from-live.ps1 is forbidden here and install.py was not run in deploy mode.",
       "settling_experiment": "install.py --check, or a sha256 compare of agent-self/harness against ~/.agents/harness"
+    },
+    {
+      "id": "CC-11",
+      "claim": "REACH-6 could be switched off by deleting a single field, and the gate would still print SUCCESS. Fixed 2026-08-13: validate.py now fails closed when provenance.register_sha256 is missing or empty.",
+      "verdict": "CONFIRMED",
+      "band": "almost-certain",
+      "source_probe": "in-process -- validate.validate() over deepcopies of the real catalog: register_sha256='' gave 0 violations and the key deleted gave 0 violations, while the control (one hex character flipped) gave 1 and provenance={} gave 1. The baseline was clean first, so this was not a dirty tree. Probe: scratch/integrate_reach6_blank_probe.py",
+      "verifier_probe": "out-of-process -- the real CLI graded on process EXIT CODE against a tmp catalog passed with --catalog, run UNCHANGED in both states: before the fix blank and deleted both exited 0 printing 'SUCCESS:cc-validate items=103 open=58 reachable=all'; after the fix both exit 1, while good stayed 0 and the wrong-digest control stayed 1. Probe: scratch/integrate_reach6_cli_redproof.py",
+      "evidence": "tests/test_validate.py::test_detects_a_blank_register_digest, ::test_detects_a_deleted_register_digest, ::test_cli_fails_closed_on_a_blank_register_digest -- registered as TI-9. Red-proofed in a throwaway `core.autocrlf=false` clone (the LF bytes ubuntu-latest checks out), with the pre-fix state taken from git HEAD rather than hand-reverted: exactly those three fail there (3 failed, 23 passed) and all 26 pass against the fixed file, so they are neither vacuous nor Windows-only. Blast radius traced rather than assumed: this short-circuit shape occurs at exactly one other site, validate.py:303, which is gated on an explicit CLI flag by design, not on a recorded value -- see CC-12."
+    },
+    {
+      "id": "CC-12",
+      "claim": "V-FIELDS -- 'all 19 Prompt Two fields resolve per item', listed as a check in validate.py's own docstring -- is enforced in CI.",
+      "verdict": "REFUTED",
+      "band": "almost-certain",
+      "source_probe": "validate.py:303 runs V-FIELDS only `if unresolved and require_complete`, and grep over .github/workflows/*.yml, tools/command-center/*.py and command-center/*.py returns the flag's definition (:340) and plumbing (:85, :303, :367) and NO caller. quality.yml:436 invokes `python tools/command-center/validate.py` bare.",
+      "verifier_probe": "ran the flag directly -- `python tools/command-center/validate.py --require-complete` -> 'work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133', SUCCESS. A check that reports 0 unresolved is one nobody has been paying for, which is consistent with it never having run.",
+      "evidence": "Found while tracing CC-11's blast radius; deliberately NOT fixed here. Adding `--require-complete` to quality.yml:436 is free TODAY (0 unresolved) but quality.yml is the shared file this wave was warned about, and the 1133 fields resolving 'from defaults' means the check is weaker than its docstring sentence implies -- whether that is acceptable is the catalog owner's call, not a drive-by from the CI lane.",
+      "settling_experiment": "already run (see verifier_probe). The remaining open question is a decision, not a measurement: accept 1133 default-resolved fields and wire the flag, or tighten the defaults first."
     }
   ]
 }

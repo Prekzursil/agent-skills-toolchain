@@ -5,10 +5,10 @@
   "suites": [
     {
       "path": "tools/command-center/tests/test_validate.py",
-      "tests": 23,
+      "tests": 26,
       "ci_step": "gate-tests-coverage command-center",
       "protects": "the reachability contract: every item reaches a final disposition",
-      "red_proof": "14 of the 23 mutate the catalog first (dangling dependency, cycle, closed-item-depends-on-open, dead end, phantom owner gate, already-answered gate, evidence-free disposition, non-terminal disposition, dropped item, tampered register snapshot, missing snapshot, stale graph, duplicate id, malformed id, empty catalog) and assert the specific check fires."
+      "red_proof": "17 of the 26 mutate the catalog or its recorded inputs first (dangling dependency, cycle, closed-item-depends-on-open, dead end, phantom owner gate, already-answered gate, evidence-free disposition, non-terminal disposition, dropped item, tampered register snapshot, missing snapshot, blank register digest, deleted register digest, stale graph, duplicate id, malformed id, empty catalog) and assert the specific check fires. The digest pair was added 2026-08-13 after REACH-6 was measured fail-OPEN on them: mutating a value the gate COMPARES was covered, deleting the value it compares AGAINST was not, and the CLI printed SUCCESS:cc-validate ... reachable=all with the check switched off. See TI-9 and CLAIM-REGISTRY CC-11."
     },
     {
       "path": "tools/command-center/tests/test_close.py",
@@ -104,6 +104,16 @@
       "why": "A register you cannot finish is a register that gets abandoned.",
       "tests": [
         "test_closing_every_open_item_leaves_a_valid_catalog"
+      ]
+    },
+    {
+      "id": "TI-9",
+      "invariant": "A check cannot be silently switched off by deleting its own recorded input.",
+      "why": "REACH-6 read `if recorded and digest != recorded`, so blanking or deleting provenance.register_sha256 turned the snapshot-integrity comparison off while the CLI still printed `SUCCESS:cc-validate items=103 open=58 reachable=all`. Measured 2026-08-13 on two mechanically independent instruments -- in-process validate() returned 0 violations and the CLI exited 0 for both the blank and the deleted key, while the control (one hex character flipped) returned 1 violation and exit 1 on both -- so the silence was a property of the code, not a broken probe. TI-7 did not cover it: it mutates the SNAPSHOT, not the recorded digest. Deleting the whole provenance block was already caught (the snapshot path stops resolving), so only the surgical single-field edit was fail-open -- and that is the edit a hurried fix reaches for when REACH-6 goes red, the gate that held gate-tests-coverage (python packages) red for 98 commits.",
+      "tests": [
+        "test_detects_a_blank_register_digest",
+        "test_detects_a_deleted_register_digest",
+        "test_cli_fails_closed_on_a_blank_register_digest"
       ]
     }
   ],

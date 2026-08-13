@@ -228,7 +228,38 @@ def validate(
         raw = snapshot.read_bytes().replace(b"\r\n", b"\n")
         digest = hashlib.sha256(raw).hexdigest()
         recorded = str(provenance.get("register_sha256", ""))
-        if recorded and digest != recorded:
+        if not recorded:
+            # FAIL CLOSED -- this module's own docstring above and
+            # `rules/common/ci-hygiene.md` section 1 both require it, and until
+            # 2026-08-13 this branch did not exist. The test read
+            # `if recorded and digest != recorded`, so a BLANK or DELETED
+            # register_sha256 short-circuited the comparison and the CLI printed
+            # `SUCCESS:cc-validate items=103 open=58 reachable=all` while the
+            # digest check had not run at all.
+            #
+            # Measured on two mechanically independent instruments before the fix:
+            # in-process validate() gave 0 violations and the CLI exited 0 for BOTH
+            # `register_sha256: ""` and the key deleted, while the control (one hex
+            # character flipped) gave 1 violation and exit 1 on both -- so the
+            # silence was a property of the code, not a broken probe. Deleting the
+            # WHOLE provenance block was already caught; deleting just this field
+            # was not, and that asymmetry is why it survived: the surgical edit is
+            # exactly the one a hurried fix reaches for when REACH-6 goes red, which
+            # is the gate that held `gate-tests-coverage (python packages)` red for
+            # 98 commits.
+            #
+            # Red-proof: tests/test_validate.py::test_detects_a_blank_register_digest
+            # and ::test_detects_a_deleted_register_digest. Revert this branch and
+            # exactly those two go red.
+            violations.append(
+                Violation(
+                    "REACH-6",
+                    "-",
+                    "provenance.register_sha256 is missing or empty -- the snapshot "
+                    "digest check cannot run, so REACH-6 fails closed",
+                )
+            )
+        elif digest != recorded:
             violations.append(
                 Violation(
                     "REACH-6",

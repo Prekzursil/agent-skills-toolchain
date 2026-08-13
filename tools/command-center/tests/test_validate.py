@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import catalog as cat
@@ -248,6 +250,75 @@ def test_detects_a_missing_register_snapshot(real, tmp_path: Path):
         entry["check"] == "REACH-6" and "missing" in entry["detail"]
         for entry in violations
     )
+
+
+def test_detects_a_blank_register_digest(real):
+    """The fail-OPEN this module's own docstring said could not exist.
+
+    Until 2026-08-13 validate.py read `if recorded and digest != recorded`, so a falsy
+    `provenance.register_sha256` short-circuited the comparison: REACH-6 stopped checking
+    and the gate reported success. Measured before the fix on two mechanically independent
+    instruments -- in-process `validate()` returned 0 violations, and the CLI exited 0 --
+    while the control (one hex character flipped,
+    `test_detects_a_tampered_register_snapshot`) fired on both, so the silence was a
+    property of the code and not a broken probe.
+
+    What made it survive is the asymmetry: blanking the WHOLE `provenance` block was
+    already caught (the snapshot path stops resolving), so a coarse mutation test would
+    have passed and recorded the branch as covered. Only the surgical edit is fail-open --
+    and the surgical edit is the one a hurried fix reaches for when REACH-6 goes red, which
+    is the gate that held `gate-tests-coverage (python packages)` red for 98 commits.
+    """
+    bad = copy.deepcopy(real)
+    bad["provenance"]["register_sha256"] = ""
+    violations, _ = val.validate(bad)
+    assert any(
+        entry["check"] == "REACH-6" and "missing or empty" in entry["detail"]
+        for entry in violations
+    )
+
+
+def test_detects_a_deleted_register_digest(real):
+    """The same fail-open reached by deleting the key instead of blanking it."""
+    bad = copy.deepcopy(real)
+    del bad["provenance"]["register_sha256"]
+    violations, _ = val.validate(bad)
+    assert any(
+        entry["check"] == "REACH-6" and "missing or empty" in entry["detail"]
+        for entry in violations
+    )
+
+
+def test_cli_fails_closed_on_a_blank_register_digest(real, tmp_path: Path):
+    """End to end on the surface CI actually grades: the process exit code and marker.
+
+    The two tests above prove `validate()` returns a violation. This one proves the thing
+    that was actually lying. Before the fix this exact invocation exited 0 and printed
+    `SUCCESS:cc-validate items=103 open=58 reachable=all` -- a green terminal marker
+    claiming `reachable=all` from a run in which the digest comparison never executed.
+
+    Deliberately a subprocess against a tmp_path catalog: it is the only assertion here
+    that would still catch a regression introduced in `main()` rather than in `validate()`,
+    and it never writes to the committed catalog.
+    """
+    bad = copy.deepcopy(real)
+    bad["provenance"]["register_sha256"] = ""
+    catalog_file = tmp_path / "WORK-UNIT-CATALOG.json"
+    catalog_file.write_text(
+        json.dumps(bad, indent=1, ensure_ascii=False), encoding="utf-8", newline=""
+    )
+    proc = subprocess.run(
+        [sys.executable, val.__file__, "--catalog", str(catalog_file)],
+        cwd=str(cat.repo_root()),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    out = (proc.stdout or "") + (proc.stderr or "")
+    assert proc.returncode == 1, out
+    assert "SUCCESS:cc-validate" not in out, out
+    assert "REACH-6" in out, out
 
 
 def test_detects_a_stale_dependency_graph(real, real_graph):
