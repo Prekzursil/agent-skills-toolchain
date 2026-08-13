@@ -1,5 +1,12 @@
 # MCPRESEARCH round 3 — defect closure ledger
 
+> **PARTIALLY REFUTED BY ROUND 4.** A verifier confirmed that this document's line-endings
+> paragraph states a falsehood: the `.md`/`.json` blobs do **not** carry CRLF, and `278` /
+> `840` are LINE counts. The refuted text is preserved in place, in a blockquote, with the
+> correction beneath it — see *"A control that disagreed — and the round-4 correction"*.
+> Everything else here (E1/E2/E3 and the nine gates) survived independent re-execution.
+> Full ledger: [`ROUND4-DEFECT-CLOSURE.md`](ROUND4-DEFECT-CLOSURE.md).
+
 Measured 2026-08-13, worktree `C:/Users/Prekzursil/source/ast-integrate`.
 Companion to `MCP-CAPABILITY-AND-DISPOSITION.md` §11 and `ROUND2-DEFECT-CLOSURE.md`.
 One row per defect, each **reproduced against a pinned commit first**, then fixed, then
@@ -215,22 +222,47 @@ three gates: `python gate.py | tail -6; echo $?` reports **`tail`'s** exit statu
 gate's — a red gate reads as green. `_r3_gate_sweep.py` exists so every number in the next
 section is a captured `returncode`.
 
-### A control that disagreed, resolved by a second control instead of by a finding
+### A control that disagreed — and the round-4 correction (this section was REFUTED)
 
-Checking line endings on this round's blobs I used round 2's `README.md | 328 CRLF` row as
-the positive control. It measured **0**. One reading short of writing up "round 2's CRLF
-table is wrong", which would have been false. A second, mechanically identical control on a
-different file settled it: `AGENTS.md` reads **112**, *exactly* round 2's number, so the
-detector fires and agrees. `git log -- README.md` names the cause — sibling commit
-`7aa86f16` rewrote that file to LF between the two rounds. A single control that has itself
-changed is not evidence about the instrument.
+> **REFUTED in round 4. The two paragraphs below are preserved verbatim because they are
+> the evidence, and deleting a wrong sentence is how a lane loses the ability to see its
+> own failure mode. Read the correction that follows them; do not cite them.**
+>
+> Checking line endings on this round's blobs I used round 2's `README.md | 328 CRLF` row
+> as the positive control. It measured **0**. One reading short of writing up "round 2's
+> CRLF table is wrong", which would have been false. A second, mechanically identical
+> control on a different file settled it: `AGENTS.md` reads **112**, *exactly* round 2's
+> number, so the detector fires and agrees. `git log -- README.md` names the cause —
+> sibling commit `7aa86f16` rewrote that file to LF between the two rounds. A single
+> control that has itself changed is not evidence about the instrument.
+>
+> Line endings on this round's blobs, for the record: every `.py` blob is **0 CRLF** (blob
+> gate, both commits), while the `.md`/`.json` blobs carry CRLF
+> (`ROUND3-DEFECT-CLOSURE.md` 278, `disposition.json` 840) — the repo-wide pre-existing
+> condition round 2 documented.
 
-Line endings on this round's blobs, for the record: every `.py` blob is **0 CRLF** (blob
-gate, both commits), while the `.md`/`.json` blobs carry CRLF (`ROUND3-DEFECT-CLOSURE.md`
-278, `disposition.json` 840) — the repo-wide pre-existing condition round 2 documented.
-`.gitattributes` pins only `*.sh eol=lf` and `*.ps1 eol=crlf`, so `.md`/`.json` take
-whatever the Windows working tree holds. Unchanged, and still not this lane's to fix: it
-needs an edit to a shared file plus a normalisation pass across every lane.
+**What was actually true.** The first reading was CORRECT and the second control talked me
+out of it. `AGENTS.md` has **112 LF lines and 0 CRLF**; `README.md` has **328 LF lines and
+0 CRLF**. Comparing a line count against a line count and calling the agreement a fired
+detector is precisely the control-that-cannot-distinguish shape this lane had already
+committed twice — the third instance, and the only one that shipped a false statement of
+fact. `278` and `840` are the exact LINE counts of those two blobs. The `7aa86f16`
+attribution is also wrong: that commit is *"docs: repair a decapitated README section"*
+(+7/-3 on README.md), not an EOL rewrite, and README.md is `i/lf` on both sides of it.
+
+**Scoped replacement.** `README.md` and `AGENTS.md` are CRLF in the WORKING TREE (`w/crlf`)
+but LF in the committed blob (`i/lf`). Every blob this lane committed — `.py`, `.md` and
+`.json` alike — is **0 CRLF**, which is what CI reads. `.gitattributes` pins only `*.sh`
+and `*.ps1`, so the worktree is unnormalised, but no committed byte is affected. There is
+therefore **no `.md`/`.json` CRLF condition to fix**, in this lane or repo-wide.
+
+Measured by `_r4_eol_probe.py`, whose PART A is the control round 3 never ran: a
+purpose-built repo with a genuinely-CRLF blob, read back through the identical
+`git show` call, returns `(3 CRLF, 3 LF)`. Without that, a reading of 0 could equally have
+meant "`git show` normalises" — and that ambiguity is what produced the false sentence.
+Second instrument, mechanically independent: `git ls-files --eol` reports **0 of this
+lane's 40 indexed paths** as `i/crlf`, with its own control (127 of 135 `*.ps1` read
+`w/crlf`, so the parser can see `crlf` when it is there).
 
 ---
 
@@ -288,8 +320,8 @@ after: `in_scope=0`, repo-wide 39 **at that instant** (a moving target — see �
   second instance (compare pids); whether the three playwright rails differ BEHAVIOURALLY
   (name identity is measured, behaviour is not — which is why they are INVESTIGATE).
 * **Unchanged from earlier rounds, still open** — the `mcpctl` precedence question, the
-  bytes-vs-tokens reconciliation with `impact.py`, the `searxng` disable (a config
-  mutation, recommended only), and the `.md`/`.json` CRLF condition (repo-wide,
-  pre-existing, needs `.gitattributes` — a shared file).
+  bytes-vs-tokens reconciliation with `impact.py`, and the `searxng` disable (a config
+  mutation, recommended only). ~~the `.md`/`.json` CRLF condition~~ — **struck in round 4:
+  there is no such condition; every committed blob is 0 CRLF. See the correction above.**
 * **Explicitly NOT claimed** — that CI is green. Two gates were verified over the committed
   blobs; the other ~23 steps were not run.

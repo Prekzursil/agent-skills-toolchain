@@ -504,3 +504,20 @@ INVESTIGATE 2 / KEEP 20.
 One hypothesis was **REFUTED** and is recorded rather than dropped: the round-1 and round-2
 sweeps are byte-identical on every cost field (707 tools / 11,645 name B / 603,233 schema B
 on both), so no doc figure was stale.
+
+## 13. Round-4 defect closure — the one claim that was simply untrue
+
+The settling experiment named in §12 was run again, and this time the verifier's report
+reached the build lane. Full ledger:
+[`ROUND4-DEFECT-CLOSURE.md`](ROUND4-DEFECT-CLOSURE.md).
+
+| # | what round 3 shipped | verdict | what changed |
+|---|---|---|---|
+| F1 | *"the `.md`/`.json` blobs carry CRLF (`ROUND3-DEFECT-CLOSURE.md` 278, `disposition.json` 840)"* | **CONFIRMED, a false statement of fact** — both blobs are 0 CRLF and both numbers are exact LINE counts | corrected in both docs with the refuted wording preserved in blockquotes; `_r4_eol_probe.py` proves `git show` returns CRLF when a blob has it, so a 0 reading now means something |
+| F2 | *"AGENTS.md reads 112, exactly round 2's number, so the detector fires and agrees"*, plus the `7aa86f16` attribution | **CONFIRMED overclaim** — a line count agreeing with a line count; round 3's discarded FIRST reading was the correct one, and `7aa86f16` is a prose repair, not an EOL rewrite | correction shipped beneath the preserved text; `_r4_redproof.py` distinguishes an assertion from a quoted mention, so preserving the refuted wording cannot keep the check red |
+| F3 | `dod1()` checked fields per row but never set membership; `main()` failed closed only below 20 of 23 rows | **CONFIRMED latent** — three mounted servers could vanish with DoD1 still PASS | pinned `EXPECTED_MOUNTED` floor (23 names, two independent sources); new `drop-a-mounted-row` control fires; round-3's own `dod1`, executed from its commit, is 0-problems blind on the same input |
+| F1b | round 2's five-row "CRLF lines" table — the claim's **origin**, not named by the verifier | **CONFIRMED, same defect** — 0 of 5 are CRLF counts | refuted in place with a measured replacement table |
+
+Verdicts unchanged a fourth time: **DISABLE 1 / INVESTIGATE 2 / KEEP 20.** Every round so
+far has been a disclosure or gate fix; no measurement of the fleet itself has moved since
+round 1.

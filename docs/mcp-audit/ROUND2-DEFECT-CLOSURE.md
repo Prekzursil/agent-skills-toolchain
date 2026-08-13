@@ -245,33 +245,73 @@ single DISABLE).
 
 ---
 
-## Observed while gating, NOT this lane's to fix: `.md` / `.json` blobs store CRLF
+## REFUTED IN ROUND 4 — this section's `.md` / `.json` CRLF table was line counts
 
-The blob gate checks CRLF on `.py` only, so the third round-2 commit (JSON + Markdown, no
-Python) made it **fail closed** — correctly, there was nothing for it to lint. Checking the
-other blobs by hand turned up CRLF, so I controlled it before calling it anything:
+**The whole section below is wrong and is kept verbatim as the origin of a defect that
+then propagated into round 3.** Round 4 re-measured every number in it with a detector
+whose positive control fires (`_r4_eol_probe.py`): **0 of the 5 numbers is a CRLF count,
+and 4 of the 5 are the exact LINE count of that blob.** No blob in the table carries a
+single CR byte. The fifth (`248` for this file) is the line count this file had at
+`959f783f`, one commit before the table shipped — the number was taken and the document
+kept growing.
 
-| blob | CRLF lines | authored by |
-|---|---|---|
-| `docs/mcp-audit/ROUND2-DEFECT-CLOSURE.md` | 248 | this lane |
-| `command-center/mcp-audit/ruff-census.json` | 28 | this lane |
-| `docs/mcp-audit/MCP-FLEET-AUDIT.md` | 355 | the grounding lane |
-| `README.md` | 328 | pre-existing |
-| `AGENTS.md` | 112 | pre-existing |
+Nothing downstream of this section moves: it never fed a disposition, a cost figure or a
+gate. What it did feed was round 3's line-endings paragraph, which repeated the same claim
+and which a verifier caught. The corrected statement is in `ROUND3-DEFECT-CLOSURE.md` under
+*"A control that disagreed — and the round-4 correction"*, and in full in
+`ROUND4-DEFECT-CLOSURE.md`. (This paragraph deliberately does **not** restate the refuted
+sentence in its own voice: `_r4_redproof.py` treats any unquoted occurrence as an assertion,
+and it flagged an earlier draft of this very paragraph for doing so.)
 
-`README.md` and `AGENTS.md` were never touched by this lane, so **CRLF in `.md`/`.json`
-blobs is a repo-wide pre-existing condition, not something round 2 introduced** — and it is
-not a reader artifact either: `git show` and `git cat-file` both report 248 on the same
-file. `.gitattributes` pins only `*.sh eol=lf` and `*.ps1 eol=crlf`; `.md` and `.json` are
-unpinned, so a Windows checkout commits whatever the working tree holds.
+> ### Observed while gating, NOT this lane's to fix: `.md` / `.json` blobs store CRLF
+>
+> The blob gate checks CRLF on `.py` only, so the third round-2 commit (JSON + Markdown,
+> no Python) made it **fail closed** — correctly, there was nothing for it to lint.
+> Checking the other blobs by hand turned up CRLF, so I controlled it before calling it
+> anything:
+>
+> | blob | CRLF lines | authored by |
+> |---|---|---|
+> | `docs/mcp-audit/ROUND2-DEFECT-CLOSURE.md` | 248 | this lane |
+> | `command-center/mcp-audit/ruff-census.json` | 28 | this lane |
+> | `docs/mcp-audit/MCP-FLEET-AUDIT.md` | 355 | the grounding lane |
+> | `README.md` | 328 | pre-existing |
+> | `AGENTS.md` | 112 | pre-existing |
+>
+> `README.md` and `AGENTS.md` were never touched by this lane, so **CRLF in `.md`/`.json`
+> blobs is a repo-wide pre-existing condition, not something round 2 introduced** — and it
+> is not a reader artifact either: `git show` and `git cat-file` both report 248 on the
+> same file. `.gitattributes` pins only `*.sh eol=lf` and `*.ps1 eol=crlf`; `.md` and
+> `.json` are unpinned, so a Windows checkout commits whatever the working tree holds.
+>
+> **Every `.py` blob this lane committed is 0 CRLF** (verified by the blob gate on both
+> Python-bearing commits), which is what the ruff/CI surface actually reads. Fixing the
+> `.md`/`.json` case means editing `.gitattributes` — a shared file, and a normalisation
+> pass that would rewrite thousands of lines across every lane. Reported for the
+> orchestrator, deliberately not done here. **UNVERIFIED:** whether any CI step is
+> sensitive to `.md`/`.json` line endings; settling experiment is a CI run over a
+> deliberately LF-normalised copy of one such file.
 
-**Every `.py` blob this lane committed is 0 CRLF** (verified by the blob gate on both
-Python-bearing commits), which is what the ruff/CI surface actually reads. Fixing the
-`.md`/`.json` case means editing `.gitattributes` — a shared file, and a normalisation pass
-that would rewrite thousands of lines across every lane. Reported for the orchestrator,
-deliberately not done here. **UNVERIFIED:** whether any CI step is sensitive to `.md`/
-`.json` line endings; settling experiment is a CI run over a deliberately LF-normalised
-copy of one such file.
+Measured replacement, at the revision that shipped each number:
+
+| blob | said | CRLF | lines | verdict |
+|---|---|---|---|---|
+| `ROUND2-DEFECT-CLOSURE.md` @ `2caafe53` | 248 | **0** | 276 | line count, taken at `959f783f` (248) |
+| `ruff-census.json` @ `2caafe53` | 28 | **0** | 28 | exact line count |
+| `MCP-FLEET-AUDIT.md` @ `2caafe53` | 355 | **0** | 355 | exact line count |
+| `README.md` @ `2caafe53` | 328 | **0** | 328 | exact line count |
+| `AGENTS.md` @ `2caafe53` | 112 | **0** | 112 | exact line count |
+
+`README.md` and `AGENTS.md` *are* CRLF in the **working tree** — and for a fully-CRLF file
+the CRLF count and the line count are the same number, which is exactly why the mistake
+survived a control. That coincidence holds for those two rows and not for the three
+lane-authored ones, whose worktree copies are LF and which therefore can only ever have
+been line counts.
+
+**The one sentence in the section above that was right:** every `.py` blob this lane
+committed is 0 CRLF. So is every `.md` and `.json` blob. There is no `.gitattributes` work
+to hand the orchestrator, and the "UNVERIFIED: is CI sensitive to `.md`/`.json` line
+endings" question is **moot**, not open — no committed byte differs.
 
 ## Confidence
 

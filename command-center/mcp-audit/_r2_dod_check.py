@@ -32,6 +32,50 @@ REPO = pathlib.Path(__file__).resolve().parents[2]
 DISP = "command-center/mcp-audit/disposition.json"
 REVERSIBLE = {"KEEP", "DISABLE", "INVESTIGATE"}
 
+# ROUND 4, closing a gap a verifier found LATENT: dod1() checked fields per row but never
+# SET MEMBERSHIP, and main() failed closed only below 20 rows -- so silently dropping up
+# to 3 mounted servers would still print "DoD1 PASS  inventory: scope + source file per
+# row".  Every surviving row would be well-formed; the missing ones simply would not be
+# asked about.  That is DoD1's actual promise ("EVERY mounted server inventoried"), so the
+# gate has to be able to notice an absence, not just malformed presence.
+#
+# PINNED 2026-08-13 from two mechanically independent sources that agree exactly:
+#   (a) the 23 `mcp__<name>__*` namespaces the harness exposed to this session, and
+#   (b) the 23 rows of the committed capability-matrix.json.
+# LIMITATION, stated because a gate that hides one is worse than no gate: a committed blob
+# cannot know what is mounted TODAY, so this is a FLOOR.  A newly mounted server does not
+# red the gate (it should be added, but its absence is an inventory gap this artifact
+# cannot self-detect); a server disappearing DOES.  Retiring one legitimately therefore
+# requires editing this constant in the same commit -- which is the point: a deliberate,
+# reviewable line in a diff instead of a silent shrink.
+EXPECTED_MOUNTED = frozenset(
+    {
+        "agent-mail",
+        "angr",
+        "basic-memory",
+        "brightdata",
+        "chrome-devtools",
+        "claude-code-mcp",
+        "cloud-hub",
+        "codex",
+        "context7",
+        "deepwiki",
+        "figma",
+        "frida-mcp",
+        "github",
+        "huggingface",
+        "paper-search",
+        "playwright",
+        "playwright-cdp",
+        "playwright-extension",
+        "qlty",
+        "repomix",
+        "scholarly-access",
+        "search-hub",
+        "searxng",
+    }
+)
+
 
 def blob(rev: str, path: str) -> dict:
     if rev == "WORKTREE":
@@ -50,8 +94,10 @@ def blob(rev: str, path: str) -> dict:
 
 
 def dod1(rows: list[dict[str, Any]]) -> list[str]:
-    """Scope + absolute source file on every row, and the file must exist."""
+    """Scope + absolute source file on every row, and no mounted server may vanish."""
     bad = []
+    for name in sorted(EXPECTED_MOUNTED - {r.get("name") for r in rows}):
+        bad.append(f"{name}: mounted server absent from the row set")
     for r in rows:
         for field in ("definition_scope", "source_file", "config_basis", "transport"):
             if not r.get(field):
@@ -122,6 +168,13 @@ def dod4(rows: list[dict[str, Any]]) -> list[str]:
 def break_for(control: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """A copy of the rows carrying exactly the defect `control` is supposed to catch."""
     bad = copy.deepcopy(rows)
+    if control == "drop-a-mounted-row":
+        # The shape the round-2/3 gate could not express: a well-formed table that is
+        # simply MISSING a server.  Drop one that is in the pinned set, not just rows[0].
+        for i, r in enumerate(bad):
+            if r.get("name") in EXPECTED_MOUNTED:
+                return bad[:i] + bad[i + 1 :]
+        return bad
     if control == "blank-source-file":
         bad[0]["source_file"] = ""
     elif control == "flip-call-verified":
@@ -147,7 +200,13 @@ def break_for(control: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 CHECKS: dict[
     str, tuple[str, Callable[[list[dict[str, Any]]], list[str]], list[str]]
 ] = {
-    "DoD1": ("inventory: scope + source file per row", dod1, ["blank-source-file"]),
+    "DoD1": (
+        "inventory: scope + source file per row, and no server missing",
+        dod1,
+        # BOTH branches: a malformed row, and an ABSENT one.  Round 3 controlled only the
+        # first, so a shrinking table passed.
+        ["blank-source-file", "drop-a-mounted-row"],
+    ),
     "DoD2": (
         "liveness vs capability by a real call",
         dod2,
@@ -171,8 +230,13 @@ def main(argv: list[str]) -> int:
     rev = argv[0] if argv else "HEAD"
     disp = blob(rev, DISP)
     rows = disp["rows"]
-    if len(rows) < 20:
-        print(f"FAILED:dod-check only {len(rows)} rows (fail closed)")
+    # Tied to the pinned set rather than a hand-picked 20, so the floor cannot drift below
+    # the inventory it is supposed to protect.
+    if len(rows) < len(EXPECTED_MOUNTED):
+        print(
+            f"FAILED:dod-check only {len(rows)} rows, "
+            f"fewer than the {len(EXPECTED_MOUNTED)} pinned mounted servers (fail closed)"
+        )
         return 1
 
     print(f"== DoD ledger, executed against {rev}:{DISP} ({len(rows)} rows) ==")

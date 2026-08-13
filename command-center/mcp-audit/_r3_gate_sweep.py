@@ -43,6 +43,11 @@ def main() -> int:
         ("r2_redproof_invariants", ["_r2_redproof_invariants.py"], 0),
         ("r2_corroborate", ["_r2_corroborate.py"], 0),
         ("r3_redproof_liveness", ["_r3_redproof_liveness.py"], 0),
+        # Round 4: the EOL claim, its root cause, and the two fixes' both-states proof.
+        ("r4_eol_probe", ["_r4_eol_probe.py"], 0),
+        ("r4_grep_control", ["_r4_grep_control.py"], 0),
+        ("r4_cr_settle", ["_r4_cr_settle.py"], 0),
+        ("r4_redproof", ["_r4_redproof.py"], 0),
         ("dod_check @ current", ["_r2_dod_check.py", args.rev], 0),
         # BOTH STATES: the same ledger must go RED on the round-2 blob, or its green on
         # the current one measures nothing.
