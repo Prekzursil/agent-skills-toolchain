@@ -48,6 +48,14 @@ def main() -> int:
         ("r4_grep_control", ["_r4_grep_control.py"], 0),
         ("r4_cr_settle", ["_r4_cr_settle.py"], 0),
         ("r4_redproof", ["_r4_redproof.py"], 0),
+        # Holds this lane's OWN commit to the line-ending sentence it ships.  The blob
+        # gate only inspects .py, which is not the file type the false claim was about.
+        # WORKTREE is not a revision, so this one always takes a real commit.
+        (
+            "r4_selfcheck (all blobs 0 CRLF)",
+            ["_r4_selfcheck.py", "HEAD" if args.rev == "WORKTREE" else args.rev],
+            0,
+        ),
         ("dod_check @ current", ["_r2_dod_check.py", args.rev], 0),
         # BOTH STATES: the same ledger must go RED on the round-2 blob, or its green on
         # the current one measures nothing.

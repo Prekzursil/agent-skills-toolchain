@@ -7,8 +7,10 @@ both states.
 
 COVERAGE: three verifier findings closed — one false statement of fact, one overclaim, one
 latent gate gap — plus their blast radius in round 2, which the verifier did not name but
-which is the same claim's origin. 13 gates re-executed with captured exit codes. Four
-detector failures in my own round-4 instruments, all caught by controls and all recorded.
+which is the same claim's origin. 14 gates re-executed with captured exit codes, including
+one that holds this round's own commit to the line-ending sentence it ships (all 11 blobs,
+`.md` and `.json` included, not just the 6 `.py` the blob gate inspects). Five detector
+failures in my own round-4 instruments, all caught by controls and all recorded.
 **NOT measured:** the other ~23 CI steps; the exact mechanism of one Git-Bash grep
 misreading (disclosed inline, settling experiment named); anything outside
 `docs/mcp-audit/**` and `command-center/mcp-audit/**`.
@@ -192,7 +194,7 @@ verdict — it did not.
 
 ---
 
-## Four detector failures in my OWN round-4 instruments
+## Five detector failures in my OWN round-4 instruments
 
 Consistent with every prior round, self-inflicted detector failures outnumbered the real
 findings. Each was caught by a control, not by inspection.
@@ -203,6 +205,7 @@ findings. Each was caught by a control, not by inspection.
 | 2 | `grep -c $'\r'` = the LINE count on five revisions Python read as 0 CR | two instruments, same bytes, opposite answers | Unexplained in the false-**positive** direction and disclosed as such. The false-**negative** direction was pinned with `od`: MSYS grep opens input in TEXT mode and strips CR before matching, so it returns **0 on input `od` proves contains CR** and needs `-U`. |
 | 3 | the round-3 BEFORE state showed `asserted=0` — the detector was silent where the defect provably exists | a red-proof that cannot see its own BEFORE state proves nothing | I pinned the wrong revision (`0d3c9e93`, where the verifier took its line count) instead of `673cd180`, where the sentence actually landed. Measured, not guessed: `grep -c "blobs carry CRLF"` over the three round-3 commits gives `0 / 0 / 1`. `main()` now fails closed if a BEFORE state stops exhibiting its defect. |
 | 4 | the in-repo positive control "did not fire" (`grep -cU` → 0 on a blob with 3 CRs) | a control failing on a file two other instruments agree is CRLF | **Three** compounding causes, each producing a *reassuring* number rather than an error: (a) `grep -c` prints `0` for "matched nothing" and for "was handed nothing"; (b) `bash` spawned from Python on this box is **WSL bash**, not Git Bash — the child reported cwd `/mnt/c/Users/...`; (c) this checkout is a **linked worktree** whose `.git` is a file holding a *Windows* absolute path, which WSL git cannot resolve (`fatal: not a git repository: /mnt/c/.../C:/Users/.../worktrees/ast-integrate`). Every reading taken that way was void. |
+| 5 | `delete-the-refuted-line -> A2 fires: False`, on a gate that had been green 20 minutes earlier | a mutation that stopped working without the code under test changing | The mutation deleted **one** quoted occurrence and asserted the preservation clause fired. That only ever held while the document contained exactly one — and adding the forward-pointer blockquote at the top of `ROUND3-DEFECT-CLOSURE.md` created a second, so deleting one left the evidence intact and the clause correctly stayed silent. A mutation whose outcome depends on how many times the text happens to appear is not modelling the defect it names; it now removes **all** quoted occurrences. Caught only because the sweep was re-run pinned to the commit *after* a late doc edit. |
 
 Failure 4 is the most reusable and is worth lifting out of this lane: **on this estate, a
 `bash -lc` child spawned from Python inside a linked worktree silently reads an empty
@@ -221,8 +224,13 @@ demonstrated history: round 2's actual command was never committed and cannot be
 
 ## Every gate, re-executed, with its real exit code
 
-`python _r3_gate_sweep.py --rev <this commit>` → `SUCCESS:gate-sweep 13/13 gates behaved,
+`python _r3_gate_sweep.py --rev <this commit>` → `SUCCESS:gate-sweep 14/14 gates behaved,
 exit codes captured`, exit 0.
+
+The sweep is worth its own line here: run pinned to commit `4c9e49ac` it went **RED** on
+`r4_redproof`, catching detector failure 5 below — a mutation invalidated by a doc edit
+made after the pre-flight. A working-tree pre-flight would have missed it, which is the
+whole reason `--rev` exists.
 
 | gate | rc | want | marker |
 |---|---|---|---|
@@ -237,6 +245,7 @@ exit codes captured`, exit 0.
 | `_r4_grep_control` | 0 | 0 | `SUCCESS:r4-grep suspect detector characterised, corrected form controlled` |
 | `_r4_cr_settle` | 0 | 0 | `SUCCESS:r4-cr-settle 0 CR in every claimed blob, positive control fires` |
 | `_r4_redproof` | 0 | 0 | `SUCCESS:r4-redproof A both-states + 2 mutations, B the widened DoD1 sees the absence` |
+| `_r4_selfcheck` | 0 | 0 | `SUCCESS:r4-selfcheck 11/11 blobs 0 CRLF, control fired` |
 | `_r2_dod_check` @ this commit | 0 | 0 | `SUCCESS:dod-check 4/4 DoD items PASS, 6/6 negative controls fired` |
 | `_r2_dod_check` @ `630bb8af` | 1 | **1** | `FAILED:dod-check ['DoD3']` |
 

@@ -106,7 +106,18 @@ def part_a() -> bool:
         if ln.lstrip().startswith(">") and any(p.search(ln) for p in ASSERT_PATTERNS)
     )
     m1 = lines[:idx] + [lines[idx].lstrip("> ")] + lines[idx + 1 :]
-    m2 = lines[:idx] + lines[idx + 1 :]
+    # "Someone deleted the evidence" means ALL of it.  A first version removed a single
+    # quoted line and asserted the preservation clause fired; it passed only while the
+    # document happened to contain exactly one quoted occurrence, and went silent the
+    # moment a forward-pointer added a second.  A mutation whose result depends on how
+    # many times the text appears is not modelling the defect it names.
+    m2 = [
+        ln
+        for ln in lines
+        if not (
+            ln.lstrip().startswith(">") and any(p.search(ln) for p in ASSERT_PATTERNS)
+        )
+    ]
     f1 = len(scan("\n".join(m1))[0]) > 0
     f2 = len(scan("\n".join(m2))[1]) == 0
     print(f"  mutation unquote-the-refuted-line -> A1 fires: {f1}")
