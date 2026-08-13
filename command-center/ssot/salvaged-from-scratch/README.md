@@ -26,6 +26,21 @@ The rest are the probes those verifications ran (`aud_crlf*.py`, `v1..v4_*.py`,
 `verify_divergence.py`, `verify_deadpaths.py`, …) plus one measurement output
 (`v1_rows_HEAD.json`). 84,885 bytes total.
 
+## This directory also contains RETIRED code, and that is not an endorsement of it
+
+`salvage_scratch.py` rescues anything whose blob is absent from canonical. That test is content-
+blind by design, and it therefore also sweeps in the **deliberately-deleted** ChatGPT-web
+orchestration lane (`tools/mcp/codex-orchestrator/**`, `tools/mcp/agent-lanes-codex/**`,
+`tools/web/README.md`), because "retired" and "absent from canonical" look identical to a hash.
+
+Those files are here as a byproduct, NOT as a proposal to restore them. They were removed on
+purpose — `45882cd1 retire: delete the 5 ChatGPT-web/orchestrator trees and de-register them` and
+`696ed513 ... (#275)`. Do not treat their presence here as reviving the lane. If the retirement is
+ever to be made airtight, delete them from this directory and add a skip rule to the script; the
+reason they were kept is that the script is meant to be judgement-free about content, and the
+alternative — teaching it which absences are intentional — is a second place for that decision to
+drift out of sync with the real one.
+
 ## Status of these copies — read before citing them
 
 **These are SNAPSHOTS OF LIVE FILES, taken while their authors were still writing.** Some may be
