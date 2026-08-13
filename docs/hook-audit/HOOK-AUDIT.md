@@ -132,10 +132,46 @@ so I find
 **73** against the grounding's **24**. Mine is **not a correction** —
 a hook wired by MODULE NAME rather than path is invisible to my regex, so I under-report
 wiring and could produce a false "dark". That is exactly what happened for **`checkpoint`**:
-my probe calls it dark, the grounding lane records it as P3-wired. I have **excluded
-`checkpoint` from the inert set** rather than pick a side. Settling experiment: read the
-`~/.agents/harness/dispatcher.py` module registry and confirm whether it registers
-`checkpoint` by name.
+my probe calls it dark, the grounding lane records it as P3-wired. I **excluded `checkpoint`
+from the inert set** rather than pick a side, and named the settling experiment: read the
+`~/.agents/harness/dispatcher.py` module registry.
+
+> **ROUND 3 — SETTLED, and the dark verdict stands.** The experiment was run
+> (`_r3_checkpoint_wiring.py`). `HarnessDispatcher.__init__` builds `self.modules` from
+> `build_default_modules(...)`, and those are **classes inside `~/.agents/harness/modules.py`
+> carrying a `name = "<snake_case>"` attribute** — in-process objects, not
+> `hooks/<dir>/<script>.py` subprocesses. Counting the two shapes separately across six
+> wiring surfaces (325,602 B of P3 alone), `hooks/checkpoint/` scores
+> <!-- cite: id=R3-ck-path file=R3-CHECKPOINT-WIRING.json path=targets.checkpoint.path_total value=0 -->
+> **0 path-shaped** references and
+> <!-- cite: id=R3-ck-name file=R3-CHECKPOINT-WIRING.json path=targets.checkpoint.name_total value=5 -->
+> **5 name-shaped** ones — and every one of the five is a collision: `edit-checkpoints/`**`checkpoint.py`**
+> (a different directory), a manifest comment about `/rollback`, and `# Sanitized compaction
+> checkpoint` in P3. Verdict
+> <!-- cite: id=R3-ck-verdict file=R3-CHECKPOINT-WIRING.json path=targets.checkpoint.verdict exists=true -->
+> **NAME-ONLY** (the citation syntax is whitespace-delimited, so this string value is pinned
+> with `exists=true` and the two counts above carry the number — the gate caught the
+> whitespace mismatch itself rather than resolving half a value), with a positive control
+> (`wire-check`
+> <!-- cite: id=R3-ck-ctl file=R3-CHECKPOINT-WIRING.json path=control_positive_is_path_wired value=True -->
+> path-wired) and a negative control (a synthetic name
+> <!-- cite: id=R3-ck-neg file=R3-CHECKPOINT-WIRING.json path=control_negative_is_absent value=True -->
+> ABSENT) both holding.
+>
+> Two further signals, both of which were sitting in the repo unread the whole time:
+> `hooks/checkpoint/README.md:76` says *"currently: FINDING, neither half wired"*, and the
+> directory ships its own purpose-built detector. Running it now:
+> `python hooks/checkpoint/wire.py --check` → `NOT-WIRED PreCompact` / `NOT-WIRED
+> SessionStart(settings)` / `NOT-WIRED SessionStart(dispatch)` /
+> `FAILED:checkpoint-wiring FINDING — NEITHER half is wired: the hook is on disk and live
+> nowhere`. **Four mechanically different signals agree**, so `checkpoint` is dark and the
+> inert set can include it — the disagreement was a use-vs-mention error on the other side,
+> not a scope difference on mine.
+>
+> Reported, NOT fixed (this lane reports before editing `hooks/**`): **`wire.py --check`
+> prints `FAILED:` and still exits 0** — measured. A check that cannot return non-zero cannot
+> be used as a gate, which is the same "a guard that cannot go red" class this audit is about.
+> One-line fix, needs its own red-first test.
 
 Detector controls, both directions, all passed: wired-control (`wire-check`) found = True;
 synthetic absent-control found = False; and — the control the synthetic one cannot supply —

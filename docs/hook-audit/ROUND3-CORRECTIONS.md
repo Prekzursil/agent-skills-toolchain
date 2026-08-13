@@ -186,6 +186,51 @@ the budget.
 
 ---
 
+## R3-4 — the one open dark-hook disagreement, settled by four signals
+
+Round 1 called `hooks/checkpoint/` dark; the grounding lane recorded it as wired on the P3
+(`~/.agents/harness`) plane; round 1 declined to pick a side and named the experiment.
+Run here, in `_r3_checkpoint_wiring.py`.
+
+The P3 plane does not execute `hooks/<dir>/<script>.py` at all:
+`HarnessDispatcher.__init__` fills `self.modules` from `build_default_modules(...)`, whose
+members are **classes declared in `~/.agents/harness/modules.py` with a
+`name = "<snake_case>"` attribute**. So a bare `checkpoint` there is a module name, not a
+reference to the directory — a use-vs-mention question, which means the two shapes have to
+be counted separately rather than grepped together.
+
+Across six wiring surfaces, `hooks/checkpoint/` scores
+<!-- cite: id=R3-4-path file=R3-CHECKPOINT-WIRING.json path=targets.checkpoint.path_total value=0 -->
+**0** path-shaped references and
+<!-- cite: id=R3-4-name file=R3-CHECKPOINT-WIRING.json path=targets.checkpoint.name_total value=5 -->
+**5** name-shaped ones, all collisions: `edit-checkpoints/checkpoint.py` (a different
+directory), a manifest comment about `/rollback`, and `# Sanitized compaction checkpoint`.
+Controls both held —
+<!-- cite: id=R3-4-pos file=R3-CHECKPOINT-WIRING.json path=control_positive_is_path_wired value=True -->
+`wire-check` scores as path-wired and
+<!-- cite: id=R3-4-neg file=R3-CHECKPOINT-WIRING.json path=control_negative_is_absent value=True -->
+a synthetic dir name is ABSENT.
+
+The other two signals were in the repo the entire time and nobody opened them:
+`hooks/checkpoint/README.md:76` states *"currently: FINDING, neither half wired"*, and the
+directory ships `wire.py --check`, a purpose-built detector for exactly this question. Its
+output, run now: `NOT-WIRED PreCompact` / `NOT-WIRED SessionStart(settings)` / `NOT-WIRED
+SessionStart(dispatch)` / `FAILED:checkpoint-wiring FINDING — NEITHER half is wired`. Two
+rounds of this lane argued about a fact one command answers. **`checkpoint` is dark.**
+
+**A detector failure of mine, caught by its own control and recorded.** The probe's first
+path regex required a `hooks/` prefix, so it scored the known-path-wired positive control
+(`wire-check`) at 0 and refused to publish. A manifest `script` field is relative
+(`wire-check/check.py`). Had the control been omitted, the run would have reported
+`checkpoint` NAME-ONLY for the right verdict by the wrong measurement — and every other
+directory as dark along with it.
+
+**Reported, not fixed** (this lane reports before editing `hooks/**`): `wire.py --check`
+prints a `FAILED:` marker and **exits 0** (measured: `EXIT=0` beside `FAILED:checkpoint-wiring`).
+A check that cannot return non-zero cannot be wired as a gate — the same class as everything
+else in this audit. The fix is one line plus a red-first test; it is not made here because an
+unproven one-line change to a `hooks/` file is exactly what this program keeps punishing.
+
 ## What did NOT change, and must not be read as fixed
 
 * **Both hook fixes are still repo-only.** Live `~/.claude/hooks/wire-check/check.py` still
@@ -198,6 +243,10 @@ the budget.
 * **The repo→live deploy step still has no gate at all.** That single architectural hole now
   accounts for the wire-check fix, the git-hygiene fix, the /rollback producer and the
   round-2 settings drift. `ROLLBACK-DEPLOY-PLAN.md` step 4 remains the proposal.
+* **`hooks/checkpoint/` is dark and NOT deployed either** (R3-4). That makes a third
+  consumer-with-no-producer pair on the same architectural hole: `checkpoint_state.py:749`
+  tells a reader to "confirm `hooks/checkpoint/precompact.py` is registered under
+  `hooks.PreCompact`", and it is not.
 * **The 7 launcher entries remain untimed** for round 1's reason: firing them spawns IDA,
   Ghidra, monitor TUIs, desktop notifications, or creates/removes a git worktree. Measuring
   their *non-armed* path was considered and rejected as a number nobody can use — in
