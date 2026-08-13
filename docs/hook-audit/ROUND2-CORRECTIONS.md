@@ -286,6 +286,27 @@ read prose and it does not trust a claim. Its own controls:
   checker cannot fail is not being checked.
 * **untracked ≠ missing.** An uncommitted evidence file is its own failure mode, because that
   is precisely how C1 shipped: present to its author, absent in a clone.
+* **the OTHER side of the comparison.** `--self-test` mutates the expected value, which
+  simulates the *document* drifting. The defect that actually happened (C3) was the
+  *evidence* drifting under a document that never moved. Those are opposite sides of one
+  comparison and exercising one does not demonstrate the other, so
+  `_c6_gate_evidence_side.py` tampers with a committed evidence file in both real shapes —
+  key deleted and value changed — and requires a NEW failure for each, measured against
+  that same run's own baseline rather than against an assumed-green one (this probe cannot
+  assume green: the document cites the probe's own output, so its first run is legitimately
+  red, and a baseline red for any unrelated reason would otherwise mask the thing under
+  test):
+  <!-- cite: id=C6-del file=C6-GATE-EVIDENCE-SIDE.json path=tamper_detected_key_deleted value=True -->
+  a NEW unbacked citation appears when the key is deleted,
+  <!-- cite: id=C6-chg file=C6-GATE-EVIDENCE-SIDE.json path=tamper_detected_value_changed value=True -->
+  and again when the value is changed, and the file
+  <!-- cite: id=C6-restore file=C6-GATE-EVIDENCE-SIDE.json path=restored_byte_exact value=True -->
+  restored byte-exact (sha256 compared before and after).
+
+Its strongest evidence is not synthetic, though: run against this very document before the
+JSONs were committed, the gate returned **13 unbacked of 30** and named two untracked
+evidence files and one path that does not resolve — the C1 and C3 shapes, caught on the
+author's own work before publication rather than by a reader afterwards.
 
 Residual, inline: the gate proves the number in the prose matches the number in the JSON. It
 cannot prove the JSON describes what the prose says it describes — a citation pointed at an
