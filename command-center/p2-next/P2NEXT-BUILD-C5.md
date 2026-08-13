@@ -172,6 +172,13 @@ than its evidence.
   false"`, and `receipt_schema_gate.py:515-527` hard-rejects `state=SUCCESS` while that flag is
   false. **`codex login` buys review capacity for 42 units and delivers zero of them.** Price the
   two owner decisions TOGETHER; pricing the login alone overstates its value.
+- **EXPECTED-RED, DO NOT "FIX":** `rail_count_gate.py --basis worktree` still fails with **14
+  problems**, the same count the previous round measured, from the same cause — a sibling lane's
+  uncommitted edit flipping `ADV-0041` BLOCKED→SUCCESS, plus `E2E-WAVE-STATUS.md` lines that are
+  correct against the committed 42 and wrong against a dirty-tree 41. **My C5 content floor added
+  ZERO new problems to that run** (14 before, 14 after), which is the non-regression datum: the new
+  check does not fire on the worktree basis either. `--basis committed` is the default and what CI
+  runs, and it is green.
 - **DEPLOY DRIFT, not mine to resolve:** `claim_gate.py` is edited in the REPO (correct — repo is
   source of truth), so the live copy under `~/.agents/skills/` now differs until a deploy runs. I
   did not run `sync-from-live.ps1` or `sync-skills.ps1 -Prune` (both banned this session).
