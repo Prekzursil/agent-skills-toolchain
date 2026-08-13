@@ -48,7 +48,45 @@ module anywhere in-tree; or count same-file call sites before declaring 0 refere
 **Do NOT "fix" this by wiring the functions in.** They are throwaway measurement scripts and
 wiring them would create the dead code the check is trying to prevent.
 
-## 3. What this does NOT excuse
+## 3. `git-hygiene` fired on 3 repos and ALL THREE are benign -- two permanently so
+
+Measured 2026-08-13 from a later firing in the same session. The notice read:
+
+    [YOURS] agent-skills-toolchain: 2 uncommitted file(s) at a detached HEAD, no upstream
+    [YOURS] ast-patch167: 1 uncommitted file(s) on fix/deny-credential-gaps
+    [YOURS] ast-integrate: 248 uncommitted file(s) on main
+
+Checked each:
+
+**a. canonical `agent-skills-toolchain` -- PERMANENT false positive, unfixable by design.**
+The 2 files are `tools/mcp/cloud-hub/accounts.json` and `tools/mcp/search-hub/accounts.json`.
+That is the LIVE credential rotation pool; a standing owner constraint forbids staging or
+modifying it, so **uncommitted is the CORRECT state** and always will be. `rev-list --count
+origin/main..HEAD` = 0, so there is no unique history at risk either. This repo will be flagged
+on every single turn forever, and the advised remedy ("commit, then push -u") is an action that
+must never be taken. A hook whose advice is forbidden is worse than a silent one.
+FIX: exclude paths matching `accounts.json` (or better, anything the repo's own ignore/secret
+policy marks as live state) from the uncommitted count, and suppress a repo whose ONLY dirty
+paths are excluded.
+
+**b. `ast-patch167` -- squash-merge artifact.** The "1 unique commit" `69ec33a` is
+`fix(deny-credential-reads): guard all four ssh key types + auth.json`, and it is **already
+MERGED as PR #260**. A squash merge rewrites the commit, so the branch keeps reporting 1 ahead
+of `origin/main` forever. This is the documented `ahead_by`-direction trap and the hook walks
+straight into it. FIX: before counting a branch as ahead, check whether an associated PR is
+merged, or compare content (patch-id / cherry) rather than commit identity. `git cherry
+origin/main HEAD` marks equivalent commits with `-` and is the cheap version.
+
+**c. `ast-integrate` 248 files -- REAL but expected**, and the only one of the three worth a
+human glance. It is nine concurrent lanes' write-as-you-go scratch mid-wave. The SLOP lane owns
+classifying it. Not a hook defect; the count is true.
+
+**The compound effect is the finding.** Three flags, zero actionable, one of them advising a
+forbidden action. That is the same pathology as the stub-ledger above: a guard that cannot reach
+green trains the reader to skip it, and the cost lands on the day one of the three IS real. Both
+of these are cheap to fix and both fixes are subtractive (fewer, truer flags), not additive.
+
+## 4. What this does NOT excuse
 
 The third notice in the same firing -- `POTENTIAL-CREDENTIAL kind=transcript
 id=sha256:839ca3224e60` -- is NOT a false positive and is NOT cleared. It is a standing owner
