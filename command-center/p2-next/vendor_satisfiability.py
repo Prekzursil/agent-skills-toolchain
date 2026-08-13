@@ -515,9 +515,41 @@ def main(argv: list[str] | None = None) -> int:
         out.write_text(text, encoding="utf-8", newline="\n")
         print(f"\n  WROTE {OUT_REL}")
     else:
-        cur = out.read_text(encoding="utf-8") if out.is_file() else ""
-        drift = cur != text
+        # The comparison EXCLUDES `basis_comparison`, and that exclusion is the point rather than
+        # a convenience. That block describes the LOCAL working tree -- on the authoring box it
+        # reads "committed=52 / worktree=51, only_in_committed=['ADV-0041']" because a sibling lane
+        # holds an uncommitted edit; in a fresh clone, and on a CI runner, the worktree IS the
+        # committed tree and the block necessarily differs. Byte-comparing it therefore encodes one
+        # machine's dirt into the artifact's identity: MEASURED in a throwaway clone, where this
+        # check reported "artifact drift: True" on a tree that had not changed at all
+        # (_i3_redproof.py, leg "good", before this fix). Working-tree green was not clone green.
+        # Everything else in the payload is derived from committed blobs and is compared.
+        def _stable(doc: dict) -> dict:
+            return {k: v for k, v in doc.items() if k != "basis_comparison"}
+
+        cur_txt = out.read_text(encoding="utf-8") if out.is_file() else ""
+        moved: list[str] = []
+        try:
+            a, b = _stable(json.loads(cur_txt)), _stable(payload)
+            moved = sorted(k for k in set(a) | set(b) if a.get(k) != b.get(k))
+            if "units" in moved:  # name the rows, not just the key
+                ida = {r["id"]: r for r in a.get("units", [])}
+                idb = {r["id"]: r for r in b.get("units", [])}
+                moved = [m for m in moved if m != "units"] + [
+                    f"units[{i}]"
+                    for i in sorted(set(ida) | set(idb))
+                    if ida.get(i) != idb.get(i)
+                ][:12]
+            drift = bool(moved)
+        except Exception:
+            drift, moved = True, ["artifact does not parse"]
         print(f"\n  CHECK-only (pass --write to regenerate). artifact drift: {drift}")
+        if moved:
+            print(f"    what moved: {moved}")
+        print(
+            "    (comparison excludes basis_comparison: it describes the local worktree, so it "
+            "is machine-dependent by construction)"
+        )
         if drift:
             problems.append(
                 f"{OUT_REL} differs from a fresh {args.basis}-basis computation"

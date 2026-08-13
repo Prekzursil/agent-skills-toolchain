@@ -1,0 +1,80 @@
+name: p2next-rail-count
+
+# The cross-vendor rail number an OWNER prices a decision against must be RE-DERIVED on every
+# change, never read back from a stored summary.
+#
+# WHAT WENT WRONG WITHOUT THIS. P2NEXT published four different values for one quantity --
+# "43 of 47" in command-center/CROSS-VENDOR-RAIL-STATUS.md, "41 of 51" in
+# command-center/p2-next/VENDOR-SATISFIABILITY.json, "47 of 51" when the producer was re-run, and
+# the correct "42 of 52" from the committed tree. An independent auditor and an adversarial
+# refuter reached the same root cause: the number was STORED, so a receipt edit anywhere in the
+# tree moved the truth while every published copy kept its old value. The producer was fixed. A
+# fixed script that nothing invokes is not a fix, which is why this workflow exists.
+#
+# WHY ITS OWN FILE AND NOT A JOB IN quality.yml. quality.yml is a CLOSED gate set policed by
+# .quality/charter_check.sh, which scans it BIDIRECTIONALLY: a `gate-<slug>` marker there with no
+# matching `- slug:` in .quality/charter.yml makes that script exit 1 and turns the EXISTING lint
+# job red. charter_check.sh reads ONLY quality.yml, so a separate workflow carries no charter
+# obligation -- the shape no-runtime-junk.yml and skill-dual-write.yml already use, and the shape
+# ci/tests/test_charter_consistency.py pins in both states. A separate file is also the only
+# option here that touches no file a sibling lane is editing, and that lets this job set its own
+# fetch-depth without changing anyone else's checkout.
+#
+# WHY fetch-depth: 0. vendor_satisfiability.py's STABILITY control re-classifies every unit from
+# the pre-edit tree (899ff779^) and fails if any verdict moved -- that is the control that would
+# have caught the round-1 defect on the day it shipped. It needs real history; on the default
+# shallow checkout the revision is simply absent.
+#
+# WHY THE SELF-TESTS RUN FIRST. A gate that has never failed is indistinguishable from a no-op and
+# this repo has shipped that shape. Each --self-test proves both states before the gate's silence
+# is allowed to mean anything. Red-proof for the shipped wiring, with the pre-existing CI measured
+# blind to the same injected defect: command-center/p2-next/I3-REDPROOF.json
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: p2next-rail-count-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  p2next-rail-count:
+    name: gate-p2next-rail-count
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      # Both-states control for the gate itself: 20 cases, every check exercised against a
+      # known-broken input (must FIRE) and a known-good one (must stay SILENT), including the two
+      # ways it could be inert -- flagging numbers that are not unit counts, and letting a
+      # `[superseded` marker whitelist a whole document.
+      - name: gate-p2next-rail-count self-test
+        run: python command-center/p2-next/rail_count_gate.py --self-test
+      # The gate. Re-derives blocked / rail-blocked / satisfiable / reviewed from the COMMITTED
+      # tree and fails when CROSS-VENDOR-RAIL-STATUS.md or VENDOR-SATISFIABILITY.json disagrees.
+      - name: gate-p2next-rail-count
+        run: python command-center/p2-next/rail_count_gate.py
+      # The producer, in CHECK mode. Its own 8-case selftest carries the v1 (assigned-vs-produced)
+      # and both v2 (rule-D over-generalization, undirected cross-vendor clause) regressions, and
+      # its STABILITY control re-classifies every unit from the pre-edit tree so a verdict that
+      # depends on a later receipt edit is caught rather than published. CHECK-only by default --
+      # re-running it can no longer rewrite the artifact it verifies.
+      - name: gate-p2next-vendor-satisfiability
+        run: python command-center/p2-next/vendor_satisfiability.py --basis committed
+      # The SECOND, mechanically independent instrument: classifies from receipt classification
+      # tags plus the catalog reviewer_requirement rather than from the vendor ladder. Two
+      # different fields and two different code paths agreeing on 42/10 is the reason the split is
+      # stated without a hedge; if they ever diverge, that is a detector failure and must be loud.
+      - name: gate-p2next-split-review-gate
+        run: python command-center/p2-next/split_review_gate.py --basis committed

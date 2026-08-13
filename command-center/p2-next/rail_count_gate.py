@@ -1,0 +1,634 @@
+r"""CI gate: the cross-vendor rail number an OWNER acts on must be RE-DERIVED, never stored.
+
+WHY THIS EXISTS
+===============
+P2NEXT produced one number the owner is meant to price a decision against -- how many BLOCKED
+Prompt Two units are waiting on a review rail that is down. The lane measured it three times and
+got three different answers, and every one of those answers was published somewhere:
+
+  * `command-center/CROSS-VENDOR-RAIL-STATUS.md` said "it gates 43 blocked units" / "43 of 47".
+  * `command-center/p2-next/VENDOR-SATISFIABILITY.json` said 41 of 51 (a WORKTREE measurement that
+    silently included a sibling lane's uncommitted edit to ADV-0041).
+  * Re-running the producer after this lane edited six receipts printed 47 of 51.
+
+An independent auditor and an adversarial refuter both landed on the same root cause: the number
+was STORED and the derivation was not re-run, so a receipt edit anywhere in the tree moved the
+truth while every published copy kept its old value. `vendor_satisfiability.py` was fixed (rule-D
+gate, `--basis committed` default, CHECK-not-write). But a fixed script that nothing invokes is not
+a fix -- it is a script. This gate is the part that makes the fix reachable: it re-derives the
+number on every push and PR and fails when any published copy disagrees.
+
+WHAT IT CHECKS (each one fails CLOSED)
+======================================
+  C1  the doc carries a machine-readable RAIL-COUNT block, and every field in it equals a fresh
+      derivation from the COMMITTED tree through the shipped resolver. A missing/unparseable block
+      is a FAILURE, not a skip.
+  C2  no unit-count claim in the doc's PROSE contradicts that derivation. A line may quote a
+      different figure only when it carries a dated marker on the SAME line -- `[superseded ...]`
+      for a retired number, `[worktree-observed ...]` for a point-in-time reading of a dirty tree.
+      The gate prints how many claims used that escape, so a document cannot be quietly marked
+      instead of fixed. This is what catches "43 of 47" rotting in the headline while the JSON is
+      correct.
+  C3  the committed VENDOR-SATISFIABILITY.json headline equals the same fresh derivation -- the
+      stored-answer check the refuter asked for, turned into a re-derivation.
+  C4  the derived population is plausible (>= MIN_BLOCKED). A resolver or catalog shape change that
+      silently yields "0 blocked units, 0 rail-blocked" would otherwise make every other check pass
+      vacuously. A control must count the thing being compared and be loud when it cannot.
+  C5  every unit the derivation calls same-vendor-satisfiable actually carries an independent
+      reviewer PASS. This is the lane's DoD item 2 held open over time: if a future edit creates a
+      satisfiable-but-unreviewed unit, that is newly reachable work and the owner should see it.
+
+DETECTOR CONTROL. `--self-test` runs every check against a KNOWN-BROKEN input and requires it to
+FIRE, then against the known-good input and requires SILENCE -- including the ways this gate could
+be inert rather than clean: C2 must not fire on ordinary numbers that are not unit counts (a date,
+a port, a version, an option number in a neighbouring clause), and the exemption marker must not
+degrade into "any line with a digit passes". Run it FIRST; a gate whose own controls are broken
+must not judge a pull request.
+
+RED-PROOF. `_i3_redproof.py` clones the repo, commits this lane's files into the clone, and runs
+four injections drawn from what actually happened -- the owning doc rotting back to 43, a
+receipt's `failure.blocked_on` moving a unit across the split, a receipt forging SUCCESS, and the
+CITING status doc rotting while the owning doc stays right. It records whether the PRE-EXISTING CI
+stays green on each. Receipt: `I3-REDPROOF.json`.
+
+KNOWN RECALL LIMIT, inline: C2 is LINE-scoped, so a count whose unit noun wraps onto the next
+markdown line is not seen (measured: E2E-WAVE-STATUS.md had `The "43` ending one line and
+`blocked units"` starting the next). Settling experiment: match per PARAGRAPH and require the
+exemption marker to be paragraph-scoped too -- which weakens the marker, hence not done here.
+
+USAGE
+  python command-center/p2-next/rail_count_gate.py --self-test
+  python command-center/p2-next/rail_count_gate.py                 # committed basis (CI)
+  python command-center/p2-next/rail_count_gate.py --basis worktree # authoring
+  python command-center/p2-next/rail_count_gate.py --doc <path>     # judge a copy (red-proof)
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib.util
+import json
+import re
+import sys
+from collections import Counter
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[2]
+DOC_REL = "command-center/CROSS-VENDOR-RAIL-STATUS.md"
+ART_REL = "command-center/p2-next/VENDOR-SATISFIABILITY.json"
+READY_REL = "command-center/READY-UNITS.json"
+
+#: Documents that CITE the rail number without owning it. E2E-WAVE-STATUS.md says outright that
+#: its "43 blocked units" is *anchored* at CROSS-VENDOR-RAIL-STATUS.md:1 -- so correcting the
+#: anchor while leaving the citation behind just moves the stale number one file over. They are
+#: NOT required to carry a RAIL-COUNT block (they do not own the measurement) and C2 is applied
+#: only to lines ON TOPIC: a status doc legitimately counts other things (ADV units, READY units,
+#: casualty receipts), and demanding markers on all of them would be a gate reaching past its
+#: evidence.
+SECONDARY_DOCS = ("command-center/E2E-WAVE-STATUS.md",)
+RAIL_TOPIC = re.compile(r"cross[-_ ]?vendor|review rail|\brail\b|blocked units", re.I)
+
+#: Fail closed below this. The real population has been 51-52 all program; a derivation that
+#: collapses to a handful means the catalog or the resolver changed shape, not that the queue
+#: emptied. Chosen well under the observed floor so ordinary churn cannot trip it.
+MIN_BLOCKED = 40
+
+_spec = importlib.util.spec_from_file_location(
+    "_vs_rail", Path(__file__).with_name("vendor_satisfiability.py")
+)
+_vs = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_vs)
+
+#: The declared block the doc must carry. Keys are checked individually so a partial block is a
+#: failure rather than a silent pass on the fields that happen to be present.
+BLOCK_RE = re.compile(r"<!--\s*RAIL-COUNT\s*(?P<body>.*?)-->", re.S | re.I)
+#: `(.+?)` not `(\S+)`: `derived_by` carries a command line with spaces, and a single-token
+#: pattern silently drops the field -- which reads as "block is missing derived_by" rather than
+#: "the pattern is wrong". Measured while writing this gate.
+FIELD_RE = re.compile(r"^\s*([a-z_]+)\s*:\s*(.+?)\s*$", re.M)
+
+REQUIRED_FIELDS = (
+    "basis",
+    "blocked_units",
+    "rail_blocked",
+    "satisfiable_now",
+    "reviewed_satisfiable",
+    "catalog_units",
+    "derived_by",
+)
+
+#: A UNIT-COUNT claim: an integer bound to a unit noun, either directly ("43 blocked units",
+#: "the 43 review-gated units") or through an "N of M" pair ("43 of 47 BLOCKED receipts").
+#: Deliberately NOT a bare digit scan -- counting every number in the document instead of the
+#: field is the use-vs-mention error this repo keeps paying for.
+#:
+#: MEASURED FALSE POSITIVE, and the reason the direct form is a NOUN-PHRASE match rather than a
+#: proximity window: the first version allowed any 45 characters between the number and the noun,
+#: and it flagged "Option 2 would move some units but must not be silently substituted for option
+#: 1 on the receipts" -- two option numbers read as unit counts. A proximity window measures
+#: nearness, not grammatical binding. The direct form now permits only up to three MODIFIER words
+#: between the number and the noun and bars the function/verb words that mark a clause boundary.
+UNIT_NOUN = r"(?:units?|receipts?)"
+COUNT_DIRECT = re.compile(
+    rf"\b(\d{{1,4}})\s+((?:[A-Za-z][\w*-]*\s+){{0,3}}?){UNIT_NOUN}\b", re.I
+)
+#: The "N of M" pair is scoped to LINES that mention a unit noun anywhere, rather than requiring
+#: the noun within a fixed window. A markdown table row puts the noun in the header or a later
+#: cell, so a window-bound pattern silently missed "| 43 of 47 | ... |" -- measured on the first
+#: draft of the very document this gate guards. Line scope keeps the precision (a bare "3 of 5" in
+#: a sentence about workflows is not a unit count) while restoring the recall.
+COUNT_OF_PAIR = re.compile(r"\b(\d{1,4})\s+of\s+(?:the\s+)?(\d{1,4})\b")
+LINE_HAS_UNIT_NOUN = re.compile(rf"\b{UNIT_NOUN}\b", re.I)
+#: Words that cannot appear inside the noun phrase "<N> ... units". Their presence means the
+#: number belongs to a different clause than the noun.
+BARRED_BETWEEN = frozenset(
+    """would will could should may might must move moves moved is are was were be been being
+    on in at to and or but that which with from for by not no do does did have has had if then
+    than as into over under per via some more most all other another this these those it its
+    make makes made give gives adds add""".split()
+)
+#: The ONE escape hatch, and it is deliberately the only one. A unit count that cannot be
+#: re-derived today must be marked explicitly and dated: `[superseded 2026-08-13]` for a retired
+#: figure, `[worktree-observed 2026-08-13]` for a point-in-time reading of a dirty tree.
+#:
+#: MEASURED, and the reason the earlier design was wrong: C2 used to accept any number that
+#: matched a LIVE worktree derivation on a line containing the word "worktree". On this machine
+#: the worktree carries sibling lanes' uncommitted edits, so 41-of-51 was "valid". In a fresh
+#: clone -- which is what CI checks out -- the worktree IS the committed tree, that derivation
+#: returns 42-of-52, and the same sentence became a violation. An escape whose truth depends on
+#: the checker's local dirt is not a check; it is a fail-open that happens to pass for the author.
+#: Proven by running this gate inside a throwaway clone (see _i3_redproof.py leg "good").
+EXEMPT_MARKER = re.compile(r"\[(?:superseded|worktree-observed)\b[^\]]*\]", re.I)
+
+
+def counts_at(basis: str) -> dict[str, int]:
+    rows = _vs.load_units(basis)
+    c = Counter(r["verdict"] for r in rows)
+    return {
+        "blocked_units": len(rows),
+        "rail_blocked": c[_vs.BLOCKED_RAIL],
+        "satisfiable_now": c[_vs.SAT],
+    }
+
+
+def satisfiable_rows(basis: str) -> list[dict]:
+    return [r for r in _vs.load_units(basis) if r["verdict"] == _vs.SAT]
+
+
+def read_text(basis: str, rel: str) -> str | None:
+    if basis == "committed":
+        return _vs.batch_blobs("HEAD", [rel])[rel]
+    p = REPO / rel
+    return p.read_text(encoding="utf-8") if p.is_file() else None
+
+
+def parse_block(doc: str) -> tuple[dict[str, str], list[str]]:
+    """Return (fields, problems). A missing or partial block is a problem, never a skip."""
+    m = BLOCK_RE.search(doc)
+    if not m:
+        return {}, [
+            "C1 the doc carries no <!-- RAIL-COUNT ... --> block; the published number is "
+            "therefore unverifiable and this gate fails closed"
+        ]
+    fields = {k: v for k, v in FIELD_RE.findall(m.group("body"))}
+    missing = [k for k in REQUIRED_FIELDS if k not in fields]
+    return fields, (
+        [f"C1 RAIL-COUNT block is missing field(s): {missing}"] if missing else []
+    )
+
+
+def check_block(
+    fields: dict[str, str],
+    derived: dict[str, int],
+    reviewed: int,
+    catalog_units: int,
+    basis: str,
+) -> list[str]:
+    problems = []
+    expected = {
+        "basis": basis,
+        "blocked_units": str(derived["blocked_units"]),
+        "rail_blocked": str(derived["rail_blocked"]),
+        "satisfiable_now": str(derived["satisfiable_now"]),
+        "reviewed_satisfiable": str(reviewed),
+        "catalog_units": str(catalog_units),
+    }
+    for k, want in expected.items():
+        got = fields.get(k)
+        if got is not None and got != want:
+            problems.append(
+                f"C1 RAIL-COUNT {k}: doc says {got}, fresh derivation says {want}"
+            )
+    got_by = fields.get("derived_by", "")
+    if "vendor_satisfiability.py" not in got_by:
+        problems.append(
+            f"C1 RAIL-COUNT derived_by must name the producing script, got {got_by!r}"
+        )
+    return problems
+
+
+def prose_claims(doc: str) -> list[tuple[int, str, int]]:
+    """Every unit-count claim as (lineno, line, value). Both regexes, deduped by position."""
+    out: list[tuple[int, str, int]] = []
+    for lineno, line in enumerate(doc.splitlines(), 1):
+        if line.lstrip().startswith("<!--") or "RAIL-COUNT" in line:
+            continue
+        seen: set[int] = set()
+        if LINE_HAS_UNIT_NOUN.search(line):
+            for m in COUNT_OF_PAIR.finditer(line):
+                for g in (1, 2):
+                    v = int(m.group(g))
+                    if v not in seen:
+                        seen.add(v)
+                        out.append((lineno, line, v))
+        for m in COUNT_DIRECT.finditer(line):
+            between = [w.lower() for w in m.group(2).split()]
+            if any(w in BARRED_BETWEEN for w in between):
+                continue  # the number belongs to another clause, not to this noun
+            v = int(m.group(1))
+            if v not in seen:
+                seen.add(v)
+                out.append((lineno, line, v))
+    return out
+
+
+def check_prose(
+    doc: str,
+    derived: dict[str, int],
+    catalog_units: int,
+    reviewed: int,
+    ready: int = -1,
+    topic_only: bool = False,
+    where: str = "",
+) -> tuple[list[str], int]:
+    """Return (problems, exempted). `exempted` is printed so the escape hatch stays visible:
+    a reviewer watching that number sees a document being marked quiet rather than fixed."""
+    ok = set(derived.values()) | {catalog_units, reviewed, ready}
+    problems, exempted = [], 0
+    tag = f"{where} " if where else ""
+    for lineno, line, v in prose_claims(doc):
+        if topic_only and not RAIL_TOPIC.search(line):
+            continue
+        if v in ok:
+            continue
+        if EXEMPT_MARKER.search(line):
+            exempted += 1
+            continue
+        problems.append(
+            f"C2 {tag}line {lineno}: unit count {v} matches no fresh derivation "
+            f"({sorted(x for x in ok if x >= 0)}) and the line carries no dated "
+            f"[superseded ...] / [worktree-observed ...] marker: {line.strip()[:110]!r}"
+        )
+    return problems, exempted
+
+
+def check_artifact(basis: str, derived: dict[str, int]) -> list[str]:
+    txt = read_text(basis, ART_REL)
+    if txt is None:
+        return [f"C3 {ART_REL} absent at basis={basis}"]
+    try:
+        art = json.loads(txt)
+    except Exception as exc:  # pragma: no cover - malformed JSON is a hard failure
+        return [f"C3 {ART_REL} does not parse: {exc}"]
+    problems = []
+    if art.get("blocked_units") != derived["blocked_units"]:
+        problems.append(
+            f"C3 {ART_REL} blocked_units={art.get('blocked_units')} but fresh derivation says "
+            f"{derived['blocked_units']}"
+        )
+    vc = art.get("verdict_counts") or {}
+    for key, want in ((_vs.BLOCKED_RAIL, "rail_blocked"), (_vs.SAT, "satisfiable_now")):
+        if vc.get(key) != derived[want]:
+            problems.append(
+                f"C3 {ART_REL} verdict_counts[{key}]={vc.get(key)} but fresh derivation says "
+                f"{derived[want]}"
+            )
+    return problems
+
+
+def check_reviewed(basis: str, rows: list[dict]) -> tuple[int, list[str]]:
+    """C5: every same-vendor-satisfiable unit must already carry an independent reviewer PASS."""
+    blobs = (
+        _vs.batch_blobs("HEAD", [r["output_path"] for r in rows])
+        if basis == "committed"
+        else {
+            r["output_path"]: (REPO / r["output_path"]).read_text(encoding="utf-8")
+            for r in rows
+        }
+    )
+    reviewed, problems = 0, []
+    for r in rows:
+        txt = blobs.get(r["output_path"])
+        rec = json.loads(txt) if txt else {}
+        rv = rec.get("reviewer") or {}
+        if (
+            str(rv.get("verdict", "")).upper() == "PASS"
+            and rv.get("independent") is True
+        ):
+            reviewed += 1
+        else:
+            problems.append(
+                f"C5 {r['id']} is satisfiable by a same-vendor independent reviewer but carries "
+                f"no independent PASS (verdict={rv.get('verdict')!r}, "
+                f"independent={rv.get('independent')!r}) -- newly reachable work"
+            )
+    return reviewed, problems
+
+
+# --------------------------------------------------------------------------------------------
+# both-states controls
+# --------------------------------------------------------------------------------------------
+
+GOOD_DOC = """# Cross-vendor review rail is DOWN -- and it gates 42 blocked units
+
+<!-- RAIL-COUNT
+basis: committed
+blocked_units: 52
+rail_blocked: 42
+satisfiable_now: 10
+reviewed_satisfiable: 10
+catalog_units: 2007
+derived_by: command-center/p2-next/vendor_satisfiability.py --basis committed
+-->
+
+42 of 52 blocked units wait on the rail. The other 10 units were reviewed on 2026-08-12 at
+port 8812 with python 3.11.
+On the authoring box the dirty tree gave 41 units. [worktree-observed 2026-08-13]
+The earlier census said 43 of 47 receipts. [superseded 2026-08-13]
+"""
+
+
+def _selftest() -> int:
+    d = {"blocked_units": 52, "rail_blocked": 42, "satisfiable_now": 10}
+    bad = 0
+
+    def prose(doc: str) -> list[str]:
+        return check_prose(doc, d, 2007, 10)[0]
+
+    def expect(label: str, problems: list[str], want_fire: bool) -> None:
+        nonlocal bad
+        fired = bool(problems)
+        if fired != want_fire:
+            bad += 1
+            print(
+                f"FAILED:selftest [{label}] expected "
+                f"{'FIRE' if want_fire else 'SILENCE'}, got {problems[:2] or 'SILENCE'}"
+            )
+
+    # C1 -- block present and correct, then each way it can be wrong.
+    fields, probs = parse_block(GOOD_DOC)
+    expect("C1 good block parses", probs, False)
+    expect(
+        "C1 good block matches", check_block(fields, d, 10, 2007, "committed"), False
+    )
+    expect("C1 missing block", parse_block("# no block here\n")[1], True)
+    expect(
+        "C1 partial block",
+        parse_block("<!-- RAIL-COUNT\nbasis: committed\n-->")[1],
+        True,
+    )
+    expect(
+        "C1 stale field",
+        check_block({**fields, "rail_blocked": "43"}, d, 10, 2007, "committed"),
+        True,
+    )
+    expect(
+        "C1 derived_by not naming the producer",
+        check_block(
+            {**fields, "derived_by": "a person, from memory"}, d, 10, 2007, "committed"
+        ),
+        True,
+    )
+
+    # C2 -- the headline rot, both directions.
+    expect("C2 good doc", prose(GOOD_DOC), False)
+    expect(
+        "C2 untagged stale count",
+        prose(GOOD_DOC + "\nIt gates 43 blocked units.\n"),
+        True,
+    )
+    expect(
+        "C2 same count once marked superseded",
+        prose(GOOD_DOC + "\nIt gated 43 blocked units. [superseded 2026-08-13]\n"),
+        False,
+    )
+    # The escape is the MARKER, never the word "worktree". An earlier version accepted any number
+    # matching a live worktree derivation on a line saying "worktree" -- which is true only on a
+    # dirty tree and false in the clean clone CI checks out. Both directions are pinned here.
+    expect(
+        "C2 a worktree figure is NOT exempt just for saying worktree",
+        prose(GOOD_DOC + "\nAgainst the worktree the rail gates 41 units.\n"),
+        True,
+    )
+    expect(
+        "C2 a worktree figure IS exempt once dated and marked",
+        prose(
+            GOOD_DOC
+            + "\nAgainst the worktree the rail gated 41 units. [worktree-observed 2026-08-13]\n"
+        ),
+        False,
+    )
+    # ...and the two ways C2 could be inert rather than clean.
+    expect(
+        "C2 must ignore numbers that are not unit counts",
+        prose(
+            GOOD_DOC
+            + "\nMeasured 2026-08-12 on port 8812 with python 3.11 across 99 files.\n"
+        ),
+        False,
+    )
+    expect(
+        "C2 an exemption marker must not whitelist a whole doc",
+        prose("[superseded]\nline two claims 43 units with no marker of its own.\n"),
+        True,
+    )
+    # The MEASURED false positive: option numbers near a unit noun are not unit counts. This case
+    # exists because the first version of COUNT_DIRECT flagged this exact sentence from the real
+    # doc. Its partner below keeps the fix from degrading into "never fire on a nearby noun".
+    expect(
+        "C2 option numbers in a different clause are not unit counts",
+        prose(
+            "Option 2 would move some units but must not be silently substituted for option 1 "
+            "on the receipts that demand cross-vendor.\n"
+        ),
+        False,
+    )
+    expect(
+        "C2 still binds a real noun phrase (review-gated units)",
+        prose("Until the rail is restored, the 43 review-gated units cannot move.\n"),
+        True,
+    )
+    expect(
+        "C2 still binds an 'N of the M' pair",
+        prose("43 of the 47 BLOCKED Prompt Two receipts name a review gate.\n"),
+        True,
+    )
+    # The MEASURED recall gap: a markdown table row keeps the unit noun in another cell, so a
+    # window-bound pair pattern missed it. Its partner keeps the line-scoped fix from becoming a
+    # bare "any N of M is a unit count" scan.
+    expect(
+        "C2 catches a table row whose unit noun sits in a later cell",
+        prose("| 43 of 47 | this page | tag occurrences, not units |\n"),
+        True,
+    )
+    expect(
+        "C2 leaves an 'N of M' alone when the line names no unit noun",
+        prose(
+            "Checked 3 of 5 workflows and 2 of 7 hooks; ruff 0.15.17 on python 3.11.\n"
+        ),
+        False,
+    )
+    # Secondary-doc scoping, both directions. A citing status doc must be held to the rail number
+    # on rail lines and left alone everywhere else, or the gate reaches past its evidence and
+    # starts demanding markers on other lanes' unrelated counts.
+    citing = (
+        "5. The cross-vendor review rail is DOWN, and it gates 43 blocked units.\n"
+        "- Two casualties in the adversarial build wave: 38 of 40 ADV units substantial.\n"
+    )
+    sp, _ = check_prose(citing, d, 2007, 10, 449, topic_only=True, where="secondary")
+    expect("C2 secondary: a stale rail count on a rail line FIRES", sp, True)
+    expect(
+        "C2 secondary: an unrelated 38-of-40 count on a non-rail line is left alone",
+        [p for p in sp if "38" in p or " 40" in p],
+        False,
+    )
+    sp2, _ = check_prose(
+        "5. The cross-vendor review rail is DOWN, and it gates 42 blocked units.\n"
+        "- 449 READY units all name an independent cross-vendor reviewer.\n",
+        d,
+        2007,
+        10,
+        449,
+        topic_only=True,
+        where="secondary",
+    )
+    expect(
+        "C2 secondary: corrected rail line plus a derived READY count is silent",
+        sp2,
+        False,
+    )
+
+    # C4 -- an empty/implausible derivation must be loud, not vacuously clean.
+    expect("C4 plausible", plausibility(d), False)
+    expect("C4 collapsed population", plausibility({**d, "blocked_units": 0}), True)
+
+    print(
+        f"  selftest: {'PASS' if not bad else 'FAIL'} (23 cases, every check in both states)"
+    )
+    return bad
+
+
+def plausibility(derived: dict[str, int]) -> list[str]:
+    if derived["blocked_units"] < MIN_BLOCKED:
+        return [
+            f"C4 derivation returned only {derived['blocked_units']} blocked units (floor "
+            f"{MIN_BLOCKED}). The catalog or the resolver changed shape; every other check in "
+            f"this gate would pass vacuously, so it fails closed instead."
+        ]
+    if derived["rail_blocked"] + derived["satisfiable_now"] != derived["blocked_units"]:
+        return [
+            "C4 verdict counts do not sum to the population -- resolver shape change"
+        ]
+    return []
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--basis", choices=("committed", "worktree"), default="committed")
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument(
+        "--doc", help="judge this file instead of the tracked doc (red-proof)"
+    )
+    args = ap.parse_args(argv)
+
+    if args.self_test:
+        if _selftest():
+            print("FAILED:rail-count-gate self-test did not discriminate")
+            return 1
+        print("SUCCESS:rail-count-gate self-test")
+        return 0
+
+    derived = counts_at(args.basis)
+    problems = plausibility(derived)
+    if problems:  # C4 fails closed before anything else is allowed to look clean
+        print(f"FAILED:rail-count-gate {problems}")
+        return 1
+
+    cat_txt = _vs.batch_blobs("HEAD", [_vs.CATALOG_REL])[_vs.CATALOG_REL]
+    catalog_units = len(json.loads(cat_txt)["work_units"]) if cat_txt else -1
+
+    sat_rows = satisfiable_rows(args.basis)
+    reviewed, problems = check_reviewed(args.basis, sat_rows)
+
+    if args.doc:
+        doc = Path(args.doc).read_text(encoding="utf-8")
+        where = args.doc
+    else:
+        doc = read_text(args.basis, DOC_REL)
+        where = f"{DOC_REL} @ {args.basis}"
+    if doc is None:
+        print(f"FAILED:rail-count-gate {DOC_REL} absent at basis={args.basis}")
+        return 1
+
+    fields, block_problems = parse_block(doc)
+    problems += block_problems
+    if fields:
+        problems += check_block(fields, derived, reviewed, catalog_units, args.basis)
+    # `ready_units` is an INT at HEAD and a LIST in a sibling lane's uncommitted rewrite of the
+    # same file -- measured, as a TypeError, the first time this ran on the worktree basis. Accept
+    # both shapes rather than assuming one; -1 means "not derivable", which can never match a
+    # printed count and so never silently widens the allowed set.
+    ready_txt = read_text(args.basis, READY_REL)
+    ready = -1
+    if ready_txt:
+        raw = json.loads(ready_txt).get("ready_units")
+        ready = (
+            raw if isinstance(raw, int) else (len(raw) if isinstance(raw, list) else -1)
+        )
+
+    prose_problems, exempted = check_prose(doc, derived, catalog_units, reviewed, ready)
+    problems += prose_problems
+    problems += check_artifact(args.basis, derived)
+
+    # Documents that CITE the number without owning it. Skipped entirely when --doc is used,
+    # because that mode is judging one file on purpose.
+    secondary_claims = 0
+    if not args.doc:
+        for rel in SECONDARY_DOCS:
+            txt = read_text(args.basis, rel)
+            if txt is None:
+                problems.append(f"C2 secondary doc {rel} absent at basis={args.basis}")
+                continue
+            sp, sx = check_prose(
+                txt, derived, catalog_units, reviewed, ready, topic_only=True, where=rel
+            )
+            problems += sp
+            exempted += sx
+            secondary_claims += sum(
+                1 for _, line, _ in prose_claims(txt) if RAIL_TOPIC.search(line)
+            )
+
+    print(f"  basis={args.basis}  doc={where}")
+    print(
+        f"  FRESH DERIVATION: {derived['blocked_units']} blocked units, "
+        f"{derived['rail_blocked']} rail-blocked, {derived['satisfiable_now']} satisfiable now, "
+        f"{reviewed} of those reviewed; catalog carries {catalog_units} units, "
+        f"{ready} of them READY"
+    )
+    print(
+        f"  unit-count claims examined: {len(prose_claims(doc))} in the owning doc + "
+        f"{secondary_claims} on-topic in {len(SECONDARY_DOCS)} citing doc(s); "
+        f"{exempted} exempted by an explicit dated marker"
+    )
+
+    if problems:
+        for p in problems:
+            print(f"  {p}")
+        print(f"FAILED:rail-count-gate {len(problems)} problem(s)")
+        return 1
+    print("SUCCESS:rail-count-gate the published number equals a fresh derivation")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
