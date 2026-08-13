@@ -54,6 +54,13 @@ SELF = pathlib.Path(__file__).name
 CI_PLAN: list[tuple[str, list[str], int]] = [
     ("probe_capability --control", ["probe_capability.py", "--control"], 0),
     ("redproof_control", ["redproof_control.py"], 0),
+    # The fourth signal moved out of the producer and into committed data; these three
+    # guard that data and the classifier that attributes it, and are deterministic over
+    # committed inputs (unlike the dated census in _g3, which stays excluded).
+    ("backend_map (C1/C2/C3 classifier)", ["backend_map.py"], 0),
+    ("s4_evidence (validator both-states)", ["s4_evidence.py", "--self-test"], 0),
+    ("b1_redproof_backend", ["_b1_redproof_backend.py"], 0),
+    ("cost_rank (invariants)", ["cost_rank.py"], 0),
     ("overlap_report", ["overlap_report.py", "capability-matrix-r2.json"], 0),
     ("r2_reproduce (round-1 defects)", ["_r2_reproduce.py"], 0),
     ("r2_redproof_invariants", ["_r2_redproof_invariants.py"], 0),
@@ -111,10 +118,11 @@ EXCLUDED: dict[str, str] = {
         "shape forever and go red the first time the owner legitimately mounts a server"
     ),
     "_g3_backend_liveness.py": (
-        "grounding lane probe (round 2); carries per-backend liveness MEASURED by real "
-        "in-session tool calls on this box. Deterministic, but its verdict is a dated "
-        "liveness claim -- running it per PR would re-assert 2026-08-13 zombie counts "
-        "indefinitely. The classifier controls (C1/C2/C3) are self-checking in-run"
+        "the dated per-backend CENSUS. It no longer owns the classifier or the probe "
+        "verdicts -- those moved to backend_map.py and s4-evidence.json, both CI-wired "
+        "above -- but its headline is still a dated liveness claim, and running it per "
+        "PR would re-assert 2026-08-13 zombie counts indefinitely. Same split as "
+        "_r2_ruff_census.py: assertions in CI, census out"
     ),
     "_g4_cost_rollup.py": (
         "grounding lane probe (round 2); a dated cost census over a committed artifact, "
@@ -158,13 +166,22 @@ def run(argv: list[str]) -> tuple[int, str]:
     return proc.returncode, marker.strip()[:190]
 
 
-def blob(rev: str, path: str) -> bytes:
-    return subprocess.run(
-        ["git", "show", f"{rev}:{path}"], cwd=REPO, capture_output=True, check=True
-    ).stdout
+def blob(rev: str, path: str) -> bytes | None:
+    """The committed bytes, or None when the path does not exist at ``rev``.
+
+    ``check=True`` here raised a raw CalledProcessError traceback the first time a new
+    producer was added before its artifact was committed.  A gate that dies with a stack
+    trace instead of a ``FAILED:`` line is harder to read in CI and, worse, is one
+    refactor away from being caught by a bare ``except`` and silently skipped -- so the
+    missing-blob case is now a reported problem rather than a crash.
+    """
+    proc = subprocess.run(
+        ["git", "show", f"{rev}:{path}"], cwd=REPO, capture_output=True
+    )
+    return proc.stdout if proc.returncode == 0 else None
 
 
-def determinism(rev: str) -> list[str]:
+def determinism(rev: str) -> tuple[list[str], int]:
     """Re-run both producers into a temp dir; require byte-identity with the committed blob.
 
     Both write with ``newline="\\n"`` explicitly, so this is byte-exact on either platform --
@@ -189,6 +206,11 @@ def determinism(rev: str) -> list[str]:
             ],
             tmp / "o.json",
         ),
+        (
+            "cost-rank.json",
+            ["cost_rank.py", "--base", str(HERE), "-o", str(tmp / "c.json")],
+            tmp / "c.json",
+        ),
     ]
     for name, argv, out in jobs:
         rc, marker = run(argv)
@@ -200,6 +222,12 @@ def determinism(rev: str) -> list[str]:
             continue
         regen = out.read_bytes()
         shipped = blob(rev, f"command-center/mcp-audit/{name}")
+        if shipped is None:
+            problems.append(
+                f"{name}: the producer runs but the artifact does not exist at {rev[:12]} "
+                "-- commit it, or its determinism is unverifiable (fail closed)"
+            )
+            continue
         if drift(regen, shipped):
             problems.append(
                 f"{name}: regenerated {len(regen)} B != committed {len(shipped)} B "
@@ -209,7 +237,7 @@ def determinism(rev: str) -> list[str]:
             print(
                 f"  ok  {name:22} byte-identical to the committed blob ({len(regen)} B)"
             )
-    return problems
+    return problems, len(jobs)
 
 
 # ------------------------------------------------------------------------- self-test
@@ -322,16 +350,20 @@ def main(argv: list[str] | None = None) -> int:
 
     bad = verdict(results)
     print("  -- producer determinism --")
-    bad += determinism(rev)
+    det_problems, n_artifacts = determinism(rev)
+    bad += det_problems
 
     if bad:
         for b in bad:
             print(f"  FAIL {b}")
         print(f"FAILED:mcp-audit-ci-gate {len(bad)} problem(s)")
         return 1
+    # The artifact count is COUNTED, not typed: this line read "2/2" while a third
+    # producer was being added, and a hardcoded total in a success message is the same
+    # drift class as a legend that stops matching its field.
     print(
         f"SUCCESS:mcp-audit-ci-gate {len(results)}/{len(results)} gates behaved, "
-        "2/2 artifacts byte-identical to their producers"
+        f"{n_artifacts}/{n_artifacts} artifacts byte-identical to their producers"
     )
     return 0
 

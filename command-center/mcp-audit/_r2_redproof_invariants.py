@@ -59,6 +59,15 @@ def _row(**over: Any) -> dict[str, Any]:
 
 GOOD_ROWS = [
     _row(name="stdio-verified"),
+    # BOTH methods answering is a real shape (angr, frida-mcp, codex, qlty, searxng) and
+    # it had no fixture until the field could express it.  Before that, `call_method` was
+    # "stdio-handshake" whenever a handshake existed, silently discarding the in-session
+    # call the legend calls the STRONGER evidence.
+    _row(
+        name="both-methods",
+        s4_executed=("list_projects", "count=0"),
+        call_method=rd.BOTH_METHODS,
+    ),
     _row(
         name="http-verified",
         handshake_verified=False,
@@ -108,6 +117,19 @@ MUTATIONS: dict[str, tuple[list[dict[str, Any]], str]] = {
                 name="mislabelled",
                 handshake_verified=False,
                 s4_executed=("whoami", "ok"),
+                call_method="stdio-handshake",
+            )
+        ],
+        rd.S4_LEGEND,
+    ),
+    # The SHIPPED behaviour before the evidence file landed: a row where both methods
+    # answered was labelled "stdio-handshake", dropping the stronger half.  This mutation
+    # IS the old code, so a survivor here means the fix is cosmetic.
+    "both-methods-labelled-handshake-only": (
+        [
+            _row(
+                name="both",
+                s4_executed=("list_projects", "count=0"),
                 call_method="stdio-handshake",
             )
         ],

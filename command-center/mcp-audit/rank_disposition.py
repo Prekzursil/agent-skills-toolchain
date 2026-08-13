@@ -58,6 +58,8 @@ from typing import Any
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import backend_map  # noqa: E402
+import s4_evidence  # noqa: E402
 from probe_capability import MOUNTED, load_specs  # noqa: E402
 
 KEEP, DISABLE, INVESTIGATE = "KEEP", "DISABLE", "INVESTIGATE"
@@ -102,17 +104,26 @@ S4_DECLINED = {
     "repomix": "cheapest tool still walks a tree",
 }
 
-# Real in-session tool calls executed by the auditing session (S4), with the tool used.
-# These are the HTTP-transport servers a stdio handshake CANNOT reach at all.
-S4_EXECUTED = {
-    "agent-mail": ("health_check", "status=ok"),
-    "basic-memory": ("list_memory_projects", "2 projects, default=main"),
-    "figma": ("whoami", "handle + Full seat returned"),
-    "huggingface": ("hf_whoami", "status=anonymous (server answered)"),
-    "github": ("get_me", "authenticated login returned"),
-    "codex": ("codex (grounding lane)", "returned PONG with a threadId"),
-    "qlty": ("qlty (grounding lane)", "PASS"),
-}
+# Real in-session tool calls (S4) NO LONGER LIVE HERE.  They were a dict literal in this
+# module -- a claim living inside the thing that certifies it, with no date, no author, and
+# no way to say WHICH backend of a proxy answered.  They are now records in
+# ``s4-evidence.json``, loaded by ``s4_evidence.load()``, which fails CLOSED when the file
+# is missing rather than degrading to "no S4 evidence measured".
+#
+# The legend for the per-backend half of that data.  Same discipline as S4_LEGEND: the text
+# that SHIPS and the text an invariant CHECKS are one object.
+BACKEND_LEGEND = (
+    "Per-BACKEND liveness for a proxy row. A server-level signal cannot express "
+    "'the server is up and this backend is not', which is exactly what cloud-hub does: "
+    "it keeps advertising a dead backend's tools and says so itself -- \"Its other "
+    'tools stay listed". probed[] carries one real read-only call per backend with its '
+    "verdict; unprobed[] is UNMEASURED and explicitly NOT claimed live. "
+    "tools_over_dead_backend is attributed via backend_map, whose C1 completeness "
+    "control proves every cloud-hub name classifies; it is null for any server without "
+    "such a map -- null means NOT ATTRIBUTED, never zero. A dead backend does not "
+    "shrink call_verified: the call really did succeed. It shrinks what that success "
+    "is evidence OF."
+)
 
 
 def parse_host_list(path: pathlib.Path) -> dict[str, str]:
@@ -158,25 +169,97 @@ def best_capability(paths: list[pathlib.Path]) -> dict[str, dict[str, Any]]:
     return best
 
 
-def decide(row: dict[str, Any], eligible: dict[str, str]) -> tuple[str, str]:
+DEAD_BACKEND_MARK = "backend measured non-functional"
+
+# Both S4 methods can answer for the SAME server, and until now the field could only name
+# one of them: `call_method` was "stdio-handshake" whenever a handshake existed, silently
+# discarding the in-session call the legend itself calls the STRONGER evidence.  One object
+# computes it so the producer and `assert_signal_consistency()` cannot drift apart -- which
+# is the round-1 defect, and duplicating the ternary would have reintroduced it.
+BOTH_METHODS = "stdio-handshake+in-session-tool-call"
+
+
+def call_method_of(handshake: bool, in_session: bool) -> str | None:
+    if handshake and in_session:
+        return BOTH_METHODS
+    if handshake:
+        return "stdio-handshake"
+    return "in-session-tool-call" if in_session else None
+
+
+def backend_caveat(row: dict[str, Any]) -> str:
+    """The sentence a row with a dead backend is REQUIRED to carry.
+
+    ``assert_backend_consistency()`` refuses to write a row that has a dead backend and
+    does not say so, which is what stops the round-1 failure mode (a legend and a field
+    drifting apart) from recurring one level down.  The caveat is generated from the same
+    block the invariant reads, so the two cannot disagree.
+    """
+    bl = row.get("backend_liveness")
+    if not bl or not bl["dead_backends"]:
+        return ""
+    dead = ", ".join(bl["dead_backends"])
+    over = bl["tools_over_dead_backend"]
+    share = (
+        f", {over}/{row['tool_count']} advertised tools ({bl['dead_surface_pct']}%)"
+        if over is not None
+        else ""
+    )
+    unprobed = (
+        f"; {len(bl['unprobed'])} further backend(s) UNMEASURED"
+        if bl["unprobed"]
+        else ""
+    )
+    return (
+        f" -- SCOPE: the call succeeded, the capability did not. {DEAD_BACKEND_MARK}: "
+        f"{dead}{share}{unprobed}"
+    )
+
+
+def decide(
+    row: dict[str, Any], eligible: dict[str, str], ev: s4_evidence.Evidence
+) -> tuple[str, str]:
     """Pure disposition function -> (disposition, evidence sentence)."""
     name = row["name"]
     if name in eligible:
         container = eligible[name]
-        return (
-            DISABLE,
+        # ROUND-5 OVERCLAIM, FIXED HERE.  This sentence used to end "0 unique -- nothing
+        # becomes unreachable".  The set arithmetic was right and the sentence was wider
+        # than it: it implies the container still SERVES the capability.  Measured
+        # 2026-08-13 -- searxng's 4 tools and search-hub's copies both answer against the
+        # same instance, and that instance is unreachable, so BOTH sides are non-functional
+        # and there is no failover to fall back to.  The verdict does not move (arguably it
+        # strengthens); only the claim is scoped, and it is scoped from DATA, not by hand:
+        # shared_dead_resource() returns None for any pair without a jointly-measured dead
+        # resource, and the plain wording is then what ships.
+        shared = ev.shared_dead_resource(name, container)
+        base = (
             f"exact set arithmetic: all {row['tool_count']} tool names are a strict "
-            f"subset of {container}'s surface, 0 unique -- nothing becomes unreachable",
+            f"subset of {container}'s surface, 0 unique -- so disabling removes no "
+            f"REACHABLE capability"
         )
+        if shared:
+            base += (
+                f". The duplicated tools are non-functional on BOTH sides: each was "
+                f"measured against the same unreachable {shared}, so this is "
+                f"deduplication of a DEAD capability, not a failover to a live one"
+            )
+        return DISABLE, base + backend_caveat(row)
     if row["handshake_verified"]:
-        return (
-            KEEP,
+        base = (
             f"real initialize+tools/list returned {row['tool_count']} tools in "
-            f"{row['elapsed_ms']}ms",
+            f"{row['elapsed_ms']}ms"
         )
+        # Both methods answering is STRONGER evidence than either alone, and the legend
+        # already says the in-session call is the stronger of the two -- so a row that has
+        # both must not report only the weaker one.
+        if row["s4_executed"]:
+            tool, result = row["s4_executed"]
+            base += f"; and a real in-session call {tool!r} -> {result}"
+        return KEEP, base + backend_caveat(row)
     if row["s4_executed"]:
         tool, result = row["s4_executed"]
-        return KEEP, f"real in-session call {tool!r} -> {result}"
+        return KEEP, f"real in-session call {tool!r} -> {result}" + backend_caveat(row)
     if row["probe_method"] == "not-spawnable" and not row["s4_executed"]:
         return (
             INVESTIGATE,
@@ -230,6 +313,128 @@ def liveness_view(cap: dict[str, Any]) -> tuple[Any, Any, str]:
         None,
         f"{NOT_MEASURED} the stdio handshake did not complete ({raw or 'unknown'})",
     )
+
+
+def backend_view(
+    name: str, cap: dict[str, Any], tool_count: int | None, ev: s4_evidence.Evidence
+) -> dict[str, Any] | None:
+    """Per-backend liveness for one row, or None when no backend was ever probed.
+
+    None means "this server has no backend records", NOT "its backends are fine" --
+    ``assert_backend_consistency()`` checks that reading, so the null cannot quietly
+    become a clean bill of health the way a bare null always does.
+    """
+    recs = ev.backends(name)
+    if not recs:
+        return None
+    dead = sorted(b for b, r in recs.items() if r["verdict"] not in s4_evidence.LIVE)
+    over: int | None = None
+    pct: float | None = None
+    attribution = (
+        f"NOT ATTRIBUTED: no tool->backend map exists for {name!r}, so the advertised "
+        "tools cannot be split across its backends. Null is not zero."
+    )
+    if name == backend_map.PROXY_SERVER:
+        names = cap.get("tool_names") or []
+        buckets, unclassified = backend_map.bucket(names)
+        # Fail closed rather than under-report: an unclassified tail silently shrinks
+        # whichever backend owns it, which is exactly how a share becomes fiction.
+        if unclassified:
+            raise SystemExit(
+                f"FAILED:rank-disposition backend_map left {len(unclassified)} "
+                f"{name} tool(s) unclassified -- dead-surface share would under-report"
+            )
+        over = sum(len(buckets.get(b, [])) for b in dead)
+        # C3: the same total by an independent route.  Two sums that must agree beats one
+        # sum that cannot be wrong in a way anybody would notice.
+        independent = sum(1 for t in names if backend_map.classify(t) in set(dead))
+        if over != independent:
+            raise SystemExit(
+                f"FAILED:rank-disposition dead-surface disagreement for {name}: "
+                f"{over} != {independent}"
+            )
+        if tool_count:
+            pct = round(100.0 * over / tool_count, 1)
+        attribution = (
+            "backend_map over the committed tools/list surface (its C1 control proves "
+            "every name classifies, C3 that the buckets partition it)"
+        )
+    return {
+        "legend": BACKEND_LEGEND,
+        "attribution": attribution,
+        "probed": [
+            {
+                "backend": b,
+                "tool": recs[b]["tool"],
+                "verdict": recs[b]["verdict"],
+                "result": recs[b]["result"],
+                "backing_resource": recs[b]["backing_resource"],
+                "measured_utc_date": recs[b]["measured_utc_date"],
+                "measured_by": recs[b]["measured_by"],
+                "corroboration": recs[b].get("corroboration"),
+            }
+            for b in sorted(recs)
+        ],
+        "dead_backends": dead,
+        "unprobed": sorted(ev.unprobed_backends(name)),
+        "tools_over_dead_backend": over,
+        "dead_surface_pct": pct,
+    }
+
+
+def assert_backend_consistency(
+    rows: list[dict[str, Any]], ev: s4_evidence.Evidence
+) -> None:
+    """Fail closed when a row's backend block and its own evidence sentence disagree.
+
+    The round-1 defect was a LEGEND and a FIELD drifting apart, and the fix for it was a
+    machine check rather than a better sentence.  The same failure is available one level
+    down: a row can carry ``call_verified: true`` and a dead backend and read, to any
+    consumer, as a working server.  So the caveat is not advisory -- a row with a dead
+    backend that does not SAY it has one aborts the run.
+    """
+    bad: list[str] = []
+    for r in rows:
+        bl = r.get("backend_liveness")
+        name = r["name"]
+        if bl is None:
+            # A null must mean "nothing probed", never "probed and fine".
+            if ev.backends(name):
+                bad.append(
+                    f"{name}: backend records exist but the row carries no block"
+                )
+            continue
+        if not bl["probed"]:
+            bad.append(
+                f"{name}: backend block with an empty probed[] -- a null in disguise"
+            )
+        over, pct = bl["tools_over_dead_backend"], bl["dead_surface_pct"]
+        if (over is None) != (pct is None):
+            bad.append(f"{name}: tools_over_dead_backend={over} but pct={pct}")
+        if over is not None:
+            if r["tool_count"] is None or over > r["tool_count"]:
+                bad.append(
+                    f"{name}: {over} tools over dead backends exceeds the "
+                    f"{r['tool_count']} it advertises"
+                )
+            if over and not bl["dead_backends"]:
+                bad.append(
+                    f"{name}: {over} dead-backend tools but no dead backend named"
+                )
+        if bl["dead_backends"] and DEAD_BACKEND_MARK not in (r.get("evidence") or ""):
+            bad.append(
+                f"{name}: dead backend(s) {bl['dead_backends']} but the evidence "
+                "sentence does not disclose them -- verified and non-functional at once"
+            )
+    if bad:
+        raise SystemExit(
+            "FAILED:rank-disposition backend self-contradiction:\n  " + "\n  ".join(bad)
+        )
+    if BACKEND_LEGEND and "UNMEASURED" not in BACKEND_LEGEND:
+        raise SystemExit(
+            "FAILED:rank-disposition the backend legend stopped distinguishing "
+            "unmeasured backends from live ones"
+        )
 
 
 def assert_liveness_consistency(rows: list[dict[str, Any]]) -> None:
@@ -316,11 +521,7 @@ def assert_signal_consistency(rows: list[dict[str, Any]], legend: str) -> None:
                 f"in_session={bool(r['s4_executed'])}"
             )
             continue
-        expected = (
-            "stdio-handshake"
-            if r["handshake_verified"]
-            else ("in-session-tool-call" if r["s4_executed"] else None)
-        )
+        expected = call_method_of(bool(r["handshake_verified"]), bool(r["s4_executed"]))
         if r["call_method"] != expected:
             bad.append(f"{r['name']}: call_method={r['call_method']!r} != {expected!r}")
     if bad:
@@ -377,6 +578,11 @@ def main(argv: list[str] | None = None) -> int:
         print("FAILED:rank-disposition zero capability rows (fail closed)")
         return 1
 
+    # S4 comes from a committed, dated, attributed FILE now -- not from a literal in this
+    # module.  load() raises when it is absent or malformed; it never returns "nothing".
+    ev = s4_evidence.load(base)
+    s4_calls = ev.server_calls()
+
     rows: list[dict[str, Any]] = []
     for name in MOUNTED:
         cap = caps.get(name, {})
@@ -392,13 +598,10 @@ def main(argv: list[str] | None = None) -> int:
             "session_mounted": name in MOUNTED,
             # S4 is the union of its two methods; the sub-signals stay visible so the
             # union is auditable and can never silently replace either half.
-            "call_verified": bool(cap.get("call_verified"))
-            or bool(S4_EXECUTED.get(name)),
+            "call_verified": bool(cap.get("call_verified")) or bool(s4_calls.get(name)),
             "handshake_verified": bool(cap.get("call_verified")),
-            "call_method": (
-                "stdio-handshake"
-                if cap.get("call_verified")
-                else ("in-session-tool-call" if S4_EXECUTED.get(name) else None)
+            "call_method": call_method_of(
+                bool(cap.get("call_verified")), bool(s4_calls.get(name))
             ),
             # --- inventory (DoD: scope + source file)
             #
@@ -447,14 +650,16 @@ def main(argv: list[str] | None = None) -> int:
             "env_var_names": [f.get("name") for f in env_fields],
             "env_kinds": sorted({f.get("kind") for f in env_fields if f.get("kind")}),
             "credential_bearing": bool(env_fields),
-            "s4_executed": S4_EXECUTED.get(name),
+            "s4_executed": s4_calls.get(name),
+            "backend_liveness": backend_view(name, cap, cap.get("tool_count"), ev),
         }
-        row["disposition"], row["evidence"] = decide(row, eligible)
+        row["disposition"], row["evidence"] = decide(row, eligible, ev)
         rows.append(row)
 
     assert_reversible(rows)
     assert_signal_consistency(rows, S4_LEGEND)
     assert_liveness_consistency(rows)
+    assert_backend_consistency(rows, ev)
     order = {DISABLE: 0, INVESTIGATE: 1, KEEP: 2}
     rows.sort(
         key=lambda r: (order[r["disposition"]], -(r["tool_count"] or 0), r["name"])
@@ -487,7 +692,13 @@ def main(argv: list[str] | None = None) -> int:
             "call_verified": S4_LEGEND,
             "handshake_verified": "S4a only: stdio initialize+tools/list completed",
             "s4_executed": "S4b only: (tool, result) of a real in-session tool call",
-            "call_method": "which S4 method answered, or null if neither",
+            "call_method": (
+                "which S4 method answered, or null if neither. A row where BOTH "
+                f"answered reads {BOTH_METHODS!r}: reporting only the handshake "
+                "discarded the in-session call the legend itself calls the stronger "
+                "evidence."
+            ),
+            "backend_liveness": BACKEND_LEGEND,
             "liveness_basis": LIVENESS_LEGEND,
             "last_error": (
                 "a stdio handshake that was ATTEMPTED and FAILED. Null on a row with "
@@ -536,6 +747,43 @@ def main(argv: list[str] | None = None) -> int:
                 "HTTP initialize+tools/list against each endpoint, or a dump of the "
                 "client-side tool registry -- neither is a stdio spawn, so neither is "
                 "reachable from this producer as built."
+            ),
+        },
+        "refuted_round_5": {
+            "claim": (
+                "the DISABLE row for searxng shipped 'all 4 tool names are a strict "
+                "subset of search-hub's surface, 0 unique -- nothing becomes unreachable'"
+            ),
+            "verdict": "REFUTED as an OVERCLAIM; the disposition itself is unchanged",
+            "measured": (
+                "2026-08-13, real in-session calls to BOTH copies of "
+                "searxng_instance_info returned byte-identical available=false against "
+                "the same unreachable http://127.0.0.1:8890. The set arithmetic was "
+                "correct; the sentence implied search-hub still SERVES the capability, "
+                "and it does not -- there is no failover to fall back to"
+            ),
+            "fix": (
+                "the sentence is generated from shared_dead_resource(), which returns "
+                "None for any pair without a jointly-measured dead resource and lets the "
+                "plain wording ship. The byte-identity claim is itself checked: "
+                "s4_evidence.validate() fails closed if a record's prose says "
+                "BYTE-IDENTICAL and no other record carries the same captured bytes"
+            ),
+            "note": (
+                "code right, sentence wider than its evidence -- the dominant defect "
+                "class in this program, and it does NOT move the verdict"
+            ),
+        },
+        "s4_evidence_source": {
+            "path": ev.path.name,
+            "records": len(ev.records),
+            "server_level": len(s4_calls),
+            "why": (
+                "S4 used to be a dict literal inside this producer -- a claim living "
+                "inside the thing that certifies it, undated, unattributed, and unable "
+                "to say which BACKEND of a proxy answered. It is now committed data the "
+                "producer reads, and load() fails closed when it is absent rather than "
+                "degrading to 'no S4 evidence' (an absent source is zero signals, not one)"
             ),
         },
         "counts": counts,
