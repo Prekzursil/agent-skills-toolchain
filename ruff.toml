@@ -20,6 +20,16 @@
 #     which are valid there and invalid as standalone Python. It is committed so the fan-out chain is
 #     reproducible from the repo rather than existing only inside the workspace.
 extend-exclude = [
+    # Salvaged snapshot of 21 files that existed ONLY in a no-remote, zero-commit directory
+    # (`~/source/_advver_M14/scratch`) while nine lanes were writing into it. All 21 had content
+    # present nowhere in the canonical object store; five are lane verification deliverables. They
+    # were copied with `cp -p` precisely so the bytes and mtimes are the originals, which is the
+    # whole value of the snapshot -- `ruff format` would rewrite 12 of the 17 .py files and destroy
+    # it. Same trade-off already settled below for `casualty/probes` and `command-center/_*.py`:
+    # evidence, not source, so the bytes win. Measured: with this line the gate is green; without
+    # it, 12 reformat + 5 lint (F401, E741, three E702). If these ever become maintained source
+    # rather than a frozen snapshot, delete this line and format them properly.
+    "command-center/ssot/salvaged-from-scratch/**",
     # Cited-but-ignored root probe scripts, committed byte-unchanged by the SLOP lane.
     # 45 of the 123 `command-center/_*.py` are named inside committed artifacts, so a clone
     # needs them or those citations dangle (see the .gitignore EXCEPTION 2 block). They are
