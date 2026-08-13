@@ -24,6 +24,16 @@ answered.
   said 16.  The refuted wording is recorded rather than deleted, and
   ``assert_signal_consistency()`` now makes that shape UNREPRESENTABLE.
 
+  ROUND 2's FIX MOVED THE CONTRADICTION INSTEAD OF ENDING IT.  Widening
+  ``call_verified`` to the union left ``last_error`` untouched, so those same five rows
+  then shipped ``call_verified: true`` beside ``last_error: "transport='http': no stdio
+  command"`` -- verified and failed at once, in the same object, in the very field
+  ``mcpctl.matrix.Liveness`` reads.  ``liveness_basis`` now states per row whether a
+  child was sampled at all, ``probe_note`` carries the categorical "nothing to spawn"
+  case, and ``assert_liveness_consistency()`` makes the round-2 shape unrepresentable
+  too.  Two fixes drifting against each other is the SAME failure as a legend drifting
+  from its field -- which is why the guard is a machine check and not a better sentence.
+
 DISPOSITION IS AN ALGORITHM, NOT AN OPINION.  ``decide()`` is a pure function of the
 joined row plus the exact set arithmetic in overlap-report.json.  ``REMOVE`` is not a
 representable outcome -- ``assert_reversible()`` fails the run closed if one appears --
@@ -59,6 +69,17 @@ S4_LEGEND = (
     "initialize+tools/list handshake, or a real in-session tool call. "
     "Read call_method for which one, handshake_verified/s4_executed for "
     "the halves. Enforced by assert_signal_consistency()."
+)
+
+# Same discipline one level down: the liveness/cost block is measurable ONLY from a stdio
+# child, so a row that has none must say so in its own field rather than shipping four
+# nulls that a reader cannot tell apart from "measured as zero".
+LIVENESS_LEGEND = (
+    "Whether pid/rss_bytes/tool_count/name_bytes/schema_bytes on THIS row were "
+    "sampled from a real stdio child, or were not measured and why. A row whose "
+    "basis starts with 'not-measured:' carries no liveness snapshot and must NOT be "
+    "injected into mcpctl.matrix.Liveness. Enforced by "
+    "assert_liveness_consistency()."
 )
 
 # Servers deliberately NOT given an S4 real call, with the reason.  Recording the reason
@@ -158,6 +179,99 @@ def decide(row: dict[str, Any], eligible: dict[str, str]) -> tuple[str, str]:
         INVESTIGATE,
         f"handshake did not complete: {row.get('last_error') or 'unknown'}",
     )
+
+
+MEASURED_BASIS = "stdio child sampled at handshake time"
+NOT_MEASURED = "not-measured:"
+LIVENESS_FIELDS = ("pid", "rss_bytes", "tool_count")
+
+
+def liveness_view(cap: dict[str, Any]) -> tuple[Any, Any, str]:
+    """Split the prober's ``last_error`` into a real error and a categorical note.
+
+    Returns ``(last_error, probe_note, liveness_basis)``.
+
+    ROUND 2 COPIED ``last_error`` STRAIGHT ONTO THE ROW and a round-3 pass caught what
+    that produced: five rows a real in-session call had PROVED working shipped
+    ``call_verified: true`` beside ``last_error: "transport='http': no stdio command"``.
+    That string is not an error -- it is a statement that there is no stdio child to
+    probe -- and ``last_error`` is one of the four fields ``mcpctl.matrix.Liveness``
+    reads, so injecting such a row would hand ``monitorcore``'s pane a server that is
+    simultaneously verified and failed.  The categorical case becomes ``probe_note``;
+    ``last_error`` is reserved for a handshake that was ATTEMPTED and FAILED.
+    """
+    raw = cap.get("last_error")
+    if not cap:
+        return (
+            None,
+            None,
+            f"{NOT_MEASURED} no capability row was produced for this server",
+        )
+    if cap.get("pid") is not None:
+        # A real error alongside a real sample is NOT silently dropped; the invariant
+        # decides whether that combination is representable.
+        return raw, None, MEASURED_BASIS
+    if cap.get("probe_method") == "not-spawnable":
+        return (
+            None,
+            raw,
+            f"{NOT_MEASURED} {raw or 'no stdio command'} -- no child process exists to sample",
+        )
+    return (
+        raw,
+        None,
+        f"{NOT_MEASURED} the stdio handshake did not complete ({raw or 'unknown'})",
+    )
+
+
+def assert_liveness_consistency(rows: list[dict[str, Any]]) -> None:
+    """Fail closed if a row's liveness block contradicts itself or hides a null.
+
+    Four shapes abort the run:
+
+      1. ``last_error`` set on a row whose ``call_verified`` is true -- the round-2
+         defect: verified and failed asserted in one object.
+      2. a row with no ``liveness_basis`` at all -- silence is the thing being removed.
+      3. a basis that claims a measurement while pid/rss_bytes/tool_count are null --
+         the "unmeasured renders as nothing" hole ``mcpctl.matrix.Liveness`` documents.
+      4. a ``not-measured:`` basis carrying no reason, or sitting on a row that in fact
+         has a full snapshot.
+
+    (3) and (4) are deliberately BOTH present: a check that only looked at measured rows
+    would pass under either hypothesis for the unmeasured ones, which is precisely how
+    round 2's DoD3 reported "per-server context cost measured" while 7 of 23 rows carried
+    no cost at all.
+    """
+    bad: list[str] = []
+    for r in rows:
+        if r.get("last_error") and r.get("call_verified"):
+            bad.append(
+                f"{r['name']}: call_verified=True beside last_error="
+                f"{r['last_error']!r} -- verified and failed in one row"
+            )
+        basis = r.get("liveness_basis") or ""
+        if not basis:
+            bad.append(f"{r['name']}: no liveness_basis (a null with no stated reason)")
+            continue
+        gaps = [f for f in LIVENESS_FIELDS if r.get(f) is None]
+        if basis.startswith(NOT_MEASURED):
+            reason = basis[len(NOT_MEASURED) :].strip()
+            if not gaps:
+                bad.append(
+                    f"{r['name']}: basis says not-measured but the row carries a full "
+                    f"snapshot {[f'{f}={r.get(f)}' for f in LIVENESS_FIELDS]}"
+                )
+            if len(reason) < 12:
+                bad.append(f"{r['name']}: not-measured with no reason ({basis!r})")
+        elif gaps:
+            bad.append(
+                f"{r['name']}: basis {basis!r} claims a measurement but {gaps} are null"
+            )
+    if bad:
+        raise SystemExit(
+            "FAILED:rank-disposition liveness self-contradiction:\n  "
+            + "\n  ".join(bad)
+        )
 
 
 def assert_reversible(rows: list[dict[str, Any]]) -> None:
@@ -261,6 +375,7 @@ def main(argv: list[str] | None = None) -> int:
         conf = cfg.get(name, {})
         spec = specs.get(name, {})
         env_fields = conf.get("env_fields") or []
+        last_error, probe_note, liveness_basis = liveness_view(cap)
         row: dict[str, Any] = {
             "name": name,
             # --- the four never-collapsed signals
@@ -288,16 +403,23 @@ def main(argv: list[str] | None = None) -> int:
             "name_bytes": cap.get("name_bytes"),
             "schema_bytes": cap.get("schema_bytes"),
             "elapsed_ms": cap.get("elapsed_ms"),
-            # pid + rss_bytes are the names mcpctl.matrix.Liveness reads, so a row of
-            # this table IS an injectable snapshot.  Both describe the probe's child at
-            # handshake time; that child was reaped immediately afterwards, so the pid is
-            # provenance, not a live handle.  commit_bytes is kept alongside because a
-            # hub's working set understates it, and both are the DIRECT child only --
-            # lazily spawned backends are charged elsewhere.
+            # pid + rss_bytes are the names mcpctl.matrix.Liveness reads, so a row whose
+            # liveness_basis is MEASURED_BASIS is an injectable snapshot.  Round 2 said
+            # this of "a row of the shipped table" without qualification; measured in
+            # round 3, it holds for the 16 handshake rows and NOT for the other 7, whose
+            # snapshot is four nulls.  liveness_basis is what tells the two apart, and
+            # assert_liveness_consistency() refuses to write a row that omits it.
+            # Both fields describe the probe's child at handshake time; that child was
+            # reaped immediately afterwards, so the pid is provenance, not a live handle.
+            # commit_bytes is kept alongside because a hub's working set understates it,
+            # and both are the DIRECT child only -- lazily spawned backends are charged
+            # elsewhere.
             "pid": cap.get("pid"),
             "rss_bytes": cap.get("rss_bytes"),
             "commit_bytes": cap.get("commit_bytes"),
-            "last_error": cap.get("last_error"),
+            "last_error": last_error,
+            "probe_note": probe_note,
+            "liveness_basis": liveness_basis,
             # --- security (names only, never values)
             "env_var_names": [f.get("name") for f in env_fields],
             "env_kinds": sorted({f.get("kind") for f in env_fields if f.get("kind")}),
@@ -309,6 +431,7 @@ def main(argv: list[str] | None = None) -> int:
 
     assert_reversible(rows)
     assert_signal_consistency(rows, S4_LEGEND)
+    assert_liveness_consistency(rows)
     order = {DISABLE: 0, INVESTIGATE: 1, KEEP: 2}
     rows.sort(
         key=lambda r: (order[r["disposition"]], -(r["tool_count"] or 0), r["name"])
@@ -342,6 +465,13 @@ def main(argv: list[str] | None = None) -> int:
             "handshake_verified": "S4a only: stdio initialize+tools/list completed",
             "s4_executed": "S4b only: (tool, result) of a real in-session tool call",
             "call_method": "which S4 method answered, or null if neither",
+            "liveness_basis": LIVENESS_LEGEND,
+            "last_error": (
+                "a stdio handshake that was ATTEMPTED and FAILED. Null on a row with "
+                "no stdio command at all -- that case is probe_note, because a "
+                "categorical 'nothing to spawn' is not a failure of the server."
+            ),
+            "probe_note": "why no stdio child was attempted (not an error)",
         },
         "refuted_round_1": {
             "claim": (
@@ -357,6 +487,32 @@ def main(argv: list[str] | None = None) -> int:
             "fix": (
                 "call_verified is now the union, call_method names the method, and "
                 "assert_signal_consistency() aborts the run on the old shape"
+            ),
+        },
+        "refuted_round_2": {
+            "claim": (
+                "round 2 wrote that disposition.json rows 'now also carry pid + "
+                "rss_bytes, so a row of the shipped table IS an injectable snapshot'"
+            ),
+            "verdict": "REFUTED in round 3",
+            "measured": (
+                "true for the 16 handshake-verified rows and false for the other 7, "
+                "whose pid/rss_bytes/tool_count/name_bytes/schema_bytes are all null; "
+                "5 of those 7 additionally shipped call_verified=true beside "
+                "last_error=\"transport='http': no stdio command\", so an injected "
+                "Liveness would have read verified-and-failed at once"
+            ),
+            "fix": (
+                "every row now carries liveness_basis; the categorical case moved to "
+                "probe_note; assert_liveness_consistency() aborts the run on a "
+                "verified-and-errored row, a missing basis, a basis that claims a "
+                "measurement it does not have, and a reasonless not-measured"
+            ),
+            "residual": (
+                "the 7 rows still have no cost measurement. Settling experiment: an "
+                "HTTP initialize+tools/list against each endpoint, or a dump of the "
+                "client-side tool registry -- neither is a stdio spawn, so neither is "
+                "reachable from this producer as built."
             ),
         },
         "counts": counts,
@@ -399,11 +555,18 @@ def render_md(rows: list[dict[str, Any]], counts: dict[str, int]) -> str:
             f"{r['evidence']} |"
         )
     verified = sum(1 for r in rows if r["call_verified"])
+    measured = sum(
+        1 for r in rows if not (r["liveness_basis"] or "").startswith(NOT_MEASURED)
+    )
     tail = (
         f"\n\n`S4 PASS` = stdio initialize+tools/list handshake.  `S4 PASS*` = a real "
         f"in-session tool call instead (HTTP transport cannot be spawned).  Both count "
         f"as S4 `call_verified`, which is their union: {verified}/{len(rows)} rows.  "
-        f"Counts: {counts}.\n"
+        f"Counts: {counts}.\n\n"
+        f"A `--` in the cost columns is **not measured**, never zero: cost comes from a "
+        f"stdio child and {len(rows) - measured} of {len(rows)} rows have none to sample. "
+        f"Each such row states why in its own `liveness_basis`, and "
+        f"`assert_liveness_consistency()` refuses to write a null without one.\n"
     )
     return head + "\n".join(body) + tail
 

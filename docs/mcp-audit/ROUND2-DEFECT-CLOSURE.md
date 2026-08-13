@@ -121,7 +121,22 @@ correct** — Windows exposes no RSS counter and `WorkingSetSize` is its documen
 (the mapping psutil uses for `Process.memory_info().rss` on nt). Only the NAME was missing,
 so both are emitted and the provenance survives the alias. The re-sweep re-measured it for
 real rather than back-filling the old artifact. `disposition.json` rows now also carry
-`pid` + `rss_bytes`, so a row of the shipped table *is* an injectable snapshot.
+`pid` + `rss_bytes`.
+
+> **REFUTED in round 3.** This sentence used to continue: "*so a row of the shipped table
+> **is** an injectable snapshot*". Measured over the committed blob `630bb8af`: true for
+> the **16** handshake-verified rows, false for the other **7**, whose
+> `pid`/`rss_bytes`/`tool_count`/`name_bytes`/`schema_bytes` are all null — the very
+> "unmeasured renders as nothing" hole D2 existed to close, reintroduced one level up by
+> the sentence describing the fix. Worse, 5 of those 7 shipped `call_verified: true`
+> beside `last_error: "transport='http': no stdio command"`, so an injected `Liveness`
+> would have read *verified and failed at once*. Closed in round 3 — see
+> [`ROUND3-DEFECT-CLOSURE.md`](ROUND3-DEFECT-CLOSURE.md): every row now carries
+> `liveness_basis`, the categorical case moved to `probe_note`, and
+> `assert_liveness_consistency()` makes both shapes unrepresentable. The residual is
+> disclosed, not closed: those 7 rows still have **no cost measurement**, and the settling
+> experiment is an HTTP `initialize`+`tools/list` against each endpoint (there is no stdio
+> command to spawn, which is why this producer cannot reach them).
 
 ### The claim is now executed, not asserted
 

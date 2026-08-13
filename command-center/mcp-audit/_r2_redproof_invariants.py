@@ -146,7 +146,16 @@ LIVENESS_FIELDS = tuple(f.name for f in dataclasses.fields(Liveness))
 
 
 def _inject(rows: list[dict[str, Any]]) -> tuple[int, list[str]]:
-    """Build Liveness from the producer's own keys; return (n_full, missing)."""
+    """Build Liveness from the producer's own keys; return (n_full, missing).
+
+    SCOPE, made explicit in round 3.  These are CAPABILITY-matrix rows, where
+    ``call_verified`` means the stdio handshake completed -- the only rows with a child
+    process to sample.  It is NOT the disposition table's post-D1 ``call_verified``, which
+    is the union with in-session calls and covers 21 rows.  Round 2 reported this result
+    as "all four non-null on every verified row (16/16)" while the shipped artifact had
+    just redefined *verified* to mean 21, so the sentence read as a claim about rows this
+    check never looks at.  The count is right; the word was borrowed from the other fix.
+    """
     missing: list[str] = []
     full = 0
     for row in rows:
@@ -174,7 +183,7 @@ def part_b(paths: list[pathlib.Path]) -> list[str]:
         print("  FAILED no capability rows (fail closed)")
         return ["no-rows"]
     full, missing = _inject(rows)
-    print(f"  verified rows with all 4 fields non-null: {full}")
+    print(f"  stdio-handshake rows with all 4 fields non-null: {full}")
     if missing:
         print(f"  FAILED gaps: {missing}")
         return ["real-rows-incomplete"]

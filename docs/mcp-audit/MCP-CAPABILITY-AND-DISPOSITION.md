@@ -374,8 +374,20 @@ SUCCESS:dod-check 4/4 DoD items PASS, 4/4 negative controls fired
   > the NAME was missing; both names are now emitted so the provenance survives the alias.
   > The claim is no longer prose: `_r2_redproof_invariants.py` part B constructs
   > `mcpctl.matrix.Liveness` from the producer's own row keys and requires all four to be
-  > non-null on every verified row (16/16), with a control that deletes `rss_bytes` and
+  > non-null on every row it checks, with a control that deletes `rss_bytes` and
   > confirms it goes red.
+  >
+  > > **REFUTED in round 3 — the wording, not the number.** This paragraph used to end
+  > > "non-null on **every verified row (16/16)**". Round 2's *other* fix had just
+  > > redefined `call_verified` to the **union** — 21 rows — so "every verified row" read
+  > > as a claim about 21 rows while part B only ever examines the **16 stdio-handshake**
+  > > rows (the only ones with a child process to sample); the other 5 verified rows
+  > > cannot pass it and are not looked at. 16 is the right count for the right set and
+  > > the check was never wrong; the *word* was borrowed from the sibling fix, which is
+  > > the same legend-drifts-from-field failure D1 was. Scope is now stated in
+  > > `_inject()`'s docstring and printed as `stdio-handshake rows` at run time. Two
+  > > fixes landing in one round can drift against **each other** — round 2 checked each
+  > > against its own evidence and neither against the other.
 * **Executing the `searxng` disable** is a config mutation — out of scope, and it must go
   through `mcpapply` dry-run → backup → apply.
 * **The 122 non-mounted rows** were not spawn-probed. Deliberate: spawning every configured
@@ -467,3 +479,28 @@ state. Confidence that no FOURTH defect is hiding in the same artifact: **uncert
 (20-55%)** — I closed the three the verifier found; I did not re-derive the artifact from
 scratch, and the settling experiment is another independent verify pass, not another
 self-review.
+
+## 12. Round-3 defect closure — round 2's two fixes drifted against each other
+
+That settling experiment was run. Full ledger, with the pre-fix reproduction pinned to the
+round-2 commit `630bb8af`: [`ROUND3-DEFECT-CLOSURE.md`](ROUND3-DEFECT-CLOSURE.md).
+
+> **Provenance, stated up front:** the round-2 verifier's report did not reach the build
+> lane — the handoff truncated inside the *round-1* audit text. The three below were
+> re-derived by an independent execution pass, not transcribed from a verifier. If round 2's
+> verifier confirmed something this pass did not rediscover, **it is still open.**
+
+| # | what round 2 shipped | verdict | what changed |
+|---|---|---|---|
+| E1 | 5 rows carried `call_verified: true` beside `last_error: "transport='http': no stdio command"` — widening `call_verified` to the union (D1) left `last_error` at its old meaning | **CONFIRMED** — a self-contradiction in the machine-readable artifact, in one of the four fields `mcpctl.matrix.Liveness` reads | `liveness_basis` on every row; the categorical case moved to `probe_note`; `assert_liveness_consistency()` aborts on 4 shapes, red-proofed by 5 mutations incl. the literal round-2 row |
+| E2 | "a row of the shipped table **is** an injectable snapshot", and part B reported "every **verified** row (16/16)" after *verified* had been redefined to mean 21 | **CONFIRMED overclaim** — true for 16 of 23 rows; the other 7 inject as four nulls | both sentences scoped in place (refuted wording kept, not deleted); `_inject()` prints its scope as `stdio-handshake rows`; residual disclosed inline with its settling experiment |
+| E3 | `dod3` skipped every row without a handshake, so "per-server context cost measured" PASSED while 7 of 23 rows carried no cost — and its one control could only exercise the covered branch | **CONFIRMED** — a control that cannot distinguish the two hypotheses | predicate widened to every row (a null is legal only beside a stated reason); a second control `strip-reason-from-unmeasured-row` fires; the ledger is now red on `630bb8af` and green on HEAD |
+
+All three are one family, and it is round 1's family: **a claim drifting from the thing it
+describes.** The new variant is that round 2 landed two fixes in one round and checked each
+against its own evidence, never against the other. Verdicts unchanged again: DISABLE 1 /
+INVESTIGATE 2 / KEEP 20.
+
+One hypothesis was **REFUTED** and is recorded rather than dropped: the round-1 and round-2
+sweeps are byte-identical on every cost field (707 tools / 11,645 name B / 603,233 schema B
+on both), so no doc figure was stale.

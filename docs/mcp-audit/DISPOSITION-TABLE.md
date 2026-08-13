@@ -25,3 +25,5 @@
 | **KEEP** | `huggingface` | enabled | Connected | yes | PASS* | -- | -- | -- | real in-session call 'hf_whoami' -> status=anonymous (server answered) |
 
 `S4 PASS` = stdio initialize+tools/list handshake.  `S4 PASS*` = a real in-session tool call instead (HTTP transport cannot be spawned).  Both count as S4 `call_verified`, which is their union: 21/23 rows.  Counts: {'DISABLE': 1, 'INVESTIGATE': 2, 'KEEP': 20}.
+
+A `--` in the cost columns is **not measured**, never zero: cost comes from a stdio child and 7 of 23 rows have none to sample. Each such row states why in its own `liveness_basis`, and `assert_liveness_consistency()` refuses to write a null without one.

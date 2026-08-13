@@ -34,6 +34,11 @@ REVERSIBLE = {"KEEP", "DISABLE", "INVESTIGATE"}
 
 
 def blob(rev: str, path: str) -> dict:
+    if rev == "WORKTREE":
+        # Pre-flight only.  The default stays HEAD because a working-tree check passes on
+        # an uncommitted edit no reviewer will ever see; the marker below says so out loud
+        # so a WORKTREE run can never be quoted as a shipped verdict.
+        return json.loads((REPO / path).read_text(encoding="utf-8"))
     out = subprocess.run(
         ["git", "show", f"{rev}:{path}"],
         cwd=REPO,
@@ -71,15 +76,35 @@ def dod2(rows: list[dict[str, Any]]) -> list[str]:
     return bad
 
 
+COST_FIELDS = ("tool_count", "name_bytes", "schema_bytes", "rss_bytes")
+NOT_MEASURED = "not-measured:"
+
+
 def dod3(rows: list[dict[str, Any]]) -> list[str]:
-    """Every row verified by a handshake must carry a measured cost, not a null."""
+    """EVERY row carries a measured cost, or a stated reason why it does not.
+
+    ROUND 3 WIDENED THIS, BECAUSE THE ROUND-2 VERSION COULD NOT SEE THE GAP IT WAS
+    NAMED AFTER.  It opened with ``if not r.get("handshake_verified"): continue``, so the
+    seven rows that carry no cost at all were skipped and DoD3 printed PASS for
+    "per-server context cost measured" while 7 of 23 rows were silently null -- and its
+    negative control (blank a measured row's ``rss_bytes``) could only ever exercise the
+    measured branch, so it proved the predicate ran, not that a silent gap would be
+    caught.  A control that passes under both hypotheses is not a control.
+
+    The predicate is now: a gap is acceptable ONLY beside a ``liveness_basis`` that
+    starts with ``not-measured:`` and gives a reason.  Silence is the failure.
+    """
     bad = []
     for r in rows:
-        if not r.get("handshake_verified"):
+        gaps = [f for f in COST_FIELDS if r.get(f) is None]
+        if not gaps:
             continue
-        for field in ("tool_count", "name_bytes", "schema_bytes", "rss_bytes"):
-            if r.get(field) is None:
-                bad.append(f"{r['name']}: {field} unmeasured")
+        basis = r.get("liveness_basis") or ""
+        reason = (
+            basis[len(NOT_MEASURED) :].strip() if basis.startswith(NOT_MEASURED) else ""
+        )
+        if len(reason) < 12:
+            bad.append(f"{r['name']}: {gaps} unmeasured with no stated reason")
     return bad
 
 
@@ -94,28 +119,51 @@ def dod4(rows: list[dict[str, Any]]) -> list[str]:
     return bad
 
 
-def break_for(item: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """A copy of the rows with exactly the defect `item` is supposed to catch."""
+def break_for(control: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """A copy of the rows carrying exactly the defect `control` is supposed to catch."""
     bad = copy.deepcopy(rows)
-    if item == "DoD1":
+    if control == "blank-source-file":
         bad[0]["source_file"] = ""
-    elif item == "DoD2":
+    elif control == "flip-call-verified":
         bad[0]["call_verified"] = not bad[0]["call_verified"]
-    elif item == "DoD3":
+    elif control == "drop-rss-on-measured-row":
         for r in bad:
-            if r.get("handshake_verified"):
-                r["rss_bytes"] = None
+            if r.get("liveness_basis", "").startswith(NOT_MEASURED):
+                continue
+            r["rss_bytes"] = None
+            break
+    elif control == "strip-reason-from-unmeasured-row":
+        # The shape the round-2 predicate could not express: a row with no cost AND no
+        # stated reason -- i.e. exactly what 7 rows looked like before round 3.
+        for r in bad:
+            if any(r.get(f) is None for f in COST_FIELDS):
+                r["liveness_basis"] = ""
                 break
-    elif item == "DoD4":
+    elif control == "irreversible-disposition":
         bad[0]["disposition"] = "REMOVE"
     return bad
 
 
-CHECKS: dict[str, tuple[str, Callable[[list[dict[str, Any]]], list[str]]]] = {
-    "DoD1": ("inventory: scope + source file per row", dod1),
-    "DoD2": ("liveness vs capability by a real call", dod2),
-    "DoD3": ("per-server context cost measured", dod3),
-    "DoD4": ("reversible recommendations with evidence", dod4),
+CHECKS: dict[
+    str, tuple[str, Callable[[list[dict[str, Any]]], list[str]], list[str]]
+] = {
+    "DoD1": ("inventory: scope + source file per row", dod1, ["blank-source-file"]),
+    "DoD2": (
+        "liveness vs capability by a real call",
+        dod2,
+        ["flip-call-verified"],
+    ),
+    "DoD3": (
+        "per-server context cost measured, or a stated reason",
+        dod3,
+        # BOTH branches, because the predicate has two and round 2 only controlled one.
+        ["drop-rss-on-measured-row", "strip-reason-from-unmeasured-row"],
+    ),
+    "DoD4": (
+        "reversible recommendations with evidence",
+        dod4,
+        ["irreversible-disposition"],
+    ),
 }
 
 
@@ -129,12 +177,15 @@ def main(argv: list[str]) -> int:
 
     print(f"== DoD ledger, executed against {rev}:{DISP} ({len(rows)} rows) ==")
     failed: list[str] = []
-    for item, (label, fn) in CHECKS.items():
+    n_controls = 0
+    for item, (label, fn, controls) in CHECKS.items():
         problems = fn(rows)
-        control_fired = bool(fn(break_for(item, rows)))
-        state = "PASS" if not problems and control_fired else "FAIL"
+        fired = {c: bool(fn(break_for(c, rows))) for c in controls}
+        n_controls += len(controls)
+        state = "PASS" if not problems and all(fired.values()) else "FAIL"
         print(f"  {item} {state}  {label}")
-        print(f"       negative control fires: {control_fired}")
+        for control, ok in fired.items():
+            print(f"       negative control {control:34} fires: {ok}")
         if problems:
             print(f"       problems: {problems[:4]}")
         if state == "FAIL":
@@ -144,11 +195,28 @@ def main(argv: list[str]) -> int:
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["disposition"]] = counts.get(r["disposition"], 0) + 1
-    print(f"  summary: call_verified={verified}/{len(rows)}  dispositions={counts}")
+    # A row with NO basis at all is not "measured" -- on a pre-round-3 blob every row
+    # lacks the field, and a naive `not startswith(...)` reported cost-measured=23/23
+    # directly beneath a DoD3 FAIL.  A summary that contradicts the verdict above it is a
+    # detector failure, so absence counts as unmeasured.
+    measured = sum(
+        1
+        for r in rows
+        if (r.get("liveness_basis") or "").strip()
+        and not r["liveness_basis"].startswith(NOT_MEASURED)
+    )
+    print(
+        f"  summary: call_verified={verified}/{len(rows)}  "
+        f"cost-measured={measured}/{len(rows)}  dispositions={counts}"
+    )
     if failed:
         print(f"FAILED:dod-check {failed}")
         return 1
-    print("SUCCESS:dod-check 4/4 DoD items PASS, 4/4 negative controls fired")
+    scope = " [WORKTREE pre-flight, NOT a shipped verdict]" if rev == "WORKTREE" else ""
+    print(
+        f"SUCCESS:dod-check 4/4 DoD items PASS, {n_controls}/{n_controls} "
+        f"negative controls fired{scope}"
+    )
     return 0
 
 
