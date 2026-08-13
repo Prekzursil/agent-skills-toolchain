@@ -102,6 +102,15 @@ S4_DECLINED = {
     "deepwiki": "live network call against a third-party AI service",
     "context7": "live network docs fetch, rate-limited",
     "repomix": "cheapest tool still walks a tree",
+    # Added in the build round, after auditing s4-evidence.json against this table showed
+    # these four sitting in an UNLABELLED gap: handshake-verified, no in-session call, and
+    # no recorded reason for not having one.  Recording the reason is the difference
+    # between a measured gap and a silent one -- which is the whole point of this map, so
+    # leaving them out contradicted it.
+    "chrome-devtools": "every tool drives a live browser session; no read-only probe exists",
+    "playwright": "same -- the cheapest tool still opens a browser context",
+    "playwright-cdp": "same, and it attaches to the owner's real logged-in Chrome profile",
+    "playwright-extension": "same -- drives the owner's live browser through the extension",
 }
 
 # Real in-session tool calls (S4) NO LONGER LIVE HERE.  They were a dict literal in this
