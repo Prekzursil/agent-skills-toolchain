@@ -1,0 +1,33 @@
+test(slop): two auditor detector failures, both self-inflicted, both recorded
+
+Neither changes the CLEAN verdict on the builder's round 2. Both are recorded
+because a withdrawn reading that is quietly deleted is how a false claim
+survives.
+
+1. I READ THE WRONG COMMIT. `git rev-parse HEAD` run immediately after my own
+   `git commit` returned a SIBLING's commit -- the p2-next lane landed between
+   the two calls -- so my first integrity check measured 14 files that were not
+   mine and reported them as foreign paths in my own commit. In a tree with live
+   siblings, HEAD is not your commit. Resolve your own SHA with --grep. My
+   actual commit is 26628a9f: 15 files, +2126/-0, zero foreign, zero deletions.
+
+2. I REPORTED CRLF THAT WAS NEVER THERE. `git cat-file -p <rev>:<path> |
+   grep -c $'\r'` inside the Bash tool does not interpolate $'\r'; the pattern
+   became EMPTY and matched every line, so the "CRLF count" was the line count.
+   The tell was exact and I nearly skimmed it: "158 CRLF" in a file with 158 LF
+   lines, and the same equality in all fifteen. _aud2_eol.py re-measures the
+   bytes in binary with no shell pipe and two controls that can fail -- P1 a
+   blob known LF from the other direction must read 0, P2 a synthetic CRLF
+   buffer must read nonzero. Both pass. All 15 of my stored blobs are LF, 0
+   CRLF pairs.
+
+   The same broken one-liner also mis-read the p2-next lane's blobs as holding
+   36-142 CRLF each. That reading is WITHDRAWN. No sibling defect is alleged and
+   none was measured.
+
+Gate re-measured at my own commit so the audit is held to the standard it
+applied: `_r2_gate_now.py --rev 26628a9f` gives ruff check rc=0, format --check
+rc=0, 0 would-reformat, 2212 files considered, 6/6 controls PASS
+(_aud2_gate_mycommit.json). My 8 .py files did not turn the gate red -- which is
+the failure mode this lane exists to prevent, and which my files WOULD have
+caused had I not formatted them first.

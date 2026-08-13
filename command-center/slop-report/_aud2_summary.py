@@ -185,7 +185,31 @@ out = {
         "(_aud2_citation.py). It was already formatted so ruff left it unchanged, "
         "and git status confirms zero tracked modifications -- but the near-miss "
         "is recorded rather than dropped.",
+        "I read the WRONG COMMIT. `git rev-parse HEAD` immediately after my own "
+        "commit returned a SIBLING's commit (p2-next landed in between), so my "
+        "first integrity check measured someone else's 14 files and reported "
+        "them as foreign paths in my commit. In a tree with live siblings, HEAD "
+        "is not your commit -- resolve your own SHA by --grep, never by HEAD.",
+        "I then reported CRLF in my own blobs from `git cat-file -p | grep -c "
+        "$'\\r'` in the Bash tool, where $'\\r' did not interpolate and the empty "
+        "pattern matched EVERY line. The tell was exact: the '158 CRLF' equalled "
+        "the file's 158 LF lines. A controlled binary reader (P1 known-LF blob "
+        "reads 0, P2 synthetic CRLF reads 2) proves all 15 of my blobs are LF. "
+        "The same broken one-liner also mis-read the p2-next lane's blobs as "
+        "CRLF; that reading is WITHDRAWN and no sibling defect is alleged.",
     ],
+    "auditor_own_commit": {
+        "rev": "26628a9f",
+        "files": 15,
+        "insertions": 2126,
+        "deletions": 0,
+        "foreign_paths": 0,
+        "crlf_in_stored_blobs": 0,
+        "gate_at_my_commit": (
+            "ruff check rc=0, format --check rc=0, 0 would-reformat, 2212 "
+            "considered, 6/6 controls pass (_aud2_gate_mycommit.json)"
+        ),
+    },
     "verdict": "CLEAN",
     "confidence": "almost certain (95-99%) on every DoD item re-executed above",
 }
