@@ -105,6 +105,21 @@ EXCLUDED: dict[str, str] = {
     "_r2_ruff_census.py": "needs uvx; a dated census, not an assertion",
     "_r3_gate_sweep.py": "the LOCAL superset sweep (Windows-semantics states included); this file is its CI-scoped sibling",
     "_r3_hunt.py": "exploratory hunt used to find round-3 defects; not an assertion",
+    "_g2_drift_probe.py": (
+        "grounding lane probe (round 2); one side of its comparison is a SESSION-OBSERVED "
+        "namespace snapshot that CI cannot re-derive. Wiring it would assert a dated fleet "
+        "shape forever and go red the first time the owner legitimately mounts a server"
+    ),
+    "_g3_backend_liveness.py": (
+        "grounding lane probe (round 2); carries per-backend liveness MEASURED by real "
+        "in-session tool calls on this box. Deterministic, but its verdict is a dated "
+        "liveness claim -- running it per PR would re-assert 2026-08-13 zombie counts "
+        "indefinitely. The classifier controls (C1/C2/C3) are self-checking in-run"
+    ),
+    "_g4_cost_rollup.py": (
+        "grounding lane probe (round 2); a dated cost census over a committed artifact, "
+        "not an assertion -- same class as _r2_ruff_census.py"
+    ),
 }
 
 
