@@ -51,9 +51,7 @@ def main(argv: list[str]) -> int:
         if crlf:
             bad.append(p)
         lines = b.count(b"\n")
-        print(
-            f"  {'BAD' if crlf else 'ok '} crlf={crlf:5}  lines={lines:5}  {p}"
-        )
+        print(f"  {'BAD' if crlf else 'ok '} crlf={crlf:5}  lines={lines:5}  {p}")
 
     # FAIL CLOSED when the control is ABSENT.  This used to leave ``fired = None`` and fall
     # through to ``fired is False`` -> False, so deleting the fixture would have turned a

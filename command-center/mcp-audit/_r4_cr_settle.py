@@ -102,9 +102,7 @@ def main() -> int:
         c_cr = c.count(b"\r")
         ok = c_cr == cr and len(c) == len(b)
         disagree += [] if ok else [rev]
-        print(
-            f"{rev:10} {len(b):8} {cr:6} {crlf:6} {lf:6} {c_cr:>9} {str(ok):>6}"
-        )
+        print(f"{rev:10} {len(b):8} {cr:6} {crlf:6} {lf:6} {c_cr:>9} {str(ok):>6}")
 
     # Positive control: the corrected detector must FIRE on a blob that really is CRLF, or
     # its agreement above is two blind instruments agreeing about nothing.
