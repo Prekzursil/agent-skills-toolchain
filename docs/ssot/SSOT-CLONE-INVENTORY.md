@@ -374,3 +374,36 @@ Mechanically checkable corollaries:
 | `content_check.py` | §2b — stranded work vs `origin/main`, bidirectional → `content-check.json` |
 | `_verify_identical.py` | independent hash corroboration of the retire-authorising verdicts → `verify-identical.json` |
 | `_secret_preflight.py` | credential-shape preflight with both-states control, run before any commit here |
+| `ssot_drift_gate.py` | is the EXECUTED checkout stale against `main`? exit 1 drift / 3 fail-closed |
+| `ssot_wiring_check.py` | §9 — is the rule above still REACHABLE and consistent? six wires |
+| `_integrate_redproof.py` | the before/after red-proof of §9, rebuilt from `git show HEAD:` |
+
+---
+
+## 9. Where the rule is ENFORCED — added 2026-08-13, INTEGRATE round
+
+Sections 1-8 are a measurement. On their own they were **unreachable**: nothing in the harness
+loads `docs/`, and nothing invoked `ssot_drift_gate.py`. This section records the wiring, so a
+future agent can find it and a mechanical check keeps it honest.
+
+- **The rule an agent actually reads** is the `<!-- SSOT-WIRE -->` block in the repo-root
+  `CLAUDE.md`. That file is git-tracked and auto-injected into any session whose cwd is this
+  checkout, with no deploy hop. The blockquote there is **the §5 sentence, verbatim** —
+  `ssot_wiring_check.py` code `W2-rule-sentence-drift` fails CI if the two copies ever diverge,
+  so §5 remains the single source and the `CLAUDE.md` copy cannot rot silently.
+- **`rules/common/` was measured and REJECTED as the home.** `~/.claude/rules` is a plain
+  directory, not a junction, and its `harness-vcs-hygiene.md` is 2149 bytes against the repo's
+  3142 — **993 bytes stale**. A repo-only rule edit would not have reached a live session. It
+  would have looked wired and not been.
+- **The gate runs in CI**, via `ci/tests/test_ssot_wiring.py`: collected by the
+  `pytest ci/tests` sweep in `.github/workflows/skill-dual-write.yml` and additionally named by
+  an explicit `gate-ssot-wiring self-test` step, because that workflow's own comments record
+  that the sweep is one refactor away from not containing a given file.
+- **Six wires, six paired mutations, plus a synthetic-repo proof** that `ssot_drift_gate.py`
+  returns 1 on drift, 0 at parity, 3 fail-closed and 2 on misconfiguration — which is what makes
+  a gate aimed at one Windows path verifiable on a Linux runner.
+
+Residual, inline: this is wired for CI and for a session **in this checkout**. It is NOT a hook,
+so nothing runs the drift gate at turn-end; and because `CLAUDE.md` is per-checkout, an agent who
+opens a stale checkout reads a copy without this block. Both are argued and measured in
+`command-center/ssot/INTEGRATE-2026-08-13.md` §5, with the experiment that settles each.

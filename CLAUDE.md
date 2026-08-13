@@ -22,5 +22,39 @@ in the `multi-ai-mingle` skill (`skills/multi-ai-mingle/SKILL.md`):
 automated budget-pacing enforcement is gone. Budget pacing is now advisory and manual — see
 `agent-self/config/CLAUDE.md`, which already records this.
 
+## This repo has 25 checkouts on this box. Only two of them matter.
+
+<!-- SSOT-WIRE:start -->
+
+> **The GitHub remote is the SSOT for history; `~/source/ast-integrate` is the only checkout you
+> EDIT and `~/source/agent-skills-toolchain` is the only checkout anything EXECUTES from — every
+> other checkout is disposable scratch, so no config/task/hook/skill may reference one, and none
+> may be retired until its work is on a pushed branch.**
+
+Measured 2026-08-12/13: **25 checkouts across 18 object stores** (5 share the canonical store as
+linked worktrees, so they cannot diverge in history; the rest are independent clones that can).
+Full table, per-clone unique content and the inbound-reference scan:
+`docs/ssot/SSOT-CLONE-INVENTORY.md`.
+
+- **Creating:** always `git -C <intended repo> worktree add …`. Bare `git worktree add` resolves
+  the repo from cwd and has already landed an agent in an unrelated project.
+- **Retiring:** needs all four — no unique commits, `git status --porcelain -uall` empty, no
+  worktree-local **staged index** (for a linked worktree; `git stash list` is store-level and can
+  never be empty, so it is not the criterion), and zero inbound references. **Retire nothing on
+  this list yet:** two checkouts hold files that exist nowhere else, one of them only in a staged
+  index that `git worktree remove` destroys. That command also **follows junctions and deletes
+  their targets**.
+- **Before exiting a scratch worktree, push the branch.** Four real commits were stranded because
+  agent worktrees had no push-before-exit step.
+
+The live MCP fleet loads its entry points from the *executed* checkout, which tracks `main` only by
+luck. Check that it has not fallen behind before trusting it:
+`python command-center/ssot/ssot_drift_gate.py` (exit 1 = the running fleet is executing stale
+bytes; it fails closed rather than reporting a clean fleet from a blind differ). This block is
+itself gated — `command-center/ssot/ssot_wiring_check.py` fails CI if the rule above drifts from
+the inventory or points at anything that no longer exists.
+
+<!-- SSOT-WIRE:end -->
+
 Repository conventions (structure, build and test commands, style, PR expectations) live in
 [`AGENTS.md`](AGENTS.md).

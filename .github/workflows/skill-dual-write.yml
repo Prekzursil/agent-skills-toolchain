@@ -95,6 +95,18 @@ jobs:
       # escaping the seam. Every one of its ten codes has a paired mutation in the same file.
       - name: gate-cs-wiring self-test
         run: python -m pytest ci/tests/test_cs_wiring.py -q
+      # The SSOT WIRING gate. Named explicitly for the same reason as L10/L11/cs-wiring: the
+      # `ci/tests` glob above already collects it, and the glob is one refactor away from not
+      # containing it. Hermetic -- it reads CLAUDE.md, docs/ssot/, command-center/ssot/ and this
+      # workflow, copies them into tmp_path to mutate, and builds a throwaway git repo for the
+      # drift-gate half; it needs no Windows, no live checkout and no MCP fleet. WHAT IT CATCHES:
+      # the defect this lane shipped in round 1 -- a 25-checkout inventory, a one-sentence SSOT
+      # rule and a working drift gate, all committed and NONE of them reachable (the rule lived in
+      # docs/, which nothing loads; the gate was a script nothing invoked). Each of its six codes
+      # has a paired mutation in the same file, plus a synthetic-repo proof that the drift gate
+      # exits 1 on drift, 0 at parity, 3 fail-closed and 2 on misconfiguration.
+      - name: gate-ssot-wiring self-test
+        run: python -m pytest ci/tests/test_ssot_wiring.py -q
       # Exact route comparison catches stale names and old skills/ routes; the
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest
