@@ -66,7 +66,9 @@ for label, tree in (("repo", repo), ("daily", daily), ("vault", vault)):
     u = sorted(k for k, v in tree.items() if v["old_use"])
     m = sorted(k for k, v in tree.items() if v["old_mention"] and not v["old_use"])
     n = sorted(k for k, v in tree.items() if v["has_new"])
-    print(f"  {label:6s} scanned={len(tree):3d}  USES-old={len(u)}  mentions-only={len(m)}  has-__isMain={len(n)}")
+    print(
+        f"  {label:6s} scanned={len(tree):3d}  USES-old={len(u)}  mentions-only={len(m)}  has-__isMain={len(n)}"
+    )
     print(f"         USES-old : {u}")
     print(f"         mentions : {m}")
 if not any(v["old_mention"] for v in repo.values()):
@@ -80,7 +82,9 @@ print(f"  vault files USING the old guard (n={len(defective)}):")
 covered, missed = [], []
 for rel in defective:
     inplan = rel in plan_files
-    repo_fixed = repo.get(rel, {}).get("has_new") and not repo.get(rel, {}).get("old_use")
+    repo_fixed = repo.get(rel, {}).get("has_new") and not repo.get(rel, {}).get(
+        "old_use"
+    )
     print(
         f"    {rel:36s} in-plan={'YES' if inplan else 'NO ':3s} "
         f"repo-copy-fixed={'YES' if repo_fixed else 'NO'}"
@@ -89,8 +93,10 @@ for rel in defective:
 print()
 print(f"  CLOSED by one dry-run --apply : {len(covered)}/{len(defective)}  {covered}")
 print(f"  STILL OPEN (refused/absent)   : {len(missed)}/{len(defective)}  {missed}")
-print(f"  plan offers {len(plan_files)} ui-audit files total; "
-      f"{len(plan_files - set(defective))} of them are unrelated to this defect")
+print(
+    f"  plan offers {len(plan_files)} ui-audit files total; "
+    f"{len(plan_files - set(defective))} of them are unrelated to this defect"
+)
 
 out = {
     "vault_defective_uses": defective,

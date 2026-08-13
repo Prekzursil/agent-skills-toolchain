@@ -4,6 +4,7 @@ Read-only. Independent probe: for each scratch checkout, list commits reachable 
 AND the reflog, then ask (a) does the CANONICAL store have that object, and (b) is it reachable
 from any remote tip. Both-states controls included.
 """
+
 import json
 import os
 import subprocess
@@ -21,7 +22,10 @@ SCRATCH = [
 def git(repo, *args, timeout=120):
     try:
         p = subprocess.run(
-            ["git", "-C", repo] + list(args), capture_output=True, text=True, timeout=timeout
+            ["git", "-C", repo] + list(args),
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except Exception as exc:  # noqa: BLE001
@@ -80,7 +84,9 @@ for path in SCRATCH:
             continue  # canonical already has it -> not unique to this checkout
         if sha in remote_tips:
             continue
-        rc, meta, _ = git(path, "show", "-s", "--format=%h|%ad|%an|%s", "--date=short", sha)
+        rc, meta, _ = git(
+            path, "show", "-s", "--format=%h|%ad|%an|%s", "--date=short", sha
+        )
         stranded.append({"sha": sha[:12], "meta": meta})
         if len(stranded) >= 40:
             break

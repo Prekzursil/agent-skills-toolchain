@@ -1,6 +1,6 @@
 ---
 name: research-ops
-description: Thin router for the research stack. Use for fresh facts, comparisons, enrichment, or an evidence-backed recommendation -- it picks the right research skill. NOT the full multi-source pass (use deep-research).
+description: Thin router for the research stack. Use when you want fresh facts, comparisons, enrichment, or evidence-backed recommendations -- it picks the right skill. NOT the full multi-source pass (use deep-research).
 origin: ECC
 ---
 

@@ -48,6 +48,18 @@ IMPORT_LINE = "import { realpathSync } from 'node:fs';\n"
 
 
 def needs_import(text):
+    """True if `realpathSync` is not already in scope ABOVE the guard.
+
+    MUST be called on the ORIGINAL text, never on the patched output. Calling it
+    on the patched text is a silent no-op: `replace` has already removed OLD, so
+    `split(OLD)` returns the whole document, and NEW itself contains the token
+    `realpathSync` -- so the check always answered "already imported" and the
+    import was never inserted. The NEW guard then hit a ReferenceError, which its
+    own `catch` swallowed, falling back to exactly the broken lexical compare.
+    A repair tool for the silent-no-op class that silently no-ops. Measured on
+    dead_button_crawl.mjs 2026-08-13; the fix is the `text` argument at the call
+    site plus the post-condition assert below.
+    """
     return "realpathSync" not in text.split(OLD)[0]
 
 
@@ -72,14 +84,24 @@ def main():
         if OLD not in text:
             skipped.append((p.name, "guard not found"))
             continue
+        add_import = needs_import(text)  # decide on the ORIGINAL text
         out = text.replace(OLD, NEW)
-        if needs_import(out):
+        if add_import:
             out = insert_import(out)
+        # POST-CONDITION: the patched guard REFERENCES realpathSync, so the file
+        # must also IMPORT it. Without this the ReferenceError is swallowed by the
+        # guard's own catch and the repair is invisible -- exit 0, nothing fixed.
+        if "realpathSync" in out and "import { realpathSync }" not in out:
+            print(
+                f"FAILED:fix-main-guard {p.name} uses realpathSync without importing it"
+            )
+            return 1
         p.write_bytes(out.encode("utf-8"))
         patched.append(p.name)
     print(f"patched {len(patched)}: {', '.join(patched)}")
     for n, why in skipped:
         print(f"  skipped {n}: {why}")
+    print(f"SUCCESS:fix-main-guard patched={len(patched)}")
     return 0
 
 

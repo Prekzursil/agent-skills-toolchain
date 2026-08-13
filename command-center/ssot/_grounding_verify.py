@@ -2,6 +2,7 @@
 
 Read-only. Never writes to any checkout. Emits JSON to stdout.
 """
+
 import json
 import os
 import subprocess
@@ -35,7 +36,9 @@ def git(repo, *args, timeout=90):
     try:
         p = subprocess.run(
             ["git", "-C", repo] + list(args),
-            capture_output=True, text=True, timeout=timeout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         return p.returncode, p.stdout.strip(), p.stderr.strip()
     except Exception as exc:  # noqa: BLE001
@@ -53,7 +56,8 @@ v1 = {
     "executed_head": exec_head,
     "canonical_behind": behind,
     "inventory_measured_at_main": "ae8205a4aa1f8af4927affb6c1eacdaf61427a3f",
-    "main_moved_since_inventory": cur_main != "ae8205a4aa1f8af4927affb6c1eacdaf61427a3f",
+    "main_moved_since_inventory": cur_main
+    != "ae8205a4aa1f8af4927affb6c1eacdaf61427a3f",
 }
 # the claim: 0 changed files under the 5 executed dirs between executed_head and current main
 rc, changed, err = git(
@@ -67,7 +71,13 @@ v1["exec_dir_diff_err"] = err[:400]
 # BOTH-STATES CONTROL: the same differ over a dir that definitely DID change.
 # If this also returns 0, the differ is broken and the 0 above means nothing.
 rc, ctl, err = git(
-    INTEG, "diff", "--name-only", f"{exec_head}..{cur_main}", "--", "command-center", "docs"
+    INTEG,
+    "diff",
+    "--name-only",
+    f"{exec_head}..{cur_main}",
+    "--",
+    "command-center",
+    "docs",
 )
 ctl_files = [x for x in ctl.splitlines() if x.strip()]
 v1["control_changed_count"] = len(ctl_files)
@@ -77,7 +87,8 @@ v1["control_fires"] = len(ctl_files) > 0
 rc, allc, _ = git(INTEG, "diff", "--name-only", f"{exec_head}..{cur_main}")
 v1["whole_tree_changed_count"] = len([x for x in allc.splitlines() if x.strip()])
 v1["verdict"] = (
-    "CONFIRMED-latent" if v1["exec_dir_changed_count"] == 0 and v1["control_fires"]
+    "CONFIRMED-latent"
+    if v1["exec_dir_changed_count"] == 0 and v1["control_fires"]
     else ("DETECTOR-BROKEN" if not v1["control_fires"] else "REFUTED-active-drift")
 )
 out["V1_exec_vs_edit"] = v1
@@ -90,7 +101,9 @@ for p in BRIEFED:
         dotgit = os.path.join(p, ".git")
         row["dotgit_is_file"] = os.path.isfile(dotgit)
         row["dotgit_is_dir"] = os.path.isdir(dotgit)
-        rc, common, _ = git(p, "rev-parse", "--path-format=absolute", "--git-common-dir")
+        rc, common, _ = git(
+            p, "rev-parse", "--path-format=absolute", "--git-common-dir"
+        )
         row["git_common_dir"] = common
         rc, br, _ = git(p, "rev-parse", "--abbrev-ref", "HEAD")
         row["head"] = br
@@ -103,7 +116,8 @@ for p in BRIEFED:
         sig_a = "worktree" if row["dotgit_is_file"] else "clone"
         sig_b = (
             "worktree"
-            if common and os.path.normcase(os.path.normpath(common))
+            if common
+            and os.path.normcase(os.path.normpath(common))
             != os.path.normcase(os.path.normpath(os.path.join(p, ".git")))
             else "clone"
         )
@@ -138,6 +152,7 @@ try:
     }
 except Exception as exc:  # noqa: BLE001
     out["V3_fleet_existence"] = {"error": repr(exc)}
+
 
 # ---------------------------------------------------------------- V4 canonical-store visibility
 # Independent probe of "unique / exists nowhere else": ask the CANONICAL store whether it

@@ -1,0 +1,101 @@
+{
+  "artifact": "INDEPENDENT AUDIT of the SLOP lane BUILD round 1 -- FINAL",
+  "auditor": "independent auditor subagent; every number below was re-derived, none taken from the builder",
+  "head_at_audit": "ebe02d6201484d1805730e5547f218d8f6bae5d1",
+  "COVERAGE": "MEASURED: all four DoD items, all three commits, the CI gate at 6 commit boundaries, the citation split, bucket-c regeneration, frozen evidence, residuals 3+4, the owner-facing blast radius. NOT MEASURED: whether any committed receipt digests the 45 scripts (the builder's own broken lock detector -- I did not rebuild it); the exact mechanism of the builder's detector failure #2.",
+  "verdict": "PARTIAL -- all four DoD items PASS when executed; 1 real defect + 2 overclaims found, all in the residual/hand-back layer, none in the shipped fix",
+
+  "dod1_four_buckets_classified": {
+    "result": "PASS",
+    "evidence": "SLOP-BUILD-R1.md 12141 B, all four bucket headings present with per-bucket evidence, 7 .out.json citations, frozen dirs + parallel-folder question both addressed. Bucket (a) '10,307 tracked at HEAD' is EXACT at f5b596e6, the rev the report declares as MEASURED AT (git ls-tree -r --name-only f5b596e6 = 10307)."
+  },
+  "dod2_bucket_b_committed_not_deleted": {
+    "result": "PASS",
+    "evidence": "45 claimed names == 45 tracked names, exact set equality, 0 missing on disk. Worktree bytes == HEAD blob bytes for 45/45. 0 tracked deletions across all three commits (--diff-filter=D empty). All 123 root probe scripts still on disk, so no untracked probe was destroyed either."
+  },
+  "dod3_bucket_c_regen_shown": {
+    "result": "PASS",
+    "evidence": "Executed myself: __pycache__ present (1 file) -> Remove-Item -> Test-Path False -> `python command-center/slop-report/_b1_control.py` -> regenerated, sha256-16 fced1207f66487e1 before AND after (byte-identical), intermediate absence checked.",
+    "caveat": "The builder published sha256-16 9ef271460a07b5f4; the live value is fced1207f66487e1. A .pyc embeds source size+mtime, so the hash changed when the builder ruff-formatted _b1_cited_probes.py before committing. The PROPERTY (byte-identical regeneration) reproduces; the published hash VALUE does not. A pyc hash is a non-durable receipt.",
+    "side_effect_found": "Re-running that command rewrites the committed _b1_control.out.json and exits rc=1. I restored the file (git checkout -- <one path>, dirty=0 after)."
+  },
+  "dod4_frozen_evidence_untouched": {
+    "result": "PASS",
+    "evidence": "Four independent signals: (1) git log f5b596e6^..HEAD -- <both dirs> = empty, no commit in the lane range touched them; (2) git diff --name-only 899ff779 HEAD -- <both dirs> = 0 changed; (3) git status --porcelain -- <both dirs> = 0 lines; (4) file counts 7 and 25 as claimed. None of the three commits' name-only lists contains a casualty/ or p2-wave/ path."
+  },
+
+  "commit_integrity": {
+    "f5b596e6": "47 files, +10445/-0 -- claim EXACT. Paths: .gitignore, ruff.toml, 45x command-center/_*.py. 0 foreign.",
+    "fa87d1a2": "46 files, +14475/-0 -- claim EXACT. All 46 under command-center/slop-report/. 0 foreign.",
+    "ebe02d62": "3 files, +48/-4 -- claim EXACT. All 3 under command-center/slop-report/. 0 foreign.",
+    "ancestry": "all three ANCESTOR-OK of HEAD",
+    "index_clean": "git diff --cached --name-only HEAD = 0 -- no foreign staged path in the shared index right now"
+  },
+
+  "citation_split_independently_reproduced": {
+    "method": "git grep -F -l <name> 899ff779 (the pre-lane TREE) for each of the 123 names -- non-circular, since the lane's own report now names all 45",
+    "on_disk": 123, "on_disk_bytes": 1269072, "tracked": 45, "tracked_bytes": 403870, "untracked": 78,
+    "cited_at_pre_lane_tree": 45, "cited_bytes": 403870, "uncited": 78,
+    "set_equality_committed_vs_cited": true,
+    "control": "positive 248 citers on _gen_schema_substrate.py INCLUDING platform/lib/test_schema_resolver.py; negative 0. Matches the builder's 248 to the digit.",
+    "post_edit_ignore_check": "cited still ignored = 0 of 45; uncited un-ignored = 0; uncited still ignored = 78 of 78 (rule .gitignore:76 command-center/_*.py)",
+    "MY_OWN_DETECTOR_FAILURE": "My first attempt scoped the corpus to `git ls-files command-center/` and reported 41 cited / 5 committed-but-uncited / 1 cited-but-uncommitted. Its control caught it: positive_expected_citer_present=false, because platform/lib/test_schema_resolver.py was outside my corpus. Discarded, not reported."
+  },
+
+  "ci_gate_replicated": {
+    "method": "fresh git clone -c core.autocrlf=false -c core.eol=lf, uvx ruff@0.15.17, exactly the two CI commands from quality.yml:90-93",
+    "controls": "C1 EOL pin 0 CRLF across 2301 tracked .py; C2 nested tools/mcp/patent-search-mcp/pyproject.toml PRESENT (16 configs); C3 mangle fires; C4 both-states. ALL PASS.",
+    "readings": {
+      "f5b596e6^ (899ff779)": "check_rc 0, format_rc 1, 8 would-reformat, 2046 clean",
+      "f5b596e6": "check_rc 0, format_rc 1, 8 would-reformat, 2046 clean -- IDENTICAL failset, lane commit 1 added 0",
+      "fa87d1a2^ (8100cf42)": "check_rc 0, format_rc 1, 8, 2065 clean",
+      "fa87d1a2": "check_rc 0, format_rc 1, 8, 2086 clean -- IDENTICAL failset (+21 clean = the lane's own 21 scripts entering the gate and passing)",
+      "ebe02d62^ (df6377ab)": "check_rc 1, format_rc 1, 14 would-reformat, 2095 clean",
+      "ebe02d62 (HEAD)": "check_rc 1, format_rc 1, 14 would-reformat, 2095 clean -- IDENTICAL failset, lane commit 3 added 0"
+    },
+    "lane_added_zero_failures": "CONFIRMED per commit, before/after, in a clone",
+    "exclusion_is_load_bearing": "CONFIRMED: removing the ruff.toml line raises would-reformat by exactly 29, all 29 being command-center/_*.py -- reproduces the builder's 29 exactly",
+    "HEAD_IS_WORSE_THAN_REPORTED": "14 format failures (8 grounding/_s2_*.py from 1e9cfe81 + 6 command-center/ssot/_*.py from sibling df6377ab) AND 1 lint error E402 at command-center/ssot/verify_refs.py:172, also from df6377ab. The report and the residual both say 8 format-only."
+  },
+
+  "widen_recommendation_refuted": {
+    "builder_claim": "widen extend-exclude to command-center/**/_*.py -> green, 0 would reformat",
+    "measured_at_HEAD": "format_rc 0 with 0 would-reformat (that half holds) BUT check_rc 1 -- the E402 in command-center/ssot/verify_refs.py survives, because its basename has no leading underscore and the widened glob cannot match it. gate NOT green.",
+    "control": "under the widened exclusion a mangled platform/lib file still fires -> the green format half is not the exclusion swallowing the repo"
+  },
+
+  "blast_radius_corrected": {
+    "builder_told_owner": 144,
+    "exact_at_f5b596e6": 144,
+    "exact_at_fa87d1a2": 180,
+    "exact_at_HEAD": 186,
+    "plus_dir_swallowed": "6 non-underscore files under command-center/p2-wave/_av2_tmp/ are also removed because the widened glob matches the DIRECTORY component -> 192 total",
+    "three_converging_signals": "git ls-tree arithmetic 186+6=192; isolated-clone --show-files diff 192; crude heuristic 188",
+    "who_caused_the_drift": "the builder's OWN commit fa87d1a2 took it 144 -> 180 (+36); sibling df6377ab took it 180 -> 186 (+6)",
+    "my_failed_probe": "an earlier attempt used --extend-exclude on the CLI; the widened run considered MORE files (2432 > 2258) because the flag REPLACES the ruff.toml list. Self-contradicting -> detector failure, its '0 files leave the gate' discarded."
+  },
+
+  "residuals_verified": {
+    "residual3_git_clean": "CONFIRMED. git clean -Xdn (DRY RUN only) = 514 paths would be removed, of which exactly 78 are root probe scripts. Builder claimed 78.",
+    "residual4_empty_dirs": "CONFIRMED. Exactly 13 empty directories, 5 of them under platform/~/.adv0041-amp/out/stage/; platform/~ exists. Builder claimed 13."
+  },
+
+  "real_defects": [
+    "D1: the third commit ebe02d62 exists solely to publish a post-commit gate reading, and that reading was ALREADY STALE when committed -- its parent df6377ab had raised the failure count 8 -> 14 and turned `ruff check` red. Both the artifact and the hand-back tell the owner 'main is red on 8 files, format only'. Blast radius: the owner underestimates the stop-ship, and the offered fix does not clear it.",
+    "D2: the committed control receipt _b1_control.out.json asserts verdict PASS / quiet_citer_count 0, but re-executing its own script at the commit that contains it yields verdict FAIL / quiet_citer_count 2 and exit 1 -- because committing the detector and its output put the negative-control sentinel name INTO the corpus the detector searches. Self-invalidating evidence, in the exact class the lane exists to fix. Fix: generate the sentinel at runtime, or exclude slop-report/ from the control's corpus."
+  ],
+  "overclaims": [
+    "O1: 'with the exclusion widened -> green' -- scoped version: 'widening clears all 14 FORMAT failures but leaves `ruff check` red on command-center/ssot/verify_refs.py:172 (E402), which the glob cannot match; it is a partial fix, not a green gate.'",
+    "O2: '144 tracked files leave the gate' -- scoped version: '144 as measured at f5b596e6; 186 at HEAD, plus 6 non-underscore files pulled in via the command-center/p2-wave/_av2_tmp directory = 192. 36 of the drift came from the builder's own commit fa87d1a2.'",
+    "O3: 'regenerated byte-identically (sha256-16 9ef271460a07b5f4)' -- scoped version: 'regenerates byte-identically; the specific hash is not durable because a .pyc embeds source size+mtime, and the value moved to fced1207f66487e1 once the source was formatted.'"
+  ],
+  "not_defects_checked_and_cleared": [
+    "45 committed byte-unchanged -- worktree==blob for 45/45, and the 29-file T2 delta proves they are NOT ruff-formatted",
+    "no foreign path in any commit -- name-only lists are 100% .gitignore/ruff.toml/command-center",
+    "frozen evidence -- 4 signals",
+    "10,307 bucket-(a) count -- exact at the declared MEASURED-AT rev",
+    "the 8 red files attributed to 1e9cfe81 -- all 8 confirmed added by that commit",
+    "_b8_apply.out.json 'missing' -- never committed and never needed; _b8_apply is an apply script, not a probe. The prose says '11 probes' then lists 13. Cosmetic."
+  ],
+  "auditor_scratch_disclosure": "This audit left 17 untracked files in command-center/slop-report/ (_AUDIT-SLOP-R1.json + _aud1.._aud8 scripts and their .out.json). By the lane's own taxonomy they are bucket (b). I did not commit them -- no commit mandate was given and the directory is the builder's declared scope. To carry them: git add <paths> then git commit -F <msg> -- <those paths>."
+}

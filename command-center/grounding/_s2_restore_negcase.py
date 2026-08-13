@@ -33,8 +33,13 @@ TREES = {
     "daily": Path(r"C:/Users/Prekzursil/.claude/skills.daily"),
 }
 NAMES = [
-    "transcribe", "tdd-workflow", "security-review", "screenshot",
-    "e2e-testing", "python-testing", "research-ops",
+    "transcribe",
+    "tdd-workflow",
+    "security-review",
+    "screenshot",
+    "e2e-testing",
+    "python-testing",
+    "research-ops",
 ]
 DESC = re.compile(r"^description:[ \t]*(.*)$")
 SIG = "x" * 20
@@ -64,7 +69,11 @@ originals = {}
 for n in NAMES:
     blob = subprocess.run(
         ["git", "show", f"HEAD:.agents/skills/{n}/SKILL.md"],
-        cwd=REPO, capture_output=True, text=True, encoding="utf-8", check=True,
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
     ).stdout
     d = desc_line(blob)
     assert d, f"no description line at HEAD for {n}"
@@ -107,11 +116,17 @@ print(f"  mismatches vs HEAD: {len(mism)}  {mism}")
 print("CONTROL 3 -- git must report the two repo trees CLEAN again")
 st = subprocess.run(
     ["git", "status", "--short", "--", "skills", ".agents/skills"],
-    cwd=REPO, capture_output=True, text=True, encoding="utf-8", check=True,
+    cwd=REPO,
+    capture_output=True,
+    text=True,
+    encoding="utf-8",
+    check=True,
 ).stdout.strip()
 print(f"  git status on skill trees: {st if st else 'CLEAN'}")
 
 ok = not bad and not mism and not st
-print(f"\n{'SUCCESS' if ok else 'FAILED'}:s2-restore reverted={len(NAMES)}x3 "
-      f"signature_left={len(bad)} mismatch={len(mism)} git_dirty={bool(st)}")
+print(
+    f"\n{'SUCCESS' if ok else 'FAILED'}:s2-restore reverted={len(NAMES)}x3 "
+    f"signature_left={len(bad)} mismatch={len(mism)} git_dirty={bool(st)}"
+)
 raise SystemExit(0 if ok else 1)

@@ -50,12 +50,16 @@ if not changed_fleet:
 
 print()
 print("THE 4 CROSS-SESSION FLIPS (described -> bare)")
-print(f"  {'skill':38s} {'size then':>10s} {'size now':>9s} {'mtime now':>20s}  verdict")
+print(
+    f"  {'skill':38s} {'size then':>10s} {'size now':>9s} {'mtime now':>20s}  verdict"
+)
 for n in FLIPS:
     pr = prior.get(n, {})
     sk = DAILY / n / "SKILL.md"
     st = sk.stat()
-    same = pr.get("size") == st.st_size and abs((pr.get("mtime") or 0) - st.st_mtime) <= 1
+    same = (
+        pr.get("size") == st.st_size and abs((pr.get("mtime") or 0) - st.st_mtime) <= 1
+    )
     print(
         f"  {n:38s} {pr.get('size', -1):10d} {st.st_size:9d} "
         f"{dt.datetime.fromtimestamp(st.st_mtime):%Y-%m-%d %H:%M:%S}  "

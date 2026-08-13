@@ -48,6 +48,7 @@ SENSITIVE_KEY = re.compile(
     r"\"([^\"]{16,})\""
 )
 
+
 def _plants() -> dict[str, str]:
     """Assemble synthetic credential-SHAPED strings at runtime.
 
@@ -163,7 +164,9 @@ def collect(paths: list[pathlib.Path]) -> list[pathlib.Path]:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("targets", nargs="+")
-    ap.add_argument("--control", action="store_true", help="run the both-states detector control")
+    ap.add_argument(
+        "--control", action="store_true", help="run the both-states detector control"
+    )
     args = ap.parse_args()
 
     files = collect([pathlib.Path(t).resolve() for t in args.targets])
@@ -179,7 +182,9 @@ def main() -> int:
             if not fired:
                 ok = False
             print(f"  {name:24s} {status}")
-        neg = scan_text('{"path": "C:/Users/Prekzursil/source/agent-skills-toolchain"}', "<control>")
+        neg = scan_text(
+            '{"path": "C:/Users/Prekzursil/source/agent-skills-toolchain"}', "<control>"
+        )
         print(f"  {'clean-path (must be 0)':24s} {len(neg)} hits")
         if neg:
             ok = False
@@ -200,10 +205,14 @@ def main() -> int:
         b64 = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF"
         live = scan_text('{"api_key": "' + b64 + '"}', "<control>")
         fired = [h for h in live if h["detector"] == "sensitive-key-value"]
-        print(f"  {'opaque value (must fire)':24s} {'FIRED' if fired else 'SILENT <-- OVER-FILTERED'}")
+        print(
+            f"  {'opaque value (must fire)':24s} {'FIRED' if fired else 'SILENT <-- OVER-FILTERED'}"
+        )
         if not fired:
             ok = False
-        print(f"CONTROL: {'PASS' if ok else 'FAIL'} -- detectors {'can' if ok else 'CANNOT'} see a planted secret\n")
+        print(
+            f"CONTROL: {'PASS' if ok else 'FAIL'} -- detectors {'can' if ok else 'CANNOT'} see a planted secret\n"
+        )
         if not ok:
             print("FAILED: preflight-control-broken")
             return 2
@@ -229,7 +238,9 @@ def main() -> int:
 
     print(f"{len(findings)} credential-shaped finding(s) -- values NEVER printed:")
     for h in findings:
-        print(f"  [{h['severity']}] {h['file']} :: {h['detector']} shape={h['shape']} H={h['entropy']}")
+        print(
+            f"  [{h['severity']}] {h['file']} :: {h['detector']} shape={h['shape']} H={h['entropy']}"
+        )
     print(json.dumps({"findings": len(findings)}))
     print("FAILED:secret-preflight credential-shaped material present -- DO NOT COMMIT")
     return 1

@@ -41,7 +41,7 @@ claude mcp get codex          # expect: Connected
 | `release/platforms/windows/` | 8 | Config snapshots: Codex (40 MCPs), Claude (39 MCPs), Gemini (33 MCPs) |
 | `docs/` | — | Architecture docs, codex-consult analysis, plans, dated session reconciliations |
 
-> **Latest (2026-06-10):** added 4 game-RE skills; new MCP servers **`ocr`**
+> **2026-06-10 session:** added 4 game-RE skills; new MCP servers **`ocr`**
 > (multi-engine OCR + accuracy eval — separate repo
 > [`Prekzursil/abbyy-finereader-ocr-mcp`](https://github.com/Prekzursil/abbyy-finereader-ocr-mcp)), **`basic-memory`**
 > (durable vector memory + compaction-survival hooks), **`firefox-devtools`**; and a
@@ -49,11 +49,14 @@ claude mcp get codex          # expect: Connected
 > unified across Claude Code + Codex). See
 > [`docs/SESSION-RECONCILIATION-2026-06-10.md`](docs/SESSION-RECONCILIATION-2026-06-10.md).
 
+## Scholarly Access MCP (open-access paper retrieval)
+
+`tools/scholarly-access-mcp/` is a scholarly-retrieval MCP server — the compliant
 replacement for a Sci-Hub MCP. It resolves DOI / PMID / arXiv / title queries, classifies access
 honestly, and routes **only** to available open-access and rights-holder-entitled sources
 (Crossref, OpenAlex, Unpaywall, Europe PMC, arXiv, Semantic Scholar, CORE, DOAJ, PubMed, Zenodo).
 
-> no silent fallback. `paper_download_oa_pdf` only fetches allowlisted hosts that serve a real `%PDF`.
+> No silent fallback. `paper_download_oa_pdf` only fetches allowlisted hosts that serve a real `%PDF`.
 
 8 tools: `paper_resolve`, `paper_fetch_metadata`, `paper_find_oa_pdf`, `paper_access_status`,
 `paper_citation_graph`, `paper_download_oa_pdf`, `paper_summarize`, `paper_batch_resolve`.

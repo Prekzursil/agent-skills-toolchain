@@ -21,6 +21,28 @@ counts and manifest freshness metadata contradict the measured tree") and was
 still there three weeks later, because nothing ever executed the claims. Prose
 that asserts a number rots silently; a number a gate recomputes cannot.
 
+A SECOND ROT MECHANISM, ADDED IN ROUND 2
+----------------------------------------
+Numbers are not the only claim that rots. ``README.md`` carried
+``> **Latest (2026-06-10):** ...`` -- a hand-maintained currency banner -- while
+line 38 of the SAME file documented a 2026-08-09 event and the file's own last
+commit was 2026-08-12. A banner that says "latest" is a claim about the
+document, so ``currency_violations`` recomputes it: any ``**Latest (DATE)**``
+marker must carry the newest ISO date in the file, or it is stale by
+construction. Measured precision over the 160 tracked ``.md`` files in
+``docs/`` + ``README.md`` + ``AGENTS.md`` + ``CLAUDE.md``: **1 hit, 1 true
+positive, 0 false positives** -- the defect itself.
+
+Disclosed inline, because it is the difference between a live check and a
+tripwire: the fix REMOVED the banner rather than re-dating it (git is the
+changelog; a hand-maintained "latest" line is the rot mechanism). So on the
+shipped file this arm currently has no marker to compare and is a
+REINTRODUCTION tripwire. Its discriminating power is not assumed -- it is
+proven on real committed bytes by ``docs/_lane_docs_bothstates_probe.py``,
+which replays README blob ``6c8b0138`` (the pre-round-2 state, banner present)
+and requires the arm to fire there, plus an in-suite injected-marker control
+here.
+
 WHAT THIS GATE DELIBERATELY DOES NOT DO
 ---------------------------------------
 It does not lint prose for dead PATH mentions. Measured on this corpus: 249 raw
@@ -29,6 +51,15 @@ non-archive docs -- and **0** genuine broken promises, because every one sits
 inside an explicit "deleted / retired / closed / does not exist" sentence or
 names an out-of-repo path. A dead-path linter here would be ~100% false
 positive. Only claims a machine can EXECUTE or COUNT are gated.
+
+It also does not lint for decapitated sections (a paragraph that opens with a
+lowercase word, the shape left behind when commit 49ca83f7 deleted whole lines
+during a terminology scrub and beheaded the Scholarly Access section). That
+detector was BUILT and MEASURED before being rejected: 29 hits across 14 of the
+same 160 files, of which the README's own three are 2 true positives and 1 false
+positive (line 316 is a deliberate sentence that resumes after a list). ~17%
+tree-wide precision is a linter that trains people to ignore it, so the two real
+instances were fixed by hand and no gate was shipped.
 
 WHERE IT RUNS
 -------------
@@ -111,9 +142,20 @@ SNAPSHOT_SOURCES = {
 _SNAPSHOT_CLAIM = re.compile(
     r"Codex \((\d+) MCPs\), Claude \((\d+) MCPs\), Gemini \((\d+) MCPs\)"
 )
+_ISO_DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
+_CURRENCY_MARKER = re.compile(
+    r"\*\*(Latest|Current|Now|As of|Updated)\s*\((\d{4}-\d{2}-\d{2})\)"
+)
 _SPLIT_CLAIM = re.compile(r"\((\d+) shared \+ (\d+) Claude-only\)")
 _POLICY_CLAIM = re.compile(r"#\s*(\d+) offline policy/gate tests")
-_TOOLS_CLAIM = re.compile(r"^(\d+) tools: (.*?)\.\n", re.MULTILINE | re.DOTALL)
+# ``\r?\n``, not ``\n``. Measured 2026-08-13: the working tree of README.md on
+# Windows holds 328 CR bytes while the stored blob holds 0 (windows-shell 8b).
+# Anything that hands this regex the RAW bytes -- a probe reading with
+# ``newline=""``, a tool reading the worktree instead of the blob -- got
+# ``tools-missing`` on a README whose claim was present and correct. It fails
+# loud rather than silent, so it was never a false green, but a gate that
+# reports a defect that is not there is still a broken gate.
+_TOOLS_CLAIM = re.compile(r"^(\d+) tools: (.*?)\.\r?\n", re.MULTILINE | re.DOTALL)
 
 
 # --------------------------------------------------------------------------
@@ -219,6 +261,27 @@ def claimed_tools(readme: str) -> tuple[int | None, list[str]]:
     if match is None:
         return None, []
     return int(match.group(1)), re.findall(r"`([a-z_]+)`", match.group(2))
+
+
+def currency_violations(readme: str) -> list[str]:
+    """A ``**Latest (DATE)**`` banner must carry the newest date in the document.
+
+    Pure and text-only on purpose: no ``git log``. CI checks out at
+    ``fetch-depth: 1``, so a commit-date oracle would be unavailable there and
+    the check would degrade to "no history, therefore clean" -- a gate that
+    passes because it cannot measure. Self-consistency needs no history: if the
+    same file already talks about a later date, the banner is stale by its own
+    evidence.
+    """
+    dates = _ISO_DATE.findall(readme)
+    if not dates:
+        return []
+    newest = max(dates)
+    return [
+        f"stale-currency: '{word} ({claimed})' but this file already documents {newest}"
+        for word, claimed in _CURRENCY_MARKER.findall(readme)
+        if claimed < newest
+    ]
 
 
 def readme_violations(
@@ -359,6 +422,95 @@ def test_readme_claims_match_measured_reality(
         "README asserts numbers the tree contradicts:\n"
         + "\n".join(f"  - {v}" for v in violations)
     )
+
+
+def test_gate_is_line_ending_agnostic(
+    readme: str,
+    surfaces: dict[str, int],
+    snapshots: dict[str, int],
+    policy_tests: int,
+    tool_names: list[str],
+) -> None:
+    """CRLF and LF forms of the same README must score identically.
+
+    The blob is LF, a Windows working tree is CRLF, and CI checks out the LF
+    form -- so a claim verified locally can be measured against different bytes
+    than the ones CI reads (windows-shell 8b). This is not hypothetical here:
+    ``_TOOLS_CLAIM`` ended in ``\\.\\n`` and reported ``tools-missing`` on the
+    raw CRLF bytes of a README whose claim was present and correct.
+    """
+    lf = readme.replace("\r\n", "\n")
+    crlf = lf.replace("\n", "\r\n")
+    assert "\r\n" in crlf, "control precondition: the CRLF form has no CRLF"
+
+    args = (surfaces, snapshots, policy_tests, tool_names)
+    assert readme_violations(lf, *args) == readme_violations(crlf, *args), (
+        "readme_violations disagrees between the LF and CRLF forms of the same "
+        "document, so a local green does not imply a CI green"
+    )
+    assert currency_violations(lf) == currency_violations(crlf)
+
+
+def test_currency_arm_has_something_to_measure(readme: str) -> None:
+    """Fail-closed floor for the currency arm.
+
+    ``currency_violations`` returns ``[]`` when the document contains no ISO
+    date at all -- indistinguishable from "clean". Assert the input the arm
+    depends on actually exists, so the arm can never pass by measuring nothing.
+
+    The blind spot is PROVEN below rather than asserted, so the floor is
+    visibly load-bearing instead of decorative. Honest limit, disclosed: the
+    numeric threshold itself is not mutation-testable while the live README
+    carries several dates -- ``>= 1`` and ``>= 0`` score the same on this
+    input. That is inherent to a fail-closed floor (``PLAUSIBILITY_FLOORS`` has
+    the same property) and is why the fail-closed BRANCH is mutation-tested
+    instead, in ``docs/_lane_docs_r2_mutation_control.py``.
+    """
+    assert currency_violations("no dated events in this document at all") == [], (
+        "the arm must return clean, not crash, on a dateless document -- this "
+        "is the blind spot the floor below exists to guard"
+    )
+    dates = _ISO_DATE.findall(readme)
+    assert len(dates) >= 1, (
+        "README contains no ISO date, so the stale-banner arm has no baseline "
+        "and would report clean regardless of what the file says"
+    )
+
+
+def test_readme_has_no_stale_currency_banner(readme: str) -> None:
+    violations = currency_violations(readme)
+    assert violations == [], (
+        "README carries a currency banner older than its own newest dated "
+        "event:\n" + "\n".join(f"  - {v}" for v in violations)
+    )
+
+
+def test_control_currency_arm_distinguishes_stale_from_current(readme: str) -> None:
+    """Two-hypothesis control: STALE must fire, CURRENT must not.
+
+    A control that only proves "a marker was seen" would pass under both
+    hypotheses and measure nothing but readability. This one is built from the
+    file's own newest date, so it keeps discriminating as the README changes.
+    """
+    newest = max(_ISO_DATE.findall(readme))
+    older = f"{int(newest[:4]) - 1}{newest[4:]}"
+
+    stale = f"> **Latest ({older}):** injected control banner.\n\n{readme}"
+    fired = currency_violations(stale)
+    assert any("stale-currency" in v for v in fired), (
+        f"control: the arm stayed silent on a banner dated {older} while the "
+        f"document documents {newest}; violations were {fired!r}"
+    )
+
+    current = f"> **Latest ({newest}):** injected control banner.\n\n{readme}"
+    assert currency_violations(current) == [], (
+        "control: the arm fired on a banner carrying the newest date, so it "
+        "flags the marker rather than its staleness"
+    )
+
+    for word in ("Current", "Updated", "As of"):
+        variant = f"> **{word} ({older}):** injected control banner.\n\n{readme}"
+        assert currency_violations(variant), f"control: '{word}' variant not covered"
 
 
 def _mutate(readme: str, old: str, new: str) -> str:

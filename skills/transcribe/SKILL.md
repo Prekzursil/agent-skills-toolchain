@@ -1,6 +1,6 @@
 ---
 name: "transcribe"
-description: "Transcribe audio/video to text with optional diarization and known-speaker hints, for recordings, interviews and meetings. Do NOT use when you need WORD-LEVEL timing for captions or karaoke -- use reframe-transcribe."
+description: "Use when asked to transcribe speech to text from audio/video, with diarization to label speakers in recordings, interviews or meetings. Do NOT use for WORD-LEVEL caption or karaoke timing -- use reframe-transcribe."
 ---
 
 

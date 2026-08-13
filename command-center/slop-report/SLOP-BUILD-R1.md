@@ -12,15 +12,28 @@ COVERAGE: B0–B6 measured. Bucket (d) empty-dir removal NOT executed (blocked, 
 The sibling-owned CI red is NOT fixed by me — deliberate, reason inline. External research:
 NOT-CHECKED (every question here is answerable by an exact algorithm over this repo).
 
+> **ROUND-2 REFUTATION NOTICE — read before citing any number in this file.**
+> An independent audit and an independent verifier found **2 real defects and 3 overclaims**
+> here. They are fixed in `SLOP-BUILD-R2.md`; the original wording below is kept, marked
+> `REFUTED`, and given its correct scope inline rather than being quietly edited away.
+> * **D1** — the gate readings in this file (§B-1, §Final verification) were true at the rev
+>   they were measured at and false at the rev they were published into. **Every gate number
+>   in this file is a point-in-time reading of a tree that moved 4× in one round.** Today's
+>   answer: `python command-center/slop-report/_r2_gate_now.py`.
+> * **D2** — `_b1_control.out.json` became self-refuting the moment it was committed. Fixed in
+>   code (runtime-random sentinel + a permanent legacy negative control).
+> * **O1/O2/O3** — the "widen → green", "144 files", and "sha256-16 `9ef2…`" claims are each
+>   scoped correctly in R2 §O1/§O2/§O3.
+
 ---
 
 ## Ranked findings
 
 | # | severity | finding | evidence |
 |---|---|---|---|
-| **B-1** | **STOP-SHIP, not mine** | `main` is CI-RED on `gate-lint-format` at HEAD. 8 files, all `command-center/grounding/_s2_*.py`, added by sibling commit `1e9cfe81`. The gate is repo-wide, so this blocks **every** sibling PR. | `_c1_widen_probe.out.json` T2: `format_rc=1`, 8 files named. Fresh LF clone, 3 controls PASS. |
+| **B-1** | **STOP-SHIP, not mine** | ~~`main` is CI-RED on `gate-lint-format` at HEAD. 8 files, all `command-center/grounding/_s2_*.py`~~ **REFUTED AS PUBLISHED — "at HEAD" had no rev anchor.** True at `fa87d1a2`; at `f009c680` it is **16** files (14 `grounding/_s2_*.py` + 2 `ui-audit/_fix_main_guard.py`); **RESOLVED at `61e69cf2`** — the gate is GREEN, fixed by sibling `d22c8564`, not by this lane. Never mine at any rev. Full timeline + today's reading: R2 §D1. | `_c1_widen_probe.out.json` T2 (@`fa87d1a2`); re-measured `_r2_gate_now.out.json` (@`f009c680`, 6 controls PASS). |
 | **B0** | high, now reduced | `git clean -Xdf` was the single most destructive command available here. It still removes the **78** uncited root probe scripts — but no longer the 45 cited ones, because `f5b596e6` tracks them. | `_c2_final_census.out.json`: `root_probes_on_disk=123, now_tracked=45, still_ignored=78`. |
-| **B1** | high, FIXED | 123 of 123 `command-center/_*.py` were ignored and 0 tracked; 1,269,072 B on one disk. 45 (403,870 B) are named inside committed artifacts, so those citations dangled on any clone. | `_b1_cited_probes.out.json`; detector controlled both ways (`_b1_control.out.json`: 248 citers on a known-referenced name incl. the expected `platform/lib/test_schema_resolver.py`, 0 on a nonexistent name). |
+| **B1** | high, FIXED | 123 of 123 `command-center/_*.py` were ignored and 0 tracked; 1,269,072 B on one disk. 45 (403,870 B) are named inside committed artifacts, so those citations dangled on any clone. | `_b1_cited_probes.out.json`; detector controlled both ways (`_b1_control.out.json`: 248 citers @`f5b596e6` on a known-referenced name incl. the expected `platform/lib/test_schema_resolver.py`, 0 on a nonexistent name). **The 248 DRIFTS with the tree (256 two commits later) — it is an observation, not a constant.** The receipt itself was **REFUTED** (D2) and is fixed in R2 §D2; the finding it supports stands, independently re-derived by both the auditor and the verifier. |
 | **B2** | high, load-bearing | Committing those 45 **without** a ruff exclusion reds the gate: **29 files would reformat + 9 lint errors**. With it: 0 and 0. | `_b7_candidate_gate.out.json`, T1 vs T2, `controls_verdict: PASS`. |
 | **B3** | medium | Three of my own detectors failed. Recorded below; two produced confidently wrong headlines before being caught. | §"My own detector failures". |
 | **B4** | medium | Class defect, two instances 20 min apart: evidence probe scripts under `command-center/` get committed unformatted and red a repo-wide gate. Mine was caught pre-commit; the sibling's was not. | B1/B2 + B-1. |
@@ -61,9 +74,17 @@ python command-center/slop-report/_b1_control.py
 ```
 
 Deleted → verified absent (`n_files=0`) → re-ran the command → regenerated
-**byte-identically** (`_b1_cited_probes.cpython-314.pyc`, sha256-16 `9ef271460a07b5f4` before
-and after). All five checks PASS including the intermediate absence, which is what
+**byte-identically** ~~(`_b1_cited_probes.cpython-314.pyc`, sha256-16 `9ef271460a07b5f4` before
+and after)~~. All five checks PASS including the intermediate absence, which is what
 distinguishes "regenerated" from "never deleted".
+
+> **REFUTED IN PART (O3) — the property holds, the hash VALUE does not.** The auditor measured
+> `fced1207f66487e1`, not `9ef2…`. Re-executed and mechanism proven in R2 §O3: a `.pyc` header
+> embeds the source's mtime and size, so bumping the source mtime alone (bytes verified
+> unchanged) moves the hash to `a7a2f6388326965b`. Correct scope: *the artifact regenerates
+> byte-identically within a run; the hash value is not a durable receipt and must not be quoted
+> as one.* Two further round-1 errors in this same paragraph, both fixed in R2 §D2: the command
+> shown here exited **rc 1** and **dirtied a tracked file** every time it ran.
 
 Scope was deliberately limited to a cache **this lane created**. The 48.9 MB cache sweep is
 still available but was NOT run: sibling lanes are writing in this tree now (untracked count
@@ -84,14 +105,24 @@ Measured in a fresh LF clone of HEAD, both states, controls PASS:
   `_s2_appendonly_and_negcase.py`, `_s2_apply_negcase.py`, `_s2_budget_refit.py`,
   `_s2_bytestable.py`, `_s2_render_probe.py`, `_s2_restore_negcase.py`, `_s2_vault_gap.py`,
   `_s2_wa_union.py` — all under `command-center/grounding/`.
-- **with the exclusion widened** to `command-center/**/_*.py` → green, 0 would reformat.
+- ~~**with the exclusion widened** to `command-center/**/_*.py` → green, 0 would reformat.~~
+  **REFUTED (O1).**
 
 Two candidate fixes, with measured blast radius so the owner can choose:
 
 | fix | blast radius | keeps gate strength |
 |---|---|---|
 | `ruff format` the 8 files | 8 files change bytes | yes — 144 files stay linted |
-| widen exclude to `command-center/**/_*.py` | **144** tracked files leave the gate | no |
+| widen exclude to `command-center/**/_*.py` | ~~**144**~~ tracked files leave the gate | no |
+
+> **BOTH ROWS REFUTED AS PUBLISHED — no rev anchor, and both numbers moved. Corrected in R2
+> §O1/§O2.** Measured at `f009c680`: the file count is **8 → 16**; widening no longer produces
+> a green gate, it takes format failures **16 → 2**, because the two newest red files
+> (`skills/ui-audit/_fix_main_guard.py` and its `.agents/skills/` mirror) are outside
+> `command-center/` and no `command-center` glob can reach them; and the exclusion's blast
+> radius is **144 @`f5b596e6` → 208 @`f009c680`** (reconciled against `git ls-tree` with
+> residual 0: 247 − 45 + 6). All three numbers GROW with sibling commits. Re-measure with
+> `python command-center/slop-report/_r2_gate_now.py` before quoting any of them.
 
 **I did neither, on purpose.** The owning lane is *live in that exact directory*:
 `command-center/grounding/_audit_s2_negcase.py` and `_AUDIT-S2-NEGCASE.json` are untracked and
@@ -186,6 +217,16 @@ appeared between `86dde6c1` and my first commit.
 
 Both commits verified as ancestors of HEAD (`git merge-base --is-ancestor`) — neither was lost
 to the concurrent sibling commits that moved HEAD six times during this lane.
+
+> **D1, the defect this section caused.** The table above is correct *at the two revs it names*
+> and was independently re-confirmed by both the auditor and the verifier — **"this lane added
+> zero gate failures" stands and is not reopened.** What was wrong is what round 1 did with it
+> next: commit `ebe02d62` was created for the sole purpose of publishing this "8 files,
+> format-only" reading as the *current* state, and its own parent had already moved the number
+> to 14 + an E402. The auditor's replacement figure went stale within two commits, and mine
+> (16) will too. **A gate reading committed into a document is stale on arrival.** The durable
+> replacement is a committed, re-runnable, rev-anchored probe —
+> `python command-center/slop-report/_r2_gate_now.py [--rev <rev>]` — described in R2 §D1.
 
 ## Confidence
 

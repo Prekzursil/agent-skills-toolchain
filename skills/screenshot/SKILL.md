@@ -1,6 +1,6 @@
 ---
 name: "screenshot"
-description: "Use when the user asks for a desktop or OS-level screenshot (full screen, a window, or a pixel region), or when tool-specific capture is unavailable. NOT for a web page or app UI (use playwright or ui-audit)."
+description: "Use when the user asks for a desktop, system or OS-level screenshot (full screen, a window, or a pixel region), or when tool-specific capture is unavailable. NOT for a web page or app UI (use playwright or ui-audit)."
 ---
 
 
