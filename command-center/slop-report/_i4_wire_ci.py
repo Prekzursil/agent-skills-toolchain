@@ -90,9 +90,15 @@ def main() -> int:
 
     WF.write_bytes(patched)
     after = WF.read_bytes()
+    # Hoisted out of the f-string: a backslash inside an f-string EXPRESSION is a SyntaxError
+    # before Python 3.12 (PEP 701 legalised it). CI runs 3.11, this box runs 3.14, so the inline
+    # form parsed here and could not tokenise there. The `\n` in the literal text below is fine --
+    # only the expression part is restricted.
+    crlf_before = original.count(b"\r\n")
+    crlf_after = after.count(b"\r\n")
     print(
         f"\nwrote {WF}  bytes {len(original)} -> {len(after)}  "
-        f"CRLF {original.count(b'\r\n')} -> {after.count(b'\r\n')}"
+        f"CRLF {crlf_before} -> {crlf_after}"
     )
     diff = subprocess.run(
         [
