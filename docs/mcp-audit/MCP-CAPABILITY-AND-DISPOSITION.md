@@ -330,6 +330,24 @@ capability evidence but **not** a resolution, and does not act on it.
 
 ## 8. Definition-of-Done ledger
 
+**This ledger is executable.** `_r2_dod_check.py` re-derives all four verdicts from
+`git show <rev>:command-center/mcp-audit/disposition.json` — the bytes that shipped, not
+the working tree, because a working-tree check passes on an uncommitted edit no reviewer
+will ever see. Each item also carries a **negative control**: the predicate is re-run
+against a copy of the rows broken in exactly the way that item is meant to catch, and the
+run fails unless the control fires. Without that, a predicate with a typo'd field name
+would report PASS on all 23 rows by finding nothing to object to.
+
+```
+== DoD ledger, executed against 630bb8af:command-center/mcp-audit/disposition.json (23 rows) ==
+  DoD1 PASS  inventory: scope + source file per row       negative control fires: True
+  DoD2 PASS  liveness vs capability by a real call        negative control fires: True
+  DoD3 PASS  per-server context cost measured             negative control fires: True
+  DoD4 PASS  reversible recommendations with evidence     negative control fires: True
+  summary: call_verified=21/23  dispositions={'DISABLE': 1, 'INVESTIGATE': 2, 'KEEP': 20}
+SUCCESS:dod-check 4/4 DoD items PASS, 4/4 negative controls fired
+```
+
 | DoD item | state | evidence |
 |---|---|---|
 | every mounted server inventoried with its **scope and source file** | **PASS** | 23/23 rows in `disposition.json` carry `definition_scope`, `source_file` (absolute), `config_basis`, `transport`. The 122 non-mounted config rows keep their scope/basis in `mcpctl-matrix.json`; they were deliberately not spawned. |
@@ -387,6 +405,7 @@ capability evidence but **not** a resolution, and does not act on it.
 | `command-center/mcp-audit/_r2_redproof_invariants.py` | both-states red-proof of both round-2 fixes |
 | `command-center/mcp-audit/_r2_corroborate.py` | round-1 vs round-2 sweep, count **and** name sets, with a control |
 | `command-center/mcp-audit/_r2_ruff_census.py` + `ruff-census.json` | the D3 disclosure as a scoped, timestamped measurement |
+| `command-center/mcp-audit/_r2_dod_check.py` | the §8 DoD ledger, executed against the COMMITTED blob, 4 negative controls |
 | `docs/mcp-audit/ROUND2-DEFECT-CLOSURE.md` | the round-2 ledger: one row per confirmed defect |
 
 Reproduce, in order:
