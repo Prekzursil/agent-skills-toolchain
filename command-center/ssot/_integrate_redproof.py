@@ -1,21 +1,37 @@
 """Red-proof: run the SSOT wiring checker against the REAL pre-integration bytes.
 
 The point of a both-states proof is that the BROKEN state must be the genuine article, not a
-hand-made fake. So the "before" tree here is reconstructed with `git show HEAD:<path>` -- the
-bytes as committed before this lane's integration commit -- rather than by deleting a line
-from the working tree and calling that a control.
+hand-made fake. So the "before" tree here is reconstructed with `git show <BEFORE_REV>:<path>`
+-- the bytes as committed before this lane's integration commit -- rather than by deleting a
+line from the working tree and calling that a control.
 
-Expected: HEAD (no SSOT-WIRE block in CLAUDE.md) exits 1; the working tree exits 0.
+Expected: BEFORE_REV (no SSOT-WIRE block in CLAUDE.md) exits 1; the working tree exits 0.
 If both exit the same way, the checker is inert and no verdict from it may be cited.
+
+THE REV IS PINNED, AND THAT IS THE POINT. The first version of this probe reconstructed
+"before" from ``HEAD``. It passed when run pre-commit and then reported
+``DISCRIMINATION: before=0 after=0 / FAILED`` the instant the integration landed, because
+HEAD had moved and both states were now the SAME state. A probe whose control silently
+becomes a copy of its treatment is the defect class this lane exists to catch, committed by
+the tool built to catch it. ``BEFORE_REV`` is therefore the pre-integration commit by
+SHA, not a moving reference, so this stays reproducible from any later checkout.
+
+Because ``build()`` writes raw ``git show`` blobs, the BEFORE tree is LF-normalised: a green
+run over it is also the proof that the checker is line-ending-insensitive and will behave the
+same on a Linux CI runner as it does on this Windows working tree.
 """
 
 from __future__ import annotations
 
+import argparse
 import pathlib
 import shutil
 import subprocess
 import sys
 import tempfile
+
+# The commit immediately before `feat(ssot): wire the SSOT rule and drift gate in`.
+BEFORE_REV = "33f3f2d3~1"
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 CHECKER = REPO / "command-center" / "ssot" / "ssot_wiring_check.py"
@@ -67,18 +83,34 @@ def run_checker(root: pathlib.Path) -> tuple[int, str]:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="both-states proof of the SSOT wiring check"
+    )
+    ap.add_argument(
+        "--before-rev",
+        default=BEFORE_REV,
+        help="the pre-integration revision to reconstruct the BROKEN state from",
+    )
+    args = ap.parse_args()
+
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="ssot-redproof-"))
     try:
         before = tmp / "before"
-        present = build("HEAD", before)
-        print(f"=== BEFORE: reconstructed from git HEAD ({len(present)} files) ===")
+        present = build(args.before_rev, before)
+        if not present:
+            # Fail CLOSED: an unresolvable rev must never read as a passing control.
+            print(f"FAILED:ssot-redproof cannot resolve {args.before_rev}")
+            return 2
+        print(
+            f"=== BEFORE: reconstructed from {args.before_rev} ({len(present)} files) ==="
+        )
         for rel in present:
             print(f"    {rel}")
         missing = [r for r in TRACKED if r not in present]
         if missing:
-            print(f"    (absent at HEAD, as expected pre-integration: {missing})")
-        # The checker lives outside the reconstructed tree, so copy it in only if HEAD did
-        # not have it -- W3 must be able to resolve the path the block names.
+            print(f"    (absent at that rev, as expected pre-integration: {missing})")
+        # The checker lives outside the reconstructed tree, so copy it in only if that rev
+        # did not have it -- W3 must be able to resolve the path the block names.
         if "command-center/ssot/ssot_wiring_check.py" not in present:
             dst = before / "command-center/ssot/ssot_wiring_check.py"
             dst.parent.mkdir(parents=True, exist_ok=True)

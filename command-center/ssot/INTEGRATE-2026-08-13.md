@@ -59,8 +59,8 @@ pre-integration tree with `git show HEAD:<path>` and runs the same checker over 
 
 ```
 $ python command-center/ssot/_integrate_redproof.py
-=== BEFORE: reconstructed from git HEAD (4 files) ===
-    (absent at HEAD, as expected pre-integration: ['command-center/ssot/ssot_wiring_check.py'])
+=== BEFORE: reconstructed from 33f3f2d3~1 (4 files) ===
+    (absent at that rev, as expected pre-integration: ['command-center/ssot/ssot_wiring_check.py'])
   [CUT ] W1-claude-md-no-ssot-block   CLAUDE.md has no SSOT-WIRE block
             - CLAUDE.md is missing <!-- SSOT-WIRE:start -->
 FAILED:ssot-wiring-check cut=1
@@ -119,6 +119,26 @@ Every code was watched firing. Nothing here is a silence.
   intact".
 - **Mutation-anchor guard** — `_sub()` asserts its anchor exists, so a mutation that silently
   missed cannot masquerade as a passing test.
+
+**A THIRD detector failure — the probe invalidated itself on landing.** `_integrate_redproof.py`
+originally reconstructed the BROKEN state from `HEAD`. It passed while uncommitted, and the
+instant the integration commit landed it reported:
+
+```
+DISCRIMINATION: before=0 after=0
+FAILED:ssot-redproof the checker did not distinguish the two states -- it is inert
+```
+
+HEAD had moved, so the "control" had silently become a copy of the treatment. That is a
+control that cannot distinguish the two hypotheses — committed **by the tool built to catch
+exactly that**. Fixed by pinning `BEFORE_REV = "33f3f2d3~1"` (a SHA, not a moving reference),
+so the proof reproduces from any later checkout, plus a new fail-closed path: an unresolvable
+rev exits **2** with `FAILED:ssot-redproof cannot resolve <rev>` rather than reporting a
+passing control. Both verified. The original wording is recorded here rather than deleted.
+
+That run also yields a free line-ending proof: `build()` writes raw `git show` blobs, so the
+BEFORE tree is **LF**, and the checker is green over it — i.e. the checker is line-ending
+insensitive and will behave on a Linux runner as it does on this CRLF working tree.
 
 **A detector failure I caught in my own instrument.** W4 fired against a `CLAUDE.md` that DID
 reference the gate. The path regex required an entire backtick span to be the path, so

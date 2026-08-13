@@ -29,7 +29,7 @@ import sys
 import tempfile
 
 REPO = pathlib.Path("C:/Users/Prekzursil/source/ast-integrate")
-LANE_COMMITS = ["df6377ab", "3043d615", "a435ae7c"]
+LANE_COMMITS = ["df6377ab", "3043d615", "a435ae7c", "33f3f2d3"]
 
 
 def sh(args: list[str], cwd: str | None = None) -> tuple[int, str]:
