@@ -147,14 +147,38 @@ wiring control   SUCCESS:r4-wiring-control wired=0 unwired=1
 ruff 0.15.17     check "All checks passed!" exit 0; format --check exit 0
                  new files carry CR=0, so working-tree bytes == stored blob bytes
 mirror           commands/context-budget.md == agent-self/config/commands/... (sha equal)
+commit surface   8b2914da, exactly 7 files, +812/-30, zero sibling paths swept in
+```
+
+Post-commit, in a FRESH CLONE at `8b2914da` (empty working tree, no venv) — working-tree
+green is not clone green, so these were re-run there:
+
+```
+clone-green      35 passed, exit 0    the three docs suites
+clone both-states SUCCESS:docs-r4-bothstates broken_state_fires=1 fixed_state_fires=0
+clone EOL         the clone checked out test_command_doc_promises.py with 386 CR and
+                  commands/context-budget.md with 68 CR -- i.e. the gate was proven
+                  green on genuinely CRLF bytes, not only on the LF blobs
+MUTATION          `git cat-file -p 7f62801d > commands/context-budget.md` in the clone
+                  -> 2 failed, 8 passed, exit 1. The SHIPPED pytest assertion goes RED
+                  on the known-broken state and GREEN on the fixed one. This is the
+                  strongest control here: it is the gate itself failing, not a probe
+                  re-implementing the gate's logic and agreeing with itself.
+CI-WIRING PROOF   the literal `run:` block was extracted from the clone's quality.yml
+                  and executed as a runner would:
+                  SUCCESS:r4-cloneproof commands=3 combined_exit=0
+                  (15 + 10 + 10 passed). The wiring is executable, not merely asserted.
 ```
 
 ---
 
 ## 7. Residual, disclosed
 
-1. **No real CI run.** Everything above is local. Settling experiment: read the
-   `gate-tests-coverage docs executable claims` step of the next push to main.
+1. **No real CI run.** Everything above is local + fresh-clone; the commit is not pushed.
+   The closest substitute was executing the literal `run:` block out of the clone's own
+   `quality.yml` (`SUCCESS:r4-cloneproof combined_exit=0`), which proves the commands run and
+   pass but not that the runner reaches the step. Settling experiment: push and read the
+   `gate-tests-coverage docs executable claims (README + roadmap)` step.
 2. **`.github/workflows/quality.yml` was edited** — one line appended inside the existing docs
    step. No new step, no new charter slug, no change to the step's position relative to the
    py3.12 pivot (a test pins that ordering and still passes). It was clean before the edit.
