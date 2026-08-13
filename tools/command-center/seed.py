@@ -4,6 +4,15 @@ Deterministic and re-runnable: same inputs -> same bytes (there is no clock in
 the output). That property is what `tests/test_seed.py` uses to prove the
 committed catalog was not hand-edited into disagreement with its own source.
 
+SCOPE OF THAT SENTENCE, corrected 2026-08-13. It was written before the file it
+cites existed: on 2026-08-13 `tools/command-center/tests/` held conftest,
+test_close, test_reconcile_delivery, test_registry, test_render and test_validate,
+and `grep -rn test_seed` matched only this docstring pointing at itself, so the
+property was NOT-CHECKED rather than proven. The file now exists and asserts it,
+scoped to the DERIVED fields listed below -- `disposition`, `status`, `history`
+and `defer` are legitimately rewritten after seeding by the close/defer tooling
+(open is 69 at seed time and 58 as committed), so they are excluded by design.
+
 Division of labour, and the reason for it:
   * DERIVED (here, mechanically): id, title, program, section, status, effort,
     evidence, sources, phase, target, inputs, output_path, completion_sentinel.
@@ -124,7 +133,24 @@ def build_catalog(register_path: Path, overlay_path: Path) -> dict[str, Any]:
     parsed = rp.parse_file(register_path)
     overlay = json.loads(overlay_path.read_text(encoding="utf-8"))
     per_item: dict[str, Any] = overlay.get("items", {})
-    register_bytes = register_path.read_bytes()
+    # LF-NORMALISE BEFORE HASHING -- must match validate.py:228 exactly, which reads
+    # `read_bytes().replace(b"\r\n", b"\n")`. This writer half of the portability fix
+    # was never applied when the reader half landed on 2026-08-10, so seed.py recorded
+    # a digest of the RAW working-tree bytes that validate.py could then never satisfy
+    # on a Windows checkout. Measured 2026-08-13 on two clones of the same commit that
+    # differ ONLY in `core.autocrlf` (probe: scratch/cigreen_r2_seed_probe.py):
+    #
+    #   clone            REGISTER.md        seed.py --force then validate.py
+    #   autocrlf=true    61110 B, 339 CRLF  FAILED:cc-validate violations=1
+    #                                       REACH-6 -: sha256 721c4e577ca5 != 60a4d35f822d
+    #   autocrlf=false   60771 B,   0 CRLF  SUCCESS:cc-validate  <- agreed only by luck
+    #
+    # So this was LIVE on a default Windows clone, not latent: `seed.py --force` there
+    # re-created the exact REACH-6 failure that took `gate-tests-coverage (python
+    # packages)` red for 98 commits. The four other writers of this field
+    # (fix_reach_violations.py:98, close_round2.py:244, clear_answered_gates.py:114,
+    # fix_reach6_register_provenance.py:137) already normalise; seed.py was the outlier.
+    register_bytes = register_path.read_bytes().replace(b"\r\n", b"\n")
 
     items: list[dict[str, Any]] = []
     for row in parsed.rows:

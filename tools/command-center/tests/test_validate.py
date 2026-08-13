@@ -68,6 +68,25 @@ def test_real_catalog_is_clean(real, real_graph):
     invisible on the instrument. Verified by walking every revision of WORK-UNIT-CATALOG.json and
     recomputing the open set with catalog.is_open (not a re-implementation): 69 -> 62 at 2dd3623b,
     62 -> 59 at 318c1555, 59 -> 58 at 3a19b9a3, and no other transition.
+
+    HOW THIS PIN WAS SHOWN LIVE -- and the control that did NOT show it, recorded because it
+    was believed and reported. The original claim was: "closes one item in the real catalog
+    and requires the test to go red: CLEAN exit=0 PASS, MUTATED exit=1 FAIL, so changing
+    59->58 corrected the tripwire rather than disabling it." REFUTED by a verifier and
+    reproduced here: closing an item DOES turn this test red, but at `assert violations == []`
+    two lines below (REACH-1/REACH-5, or V-GRAPH for a clean close) -- never at the pin. That
+    control passes identically whether the pin is live or dead, so it only proves the probe ran.
+
+    The discriminating control mutates THE PIN ITSELF on an otherwise clean tree. Measured
+    2026-08-13 in a throwaway clone (scratch/cigreen_r2_pin_control.py, which fails closed if
+    the clone is dirty and asserts this file is restored byte-identical afterwards):
+
+        pin=58  exit=0 PASS
+        pin=59  exit=1 FAIL  "assert 58 == 59"   <- lands on the pin line
+        pin=57  exit=1 FAIL  "assert 58 == 57"
+
+    So 59 -> 58 corrected a live tripwire. Anyone updating this number should re-run that
+    control rather than infer liveness from a red test.
     """
     violations, stats = val.validate(real, graph=real_graph)
     assert violations == [], [str(entry) for entry in violations]

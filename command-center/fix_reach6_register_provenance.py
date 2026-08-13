@@ -31,12 +31,37 @@ THREE THINGS THIS MUST NOT DO, each learned from a recorded failure
    materialises CRLF, so a raw hash is unsatisfiable on Windows while passing on Linux CI.
    The comment at validate.py:216-227 records that measurement.
 
-2. DO NOT run `seed.py --force` to regenerate the provenance. seed.py:127 reads the register
-   with `read_bytes()` and :172 hashes it RAW -- the writer half of the very portability fix
-   validate.py documents was never applied there. On this machine REGISTER.md currently has
-   0 CRLF, so seed.py would happen to agree today; that is luck, not correctness, and it
-   would silently record a Windows-only digest on a checkout where it does not. Reported as
-   a separate latent defect rather than fixed here (out of this lane's scope).
+2. DO NOT run `seed.py --force` to regenerate the provenance. seed.py:127 read the register
+   with `read_bytes()` and :172 hashed it RAW -- the writer half of the very portability fix
+   validate.py documents was never applied there.
+
+   *** THE SENTENCE THAT USED TO END THIS PARAGRAPH WAS REFUTED, and it is recorded rather
+   than deleted. It read: "On this machine REGISTER.md currently has 0 CRLF, so seed.py
+   would happen to agree today; that is luck, not correctness ... Reported as a separate
+   LATENT defect rather than fixed here (out of this lane's scope)."
+
+   LATENT was wrong. An independent verifier ran the settling experiment that sentence
+   named -- clone to a temp dir, count \r\n, run seed.py then validate.py -- and the defect
+   was LIVE on a DEFAULT clone. Re-measured here 2026-08-13 on two clones of one commit
+   differing only in `core.autocrlf` (probe: scratch/cigreen_r2_seed_probe.py, with the
+   clones asserted EOL-distinct before any row was read):
+
+       autocrlf=true    REGISTER.md 61110 B / 339 CRLF   seed --force then validate -> exit 1
+                        REACH-6 -: register snapshot sha256 721c4e577ca5 != 60a4d35f822d
+       autocrlf=false   REGISTER.md 60771 B /   0 CRLF   seed --force then validate -> exit 0
+
+   Only the SECOND row -- an LF checkout -- is the "agrees by luck" case. What made the
+   defect invisible from this worktree is narrower than "this machine": `core.autocrlf` is
+   `true` here, yet the register on disk is the 60771-byte LF form and `git status` reports
+   it clean, because autocrlf normalises a worktree LF file back to itself. Reading the live
+   file was therefore the wrong instrument; a fresh checkout of the same commit under the
+   same config materialises CRLF. Scope of that claim: measured on this box only.
+
+   FIXED 2026-08-13, not deferred: seed.py:127 now LF-normalises, matching validate.py:228.
+   Regression + red-proof: tools/command-center/tests/test_seed.py (revert the `.replace`
+   and exactly that test goes red, 1 failed / 2 passed; with the fix, 3 passed).
+   This script still does not call seed.py -- re-seeding discards close/defer history
+   (open goes 58 -> 69), which is a different reason from the digest one. ***
 
 3. DO NOT re-render STATUS.md to absorb the violation. `render_status()` EMBEDS validate()'s
    violations, so `render.py --check` reports drift=1 today purely BECAUSE of REACH-6:
