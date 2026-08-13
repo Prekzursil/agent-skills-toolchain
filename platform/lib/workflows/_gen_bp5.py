@@ -93,7 +93,9 @@ def check_distinctness(docs: list[dict[str, Any]]) -> tuple[bool, list[str]]:
 
     for key, ids in sorted(keys.items(), key=lambda kv: kv[1]):
         if len(ids) > 1:
-            lines.append(f"DUPLICATE-MECHANISM {ids} share {dict(zip(DISTINCTNESS_KEY, key))}")
+            lines.append(
+                f"DUPLICATE-MECHANISM {ids} share {dict(zip(DISTINCTNESS_KEY, key))}"
+            )
 
     # closest pair over the FULL fingerprint, reported so the residual is visible rather than
     # implied by the absence of an exact collision.
@@ -111,7 +113,9 @@ def check_distinctness(docs: list[dict[str, Any]]) -> tuple[bool, list[str]]:
             f"{sorted(set(fields) - set(best[3]))}"
         )
     ok = not any(
-        ln.startswith(("DUPLICATE-MECHANISM", "MISSING-FINGERPRINT", "INCOMPLETE-FINGERPRINT"))
+        ln.startswith(
+            ("DUPLICATE-MECHANISM", "MISSING-FINGERPRINT", "INCOMPLETE-FINGERPRINT")
+        )
         for ln in lines
     )
     return ok, lines
@@ -136,7 +140,9 @@ def check_catalog_refs(docs: list[dict[str, Any]]) -> tuple[bool, list[str]]:
     if collide:
         lines.append(f"INLINE-ID-COLLIDES-WITH-CATALOG {collide}")
     bad_prefix = sorted(
-        i for i in inline if (m := re.match(r"^([A-Z]+)-", i)) and m.group(1) in prefixes
+        i
+        for i in inline
+        if (m := re.match(r"^([A-Z]+)-", i)) and m.group(1) in prefixes
     )
     if bad_prefix:
         lines.append(f"INLINE-PREFIX-IS-A-CATALOG-PREFIX {bad_prefix}")
@@ -233,17 +239,23 @@ def main() -> int:
     docs = [b() for b in BUILDERS]
     print(f"=== built {len(docs)} documents ===")
 
-    print("\n=== closing the terminal-gate hole (found by this slice's own mutation control) ===")
+    print(
+        "\n=== closing the terminal-gate hole (found by this slice's own mutation control) ==="
+    )
     notes = apply_verdict_stages(docs)
     for note in notes:
         print(f"  {note}")
     if any(n.startswith(("STILL-TERMINAL", "MISSING-DOC")) for n in notes):
-        print("FAILED:blueprints/bp-5 a gate is still deletable without breaking the graph")
+        print(
+            "FAILED:blueprints/bp-5 a gate is still deletable without breaking the graph"
+        )
         return 1
 
     print("\n=== layer 1-3 self-check ===")
     if SELFCHECK.report(docs) != 0:
-        print("FAILED:blueprints/bp-5 self-check rejected at least one document; nothing written")
+        print(
+            "FAILED:blueprints/bp-5 self-check rejected at least one document; nothing written"
+        )
         return 1
 
     print("\n=== mechanical distinctness (exact set comparison) ===")
@@ -257,7 +269,9 @@ def main() -> int:
         print(f"  {ln}")
 
     flagships = [d["id"] for d in docs if d.get("flagship")]
-    print(f"\n=== flagship count: {len(flagships)}/{len(docs)} (floor {FLAGSHIP_FLOOR}) ===")
+    print(
+        f"\n=== flagship count: {len(flagships)}/{len(docs)} (floor {FLAGSHIP_FLOOR}) ==="
+    )
     for f in flagships:
         print(f"  FLAGSHIP {f}")
     ok_f = len(flagships) >= FLAGSHIP_FLOOR
@@ -277,7 +291,9 @@ def main() -> int:
     print("\n=== writing ===")
     for d in docs:
         path = write_blueprint(d)
-        print(f"  wrote {path.relative_to(REPO).as_posix()} ({path.stat().st_size} bytes)")
+        print(
+            f"  wrote {path.relative_to(REPO).as_posix()} ({path.stat().st_size} bytes)"
+        )
     print(f"SUCCESS:blueprints/bp-5 {len(docs)} blueprints emitted and validated")
     return 0
 

@@ -9,6 +9,7 @@ The edge is REDUNDANT iff every F is already ordered strictly before P in the ph
 
 Control: an edge pointing at a bucket that feeds P itself must classify as NOT redundant.
 """
+
 from __future__ import annotations
 
 import collections
@@ -18,8 +19,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-cat = json.loads((ROOT / "command-center" / "WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
-pg = json.loads((ROOT / "command-center" / "PHASE-GRAPH.json").read_text(encoding="utf-8"))
+cat = json.loads(
+    (ROOT / "command-center" / "WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
+pg = json.loads(
+    (ROOT / "command-center" / "PHASE-GRAPH.json").read_text(encoding="utf-8")
+)
 units = cat["work_units"]
 pgb = {str(b["id"]): b for b in pg["allocation_buckets"]["buckets"]}
 BUCKET = re.compile(r"^B[0-9]{2}$")
@@ -78,7 +83,10 @@ out = {
     "bucket_edge_classification": dict(verdict),
     "bucket_edges_total": sum(verdict.values()),
     "top_non_redundant": dict(detail.most_common(15)),
-    "CONTROL_same_phase_class_is_reachable": verdict["SAME_PHASE_intra_phase_constraint"] > 0
+    "CONTROL_same_phase_class_is_reachable": verdict[
+        "SAME_PHASE_intra_phase_constraint"
+    ]
+    > 0
     or "no same-phase bucket edge exists in the data",
 }
 json.dump(out, sys.stdout, indent=1)

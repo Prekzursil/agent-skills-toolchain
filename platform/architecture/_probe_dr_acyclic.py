@@ -9,6 +9,7 @@ Three graphs are tested, because the answer differs and the difference is the fi
 For each: acyclic? longest chain? width of the ready frontier at t0?
 Includes a KNOWN-BROKEN control: an injected 3-cycle must be detected in every graph.
 """
+
 from __future__ import annotations
 
 import collections
@@ -18,8 +19,12 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-cat = json.loads((ROOT / "command-center" / "WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
-pg = json.loads((ROOT / "command-center" / "PHASE-GRAPH.json").read_text(encoding="utf-8"))
+cat = json.loads(
+    (ROOT / "command-center" / "WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+)
+pg = json.loads(
+    (ROOT / "command-center" / "PHASE-GRAPH.json").read_text(encoding="utf-8")
+)
 units = cat["work_units"]
 by_id = {u["id"]: u for u in units}
 pg_buckets = {str(b["id"]): b for b in pg["allocation_buckets"]["buckets"]}
@@ -82,7 +87,9 @@ def analyse(g: dict[str, set[str]]) -> dict[str, object]:
         "topologically_ordered": len(order),
         "in_a_cycle_or_downstream_of_one": len(g) - len(order),
         "ready_frontier_at_t0": len(ready0),
-        "longest_chain_levels": (max(depth.values()) + 1) if depth and acyclic else None,
+        "longest_chain_levels": (max(depth.values()) + 1)
+        if depth and acyclic
+        else None,
     }
 
 
@@ -112,7 +119,8 @@ json.dump(out, sys.stdout, indent=1)
 print()
 ok = out["CONTROL_injected_3cycle"]["detector_fires_on_known_broken"]
 print(
-    ("SUCCESS" if ok else "FAILED") + ":dr-acyclic-probe"
+    ("SUCCESS" if ok else "FAILED")
+    + ":dr-acyclic-probe"
     + ("" if ok else " control did not fire - detector is vacuous"),
     file=sys.stderr,
 )

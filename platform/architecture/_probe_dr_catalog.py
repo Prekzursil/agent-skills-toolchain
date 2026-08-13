@@ -2,6 +2,7 @@
 
 Ground truth for platform/architecture/distributed-runtime.md. Read-only.
 """
+
 import json
 import collections
 import pathlib
@@ -16,6 +17,7 @@ out = {}
 out["work_units"] = len(wu)
 out["items_separate"] = len(d.get("items", []))
 
+
 def dist(field):
     c = collections.Counter()
     for u in wu:
@@ -28,13 +30,18 @@ def dist(field):
             c[str(v)] += 1
     return dict(c.most_common())
 
+
 out["execution_substrate"] = dist("execution_substrate")
 out["phase"] = dist("phase")
 out["bucket_count"] = len({u.get("bucket") for u in wu})
 out["retry_policy_distinct"] = len({u.get("retry_policy") for u in wu})
 
 # timeouts
-to = [u.get("timeout_seconds") for u in wu if isinstance(u.get("timeout_seconds"), (int, float))]
+to = [
+    u.get("timeout_seconds")
+    for u in wu
+    if isinstance(u.get("timeout_seconds"), (int, float))
+]
 to_s = sorted(to)
 out["timeout_seconds"] = {
     "n": len(to),
@@ -121,7 +128,9 @@ for u in wu:
 out["vendor_model"] = dict(vm.most_common())
 
 # owner approval + worktree
-out["owner_approval_required_true"] = sum(1 for u in wu if u.get("owner_approval_required") is True)
+out["owner_approval_required_true"] = sum(
+    1 for u in wu if u.get("owner_approval_required") is True
+)
 
 print(json.dumps(out, indent=1, sort_keys=False))
 print("SUCCESS:dr-catalog-probe", file=sys.stderr)

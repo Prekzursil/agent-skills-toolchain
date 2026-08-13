@@ -8,6 +8,7 @@ Answers, by algorithm rather than judgement:
 
 Read-only. Writes nothing. Emits a §4 terminal marker on stderr.
 """
+
 from __future__ import annotations
 
 import collections
@@ -129,7 +130,9 @@ out["substrate"] = dict(sub)
 out["shared_checkout_mutation_hazard"] = {
     "local_parallel_total": sub["local-parallel"],
     "local_parallel_AND_mutating": sum(
-        1 for u in units if u.get("execution_substrate") == "local-parallel" and mutates(u)
+        1
+        for u in units
+        if u.get("execution_substrate") == "local-parallel" and mutates(u)
     ),
     "worktree_isolated_total": sub["worktree-isolated"],
     "definition": "substrate=local-parallel AND tool_permissions grants Edit or Write; "

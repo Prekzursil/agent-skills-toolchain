@@ -17,6 +17,7 @@ A probe that returns the same verdict for all three inputs measures nothing.
 
 Run:  python platform/architecture/_probe_crossvendor_alias_hole.py
 """
+
 from __future__ import annotations
 
 import json
@@ -32,12 +33,12 @@ import completion_predicate as cp  # noqa: E402
 
 # Aliases that any human would agree name the SAME vendor / the same model family.
 ALIAS_PAIRS = [
-    ("anthropic", "Anthropic"),        # case
-    ("anthropic", "anthropic "),       # trailing space
-    ("anthropic", "claude"),           # vendor vs its product line
+    ("anthropic", "Anthropic"),  # case
+    ("anthropic", "anthropic "),  # trailing space
+    ("anthropic", "claude"),  # vendor vs its product line
     ("anthropic", "ANTHROPIC"),
     ("openai", "OpenAI"),
-    ("openai", "codex"),               # vendor vs its CLI/product
+    ("openai", "codex"),  # vendor vs its CLI/product
     ("openai", "gpt"),
     ("anthropic", "anthropic.com"),
     ("google", "Google"),
@@ -59,26 +60,32 @@ def gate(exec_vendor, rev_vendor):
             "fresh_context": True,
         },
     }
-    opts = cp.PredicateOptions(
-        repo_root=Path(REPO), require_cross_vendor_review=True
-    )
+    opts = cp.PredicateOptions(repo_root=Path(REPO), require_cross_vendor_review=True)
     outcome, reason, _detail = cp._c9_reviewer(receipt, opts)
     # "accepted as cross-vendor" == condition 9 SATISFIED.
     return outcome is cp.Outcome.SATISFIED, "%s: %s" % (outcome.value, reason)
 
 
-out = {"gate": "completion_predicate._c9_reviewer with require_cross_vendor_review=True"}
+out = {
+    "gate": "completion_predicate._c9_reviewer with require_cross_vendor_review=True"
+}
 
 # ---- controls first (rule 3: validate the detector before trusting a result)
 same_ok, same_reason = gate(*CONTROL_SAME)
 diff_ok, diff_reason = gate(*CONTROL_DIFF)
 out["control_known_broken_identical_vendor"] = {
-    "input": CONTROL_SAME, "accepted": same_ok, "reason": same_reason[:160],
-    "expected": "rejected", "control_passes": same_ok is False,
+    "input": CONTROL_SAME,
+    "accepted": same_ok,
+    "reason": same_reason[:160],
+    "expected": "rejected",
+    "control_passes": same_ok is False,
 }
 out["control_known_good_distinct_vendor"] = {
-    "input": CONTROL_DIFF, "accepted": diff_ok, "reason": diff_reason[:160],
-    "expected": "accepted", "control_passes": diff_ok is True,
+    "input": CONTROL_DIFF,
+    "accepted": diff_ok,
+    "reason": diff_reason[:160],
+    "expected": "accepted",
+    "control_passes": diff_ok is True,
 }
 out["detector_validated_both_states"] = bool(same_ok is False and diff_ok is True)
 
