@@ -31,10 +31,10 @@ measuring anything and no verdict here may be cited.
 
 ---
 
-## D1 — the stale gate reading. Four readings, four answers, all correct at their rev.
+## D1 — the stale gate reading. Five readings, five answers, all correct at their rev.
 
-This is the finding of the round. The same claim was measured four times by three different
-lanes and produced four different answers — **and none of them was a measurement error**:
+This is the finding of the round. The same claim was measured five times by three different
+lanes and produced five different answers — **and none of them was a measurement error**:
 
 | # | who | rev | `ruff check` | `ruff format --check` | widen → ? |
 |---|---|---|---|---|---|
@@ -290,12 +290,29 @@ so the delta is wholly attributable.
 | files ruff considered | 2159 | **2176** |
 
 `new_failures_introduced: []` · `failing_files_touched_by_this_round: []` · 7/7 checks · both
-readings 6/6 controls. **This round added zero gate failures**, and the `+17 considered` proves
-ruff actually saw the new files rather than skipping them: 17 `.py` **added** plus
-`_b1_control.py` **modified** (already counted) = the 18 `.py` this round touched. Exact.
+readings 6/6 controls. **Zero gate failures added**, and the `+17 considered` proves ruff
+actually saw the new files rather than skipping them: 17 `.py` **added** plus `_b1_control.py`
+**modified** (already counted) = the 18 `.py` those commits touched. Exact.
+
+**Second window, because a sibling interleaved.** `7aa86f16` landed between my commits C and D,
+so the range above does not cover the last two. Measured separately —
+`git log 7aa86f16..2ab835c3` is exactly commits D and E:
+
+| | `7aa86f16` | `2ab835c3` (my last commit) |
+|---|---|---|
+| `ruff check .` / `format --check .` | rc 0 / rc 0, 0 reformat | rc 0 / rc 0, 0 reformat |
+| files ruff considered | 2176 | **2179** |
+
+0 new failures, 6/6 controls both sides, `+3 considered` = the 3 `.py` those commits added.
+**All five commits of this round are now covered by a pinned before/after pair, with 20 `.py`
+added and zero gate failures introduced.**
 
 Scope, stated because the round-1 version of this sentence is what got refuted: this says
-*these three commits are clean between these two revs*. It does **not** say main is green today.
+*these five commits are clean across two pinned windows*. It does **not** say main is green
+today. The final commit of this round is **markdown-only** — `ruff check`/`ruff format`, the
+gate measured throughout, do not read `.md`, and no markdown literal appears in `quality.yml`
+— so it cannot move this reading. *Residual, inline: I did not enumerate all ~86 gate steps;
+the claim is scoped to ruff.*
 
 ## Frozen evidence — UNTOUCHED, four signals plus a non-constant hasher
 
