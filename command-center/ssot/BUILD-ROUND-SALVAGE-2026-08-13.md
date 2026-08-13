@@ -3,9 +3,10 @@
 Measured 2026-08-13 in `C:/Users/Prekzursil/source/ast-integrate` @ `main`. Every number below
 was produced by a command named beside it. Counts are SNAPSHOTS.
 
-COVERAGE: S1, S2, S3, S3b measured and shipped. **S4 (the corrected full-disk checkout total)
-DID NOT COMPLETE** — the sweep outran the round. Its section carries `UNKNOWN` and no number
-from it may be cited; the ≥27 floor comes from S3/S3b, which did complete.
+COVERAGE: S1, S2, S3, S3b, S4-FINAL measured and shipped. The sweep landed late in the round;
+**S4-FINAL supersedes S4**, which is kept as written because its caution was right. The one
+figure still carrying a disclosed residual is the exact corrected total (170 measured, ~171
+with a named blind spot) — bounded in S4-FINAL, not guessed.
 
 Baseline at start: HEAD `27da3215`, `origin/main` `27da3215` (0 ahead / 0 behind), 265 dirty.
 
@@ -195,7 +196,80 @@ code) plus the 21 live files already snapshotted into `salvaged-from-scratch/`.
 Neither is referenced by anything — consistent with the inventory's finding that 23 of 25
 checkouts are referenced by nothing.
 
-## S4. Full-disk re-enumeration — DID NOT COMPLETE IN THIS ROUND
+## S4-FINAL. The corrected count: **170 measured, ~171 with a named residual — not 25**
+
+The sweep finished after the section below was written. That section is kept as written, because
+its caution was correct and because the first number it produced was wrong three separate ways.
+
+| figure | value | what it is |
+|---|---|---|
+| inventory's published figure | **25** | the NAME test, yesterday |
+| the NAME test re-run today | **26** | so the table is not stale — the *test* is the limit |
+| raw sweep "belongs" | ~~333~~ | **inflated, do not cite** |
+| after junction collapse | ~~295~~ | still inflated |
+| **ANCESTRY-confirmed** | **168** | HEAD descends from the toolchain root commit |
+| + 0-commit copies confirmed by whole-tree census | **+2** | `_advver_M14/scratch` (400/400 blobs), `.codex/plugins/cache/...` (399/400) |
+| **corrected total** | **170** | measured |
+| + `chk` (re-init snapshot, census-confirmed by the triage) | **~171** | see residual |
+
+**The inventory undercounts by roughly 6.8x**, and the cause is not that the table went stale —
+the old test still returns 26 today. It is that agent fan-outs create per-work-unit checkouts
+the NAME test structurally cannot see: 133 clones whose origin is `source/ast-patch167`, the
+`_wu2/verify-C44…C48` series, `.claude/agent-worktrees/*`.
+
+### The error that produced 333, made three times in one lane
+
+Every inflated figure came from asking a question about the **object store** and reading the
+answer as a fact about the **checkout**:
+
+| # | probe | what it actually proves | cost |
+|---|---|---|---|
+| 1 | `cat-file -e <blob>` | the blob exists *somewhere* in a shared store | called 5 at-risk files safe (S1) |
+| 2 | sentinel-blob membership | those bytes are in canonical's history — but canonical **vendors** third-party trees | **15 of 17** content-only rows were false positives |
+| 3 | `cat-file -e <root-commit>` | somebody once fetched that commit into this store | **103 Reframe worktrees** counted as toolchain checkouts |
+
+Failure 3 is the sharpest, and it was caught only because the origin column looked wrong.
+`Documents/GitHub/Reframe/.git` holds the toolchain root commit with an **identical subject** —
+so the naive check and even a commit-*subject* re-read both say "confirmed". Proof it is not:
+
+```
+HEAD descends from toolchain root : NO
+store's own root commit           : 03b864ef  (Reframe's)
+REPO-TOPOLOGY.md in HEAD tree     : absent
+HEAD tree contains                : app/, electron-builder.yml
+```
+
+**A store can hold any object somebody fetched into it.** The question that is actually about
+the checkout is ancestry — `git merge-base --is-ancestor <root> HEAD` — which a polluted store
+cannot fake. Control, and note the middle row is the one that matters:
+
+```
+CONTROL ast checkout  -> ast root : True
+CONTROL reframe wt    -> ast root : False      <- the discrimination the old signal lacked
+CONTROL reframe wt    -> rf  root : True
+discriminates: True
+```
+
+My own spot-check had already passed **12/12** using the commit-subject read, which is why it
+did not catch this: reading a commit message is a different *mechanism* but the same
+*question*. Two probes can be mechanically independent and still share a blind spot.
+
+### Residual on this number, inline
+
+- **`chk` is ancestry-REJECTED but is a genuine working copy.** It was `git init`-ed fresh, so
+  its single commit descends from no shared root, and it predates `REPO-TOPOLOGY.md` so the
+  marker check misses it too. `NO-REMOTE-REPO-TRIAGE.md` measured 7,756 of its 7,763 blobs
+  present in canonical. So **ancestry has its own blind spot: a re-initialised snapshot.**
+- **Bounded, not assumed:** of the 125 ancestry-rejected candidates, exactly **2** carry a
+  toolchain-specific marker on disk, and both are inside a recursive junction loop
+  (`Application Data/Application Data/Application Data/Temp/adv0010/…`). So the undercount from
+  this blind spot is small — but it is **UNVERIFIED [likely 55-80%]** that 171 is exact, because
+  I did not run a whole-tree census over all 125. **Settling experiment:** run the census in
+  `identity_by_ancestry.py` against the rejected set, not just the no-HEAD set.
+- The inventory table, `all25.json`, and the `CLAUDE.md` SSOT block still say **25** and are
+  **not** edited by this round — see residual 2.
+
+## S4. Full-disk re-enumeration — status as written mid-round (superseded by S4-FINAL)
 
 `enumerate_checkouts.py` re-sweeps `C:/Users/Prekzursil` and `D:/` applying all three signals
 and diffs against `all25.json`. It exceeded a 900 s foreground budget, was moved to a
@@ -263,7 +337,7 @@ the same bytes a second name, and `AppData` has had exactly such an alias since 
 
 | DoD item | status | evidence |
 |---|---|---|
-| every clone classified worktree-vs-clone by measurement | **PASS for 27, with a disclosed floor** | inventory §1 for the 25 (two independent signals) + S3b for the 2 it missed (same two signals, controls shown to discriminate). S3 proves the enumerator is name-bound, so 27 is a floor — but every checkout *known* to exist is now classified |
+| every clone classified worktree-vs-clone by measurement | **PARTIAL — and this round is why** | inventory §1 classifies 25 by two independent signals, and S3b adds 2 more. But S4-FINAL measures **170** checkouts, so ~143 are enumerated-and-counted but **not individually classified**. Reported as a gap rather than a pass: the count is now honest, the per-checkout classification of the newly-found 143 is not done |
 | unique-content measured per clone | **PASS** | inventory §2/§2b; S1 re-measures the 2 at-risk checkouts on the corrected reachability test; S3b for the 2 missed (via `NO-REMOTE-REPO-TRIAGE.md`) |
 | inbound-reference measured per clone | **PASS** | inventory §3 — 8 field-level refs, 23 of 25 referenced by nothing (not re-run; best-evidenced part of the prior art); S3b measures 0 for the 2 missed |
 | a one-sentence SSOT rule written | **PASS** | inventory §5, mirrored into the repo-root `CLAUDE.md` `<!-- SSOT-WIRE -->` block, CI-gated |
@@ -271,11 +345,15 @@ the same bytes a second name, and `AppData` has had exactly such an alias since 
 
 ## S6. Residual — what is NOT done
 
-1. **S4's corrected total is unmeasured** — the sweep did not finish inside this round. The
-   floor of ≥27 is safe to cite; a specific number is not. **Settling experiment:** re-run
-   `python command-center/ssot/enumerate_checkouts.py` under `longrun` with a multi-hour
-   budget; it is now spawn-frugal and persists `walk-paths.json`, so a later run can skip the
-   walk entirely.
+1. **~143 newly-found checkouts are counted but NOT classified.** S4-FINAL raises the total
+   from 25 to 170; the inventory's per-checkout table (kind, unique content, inbound refs)
+   covers 25 of them. This is now the lane's largest open gap and it did not exist before this
+   round — the round created it by making the count honest. **Settling experiment:** run
+   `measure_clones.py` / `scan_inbound_refs.py` over `identity-by-ancestry.json`'s
+   `confirmed_paths` instead of the hand-carried list of 25.
+1b. **The corrected total carries a bounded residual** (170 measured, ~171 with `chk`; the
+   ancestry test cannot see a re-initialised snapshot). Bounded to ~2 by a marker check, not
+   assumed. **UNVERIFIED [likely 55-80%]** that 171 is exact.
 2. **The enumeration fix is a script, not a repair of the inventory table.** `all25.json` and
    the inventory's §1 table still say 25, and `docs/ssot/SSOT-CLONE-INVENTORY.md` is NOT edited
    by this round. I deliberately did not rewrite the table on a partial sweep: replacing a
