@@ -154,11 +154,122 @@ and `git status` shows I never touched that file, its fixture module, or `confte
 
 ---
 
-## B2 · B3 · B5 · frozen evidence
+## CENSUS + FOUR BUCKETS, at `aff7ebad`
 
-UNKNOWN - not yet measured. This milestone committed B1 only.
+`python command-center/slop-report/_r3_bucketnow.py` — 6 controls pass, including the one that
+caught my own detector failure (below).
+
+| set | round 1 (`ae8205a4`) | grounding (`27da3215`) | **now (`aff7ebad`)** |
+|---|---|---|---|
+| tracked | 10,196 | 10,801 | **10,871** |
+| untracked, not ignored | 215 | 292 | **317** |
+| caches | 2,997 files / 48.9 MB | 1,729 / 47.5 MB | **2,719 / 60.1 MB** |
+| empty dirs | 13 | 13 | **13** |
+
+Untracked by tree: `command-center` 174 · `platform` 102 · `docs` 40 · `<root>` 1.
+
+| bucket | what | disposition this round |
+|---|---|---|
+| **(a) committed evidence** | 45 root probes, the slop-report artifacts, `check_published_commands.py` + baseline + CI wiring | keep; **not rebuilt** |
+| **(b) evidence NOT committed** | 14 `platform/` files cited by a published `python <path>` in a tracked report; 111 mention-only; my own 11 `_r3_*` probes | **14 + 11 COMMITTED this round.** The 111 mention-only remain — basename mention is the weak signal and this lane has paid for use-vs-mention three times |
+| **(c) reproducible** | 2,719 cache files / 60.1 MB. **0** of the 149 `platform/`+`docs/` files qualify — not one has a tracked producer | regeneration re-demonstrated, **sweep declined this round** — see below |
+| **(d) dead** | `$null` (0 B) · 13 empty dirs · 24 zero-reference files (130 KB) | **`$null` DELETED.** The rest need a quiesce point |
+
+**A detector failure of mine, caught and fixed rather than shipped.** The first version of
+`_r3_bucketnow.py` read `_g2_census.out.json` off disk. That file is a stale shell redirect —
+`_g2_census.py` writes to **stdout only** and never creates it — so the probe reported
+`__pycache__` at 1,676 files / 47.5 MB while the live tree held 2,666 / 60.0 MB, and nothing in it
+could tell. Fixed by EXECUTING the census as a subprocess, and shipped with the control that would
+have caught it: `c6_census_rev_is_current` compares the artifact's own recorded head against
+`git rev-parse HEAD` and fails closed. The same control is applied to `_g2_classify.out.json`,
+which is **not** re-executed — its bucket numbers are reported with their rev (`dfea977d`) and the
+flag `classify_rev_is_current: false` attached, rather than passed off as current.
+
+## B2 — the 14 `platform/` bucket-(b) files are COMMITTED, byte-unchanged
+
+This is the dangerous bucket: files that exist on exactly one disk while three committed reports
+tell a reader to run them. Measured at the CI pin `ruff@0.15.17` with the project's `ruff.toml`:
+
+| | result |
+|---|---|
+| `ruff format --check` over the 14 | **rc 0** — 14/14 already formatted |
+| `ruff check` over the 14, before | **rc 1** — one `F841` at `platform/lib/_p12_refute_predicate.py:107` |
+| `ruff check` over the 14, after | **rc 0** |
+
+The grounding round left this unresolved between three bad options. The one taken is a fourth:
+a **per-file ignore** in `ruff.toml`, `"platform/lib/_p12_refute_predicate.py" = ["F841"]`.
+
+* It does **not** edit evidence bytes — the objection that made option (b) unsafe.
+* It is **narrower than an `extend-exclude` entry**, which is what the repo uses for
+  `command-center/_*.py`. An exclusion would also drop the file out of `ruff format --check`, and
+  the file is currently formatted — so an exclusion would silently license future drift in a file
+  the repo now depends on. A per-file ignore keeps every other rule live.
+* `published-commands-baseline.json` had already recorded this exact F841 as the reason the file
+  stayed uncommitted. This removes the reason instead of re-recording it.
+
+Control A, because "the ignore is narrow" is a claim and not an observation: the **same F841 shape
+at a different path** must still be flagged. It is (`rc 1`, `F841`). Control B: the same rule on the
+ignored file is silent now (`rc 0`), against `rc 1` before the edit — the two states of one pair.
+
+## B3 — `$null` DELETED
+
+0 bytes, untracked, `git check-ignore` rc 1 (not ignored), created 06:29 today by a PowerShell
+`2>$null` redirect run under a shell that does not expand `$null`. Deleted by `_r3_apply.py`, which
+refuses unless the file is both 0 bytes and untracked, then asserts absence.
+
+Nothing can be lost from a 0-byte file, so this needs no reference scan to be safe. What it does
+need is proof it disturbed nothing else: the tracked-dirty set was captured before and after and is
+**identical** (`tracked_dirty_delta: []`).
+
+`NUL` is a different file and is **not** deleted — still live, writer still unidentified (R10,
+unchanged).
+
+## B4 — duplicate directories: propose only, nothing executed
+
+Unchanged from grounding G4 and deliberately not acted on. `tools/monitorcore/monitorcore` is
+3-way identical but referenced by `.quality/charter.yml` and `quality.yml`, so identical bytes are
+not evidence both consumers are dead. `tools/editor/metaswarm` and `ralph-hats/references` need
+"where does this capability land afterwards" answered by an owner first.
+
+## B5 — published-command gate corpus
+
+UNKNOWN - not yet measured at this milestone.
+
+## B6 — cache sweep DECLINED this round, with the reason
+
+`_r2_bucket_c.py` re-executed: `existed_before` → `absent_after_delete` → `present_after_regen`,
+`regen_rc_zero: true`, `command_does_not_dirty_tracked_files: true`. So the regenerating command is
+demonstrated. Its `byte_identical_within_run` is **false** and its verdict prints
+`BUCKET-C-NOT-PROVEN` — that is the already-documented `.pyc` volatility (the header embeds the
+source mtime), not a new finding, and byte-identity is not the property that makes a cache safe to
+delete.
+
+Not swept anyway: **HEAD moved four times during this lane** (`ab3667d5` → `12f9e861` →
+`a144c27a` → `aff7ebad`), all from sibling lanes committing to `main` in this same worktree.
+Deleting 2,666 `__pycache__` files while another lane is executing Python risks a transient import
+failure in someone else's run, for 60 MB of disk that is not the constraint. Honest residual, not a
+silent skip — the grounding said "at a quiesce point" and this is not one.
+
+## FROZEN EVIDENCE — UNTOUCHED
+
+`git status --porcelain` over both frozen directories, measured by `_r3_bucketnow.py` at
+`aff7ebad`: `command-center/casualty/probes` **0 dirty lines** (7 tracked),
+`command-center/p2-wave/probes` **0 dirty lines** (25 tracked). No file under either path was
+opened for write by this lane.
+
+## A red gate that is NOT this lane
+
+`python command-center/slop-report/_r2_gate_now.py --rev <rev>` at my first commit `51b98feb`:
+`ruff check` rc 0, **`ruff format --check` rc 1 with 6 would-reformat**. All six are
+`docs/rule-audit/*.py`, another lane's files. Run at my commit's PARENT `a144c27a`: **the same 6**.
+So `gate-lint-format` on `main` was already red when I arrived and my commit added nothing to it.
+Not fixed here — those look like `_<lane><n>_` evidence probes, and reformatting another lane's
+evidence is the move this lane has declined twice. Remedy is theirs: format them, or add the
+`ruff.toml` entry the repo already uses for that class.
 
 ## Commits
 
-Milestone 1: the guard extension + its probes. Explicit-path commit, listed in the final section
-once landed.
+Milestone 1 — `51b98feb` `fix(twin-parity): the gate guarded 7 pairs of 195, so 27 drifted unseen`.
+15 files: the gate + 13 probe/artifact files + this report. 0 foreign paths, 0 deletions.
+
+Milestone 2 — listed once landed.

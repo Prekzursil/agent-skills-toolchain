@@ -84,3 +84,18 @@ extend-exclude = [
     ".agents/skills/microsoft-foundry",
     ".agents/skills/protein-interaction-network-analysis",
 ]
+
+[lint.per-file-ignores]
+# `platform/lib/_p12_refute_predicate.py` is cited by three COMMITTED reports as
+# `python platform/lib/_p12_refute_predicate.py`, and existed only on one disk.
+# `command-center/slop-report/published-commands-baseline.json` records why it
+# stayed uncommitted: one F841 at line 107 (`mp = _write_manifest(...)`, kept as
+# a readable receipt of the call) would turn `gate-lint-format` red repo-wide.
+#
+# A per-file ignore is used rather than an `extend-exclude` entry on purpose. The
+# file is frozen evidence for that one rule only; excluding it would also drop it
+# out of `ruff format --check`, and it is currently formatted -- so an exclusion
+# would silently license future drift in a file the repo now depends on. Measured
+# at aff7ebad: the 14 cited `platform/` probes are 14/14 `format --check` clean
+# and 13/14 `check` clean, this being the one exception.
+"platform/lib/_p12_refute_predicate.py" = ["F841"]
