@@ -312,3 +312,34 @@ Residual, inline: the gate proves the number in the prose matches the number in 
 cannot prove the JSON describes what the prose says it describes — a citation pointed at an
 unrelated-but-equal value would pass. Narrowing that needs a second reader, not a stricter
 regex.
+
+---
+
+## Two defects this round committed in its own instruments, recorded not deleted
+
+Both were caught by a control, not by review, and both are the same shape as C1–C5.
+
+**1. The blob gate read the wrong commits and still said SUCCESS.** `_r2_blobgate.py`
+defaulted to `HEAD~1 HEAD`. Nine lanes commit to this branch, so by the time it ran, `HEAD~1`
+had drifted onto a sibling lane's commit: it staged **1** `.py` blob instead of 9, found it
+clean, saw its mangled control correctly flagged, and printed `SUCCESS`. The control was
+sound and proved the wrong thing — it demonstrates the checker READS files, never that it
+read the RIGHT ones. What caught it was the self-contradiction between "1 .py blob" and two
+commits known to hold nine. Fixed by pinning the revisions to `63ff313d 03365d08` and adding
+a `MIN_PY = 9` coverage floor that fails closed. Final run: 9 blobs, 0 CRLF, `ruff check`
+clean, `format --check` clean with only the control flagged.
+
+**2. A commit message overstates a count.** `03365d08` says "33 citations"; the real number
+is **32**. It was written before the `C6-base` citation was removed to break a self-reference
+(the artifact would otherwise have cited its own baseline and needed three runs to converge).
+History is not rewritten to hide it. The live count is whatever `check_citations.py` prints,
+which is the point of having the gate.
+
+## Deployment status of everything shipped this round
+
+Both hook fixes are **repo-only**. Verified by direct read: the live
+`~/.claude/hooks/git-hygiene/check.py` has 0 occurrences of `LIVE_STATE_GLOBS` and an mtime of
+2026-08-07, and the live `wire-check/check.py` still has 0 occurrences of `encoding="utf-8"`.
+So **the accounts.json false positive will keep firing every turn, and the cp1252 defect stays
+live, until the repo→live deploy step runs** — the same architectural hole as D1, now holding
+two fixes instead of one. Nothing here should be read as "the running harness is fixed".
