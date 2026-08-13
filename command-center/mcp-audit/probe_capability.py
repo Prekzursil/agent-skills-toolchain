@@ -211,6 +211,15 @@ def process_memory(pid: int) -> dict[str, int] | None:
     per-provider children) charges most of its RAM to those children, so this is a
     FLOOR on the server's true footprint, never the total.  Stated here because a
     number without its scope is how a census gets misquoted.
+
+    ``rss_bytes`` IS ``working_set_bytes``, emitted twice on purpose.  Round 1 claimed
+    this producer emitted "exactly the four fields ``mcpctl.matrix.Row`` leaves null";
+    a verifier REFUTED that -- mcpctl's fourth field is named ``rss_bytes`` and only
+    three names matched, so the injected snapshot silently dropped memory.  Windows has
+    no RSS counter; ``WorkingSetSize`` is its documented analogue (the same mapping
+    psutil uses for ``Process.memory_info().rss`` on nt), so the value is right and only
+    the NAME was missing.  The platform-specific name is kept alongside so the
+    provenance of the number survives the alias.
     """
     if os.name != "nt":
         return None
@@ -229,6 +238,7 @@ def process_memory(pid: int) -> dict[str, int] | None:
             return None
         return {
             "working_set_bytes": int(counters.WorkingSetSize),
+            "rss_bytes": int(counters.WorkingSetSize),
             "commit_bytes": int(counters.PrivateUsage),
         }
     finally:
@@ -272,6 +282,8 @@ def probe(spec: dict[str, Any], timeout: float = DEFAULT_TIMEOUT) -> dict[str, A
         "schema_bytes": None,
         "pid": None,
         "working_set_bytes": None,
+        # mcpctl.matrix.Liveness reads this exact name; see process_memory().
+        "rss_bytes": None,
         "commit_bytes": None,
         "elapsed_ms": None,
         "last_error": None,

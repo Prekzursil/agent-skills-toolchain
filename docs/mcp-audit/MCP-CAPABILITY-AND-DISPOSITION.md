@@ -1,6 +1,7 @@
-# MCP fleet — capability matrix and per-server disposition (BUILD lane, round 1)
+# MCP fleet — capability matrix and per-server disposition (BUILD lane, rounds 1-2)
 
-Measured 2026-08-12 on this box, worktree `C:/Users/Prekzursil/source/ast-integrate`.
+Measured 2026-08-12, re-measured and defect-closed 2026-08-13, on this box, worktree
+`C:/Users/Prekzursil/source/ast-integrate`.
 Builds on the grounding lane's `MCP-FLEET-AUDIT.md`; this lane produced the thing that
 audit identified as the single genuine gap — **a real per-server capability signal** —
 and turned it into a ranked, reversible disposition per row.
@@ -10,10 +11,13 @@ red-proof mutations caught · §3 capability sweep MEASURED for all 23 mounted s
 (16 by stdio handshake) · §4 in-session real calls EXECUTED for 5 HTTP-transport servers
 · §5 context cost MEASURED (707 tools, both channels, in bytes — NOT tokens, see the
 unit caveat inline) · §6 duplication COMPUTED by exact set arithmetic · §7 disposition
-COMPLETE for 23/23 mounted rows · §8 DoD ledger per item. **NOT measured:** the 122
-non-mounted config rows were deliberately not spawned; `brightdata` and `deepwiki` have
-no real call (reasons recorded per row); the R1 wiring into `mcpctl`/`mcpapply` is
-outside this lane's file scope and was not attempted (§9).
+COMPLETE for 23/23 mounted rows · §8 DoD ledger per item · §11 round-2 closure of the 3
+defects an independent verifier CONFIRMED, each reproduced before its fix and each fix
+red-proofed. **NOT measured:** the 122 non-mounted config rows were deliberately not
+spawned; `brightdata` and `deepwiki` have no real call (reasons recorded per row); the R1
+wiring into `mcpctl`/`mcpapply` is outside this lane's file scope and was not attempted
+(§9); whether a FOURTH defect remains — three were found by a verifier and closed, the
+artifact was not re-derived from scratch.
 
 No production code outside `docs/mcp-audit/**` and `command-center/mcp-audit/**` was
 written. No config changed. No credential read, printed, or modified.
@@ -22,9 +26,17 @@ written. No config changed. No credential read, printed, or modified.
 
 ## 0. Headline
 
-**21 of 23 mounted servers now carry a real-call verdict, up from 2.** The grounding lane
-proved `claude mcp list` is not a mount signal; this lane proves the remaining step — that
-a *mount* is not a *capability* — and closes it with an executed handshake per row.
+**21 of 23 mounted servers carry a real-call verdict, up from 2** — 16 by a stdio
+`initialize`+`tools/list` handshake, 5 by a real in-session tool call, and the
+machine-readable `call_verified` field now sums to that same 21 (round 1 it summed to 16
+while the prose said 21; see §11). The grounding lane proved `claude mcp list` is not a
+mount signal; this lane proves the remaining step — that a *mount* is not a *capability*.
+
+> **Round 2 re-measured everything.** The 16 stdio surfaces were re-probed a day later, on
+> a differently-loaded box: **16/16 agree with round 1 on both tool COUNT and the exact
+> tool NAME set** (`_r2_corroborate.py`, with a control that renames one tool and confirms
+> the comparison reports it). Three of the round-1 defects were disclosure defects, not
+> measurement defects — the numbers held.
 
 Two detector failures were found and fixed **in this lane's own instruments**, both caught
 by a contradiction with a fact already known:
@@ -321,7 +333,7 @@ capability evidence but **not** a resolution, and does not act on it.
 | DoD item | state | evidence |
 |---|---|---|
 | every mounted server inventoried with its **scope and source file** | **PASS** | 23/23 rows in `disposition.json` carry `definition_scope`, `source_file` (absolute), `config_basis`, `transport`. The 122 non-mounted config rows keep their scope/basis in `mcpctl-matrix.json`; they were deliberately not spawned. |
-| **liveness distinguished from capability by a real call** | **PASS** | 21/23 verified: 16 by stdio `initialize`+`tools/list`, 5 by a real in-session tool call. 2 declined with the reason recorded. The four signals stay in four columns. |
+| **liveness distinguished from capability by a real call** | **PASS** | 21/23 verified: 16 by stdio `initialize`+`tools/list`, 5 by a real in-session tool call. 2 declined with the reason recorded. The four signals stay in four columns, and S4's two methods stay in three fields (`call_verified` = union, `handshake_verified` / `s4_executed` = the halves, `call_method` = which answered). Round 1 passed this item with a field that contradicted its own legend (§11 D1); the artifact now fails closed on that shape. |
 | **per-server context cost measured** | **PASS** | §5: 707 tools, `name_bytes` + `schema_bytes` per server from the same payloads, ranked, with the bytes-vs-tokens caveat inline. Not inherited from any constant. |
 | **recommendations reversible (disable, not remove) with evidence per row** | **PASS** | `assert_reversible()` makes REMOVE unrepresentable; every row carries an `evidence` sentence naming its measurement; the one DISABLE names the reversal mechanism and the scope that actually prevents a spawn. |
 
@@ -330,10 +342,22 @@ capability evidence but **not** a resolution, and does not act on it.
 * **R1's real target — wiring the producer into `tools/mcpctl`'s four null fields and
   `tools/monitorcore`'s pane — was not attempted.** Both live outside this lane's declared
   file scope (`docs/mcp-audit/**`, `command-center/mcp-audit/**`). `probe_capability.py` is
-  built as an *injectable* producer precisely so that wiring is a small diff later: it
-  emits `tool_count` / `pid` / `commit_bytes` / `last_error`, the exact four fields
-  `mcpctl.matrix.Row` leaves null in 145/145 rows, and it lives outside the `mcpctl`
-  package so its read-only AST gate is untouched. **Orchestrator decision needed.**
+  built as an *injectable* producer precisely so that wiring is a small diff later, and it
+  lives outside the `mcpctl` package so its read-only AST gate is untouched.
+  **Orchestrator decision needed.**
+
+  > **REFUTED in round 1, corrected in round 2.** This bullet used to read "it emits
+  > `tool_count` / `pid` / `commit_bytes` / `last_error`, the exact four fields
+  > `mcpctl.matrix.Row` leaves null". It emitted **three** of the four by name:
+  > `mcpctl`'s fourth is `rss_bytes` and the producer published the same number as
+  > `working_set_bytes`, so an injection would have silently dropped memory. Fixed in
+  > `process_memory()` — Windows has no RSS counter and `WorkingSetSize` is its documented
+  > analogue (the mapping psutil uses for `rss` on nt), so the VALUE was right and only
+  > the NAME was missing; both names are now emitted so the provenance survives the alias.
+  > The claim is no longer prose: `_r2_redproof_invariants.py` part B constructs
+  > `mcpctl.matrix.Liveness` from the producer's own row keys and requires all four to be
+  > non-null on every verified row (16/16), with a control that deletes `rss_bytes` and
+  > confirms it goes red.
 * **Executing the `searxng` disable** is a config mutation — out of scope, and it must go
   through `mcpapply` dry-run → backup → apply.
 * **The 122 non-mounted rows** were not spawn-probed. Deliberate: spawning every configured
@@ -354,10 +378,16 @@ capability evidence but **not** a resolution, and does not act on it.
 | `command-center/mcp-audit/_diag_popen_cmd.py` | the measurement that settled detector failure #1 (PATHEXT) |
 | `command-center/mcp-audit/_diag_mutation.py` | the measurement that settled detector failure #2 (tuple truthiness) |
 | `command-center/mcp-audit/capability-matrix.json` | 23 rows, 150 s budget, control block included |
+| `command-center/mcp-audit/capability-matrix-r2.json` | round-2 re-sweep; the rows that carry `rss_bytes` |
 | `command-center/mcp-audit/capability-slowrows.json` | `angr` + `chrome-devtools` re-probe that refuted the 45 s FAILs |
 | `command-center/mcp-audit/overlap-report.json` | 16 surfaces, 4 pairs, 1 eligible |
 | `command-center/mcp-audit/disposition.json` | the ranked table, machine-readable |
 | `docs/mcp-audit/DISPOSITION-TABLE.md` | the ranked table, rendered |
+| `command-center/mcp-audit/_r2_reproduce.py` | reproduces D1 + D2 **before** the fix |
+| `command-center/mcp-audit/_r2_redproof_invariants.py` | both-states red-proof of both round-2 fixes |
+| `command-center/mcp-audit/_r2_corroborate.py` | round-1 vs round-2 sweep, count **and** name sets, with a control |
+| `command-center/mcp-audit/_r2_ruff_census.py` + `ruff-census.json` | the D3 disclosure as a scoped, timestamped measurement |
+| `docs/mcp-audit/ROUND2-DEFECT-CLOSURE.md` | the round-2 ledger: one row per confirmed defect |
 
 Reproduce, in order:
 
@@ -373,4 +403,48 @@ python command-center/mcp-audit/overlap_report.py \
 python command-center/mcp-audit/rank_disposition.py \
     -o command-center/mcp-audit/disposition.json \
     --md docs/mcp-audit/DISPOSITION-TABLE.md
+python command-center/mcp-audit/_r2_redproof_invariants.py
+python command-center/mcp-audit/_r2_corroborate.py
+python command-center/mcp-audit/_r2_ruff_census.py
 ```
+
+## 11. Round-2 defect closure — what a verifier refuted, and what changed
+
+An independent verifier re-ran every DoD item in round 1 and returned **PARTIAL**: all four
+DoD items PASS when executed, but three defects survived. None was a wrong measurement.
+All three were the estate's dominant failure shape — **a sentence wider than its evidence**.
+Full ledger with the pre-fix reproduction: `docs/mcp-audit/ROUND2-DEFECT-CLOSURE.md`.
+
+| # | what round 1 shipped | verdict | what changed |
+|---|---|---|---|
+| D1 | `disposition.json` documented `call_verified` as "handshake **or** a real in-session tool call" while computing it from the handshake alone — 5 rows sat at `false` beside their own non-null `s4_executed`, and the prose said 21 while the field summed to 16 | **CONFIRMED** — a self-contradiction inside the machine-readable artifact | `call_verified` is now the union; `handshake_verified` / `s4_executed` keep the halves visible; `call_method` names which probe answered; `assert_signal_consistency()` aborts the run on any row that disagrees with its own evidence, **and** on a legend that stops advertising both methods |
+| D2 | "emits **exactly the four fields** `mcpctl.matrix.Row` leaves null" | **CONFIRMED overclaim** — three of four by name; `rss_bytes` was published as `working_set_bytes` | producer emits `rss_bytes` (the value was already correct — see §9); the claim is now executed, not asserted |
+| D3 | "the repo-wide ruff format gate is RED with 60 files … zero are mine" | **CONFIRMED disclosure-accuracy defect** — the verifier measured 51 for the same claim | see below |
+
+**D3 in full, because the correction is the interesting part.** Neither 60 nor 51 was
+wrong. Four readings of the same repo-wide count, all correct at their timestamps:
+
+| reading | count |
+|---|---|
+| round-1 build | 60 |
+| round-1 verifier | 51 |
+| round-2 open | 46 |
+| round-2 close (`ruff-census.json`) | 27 |
+
+A dozen sibling lanes commit into this worktree while the audit runs, so the absolute
+repo-wide count is a **moving target and not a reportable fact** — quoting it without a
+timestamp manufactures a disagreement between two honest observers. The stable claim is
+the scoped one, so `_r2_ruff_census.py` reports **in-scope vs out-of-scope by owner**, with
+a UTC stamp, and its exit code is driven by the in-scope count alone: **0 offenders under
+`docs/mcp-audit/` + `command-center/mcp-audit/`** at 2026-08-13T03:33:57Z. Failing this
+lane on a sibling's file would repeat the original error — a number whose scope does not
+match the claim.
+
+**What did NOT change: the verdicts.** DISABLE 1 / INVESTIGATE 2 / KEEP 20 is byte-identical
+before and after, and the round-2 re-sweep agrees with round 1 on 16/16 tool counts and name
+sets. Confidence that the three fixes are complete: **almost certain (90-99%)** — each was
+reproduced before the fix, and each fix has a control observed to fire in the known-broken
+state. Confidence that no FOURTH defect is hiding in the same artifact: **uncertain
+(20-55%)** — I closed the three the verifier found; I did not re-derive the artifact from
+scratch, and the settling experiment is another independent verify pass, not another
+self-review.
