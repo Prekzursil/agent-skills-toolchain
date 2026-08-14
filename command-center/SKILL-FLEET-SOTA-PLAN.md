@@ -550,3 +550,78 @@ mistake (W2), and the previous reconcile shipped the corruption this plan exists
 
 **Everything in §1 and §2 is a text edit with a one-line revert. §3 is purely additive. §4 is empty. There
 is no irreversible step anywhere in this plan.**
+
+---
+
+## 6. EXECUTION CORRECTIONS — measured while applying this plan (2026-08-14)
+
+Recorded here rather than by editing the items above, so the original claim and its refutation
+both stay visible.
+
+### 1.1 APPLIED and verified — commit `e4c00b2c`
+
+Confirmed before editing: the three cells were inverted in **five paths resolving to four
+distinct files** (both repo trees, the vault, and `~/.claude/skills.daily`; `~/.claude/skills`
+resolved to the same file and was correctly not rewritten twice). Two independent signals — the
+table's own pattern (5 of 8 rows refute their excuse; the 3 that do not are exactly the `=`
+rows) and **six** upstream plugin versions all carrying the correct form. 12 cells repaired,
+idempotent on re-run.
+
+### 1.3 APPLIED — commit `cf023def`
+
+The item was marked UNVERIFIED; settled here. The heredoc shape was present at `:96`,
+`body-file` occurred **0 times** in the file, and the `--body-file` path round-trips a
+two-apostrophe body cleanly. After the edit a naive grep still reports the heredoc — at line
+102, `in_code_fence=False`, inside backticks in the prose explaining why not to use it. A
+mention, not a use, confirmed with a fence-aware reader.
+
+**Footnote worth keeping.** Appending this very section failed on the first attempt with
+`unexpected EOF while looking for matching '` — the identical defect, hit minutes after fixing
+it, because the prose above contains apostrophes and it was being appended via a shell heredoc.
+The fix is the one now written into the skill: author the payload with the Write tool and pass a
+path. A rule you have just written is not a rule you have internalised.
+
+### 1.5 REFUTED — the nine wrappers are NOT dead, and the real defect is different
+
+> The item states: *"Its description ends by naming nine skills that no longer exist …
+> `codex-audit .. codex-triage -> Test-Path False (9 of 9)`"*.
+
+**Measured across four roots, all nine are ALIVE** — present in `.agents/skills`, the repo's
+canonical skill root. `Test-Path False` was true of the *live curated tree* and was generalised
+to "no longer exist". The clause is not dangling; it points at skills that exist in SSOT but are
+not deployed.
+
+**The genuine defect in that same sentence is one the item did not notice.** The clause names
+**ten** skills, and `codex-consult` is among them — while `codex-consult` is present in **all
+four** roots and is live. The item used `codex-consult -> True` as its *control* without
+observing that the control subject sits inside the list being called dead. So the description
+claims to replace a skill that is alive and curated.
+
+**Recommended instead of the proposed trim:** remove `codex-consult` from the replaced-list only,
+and leave the other nine — they name real, SSOT-present skills. Not applied here: the remaining
+nine raise a prior question (§6.1) that should be answered first.
+
+### 6.1 NEW — 15 skills are asymmetric between the two repo trees, and the gate cannot see it
+
+Found while refuting 1.5. `.agents/skills` holds **346** skills, `skills/` holds **337**:
+
+| direction | n | skills |
+|---|---:|---|
+| `.agents/skills` only | **12** | `claim-verify-gate`, the 9 `codex-*` wrappers, `microsoft-foundry`, `qdx-rush` |
+| `skills/` only | **3** | `harness-module-authoring`, `patent-fto-search`, `social-corpus-extraction` |
+
+`ci/check_skill_dual_write.py` enforces **final-tree strict parity on CHANGED paths only**, so a
+skill never touched in the compared range is invisible to it. That is correct for its stated job
+— catching drift a change introduces — and it means the gate is not, and never was, an inventory
+check. Reading a green from it as "the two trees agree" is a scope error.
+
+This matters beyond tidiness: **`claim-verify-gate` is executed by `quality.yml`** from
+`.agents/skills` and has no projection counterpart. And `microsoft-foundry` / `qdx-rush` are the
+two skills recorded elsewhere on this estate as being deleted by `sync-skills.ps1 -Prune`, so the
+asymmetry is a live hazard rather than a cosmetic one.
+
+**Not repaired here.** Which direction wins is a real per-skill decision — the 3 projection-only
+skills may be deliberate, and copying 12 skills into the projection changes what a consumer of
+that tree sees. Owner call. **Cheap durable fix regardless of that decision:** extend the gate
+with an inventory arm that fails when the two roots disagree on the SET of skills, independent
+of whether anything changed in the range.
