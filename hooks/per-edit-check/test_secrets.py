@@ -159,11 +159,69 @@ def test_main_blocks_secret_write(tmp_path):
     rc, out, err = _run_main(mod, str(fp))
     assert rc == 2, "a hardcoded-secret write must block (exit 2)"
     assert out.strip() == "", "exit 2 -> stdout clean, reason on stderr"
-    assert "BLOCKED" in err
+    # Was `assert "BLOCKED" in err`. The opener changed because it was measurably
+    # false -- PostToolUse cannot prevent the write -- so the assertion moved to what
+    # the reason must actually identify. See
+    # test_secret_reason_does_not_claim_the_write_was_prevented for the full contract.
+    assert "SECRET ON DISK" in err
     # The block reason must NEVER echo the matched bytes. This hook's stderr is
     # injected into agent context, so a reason that quotes "the offending text
     # to be helpful" would print the very credential it caught.
     assert FAKE_AWS not in err, "block reason must not echo the matched credential"
+
+
+def test_secret_reason_does_not_claim_the_write_was_prevented(tmp_path):
+    """The reason must not tell the reader the credential failed to land.
+
+    Measured (B4-POSTTOOL-BLOCK.json, both halves): this hook is wired ONLY at
+    PostToolUse, and in every arm -- including the one that returns 2 -- the file it
+    objected to was still on disk afterwards, with the credential shape intact. The
+    vendor contract says the same thing: PostToolUse runs after the tool has already
+    run, so exit 2 cannot unwrite anything.
+
+    A reason opening "BLOCKED" therefore tells an agent the opposite of what happened,
+    and the agent's next move (carry on, the secret never landed) is the dangerous one.
+    AGENTS.md §9b is explicit that a secret is compromised regardless of how briefly it
+    was exposed, so the reason has to say the file is on disk and that the credential
+    must be treated as exposed -- and, per §9, must NOT instruct anyone to rotate it.
+    """
+    mod = load_check()
+    fp = tmp_path / "config.py"
+    fp.write_text(f'TOKEN = "{FAKE_AWS}"\n', encoding="utf-8")
+    rc, _out, err = _run_main(mod, str(fp))
+    assert rc == 2, (
+        "the secret gate still uses exit 2 -- it is the channel, not a block"
+    )
+    assert fp.exists(), (
+        "precondition: PostToolUse cannot unwrite -- the file is on disk"
+    )
+    low = err.lower()
+    assert "already" in low and "disk" in low, (
+        "the reason must state that the file is already written, not imply prevention"
+    )
+    assert "exposed" in low, "the reason must tell the reader to treat it as exposed"
+    assert "blocked" not in low, (
+        "'BLOCKED' claims the write was prevented; PostToolUse cannot prevent it"
+    )
+    assert FAKE_AWS not in err, "reason must not echo the matched credential"
+
+
+def test_no_inline_comment_contradicts_the_docstring_reconciliation():
+    """No `Hard block` comment may survive alongside the docstring that refutes it.
+
+    The module docstring already reconciles §6 correctly -- "exit 2 here is NOT a
+    block. This is PostToolUse: the edit has already been written and nothing is
+    reverted or denied". An inline comment reading `# Hard block:` teaches the next
+    maintainer the opposite, in the same file, and the inline comment is the one
+    sitting next to the code they are about to change.
+    """
+    src = Path(load_check().__file__).read_text(encoding="utf-8")
+    assert "exit 2 here is NOT a block" in src, (
+        "guard: this test is only meaningful while the docstring makes that claim"
+    )
+    assert "Hard block" not in src, (
+        "an inline `Hard block` comment contradicts the docstring reconciliation"
+    )
 
 
 def test_main_opt_out_allows_secret(tmp_path):

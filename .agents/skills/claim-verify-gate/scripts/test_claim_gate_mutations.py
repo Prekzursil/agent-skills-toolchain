@@ -37,8 +37,23 @@ MUTATIONS = [
     ),
     (
         "evidence anchor accepts any string",
-        '_ANCHOR = re.compile(r"https?://\\S+|\\S+:\\d+")',
-        '_ANCHOR = re.compile(r".")',
+        "    if _URL.search(item):",
+        "    if True:",
+    ),
+    # The pre-fix shape. `\\S+:\\d+` accepted a bare timestamp as the file:line anchor a
+    # CONFIRMED verdict must carry; making the path-head check unconditional restores exactly
+    # that behaviour, so this mutation is the old bug re-injected on purpose.
+    (
+        "anchor head need not name a file (the pre-fix `\\S+:\\d+` behaviour)",
+        r'    if "/" in head or "\\" in head:',
+        "    if True:",
+    ),
+    # The other direction: an extension must carry a LETTER, which is what separates
+    # `host.py` from the version number `v1.2`. Dropping that re-admits versions.
+    (
+        "extension need not contain a letter (a version reads as a filename)",
+        r'_EXTENSION = re.compile(r"\.[A-Za-z0-9]{0,5}[A-Za-z][A-Za-z0-9]{0,5}$")',
+        r'_EXTENSION = re.compile(r"\.[A-Za-z0-9]+$")',
     ),
     (
         "absolute-wording detector disabled",

@@ -1,6 +1,6 @@
 ---
 name: ghidra-bridge
-description: Use when automating Ghidra from Python, driving analyses from an external REPL or script, or exchanging program state between Ghidra and other Python-based reverse-engineering workflows.
+description: Use when automating Ghidra from Python, driving analyses from a REPL or script, or exchanging program state with other reverse-engineering workflows. NOT for MCP wiring (use ghidra-mcp).
 ---
 
 # Ghidra Bridge

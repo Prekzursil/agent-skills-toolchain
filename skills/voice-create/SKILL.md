@@ -1,6 +1,6 @@
 ---
 name: voice-create
-description: Generate custom voice profiles from natural language descriptions. Use when user wants to create a new writing voice from a description rather than from samples.
+description: Generate custom voice profiles from natural language descriptions. Use when the user wants a new voice from a description. NOT from samples (use voice-analyze).
 license: MIT
 metadata:
   version: 1.0.0

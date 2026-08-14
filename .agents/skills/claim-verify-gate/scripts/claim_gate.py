@@ -110,7 +110,65 @@ _HEDGE = re.compile(
 
 # An evidence anchor is a file:line reference or a URL — the two forms the
 # fan-in gate accepts (fan-out-contract.md:56).
-_ANCHOR = re.compile(r"https?://\S+|\S+:\d+")
+#
+# This rule used to be `https?://\S+|\S+:\d+`, and `\S+:\d+` is satisfied by anything with a
+# colon and a digit. Measured (command-center/p2-next/_d1_anchor_corpus.py, section A) it
+# accepted 9 of 9 non-references — a timestamp (`2026-08-12T05:15:00`), a clock time (`05:15`),
+# a ratio (`3:1`), a score, a version (`v1.2:3`) — so a CONFIRMED verdict could satisfy its
+# evidence requirement by carrying the time it was written. The previous round found the
+# timestamp case and disclosed it without fixing it; this closes it.
+#
+# The OBVIOUS fix is wrong in the other direction. Requiring a file extension (the shape
+# rail_count_gate.py:133 uses) rejects `Makefile:12`, `Dockerfile:5` and `LICENSE:3` — measured
+# in section B. A gate that false-fires on real anchors gets switched off, so the head must be
+# recognised as a PATH rather than merely as having a dot.
+_URL = re.compile(r"https?://\S+")
+# The negative lookbehind stops a match starting mid-token, so `2026-08-12T05:15:00` cannot be
+# rescued by re-matching at `15:00`. `\` is deliberately absent from it: a Windows anchor
+# (`C:\...\claim_gate.py:113`) must be able to start after a backslash.
+_FILE_LINE = re.compile(
+    r"(?<![A-Za-z0-9_./-])([A-Za-z0-9_.][A-Za-z0-9_./\\-]*):(\d+)\b"
+)
+# A real extension carries at least one LETTER (`.py`, `.md`, `.7z`). Requiring that is what
+# separates a filename from a version number: `v1.2` has a dot and is not a file.
+_EXTENSION = re.compile(r"\.[A-Za-z0-9]{0,5}[A-Za-z][A-Za-z0-9]{0,5}$")
+# The extension-less files a repo actually cites. Kept small and lowercase-compared: this list
+# exists to prevent a measured false positive, not to enumerate every possible filename.
+_EXTENSIONLESS = frozenset(
+    {
+        "makefile",
+        "dockerfile",
+        "license",
+        "licence",
+        "notice",
+        "readme",
+        "changelog",
+        "codeowners",
+        "procfile",
+        "gemfile",
+        "rakefile",
+        "jenkinsfile",
+        "vagrantfile",
+        "justfile",
+    }
+)
+
+
+def _is_path_head(head: str) -> bool:
+    """Does the text before `:<line>` name a FILE, rather than merely contain a colon?"""
+    if "/" in head or "\\" in head:
+        return True
+    if _EXTENSION.search(head):
+        return True
+    return head.lower() in _EXTENSIONLESS
+
+
+def _is_anchor(item: str) -> bool:
+    """A resolvable-shaped evidence anchor: a URL, or `<path>:<line>`."""
+    if _URL.search(item):
+        return True
+    return any(_is_path_head(match.group(1)) for match in _FILE_LINE.finditer(item))
+
 
 # Share of the document tail in which an UNVERIFIED tag no longer counts as
 # inline. fan-out-contract.md:22 measured 40% of real flags sitting in the
@@ -215,7 +273,7 @@ def _check_support(claim: dict, verdict: str) -> list[dict]:
         anchors = [
             item
             for item in (evidence if isinstance(evidence, list) else [])
-            if isinstance(item, str) and _ANCHOR.search(item)
+            if isinstance(item, str) and _is_anchor(item)
         ]
         if not anchors:
             found.append(
@@ -419,7 +477,11 @@ def _fixtures() -> dict[str, tuple[dict, str | None]]:
             ledger(source_probe=dict(same), verify_probe=dict(same)),
             None,
         ),
-        "no-evidence-anchor": (ledger(evidence=["I recall seeing it"]), None),
+        # The broken state is a TIMESTAMP, not "I recall seeing it". Both are missing an anchor,
+        # but only the timestamp distinguishes this rule's two hypotheses: the old `\S+:\d+`
+        # shape was SILENT on it while firing on the prose. A fixture that fires under the old
+        # and the new rule alike would prove the instrument runs, not that it discriminates.
+        "no-evidence-anchor": (ledger(evidence=["2026-08-12T05:15:00"]), None),
         "no-settling-experiment": (
             ledger(verdict="UNVERIFIED", verify_probe=None, settling_experiment=""),
             None,

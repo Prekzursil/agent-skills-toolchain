@@ -645,9 +645,19 @@ def main() -> int:
         if os.environ.get("PER_EDIT_SECRETS", "").lower() != "off":
             reason = _scan_secrets(fp)
             if reason:
+                # The wording is load-bearing and was measured, not guessed. This hook
+                # is wired only at PostToolUse, so the write has ALREADY happened; the
+                # earlier "BLOCKED:" opener told an agent the credential never landed,
+                # and the safe-looking next move on that belief (carry on) is the
+                # dangerous one. AGENTS.md §9b: a secret is compromised regardless of
+                # how briefly it was exposed. §9: say rotation is needed, never do it.
                 print(
-                    f"[per-edit-check] BLOCKED: {reason} of "
+                    f"[per-edit-check] SECRET ON DISK: {reason} in "
                     f"{os.path.basename(fp)} looks like a hardcoded credential.\n"
+                    "This check runs AFTER the write — the file is already on disk "
+                    "and this hook cannot unwrite it. Treat the credential as "
+                    "EXPOSED: remove it, then report it to the owner. Do NOT rotate, "
+                    "revoke or regenerate it yourself (AGENTS.md §9).\n"
                     "Secrets must never be written into source (AGENTS.md §9) — "
                     "read it from an environment variable or a secret manager.\n"
                     "If this is a placeholder, mark the line (EXAMPLE / "
@@ -687,9 +697,12 @@ def main() -> int:
 
         # ── emit ─────────────────────────────────────────────────────────────
         if is_syntax_err:
-            # Hard block: Claude Code reads STDERR on exit 2; any JSON on
-            # stdout is silently ignored at that exit code.  Write the
-            # human-readable reason to stderr so the user actually sees it.
+            # Exit 2 is the SURFACING channel, not a block — see the §6
+            # reconciliation in the module docstring. This is PostToolUse: the
+            # edit is already written and nothing here reverts or denies it.
+            # Claude Code reads STDERR on exit 2 and silently ignores any JSON
+            # on stdout at that exit code, so the human-readable reason goes to
+            # stderr, which is the only channel the model reliably sees.
             print(msg, file=sys.stderr)
             return 2
 

@@ -1,0 +1,106 @@
+name: hook-audit
+
+# The hook audit's evidence gate ran only when an agent remembered to run it. Searching
+# `.github/` for `check_citations` returned ZERO matches, with the search controlled in both
+# directions before that absence was believed (the same grep finds `ruff` in 2 workflow files,
+# so it fires; it is silent on a bogus token, so it does not over-match). Round 4 called wiring
+# it the single highest-value follow-up and round 5 re-measured it as still 0 files.
+#
+# A gate nobody invokes is a producer with no consumer -- structurally the same defect this
+# audit opened with, where `commands/rollback.md` reads a checkpoint index that no wired hook
+# writes. It is also not theoretical here: `check_citations.py` has been exiting 1 since
+# `bac65640`, because the report that shipped it carried zero citations and nothing was
+# watching.
+#
+# WHY ITS OWN FILE AND NOT A JOB IN quality.yml. quality.yml is a CLOSED gate set policed
+# bidirectionally by `.quality/charter_check.sh`: a `gate-<slug>` marker there with no matching
+# `- slug:` in `.quality/charter.yml` turns the existing lint job red, and
+# `ci/tests/test_charter_consistency.py` pins that in both directions. charter_check.sh reads
+# ONLY quality.yml, so a separate workflow carries no charter obligation -- the shape
+# rule-audit.yml, no-runtime-junk.yml, skill-dual-write.yml, p2next-rail-count.yml and
+# mcp-audit.yml already use. It also touches no file a sibling lane is editing, and quality.yml
+# is the file that red-blocked every PR on main.
+#
+# NO fetch-depth: 0. `check_citations.py` shells to git, but only `rev-parse --show-toplevel`,
+# `ls-files` and `git show :<path>` -- all INDEX-level, which a shallow checkout populates. It
+# reads no historical blob and needs no history.
+#
+# WHAT IS WIRED, and why each command is the one it is:
+#
+#   1. `check_citations.py --self-test` FIRST, as the both-states control. It mutates every
+#      citation's expected value and requires the checker to go RED for each; a citation the
+#      checker cannot fail is not being checked. If this step passes and step 3 also passes,
+#      step 3's green means something. Measured locally: 181 citations, all red when mutated.
+#
+#   2. `python test_citation_gate.py` -- NOT `pytest`. Measured 2026-08-14:
+#      `pytest command-center/hook-audit/test_citation_gate.py -q` collects ZERO tests and
+#      exits 0, because the file is a standalone script with `main()` rather than pytest
+#      functions. Wiring it the obvious way would have been a permanently green no-op
+#      (ci-hygiene section 1) sitting directly on top of the gate that exists to stop exactly
+#      that. Run correctly it reports 24 cases, ALL PASS -- including the pairing that requires
+#      the PRE-round-3 gate to PASS a fixture this one must FAIL, so "no drift found" stays
+#      distinguishable from "drift is not looked for".
+#
+#   3. `check_citations.py` -- the gate. Every `cite:` marker in docs/hook-audit/*.md is
+#      resolved against the named evidence file TWICE (worktree and staged blob) and compared
+#      to the number the document prints; a document with no citations at all fails the
+#      per-document floor.
+#
+#   4. `pytest test_hook_predeploy_gate.py` -- 53 regressions for the pre-deploy gate, each one
+#      a defect measured while building it. Runner-safe: measured 53/53 with HOME and
+#      USERPROFILE redirected to a nonexistent directory, after first verifying the redirection
+#      actually bites (`Path.home()` moves and `.claude` reports False) -- a control that does
+#      not take effect proves nothing.
+#
+# WHAT IS DELIBERATELY NOT WIRED, with the measurement behind each reason:
+#
+#   * `hook_predeploy_gate.py` itself. It compares the repo's hook tree against the LIVE
+#     `~/.claude` tree, which does not exist on a runner. Under the same HOME/USERPROFILE
+#     redirection it exits 2 naming `C9_manifest_reader_plausible` and
+#     `C10_settings_reader_nonempty` -- it fails CLOSED rather than reporting a clean fleet
+#     from a blind differ, which is correct behaviour and also makes it permanently red here.
+#     It stays a LOCAL pre-deploy gate.
+#   * `probe_hook_fleet.py`. It proves inertness by FIRING hooks. Several of them launch
+#     external processes (the two autolaunch checks), and one does not terminate at all
+#     (harness-bench, 45 s timeout). That belongs nowhere near a runner.
+#   * `_b9_format_tracked.py`. It is the local pre-commit twin of quality.yml's
+#     `ruff format --check .`; running it here would duplicate a gate that already exists.
+#   * every other `_g5_*` / `_h*` / `_r*` / `_b*` probe: they read `~/.claude`.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hook-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hook-audit:
+    name: gate-hook-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: install pytest
+        run: pip install pytest==8.4.2
+      # BOTH-STATES CONTROL FOR THE GATE ITSELF, first: every citation mutated, every one
+      # required to go red. A green gate whose checker cannot fail measures nothing.
+      - name: gate-hook-audit citation self-test
+        run: python command-center/hook-audit/check_citations.py --self-test
+      # The gate's own 24-case regression suite. `python`, never `pytest` -- see the header.
+      - name: gate-hook-audit citation gate tests
+        run: python command-center/hook-audit/test_citation_gate.py
+      # The gate.
+      - name: gate-hook-audit citations
+        run: python command-center/hook-audit/check_citations.py
+      # 53 regressions for the pre-deploy gate (the gate itself is local-only, see the header).
+      - name: gate-hook-audit pre-deploy gate tests
+        run: python -m pytest command-center/hook-audit/test_hook_predeploy_gate.py -q

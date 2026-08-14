@@ -84,6 +84,41 @@ CMD = re.compile(
 # suppress.
 EXAMPLE = re.compile(r"<!--\s*published-command-example:\s*(\S+?)\s*-->")
 
+# `python` is not the only way a document publishes a runnable file. SLOP round 4 ran the
+# settling experiment round 3 named -- "extend the CMD pattern beyond `python <path>`" --
+# across five verb classes, and this is the part of it that survived its own evidence:
+#
+#   sh/ps    1 + 12 real invocations, 0 violations  -> SHIPPED here. Coverage that did not
+#            exist: `pwsh -File scripts/sync-skills.ps1` and friends were published by 8
+#            committed documents and guarded by nothing.
+#   pytest   37 commands, 5 violations, and every one is a FALSE POSITIVE of the two-root
+#            resolver, not slop: `pytest wfdsl/test_work_unit_authorization.py` resolves
+#            under a third root (`platform/lib/`) the resolver does not model, and all 5
+#            targets are already TRACKED. Shipping it would cost 5 baseline rows to catch
+#            nothing. DECLINED, evidence in `_r4_locate.out.json`.
+#   node     1 command, 1 violation, and it is a vendored `dist/index.js` under an ignored
+#            third-party tree quoted by a discovery inventory. n=1 and noisy. DECLINED.
+#   pybare   `python foo.py` with no slash -- 49 commands, 46 violations (94%). A detector
+#            that flags almost everything it sees is measuring the wrong thing. This is the
+#            slash requirement above being VINDICATED, not a hole. REFUTED, do not ship.
+#
+# The verb is required, and `&` / `./` were deliberately NOT accepted as verbs: with them the
+# pattern matched `[`../../scripts/sync-hooks.ps1`](../../scripts/sync-hooks.ps1)` -- a
+# markdown LINK, which is a mention, not an instruction. Measured: 15 matches with those
+# branches, 13 without, and the 2 dropped were both that link. Same use-vs-mention discipline
+# as the module docstring above.
+SHELL = re.compile(
+    r"\b(?:bash|sh|pwsh|powershell)(?:\.exe)?\s+(?:-[A-Za-z]+\s+)*"
+    r"([A-Za-z0-9_][A-Za-z0-9_./-]*/[A-Za-z0-9_.-]+\.(?:sh|ps1))"
+)
+
+# (verb-label, pattern). The label reaches the violation message so a reader is told which
+# command was published, not always "python".
+EXTRACTORS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("python", CMD),
+    ("shell", SHELL),
+)
+
 # Corpus roots this repo authors.
 #
 # `platform/` was added by SLOP build round 3. Leaving it out is precisely how 14
@@ -185,15 +220,23 @@ def scan(
     for path in corpus:
         for lineno, line in enumerate(blob(root, path).splitlines(), 1):
             marked = {m.group(1) for m in EXAMPLE.finditer(line)}
-            for m in CMD.finditer(line):
-                total += 1
-                target = m.group(1)
-                if target in marked:
-                    examples += 1
-                    continue
-                ok, _ = resolve(target, path, tracked)
-                if not ok:
-                    findings.append({"citer": path, "line": lineno, "target": target})
+            for verb, pat in EXTRACTORS:
+                for m in pat.finditer(line):
+                    total += 1
+                    target = m.group(1)
+                    if target in marked:
+                        examples += 1
+                        continue
+                    ok, _ = resolve(target, path, tracked)
+                    if not ok:
+                        findings.append(
+                            {
+                                "citer": path,
+                                "line": lineno,
+                                "target": target,
+                                "verb": verb,
+                            }
+                        )
     return findings, total, examples
 
 
@@ -242,7 +285,24 @@ def main(argv: list[str] | None = None) -> int:
             m.group(1)
             for m in EXAMPLE.finditer(f"<!-- published-command-example: {other} -->")
         }
+        # The SHELL class ships with the same both-states burden as the python one, plus
+        # the control for the exact mistake its first draft made: a markdown link is a
+        # MENTION and must not be read as an instruction.
+        shell_bad = f"scripts/_zz_absent_{uuid.uuid4().hex}.ps1"
+        shell_extracted = [
+            m.group(1)
+            for m in SHELL.finditer(f"run `pwsh -File {shell_bad}` to deploy")
+        ]
+        link_extracted = [
+            m.group(1)
+            for m in SHELL.finditer(f"see [`../../{shell_bad}`](../../{shell_bad})")
+        ]
+        shell_bad_ok, _ = resolve(shell_bad, citer, tracked)
+
         checks = {
+            "shell_extractor_finds_the_command": shell_extracted == [shell_bad],
+            "shell_extractor_ignores_a_markdown_link": link_extracted == [],
+            "shell_known_bad_is_flagged": not shell_bad_ok,
             "known_bad_is_flagged": not bad_ok,
             "known_good_is_clean": good_ok,
             "extractor_finds_the_command": extracted == [bad],
@@ -304,8 +364,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     for f in new:
+        shown = (
+            f"`python {f['target']}`"
+            if f.get("verb", "python") == "python"
+            else f"a shell invocation of `{f['target']}`"
+        )
         print(
-            f"!! {f['citer']}:{f['line']} publishes `python {f['target']}` "
+            f"!! {f['citer']}:{f['line']} publishes {shown} "
             f"but {f['target']} is NOT tracked -- unrunnable in a clone"
         )
     # A baseline that can only grow is a mute button. This makes it a ratchet.

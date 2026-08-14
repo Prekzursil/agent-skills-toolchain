@@ -53,9 +53,36 @@ REQUIRED = (
 )
 # Enumerated, never a bare tag: a vocabulary the reader has to guess at is the field most
 # often dropped or misused.
-VERDICTS = frozenset({"live", "degraded", "auth-dead", "dead", "hang"})
+#
+# Round 2 added two members, each because a REAL probe produced a shape the existing five
+# could not describe.  Neither was invented in advance -- a vocabulary member with no
+# measured user is dead weight:
+#
+#   not-dispatchable  the tool is advertised in the committed surface AND resolvable in the
+#                     live client namespace, yet the server refuses to dispatch it and no
+#                     backend is ever reached.  Measured on all 9 ``aws___*`` and all 14
+#                     ``azmcp_*`` tools while a SIBLING tool on the same server answered
+#                     normally -- so this is neither "server down" nor "name typo".
+#   no-credential     the call was refused LOCALLY for lack of usable key material; the
+#                     backend was never contacted.  Distinct from auth-dead, and the
+#                     distinction is the owner's next action: auth-dead means a credential
+#                     was presented and rejected (Databricks), no-credential means none was
+#                     configured at all (Tavily, Firecrawl).
+VERDICTS = frozenset(
+    {
+        "live",
+        "degraded",
+        "auth-dead",
+        "dead",
+        "hang",
+        "not-dispatchable",
+        "no-credential",
+    }
+)
 # ONLY 'live' means the capability answered.  'degraded' is the trap this file exists for:
-# the CALL succeeded and the CAPABILITY did not.
+# the CALL succeeded and the CAPABILITY did not.  Everything outside LIVE counts as dead
+# surface downstream, so a new verdict is non-live by construction rather than by remembering
+# to add it somewhere -- self_test asserts exactly that for every member.
 LIVE = frozenset({"live"})
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 MIN_RESULT = 12
@@ -160,6 +187,29 @@ def validate(blob: Any, where: str) -> tuple[list[dict[str, Any]], dict[str, Any
         # sentence.  Require it rather than defend against it downstream.
         if r["backend"] is not None and not (r["backing_resource"] or "").strip():
             bad.append(f"{tag} backend record has no backing_resource")
+        # A backend can be reachable and still have individual tools that do not work.
+        # OVH is the measured case: ``ovh_api_catalog`` returns 52 categories while
+        # ``ovh_services`` gets a 404 from the API.  Recording that in prose only would
+        # lose it, and recording it as a dead BACKEND would mark ~30 working tools dead --
+        # so it gets a structured field with the same fail-closed treatment as the rest.
+        defects = r.get("known_tool_defects")
+        if defects is not None:
+            if not isinstance(defects, list) or not defects:
+                bad.append(
+                    f"{tag} known_tool_defects is present but not a non-empty list -- "
+                    "an empty defect list is a claim of no defects, so omit the field"
+                )
+            else:
+                for d in defects:
+                    if (
+                        not isinstance(d, dict)
+                        or not str(d.get("tool", "")).strip()
+                        or len(str(d.get("error", "")).strip()) < MIN_RESULT
+                    ):
+                        bad.append(
+                            f"{tag} known_tool_defects entry needs a tool and an error "
+                            f"sentence long enough to be evidence ({d!r})"
+                        )
         key = (r["server"], r["backend"])
         if key in seen:
             bad.append(f"{tag} duplicate key, already defined at record[{seen[key]}]")
@@ -249,6 +299,24 @@ _GOOD: dict[str, Any] = {
             "measured_by": "self-test fixture author",
             "corroboration": None,
         },
+        {
+            "server": "srv",
+            "backend": "b3",
+            "tool": "catalog",
+            "verdict": "live",
+            "result": "returned a catalog; one sibling tool is broken, recorded structurally",
+            "backing_resource": "https://api.example.invalid/",
+            "response_body": None,
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "self-test fixture author",
+            "corroboration": None,
+            "known_tool_defects": [
+                {
+                    "tool": "srv_services",
+                    "error": "API returned 404 for the path this tool builds",
+                }
+            ],
+        },
     ],
     "unprobed": {"srv": {"backends": ["b2"]}},
 }
@@ -284,6 +352,15 @@ MUTATIONS = {
     "byte-identity claimed, bytes differ": lambda b: b["records"][2].update(
         response_body="different-bytes"
     ),
+    "known_tool_defects present but empty": lambda b: b["records"][3].update(
+        known_tool_defects=[]
+    ),
+    "known_tool_defects entry with no error": lambda b: b["records"][3].update(
+        known_tool_defects=[{"tool": "srv_services", "error": ""}]
+    ),
+    "known_tool_defects entry naming no tool": lambda b: b["records"][3].update(
+        known_tool_defects=[{"tool": "", "error": "a long enough error sentence"}]
+    ),
 }
 
 
@@ -297,6 +374,16 @@ def self_test() -> int:
     except SystemExit as exc:
         print(f"  BAD baseline is already red: {exc}")
         return 1
+
+    # Adding a verdict must never widen what counts as working.  Downstream reads
+    # `verdict not in LIVE`, so a member accidentally added to LIVE would silently erase
+    # dead surface -- the flattering direction, and the one nobody notices.
+    if LIVE != frozenset({"live"}):
+        problems.append(f"LIVE widened beyond 'live': {sorted(LIVE)}")
+    non_live = sorted(VERDICTS - LIVE)
+    if len(non_live) != len(VERDICTS) - 1:
+        problems.append("VERDICTS/LIVE disagree on how many verdicts mean 'working'")
+    print(f"  ok  1 verdict means working, {len(non_live)} mean not: {non_live}")
 
     for label, mut in MUTATIONS.items():
         try:
