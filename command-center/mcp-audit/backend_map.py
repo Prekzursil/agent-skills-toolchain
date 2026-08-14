@@ -292,8 +292,12 @@ def self_test(base: pathlib.Path | None = None) -> int:
         "ovh_account_info",  # real OVH account read; 'info' is not one of the six ops
         "compute_status",
     )
-    det = [f"C4a regex missed {n!r}" for n in must_match if not ACCOUNT_NAME_RE.match(n)]
-    det += [f"C4a regex accepted {n!r}" for n in must_refuse if ACCOUNT_NAME_RE.match(n)]
+    det = [
+        f"C4a regex missed {n!r}" for n in must_match if not ACCOUNT_NAME_RE.match(n)
+    ]
+    det += [
+        f"C4a regex accepted {n!r}" for n in must_refuse if ACCOUNT_NAME_RE.match(n)
+    ]
     bad.extend(det)
     print(
         f"  {'ok ' if not det else 'BAD'} C4a detector matches {len(must_match)} shim names, "
@@ -309,8 +313,12 @@ def self_test(base: pathlib.Path | None = None) -> int:
         )
     n_acct = len(buckets.get(ACCOUNT_LAYER, []))
     if not n_acct:
-        bad.append("C4 the account-layer bucket is EMPTY -- the relocation did not happen")
-    print(f"  {'ok ' if not stragglers and n_acct else 'BAD'} C4 {n_acct} account-layer tools, 0 stragglers")
+        bad.append(
+            "C4 the account-layer bucket is EMPTY -- the relocation did not happen"
+        )
+    print(
+        f"  {'ok ' if not stragglers and n_acct else 'BAD'} C4 {n_acct} account-layer tools, 0 stragglers"
+    )
 
     # ---- a control that cannot go red is not a control: prove C1 FIRES on a broken input.
     _, tail = bucket([*names, "zzz_unownable_tool_name"])

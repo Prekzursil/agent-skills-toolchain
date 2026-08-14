@@ -150,8 +150,8 @@ def part_b(ev: s4_evidence.Evidence) -> list[str]:
 
     # ---- B1: an unclassified tail must abort, never under-report.
     try:
-        backend_map.classify = (
-            lambda t, table=None: None if t == names[0] else real_classify(t, table)
+        backend_map.classify = lambda t, table=None: (
+            None if t == names[0] else real_classify(t, table)
         )
         backend_map.bucket = lambda ts, table=None: (
             real_bucket([t for t in ts if t != names[0]], table)[0],

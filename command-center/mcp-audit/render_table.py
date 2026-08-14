@@ -90,7 +90,9 @@ def render(blob: dict[str, Any]) -> str:
         cs = cells(row)
         for i, c in enumerate(cs):  # G2
             if "\n" in c or "|" in c:
-                bad.append(f"{row.get('name')!r} cell[{i}] contains a newline or a pipe")
+                bad.append(
+                    f"{row.get('name')!r} cell[{i}] contains a newline or a pipe"
+                )
         lines.append("| " + " | ".join(cs) + " |")
     if bad:
         raise SystemExit(
@@ -185,8 +187,12 @@ def self_test() -> int:
 
     n_data = _data_rows(out)
     if n_data != len(_GOOD["rows"]):
-        problems.append(f"G1 rendered {n_data} data rows for {len(_GOOD['rows'])} inputs")
-    print(f"  {'ok ' if n_data == 2 else 'BAD'} G1 every source row reaches the table ({n_data})")
+        problems.append(
+            f"G1 rendered {n_data} data rows for {len(_GOOD['rows'])} inputs"
+        )
+    print(
+        f"  {'ok ' if n_data == 2 else 'BAD'} G1 every source row reaches the table ({n_data})"
+    )
 
     # G1 must FIRE when a row is dropped -- a renderer that cannot notice a missing row
     # gives no assurance at all.
@@ -216,7 +222,9 @@ def self_test() -> int:
     flipped["rows"][1]["disposition"] = "KEEP"
     if "{'KEEP': 2}" not in render(flipped):
         problems.append("G3 footer counts did not follow the rows")
-    print(f"  {'ok ' if 'KEEP' in render(flipped) else 'BAD'} G3 footer counts follow the rows")
+    print(
+        f"  {'ok ' if 'KEEP' in render(flipped) else 'BAD'} G3 footer counts follow the rows"
+    )
 
     # G4 fail closed.
     try:
@@ -234,7 +242,9 @@ def self_test() -> int:
             print(f"  FAIL {p}")
         print(f"FAILED:render-table self-test {len(problems)} problem(s)")
         return 1
-    print("SUCCESS:render-table self-test 6/6 invariants behaved, shipped artifact renders")
+    print(
+        "SUCCESS:render-table self-test 6/6 invariants behaved, shipped artifact renders"
+    )
     return 0
 
 
