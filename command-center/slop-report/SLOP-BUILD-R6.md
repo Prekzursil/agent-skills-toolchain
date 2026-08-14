@@ -189,3 +189,39 @@ restored it with `git checkout --` after reading it; nothing uncommitted was ove
 * Did not touch the three `_r2_`/`_r3_` receipts that were already dirty at lane start.
 * Did not re-litigate R0 (`git clean -Xdf` banned), R11 (`skills/` ↔ `.agents/skills/`
   sanctioned), R12 (`_advver_M14` is outside this repo), or the `NUL` writer.
+
+---
+
+## Post-commit verification (`b2df8f6b`)
+
+Everything below was run **after** the commit, against committed bytes — not against the working
+tree that produced them.
+
+| check | reading |
+|---|---|
+| commit surface | 6 paths, 1 `M` + 5 `A`, **0** under `--diff-filter=D`, **0** paths outside `command-center/slop-report/` |
+| published-commands gate at HEAD | rc **0** — 383 commands across 343 documents, **0 NEW**, 0 stale (1 inherited baseline row still open) |
+| gate self-test | rc **0**, including both example-marker controls |
+| **blob-level ruff at my commit** (`_r2_gate_now.py --rev b2df8f6b`) | ruff check rc **0**, format --check rc **0**, **0 would-reformat**, all 6 controls pass |
+| transcription gate at HEAD | rc **0** — TRANSCRIPTION-CLEAN, 38 claims, 0 violations |
+| frozen evidence at lane END | `FROZEN-UNTOUCHED-PROVEN`, 9/9 hash-identical, live-detector control firing at 5 |
+
+The ruff line is the CI-relevant one: it reads the **stored LF blobs**, not the CRLF worktree, so a
+local green cannot disagree with CI the way this estate has been bitten before.
+
+**Predicted and observed agree.** Before the commit the self-check predicted exactly one unresolved
+published command — `_r6_transcript.py`, untracked at the time and named by the corrected R5 line —
+with its control confirming the scanner was live. After the commit the real gate reports 0 NEW.
+
+**Receipt stability across the commit:** re-running the transcription gate at HEAD changed exactly
+one byte-range — the `head` field — and nothing else. The verdict, the claim count, the three
+adjudicated rows and the single preserved refutation were all identical, so the green is not an
+artifact of the moment it was taken.
+
+### Side effects I caused, disclosed rather than quietly reverted
+
+Running round 5's frozen prober and the ruff replica overwrote `_r5_frozen.out.json` and
+`_r2_gate_now.out.json`. **Both were committed and clean before I ran them**, so unlike round 5's
+equivalent disclosure nothing uncommitted was lost; both are restored to their committed state with
+`git checkout --`. The three `_r2_`/`_r3_` receipts that were already dirty at lane start were never
+opened and are left exactly as found.
