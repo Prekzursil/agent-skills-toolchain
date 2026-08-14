@@ -28,9 +28,11 @@ REPO = Path(__file__).resolve().parent
 
 def main() -> int:
     tracked = [
-        p for p in subprocess.check_output(
+        p
+        for p in subprocess.check_output(
             ["git", "ls-files", "*.py"], cwd=REPO, text=True
-        ).splitlines() if p.strip()
+        ).splitlines()
+        if p.strip()
     ]
     print(f"CONTROL tracked *.py files = {len(tracked)}")
     if not tracked:
@@ -42,7 +44,7 @@ def main() -> int:
     violations: list[str] = []
     CHUNK = 400
     for i in range(0, len(tracked), CHUNK):
-        batch = tracked[i:i + CHUNK]
+        batch = tracked[i : i + CHUNK]
         p = subprocess.run(
             # --force-exclude IS LOAD-BEARING. Ruff applies `extend-exclude` during file
             # DISCOVERY, so a path named explicitly on argv is linted even when the config
@@ -52,11 +54,16 @@ def main() -> int:
             # deliberate control fixtures under p2-wave/probes/*/control/ (one is a
             # 700-char undefined name) that ruff.toml:22 excludes on purpose.
             ["ruff", "check", "--force-exclude", "--output-format=concise", *batch],
-            cwd=REPO, capture_output=True, text=True,
+            cwd=REPO,
+            capture_output=True,
+            text=True,
         )
         violations += [
-            ln for ln in p.stdout.splitlines()
-            if ln[:1] not in ("", "[") and ":" in ln and not ln.startswith(("Found", "warning", "All checks"))
+            ln
+            for ln in p.stdout.splitlines()
+            if ln[:1] not in ("", "[")
+            and ":" in ln
+            and not ln.startswith(("Found", "warning", "All checks"))
         ]
 
     # Both-states control: a file with a guaranteed violation MUST be reported. A linter
@@ -65,23 +72,37 @@ def main() -> int:
     probe.write_text("import os\n", encoding="utf-8")  # F401 unused-import
     try:
         c = subprocess.run(
-            ["ruff", "check", "--output-format=concise", "--select", "F401", str(probe)],
-            cwd=REPO, capture_output=True, text=True,
+            [
+                "ruff",
+                "check",
+                "--output-format=concise",
+                "--select",
+                "F401",
+                str(probe),
+            ],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
         )
         fires = "F401" in c.stdout
     finally:
         probe.unlink(missing_ok=True)
     print(f"CONTROL linter fires on known-bad input = {fires}")
     if not fires:
-        print("FAILED:lint-tracked linter did not flag a known violation -- verdict withheld")
+        print(
+            "FAILED:lint-tracked linter did not flag a known violation -- verdict withheld"
+        )
         return 2
 
     print(f"\n== tracked files with lint violations: {len(violations)}")
     for v in violations[:40]:
         print(f"   {v}")
 
-    print("SUCCESS:lint-tracked 0 violations on the tracked surface" if not violations
-          else f"FAILED:lint-tracked {len(violations)} violation(s)")
+    print(
+        "SUCCESS:lint-tracked 0 violations on the tracked surface"
+        if not violations
+        else f"FAILED:lint-tracked {len(violations)} violation(s)"
+    )
     return 1 if violations else 0
 
 
