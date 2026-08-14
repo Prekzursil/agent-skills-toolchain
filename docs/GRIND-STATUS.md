@@ -67,12 +67,39 @@ free, unmetered pool; private repos draw on the Pro plan's 3,000-minute monthly 
 Reframe succeeding is *not* a clean control for the private allowance — it is a control for
 everything else, and it clears all of it.
 
-**Best reading: the private-repo included-minutes allowance is exhausted, with no spending limit
-configured to let it overflow into paid usage. Confidence "likely", 65-80%** — raised from the
-original band because four alternative causes are now eliminated by measurement rather than
-assumed away, but *not* higher, because I never obtained a direct remaining-minutes figure. The
-one probe that would settle it (`check-suites`, which carries the refusal reason) returns **403
-for this token** — a detector limit, not evidence of anything.
+### CONFIRMED — the allowance is exhausted at 108%. This is no longer a hypothesis.
+
+The band below said "likely 65-80%, because I never obtained a direct remaining-minutes figure."
+**That figure was one query parameter away.** `settings/billing/usage` accepts `?year=&month=`,
+which returns **per-repository** rows (638 of them) instead of the monthly aggregate I had been
+reading. Splitting those by repository visibility settles it:
+
+| repository | visibility | Actions minutes |
+|---|---|---:|
+| `agent-skills-toolchain` | **PRIVATE** | **2,506** |
+| `PrimariRo` | **PRIVATE** | **726** |
+| `Reframe`, `bilbo-app`, `momentstudio`, … | public | 12,239 (free, unmetered) |
+| | | |
+| **PRIVATE TOTAL** | | **3,240 / 3,000 = 108%** |
+
+Every observation now has one cause. Private repos cannot allocate a runner because the Pro
+plan's 3,000 included private-repo minutes are spent and no spending limit is configured to
+overflow into paid usage. Public repos draw from a separate free pool, which is exactly why
+`Reframe` completed a run at 06:05:25Z while this repo could not start one.
+
+**Caveat, disclosed rather than buried:** `codex-session-manager` (910 minutes) returned neither
+`true` nor `false` for visibility — renamed or deleted. If it was private, the overage is larger
+than 3,240; it cannot be smaller.
+
+**Owner action, and it is cheap.** The overage is ~240 minutes at $0.006/min ≈ **$1.44**.
+Setting any non-zero Actions spending limit (Settings → Billing → spending limit) restores
+private-repo CI immediately. The alternative — waiting for the monthly reset on **2026-09-01** —
+is ~18 days away and is not a viable plan for a repo taking 262 commits in 36 hours.
+
+**Superseded reading, kept as evidence of what the weaker instrument supported:** the original
+"likely 65-80%" band, held because `check-suites` (which carries the refusal reason) is 403 to
+this token. That remains true and no longer matters — a detector limit on one probe was not a
+reason to stop looking for another.
 
 **Where the owner should look:** GitHub → Settings → Billing → *Actions minutes used this month*
 and *spending limit*. If the allowance is spent, raising or enabling the spending limit restores
