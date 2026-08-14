@@ -25,6 +25,14 @@ anything CI-side after 04:33:59Z (§2 B1).
 Snapshot warning: `origin/main` moved during this session and lanes committed while I measured.
 Re-run before acting on any count.
 
+> **REVIEWED AND CORRECTED — see §9.** An independent reviewer re-executed all 22 gates and
+> re-measured every numeric and owner-facing claim at `22b33d8d`. **Four claims are REFUTED**
+> (B3/D2, B5/D5, D3's PR-sequencing premise, and §3's DOCS-died verdict), the §4 ledger
+> arithmetic self-contradicted three ways, and one owner item had no row anywhere in this
+> document. Each is corrected **in place below** and recorded in §9 with the probe that settled
+> it. Nothing was deleted. **§2 numbers are ordered B1, B2, B7, B3…, and §5 ends on CL6 — read
+> by label, not by position.**
+
 ---
 
 ## 1. SHIPPED — only what survived refute
@@ -34,14 +42,21 @@ discriminate before any verdict was read: a known-exit-0 command → PASS, a kno
 fabricated path → MISSING. **19 PASS, 3 non-PASS — and all three non-PASS are explained below, none
 of them a live lane defect.** Anchor: `command-center/GRIND-GATE-RESULTS.json`.
 
+> **INDEPENDENTLY RE-EXECUTED at `22b33d8d` (§9 R-CONF).** A reviewer re-ran all 22 gates plus a
+> 23rd probe, behind its own three-state control that discriminated (`PASS`/`FAIL`/`MISSING`,
+> 3 distinct states, all matching expectation): **21 PASS, 2 FAIL.** Exactly **one** row moved —
+> `r4_credential_rule_gate` **FAIL → PASS**, because the §9 credential fix was **committed** in the
+> interval (B3, now closed). Every other row reproduced identically. The receipt JSON is therefore
+> correct for its timestamp and stale on that one row.
+
 | lane | headline gate (re-run by me) | result | CI workflow | fires on push→main |
 |---|---|---|---|:--:|
-| SSOT | `ssot_wiring_check.py` · `ssot_drift_gate.py` · `pytest ci/tests/test_ssot_wiring.py` | **PASS** ×3 (6/6 wires, 16 passed) | skill-dual-write.yml | **NO** ⚠ |
+| SSOT | `ssot_wiring_check.py` · `ssot_drift_gate.py` · `pytest ci/tests/test_ssot_wiring.py` | **PASS** ×3 (~~6/6 wires, 16 passed~~ → **7/7 wires, 21 passed**, re-measured §9 R9) | skill-dual-write.yml | **NO** ⚠ |
 | HOOKRESEARCH | `check_citations.py` · `test_citation_gate.py` | **PASS** (43/43 cases) | hook-audit.yml | yes |
 | MCPRESEARCH | `mcp-audit/ci_gate.py` | **PASS** | mcp-audit.yml | yes |
 | RULERESEARCH | `rule-audit/ci_gate.py` + r2/r3/r4-receipt/r5 | **PASS** ×5 | rule-audit.yml | yes |
 | P2NEXT | `rail_count_gate.py` · `split_review_gate.py` | **PASS** ×2 | p2next-rail-count.yml | yes |
-| SLOP | `check_published_commands.py` | **PASS** — 428 published commands / 366 docs, **0 NEW** unrunnable | no-runtime-junk.yml:135 | yes |
+| SLOP | `check_published_commands.py` | **PASS** — 428 published commands / 366 docs, **0 NEW** unrunnable *(re-measured at `22b33d8d`: **437 / 369**, 0 NEW, **1 inherited/baselined** — "0 NEW" is not "0 unrunnable")* | no-runtime-junk.yml:135 | yes |
 | DOCS | `test_docs_executable_claims` · `test_docs_gate_ci_wiring` · `test_command_doc_promises` | **PASS** ×3 | quality.yml | yes |
 | SKILLS2 | `test_deploy_skills_daily` · `test_check_skill_deploy_drift` | **PASS** ×2 | skill-dual-write.yml | **NO** ⚠ |
 | CIGREEN | `command-center/ci/interpreter_floor_gate.py` | **PASS** | interpreter-floor.yml | yes |
@@ -60,6 +75,13 @@ commit I measured*. That is a narrower statement than "the lanes are green" — 
 Volume, measured: **247 commits in 36 hours**. Per-lane last-commit age / 36h commit count —
 HOOKRESEARCH 0.4h/32 · P2NEXT 1.2h/27 · SLOP 1.7h/38 · MCPRESEARCH 1.9h/36 · SSOT 2.4h/32 ·
 CIGREEN 2.7h/9 · SKILLS2 4.5h/9 · RULERESEARCH 6.0h/17 · DOCS 25.3h/4.
+
+> **Re-measured at `22b33d8d`: 259 commits in 36 hours** (drift, expected). The per-lane row that
+> does **not** reproduce is **DOCS 25.3h/4** — path-scoped to `docs/_LANE-DOCS*` it is **14 commits
+> in 36 h, newest non-synthesis commit `f6a1f91b` 3.3 h ago**; the same 14 carry a
+> `lane-docs`/`docs-lane` subject tag; and `docs/GRIND-STATUS.md` §1 independently counts **16**.
+> Three scopes, none of them 4. **That figure is the load-bearing arm of the §3 DOCS-died verdict,
+> which is withdrawn there.**
 
 The three non-PASS results, each run down to a cause:
 
@@ -120,6 +142,14 @@ invoked by **no workflow at all**.
 > already carries `push: branches: [main]`, while `git show HEAD:` still carries `pull_request`
 > only. So the finding stands for the committed state and is being closed in the working tree —
 > and its fix has a side effect that was not visible from inside it. See **B7** and **CL7**.
+>
+> **↑ STALE, and it contradicted B7 six lines below it while both were on the page (§9 R8).**
+> Re-measured at `22b33d8d`: the file is **clean** (`git status --porcelain` empty), and **neither
+> the HEAD blob nor the working tree contains a `push:` key** — the orchestrator reverted the edit,
+> which is what B7 records. Control, so the parse is not the thing that is silent: `quality.yml`
+> reads `push: True` from the same reader. **B2 itself is unchanged and still live** — the gate is
+> `pull_request`-only and nothing is closing it in any tree. **Nothing is in flight; D3 is the
+> whole remedy.**
 
 **B7 — `rule-audit` went RED mid-session and is GREEN again. RESOLVED, kept as evidence.**
 `almost certain (90-99%)`, executed at three points in time. While I wrote §1, **the orchestrator** was
@@ -156,6 +186,27 @@ only propose. **Owner action (§6 D2).**
 > credential-policy fix and re-arms an inverted §9. **This is the same shape as B7, for the third
 > time in one session (CL8).**
 
+> **B3 IS NOW CLOSED. The above was true when written and is superseded by commit `22b33d8d`**
+> — *"fix(security): the deploy source would have overwritten §9 with its own inversion"* — which
+> landed the three files together, exactly as this entry and D2 asked. Verified at that commit on
+> an AND-gate of two mechanically independent signals: the **git blob** (`git show
+> HEAD:agent-self/config/AGENTS.md` → 172 lines, credential non-negotiable present **×1**,
+> `rotate, don't just delete` present **×0**) and the **dirty-state** (`git status --porcelain` on
+> all three files → **empty**, so the gate is now reading committed bytes). The gate itself is not
+> silent-green: it prints six controls, two of which are both-states arms that **fire** on the
+> broken state — *"control INV-1 fires when the bullet is removed again: got True"* and
+> *"control INV-2 fires when the inversion is re-introduced: got True"* — and the live arm reports
+> **RAN**, not SKIPPED. `almost certain (90-99%)`.
+>
+> | | lines | non-negotiable | `rotate, don't just delete` |
+> |---|---:|:--:|:--:|
+> | HEAD blob **before** (`603a5829`) | 158 | 0 | 1 |
+> | **HEAD blob now (`22b33d8d`)** | **172** | **1** | **0** |
+>
+> The credential-policy *content* remains the owner's to confirm (AGENTS.md §9) — the repair copies
+> the live file's own wording rather than authoring policy — but **there is nothing left to commit,
+> and the `git clean` exposure is gone.** D2 is rewritten accordingly and §7 rank 2 is discharged.
+
 **B4 — 21 HAZARDs in the repo-vs-live hook fleet, structurally invisible to CI.**
 `almost certain` that the gate reports them; `uncertain (20-55%)` what fraction are genuine drift
 versus expected local-only hooks — I did not triage all 74 findings. Sample: `PreToolUse` repo has
@@ -169,8 +220,30 @@ runner has never compiled`, #283 `ci(sast): split install from scan`. All three
 `mergeable: UNKNOWN`, `mergeStateStatus: UNKNOWN` — the expected consequence of B1, and **UNKNOWN is
 not a synonym for mergeable** (this estate's own recorded lesson).
 
+> **REFUTED — "none confirmed mergeable" is a SINGLE-POLL ARTIFACT, and this document had already
+> been told so (§9 R2).** `mergeable` is computed **asynchronously**: GitHub answers `UNKNOWN` on a
+> cold query and resolves on the next one. Measured at `22b33d8d`, two polls seconds apart, which is
+> its own both-states control because the instrument changed answer while the world did not:
+>
+> | poll | #281 | #282 | #283 |
+> |---|---|---|---|
+> | 1 (cold) | UNKNOWN / UNKNOWN | UNKNOWN / UNKNOWN | UNKNOWN / UNKNOWN |
+> | **2 (seconds later)** | **MERGEABLE / CLEAN** | **MERGEABLE / CLEAN** | **MERGEABLE / UNSTABLE** |
+>
+> So **all three are MERGEABLE**; #283 is `UNSTABLE` because its checks are the dead ones (B1).
+> **The estate lesson I invoked is real and I applied it backwards** — "UNKNOWN is not a synonym for
+> mergeable" forbids reading UNKNOWN as *green*; it does not license reading it as *not-green*.
+> Worse, `docs/GRIND-STATUS.md` **§3 C1 is a withdrawal of this exact error**, recorded hours
+> earlier, with the same re-poll table — and this document's own header calls that §3
+> *"frozen evidence"* while §5 CL6 cites the same file. **A correction that was already on disk and
+> unread: the estate's dominant failure mode is recall, not detection.** New residual, and it is
+> the only part of B5 that survives: **#281 is a DRAFT** (`isDraft: true`), so it is not mergeable
+> in the operational sense whatever the API field says. See D5.
+
 **B6 — 337 dirty working-tree rows (314 untracked, 23 modified)** across a shared worktree. Six of
 those were orphaned deliverables; I closed that subset (§8). The rest is lane probe scratch.
+*(Re-measured at `22b33d8d`: **335 rows — 311 untracked, 24 modified.** Ordinary drift; the shape
+is unchanged.)*
 
 ---
 
@@ -185,6 +258,27 @@ history and filesystem agreeing is the AND-gate. Its gates still PASS (§1) and 
 INTEGRATE-R2 **did** land; what died was the tail, leaving GROUNDING, ADVERSARIAL and VERIFY
 committed nowhere.
 
+> **THE "DIED" VERDICT IS WITHDRAWN — NEITHER ARM OF THE AND-GATE REPRODUCES (§9 R4).** An AND-gate
+> is only as good as its two arms, and both were mis-scoped:
+>
+> * **Arm 1 (git history) does not reproduce.** Path-scoped to `docs/_LANE-DOCS*`: **14 commits in
+>   36 h**, newest non-synthesis commit `f6a1f91b` at **3.3 h** ago — which was **2.5 h** before
+>   this document measured, not 25.3. Independently, 14 commits in the same window carry a
+>   `lane-docs`/`docs-lane` subject tag, and `docs/GRIND-STATUS.md` §1 counts **16**. Three scopes,
+>   none of them 4 or 25.3 h.
+> * **Arm 2 (filesystem) was an inert control.** It scanned *"its **7 untracked** `_LANE-DOCS-*.md`
+>   documents"* — but a lane that is actively committing **removes files from that set by
+>   definition**, so restricting the mtime scan to the untracked residue guarantees an "idle"
+>   reading under **both** hypotheses. It cannot distinguish H1 "the lane stopped" from H2 "the lane
+>   committed its recent work". Measured over **all 12** lane documents instead: `_LANE-DOCS-BUILD-R5`
+>   / `-R6` / `-R7` / `-R8` have mtimes of **4.5–5.2 h**, and `-INTEGRATE-R2` **3.4 h**.
+>
+> **Correctly-scoped version:** DOCS is the **slowest-committing** lane of the nine, and its
+> GROUNDING / ADVERSARIAL / VERIFY tail documents were left **untracked** rather than unwritten —
+> which is CL3, not a death. Whether the lane's *process* is still running is **UNVERIFIED and not
+> answerable from this disk** (the settling experiment is the orchestrator's live agent roster, not
+> git or mtime). Untracked `_LANE-DOCS` count is now **4**, down from 7, because §8 committed three.
+
 **The synthesis stage itself has now died four times.** Three before this run — twice on
 `401 API key is invalid`, once on a session limit (recorded in `docs/GRIND-STATUS.md`, which exists
 only because the orchestrator wrote it by hand) — and a fourth partial death this run: **the payload
@@ -198,9 +292,19 @@ that is a program winding down, not a lane freezing. I am explicitly **not** cal
 
 ## 4. OVERCLAIMS CAUGHT
 
-The measured base rate on this estate is ~7 overclaims per 5 real defects. This pass found **10
+The measured base rate on this estate is ~7 overclaims per 5 real defects. ~~This pass found **10
 overclaims against 3 real defects**, which is *worse* than the base rate — and **3 of the 10 are
-mine**. Not softened.
+mine**.~~ Not softened.
+
+> **THIS LEDGER CONTRADICTED ITSELF THREE WAYS AND ALL THREE COUNTS WERE WRONG (§9 R5).** The
+> paragraph above said `10 : 3` with *3 of the 10 mine*; the paragraph closing this section said
+> `13 : 4` with *5 of the 13 mine*; §8 item 7 said *"four of my own overclaims (O7, O8, O9, O11)"*.
+> A self-contradicting output is a **detector failure, not a finding** — the counts were written
+> once and never re-derived when O11, O12 and O13 were appended. Counted mechanically off the table
+> rows at `22b33d8d`: **13 rows, of which 6 are marked `*mine*` (O7, O8, O9, O11, O12, O13).** The
+> honest ledger for this pass is **13 overclaims : 4 real defects, 6 of the 13 mine** — and the
+> reviewer adds **4 more against this document** in §9, which the pass total should absorb rather
+> than hide.
 
 | # | claim | why it is wider than its evidence | correctly-scoped version |
 |---|---|---|---|
@@ -215,14 +319,14 @@ mine**. Not softened.
 | O9 | *mine* — mtime control printed `discriminates=False` | The instrument was fine; my **threshold** was mis-set (I asserted a 5-minute bound on a file written 14 minutes earlier). A self-contradicting control is a detector failure and I re-ran it properly rather than waving it through. | Re-run with a just-created temp file: `discriminates=True`. |
 | O10 | prior `docs/GRIND-STATUS.md` §4: *"`hook-audit/check_citations.py` **FAILED:cite-check**"* | True when written (an untracked doc was mid-write); **STALE now**. | Re-executed this session: **PASS**. |
 | O11 | *mine* — §8 of this document, first version: *"Ran the both-states test that committing them requires"* | **True but not sufficient, and it read as sufficient.** I staged the 6 orphans, ran the 2 doc gates, saw green — then added my own 2 files and committed all 8. `check_published_commands.py` reads `git ls-files`, so it only saw the half I was cautious about, and it could not see the *transitive* target at all until the document landed. The very next run went red: `P2NEXT-GROUNDING-R2.md:159` publishes `python command-center/p2-next/_g2_independent.py`, which was untracked. | "Ran the both-states test over the 6 orphans; it did not cover the commit as a whole, and it caught a real regression on the next run." Fixed in commit `5e31a03c` by tracking the target (clean under ruff format / ruff check / py_compile); gate back to **0 NEW unrunnable**. |
-
-| O13 | *mine* — B1, first version: *"the user billing endpoint is **410 Gone**… two instruments closed, so quota stays a band"* | **A 410 means the endpoint MOVED, and I never tried its replacement** — I reported an instrument as unavailable and let the diagnosis stall at a band. `users/{user}/settings/billing/usage` works and returns real data. This is the recall failure this estate names as its dominant error: the answer was reachable and unread. | The cause is narrowed to *private-repo included minutes exhausted, no spending limit* at `likely (65-80%)`, with four alternatives eliminated by measurement. Authoritative write-up: `docs/GRIND-STATUS.md` §0. |
 | O12 | *mine* — CL7, first version: *"**Remedy is one line** — repoint the control"* | **REFUTED by the orchestrator, which ran the experiment I only reasoned about.** I measured one failing arm (`r6_wiring_redproof`); they ran the whole `ci/tests` suite and got **three** failing tests. And I never saw `ci/tests/test_ci_wiring.py:163`, which forbids the push trigger for a *separate* reason: on a push `--base origin/main --head HEAD` makes base == head, so the parity gate degenerates to a permanently-green no-op. My conclusion was wider than my evidence in the estate's dominant direction. | The fix is a **coordinated multi-file change**, specified in `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`. Corrected in place in §5 CL7 rather than deleted. |
+| O13 | *mine* — B1, first version: *"the user billing endpoint is **410 Gone**… two instruments closed, so quota stays a band"* | **A 410 means the endpoint MOVED, and I never tried its replacement** — I reported an instrument as unavailable and let the diagnosis stall at a band. `users/{user}/settings/billing/usage` works and returns real data. This is the recall failure this estate names as its dominant error: the answer was reachable and unread. | The cause is narrowed to *private-repo included minutes exhausted, no spending limit* at `likely (65-80%)`, with four alternatives eliminated by measurement. Authoritative write-up: `docs/GRIND-STATUS.md` §0. |
 
 Real defects found this pass: **B2** (PR-only gate blind spot, independently corroborated), **B3**
 (credential inversion, already tracked by its lane), **CL3** (6 orphaned deliverables) — plus **one
 I caused and fixed** (O11). B7 resolved itself and is not counted. **Ratio 13 overclaims : 4
-defects — worse than the estate's 7:5 base rate, and 5 of the 13 are mine.** The two most useful
+defects — worse than the estate's 7:5 base rate, and ~~5~~ 6 of the 13 are mine** (O7, O8, O9, O11,
+O12, O13 — counted mechanically, §9 R5)**.** The two most useful
 lines here are O12 and O13, both cases where the orchestrator beat me by *executing* what I had only
 reasoned about, or by *trying the replacement instrument* where I had recorded a closed one. A
 synthesis lane that only reads is structurally prone to both.
@@ -313,20 +417,29 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
 | # | question | recommended default | why |
 |---|---|---|---|
 | **D1** | GitHub Actions runs no steps on this **private** repo while the same account runs them fine on a **public** one (B1). Go to **Settings → Billing → Actions minutes used this month / spending limit** — is the 3,000-minute Pro allowance spent, and is the spending limit $0? | **Raise or enable the spending limit** (or wait for the monthly reset). | Every other cause is eliminated by measurement: Actions `enabled:true`, plan `pro`, August billing $0.99 storage-only, and a **public** repo on the same account succeeding *after* this one broke. **Everything else in this document is unverifiable until this clears.** |
-| **D2** | The §9 credential inversion in `agent-self/config/AGENTS.md` (B3) has been **repaired in the working tree and not committed** — HEAD still carries the inversion and lacks the non-negotiable. **Commit the three files together?** (`agent-self/config/AGENTS.md`, `docs/rule-audit/ci_gate.py`, `docs/rule-audit/r4_credential_rule_gate.py`) | **Yes — commit them as one change, now.** | The repair and its gate-promotion to blocking are both done and both unsaved. Until committed, `git stash`/`git clean` silently re-arms an inverted §9, and CI against HEAD is still red on this gate. Credential policy is owner-only per AGENTS.md §9, so the *content* is yours to confirm; the *committing* is the urgent part. |
-| **D3** | `skill-dual-write.yml` is `pull_request`-only, so SSOT's and SKILLS2' gates never run on a push to main (B2). Split the 6 push-safe steps into a workflow that fires on push? | **Yes, split them out** — do **not** just add `push:` to the existing file. | The D-001 dual-write job is genuinely diff-based (`--base origin/main --head HEAD`) and belongs on `pull_request`; the other six steps are absolute checks. Also: PRs #281/#282 already touch this file, so this must be sequenced with them, not raced. |
+| ~~**D2**~~ | ~~The §9 credential inversion … **Commit the three files together?**~~ **SUPERSEDED — the commit happened. This question can no longer be answered as phrased.** | — | Landed as `22b33d8d` with all three files together. Verified on two independent signals: HEAD blob = 172 lines / non-negotiable **×1** / inversion **×0**, and `git status --porcelain` on the three files is **empty**. The gate's own INV-1 and INV-2 controls **fire** on the broken state, so its rc=0 is a measurement, not a silence. See B3. |
+| **D2′** *(replaces D2)* | The repair copies the **live** `~/.claude/AGENTS.md` wording into the deploy source rather than authoring new policy. Under AGENTS.md §9 the *content* of credential policy is still yours. **Confirm the restored §9/§9b wording is what you want shipped?** | **Yes — read it once and confirm.** | The urgency is gone (nothing is uncommitted, no `git clean` exposure). What remains is a one-time content confirmation of a security-relevant file an agent edited. Zero engineering. |
+| **D3** | `skill-dual-write.yml` is `pull_request`-only, so SSOT's and SKILLS2' gates never run on a push to main (B2). Split the 6 push-safe steps into a workflow that fires on push? | **Yes, split them out** — do **not** just add `push:` to the existing file. | The D-001 dual-write job is genuinely diff-based (`--base origin/main --head HEAD`) and belongs on `pull_request`; the other six steps are absolute checks. ~~Also: PRs #281/#282 already touch this file, so this must be sequenced with them, not raced.~~ **That sequencing premise is REFUTED (§9 R3): measured file lists show #281 = 2× `ci-silent-pass-lint/SKILL.md`, #282 = 2× `codex-databricks-fanout/scripts/batch_runner.py`, #283 = `quality.yml` + `CIGREEN-R2-RETRACTIONS.md` — no open PR touches `skill-dual-write.yml` at all.** The real shared-workflow hazard is **#283 on `quality.yml`**, which this document never named. Sequence against **#283**, not #281/#282. |
 | **D4** | Prompt Two condition 11 — `command-center/p2-next/OWNER-DECISION-condition-11.md`. | **Option B**, as that document recommends. | It gates **all 2,007 remaining units**. One decision, largest single unblock. *(FROM-RECORD — I did not re-derive the option set.)* |
-| **D5** | Merge PRs #281 / #282 / #283? | **Hold until D1 clears**, then merge #281 first. | All three are `mergeable: UNKNOWN` purely because CI is down. #281 fixes never-run gates, which is the same class as B2. |
+| **D5** *(rationale rebuilt, §9 R2/R12)* | Merge PRs #281 / #282 / #283? | **Hold until D1 clears, then merge #282 first** — and either mark **#281 ready or close it**. | ~~All three are `mergeable: UNKNOWN` purely because CI is down. #281 fixes never-run gates.~~ **Both halves were wrong.** Re-polled twice: all three are **MERGEABLE** (#281 CLEAN, #282 CLEAN, #283 UNSTABLE) — the UNKNOWN was a cold-poll artifact, exactly what `docs/GRIND-STATUS.md` §3 **C1** already withdrew. And **#281 is a DRAFT** whose net diff vs main is **2 files, +1/-0 each**, both `ci-silent-pass-lint/SKILL.md`: the gate steps its title advertises **already exist on main** (`skill-dual-write.yml:87` `gate-skill-deploy-hop`, `:101` `gate-cs-wiring`). Sharp consequence for D3 — **those "never-run" gates were fixed *into the one workflow that never fires on a push*, so they still never run on the delivery path.** Holding for D1 is still right: merging CI changes while no runner can verify them is how main goes red invisibly. |
 | **D6** | Retire the `chk` / `scratch` checkouts? | **No, not yet.** | `scratch` has 0 commits and thousands of untracked entries in no store anywhere. `git worktree remove` **follows junctions and deletes their targets**. |
-| **D7** | 22 of 29 entries in `command-center/OWNER-DECISIONS.md` are still OPEN. | **Answer as one batch**, as that file itself instructs. | Piecemeal answers have already caused re-litigation. |
+| **D7** | 22 of 29 entries in `command-center/OWNER-DECISIONS.md` are still OPEN. | **Answer as one batch**, as that file itself instructs. | Piecemeal answers have already caused re-litigation. *(Re-measured: `\bOPEN\b` occurs **22** times in that file, agreeing with `docs/GRIND-STATUS.md` B3. My first probe was case-insensitive and said 24 — my detector error, corrected before use.)* |
+| **D8** *(added by review, §9 R13)* | **A sensitive-artifact notice has no row anywhere in this document.** `classification=POTENTIAL-CREDENTIAL kind=transcript id=sha256:839ca3224e60`, tracked as **B5 in `docs/GRIND-STATUS.md` §2.1**, where the classification oscillates POTENTIAL-CREDENTIAL / UNKNOWN. **Decide the disposition of that transcript?** | **Treat as exposed and rotate**, per AGENTS.md §9b — *by the owner, not by any agent.* | The sweep was report-only and emitted no matched value; no agent action clears it and none was taken. **`UNKNOWN` means the scan did not finish, not that it is clean** — the adverse-inference default applies. It appears here because `docs/GRIND-STATUS.md` names *this* file as the owner-decision table, so an item with a row only there is invisible to anyone reading the table. **A question with no row is worse than an open one.** |
 
 ---
 
 ## 7. RANKED NEXT ACTIONS
 
+> **RE-RANKED BY REVIEW (§9).** Item 2 is **DONE** (`22b33d8d`) and item 8's count has moved.
+> Everything else stands. The live ordering is now **D1 → D3 → D4 → D8 → 5 → 6 → 7 → 8**, with
+> **D2′** (confirm the shipped credential wording) as a zero-engineering read-once item.
+
 1. **D1 — restore the runner.** Nothing below can be *verified* while B1 holds, only asserted.
-2. **D2 — repair the §9 credential inversion.** The only finding here with a security blast radius:
-   a deploy would overwrite correct live policy with the banned instruction.
+2. ~~**D2 — repair the §9 credential inversion.**~~ **DONE at `22b33d8d`** — the three files landed
+   together, HEAD now carries the non-negotiable and not the inversion, and `r4_credential_rule_gate`
+   is rc=0 with both-states controls that fire. Residual is **D2′**: the owner confirms the *content*
+   once, per AGENTS.md §9. What remains at this rank instead is **D8 — the
+   `sha256:839ca3224e60` transcript**, which is now the only open item with a credential blast radius.
 3. **D3 — give SSOT and SKILLS2 a gate on the delivery path, following the plan in
    `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`, not the one-line version.** Split the
    six state checks onto `push` + `pull_request`; keep the diff-based parity check
@@ -343,6 +456,7 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
    anything; 4 of 43 currently fail the lane's own stated criterion.
 8. **Sweep the remaining 308 untracked working-tree files** once lanes are confirmed idle. Lowest
    priority — measured as probe scratch, and the 6 real deliverables are now committed.
+   *(Re-measured at `22b33d8d`: **311 untracked**, 24 modified. Drift; ranking unchanged.)*
 
 ---
 
@@ -361,7 +475,12 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
    once. Bytes preserved verbatim; nothing reformatted.
 2. **Ran the both-states test that committing them requires.** Staging the 6 makes them visible to
    `check_published_commands.py` (which reads `git ls-files`, so untracked files are invisible to
-   it) and to `_r6_transcript.py --committed`. Both re-run **green** with all 6 staged —
+   it) and to `_r6_transcript.py --committed`. **↑ Half right, and the missing half is why O11's
+   regression only appeared on the NEXT run — §9 R15.** The gate takes its *target* set from
+   `git ls-files` (index), so staging a **target** does help; but it reads every *citing document*
+   from `git cat-file -p HEAD:<path>` (`check_published_commands.py:197`, consumed at `:221`). So an
+   edit to a **document** is invisible to this gate until it is **committed**, whatever you stage.
+   Both re-run **green** with all 6 staged —
    428 published commands across 366 documents, 0 NEW unrunnable. Had either gone red I would have
    unstaged and reported instead.
 3. **Cross-linked the two GRIND-STATUS documents** (CL2), additively in both directions. The prior
@@ -380,10 +499,137 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
    push-trigger edit to `skill-dual-write.yml` currently red-fails `rule-audit` by destroying the
    fixture of another lane's control. Named the one-line remedy and three verified replacement
    fixtures instead of editing a shared workflow another agent is mid-write in.
-7. **Recorded four of my own overclaims** (O7, O8, O9, O11) in §4 beside the lanes', rather than
-   silently correcting them.
+7. **Recorded ~~four~~ six of my own overclaims** (O7, O8, O9, O11, **O12, O13**) in §4 beside the
+   lanes', rather than silently correcting them. *(The "four" was written before O12 and O13 were
+   appended and never re-derived — §9 R5.)*
 
-What I deliberately did **not** do: edit `.github/workflows/skill-dual-write.yml` (open PRs #281 and
-#282 both touch it — a shared file is the single hazard that red-blocked every PR on main), retire
-or delete any checkout, touch `agent-self/config/AGENTS.md` (owner-only credential policy), or run
-any `git worktree` subcommand.
+What I deliberately did **not** do: edit `.github/workflows/skill-dual-write.yml` (~~open PRs #281
+and #282 both touch it~~ — **that reason is REFUTED, §9 R3: neither PR touches that file; the sound
+reason is that another agent was mid-write in it, which is B7**, and a shared file is the single
+hazard that red-blocked every PR on main), retire or delete any checkout, touch
+`agent-self/config/AGENTS.md` (owner-only credential policy), or run any `git worktree` subcommand.
+
+---
+
+## 9. REVIEW — an independent pass over this document
+
+Written by the **synthesis-review** lane at `22b33d8d`. I did not read this document and agree with
+it; I **re-executed** it. Every row below names the probe that settled it.
+
+**The receipts are the probes, and they are committed** — CL3's own lesson, applied to this review:
+a JSON snapshot in an untracked working tree is one `git clean` from gone, so what ships is the
+re-runnable measurement, not its output.
+
+```
+python command-center/_synthrev2_gates.py     # 22 gates + a 23rd probe, behind a 3-state control
+python command-center/_synthrev2_checks.py    # shas, paths, §9 credential state, B2 trigger, ledger arithmetic
+python command-center/_synthrev2_claims.py    # workflow triggers, B4/B6 counts, PR file lists, SLOP counts
+python command-center/_synthrev2_docs.py      # DOCS-lane recency in 3 scopes, owner-decision count, B-id collision
+python command-center/_synthrev2_fixtable.py  # the R6 table repair; idempotent, asserts on read-back
+```
+
+Each derives its repo root from `__file__` and contains **zero** hardcoded estate paths (`grep -c
+'C:/Users'` → 0 across all five) — a Windows absolute path frozen into a blob is one of the five
+local-green/CI-red mechanisms CL6 lists, and a review that reproduced it while auditing for it would
+be worthless. Their `*.out.json` outputs sit beside them as **untracked working-tree scratch** and
+are deliberately not committed: two of the gate tails contain an absolute `~/.claude` path, which is
+the disclosure class this repo's own ADV-0041 tracks. The numbers quoted below are the durable form.
+
+COVERAGE: measured = all 22 gates re-run, every cited sha and path resolved, the §9 credential state
+at HEAD vs worktree, the `skill-dual-write` trigger in both trees, PR mergeability (two polls) and PR
+file lists, DOCS-lane recency in three independent scopes, the owner-decision count, published-command
+counts, the worktree census, and the cross-link. **Not measured:** the 909-test local suite behind CL9
+(inherited FROM-RECORD), anything CI-side (B1 still holds), and the interior of the eight
+reconstructed lanes. *If this section ever reads as unmeasured placeholders, the unit died before
+measuring anything and no verdict here may be cited.*
+
+### Refuted — the sentence was wider than its evidence
+
+| # | claim as written | probe that settled it | corrected |
+|---|---|---|---|
+| **R1** | B3 / D2 / §7 rank 2: *"a fix is IN FLIGHT and UNCOMMITTED… one `git clean` re-arms an inverted §9"* | AND-gate, two mechanically independent signals: `git show HEAD:agent-self/config/AGENTS.md` → **172 lines, non-negotiable ×1, inversion ×0**; `git status --porcelain` on all three files → **empty**. Gate rc=0 with **INV-1 and INV-2 controls that fire on the broken state** and a live arm reporting RAN. | **CLOSED at `22b33d8d`.** B3, D2→D2′, §7 rank 2. `almost certain (90-99%)` |
+| **R2** | B5: *"All three `mergeable: UNKNOWN` … none confirmed mergeable"*, and D5's rationale on it | Two polls seconds apart — cold: UNKNOWN ×3; second: **#281 MERGEABLE/CLEAN, #282 MERGEABLE/CLEAN, #283 MERGEABLE/UNSTABLE**. The instrument changed answer while the world did not, which is the both-states control. | **All three are MERGEABLE.** And **the withdrawal was already on disk**: `docs/GRIND-STATUS.md` §3 **C1** retracts this exact inference, in a section this document's own header calls *"frozen evidence"*. **The dropped refutation is C1** — a recall failure, not a detection failure. `almost certain (90-99%)` |
+| **R3** | D3 and §8: *"open PRs #281 and #282 both touch [`skill-dual-write.yml`]"* | `gh api …/pulls/{n}/files`: #281 → 2× `ci-silent-pass-lint/SKILL.md`; #282 → 2× `codex-databricks-fanout/scripts/batch_runner.py`; #283 → `quality.yml` + `CIGREEN-R2-RETRACTIONS.md`. | **No open PR touches that file.** The *abstention* was correct (B7 — another agent was mid-write); the *reason given* was false, twice. The real shared-workflow hazard is **#283 on `quality.yml`**. `almost certain (90-99%)` |
+| **R4** | §3: *"DOCS — died, on an AND-gate of two mechanically independent signals"* | Arm 1: `docs/_LANE-DOCS*` → **14 commits/36 h, newest non-synthesis `f6a1f91b` 3.3 h ago** (2.5 h *before* this document measured); 14 subject-tagged `lane-docs`/`docs-lane`; `docs/GRIND-STATUS.md` §1 counts **16**. Arm 2 scanned only the **untracked** subset — a set a committing lane empties by definition, so it reads "idle" under both hypotheses; over all 12 lane docs, `-BUILD-R5…R8` are **4.5–5.2 h** and `-INTEGRATE-R2` **3.4 h**. | **Verdict withdrawn.** DOCS is the slowest-committing lane and left its tail **untracked**, which is CL3. Whether its process still runs is **UNVERIFIED from this disk** — the settling experiment is the live agent roster. `almost certain (90-99%)` that the two named arms do not reproduce. |
+
+### Self-contradictions and structure
+
+| # | finding | measured |
+|---|---|---|
+| **R5** | §4 states the ledger **three incompatible ways** — `10 : 3` with *3 of the 10 mine*, `13 : 4` with *5 of the 13 mine*, and §8.7 *"four … (O7, O8, O9, O11)"*. | Counted off the table rows: **13 rows, 6 marked `*mine*`**. A self-contradicting output is a **detector failure, not a finding**. Fixed in §4 and §8.7. |
+| **R6** | The **O12 and O13 rows sat outside the table** — a blank line severed them, so in any renderer they showed as literal pipe text, and they ran backwards. | Two of the six self-caught overclaims were effectively invisible. Repaired (`command-center/_synthrev2_fixtable.py`, idempotent, with a read-back assertion). |
+| **R7** | §2 runs **B1, B2, B7, B3, B4, B5, B6** and §5 ends on **CL6** after CL9 — and §1 forward-references CL6. | Not reordered (the prose is frozen evidence of when each was written); a read-by-label warning is now in the header. |
+| **R8** | B2's *"LIVE UPDATE"* says the working copy of `skill-dual-write.yml` *"is dirty (` M`) and already carries `push:`"* — while **B7, six lines below, says it was reverted.** Both were on the page at once. | Measured: file **clean**, and **no `push:` in the HEAD blob or the worktree**. Control so the parse is not the silent thing: `quality.yml` reads push **True**. **B2 itself is unchanged and still live; nothing is closing it in any tree.** |
+
+### Drift — restamped at `22b33d8d`, not deleted
+
+| # | as written | re-measured |
+|---|---|---|
+| **R9** | §1 SSOT *"6/6 wires, 16 passed"* | `SUCCESS:ssot-wiring-check wires=7 all intact` · `21 passed`. (**16 passed** is `test_deploy_skills_daily`'s count — a transposed row.) |
+| **R10** | 247 commits/36 h · 337 dirty (314/23) · SLOP 428/366 in §1 **and** 435/367 in §8.5 | 259 · 335 (311/24) · **437/369, 0 NEW, 1 inherited**. Two different "current" SLOP figures were in one document. |
+| **R11** | §3 *"7 untracked `_LANE-DOCS-*.md`"* | **4** — §8 committed three of them. Self-caused drift, worth the stamp because §3 leans on the count. |
+| **R12** | D5 *"#281 fixes never-run gates"* | **#281 is a DRAFT** and its net diff vs main is 2 files, **+1/-0 each**, both `SKILL.md`. The gate steps already exist on main at `skill-dual-write.yml:87` and `:101` — **inside the workflow B2 proves never fires on push.** |
+
+### Gaps a reader would fall into
+
+| # | gap | closed by |
+|---|---|---|
+| **R13** | The `sha256:839ca3224e60` **POTENTIAL-CREDENTIAL transcript has no row in this document**, although `docs/GRIND-STATUS.md` names *this* file as the owner-decision table. | Added as **D8**. It is not a new finding — it is `docs/GRIND-STATUS.md` §2.1 B5 — but an item with a row in only one of two documents is an item a reader loses. |
+| **R14** | **Cross-document ID collision.** This file numbers `B1…B7`; `docs/GRIND-STATUS.md` numbers `B1…B5` — with **different referents** (there: B2 = condition 11, B4 = the 3 PRs, B5 = the credential transcript; here: B2 = the trigger gap, B5 = the 3 PRs). | Flagged, not renumbered — renumbering either file would break every existing citation. **Cite as `<file> B<n>`, never a bare `B<n>`.** |
+
+### R15 — my own inert control, caught by running it against the broken state
+
+I staged this review's edits, ran `check_published_commands.py`, saw `rc=0`, and was one sentence
+away from citing that as the pre-commit both-states test §8.2 demands. **It proves nothing.** I ran
+the control anyway — break one published receipt path to a file that does not exist, re-run, restore
+byte-for-byte — and the gate stayed **rc=0 and green in the broken state too**:
+
+```
+clean  state: rc=0  SUCCESS:published-cmds no NEW unrunnable published command
+BROKEN state: rc=0  SUCCESS:published-cmds no NEW unrunnable published command
+restored byte-identical: True (sha256 c4310f9f79c9…)
+```
+
+**A probe silent in both states measures nothing.** The mechanism, read directly rather than
+inferred: `check_published_commands.py:195-203` fetches each citing document with
+`git cat-file -p HEAD:<path>` and `:221` scans *that* — while `:256` takes the tracked-**target**
+set from `git ls-files`. **Two different read-bases in one gate.** Staging a *target* is visible;
+editing a *document* is not, until it is committed. That is the exact shape of O11 — the regression
+could not appear until `P2NEXT-GROUNDING-R2.md` **landed** — and §8.2's explanation named only the
+`git ls-files` half, so it under-described the trap it was documenting.
+
+Consequence, applied to this commit rather than asserted: **no pre-commit run can verify a document
+edit here.** The honest sequence is commit → re-run → fix-forward, which is what `5e31a03c` had to
+do. I committed, re-ran, and record the post-commit result beside this line rather than a
+pre-commit green that was never evidence. Control script: `python command-center/_synthrev2_bothstates.py`
+(restores the document and asserts the restore by sha256).
+
+**POST-COMMIT RE-RUN — see the commit's own message for the verdict.** *(If this sentence is ever
+the last word here, the re-run did not happen and this section's green may not be cited.)*
+
+### Confirmed — re-executed and identical
+
+- **The gate table holds.** 22 gates re-run plus a 23rd probe, behind a three-state control that
+  produced three distinct states all matching expectation: **21 PASS / 2 FAIL**, with exactly one row
+  moved (`r4_credential_rule_gate`, explained by R1). Every other row reproduced.
+- **B4 verbatim:** `FAILED:hook-predeploy-gate 21 HAZARD(s) of 74 findings`, and both named samples
+  reproduce exactly — `PreToolUse` repo 12 / live 13 with live-only `workflow-monitor-autolaunch/check.py`;
+  `UserPromptSubmit` repo `open-loops/trigger_match.py` vs live `semantic-router/route.py`.
+- **The "fires on push→main" column is exact** for all 12 workflows, including both ⚠ rows.
+- **43/43 citation cases** (`RESULT: ALL PASS (43 cases, 0 failed)`), **all 3 cited shas resolve**,
+  and **all 6 orphans plus `_g2_independent.py` are in HEAD** — the last at **7,488 B**, the figure
+  §8.5 states. Both GRIND-STATUS documents cross-link, both are tracked and clean.
+- **D4 and D7 hold:** `OWNER-DECISION-condition-11.md` does mark **Option B** `<-- RECOMMENDED`, and
+  `\bOPEN\b` occurs **22** times in `OWNER-DECISIONS.md`.
+
+### What this review's own numbers are
+
+**4 refutations, 4 structural/arithmetic defects, 4 drift restamps, 2 gaps, 1 inert control of my
+own (R15) — against 8 confirmations, and 0 SHIPPED items that were not actually shipped.** Every §8
+deliverable is in HEAD and clean.
+Consistent with the estate's base rate, **the failures were overclaims and stale sentences, not broken
+work** — the gates were real, the receipts were real, and the corrections are almost all to prose that
+outran its evidence. The one exception worth carrying: **R2 is a recall failure, not a measurement
+failure.** The retraction that would have prevented it was written hours earlier, in the companion
+document this one calls authoritative, and was never read. That is this estate's dominant error mode
+reproduced inside the pass that was auditing for it.
