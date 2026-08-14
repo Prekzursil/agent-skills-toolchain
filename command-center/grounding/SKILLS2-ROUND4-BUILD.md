@@ -3,6 +3,18 @@
 Two commits, both in the lane's file scope, both with the gate that could have refused them
 actually refusing something. Plus one refuted grounding claim and one detector failure of my own.
 
+> **CORRECTED IN ROUND 5 — four claims below did not survive an independent audit.** They are
+> left in place with an inline correction at each site rather than edited away, so the wrong
+> version stays visible next to the measurement that beat it. Round 5's record and the
+> re-measurements are in [`SKILLS2-ROUND5-BUILD.md`](SKILLS2-ROUND5-BUILD.md).
+>
+> | claim | measured |
+> |---|---|
+> | "net +0 characters" across the 12 clauses | **−42** (two independent instruments agree) |
+> | "0 files outside the declared file scope" | **28 of 29**; this doc is the 29th |
+> | vault old-guard census "it is 6 files" | **8** |
+> | `: ` makes "the entry just fail" | **REFUTED** on the render path; fixed at source in `writing-skills` |
+
 ## DoD status
 
 | item | verdict | where |
@@ -10,7 +22,7 @@ actually refusing something. Plus one refuted grounding claim and one detector f
 | 1 render bug DIAGNOSED with a probe separating budget-truncation from parse-failure | **PASS** | both-states on the real render path, below |
 | 2 vault dry-run plan read and reported | **PASS** | `H-REFUSES`, below |
 | 3 workflow-authoring union-merge proposal written | **PASS (pre-existing)** | `command-center/S2-WORKFLOW-AUTHORING-UNION-MERGE.md` |
-| 4 negative-case clauses added where safe | **PASS** | 12 more, net +0 chars, commit `0e2370be` |
+| 4 negative-case clauses added where safe | **PASS** | 12 more, ~~net +0 chars~~ **net −42 chars** (corrected round 5), commit `0e2370be` |
 
 ## 1 · The render bug, settled on the instrument that was broken
 
@@ -105,7 +117,10 @@ Reading the plan per-file (positive control passed: `ui-audit/_fix_main_guard.py
 | design-studio-session/session.mjs | NEEDS-MERGE |
 
 **verdict H-REFUSES.** `--apply` at the vault copies 133 files and fixes **zero** of the 6
-silent no-ops — they are exactly the files the hop refuses by design. Pointing the existing
+silent no-ops — they are exactly the files the hop refuses by design.
+*(CORRECTED round 5: **8** silent no-ops, not 6 — the table above omits `ui-audit/run_audit.mjs`
+and `ui-audit/visual_diff.mjs`, which are also `NEEDS-MERGE`. The H-REFUSES verdict is unchanged
+and now covers 8/8.)* Pointing the existing
 tool at the vault answers the DoD question NEGATIVELY, and that is the useful answer: the
 vault no-op needs a union merge, not a deploy.
 
@@ -124,7 +139,16 @@ Detector control: known-FIX -> `H-FIX`; known-BROKEN -> `H-OLD`; distinguishes =
 | live vault `.agents` | 1 | **6** |
 
 Both files carry the realpath guard in three of four trees. Correctly scoped: **the vault is
-the only tree with the old guard, and it is 6 files.** Nothing to repair in the repo roots.
+the only tree with the old guard, and it is ~~6~~ files.** Nothing to repair in the repo roots.
+
+> **CORRECTED round 5 — it is 8, not 6.** `ui-audit/run_audit.mjs` and `ui-audit/visual_diff.mjs`
+> also carry `resolve(process.argv[1]) === resolve(__filename)` in the vault while the repo twins
+> carry `__isMain`. Re-measured with an independent classifier over every `.mjs` in all four
+> trees, control = two REAL files in opposite states (vault `capture.mjs` → `H-OLD`, repo
+> `capture.mjs` → `H-FIX`, `distinguishes: true`). The *verdict* is unchanged — all 8 are
+> `needs_merge`, so `H-REFUSES` still holds — but the population was wrong, and `run_audit.mjs`
+> is plausibly the ui-audit entry point, which makes it the worst of the two to have missed.
+> The part that stands: repo roots and `skills.daily` are clean at 9/9.
 
 ### My own detector failure, same probe
 My first classifier required `resolve(argv[1]) === __filename`; the shape on disk is
@@ -145,7 +169,12 @@ description IDENTICAL in all three (a diverged file is left alone) · P3 `len(ne
 
 - Two controls run first and were both refused (a 4,000-char candidate on P3; a ` #` candidate on P4).
 - `video-resize-aspect` was refused **twice** by P3 (301 > 294, then 297 > 294) before it fit.
-- Net across 12: **+0 characters**, which P3 makes structurally unreachable to exceed.
+- Net across 12: ~~**+0 characters**~~ — **CORRECTED round 5: −42 characters** (2,338 → 2,296
+  parsed description chars). Two mechanically independent instruments agree: a per-skill
+  re-parse, and the repo's own ratchet moving 105,261 → 105,219. The load-bearing property is
+  unharmed — P3 (`len(new) <= len(old)`) makes an *increase* structurally unreachable, so the
+  surface can only shrink; the edits freed 42 characters rather than being exactly neutral.
+  Wrong in the safe direction, but "+0" was still a claim wider than its evidence.
 - Written to all THREE trees at once: `classify_pair` compares unique-line SETS, so a
   description MODIFY is DIVERGED forever and an edit authored only in the repo can never reach
   the tree the client reads.
@@ -171,7 +200,7 @@ here; `subtitle-translate` is not (P2/P3 not checked for it).
 2. **Defect B, exemptions calibrated to 1,024.** `ci/skill-description-exemptions.txt` pins
    five descriptions as over a "1,024 spec max"; the render cap is 1,536, so only
    workflow-foundry (1,750) is actually shortened. Same scope reason.
-3. **The vault's 6 silent no-ops remain live.** The deploy hop refuses all six (item 2). They
+3. **The vault's ~~6~~ 8 silent no-ops remain live** (corrected round 5). The deploy hop refuses all eight (item 2). They
    need a union merge; writing `~/.agents/skills` was not in scope and the DoD asked only for
    the dry-run.
 4. **Item 3 does not scale as one document.** workflow-authoring is 1 of ~74 repo/live
@@ -186,9 +215,12 @@ here; `subtitle-translate` is not (P2/P3 not checked for it).
 
 - **Almost certain (90-99%):** the bc-drive-plus cause was a YAML comment, and it is fixed
   (both states on the real render path + post-write re-parse in 3 trees). The vault plan
-  refuses all 6 broken-guard files (per-file bucket read, positive control passed). The 12
-  clauses are net +0 (P3 makes an increase unreachable; it fired twice). The guard census
+  refuses all ~~6~~ **8** broken-guard files (per-file bucket read, positive control passed). The 12
+  clauses are ~~net +0~~ **net −42** (P3 makes an increase unreachable; it fired twice). The guard census
   refutes the all-four-trees claim (controlled classifier, real known-broken control).
+  *(Two of those four were stated at 90-99% and were wrong. Both were population/arithmetic
+  claims asserted at the confidence of the mechanism they sat next to — the mechanism was
+  measured, the count beside it was not. Corrected round 5.)*
 - **Likely (55-80%):** the ~74 permanently-refused description pairs are the real blocker
   upstream of items 2-4. Rests on one dry-run per tree, not on a full pairwise audit.
 - **Uncertain (20-55%):** why writing-skills survived in my sample and not in sample 5. One
