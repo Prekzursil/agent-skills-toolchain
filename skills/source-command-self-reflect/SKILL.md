@@ -87,9 +87,9 @@ Analyze current context window and optionally historical sessions for implicit i
 
 Review Codex instructions and config for improvement opportunities:
 
-- `.Codex/commands/*` - Are commands still accurate?
+- `.claude/commands/*` - Are commands still accurate?
 - `AGENTS.md` - Any outdated guidance?
-- `.Codex/settings.json` - Missing permissions or tools?
+- `.claude/settings.json` - Missing permissions or tools?
 
 Present findings interactively: explain issue -> propose change -> get feedback -> implement.
 

@@ -24,7 +24,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/continuous-learning-v2/scripts/instinct-cl
 Or if `CLAUDE_PLUGIN_ROOT` is not set (manual installation):
 
 ```bash
-python3 ~/.Codex/skills/continuous-learning-v2/scripts/instinct-cli.py projects
+python3 ~/.claude/skills/continuous-learning-v2/scripts/instinct-cli.py projects
 ```
 
 ## Usage
@@ -35,7 +35,7 @@ python3 ~/.Codex/skills/continuous-learning-v2/scripts/instinct-cli.py projects
 
 ## What to Do
 
-1. Read `~/.Codex/homunculus/projects.json`
+1. Read `~/.claude/homunculus/projects.json`
 2. For each project, display:
    - Project name, id, root, remote
    - Personal and inherited instinct counts

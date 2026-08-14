@@ -1,6 +1,6 @@
 ---
 name: "source-command-save-session"
-description: "Save current session state to a dated file in ~/.Codex/sessions/ so work can be resumed in a future session with full context."
+description: "Save current session state to a dated file in ~/.claude/sessions/ so work can be resumed in a future session with full context."
 ---
 
 # source-command-save-session
@@ -36,12 +36,12 @@ Before writing the file, collect:
 Create the canonical sessions folder in the user's Codex home directory:
 
 ```bash
-mkdir -p ~/.Codex/sessions
+mkdir -p ~/.claude/sessions
 ```
 
 ### Step 3: Write the session file
 
-Create `~/.Codex/sessions/YYYY-MM-DD-<short-id>-session.tmp`, using today's actual date and a short-id that satisfies the rules enforced by `SESSION_FILENAME_REGEX` in `session-manager.js`:
+Create `~/.claude/sessions/YYYY-MM-DD-<short-id>-session.tmp`, using today's actual date and a short-id that satisfies the rules enforced by `SESSION_FILENAME_REGEX` in `session-manager.js`:
 
 - Allowed characters: lowercase `a-z`, digits `0-9`, hyphens `-`
 - Minimum length: 8 characters
@@ -278,5 +278,5 @@ Then test with Postman — the response should include a `Set-Cookie` header.
 - The "What Did NOT Work" section is the most critical — future sessions will blindly retry failed approaches without it
 - If the user asks to save mid-session (not just at the end), save what's known so far and mark in-progress items clearly
 - The file is meant to be read by Codex at the start of the next session via `/resume-session`
-- Use the canonical global session store: `~/.Codex/sessions/`
+- Use the canonical global session store: `~/.claude/sessions/`
 - Prefer the short-id filename form (`YYYY-MM-DD-<short-id>-session.tmp`) for any new session file

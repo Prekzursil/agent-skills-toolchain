@@ -29,8 +29,8 @@ Look for:
 
 3. **Determine save location:**
    - Ask: "Would this pattern be useful in a different project?"
-   - **Global** (`~/.Codex/skills/learned/`): Generic patterns usable across 2+ projects (bash compatibility, LLM API behavior, debugging techniques, etc.)
-   - **Project** (`.Codex/skills/learned/` in current project): Project-specific knowledge (quirks of a particular config file, project-specific architecture decisions, etc.)
+   - **Global** (`~/.claude/skills/learned/`): Generic patterns usable across 2+ projects (bash compatibility, LLM API behavior, debugging techniques, etc.)
+   - **Project** (`.claude/skills/learned/` in current project): Project-specific knowledge (quirks of a particular config file, project-specific architecture decisions, etc.)
    - When in doubt, choose Global (moving Global → Project is easier than the reverse)
 
 4. Draft the skill file using this format:
@@ -64,7 +64,7 @@ origin: auto-extracted
 
    Execute **all** of the following before evaluating the draft:
 
-   - [ ] Grep `~/.Codex/skills/` and relevant project `.Codex/skills/` files by keyword to check for content overlap
+   - [ ] Grep `~/.claude/skills/` and relevant project `.claude/skills/` files by keyword to check for content overlap
    - [ ] Check MEMORY.md (both project and global) for overlap
    - [ ] Consider whether appending to an existing skill would suffice
    - [ ] Confirm this is a reusable pattern, not a one-off fix

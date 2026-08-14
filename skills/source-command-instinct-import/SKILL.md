@@ -22,7 +22,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/continuous-learning-v2/scripts/instinct-cl
 Or if `CLAUDE_PLUGIN_ROOT` is not set (manual installation):
 
 ```bash
-python3 ~/.Codex/skills/continuous-learning-v2/scripts/instinct-cli.py import <file-or-url>
+python3 ~/.claude/skills/continuous-learning-v2/scripts/instinct-cli.py import <file-or-url>
 ```
 
 Import instincts from local file paths or HTTP(S) URLs.
@@ -43,8 +43,8 @@ Import instincts from local file paths or HTTP(S) URLs.
 3. Check for duplicates with existing instincts
 4. Merge or add new instincts
 5. Save to inherited instincts directory:
-   - Project scope: `~/.Codex/homunculus/projects/<project-id>/instincts/inherited/`
-   - Global scope: `~/.Codex/homunculus/instincts/inherited/`
+   - Project scope: `~/.claude/homunculus/projects/<project-id>/instincts/inherited/`
+   - Global scope: `~/.claude/homunculus/instincts/inherited/`
 
 ## Import Process
 
@@ -113,7 +113,7 @@ Added: 8 instincts
 Updated: 1 instinct
 Skipped: 3 instincts (equal/higher confidence already exists)
 
-New instincts saved to: ~/.Codex/homunculus/instincts/inherited/
+New instincts saved to: ~/.claude/homunculus/instincts/inherited/
 
 Run /instinct-status to see all instincts.
 ```
