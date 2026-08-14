@@ -194,4 +194,29 @@ working on its author.
 6. **The dual-write blocker is unchanged and untouched** — `ci/check_skill_dual_write.py
    --strict-parity` reds on any commit touching a canonical-only skill. This round touches no
    `.agents/skills/**` file, so it is not implicated here.
-7. **NOT-CHECKED: full CI.** ~8 of ~25 steps ran locally. A Windows-local green is not CI green.
+7. **NOT-CHECKED: full CI.** 11 gates ran locally out of a suite of roughly 25 steps. A
+   Windows-local green is not CI green.
+
+## 8. Gate sweep — measured after the commit, on the COMMITTED state
+
+`.github/workflows/p2next-rail-count.yml` runs exactly four commands. All four are green on the
+committed tree:
+
+| gate | result |
+|---|---|
+| `rail_count_gate.py --self-test` | PASS — 37 cases, 22 expecting a FIRE, every check in both states |
+| `rail_count_gate.py` (committed basis) | SUCCESS — 52 / 42 (39 owed, 3 served) / 10 / 10, catalog 2007, READY 449 |
+| `vendor_satisfiability.py --basis committed` | SUCCESS — selftest PASS, stability 0 moved, artifact drift False |
+| `split_review_gate.py --basis committed` | SUCCESS |
+| `_c4_blobcheck_mine.py 23ed5b1c` | 5 python blobs derived from the commit, **0 CRLF**, blob-form ruff check + format rc=0, **CONTROL mangled blob fires rc=1** |
+| `ci/check_skill_dual_write.py --strict-parity` on `23ed5b1c` and `245a24ec` | **OK** both — this round touches no `.agents/skills/**` file. **Control:** the same command on `1b1e1e4e` still reports `VIOLATIONS: 1`, so the gate discriminates rather than having been quietly satisfied |
+| `ci/gen_skill_index.py --check --fail-on-drift` | INDEX DRIFT: no; canonical NOT declared: 0 |
+| `ci/gen_skills_manifest.py --check` | skills_tracked=337 manifest_rows=337 malformed_lines=0 |
+| `ci/check_skill_description_ratchet.py` | SUCCESS, no violations (advisory) |
+| `uvx ruff@0.15.17 check` / `format --check` (my 5 files) | All checks passed / 5 already formatted |
+
+The dual-write row is the one worth reading twice. Round 1 escalated it as a blocker and it stayed
+open; it is **not** implicated here, and that is established by a control that still reds on a
+commit which does touch a canonical-only skill — not by my commits merely coming back green.
+
+Not run: the node/npm steps, CodeQL, gitleaks, and the hook/workflow gates owned by sibling lanes.
