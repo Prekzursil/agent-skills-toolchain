@@ -48,6 +48,21 @@ WHAT IT CHECKS (each one fails CLOSED)
       resolvable-evidence-anchor half is REPORTED AND NOT ENFORCED, because 0 of 10 receipts
       carry one and a gate that fails every existing input on its first run is a gate that gets
       switched off. See MIN_REVIEW_NOTES and check_reviewed.
+  C6  the rail VERDICT is declared ONCE and dated (`rail_state`, `rail_probed`), and no page in
+      the scanned set asserts a state contradicting it without the same dated marker C2 uses.
+      MEASURED, and the reason it exists: round 3 retracted "the rail is DOWN" in the owning doc
+      and left `E2E-WAVE-STATUS.md:124` -- a page THIS GATE ALREADY SCANNED -- asserting it. The
+      gate stayed green for a whole round, because the unit count in that sentence (42) was still
+      correct and C2 only reads numbers. A citing-doc check that returns SUCCESS whether or not
+      the two pages contradict each other is a control that looks the same under both hypotheses.
+      LIMIT, INLINE: C6 proves CONSISTENCY, never TRUTH. This gate makes no network call and
+      cannot know whether the rail answers (`ci-hygiene.md` §2 keeps a live endpoint out of the
+      per-PR suite), so its silence means the corpus stopped contradicting itself -- nothing more.
+      SECOND LIMIT, INLINE: matching is present-tense and NEGATION-BLIND. "the rail does not
+      answer" reads as an UP assertion and would pass under `rail_state: up`. Measured cost today:
+      0 -- no scanned page contains a negated assertion (`K1-PREMISE-SCAN.json`). Settling
+      experiment: add a negation window to STATE_ASSERT and re-run `_k1_premise_scan.py`, which
+      must keep finding exactly the same 3 assertions in the owning doc and 0 in the citing one.
 
 DETECTOR CONTROL. `--self-test` runs every check against a KNOWN-BROKEN input and requires it to
 FIRE, then against the known-good input and requires SILENCE -- including the ways this gate could
@@ -159,6 +174,11 @@ REQUIRED_FIELDS = (
     "satisfiable_now",
     "reviewed_satisfiable",
     "catalog_units",
+    #: C6. The rail VERDICT, declared ONCE and dated, so every other page has something to agree
+    #: with. Without it the retraction of a premise is unenforceable: round 3 corrected the owning
+    #: doc and a citing page kept the old verdict for a full round with CI green.
+    "rail_state",
+    "rail_probed",
     "derived_by",
 )
 
@@ -204,6 +224,42 @@ BARRED_BETWEEN = frozenset(
 #: the checker's local dirt is not a check; it is a fail-open that happens to pass for the author.
 #: Proven by running this gate inside a throwaway clone (see _i3_redproof.py leg "good").
 EXEMPT_MARKER = re.compile(r"\[(?:superseded|worktree-observed)\b[^\]]*\]", re.I)
+
+#: C6 -- CONSISTENCY, NEVER TRUTH. This gate makes no network call and cannot know whether the
+#: rail answers; `ci-hygiene.md` §2 forbids a live endpoint in the per-PR suite. What it CAN
+#: prove is that every page in the declared set agrees with the ONE declared verdict, so a
+#: retraction can no longer land in the owning doc while a citing page keeps asserting the
+#: retracted premise. Read its silence as "the corpus stopped contradicting itself", never as
+#: "the rail is up".
+#:
+#: MEASURED, and the reason this check exists at all: round 3 retracted "the rail is DOWN" in
+#: `CROSS-VENDOR-RAIL-STATUS.md` and left `E2E-WAVE-STATUS.md:124` -- a doc THIS GATE ALREADY
+#: SCANS as a citing doc -- asserting it. The gate stayed green, because the unit count in that
+#: sentence (42) was still correct and C2 only reads numbers. A citing-doc check that returns
+#: SUCCESS whether or not the two pages contradict each other is a control that looks the same
+#: under both hypotheses. Receipt: `K1-PREMISE-SCAN.json`.
+RAIL_STATES = ("up", "down")
+RAIL_PROBED_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+#: A present-tense rail-state ASSERTION: `rail ... is DOWN|UP`, or the copula-free `rail ANSWERS`
+#: the owning doc's own title uses. Past-tense narration ("was pronounced down", "was never
+#: down") is deliberately NOT matched -- this asks what a page asserts today, not what it recounts
+#: about a previous round, and this lane is required to keep refuted wording rather than delete it.
+STATE_ASSERT = re.compile(
+    r"\brail\b[^.\n]{0,40}?(?:\b(?:is|are)\b\s*\**\s*(?P<c>DOWN|UP)|\**\s*(?P<v>ANSWERS?))\b",
+    re.I,
+)
+#: MEASURED FALSE POSITIVE, first run of `_k1_premise_scan.py`: the owning doc was reported as
+#: asserting UP on the strength of *"...whether the rail is up or down. That is a control that
+#: looks the same under both hypotheses"* -- a sentence about the GATE being state-blind. The
+#: conclusion was right and the evidence was wrong, which is the worse failure. A hypothetical is
+#: not an assertion. That miss is also why the declared state is READ FROM A FIELD below instead
+#: of inferred from the owning doc's prose.
+STATE_DISJUNCTION = re.compile(r"\A\s*or\s+(?:up|down)\b", re.I)
+#: A quoted span is a MENTION, not a use. The owning doc quotes its own retracted headline
+#: verbatim under a REFUTED marker; that is a record of what was refuted. Measured: without this,
+#: C6 fires on `CROSS-VENDOR-RAIL-STATUS.md:16` -- on the retraction itself.
+QUOTED_SPAN = re.compile(r"\"[^\"\n]*\"|“[^”\n]*”|`[^`\n]*`")
 
 
 def counts_at(basis: str) -> dict[str, int]:
@@ -337,6 +393,56 @@ def check_prose(
     return problems, exempted
 
 
+def state_assertions(doc: str) -> list[tuple[int, str, str]]:
+    """Every present-tense rail-state assertion as (lineno, 'up'|'down', line)."""
+    out: list[tuple[int, str, str]] = []
+    for lineno, line in enumerate(doc.splitlines(), 1):
+        if line.lstrip().startswith("<!--") or "RAIL-COUNT" in line:
+            continue
+        probe = QUOTED_SPAN.sub(" ", line)
+        for m in STATE_ASSERT.finditer(probe):
+            if STATE_DISJUNCTION.match(probe[m.end() :]):
+                continue
+            token = (m.group("c") or m.group("v")).lower()
+            out.append((lineno, "down" if token == "down" else "up", line))
+    return out
+
+
+def check_state_fields(fields: dict[str, str]) -> tuple[str, list[str]]:
+    """Return (declared_state, problems). Shape only -- the prose comparison is separate so a
+    citing doc cannot re-report the owning block's own field errors."""
+    problems: list[str] = []
+    declared = (fields.get("rail_state") or "").strip().lower()
+    if declared not in RAIL_STATES:
+        problems.append(
+            f"C6 RAIL-COUNT rail_state must be one of {list(RAIL_STATES)}, got {declared!r}"
+        )
+        declared = ""
+    probed = (fields.get("rail_probed") or "").strip()
+    if not RAIL_PROBED_RE.fullmatch(probed):
+        problems.append(
+            f"C6 RAIL-COUNT rail_probed must be an ISO date (YYYY-MM-DD), got {probed!r}; "
+            "an undated verdict cannot be told apart from a stale one"
+        )
+    return declared, problems
+
+
+def check_state_prose(doc: str, declared: str, where: str = "") -> list[str]:
+    """Every page in the declared set must agree with the declared verdict, or carry the same
+    dated marker C2 uses. An empty `declared` judges nothing -- C6's field check has already
+    fired, and re-reporting it per document would inflate one defect into several."""
+    if declared not in RAIL_STATES:
+        return []
+    tag = f"{where} " if where else ""
+    return [
+        f"C6 {tag}line {lineno}: asserts the rail is {state.upper()} while the RAIL-COUNT block "
+        f"declares {declared.upper()}, and the line carries no dated [superseded ...] marker: "
+        f"{line.strip()[:110]!r}"
+        for lineno, state, line in state_assertions(doc)
+        if state != declared and not EXEMPT_MARKER.search(line)
+    ]
+
+
 def check_artifact(basis: str, derived: dict[str, int]) -> list[str]:
     txt = read_text(basis, ART_REL)
     if txt is None:
@@ -452,6 +558,8 @@ rail_blocked_fulfilled: 3
 satisfiable_now: 10
 reviewed_satisfiable: 10
 catalog_units: 2007
+rail_state: down
+rail_probed: 2026-08-12
 derived_by: command-center/p2-next/vendor_satisfiability.py --basis committed
 -->
 
@@ -662,6 +770,97 @@ def _selftest() -> int:
         False,
     )
 
+    # C6 -- the rail VERDICT, in both directions. Every case below is drawn from a real line in
+    # one of the two pages, because the defect this check exists for was a real sentence that a
+    # green gate read and did not judge.
+    good_fields, _ = parse_block(GOOD_DOC)
+    declared_down, fp = check_state_fields(good_fields)
+    expect("C6 a well-formed rail_state/rail_probed pair is silent", fp, False)
+    expect(
+        "C6 the fixture's own DOWN headline agrees with its declared DOWN",
+        check_state_prose(GOOD_DOC, declared_down),
+        False,
+    )
+    # THE MEASURED DEFECT, frozen: the citing page's sentence, verbatim, against an UP block.
+    citing_stale = (
+        "5. **The cross-vendor review rail is DOWN, and it gates 42 blocked units.** "
+        "`codex --version` works.\n"
+    )
+    expect(
+        "C6 a citing page asserting DOWN under an UP block FIRES",
+        check_state_prose(citing_stale, "up", where="E2E-WAVE-STATUS.md"),
+        True,
+    )
+    expect(
+        "C6 the same line is exempt once dated and marked",
+        check_state_prose(
+            citing_stale.rstrip("\n") + " [superseded 2026-08-14]\n",
+            "up",
+            where="E2E-WAVE-STATUS.md",
+        ),
+        False,
+    )
+    # Precision, both directions. A retraction QUOTES the wording it retracts; that must not fire,
+    # and the quote-stripper must not become a way to smuggle a live assertion past the check.
+    expect(
+        "C6 a quoted retracted headline is a mention, not an assertion",
+        check_state_prose(
+            '> ## *"Cross-vendor review rail is DOWN - and it gates 42 blocked units"*\n',
+            "up",
+        ),
+        False,
+    )
+    expect(
+        "C6 a bare assertion still fires on a line that also quotes something",
+        check_state_prose(
+            'Despite the "rail ANSWERS" title, the rail is DOWN for this lane.\n', "up"
+        ),
+        True,
+    )
+    # The measured false positive from `_k1_premise_scan.py`: a hypothetical is not an assertion.
+    expect(
+        "C6 'whether the rail is up or down' is a hypothetical, not a claim",
+        check_state_prose(
+            "It returns the identical SUCCESS whether the rail is up or down. That is a control "
+            "that looks the same under both hypotheses.\n",
+            "up",
+        ),
+        False,
+    )
+    expect(
+        "C6 past-tense narration of the retracted verdict is not an assertion",
+        check_state_prose(
+            "The rail was pronounced down on one transport, and the rail was never down.\n",
+            "up",
+        ),
+        False,
+    )
+    expect(
+        "C6 an agreeing page is silent (the check is not 'DOWN is always wrong')",
+        check_state_prose("The rail is DOWN and 39 units wait on it.\n", "down"),
+        False,
+    )
+    expect(
+        "C6 a bogus rail_state value fires",
+        check_state_fields({**good_fields, "rail_state": "probably fine"})[1],
+        True,
+    )
+    expect(
+        "C6 an undated rail_probed fires",
+        check_state_fields({**good_fields, "rail_probed": "recently"})[1],
+        True,
+    )
+    expect(
+        "C6 a missing rail_state is caught by C1 rather than passing quietly",
+        parse_block(GOOD_DOC.replace("rail_state: down\n", ""))[1],
+        True,
+    )
+    expect(
+        "C6 with no declared state the prose check judges nothing (C1 owns that failure)",
+        check_state_prose(citing_stale, ""),
+        False,
+    )
+
     # C4 -- an empty/implausible derivation must be loud, not vacuously clean.
     expect("C4 plausible", plausibility(d), False)
     expect("C4 collapsed population", plausibility({**d, "blocked_units": 0}), True)
@@ -817,8 +1016,12 @@ def main(argv: list[str] | None = None) -> int:
 
     fields, block_problems = parse_block(doc)
     problems += block_problems
+    declared_state = ""
     if fields:
         problems += check_block(fields, derived, reviewed, catalog_units, args.basis)
+        declared_state, state_problems = check_state_fields(fields)
+        problems += state_problems
+        problems += check_state_prose(doc, declared_state)
     # `ready_units` is an INT at HEAD and a LIST in a sibling lane's uncommitted rewrite of the
     # same file -- measured, as a TypeError, the first time this ran on the worktree basis. Accept
     # both shapes rather than assuming one; -1 means "not derivable", which can never match a
@@ -838,6 +1041,7 @@ def main(argv: list[str] | None = None) -> int:
     # Documents that CITE the number without owning it. Skipped entirely when --doc is used,
     # because that mode is judging one file on purpose.
     secondary_claims = 0
+    state_claims = len(state_assertions(doc))
     if not args.doc:
         for rel in SECONDARY_DOCS:
             txt = read_text(args.basis, rel)
@@ -852,6 +1056,10 @@ def main(argv: list[str] | None = None) -> int:
             secondary_claims += sum(
                 1 for _, line, _ in prose_claims(txt) if RAIL_TOPIC.search(line)
             )
+            # C6. The count in a citing sentence can be right while the VERDICT around it is the
+            # one this lane retracted -- measured, and green for a full round.
+            problems += check_state_prose(txt, declared_state, where=rel)
+            state_claims += len(state_assertions(txt))
 
     print(f"  basis={args.basis}  doc={where}")
     print(
@@ -867,6 +1075,12 @@ def main(argv: list[str] | None = None) -> int:
         f"  unit-count claims examined: {len(prose_claims(doc))} in the owning doc + "
         f"{secondary_claims} on-topic in {len(SECONDARY_DOCS)} citing doc(s); "
         f"{exempted} exempted by an explicit dated marker"
+    )
+    print(
+        f"  C6 rail verdict: the block declares {(declared_state or '?').upper()} probed "
+        f"{fields.get('rail_probed', '?')}; {state_claims} rail-state assertion(s) across "
+        f"{1 + (0 if args.doc else len(SECONDARY_DOCS))} page(s) checked for agreement. "
+        f"CONSISTENCY ONLY -- this gate calls nothing, so its silence never means the rail answers."
     )
     print(
         f"  C5 content floor: {len(sat_rows)} satisfiable receipts checked against "

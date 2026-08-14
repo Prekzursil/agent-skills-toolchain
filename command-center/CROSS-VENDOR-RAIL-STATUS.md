@@ -9,6 +9,8 @@ rail_blocked_fulfilled: 3
 satisfiable_now: 10
 reviewed_satisfiable: 10
 catalog_units: 2007
+rail_state: up
+rail_probed: 2026-08-14
 derived_by: command-center/p2-next/vendor_satisfiability.py --basis committed
 -->
 
@@ -27,6 +29,17 @@ control. Counts re-derived from the COMMITTED tree.** The block above is not a s
 page — it is the page's contract with CI. `rail_count_gate.py` recomputes every field on each push
 and pull request and fails when this document, or
 `command-center/p2-next/VENDOR-SATISFIABILITY.json`, disagrees with a fresh derivation.
+
+**The block now also declares the rail VERDICT (`rail_state`, `rail_probed`), and C6 holds every
+page that cites this one to that single declaration.** Round 4 measured why it had to: round 3
+retracted "the rail is DOWN" *here* and left `command-center/E2E-WAVE-STATUS.md:124` asserting it
+— a page this gate already scanned — and the gate stayed green for a whole round, because the unit
+count in that sentence (42) was still correct and C2 only reads numbers. A citing-doc check that
+returns SUCCESS whether or not the two pages contradict each other is a control that looks the
+same under both hypotheses. **C6 proves CONSISTENCY, never TRUTH: this gate calls nothing, so its
+silence means the corpus stopped contradicting itself — not that the rail answers.** Only the
+probe below, with its control, says anything about the rail itself.
+Receipts: `command-center/p2-next/K1-PREMISE-SCAN.json`, `command-center/p2-next/K2-REDPROOF.json`.
 
 ```
 python command-center/p2-next/rail_count_gate.py --self-test   # prove the gate can fail

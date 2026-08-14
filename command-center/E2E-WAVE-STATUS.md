@@ -121,11 +121,23 @@ HEAD this document was written against.
    register rows** (my own re-derivation: `BLD-0023`→True, `ADV-0021`→True, `R-M18`→False).
    R-M18 is blocked on this, R-M06 depends on R-M18, so MONITOR stays gated. **Do not let anyone
    hand-write a SUCCESS receipt to clear it.**
-5. **The cross-vendor review rail is DOWN, and it gates 42 blocked units.** `codex --version`
-   works, `claude mcp list` says `codex … ✔ Connected`, and an actual `mcp__codex__codex` call
-   **fails**: `agent identity registration failed for …auth.openai.com/api/accounts/v1/agent/register`.
-   Three green signals, unusable rail. Separately, **449/449 READY units carry a
-   `reviewer_requirement`**, so no unit can reach `state: SUCCESS` from a build lane at all.
+5. **REFUTED 2026-08-14 — this item asserted "The cross-vendor review rail is DOWN, and it gates 42 blocked units". [superseded 2026-08-14]**
+   The wording is kept rather than deleted: it is preserved verbatim in permanent commit messages
+   and cannot be corrected there. It was pronounced down on ONE transport — a single failing
+   `mcp__codex__codex` call (`agent identity registration failed for
+   …auth.openai.com/api/accounts/v1/agent/register`) beside two green signals, `codex --version`
+   and `claude mcp list … ✔ Connected`. None of the three probes the rail end to end.
+   **Re-probed 2026-08-14 on two mechanically independent transports, with a control:**
+   `codex exec --ignore-user-config --sandbox read-only -o <f> -` exits 0 and the output file
+   carries the exact nonce its prompt demanded; `mcp__codex__codex` returns its nonce too; and the
+   SAME CLI call with `CODEX_HOME` pointed at an empty directory fails `401`, so the probe can
+   demonstrably see an auth failure. **42 units still DEMAND a cross-vendor review and 39 are
+   still owed one** — 3 already hold an executed Codex PASS, so restoring credentials was never
+   the lever for those. The owning page is `command-center/CROSS-VENDOR-RAIL-STATUS.md`;
+   `rail_count_gate.py` C6 now fails closed when this item and that page disagree, which is the
+   check that was missing while this bullet stayed wrong for a whole round.
+   Separately, **449/449 READY units carry a `reviewer_requirement`**, so no unit can reach
+   `state: SUCCESS` from a build lane at all.
 6. **Four committed adversarial artifacts are rejected by their own declared contracts**
    (ADV-0007: 6 errors, ADV-0022: 12, ADV-0041: 1, ADV-0040: passes from the worktree, fails from
    the blob). Reported, **not gated**, because `command-center/adversarial/` is frozen while a
