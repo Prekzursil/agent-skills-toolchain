@@ -6,8 +6,17 @@ Every case runs TWICE: once against the PRE-ROUND-3 gate (extracted from git his
 once against the shipped one. A case only counts if the old gate behaves the way the defect
 says it did -- otherwise "the new gate passes" would be indistinguishable from "the case
 does not exercise anything". The old gate hardcoded an absolute repo path, so for H1/H3 it
-is retargeted at the fixture by rewriting that one line; H2 is measured with the line left
-exactly as it shipped, because pointing at the wrong repo IS the defect.
+is retargeted at the fixture by rewriting that one line.
+
+H2 is retargeted too, at THIS repo rather than the fixture -- and the sentence that used to
+sit here ("H2 is measured with the line left exactly as it shipped, because pointing at the
+wrong repo IS the defect") is kept only to be corrected. Leaving the line as shipped meant
+honouring `REPO = Path("C:/Users/Prekzursil/source/ast-integrate")`, a Windows absolute path
+frozen into blob 66855eed4857. That resolves on one machine and cannot exist on a CI runner,
+where the old gate then read nothing and the control failed -- 24/24 locally, 1 failed in CI,
+for months of nobody running it. Pointing the old gate at the real repo still makes it report
+a document the fixture does not contain, which is the defect; what changes is that the
+somewhere-else is discovered at run time instead of frozen to one filesystem.
 
   H1 EVIDENCE-DRIFT   committed blob says 1.0, worktree says 2.0, document prints 2.0.
                       old: SUCCESS (reads the worktree only)   new: FAIL
