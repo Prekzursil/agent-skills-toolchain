@@ -55,8 +55,29 @@ Measured by key presence only (no credential read or printed):
 `skillListingBudgetFraction = 0.04` in BOTH settings files — 4x default, **the primary lever
 is already spent**. The other three are unset.
 
-This is now pinned in `writing-skills/SKILL.md` (both roots) so the next lane hits it before
-probing. Commit `ff14d2a6`.
+This is now pinned in `writing-skills/SKILL.md` (both roots **and** `skills.daily`) so the next
+lane hits it before probing. Commit `ff14d2a6`.
+
+### REFUTED: "a body insertion classifies RIGHT-AHEAD and deploys cleanly"
+INTEGRATE §4's rule, which the plan's step 3 relies on, is too wide. I appended a section to
+`writing-skills/SKILL.md` in both repo roots and predicted it would show up as deployable.
+It did not:
+
+    before my edit   IDENTICAL 225 · RIGHT-AHEAD 1 · DIVERGED 102 · needs_merge 440
+    after my edit    IDENTICAL 224 · RIGHT-AHEAD 1 · DIVERGED 103 · needs_merge 441
+    reconcile()      needs_merge: ['writing-skills/SKILL.md']   safe_to_deploy: []
+
+`classify_pair` compares unique-line SETS. My edit was not append-only — it REPLACED three
+frontmatter bullets (the wrong 1,024 limit and "only two fields"). Those three lines are
+unique to the live side, mine are unique to the repo side, so both sides hold unique lines and
+the file is DIVERGED, refused forever, exactly like a description MODIFY.
+
+**Correct rule:** it is APPEND-ONLY that deploys, not "body". Any edit that removes or modifies
+an existing line — anywhere in the file, frontmatter or body — is DIVERGED.
+
+My own recall fix was therefore sitting behind the very wall this lane exists to document. Closed
+by writing `skills.daily` directly (it is in this lane's file scope), preserving that tree's EOL
+convention; `IDENTICAL` returned to 225, `DIVERGED` to 102, and writing-skills left `needs_merge`.
 
 ### Sample 6 — my own spawn listing (an external signal I do not produce)
 31 bare / 6 in-zone survivors, first bare `triage-dispatch`. Survivors: ui-audit,
