@@ -40,7 +40,7 @@ gate suite      31 passed, exit 0        ci/tests/test_command_doc_promises.py  
 | **I2-2** | round 8: `scripts/claw.js` is *"ROUTED"* for an implement-or-retire call | `_lane_docs_i2_register_census.py` P3, full-token search over every tracked file: **15 carriers, 0 actionable rows.** Every carrier publishes the broken command, repeats it, is a frozen routing fixture, or is the lane's own build log | **CONFIRMED DEAD *and* UNROUTED** — the route ends in a test-file dict whose only effect is keeping the ratchet green | **FIX CODE.** A register row + a gate arm that fails without it (§3). |
 | **I2-3** | same, for `scripts/harness-audit.js` | same probe → 13 carriers. Three hits survived the filter and I **read** each: `docs/audit-design-2026-07-13/A5-doc-registry.json:535` (`status: broken-canonical`), `A5-decision-ledger.json:49` (`D-015`, `BROKEN-PACKAGING`), `phase3-discovery-2026-07-13/reconcile-codex-findings.md:34` | **RECORDED ON 2026-07-13 — a month before round 8 rediscovered it — and still dead.** Nothing reads those files; no gate asserts anything about `status: broken-canonical` | **FIX CODE**, and the reason is sharper than I2-2: *recording is demonstrably not routing.* |
 | **I2-4** | the repo's existing dangling-command gate could cover them | imported `check_published_commands.py` and fed its own `CMD` matcher two samples: `node …js` → **0 hits**, `python …py` → **1 hit** | **CONFIRMED python-only**, so neither token can ever reach it | **no action on that gate.** Widening measured, not done — see I2-5. |
-| **I2-5** | "just widen that gate to `node`" | same probe P2 over its own corpus (4,957 tracked `.md`): **22 node invocations, 16 unresolved**, most in other lanes' trees (`dist/index.js`, `ovh-mcp/dist/index.js`, `scripts/postinstall.js`, …) | **REJECTED with a number.** A 16-row cross-lane change | **route, with the measurement recorded** so the next reader need not re-derive it. |
+| **I2-5** | "just widen that gate to `node`" | same probe P2 over its own corpus (~4,960 tracked `.md`): **22 node invocations, 13 unresolved**, most in other lanes' trees (`dist/index.js`, `ovh-mcp/dist/index.js`, `scripts/postinstall.js`, …) | **REJECTED with a number.** A 13-row cross-lane change | **route, with the measurement recorded** so the next reader need not re-derive it. **First published as 16 — REFUTED by my own second signal, see §6.10.** |
 | **I2-6** | round 8: *"a third artifact (the skill) points at the same absent file"* | `grep` across skill roots: `skills/nanoclaw-repl/SKILL.md:9`, `skills/source-command-claw/SKILL.md:19`, **and `skills/autonomous-loops/SKILL.md:130,133`** — plus deployed `.agents/skills/` mirrors | **UNDERSTATED, not wrong.** Three skill families, four invocation sites, not one | **FIX DOC** — the register row names all of them, so a retire decision sees its true blast radius. |
 | **I2-7** | my own first register parser judged the right columns | printed the parsed cells instead of trusting the pass: the `harness-audit` row split into **8** cells, so the "owner" check read the *measured* column and the "settling action" check read the *owner* column | **MY OWN DEFECT — a green for the wrong reason** | **FIX MY CODE.** Split on unescaped pipes; control added (§4). |
 
@@ -109,9 +109,15 @@ GREEN            40 passed, rc=0                          register present + tra
                                                           command_env_deny_awareness, ci_wiring
 both-states      SUCCESS:docs-i2-bothstates fixed=0 absent=1 hollowed=1 restored=True
 census           SUCCESS:docs-i2-register controls=ok gate_scope=H1-python-only
-                 node_unresolved=16/22 routed=[claw.js, harness-audit.js] unrouted=[]
+                 node_unresolved=13/22 routed=[claw.js, harness-audit.js] unrouted=[]
+                 control_ancestor_walk_discriminates=True
+                 resolved_only_via_ancestor=[lib/sync-resources.js,
+                   scripts/scaffold_node_ext_apps.mjs, uicrit-pack/_test_pack.mjs]
                  ^ a mechanically DIFFERENT instrument (text search over all tracked files,
                    not a table parse) independently agrees both are now routed
+node re-derive   tokens=22 unresolved=16(old resolver); basename second signal DISAGREED on 5.
+                 3 were genuine false positives, 2 were generic-basename noise. Corrected
+                 resolver -> 13. See §6.10.
 published-cmds   --self-test 10/10 ok ; real run 407 published commands / 350 documents,
                  1 unrunnable (1 inherited/baselined), 0 NEW, 0 stale rows, exit 0
 column check     both rows ncells=7, owner in col 4       (harness-audit was 8 before the fix)
@@ -161,7 +167,20 @@ EOL              test file CR 1270 -> 1269 after reformat (preserved, NOT normal
    AGENTS.md §9. No credential inspected, printed or modified; almost certainly the
    `GITHUB_TOKEN=$(gh auth token)` example text and `${CLAUDE_PLUGIN_ROOT}` patterns quoted in
    the corpus tripping a heuristic.
-9. **Carried, not mine:** `skill-dual-write.yml` still has no `push:` trigger (INTEGRATE §6.1), so
+10. **A SECOND self-inflicted detector failure, found only because I distrusted my own weakest
+   control — and it had already shipped in a commit.** The `16 of 22` node figure in `fd450c9c`
+   rested on controls (`corpus_non_empty`, `some_token_found`) that prove only that the extractor
+   *ran*; neither could tell a correct classification from a wrong one. That is the
+   "a control that cannot distinguish the two hypotheses" shape, in my own probe, one paragraph
+   after I cited that rule against someone else. Corroborating each token with a mechanically
+   different basename search disagreed on **5 of 16**: three were real false positives caused by
+   resolving against the citer's immediate parent instead of its plugin/skill root — **the exact
+   root-anchoring error round 8 documented as R8-7**, reproduced in the probe written to check
+   round 8 — and two were noise from the generic basename `index.js`, where my resolver was
+   right and the second signal was not. Corrected to **13**, the refuted 16 kept visible in both
+   carriers, and the ancestor walk now has a control that fails if it is inert. The
+   recommendation it supports (do not widen the SLOP gate) is unchanged at 13.
+11. **Carried, not mine:** `skill-dual-write.yml` still has no `push:` trigger (INTEGRATE §6.1), so
    a direct push deleting BOTH the `quality.yml` step and the wiring suite is caught by nothing.
    R5-1 half 2 (fresh-install plugin wiring) remains UNVERIFIED, routed to hook-audit. G3
    (rollback edit-checkpoints) still awaits the owner at `docs/hook-audit/ROLLBACK-DEPLOY-PLAN.md`.

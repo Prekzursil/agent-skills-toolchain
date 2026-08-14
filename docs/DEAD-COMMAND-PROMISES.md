@@ -45,7 +45,19 @@ Measured limits of this file, stated rather than implied:
   `command-center/slop-report/check_published_commands.py`, cannot see either token: its
   matcher is `python <path>.py` only, verified two-state (it fires on a python invocation and
   returns 0 hits on a `node` one). Widening it to `node` was measured and **not done**: the
-  same corpus publishes 22 node invocations of which **16** resolve to nothing, most in other
+  same corpus publishes 22 node invocations of which **13** resolve to nothing, most in other
   lanes' trees (`dist/index.js`, `ovh-mcp/dist/index.js`, `scripts/postinstall.js`, …). That is
-  a 16-row cross-lane change, not this lane's to make — recorded here with the number so the
+  a 13-row cross-lane change, not this lane's to make — recorded here with the number so the
   next reader does not have to re-derive it. Probe: `docs/_lane_docs_i2_register_census.py`.
+
+  > **This file first published that number as 16. REFUTED by my own second signal, and kept
+  > here rather than quietly edited.** The first resolver tried only the citing document's
+  > immediate parent directory, so a skill pack or vendored plugin that ships its own tree —
+  > `skills/ui-audit/…` naming `uicrit-pack/_test_pack.mjs`, `tools/editor/metaswarm/…` naming
+  > `lib/sync-resources.js` — was reported as a dead promise it is not. That is the
+  > root-anchoring error round 8 had **already documented** as R8-7, reproduced in the probe
+  > written to check round 8. Caught by corroborating each token with a basename search, which
+  > disagreed on 5 of 16; three were genuine false positives and two (`dist/index.js`,
+  > `ovh-mcp/dist/index.js`) were noise from a generic basename where the resolver was right.
+  > The resolver now walks every ancestor root, and a control asserts that walk is not inert.
+  > The recommendation is unchanged: 13 rows is still a cross-lane change.
