@@ -53,7 +53,12 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - run: pip install pytest==8.4.2
+      # pyyaml is a real gate dependency, not test scaffolding: `ci/check_skill_render_traps.py`
+      # strict-parses skill frontmatter and REFUSES to issue a verdict when the parser is
+      # absent (a "cannot check, therefore clean" downgrade is the no-op-gate shape
+      # rules/common/ci-hygiene.md forbids). Pinned to the version the rules were measured
+      # against locally -- an unpinned parser can classify the same bytes differently.
+      - run: pip install pytest==8.4.2 pyyaml==6.0.3
       # Self-test FIRST: a guard whose own acceptance tests are red must not be
       # trusted to judge a pull request.
       - name: gate-skill-dual-write self-test
@@ -130,6 +135,33 @@ jobs:
       # skills apart) and blocking on a one-session number would be an overclaim.
       - name: gate-skill-description-ratchet
         run: python ci/check_skill_description_ratchet.py
+      # The RENDER-TRAP gate. Named explicitly for the same reason as every step above: the
+      # `ci/tests` glob already collects the suite and is one refactor away from not doing so.
+      # WHAT IT CATCHES, and why the ratchet directly above does NOT: the ratchet measures the
+      # AUTHORED description surface with a hand-rolled line reader
+      # (check_skill_description_ratchet.py:177-232) that never strict-parses and never strips
+      # comments. Two defects that actually shipped in THIS repo are invisible to it, because
+      # in both the text was present on disk and absent from the listing the model received:
+      #   * bc-drive-plus wrote 793 chars in a plain scalar containing one ` #`. `#` after
+      #     whitespace opens a YAML comment, so 440 chars were discarded and the entry rendered
+      #     as a dangling `...(closes bc-drive's`. Fixed in ff14d2a6.
+      #   * cv-studio wrote a folded (`>`) description in a file whose frontmatter did not
+      #     strict-parse; the listing dropped the description entirely and fell back to the body
+      #     `# H1` -- 729 authored chars rendered as 74. Fixed in 878cd621.
+      # The ratchet charged the listing budget for characters nobody ever saw. This gate
+      # measures the RENDERED surface instead, so the two are complementary, not redundant.
+      # It blocks with NO exemptions file: measured over all 683 SKILL.md in the two roots it
+      # is green at HEAD, there is no legitimate instance to grandfather, and each fix is one
+      # line (quote the scalar) -- so an exemptions list would only add a stale-pin surface.
+      # DELIBERATELY NOT BLOCKING: a strict-invalid frontmatter on its own. That claim was
+      # shipped once in writing-skills and REFUTED -- 5 of the 6 live skills carrying a `: ` in
+      # a plain description render in full, so the client's parser is more forgiving than
+      # PyYAML. Only the measured INTERSECTION (strict-invalid AND a block scalar) violates;
+      # the rest is printed advisory.
+      - name: gate-skill-render-traps self-test
+        run: python -m pytest ci/tests/test_skill_render_traps.py -q
+      - name: gate-skill-render-traps
+        run: python ci/check_skill_render_traps.py
       # Exact route comparison catches stale names and old skills/ routes; the
       # generator carries forward declared-only compatibility names.
       - name: gate-skill-surface-manifest

@@ -158,3 +158,197 @@ two credible axes are the ones quoted in `writing-skills`.
 ### 6.6 The vault's ui-audit no-op and the workflow-authoring union merge are unchanged.
 Both remain owner decisions. `command-center/S2-WORKFLOW-AUTHORING-UNION-MERGE.md` still stands
 as written; nothing in this lane picked a side.
+
+
+---
+
+# SKILLS2 — INTEGRATE lane, ROUND 2 (render traps)
+
+Round 1 is preserved above, verbatim and unedited, including the one claim of its own that
+this round REFUTES (§R0). Nothing above was deleted.
+
+STATUS: MEASURED. Every command below was executed on 2026-08-14 and its real output is
+quoted. NOT measured: CI green on a real GitHub runner — same residual as §6.1, I ran every
+gate locally on Windows. NOT measured: whether the corrected `writing-skills` text renders in
+a FRESH session (the listing is budget-filtered; body edits are not charged, but that is an
+argument, not a receipt).
+
+## §R0 What round 1 left open, and one of its claims that is now REFUTED
+
+Round 1 wired the DESCRIPTION RATCHET — a shrink-only gate over how MANY characters the fleet
+spends. It did not ask whether the characters an author spends are RENDERED AT ALL. Two
+defects that had actually shipped in this repo were invisible to it, because in both the text
+was present on disk and absent from the listing the model received.
+
+**REFUTED, kept rather than deleted.** Line 13 above says the lane "diagnosed the render bug
+(budget truncation, not parse failure)", and `ci/check_skill_description_ratchet.py`'s docstring
+carried the same exclusive wording. The DOMINANT cause is budget and that survives. The
+EXCLUSIVE half does not: `cv-studio` wrote a folded description inside a frontmatter that does
+not strict-parse, so the listing dropped the description entirely and rendered 74 characters of
+the body `# H1` in place of 729 — nowhere near any cap. Counting folded scalars cannot see this
+class, because the defect is the INTERSECTION of a fold with an unparseable frontmatter; a fold
+in a VALID file renders fine (11 of 12 measured). The docstring is corrected at source in this
+commit, with the refuted version kept beside it.
+
+The corrected sentence is now three causes, not two, and it is in the skill an author reads:
+`writing-skills/SKILL.md` §"The skill listing budget", bullet 3.
+
+## §R1 The wiring — what makes this round reachable
+
+| Surface | What landed |
+|---|---|
+| Gate | `ci/check_skill_render_traps.py` — two blocking rules over the RENDERED surface, in both repo skill roots |
+| CI | `.github/workflows/skill-dual-write.yml` — `gate-skill-render-traps self-test` + `gate-skill-render-traps`, additive, placed after the ratchet |
+| Dependency | that workflow's `pip install` now pins `pyyaml==6.0.3` — the gate strict-parses and REFUSES to verdict without a parser |
+| Tests | `ci/tests/test_skill_render_traps.py` — 24 tests, each blocking rule red-proofed against the blob that really shipped it |
+| Agent surface | `writing-skills/SKILL.md` in BOTH repo roots **and deployed** to `~/.claude/skills.daily`: the corrected 3-cause diagnosis plus the command to run |
+| Sibling correction | `ci/check_skill_description_ratchet.py` docstring rescoped (§R0) |
+
+The two rules, and why each is a rule:
+
+- `comment-truncation` — a plain (unquoted) `description`/`when_to_use` scalar containing `#`
+  after whitespace. `bc-drive-plus` authored 793 characters and 440 were eaten by one `#`.
+- `block-scalar-in-invalid-frontmatter` — a block (`>`/`|`) `description` in a frontmatter that
+  does not strict-parse. `cv-studio` authored 729 and rendered 74 characters of body heading.
+
+**Blocking, with NO exemptions file.** Measured over all 683 `SKILL.md` in the two repo roots:
+zero violations at HEAD, so there is no debt to grandfather; each fix is one line (quote the
+scalar). An exemptions list here would only add a stale-pin surface to police. This is the
+opposite call from the ratchet's, and deliberately so — the ratchet WAS red at HEAD.
+
+**Deliberately NOT blocking:** a strict-invalid frontmatter on its own. That claim shipped once
+in `writing-skills` and was refuted — 5 of the 6 live skills carrying a `: ` in a plain
+`description` render in full, so the client's parser is more forgiving than PyYAML. It is
+printed advisory (8 files at HEAD) and never blocks. Only the measured intersection violates.
+
+## §R2 The executable check, and it goes RED without the integration
+
+**Fail-first, captured before I touched the workflow** — the suite was complete and the gate
+already worked; exactly the wiring assertions were red:
+
+```
+$ python -m pytest ci/tests/test_skill_render_traps.py -q
+FAILED ci/tests/test_skill_render_traps.py::test_the_gate_is_wired_into_ci
+FAILED ...::test_removing_a_wire_turns_the_wiring_check_red[python -m pytest ci/tests/test_skill_render_traps.py -q]
+FAILED ...::test_removing_a_wire_turns_the_wiring_check_red[python ci/check_skill_render_traps.py]
+3 failed, 21 passed in 3.38s
+```
+
+After adding the two workflow steps, unchanged suite:
+
+```
+$ python -m pytest ci/tests/test_skill_render_traps.py -q
+24 passed in 3.39s
+```
+
+Delete either workflow step and those three go red again — `test_removing_a_wire_turns_the_
+wiring_check_red` proves that mechanically by cutting each wire in a scratch copy, so the
+wiring assertion cannot be a tautology that passes against any file.
+
+All gates on the real tree:
+
+```
+$ python ci/check_skill_render_traps.py
+skill render-trap surface (ADVISORY): 683 SKILL.md measured, 8 strict-invalid frontmatter
+SUCCESS:skill-render-traps no violations                                     rc=0
+$ python ci/check_skill_description_ratchet.py   -> SUCCESS:skill-description-ratchet   rc=0
+$ python ci/gen_skill_index.py --check --fail-on-drift -> INDEX DRIFT: no             rc=0
+$ python ci/gen_skills_manifest.py --check -> skills_tracked=337 manifest_rows=337     rc=0
+```
+
+## §R3 Detector controls — both states, on blobs that really shipped
+
+The controls are NOT synthetic mutations of a healthy file. Mutating a good file into the shape
+your own regex was written to catch demonstrates self-consistency, not discrimination — this
+program already made that mistake once (`SKILLS2-ROUND4-BUILD.md`, the guard census). Each rule
+is proven against the REAL blob that shipped the defect and the REAL blob that fixed it:
+
+| rule | BROKEN blob | fires? | FIXED twin | silent? |
+|---|---|---|---|---|
+| `comment-truncation` | `ff14d2a6^:.agents/skills/bc-drive-plus/SKILL.md` | exit 1, rule matched | `ff14d2a6:` same path | exit 0 |
+| `block-scalar-in-invalid-frontmatter` | `878cd621^:skills/cv-studio/SKILL.md` | exit 1, rule matched | `878cd621:` same path | exit 0 |
+
+`control_ok: true` — `SUCCESS:s2i-bothstates gate fires on broken and is silent on fixed`.
+
+**A trap this control walked into and out of.** The obvious fixed-twin for cv-studio is
+`1baa7ad5` ("repair unparseable SKILL.md frontmatter"). It is **not an ancestor of main** —
+`git merge-base --is-ancestor 1baa7ad5 HEAD` returns **rc=1**; it is the pre-squash branch
+commit. Pinning it would have resolved on this box and failed in CI. The squashed twin
+`878cd621` (rc=0) is pinned instead. The rc was read explicitly rather than compared `== 0`,
+because rc=128 ("could not be asked") is a third outcome and this repo has been bitten by
+folding it into "no".
+
+Four further controls stop the gate from being a tripwire rather than a rule, each an executable
+test: `foo#bar` and `C#` do NOT fire (proves it is not a naive `"#" in value`); a `#` inside a
+QUOTED scalar does not fire (the fix the gate recommends must pass it); a folded scalar in VALID
+frontmatter does not fire (11 of 12 live folds render); a strict-invalid file with a plain
+description raises advisory only, violations empty. Fail-closed is tested four ways — empty
+walk, absent root, missing frontmatter, unclosed frontmatter — plus
+`test_configuration_error_exits_two_not_zero`, because CI reads the exit code, and
+`test_absent_pyyaml_is_a_configuration_error_not_a_pass`, because "cannot check, therefore
+clean" is the no-op-gate shape `rules/common/ci-hygiene.md` forbids.
+`test_the_real_repository_measures_a_plausible_number_of_files` asserts a COUNT (>300), because
+four successive probes in this program agreed with each other and were all wrong from counting
+the wrong collection.
+
+## §R4 Where the defects still live, measured across four trees
+
+```
+tree                            n    comment-truncation   block-in-invalid
+repo .agents/skills            346          0                    0
+repo skills/                   337          0                    0
+live ~/.claude/skills.daily    328          0                    0
+live ~/.agents/skills (vault)  328          1 bc-drive-plus      1 cv-studio
+```
+
+Both repo roots and the tree the client reads are clean, which is why blocking is adoptable.
+**The orphan Codex vault still carries both defects live** — the same tree round 1's §6 and the
+build lane's residual #3 flagged for its 8 broken main-guards. CI cannot reach it; the deploy
+hop refuses every one of those files as two-way diverged. This gate does not close that, and
+says so rather than implying coverage it does not have.
+
+## §R5 Residual — honest and inline
+
+### R5.1 CI-green is still UNVERIFIED, and one new import is the reason to say so louder.
+Every gate above was run locally on Windows. `.github/workflows/skill-dual-write.yml` now
+installs `pyyaml==6.0.3`; local is also 6.0.3, so parse behaviour is pinned across both — but a
+pin is an argument, not a receipt. *Likely (55-80%) CI is green on the new steps. Settling
+experiment: read the next PR's `gate-skill-render-traps` step log.*
+
+### R5.2 Four pre-existing test failures on Windows, none of them mine — measured, not assumed.
+The full sweep the workflow runs (`pytest ci/tests tools/d001-dual-write/tests -q`) reports
+**4 failed, 874 passed, 1 skipped**. Round 1's §6.1 named one of them; there are four:
+`test_strict_parity_keeps_distinct_invalid_utf8_path_bytes_distinct`,
+`test_project_keeps_distinct_invalid_utf8_path_bytes`,
+`test_verifier_refuses_an_executable_mode_regression`,
+`test_atomic_ref_create_refuses_a_branch_created_after_precheck`.
+Independent signal, with a control: the same four fail in a PRISTINE clone of HEAD that
+verifiably does not contain my files (`ls: cannot access 'ci/check_skill_render_traps.py': No
+such file or directory`), `4 failed in 5.88s`. All four need POSIX semantics Windows cannot
+represent — invalid UTF-8 in a filename, an executable bit, a shell interposer on `git
+update-ref`. *Almost certain (90-99%) pre-existing and Windows-only.*
+
+### R5.3 The gate cannot see the trees the client actually loads.
+It walks the two repo roots. `~/.claude/skills.daily` is clean today only because this lane
+wrote it; nothing gates it, and the deploy hop is still a local operator command. The vault is
+worse (§R4). *A repo-side gate cannot fix a deploy-side orphan; that remains the owner decision
+priced in `S2-WORKFLOW-AUTHORING-UNION-MERGE.md` and round 1 §6.6.*
+
+### R5.4 `when_to_use` is gated for the comment trap but not for the block-scalar trap.
+`comment-truncation` charges both keys. `block-scalar-in-invalid-frontmatter` is scoped to
+`description`, because `description` is where the H1 fallback was MEASURED. Whether a block
+`when_to_use` in an unparseable file behaves the same way is *uncertain (20-55%)* and I did not
+guess. Settling experiment: take a strict-invalid file, fold only its `when_to_use`, deploy, and
+read the entry in a fresh session's listing.
+
+### R5.5 The client's parser is still a black box, and this gate does not model it.
+The evidence constrains it — it strips ` #` comments, tolerates `: ` in a plain scalar, and
+loses a folded description when the mapping is unparseable — but I did not read client source
+and assert nothing about which library it uses. *Speculative (<20%) on internals; the two rules
+rest on observed input/output pairs, not on a model.*
+
+### R5.6 Out of this round's scope, unchanged and not silently dropped.
+`ci/skill-description-exemptions.txt` still pins five descriptions against a "1,024 spec max"
+while the render cap is 1,536 (build-lane residual #2). The vault's 8 silent-no-op main-guards
+and the two `design-studio` sites from round 1 §6.2 are untouched. The
+`workflow-authoring` union merge is still an owner call, and nothing here picked a side.

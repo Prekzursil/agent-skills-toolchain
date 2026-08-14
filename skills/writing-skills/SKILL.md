@@ -154,8 +154,15 @@ Three consequences that change what you should do:
    is already over budget. Adding a clause is not free — it pushes the tail further into the
    dark. Prefer a char-neutral edit: add the clause and trim equivalent filler in the same pass.
 3. **The per-entry cap is 1,536 characters** for `description` + `when_to_use` combined, and it
-   applies independently of the total budget. Only text past 1,536 is truncated per-file;
-   everything else that goes missing went missing to the BUDGET, not to a per-file limit.
+   applies independently of the total budget. Text past 1,536 is truncated per-file.
+   **There are THREE causes of missing text, not two.** An earlier version of this bullet ended
+   "everything else that goes missing went missing to the BUDGET, not to a per-file limit".
+   **That dichotomy was REFUTED** and is kept here rather than deleted. The third cause is a
+   frontmatter the client cannot parse, which silently substitutes the body `# H1` **at any
+   length**: `cv-studio` lost a 729-character description and rendered 74 characters of
+   heading, nowhere near the cap. So diagnose in this order — (1) does the frontmatter parse,
+   (2) is the entry over 1,536, (3) is it in the least-invoked dark tail. Step (1) is now
+   mechanical; see the gate below.
 
 **Read the instruments before theorising** — all three ship with the client:
 
@@ -221,6 +228,21 @@ JSON schema, which is schema lag, not evidence that they do not exist.
 
   Either quote the scalar, or keep both sequences out of it. Whichever you choose,
   **re-parse the file after writing** — the failure mode is silent in both directions.
+
+  **You do not have to remember any of this.** Both traps are gated now; run the gate rather
+  than re-deriving them, from an `agent-skills-toolchain` checkout:
+
+  ```
+  python ci/check_skill_render_traps.py
+  ```
+
+  It blocks a plain scalar carrying ` #`, and a block-scalar `description` in a frontmatter
+  that does not strict-parse. It prints the strict-invalid count as ADVISORY — that alone is
+  not a render failure, per the refutation recorded above — and exits 2 rather than 0 when it
+  cannot measure. CI runs it on every pull request as `gate-skill-render-traps`
+  (`.github/workflows/skill-dual-write.yml`), and its suite proves each rule against the real
+  blobs that shipped the defect (`ff14d2a6^` bc-drive-plus, `878cd621^` cv-studio) and the
+  real blobs that fixed it — not against synthetic mutations.
 - `description`: Third-person, describes ONLY when to use (NOT what it does)
   - Start with "Use when..." to focus on triggering conditions
   - Include specific symptoms, situations, and contexts

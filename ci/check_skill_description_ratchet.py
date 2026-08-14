@@ -8,11 +8,21 @@ The body is read on demand; the description is what decides whether the skill is
 ever reached at all.  Measured 2026-08-12 in a live session: **26-30 curated
 skills rendered with NO description**, so they could not be auto-picked even
 though they were curated and their SKILL.md carried real text on disk (up to
-1,750 chars).  The diagnosed mechanism is client-side BUDGET TRUNCATION in
-listing order, not a per-file parse failure -- refuted three independent ways
-(byte-stable skills flipping between sessions; byte-identical descriptions
-rendering differently across namespaces in one session; 12 folded scalars
-producing 0 bare and 11 over-1,024 descriptions producing 1 bare).
+1,750 chars).  The DOMINANT mechanism is client-side BUDGET TRUNCATION in
+listing order, evidenced three independent ways (byte-stable skills flipping
+between sessions; byte-identical descriptions rendering differently across
+namespaces in one session; 12 folded scalars producing 0 bare and 11
+over-1,024 descriptions producing 1 bare).
+
+That sentence used to end "not a per-file parse failure", and the EXCLUSIVE half
+was REFUTED -- kept here rather than deleted.  ``cv-studio`` wrote a folded
+description in a frontmatter that does not strict-parse; the listing dropped the
+description entirely and rendered 74 characters of the body ``# H1`` in place of
+729, at a length nowhere near any cap.  Counting folded scalars cannot see that
+class, because the defect is the INTERSECTION of a fold with an unparseable
+frontmatter -- a fold in a VALID file renders fine (11 of 12 measured).  That
+intersection is now gated separately by ``ci/check_skill_render_traps.py``, which
+measures the RENDERED surface; this gate measures the AUTHORED one.
 
 Consequence: **descriptions are a scarce shared resource.**  Every char one
 skill spends is a char another skill cannot have.  Nothing in this repo charged
