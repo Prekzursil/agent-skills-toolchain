@@ -53,11 +53,46 @@ import glob
 import json
 import os
 import re
+import subprocess
 import sys
 import uuid
 
-REPO = "C:/Users/Prekzursil/source/ast-integrate"
 SR = "command-center/slop-report"
+
+
+def _repo_root() -> str:
+    """Repo root resolved from THIS FILE's location -- never a literal.
+
+    ROUND 7, CONFIRMED DEFECT (`_r7_defect.out.json`, verdict CONFIRMED-NOT-CLONE-VALID).
+    Round 6 shipped `REPO = "C:/Users/Prekzursil/source/ast-integrate"`. The sibling
+    CI-wired gate `check_published_commands.py` carries a PORTABILITY paragraph naming
+    that exact construction as why another gate "cannot run on a CI runner at all" -- so
+    this lane documented the defect class and then committed it two rounds later.
+
+    Measured, not argued: a copy of this gate placed in a fresh clone and run with
+    cwd=clone reported `docs_scanned: 10` -- the SOURCE tree's count, which includes an
+    untracked doc that cannot exist in a clone -- while the clone held 9; and that run
+    WROTE its receipt into the SOURCE worktree. A clone-run silently re-measured the very
+    tree it was supposed to check, which is worse than not cloning: it manufactures the
+    confidence the clone exists to establish.
+
+    Anchored on `__file__` rather than cwd on purpose -- `git rev-parse` alone follows the
+    caller's directory, so the copy inside a clone must resolve from where IT sits.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    r = subprocess.run(
+        ["git", "-C", here, "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if r.returncode == 0 and r.stdout.strip():
+        return r.stdout.strip().replace("\\", "/")
+    return os.path.abspath(os.path.join(here, "..", "..")).replace("\\", "/")
+
+
+REPO = _repo_root()
 OUT = os.path.join(REPO, SR, "_r6_transcript.out.json")
 BASELINE = os.path.join(REPO, SR, "_r6_transcript_baseline.json")
 
@@ -113,24 +148,76 @@ def leaf_index(obj, into: dict) -> None:
             leaf_index(v, into)
 
 
-def load_receipts() -> dict:
+def _git(args: list) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", "-C", REPO, *args],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def _tracked(pattern: str) -> list:
+    return [
+        p
+        for p in _git(["ls-files", "--", f"{SR}/{pattern}"]).stdout.splitlines()
+        if p.strip()
+    ]
+
+
+def _sources(pattern: str, committed: bool) -> list:
+    """(basename, text) pairs -- from HEAD blobs, or from the working tree."""
+    if committed:
+        out = []
+        for rel in _tracked(pattern):
+            blob = _git(["show", f"HEAD:{rel}"])
+            if blob.returncode == 0:
+                out.append((os.path.basename(rel), blob.stdout))
+        return out
+    out = []
+    for path in sorted(glob.glob(os.path.join(REPO, SR, pattern))):
+        try:
+            with open(path, encoding="utf-8") as fh:
+                out.append((os.path.basename(path), fh.read()))
+        except OSError:
+            continue
+    return out
+
+
+def dirty_under_sr() -> list:
+    """Working-tree paths under this directory that differ from HEAD."""
+    rows = _git(["status", "--porcelain", "--", f"{SR}/"]).stdout.splitlines()
+    return sorted({os.path.basename(r[3:].strip()) for r in rows if len(r) > 3})
+
+
+def load_receipts(committed: bool = False) -> dict:
+    """Index every sibling receipt.
+
+    ROUND 7: `committed=True` reads HEAD blobs instead of the working tree. Round 6 only
+    ever read the working tree, so `TRANSCRIPTION-CLEAN` was a statement about ONE DISK.
+    Receipts in this directory have been dirty for several rounds, and the gap is not
+    theoretical -- measured in `_r7_defect.out.json`, BOTH directions, on a real divergent
+    key (`n_before`, worktree 73 / committed 1 in `_r2_bucket_c.out.json`): a document
+    publishing the worktree value scores AGREE here and DISAGREE against the committed
+    blob a clone would read. That is a false NEGATIVE, the dangerous direction.
+    """
     out = {}
-    for path in sorted(glob.glob(os.path.join(REPO, SR, "_*.out.json"))):
+    for base, text in _sources("_*.out.json", committed):
         # NEVER index this probe's own output. It records every claim it found, including
         # the `key` and `doc_value` of each one, so indexing it lets a document be
         # "confirmed" by the gate's own previous reading of that same document. That is a
         # false NEGATIVE -- the dangerous direction -- and it is self-referential besides.
         # Caught live: `key: value` in the round-6 report matched this file's own records.
-        if os.path.basename(path) == os.path.basename(OUT):
+        if base == os.path.basename(OUT):
             continue
         try:
-            with open(path, encoding="utf-8") as fh:
-                data = json.load(fh)
-        except (OSError, ValueError):
+            data = json.loads(text)
+        except ValueError:
             continue
         idx: dict = {}
         leaf_index(data, idx)
-        out[os.path.basename(path)] = {"index": idx, "raw": data}
+        out[base] = {"index": idx, "raw": data}
     return out
 
 
@@ -225,17 +312,22 @@ def is_violation(c: dict) -> bool:
 
 
 def main() -> int:
-    receipts = load_receipts()
+    # ROUND 7: `--committed` answers the question a clone would ask -- do the numbers
+    # published in the COMMITTED docs agree with the COMMITTED receipts? The default stays
+    # the working tree so an author can check a doc BEFORE committing it (round 6 shipped
+    # a wrong number precisely because nothing checked it pre-commit).
+    committed = "--committed" in sys.argv
+    receipts = load_receipts(committed)
     baseline = {}
     if os.path.exists(BASELINE):
         with open(BASELINE, encoding="utf-8") as fh:
             for row in json.load(fh).get("adjudicated", []):
                 baseline[(row["doc"], row["key"])] = row["reason"]
 
+    docs = _sources("SLOP-*.md", committed)
     live: list = []
-    for path in sorted(glob.glob(os.path.join(REPO, SR, "SLOP-*.md"))):
-        with open(path, encoding="utf-8") as fh:
-            live += analyze_text(fh.read(), receipts, doc=os.path.basename(path))
+    for base, text in docs:
+        live += analyze_text(text, receipts, doc=base)
 
     violations, baselined = [], []
     for c in live:
@@ -278,10 +370,20 @@ def main() -> int:
     }
     controls["PASS"] = all(controls.values())
 
+    dirty = dirty_under_sr()
     res = {
-        "head": os.popen(f'git -C "{REPO}" rev-parse --short HEAD').read().strip(),
+        "repo_root": REPO,
+        "head": _git(["rev-parse", "--short", "HEAD"]).stdout.strip(),
+        # ROUND 7. Which bytes were read, and whether any of them are uncommitted. A green
+        # verdict now states its own scope instead of implying a repo-wide one: in
+        # `worktree` mode with a non-empty `dirty_consulted`, CLEAN means "clean on this
+        # disk", and only `--committed` answers for a clone.
+        "mode": "committed" if committed else "worktree",
+        "dirty_consulted": [
+            d for d in dirty if d.endswith(".out.json") or d.startswith("SLOP-")
+        ],
         "receipts_indexed": len(receipts),
-        "docs_scanned": len(glob.glob(os.path.join(REPO, SR, "SLOP-*.md"))),
+        "docs_scanned": len(docs),
         "claims_found": len(live),
         "claims_by_verdict": {
             v: sum(1 for c in live if c["verdict"] == v)
@@ -302,8 +404,13 @@ def main() -> int:
     ok = controls["PASS"] and not violations
     res["verdict"] = "TRANSCRIPTION-CLEAN" if ok else "TRANSCRIPTION-VIOLATIONS"
 
-    with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(res, fh, indent=1, sort_keys=True)
+    # ROUND 7: `--committed` prints but does NOT write a receipt. A second `_*.out.json`
+    # beside this one would be picked up by `load_receipts` on the next worktree run --
+    # the gate indexing its own output, which is the false-negative round 6 caught as F4
+    # and removed. The committed-mode result is captured by `_r7_verify.py` instead.
+    if not committed:
+        with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
+            json.dump(res, fh, indent=1, sort_keys=True)
 
     summary = {k: v for k, v in res.items() if k != "all_claims"}
     json.dump(summary, sys.stdout, indent=1, sort_keys=True)

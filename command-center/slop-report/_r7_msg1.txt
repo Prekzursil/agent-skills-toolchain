@@ -1,0 +1,46 @@
+fix(slop): round 6's gate could only ever measure this disk
+
+`_r6_transcript.py` bound REPO to an absolute string literal. Its own sibling,
+the CI-wired `check_published_commands.py`, carries a PORTABILITY paragraph
+naming that exact construction as why another gate "cannot run on a CI runner
+at all" -- so this lane wrote the defect class down and then committed it two
+rounds later.
+
+Measured, not argued (`_r7_defect.out.json`, pinned to pre-fix rev b2df8f6b):
+
+  * P1 ast over the module body: REPO is an absolute literal. Control runs on
+    two files this round does not edit, and separates them -- the CI-wired gate
+    reads not-hardcoded, `_aud3_clone_gate.py` reads hardcoded.
+  * P2 copied into a fresh clone and run with cwd=clone, it reported 10 docs
+    where the clone holds 9 and the source holds 10, and its run MUTATED a file
+    inside the SOURCE worktree. Two signals independent of HEAD, which is
+    necessary here: siblings commit under this lane continuously, so the
+    obvious head-equality check matched neither tree and is recorded refuted.
+  * P3 receipts were globbed from the WORKING TREE, so TRANSCRIPTION-CLEAN was
+    a one-disk statement. On a real divergent key (`n_before`, worktree 73 vs
+    committed 1) a document publishing the worktree value scores AGREE here and
+    DISAGREE against the blob a clone reads. Both directions shown; the mirror
+    initially passed for the wrong reason and the control was fixed, not the
+    sentence.
+
+The fix: root resolved from __file__ via `git rev-parse --show-toplevel`, a
+`--committed` mode that reads docs and receipts from HEAD blobs, and a
+`dirty_consulted` field so a green verdict states its own scope. Committed mode
+writes no receipt on purpose -- a second `_*.out.json` beside this one would be
+indexed by the next worktree run, which is the self-indexing false negative
+round 6 removed as F4.
+
+Proof it changed what is measured (`_r7_verify.out.json`, FIX-PROVEN): in ONE
+fresh clone pinned at the pre-fix rev, the OLD gate measures the source and
+writes back, the NEW one measures the clone and does not. Both states, or the
+check would prove only that python ran. Regression in this tree: verdict,
+claim count and all 8 controls unchanged.
+
+Scope, stated because it is narrower than the mechanism: `--committed` returns
+TRANSCRIPTION-CLEAN with 0 violations. The hole was real and is closed; no
+published number currently exploits it. This fixes an instrument, it does not
+catch a wrong number.
+
+Both probes pin to the newest rev whose committed blob is still hardcoded,
+discovered rather than hand-pinned, because the first version measured the live
+file and went silent the moment the defect was repaired.
