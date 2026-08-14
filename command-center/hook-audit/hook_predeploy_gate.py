@@ -610,21 +610,60 @@ def lint_if_on_non_tool_event(report: Report, sources: dict[str, dict]) -> None:
                     )
 
 
+DISPATCH_SCRIPT_MARK = "_dispatch/dispatch.py"
+
+
+def enforced_ceilings(path: Path) -> dict[str, float]:
+    """Event -> the timeout the vendor ACTUALLY enforces on our dispatcher command.
+
+    `manifest.json`'s `settings_timeout` is a MIRROR of this, and the mirror is measurably
+    stale: `_b12_ceiling.py` found PostToolUse 15 vs enforced 25 and PreToolUse 15 vs enforced
+    20 (SessionStart and Stop agree). A ceiling rule that reads the mirror therefore both
+    invents violations that do not exist and can miss ones that do.
+
+    SECURITY: goes through `settings_hooks`, which reads the `hooks` subtree ONLY, and keeps
+    just event names and integer timeouts. No other settings key is read (AGENTS.md 9).
+    """
+    out: dict[str, float] = {}
+    for event, entries in settings_hooks(path).items():
+        ours = [
+            e["timeout"]
+            for e in entries
+            if isinstance(e.get("timeout"), (int, float))
+            and DISPATCH_SCRIPT_MARK in str(e.get("script") or "")
+        ]
+        if ours:
+            out[event] = min(ours)
+    return out
+
+
 def lint_budget_ceiling(report: Report) -> None:
-    """L2. A check timeout above its event's settings_timeout is unreachable surplus.
+    """L2. A check timeout above its event's enforced ceiling destroys that event's output.
 
     Round 4 measured this by hand (Stop/git-hygiene 90 s inside a 35 s event = 55 s that cannot
-    be used, in BOTH trees). Encoding it here is what stops it regressing silently, and the
-    vendor doc supplies the mechanism round 4 lacked: `timeout` is per-hook-COMMAND, and our
-    dispatcher is registered as ONE command holding N checks, so the cancellation lands on the
-    whole dispatcher and every check on that event loses its output together.
+    be used, in BOTH trees) and called the surplus "unreachable", which reads as cosmetic.
+    `_b12_joinorder.py` executed the real dispatcher and showed it is not. `dispatch.py:360-372`
+    collects checks SEQUENTIALLY with an absolute deadline of `start + its own declared
+    timeout`, so an over-ceiling budget holds `run()` past the point the vendor cancels -- and
+    per the vendor contract `timeout` is per-hook-COMMAND while our dispatcher is ONE command
+    holding N checks, so the cancellation lands on the whole dispatcher and EVERY check on that
+    event loses its output together. Same worker, only the declared budget moved: 6 s inside a
+    2 s ceiling -> `run()` returned at 5.024 s; 1 s inside the same ceiling -> 1.01 s with the
+    trailing check collected.
+
+    That is why this is a HAZARD and not a WARN: `Report.hazards()` filters on
+    `severity == "HAZARD"`, so as a WARN it could never reach the exit code and the invariant
+    was detected but unenforced.
     """
+    enforced = enforced_ceilings(LIVE_SETTINGS)
     for label, path in (("repo", REPO_MANIFEST), ("live", LIVE_MANIFEST)):
         if not path.is_file():
             continue
         doc = json.loads(read_text(path))
         for event, node in (doc.get("events") or {}).items():
-            ceiling = node.get("settings_timeout") if isinstance(node, dict) else None
+            mirror = node.get("settings_timeout") if isinstance(node, dict) else None
+            ceiling = enforced.get(event, mirror)
+            source = "enforced" if event in enforced else "manifest mirror"
             if not isinstance(ceiling, (int, float)):
                 continue
             for name, check in manifest_checks(doc, event).items():
@@ -632,10 +671,11 @@ def lint_budget_ceiling(report: Report) -> None:
                 if isinstance(declared, (int, float)) and declared > ceiling:
                     report.add(
                         "L2",
-                        "WARN",
+                        "HAZARD",
                         f"{label}:{event}/{name}",
-                        f"declares {declared}s inside a {ceiling}s event budget -- "
-                        f"{declared - ceiling}s unreachable",
+                        f"declares {declared}s inside a {ceiling}s event budget "
+                        f"({source}) -- {declared - ceiling}s unreachable, and the "
+                        f"overrun cancels the whole dispatcher",
                     )
 
 

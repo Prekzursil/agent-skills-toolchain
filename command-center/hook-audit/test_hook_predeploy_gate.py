@@ -471,5 +471,134 @@ def test_report_emits_a_terminal_state_marker(capsys) -> None:
     )
 
 
+# ------------------------------------------------------------------- L2 budget ceiling
+#
+# Round 4 found Stop/git-hygiene declaring 90 s inside a 35 s event budget and called the surplus
+# "unreachable", which reads as cosmetic. `_b12_joinorder.py` executed the dispatcher and showed it
+# is not: `dispatch.py:360-372` collects checks SEQUENTIALLY with an absolute deadline of
+# `start + its own declared timeout`, so an over-ceiling budget holds `run()` past the point the
+# vendor cancels the command -- and the cancellation lands on the whole dispatcher, so every check
+# on that event loses its output together. Measured, same worker, only the declared budget moved:
+# 6 s-in-a-2 s-ceiling -> run() returned at 5.024 s; 1 s-in-a-2 s-ceiling -> 1.01 s, trailing check
+# collected. That is a HAZARD, not a WARN.
+
+
+def _ceiling_manifest(tmp_path, name: str, mirror, declared) -> Path:
+    """NOTE the name. `_manifest` already exists in this file (it returns a doc DICT, not a
+    path); defining a second one here shadowed it and broke two unrelated manifest-reader
+    tests with a TypeError. Kept as a comment because it is the same class of defect the
+    dup-guard hook exists to catch."""
+    doc = {
+        "events": {
+            "Stop": {
+                "settings_matcher": "",
+                "settings_timeout": mirror,
+                "checks": [
+                    {"name": "slow", "script": "slow/check.py", "timeout": declared}
+                ],
+            }
+        }
+    }
+    path = tmp_path / f"{name}.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+def _ceiling_settings(tmp_path, enforced) -> Path:
+    """A settings file registering OUR dispatcher on Stop with the enforced timeout."""
+    doc = {
+        "hooks": {
+            "Stop": [
+                {
+                    "matcher": "",
+                    "hooks": [
+                        {
+                            "type": "command",
+                            "command": 'python "C:/x/hooks/_dispatch/dispatch.py" Stop',
+                            "timeout": enforced,
+                        }
+                    ],
+                }
+            ]
+        }
+    }
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path
+
+
+def _ceiling_findings(tmp_path, monkeypatch, mirror, declared, enforced=None):
+    monkeypatch.setattr(
+        gate, "REPO_MANIFEST", _ceiling_manifest(tmp_path, "repo", mirror, declared)
+    )
+    monkeypatch.setattr(gate, "LIVE_MANIFEST", tmp_path / "absent.json")
+    monkeypatch.setattr(
+        gate,
+        "LIVE_SETTINGS",
+        _ceiling_settings(tmp_path, enforced)
+        if enforced is not None
+        else tmp_path / "none.json",
+    )
+    report = gate.Report()
+    gate.lint_budget_ceiling(report)
+    return [f for f in report.findings if f.axis == "L2"]
+
+
+def test_budget_ceiling_over_the_cap_is_a_hazard_not_a_warning(
+    tmp_path, monkeypatch
+) -> None:
+    """A WARN never reaches the exit code (`hazards()` filters on severity == HAZARD)."""
+    found = _ceiling_findings(tmp_path, monkeypatch, mirror=35, declared=90)
+    assert len(found) == 1, found
+    assert found[0].severity == "HAZARD", found[0].severity
+
+
+def test_budget_ceiling_prefers_enforced_timeout_over_a_stale_mirror(
+    tmp_path, monkeypatch
+) -> None:
+    """The mirror is stale on 2 of 4 real events, so trusting it invents false violations.
+
+    Measured (`_b12_ceiling.py`): PostToolUse mirror 15 vs enforced 25, PreToolUse mirror 15 vs
+    enforced 20. A check declaring 18 s is a violation against the stale mirror and perfectly
+    legal against the value the vendor actually enforces.
+    """
+    found = _ceiling_findings(
+        tmp_path, monkeypatch, mirror=15, declared=18, enforced=20
+    )
+    assert found == [], [str(f) for f in found]
+
+
+def test_budget_ceiling_still_fires_against_the_enforced_value(
+    tmp_path, monkeypatch
+) -> None:
+    """Control for the test above: reading settings.json must not disable the rule."""
+    found = _ceiling_findings(
+        tmp_path, monkeypatch, mirror=15, declared=90, enforced=20
+    )
+    assert len(found) == 1, found
+    assert "90" in found[0].detail and "20" in found[0].detail, found[0].detail
+
+
+def test_budget_ceiling_falls_back_to_the_mirror_when_settings_is_unreadable(
+    tmp_path, monkeypatch
+) -> None:
+    """Fail toward reporting. An unreadable settings file must not silence the rule."""
+    found = _ceiling_findings(tmp_path, monkeypatch, mirror=35, declared=90)
+    assert len(found) == 1, found
+
+
+def test_real_repo_manifest_has_no_over_ceiling_check(tmp_path, monkeypatch) -> None:
+    """The fix itself: no check in the REPO manifest may declare above its enforced ceiling.
+
+    Live is deliberately excluded -- live still runs the unfixed 90 s until someone deploys, and
+    the gate SHOULD keep saying so.
+    """
+    monkeypatch.setattr(gate, "LIVE_MANIFEST", tmp_path / "absent.json")
+    report = gate.Report()
+    gate.lint_budget_ceiling(report)
+    repo_hits = [f for f in report.findings if f.axis == "L2"]
+    assert repo_hits == [], [str(f) for f in repo_hits]
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

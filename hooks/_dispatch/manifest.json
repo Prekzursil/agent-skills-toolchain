@@ -107,12 +107,13 @@
           "name": "git-hygiene",
           "script": "git-hygiene/check.py",
           "args": [],
-          "timeout": 90,
+          "timeout": 30,
           "isolate": null,
           "side_effect": "none",
           "emits": true,
           "slow": true,
-          "comment": "Surfaces live-authored harness artifacts (skills/hooks/rules under ~/.claude,~/.agents) not yet in agent-skills-toolchain, plus your repos holding unversioned work. Self-throttles to one full scan per 15 min (GIT_HYGIENE_THROTTLE_SEC). Advisory/inject, never blocks. Opt-out: GIT_HYGIENE=off or hooks/git-hygiene/.disabled."
+          "comment": "Surfaces live-authored harness artifacts (skills/hooks/rules under ~/.claude,~/.agents) not yet in agent-skills-toolchain, plus your repos holding unversioned work. Self-throttles to one full scan per 15 min (GIT_HYGIENE_THROTTLE_SEC). Advisory/inject, never blocks. Opt-out: GIT_HYGIENE=off or hooks/git-hygiene/.disabled.",
+          "timeout_rationale": "Was 90, which is UNREACHABLE: Stop's enforced ceiling is 35s (manifest mirror and live settings.json agree -- _b12_ceiling.py). dispatch.py:360-372 collects checks sequentially with an absolute deadline of start+timeout, so a 90s budget holds run() past the cancellation point and the vendor kills the whole dispatcher command, losing all 9 Stop checks' output together (proved by _b12_joinorder.py: same worker, 6s-in-a-2s-ceiling overran to 5.024s, 1s-in-the-same-ceiling returned at 1.01s with the trailing check collected). 30 leaves 5s of collection headroom under the 35s cap. COST, stated rather than hidden: this check's measured range is 11.8-32.7s (R4-GITHYGIENE-RANGE.json), so runs above 30s now lose THIS check's output -- an acceptable trade because it is advisory/inject-only, where overrunning the cap lost every check on the event. The 90 came from a round-2 remediation for it being disarmed at 28.3s against a 30s budget; that remediation was inert because it raised a number above the ceiling that caps it."
         },
         {
           "name": "honest-signal",
