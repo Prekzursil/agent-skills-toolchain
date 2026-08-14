@@ -64,8 +64,10 @@ silent-pass shape this repo has been bitten by; printing them is what keeps this
 
 Guarded against becoming a rubber stamp: if the exclusion patterns ever swallow more than
 `EXCLUDE_CEILING` of the tracked tree the sweep FAILS instead of reporting a comfortable green,
-so silencing this gate by widening `ruff.toml` is loud. Measured when wired: 231 of 2,658
-tracked `.py` excluded (8.7%).
+so silencing this gate by widening `ruff.toml` is loud. Measured 225 of 2,664 tracked `.py`
+excluded (8.4%) at `ea51f7e1`+1 -- and per the rule above that figure carries its anchor
+because it WILL rot; `--report` recomputes it and prints the per-pattern breakdown every run,
+so read that rather than this sentence.
 
 FAIL-CLOSED, because a gate that cannot run must not report clean (ci-hygiene section 1):
   * no `python-version:` pin found            -> exit 1
@@ -196,22 +198,26 @@ def load_exclusions(root: Path) -> list[str]:
     BLOCKING, so a deleted or corrupt `ruff.toml` reddens this gate instead of quietly
     excusing the files it used to cover.
 
-    Both `extend-exclude` (drops a file from `check` and `format` alike) and the narrower
-    `[format].exclude` are read. The second is a deliberate over-reach: those six files are
-    format-frozen evidence rather than vendored code, and the same reason they must not be
-    rewritten is the reason a parse failure in them is not a build-stopping defect. They all
-    parse today, so including them changes nothing measurable now -- it only decides which way
-    the gate leans if that ever stops being true.
+    ONLY `extend-exclude` is read -- NOT the narrower `[format].exclude`.
+
+    That distinction was got wrong first and corrected by measurement, so the reasoning is
+    recorded rather than the conclusion alone. The first version read both tables, on the
+    argument that the six `[format].exclude` entries are format-frozen evidence and a parse
+    failure in them is therefore not build-stopping. `ruff check --show-files` refuted it:
+    those six files are still LINTED by ruff, deliberately, and `ruff.toml` says why in its
+    own comment -- a format-only exclusion is used "because it is strictly narrower: `ruff
+    check` stays live on these files, so a real defect introduced later is still caught".
+
+    A SyntaxError at the floor is exactly such a defect. Excusing them here would have made
+    this gate BROADER than the linter it borrows its list from -- silently downgrading six
+    files on the strength of an exclusion ruff does not apply to them. Reading one table
+    keeps the ADVISORY set a strict subset of what ruff already ignores.
     """
     try:
         data = tomllib.loads((root / "ruff.toml").read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError):
         return []
-    pats = [p for p in data.get("extend-exclude", []) if isinstance(p, str)]
-    fmt = data.get("format", {})
-    if isinstance(fmt, dict):
-        pats += [p for p in fmt.get("exclude", []) if isinstance(p, str)]
-    return pats
+    return [p for p in data.get("extend-exclude", []) if isinstance(p, str)]
 
 
 def exclusion_for(path: str, patterns: list[str]) -> str | None:
@@ -466,18 +472,25 @@ def exclusion_control(check) -> None:
             encoding="utf-8",
         )
         pats = load_exclusions(d)
-        check("patterns load from both tables", len(pats), 4)
+        check("extend-exclude is read, [format].exclude is NOT", len(pats), 3)
 
         for path, want in (
             ("vendor/deep/nested/mod.py", "vendor/**"),
             ("frozen/evidence.py", "frozen"),
             ("one/exact.py", "one/exact.py"),
-            ("fmt/only.py", "fmt/only.py"),
         ):
             check(f"excused: {path}", exclusion_for(path, pats), want)
         # MUST STAY BLOCKING, or the rows above could be passed by excusing everything.
         for path in ("src/real.py", "vendored/notvendor.py", "one/other.py"):
             check(f"still blocking: {path}", exclusion_for(path, pats), None)
+        # REGRESSION. The first version read `[format].exclude` too, which made this gate
+        # BROADER than ruff on six files ruff still lints. `ruff check --show-files` refuted
+        # it; this row is what stops it coming back.
+        check(
+            "a [format].exclude entry stays BLOCKING",
+            exclusion_for("fmt/only.py", pats),
+            None,
+        )
 
         files = ["src/a.py", "src/b.py", "vendor/c.py", "frozen/d.py"]
         blocking, advisory = partition(files, pats)
