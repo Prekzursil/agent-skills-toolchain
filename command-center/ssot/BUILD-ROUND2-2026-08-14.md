@@ -152,3 +152,22 @@ filter does not also remove canonical's real hits.
 5. Never run a `worktree` subcommand from `.codex/plugins/cache/**` — `git worktree repair`
    rewrites links bidirectionally and would repoint the real worktrees at the cache.
 6. Not pushed. Local `main` is ahead of `origin/main`.
+
+## One round-1 sentence corrected, not by new work but by reading the gate
+
+Round 1's residual #2 said the inventory, `all25.json` and the `CLAUDE.md` SSOT block "are
+CI-gated against each other by `ssot_wiring_check.py`, so a partial correction turns the gate
+red". **REFUTED.** `ssot_wiring_check.py` never reads `all25.json` and never reads a count: its
+six wires check the block markers, the rule SENTENCE matching verbatim, path existence, that the
+drift gate is named and has a real `__main__`, and that CI runs the suite (`:35-57`, `:133-207`).
+`all25.json` is read only by `enumerate_checkouts.py` and `_integrate_final_check.py`, as a
+nothing-deleted baseline.
+
+The consequence was real: round 1 deliberately left the published count wrong because it believed
+correcting it would break CI. Correcting it cost one edit, and the gate stayed green — measured
+before and after. `all25.json` is left untouched on purpose; it is a dated baseline snapshot, and
+overwriting it would destroy the "nothing deleted" comparison it exists to provide.
+
+Error direction was safe (it blocked a correct edit rather than permitting a wrong one), but the
+lesson is the estate's own: **read the instrument you are already running.** Six lines of the
+gate's own output disprove the sentence.
