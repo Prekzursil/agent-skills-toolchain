@@ -155,6 +155,20 @@ instrument doing exactly the job it was built for, on the round that was repairi
    (`b2df8f6b`), and report the as-shipped and current states side by side. This is the same trap
    round 6 avoided by holding its T1/T2 fixtures inside the gate; I walked into it anyway.
 
+4. **My doc-count discriminator died the moment I committed.** The post-commit check
+   (`_r7_final.py`) decided which tree the gate measured by comparing SLOP-doc counts. That
+   worked only while this report was untracked; once committed, the clone held it too — 10
+   against 10 — and the count could no longer separate the hypotheses. **It returned NOT-PROVEN
+   rather than reading a meaningless `true` as a pass**, which is the one thing that went right.
+   Replaced with a direct identity — does the gate resolve to the clone or the source — plus a
+   known-broken arm that must fail.
+5. **Path-string equality is the wrong instrument on Windows.** With the identity check in place
+   the shipped gate still read as "did not resolve to the clone". Windows TEMP resolves through
+   an 8.3 short name, so `tempfile.mkdtemp` returns `C:/Users/PREKZU~1/...` while
+   `git rev-parse --show-toplevel` returns `C:/Users/Prekzursil/...` — the same directory, two
+   strings. A false negative manufactured entirely by the instrument. Fixed by comparing
+   `os.path.realpath` under `normcase`.
+
 **Why DoD-1 was not re-run.** Re-running `_r5_reclassify.py` regenerates the receipt that round
 5's published histogram is compared against. That number was correct *at its rev*; the transcript
 gate compares a rev-anchored claim to whatever the receipt says *now*, so regenerating it would
@@ -165,7 +179,26 @@ diff the receipt against its committed blob, flagging any key a doc cites by nam
 
 ---
 
-## 6. Residuals
+## 6. Post-commit verification, measured at the commit rather than before it
+
+Commit `4d829fcd` — 9 files, all under `command-center/slop-report/`, **0 file deletions, 0
+foreign paths**. The three receipts dirty since earlier rounds were deliberately not swept in.
+
+| check | result |
+|---|---|
+| published-commands gate at HEAD | rc 0 — 406 commands across 348 docs, **0 NEW, 0 stale**; this round's 4 published commands resolve |
+| its `--self-test` | rc 0, 10/10 including both marker controls |
+| transcript gate, `--committed` | `TRANSCRIPTION-CLEAN`, 0 violations — the verdict a clone reaches |
+| ruff at the **committed blob** for my rev | `check rc=0, format --check rc=0 with 0 would-reformat`, all 6 controls pass (EOL pin, nested config, two mangle controls that must go red, strict-subset, anchor) |
+| shipped gate inside a fresh clone | `python command-center/slop-report/_r7_final.py` → **SHIPPED-GATE-CLONE-VALID** |
+| frozen evidence at lane end | 9/9 byte-identical to HEAD blobs; detector shown live at 6 dirty lines on a known-dirty dir while both frozen dirs read 0 |
+
+The clone check is the one that matters most, because `_r7_verify.py` proved the fix using the
+**working-tree** copy — not the artifact that shipped. Run in one clone against the committed
+blob: the pre-fix gate resolves nowhere, reports no root and writes into the source worktree; the
+shipped gate resolves to the clone and leaves the source alone.
+
+## 7. Residuals
 
 - **DoD-2, 179 weak-signal bucket-(b) files, unchanged.** Not swept, not silently passed. Settling
   experiment unchanged: each owning lane commits its own, or a per-lane gate requires it at close.

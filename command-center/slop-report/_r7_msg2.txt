@@ -1,0 +1,33 @@
+test(slop): prove the SHIPPED gate is clone-valid, not just the working copy
+
+`_r7_verify.py` proved the fix with the WORKING-TREE copy of the gate. That is
+not the artifact that shipped, and this lane's whole defect this round was an
+instrument measuring the wrong tree. `_r7_final.py` runs the COMMITTED blob at
+HEAD inside a fresh clone, against a known-broken arm (the pre-fix blob at
+b2df8f6b written into the same clone) so a pass cannot mean "python ran":
+
+  OLD  resolves nowhere, reports no root, WRITES into the source worktree
+  NEW  resolves to the clone, leaves the source untouched
+
+Verdict SHIPPED-GATE-CLONE-VALID. Frozen evidence re-proven at lane end: 9/9
+byte-identical to their HEAD blobs, detector shown live at 6 dirty lines on a
+known-dirty directory while both frozen dirs read 0, and it fails closed if it
+ever checks zero files.
+
+Two more of my own detectors were wrong and are recorded rather than quietly
+repaired:
+
+  * the doc-count discriminator DIED when I committed this round's report --
+    the clone then held it too, 10 against 10, and the count could no longer
+    separate the hypotheses. It returned NOT-PROVEN instead of reading a
+    meaningless true as a pass, which is the part that went right. Replaced
+    with a direct identity plus the known-broken arm above.
+  * path-STRING equality is the wrong instrument on Windows. TEMP resolves
+    through an 8.3 short name, so mkdtemp returns C:/Users/PREKZU~1/... while
+    git returns C:/Users/Prekzursil/... -- same directory, two strings, and the
+    check reported a false negative against a gate that had resolved
+    correctly. Fixed with realpath under normcase.
+
+Also records the post-commit verification of 4d829fcd at its own rev: gate rc 0
+with 0 NEW / 0 stale, self-test 10/10, transcript --committed clean, and ruff at
+the committed BLOB rc 0/rc 0 with all 6 controls passing.
