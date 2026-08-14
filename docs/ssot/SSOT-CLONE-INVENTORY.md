@@ -479,7 +479,9 @@ pointing at data loss**).
 | population | **178**, all 178 still on disk |
 | linked worktrees | 9 |
 | independent clones (own object store) | 168 |
-| kind signals disagree | 1 |
+| severed worktrees (added round 4) | 1 |
+| **kind arithmetic** | 9 + 168 + 1 = **178** = on-disk ✓ |
+| primary kind signals disagree | 1 — the severed row; resolved by a third signal, still recorded |
 | distinct object stores | 168 |
 | named by live harness config | **3** (see §3a) |
 | holding unpushed commits, dirty or staged files | **132** |
@@ -503,6 +505,33 @@ of residual **R4** — the plugin cache holds a copy of canonical's worktree adm
 pointers do not resolve from there. It is also why nothing in this round ran a `worktree`
 subcommand anywhere: `git worktree repair` rewrites links **bidirectionally**, so running it from
 the cache would repoint the real live worktrees at the cache.
+
+> **REFUTED 2026-08-14 (round 4), kept rather than deleted.** Round 3 wrote that this row "is now
+> resolved by a third signal … not left as 'disagrees'", and scored the classification DoD
+> **`178/178`, two agreeing signals**. Both sentences were wider than the evidence, and the
+> round-3 verifier confirmed it against the blob at HEAD and at two earlier commits: the PROSE was
+> resolved, `population-classified.json` was not — it still carried `kind_signals_disagree` with a
+> one-element list and no resolution field anywhere, while `CLAUDE.md` points future agents at
+> that JSON as the machine-readable SSOT. **Correctly scoped: 177 of 178 rows carry two agreeing
+> primary signals; 1 does not, and is resolved by a third.**
+>
+> Now landed in the artifact, not only the prose. The third signal reads the `.git` FILE's
+> `gitdir:` pointer and tests whether that admin dir EXISTS — the row is
+> `kind: "severed-worktree"`, `resolved_by: "third-signal:dotgit-file-pointer-target-missing"`,
+> `gitdir_target_exists: false`. `signals_agree` stays **false**: the two primary signals really
+> did disagree, and deleting that record to make the row look clean would be the same overclaim
+> pointing the other way. The file now also carries a `kind_arithmetic` block that fails closed
+> when the split stops adding up — the check that would have caught 9 + 168 = 177 against a
+> population of 178.
+>
+> **The negative case is what makes the signal mean anything.** A `.git` FILE alone does not imply
+> severance: `~/source/ast-integrate` and `D:/wt-salvage-probe` are LIVE linked worktrees and both
+> have one. Measured — severed → `target_exists=False`, both live worktrees → `True`, canonical →
+> `.git` is a DIR, fabricated path → missing. A resolver keyed on "`.git` is a FILE" would have
+> called all three severed and passed a control while measuring nothing.
+> Receipts: `command-center/ssot/apply_severed_resolution.py`, red-proofed 5/5 by
+> `command-center/ssot/redproof_severed.py` (healthy→0, floor→3, no-disagreeing-row→1,
+> invariant-moved→3, arithmetic-does-not-close→3).
 
 UNVERIFIED, inline: `unpushed_commits` is reported as `null` with the reason `no_remote` for the 5
 remote-less checkouts rather than as 0 — with no remote the count is undefined, and reporting 0

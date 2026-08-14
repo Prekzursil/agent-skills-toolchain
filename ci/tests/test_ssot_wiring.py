@@ -65,6 +65,11 @@ COPY_PATHS = (
     # Omitting this from the scratch copy made the UNMUTATED copy red -- caught by
     # test_the_scratch_copy_is_green_before_mutation, which exists for exactly that.
     "command-center/ssot/ssot_wiring_check.py",
+    # Round 4 added two more receipts to the block. Same trap as above, caught the same way:
+    # the scratch copy went red on W3 the moment CLAUDE.md named a file the copy did not
+    # carry. W3 only tests `.exists()`, so the bytes need not be importable here.
+    "command-center/ssot/apply_severed_resolution.py",
+    "command-center/ssot/redproof_severed.py",
     ".github/workflows/skill-dual-write.yml",
 )
 

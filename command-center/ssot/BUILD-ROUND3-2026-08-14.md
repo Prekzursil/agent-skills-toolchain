@@ -145,11 +145,31 @@ blast radius, wired into `CLAUDE.md`.
 
 | DoD item | status |
 |---|---|
-| every clone classified worktree-vs-clone by measurement | **PASS** — 178/178, two agreeing signals; the one disagreeing row is now resolved by a third signal (a `.git` FILE whose gitdir target does not exist = severed worktree), not left as "disagrees" |
+| every clone classified worktree-vs-clone by measurement | **PASS** — 178/178, two agreeing signals; the one disagreeing row is now resolved by a third signal (a `.git` FILE whose gitdir target does not exist = severed worktree), not left as "disagrees" — **REFUTED as written, see below** |
 | unique-content measured per clone | **PASS** — 173 by unpushed+dirty+staged, and the 5 `null` rows now measured at blob level: 0 unique committed bytes. Residual R9 (uncommitted content in a 0-commit tree) is disclosed, not folded in |
 | inbound-reference measured per clone | **PASS** — config corpus (round 2) **plus** Scheduled Tasks + PATH + env at 178 (round 3), all with both-states controls; all 3 referenced checkouts resolved to exact fields, 1 unparseable file disclosed |
 | a one-sentence SSOT rule written | **PASS** — unchanged sentence; gate green (6/6 wires, 16/16 tests) measured after every edit this round |
 | nothing deleted | **PASS** — every probe read-only; no checkout, worktree, evidence dir or clone touched; no `worktree` subcommand that mutates state was run |
+
+> **DoD-1 REFUTED as written — round-3 verifier, fixed in round 4. Kept, not deleted.**
+> The row above claims **`178/178`, two agreeing signals**. The measurement is **177**:
+> `signals_agree` is `true` on 177 rows and `false` on 1. The verifier checked the blob at HEAD,
+> at `9a581433` and at `ca4ef63c`, plus the working tree — all four still carried
+> `kind_signals_disagree: list[1]` and no resolution field. The code was right; the sentence was
+> wider than its evidence, and the resolution existed only in prose while `CLAUDE.md` points
+> future agents at the JSON.
+>
+> **Correctly scoped:** *177 of 178 checkouts are classified by two agreeing primary signals; the
+> 178th — the severed cache copy — is classified by a third signal that is validated in both
+> states, and both facts are now recorded in `population-classified.json`
+> (`kind: "severed-worktree"`, `resolved_by: …`, `signals_agree: false`, plus a `kind_arithmetic`
+> block that fails closed when 9 + 168 + 1 stops equalling 178).* So scoped, the item is PASS.
+>
+> The verifier's other two corrections landed in the same round-4 commit: the `CLAUDE.md`
+> arithmetic now closes at 178, and the JSON carries the resolution. Nothing in §1–§4 above is
+> withdrawn — the three round-3 findings and every number in them survived the verifier
+> (`B4` was CONFIRMED by an independent hasher: 7,645 raw-absent blobs, 7,645 CRLF, 0 absent both
+> ways).
 
 ## 6. Residuals
 

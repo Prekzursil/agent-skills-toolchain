@@ -32,7 +32,9 @@ automated budget-pacing enforcement is gone. Budget pacing is now advisory and m
 > may be retired until its work is on a pushed branch.**
 
 Measured 2026-08-14: **178 checkouts across 168 object stores** — 9 linked worktrees, which share
-a store and so cannot diverge in history, and 168 independent clones, which can. **132 of them
+a store and so cannot diverge in history, 168 independent clones, which can, and **1 severed
+worktree** whose `.git` file still names a worktree admin dir that no longer exists, so every git
+command inside it exits 128. 9 + 168 + 1 = 178. **132 of them
 hold unpushed commits, dirty files or a staged index; 5 have no remote at all.** Three are named
 by live harness config — one of which (`~/source/ast-harness-reconcile`, a registered Codex
 local-project root) the inventory lists as a retire candidate, so check §3a before retiring
@@ -46,6 +48,18 @@ anything.
 > comparison calls 11,036 of those blobs missing and every one is a line-ending twin. Their real
 > exposure is **uncommitted, not unpushed**: `~/source/_advver_M14/scratch` has no commits at all
 > and carries thousands of untracked entries that are in no store anywhere.
+
+> **REFUTED 2026-08-14 (round 4), kept rather than deleted:** the sentence above used to read
+> "9 linked worktrees … and 168 independent clones", full stop. Every row in it was right and the
+> arithmetic did not close: 9 + 168 = **177**, against a population of 178. One whole kind — the
+> severed worktree — was missing from the sentence a future agent reads, and round 3 separately
+> scored the classification DoD `178/178, two agreeing signals` when the measurement is **177**
+> (`signals_agree` is False on that row and stays False; the third signal adds a verdict beside it
+> rather than overwriting the record). The row is now classified `severed-worktree` in
+> `command-center/ssot/population-classified.json`, which also carries a `kind_arithmetic` block
+> that fails closed when the split stops adding up. Receipts:
+> `command-center/ssot/apply_severed_resolution.py` and its 5-case red-proof
+> `command-center/ssot/redproof_severed.py`.
 
 The earlier figures **25** (2026-08-12/13) and **170** (round 1) are both REFUTED and kept in the
 inventory's §0 with the defect that produced each: a name test standing in for an identity test,

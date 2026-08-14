@@ -49,6 +49,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -111,6 +112,76 @@ def git(args: list[str], cwd: str) -> tuple[int, str]:
     return p.returncode, p.stdout.strip()
 
 
+def resolve_severed(path: str) -> dict | None:
+    """THIRD signal, applied ONLY when the first two disagree.
+
+    A `.git` FILE is a worktree pointer (`gitdir: <admin dir>`). When that admin dir is
+    GONE the checkout is a SEVERED worktree, and that is the only shape that produces this
+    particular disagreement: the pointer is well-formed so signal A reads `worktree`, while
+    every git command inside exits 128 so `--git-common-dir` returns nothing and signal B
+    reads `unknown`. Determinate, not a guess.
+
+    THE NEGATIVE CASE IS THE POINT. A LIVE linked worktree also has a `.git` FILE -- measured
+    on this box, `ast-integrate` and `wt-salvage-probe` both do -- and its target EXISTS, so
+    it resolves to `worktree`, not `severed-worktree`. A resolver keyed on "`.git` is a FILE"
+    would return severed for all three and be INERT while passing a control
+    (rules/common/single-signal-verification.md sec.3c). Returns None when the shape does not
+    apply, so no row is ever resolved by default.
+    """
+    dotgit = Path(path) / ".git"
+    if not dotgit.is_file():
+        return None
+    try:
+        body = dotgit.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return None
+    if not body.lower().startswith("gitdir:"):
+        return None
+    pointer = body.split(":", 1)[1].strip()
+    target = Path(pointer)
+    if not target.is_absolute():
+        target = Path(path) / pointer
+    exists = target.exists()
+    return {
+        "kind": "worktree" if exists else "severed-worktree",
+        "resolved_by": "third-signal:dotgit-file-pointer-target-"
+        + ("present" if exists else "missing"),
+        "gitdir_pointer": pointer,
+        "gitdir_target_exists": exists,
+    }
+
+
+def kind_buckets(live: list[dict]) -> dict:
+    """Split the on-disk rows by kind and CHECK THAT THE SPLIT ADDS UP.
+
+    The defect this exists for: round 2 published "9 linked worktrees + 168 independent
+    clones" against a population of 178 and nobody added them up, so a whole kind went
+    unaccounted in the sentence a future agent reads. A number that does not close is a
+    defect whether or not any individual row is wrong.
+
+    One implementation, called by both the full sweep and `apply_severed_resolution.py`,
+    so a red-proof of one is a red-proof of both.
+    """
+    worktrees = [r for r in live if r["kind"] == "worktree"]
+    clones = [r for r in live if r["kind"] == "own-store"]
+    severed = [r for r in live if r["kind"] == "severed-worktree"]
+    unresolved = [r for r in live if r["kind"] == "kind-signals-disagree"]
+    total = len(worktrees) + len(clones) + len(severed) + len(unresolved)
+    return {
+        "worktrees": worktrees,
+        "clones": clones,
+        "severed": severed,
+        "unresolved": unresolved,
+        # The PRIMARY-signal disagreement is a separate fact from whether it was resolved.
+        # Reporting only the resolved verdict would delete the record; reporting only the
+        # disagreement would repeat round 3's overclaim in the other direction.
+        "primary_disagree": [r for r in live if r.get("signals_agree") is False],
+        "sum": total,
+        "on_disk": len(live),
+        "closes": total == len(live),
+    }
+
+
 def classify_kind(path: str) -> dict:
     dotgit = Path(path) / ".git"
     sig_a = (
@@ -126,7 +197,7 @@ def classify_kind(path: str) -> dict:
         common_abs = norm(common)
     inside = bool(common_abs) and common_abs.startswith(norm(path) + "/")
     sig_b = "own-store" if inside else "worktree" if common_abs else "unknown"
-    return {
+    out = {
         "dotgit": "file"
         if dotgit.is_file()
         else "dir"
@@ -138,6 +209,14 @@ def classify_kind(path: str) -> dict:
         "signals_agree": sig_a == sig_b,
         "kind": sig_a if sig_a == sig_b else "kind-signals-disagree",
     }
+    # `signals_agree` stays False: the two PRIMARY signals really did disagree, and
+    # deleting that fact to make the row look clean is the overclaim this round exists to
+    # fix. The third signal adds a verdict alongside it; it does not overwrite the record.
+    if sig_a != sig_b:
+        third = resolve_severed(path)
+        if third:
+            out.update(third)
+    return out
 
 
 def measure_unique(path: str) -> dict:
@@ -265,6 +344,29 @@ def main() -> int:
         print("FAILED:classify-population kind control did not discriminate")
         return 3
 
+    # ---------------- CONTROL 1b: the THIRD signal, both states.
+    # The positive is SYNTHETIC (a temp dir whose `.git` names a gitdir that does not
+    # exist) so the control does not depend on a particular cache copy still being on the
+    # box. The negative is a REAL live linked worktree, which also has a `.git` FILE -- if
+    # the resolver called that one severed too it would be inert, and a control that
+    # cannot separate the two hypotheses is not a control.
+    with tempfile.TemporaryDirectory() as td:
+        (Path(td) / ".git").write_text(
+            f"gitdir: {Path(td) / 'no-such-admin-dir'}\n", encoding="utf-8"
+        )
+        synth = resolve_severed(td) or {}
+    live_wt = resolve_severed(KNOWN_WORKTREE) or {}
+    third_ok = (
+        synth.get("kind") == "severed-worktree" and live_wt.get("kind") == "worktree"
+    )
+    print(
+        f"CONTROL third signal: synthetic-missing-target -> {synth.get('kind')} ; "
+        f"live linked worktree -> {live_wt.get('kind')} ; discriminates: {third_ok}"
+    )
+    if not third_ok:
+        print("FAILED:classify-population third signal did not discriminate")
+        return 3
+
     # ---------------- CONTROL 2: the dirty counter must separate dirty from clean.
     dirty_here = measure_unique(KNOWN_WORKTREE)["dirty_files"]
     clean_probe = measure_unique(KNOWN_MAIN_CHECKOUT)["dirty_files"]
@@ -321,9 +423,12 @@ def main() -> int:
                 json.dump({"partial": True, "done": n, "rows": rows}, fh, indent=2)
 
     live = [r for r in rows if r["exists"]]
-    worktrees = [r for r in live if r["kind"] == "worktree"]
-    clones = [r for r in live if r["kind"] == "own-store"]
-    disagree = [r for r in live if r["kind"] == "kind-signals-disagree"]
+    buckets = kind_buckets(live)
+    worktrees = buckets["worktrees"]
+    clones = buckets["clones"]
+    disagree = buckets["unresolved"]
+    severed = buckets["severed"]
+    primary_disagree = buckets["primary_disagree"]
     stores = sorted({r["common_dir"] for r in live if r.get("common_dir")})
     referenced = [r for r in live if r["inbound_exec"] > 0]
     at_risk = [
@@ -350,8 +455,19 @@ def main() -> int:
     )
     print(f"  linked worktrees                    : {len(worktrees)}")
     print(f"  independent clones (own store)      : {len(clones)}")
-    print(f"  kind signals DISAGREE               : {len(disagree)}")
+    print(f"  severed worktrees (3rd signal)      : {len(severed)}")
+    print(f"  kind signals DISAGREE (primary)     : {len(primary_disagree)}")
+    print(f"  ...of those still UNRESOLVED        : {len(disagree)}")
     print(f"  distinct object stores              : {len(stores)}")
+
+    kinds_sum = buckets["sum"]
+    print(f"  kind arithmetic {kinds_sum} == on-disk {len(live)}: {buckets['closes']}")
+    if not buckets["closes"]:
+        print(
+            f"FAILED:classify-population kind arithmetic does not close "
+            f"({kinds_sum} != {len(live)})"
+        )
+        return 3
     print(f"  checkouts with an inbound EXEC ref  : {len(referenced)}")
     print(f"  checkouts with unique/uncommitted   : {len(at_risk)}")
     print(f"  checkouts with NO remote            : {len(no_remote)}")
@@ -381,7 +497,18 @@ def main() -> int:
         "on_disk": len(live),
         "linked_worktrees": len(worktrees),
         "independent_clones": len(clones),
-        "kind_signals_disagree": [r["path"] for r in disagree],
+        "severed_worktrees": [r["path"] for r in severed],
+        "kind_signals_disagree": [r["path"] for r in primary_disagree],
+        "kind_signals_disagree_unresolved": [r["path"] for r in disagree],
+        "kind_arithmetic": {
+            "linked_worktrees": len(worktrees),
+            "independent_clones": len(clones),
+            "severed_worktrees": len(severed),
+            "unresolved": len(disagree),
+            "sum": kinds_sum,
+            "on_disk": len(live),
+            "closes": kinds_sum == len(live),
+        },
         "distinct_object_stores": len(stores),
         "object_stores": stores,
         "referenced_by_exec_config": [
