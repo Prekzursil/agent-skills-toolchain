@@ -24,7 +24,13 @@ for the pin inventory, and with `git ls-tree` / `git cat-file` for the blob-leve
 | `27da3215` (round-1 spawn HEAD) | 1 — `command-center/ci/orchestrator-flake-note.md` |
 | `dfea977d` (round-1 fix commit) | 1 |
 | `28d42732` (round-1 PR commit) | 1 |
-| `HEAD` | 1 |
+| `c9f6cca4` (this lane's floor gate) | 2 |
+| `8e7ff68c` (this file's own commit) | 3 |
+
+> The last row read `| HEAD | 1 |` until round 4. **REFUTED there, kept here:** `HEAD` names
+> whichever revision a reader happens to be holding, and it was already 3 when this file's own
+> commit landed. That is O3's defect — a number with no anchor — committed inside the section
+> that names it. Every row above is now a fixed sha.
 
 Added by `e4b72cfe`, 2026-08-12 23:25, *"docs: record the gate-sast download flake before the
 re-run erases it"*. The directory existed at every revision this lane actually touched. It is
@@ -120,7 +126,12 @@ residual #3 with a prototype that lived only in scratch. It has since produced a
 live CI red (`Path.read_text(newline=)`, a 3.13 keyword, on a 3.11 pin), so the class is now
 measured twice rather than argued once.
 
-Sweep at the discovered 3.11 floor, 2,618 tracked `.py`, **4 that do not parse**:
+Sweep at the discovered 3.11 floor, **4 that do not parse**. Since round 4 the gate prints
+the revision it measured, so its own count is quotable instead of rotting:
+
+```
+scanned 2643 tracked .py at the 3.11 floor @ 64c28c70db98+2dirty -> 4 that do not parse
+```
 
 | file | line | error |
 |---|---|---|
@@ -144,3 +155,98 @@ The gate is **not wired into CI**. Wiring means editing `.github/workflows/`, th
 this repo's ground rules name as the single hazard that red-blocked every PR, and the sweep is
 currently red on pre-existing breakage. Landing a detector and turning it into a merge blocker
 are separate decisions, and the second one is the owner's.
+
+---
+
+# Round 4 — what an independent verifier confirmed against round 3
+
+The verifier re-measured by executing rather than reading. Verdict PARTIAL: all three DoD items
+passed on re-execution, **one sentence was REFUTED**, and this file shipped **two numbers that
+were already stale when it landed**. Both are corrected in place above with the old wording
+quoted, not deleted. Everything below was re-measured here — a verifier's finding is a single
+signal too.
+
+## R4-1 — REFUTED: the commit credited with fixing the coverage gate
+
+**Refuted wording** (round 1, carried unexamined into round 3): *"Task 1's premise was already
+fixed by sibling `14202f88`."*
+
+**Correct wording:** *the `gate-tests-coverage command-center` step was already green at
+`28aa4cb4`, which landed 6h16m earlier and is a strict ancestor of `14202f88`.*
+
+Three mechanically independent signals, all naming `28aa4cb4`:
+
+| signal | measurement | result |
+|---|---|---|
+| CI step conclusion | last red / first green, Actions API | red at `97f5eb06` (run `31651795259`), green at `28aa4cb4` (run `31652895009`) |
+| git content history | `git log -S 721c4e577ca5 -- command-center/WORK-UNIT-CATALOG.json` | exactly one commit: `28aa4cb4` |
+| ancestry | `git merge-base --is-ancestor`, both directions | `28aa4cb4`→`14202f88` rc 0; reverse rc 1 |
+
+Only two commits sit in `97f5eb06..28aa4cb4`, and only `28aa4cb4` touches either side of the
+REACH-6 comparison (`WORK-UNIT-CATALOG.json`, `sources/REGISTER.md`). `14202f88` is real work —
+*"REACH-6 could be switched off by deleting one field"* — but it hardens a check that was
+already passing, and a later commit cannot turn an earlier commit's run green.
+
+**Control limitation, disclosed:** the textbook form — parent RED, child GREEN — is unavailable.
+`28aa4cb4^` (`23ee1622`) has **no** `quality` run at all, because pushes here are batched and
+Actions runs the tip. The bracket above is the substitute and it is weaker by exactly that much:
+it pins the flip to a two-commit window, then eliminates one of them by file surface, rather
+than observing the flip itself.
+
+**Worth keeping:** the run at `28aa4cb4` concluded **failure** while this job and this step were
+both **success**. A run conclusion answers "did anything in the workflow fail", never "did my
+gate pass"; reading it as the latter is how a green step gets reported as red.
+
+## R4-2 — the two stale numbers are the same defect twice
+
+| location | shipped | measured in round 4 | fix |
+|---|---|---|---|
+| D1 table, last row | `HEAD` = 1 | 3 at `8e7ff68c`, this file's own commit | rows pinned to shas |
+| sweep paragraph | 2,618 tracked `.py` | 2,619 at `c9f6cca4` **and** at `8e7ff68c` | count now printed with its revision |
+
+2,618 was never true at any commit: the sweep ran before `git add` staged the gate itself, so it
+counted a tree that was never committed. Both are O3's own defect — an unanchored number cannot
+be told apart from a stale one — committed inside the retraction that names it.
+
+## R4-3 — the structural fix, and the control that proves it fires
+
+Correcting two digits does not stop the third. The gate now reports what it scanned:
+
+```
+scanned 2643 tracked .py at the 3.11 floor @ 64c28c70db98+2dirty -> 4 that do not parse
+```
+
+The anchor is mutation-tested, not asserted. Baseline `--self-test` is 8/8 green; three stubs of
+`describe_tree` each turn it red, each caught by a *different* check:
+
+| mutation | rc | caught by |
+|---|---|---|
+| baseline, unmutated | 0 | — |
+| returns `("UNKNOWN", 0)` | 1 | commit-id shape **and** the dirty read |
+| real-looking sha, always `1` | 1 | the clean read |
+| real-looking sha, always `0` | 1 | the dirty read |
+
+The control is hermetic — a throwaway repo, read clean then dirty — because reading *this*
+worktree would race the siblings committing into it. Not theoretical: `HEAD` moved twice during
+this round, `a71a7c0a` → `e91cee80` → `64c28c70`, and the tracked `.py` count went 2,641 → 2,643
+between two of my own readings.
+
+## R4-4 — PR #282's premise, contested and settled
+
+`ruff.toml` has excluded both `batch_runner.py` mirrors since `451248bb` (2026-07-24) on the
+grounds that it is a Databricks notebook export where "the cell structure puts `from __future__`
+after widget setup … valid there and invalid as standalone Python". That is a direct challenge
+to the open PR, written three weeks before it.
+
+Measured on the committed blob at `HEAD`: the file carries the `# Databricks notebook source`
+header, **0** `# COMMAND ----------` separators and **0** `# MAGIC` lines. `# COMMAND` *is* the
+cell boundary in that format, so with none present the file is one cell and one compile unit —
+which is why it returns rc 1 on 3.11, 3.12 and 3.14 alike. The exclusion's account of *why* the
+file looks like this is right; its conclusion that the placement is therefore valid does not
+survive the missing separators.
+
+UNVERIFIED [likely, 55-80%]: that a Databricks cell compiles exactly as CPython does here. I
+measured the separators and CPython's behaviour, not the Databricks runtime. Settling
+experiment: run the notebook in a workspace, or insert one `# COMMAND ----------` above the
+`from __future__` line and see whether the import is then accepted. Until then PR #282 stays
+open and unmerged, which is where the owner wanted it.
