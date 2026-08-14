@@ -96,7 +96,8 @@ SUCCESS:w7-redproof cases=8 all behaved
 ```
 
 **The last line is the whole claim.** The same tree — population silently changed to 179 — is
-handed to the checker as committed at `HEAD`, reconstructed with `git show`. That gate prints
+handed to the checker as committed at `c72f71f5`, the pinned last commit before W7 landed,
+reconstructed with `git show` and verified to lack the W7 code. That gate prints
 `wires=6 all intact` and exits **0**. The new gate fires. State the two hypotheses first:
 H1 "W7 detects count drift" against H2 "any checker goes red on a tree somebody edited" —
 under H2 the old gate would fire too. It stays green, so the red is attributable to W7 and
@@ -144,6 +145,35 @@ recorded rather than quietly fixed:
    **third** round this same control has caught this same omission — the file's own comments
    record the first two.
 
+**THE CONTROL INVALIDATED ITSELF ON LANDING — and I reproduced the lane's own round-1 bug.**
+`w7_redproof.py` originally read the "pre-W7" checker from `HEAD`. It passed while W7 was
+uncommitted, and the instant the integration commit landed the run turned into:
+
+```
+  [BAD] discrimination   pre-W7 gate exit=1 (FAILED:ssot-wiring-check cut=1) | W7 fires=True
+FAILED:w7-redproof cases=8 not all behaved
+```
+
+HEAD had moved, so the control had silently become a copy of the treatment. This is exactly
+what `_integrate_redproof.py` did in INTEGRATE round 1 — documented in that round's §4 — and
+the next tool built in the same lane committed it again. Caught only because I re-ran the
+proof *after* committing rather than trusting the pre-commit green.
+
+Pinning is only half the fix: a pin can be re-pointed at a rev that DOES carry W7 and degrade
+in silence again. So `_old_checker` now verifies the source it fetched genuinely lacks the W7
+code and fails CLOSED. `python command-center/ssot/_probe_pin_failsclosed.py` proves the guard
+is not inert, in both states:
+
+```
+CONTROL  c72f71f5 carries W7=False   HEAD carries W7=True
+-- state A: pin = c72f71f5 (pre-W7) --  SUCCESS:w7-redproof cases=8 all behaved   --> exit=0
+-- state B: pin = HEAD (carries W7)  --  [BAD] the control is a copy of the treatment --> exit=2
+DISCRIMINATION: good-pin=0 bad-pin=2 -> guard fails closed
+```
+
+The first line is a control on the control: the two revs must genuinely differ in whether
+they carry W7, or the probe would be comparing a state against itself.
+
 **A detector failure of my own, kept rather than deleted.** `_probe_counts.py` first selected
 "the first top-level list of dicts" and landed on `referenced_by_exec_config` (len 3), then
 reported "distinct store values: 1" and "rows with unpushed/dirty/staged: 0". Both were
@@ -163,7 +193,8 @@ is read from pytest's own summary line.
 | `python command-center/ssot/ssot_wiring_check.py` | `SUCCESS:ssot-wiring-check wires=7 all intact` |
 | `python -m pytest ci/tests/test_ssot_wiring.py -q` | **`21 passed`** (16 before; +5 W7 mutations) |
 | `python -m pytest ci/tests -q` | `1 failed, 866 passed, 1 skipped in 53.25s` — see below |
-| `python command-center/ssot/w7_redproof.py` | `SUCCESS:w7-redproof cases=8 all behaved` |
+| `python command-center/ssot/w7_redproof.py` | `SUCCESS:w7-redproof cases=8 all behaved` (re-run AFTER the commit, against the pinned pre-W7 control) |
+| `python command-center/ssot/_probe_pin_failsclosed.py` | `SUCCESS:pin-failsclosed a re-pointed pin is refused, not silently accepted` |
 | `python command-center/ssot/w7_blobform.py` | `SUCCESS:w7-blobform rev=HEAD LF-clean green-then-red` |
 | `uvx ruff@0.15.17 check` (touched files) | `All checks passed!` |
 | `uvx ruff@0.15.17 format --check command-center/ssot/ ci/tests/test_ssot_wiring.py` | `51 files already formatted` |

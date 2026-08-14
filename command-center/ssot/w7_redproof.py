@@ -10,10 +10,12 @@ be true, and this file measures each of them.
      matching cannot masquerade as agreement.
   2. TREATMENT -- perturb one number, or the artifact, and W7 must fire.
   3. DISCRIMINATION AGAINST THE PRE-W7 GATE -- the decisive one. The same broken tree is
-     ALSO handed to the checker as it existed at HEAD, reconstructed with `git show`. State
-     the two hypotheses first: H1 "W7 detects count drift" vs H2 "any checker goes red on a
-     tree somebody edited". Under H2 the old checker would fire too. It must stay GREEN --
-     that silence is what makes the new red attributable to W7 rather than to the edit.
+     ALSO handed to the checker as it existed at the PINNED commit before W7 landed,
+     reconstructed with `git show`. State the two hypotheses first: H1 "W7 detects count
+     drift" vs H2 "any checker goes red on a tree somebody edited". Under H2 the old
+     checker would fire too. It must stay GREEN -- that silence is what makes the new red
+     attributable to W7 rather than to the edit. The pin is a literal SHA and is verified
+     to lack W7; see BEFORE_REV for why `HEAD` was wrong and how it failed.
 
 Point 3 is the shape this estate keeps getting wrong: a control that passes under both
 hypotheses is not a control, it only proves the instrument ran.
@@ -37,6 +39,23 @@ sys.path.insert(0, str(HERE))
 import ssot_wiring_check as wiring  # noqa: E402
 
 CHECKER_REL = "command-center/ssot/ssot_wiring_check.py"
+
+# The last commit BEFORE W7 landed. A literal SHA, never `HEAD`.
+#
+# THIS FILE ALREADY MADE THE OTHER MISTAKE ONCE, and it is kept here rather than tidied
+# away. The first version read the "pre-W7" checker from `HEAD`. It passed while W7 was
+# uncommitted and, the instant the integration commit landed, HEAD became the treatment:
+#
+#     [BAD] discrimination  pre-W7 gate exit=1 (FAILED:ssot-wiring-check cut=1) | W7 fires=True
+#
+# The control had silently turned into a copy of the thing it was controlling for -- the
+# same self-invalidating shape `_integrate_redproof.py` hit in INTEGRATE round 1, committed
+# again by the next tool built in the same lane. Pinning is only half the fix: a pin can be
+# re-pointed at a rev that DOES carry W7 and the control would degrade in silence again, so
+# `_old_checker` now asserts the source it fetched genuinely lacks the W7 code and fails
+# CLOSED (exit 2) rather than reporting a passing control it did not earn.
+BEFORE_REV = "c72f71f5"
+W7_CODE = "W7-count-drift"
 
 # Everything the checker reads. Copied file-by-file: a recursive copy on Windows aborts on
 # a reserved device name and would drag in whatever a sibling lane is mid-write on.
@@ -100,17 +119,30 @@ def _comparisons(root: pathlib.Path) -> int:
 
 
 def _old_checker(dest: pathlib.Path) -> pathlib.Path | None:
-    """The checker as committed at HEAD -- i.e. WITHOUT W7, if W7 is not yet committed."""
+    """The checker as committed at BEFORE_REV, verified to be genuinely pre-W7.
+
+    Returns None when the rev cannot be resolved OR when the source it returns already
+    contains W7 -- in both cases there is no control to run, and saying so is the only
+    honest outcome. Reporting a pass from a control that is a copy of the treatment is
+    what this function exists to make impossible.
+    """
     p = subprocess.run(
-        ["git", "show", f"HEAD:{CHECKER_REL}"],
+        ["git", "show", f"{BEFORE_REV}:{CHECKER_REL}"],
         cwd=ROOT,
         capture_output=True,
         text=True,
         timeout=120,
     )
     if p.returncode != 0:
+        print(f"  [BAD] discrimination           cannot resolve {BEFORE_REV}")
         return None
-    out = dest / "ssot_wiring_check_at_head.py"
+    if W7_CODE in p.stdout:
+        print(
+            f"  [BAD] discrimination           {BEFORE_REV} already carries {W7_CODE}; "
+            "the control is a copy of the treatment"
+        )
+        return None
+    out = dest / "ssot_wiring_check_before_w7.py"
     out.write_text(p.stdout, encoding="utf-8", newline="\n")
     return out
 
@@ -224,7 +256,7 @@ def main() -> int:
         # --- 3. DISCRIMINATION AGAINST THE PRE-W7 GATE ----------------------------
         old = _old_checker(tmp)
         if old is None:
-            print("  [BAD] discrimination           cannot read the checker at HEAD")
+            print("  [BAD] discrimination           cannot build a pre-W7 control")
             return 2
         broken = _scratch(tmp / "discrim")
         _sub(
