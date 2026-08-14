@@ -1,0 +1,99 @@
+name: interpreter-floor
+
+# Compile every tracked .py on the LOWEST python-version this repo's CI pins.
+#
+# WHAT WENT WRONG WITHOUT THIS. The repo runs a SPLIT interpreter surface -- 13 `python-version:`
+# pins across 9 workflow files, 11 at 3.11 and 2 at 3.12. Code authored against the newer one
+# parses locally, passes review and lint, and then dies at import time on a job pinned to the
+# older. That is not hypothetical: it has taken `main` red TWICE, and both times CI was the only
+# instrument that caught it.
+#
+#   * command-center/mcp-audit/_r4_*.py used a backslash inside an f-string expression. Legal
+#     from 3.12 (PEP 701), a SyntaxError on the 3.11 pin the mcp-audit workflow itself uses --
+#     so that gate had never once parsed on the interpreter that runs it.
+#   * ci/tests/test_command_doc_promises.py called Path.read_text(newline=...), a 3.13 keyword,
+#     on the same 3.11 pin.
+#
+# Neither is reachable by a linter. `ruff` and `basedpyright` both accept the newer syntax under
+# their own target settings, and a developer's local interpreter is whatever they happen to have.
+# The only instrument that separates "valid Python" from "valid on the interpreter that will
+# actually run it" is compiling on that interpreter, which is what this job does.
+#
+# WHY ITS OWN FILE AND NOT A JOB IN quality.yml. Two independent reasons, both already settled
+# in this repo. First, quality.yml is a CLOSED gate set policed bidirectionally by
+# .quality/charter_check.sh: a `gate-<slug>` marker there with no matching `- slug:` in
+# .quality/charter.yml turns the existing lint job red. charter_check.sh reads ONLY quality.yml,
+# so a separate workflow carries no charter obligation -- the shape no-runtime-junk.yml,
+# skill-dual-write.yml and p2next-rail-count.yml already use. Second, quality.yml is the shared
+# file that has red-blocked this repo's PRs when several lanes edited it at once; a new file
+# touches nothing a sibling lane is holding.
+#
+# WHY THE SELF-TEST RUNS FIRST. A gate that has never failed is indistinguishable from a no-op,
+# and this repo has shipped that shape. The self-test proves BOTH states before this job's
+# silence is allowed to mean anything: a file with 3.12-only syntax must be FLAGGED, a valid
+# file must NOT be, the same 3.12 file must PARSE on a newer interpreter (which is what makes
+# "it compiles for me" an unreliable local signal), and the ruff.toml exclusion split must fire,
+# stay silent, and fail closed on a missing or corrupt config.
+#
+# WHY 3.12 IS INSTALLED ALONGSIDE 3.11. The skew half of that control needs a SECOND, newer
+# interpreter to compare against; with only the floor installed the gate prints "no newer
+# interpreter available" and skips it, leaving the most important row unproven on the runner
+# where it matters. 3.11 is set up LAST so it wins `python` and remains the floor the sweep runs.
+#
+# WHY NO fetch-depth: 0. The sweep reads the file LIST from the index (`git ls-files`) and the
+# BYTES from the working tree, and anchors its output with `git rev-parse HEAD`. None of that
+# needs history, so the default shallow checkout is correct and cheaper.
+#
+# IF THIS JOB FAILS WITH "no interpreter for the <v> floor": a workflow now pins a version LOWER
+# than this job installs. That is the gate refusing to guess rather than silently measuring the
+# wrong interpreter -- bump `python-version` below to match the new floor.
+#
+# The wiring itself is pinned by ci/tests/test_interpreter_floor_wiring.py, whose red-proof cuts
+# each wire in a scratch copy and requires the specific code to fire. That suite is collected
+# independently of this file by skill-dual-write.yml's `pytest ci/tests` directory sweep, so
+# deleting this workflow fails a test on the next pull request rather than silently retiring the
+# gate.
+
+on:
+  push:
+    branches: [main]
+  # DELIBERATELY NO `branches:` FILTER on pull_request, matching quality.yml. With
+  # `branches: [main]` a STACKED pull request -- one whose base is another open PR's head --
+  # matches no trigger at all and runs ZERO checks, which is the state this repo has been in.
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: interpreter-floor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  interpreter-floor:
+    name: gate-interpreter-floor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Newer-than-floor interpreter, present ONLY so the self-test's skew row can run.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      # The FLOOR. Set up last so it wins `python` and is what the sweep compiles against.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      # Both-states control, before any silence from this gate is allowed to mean anything.
+      - name: gate-interpreter-floor self-test
+        run: python command-center/ci/interpreter_floor_gate.py --self-test
+      # Asserts THIS file still runs the gate. Cheap, and it is the half of the wiring that a
+      # pull request could otherwise delete while every remaining check stayed green.
+      - name: gate-interpreter-floor wiring
+        run: python command-center/ci/interpreter_floor_gate.py --verify-wiring
+      # The sweep. Prints the pin inventory and the exclusion inventory, then compiles every
+      # tracked .py at the discovered floor. Files ruff.toml excludes are still compiled and
+      # still PRINTED with their error and the pattern excusing them -- they just do not fail
+      # the build, so nothing is silenced and a fix shows up as a line disappearing.
+      - name: gate-interpreter-floor
+        run: python command-center/ci/interpreter_floor_gate.py --report
