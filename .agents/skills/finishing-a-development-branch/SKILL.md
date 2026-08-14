@@ -88,20 +88,28 @@ Then: Cleanup worktree (Step 5)
 
 #### Option 2: Push and Create PR
 
+Write the PR body to a file **first**, with the Write tool, then pass its path. Do not inline the
+body into the command.
+
 ```bash
 # Push branch
 git push -u origin <feature-branch>
 
-# Create PR
-gh pr create --title "<title>" --body "$(cat <<'EOF'
-## Summary
-<2-3 bullets of what changed>
-
-## Test Plan
-- [ ] <verification steps>
-EOF
-)"
+# Create PR -- body comes from a FILE, never a heredoc
+gh pr create --title "<title>" --body-file <path-to-body.md>
 ```
+
+**Why `--body-file` and not `--body "$(cat <<'EOF' ... )"`.** The Bash tool wraps your command in
+single quotes before handing it to `sh -c`, so a single apostrophe anywhere in the body closes that
+quote early and the call dies with `unexpected EOF while looking for matching '` — before a single
+byte runs. A PR body is prose, so apostrophes are near-certain: *"the repo's own CI"*, *"don't
+regress"*. A body containing a literal `@'` or `'@` sequence cannot be written this way at all.
+This is `rules/common/windows-shell.md` §10, which records the heredoc shape killing six
+consecutive calls in one session before the pattern was recognised.
+
+The same rule applies to every apostrophe-bearing payload, not just PR bodies: commit messages go
+through `git commit -F <file>`, issue bodies through `--body-file`, and multi-line scripts through
+`python <script.py>` rather than `python -c '…'`.
 
 Then: Cleanup worktree (Step 5)
 
