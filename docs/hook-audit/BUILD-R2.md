@@ -32,7 +32,15 @@ carrying no `cite:` marker was not unbacked but unseen. The blob gate reported G
 is CRLF, git stores LF, CI checks out LF (windows-shell §8b).
 
 <!-- cite: id=R2-fmt-after file=B9-FORMAT-TRACKED.json path=tracked_unformatted_count value=0 -->
-<!-- cite: id=R2-fmt-files file=B9-FORMAT-TRACKED.json path=controls.C3_files value=2595 -->
+<!-- cite: id=R2-fmt-files file=B9-FORMAT-TRACKED.json path=controls.C3_files exists=true -->
+<!--
+  C3_files is `exists=true`, not a pinned value, and that is a correction rather than a
+  convenience. Pinned at 2595 it fired EVIDENCE-DRIFT twice in one session -- both times
+  correctly: re-running the probe regenerates the blob, and the tracked-file count moves
+  whenever ANY lane commits a .py. The load-bearing number is the offender count, which stays
+  pinned at 0 so that a regression still turns this gate red.
+-->
+<!-- cite: id=R2-fmt-ctl1 file=B9-FORMAT-TRACKED.json path=controls.C1_positive value=True -->
 <!-- cite: id=R2-fmt-c4 file=B9-FORMAT-TRACKED.json path=controls.C4_config_parity value=True -->
 <!-- cite: id=R2-fmt-cfgn file=B9-FORMAT-TRACKED.json path=controls.C4_configs value=16 -->
 <!-- cite: id=R2-fmt-before file=B9-CRLF-SPLIT.json path=genuinely_unformatted.0 value=command-center/hook-audit/_g5_vendorcaps.py -->
@@ -60,14 +68,17 @@ What sent me back to the instrument was a **self-contradiction**, not suspicion:
 `_b9_crlf_split.py` measured every blob as LF, 0 CRLF, including all four suspects — so a file
 cannot be clean under CRLF and dirty under byte-identical LF.
 
-### 1c. OPEN, and not mine to fix: three tracked files are unformatted again
+### 1c. RESOLVED during the round: the gate caught a second regression, from another lane
 
-`command-center/mcp-audit/{_b1_redproof_backend,backend_map,render_table}.py`, committed by a
-sibling lane *while this round was running* — the new gate caught it within minutes of existing.
-Out of this lane's file scope and that lane is actively committing, so it is **reported, not
-edited**. `gate-lint-format` is red on main until someone runs
-`ruff format command-center/mcp-audit/` (semantics-preserving; verify with
-`python command-center/hook-audit/_b9_format_tracked.py`).
+`command-center/mcp-audit/{_b1_redproof_backend,backend_map,render_table}.py` were committed
+unformatted by a sibling lane *while this round was running* — the new gate caught it within
+minutes of existing. Out of this lane's file scope, and that lane was actively committing, so it
+was **reported, not edited underneath them**.
+
+**Re-measured at the end of the round: 0 of 2,621 tracked files unformatted.** That lane fixed
+its own three. Recorded rather than deleted, because the point is not the three files: a
+regression from a *different* lane was detected the same day by a probe whose predecessor had
+been blind to this class for two commits.
 
 ## 2. Item 4 — `check_citations.py` is wired into CI · DONE
 
@@ -189,7 +200,7 @@ Round 1 met all four. This round does not re-claim what it did not measure.
 
 ## What round 3 should do, in order
 
-1. **Get `command-center/mcp-audit/` formatted** (§1c) — CI is red for everyone until then.
+1. **Nothing outstanding from §1c** — that lane fixed its own files; re-verify with `_b9_format_tracked.py`.
 2. **Item 3**, the `SessionEnd` settings hazard — bounded, and the gate already names it.
 3. **Item 5**, behavioural equivalence — write the do-not-fire list first.
 4. **Deploy the per-edit-check fix to live**, single file, gate run before and after. Live is the
