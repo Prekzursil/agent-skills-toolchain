@@ -50,7 +50,48 @@ already in the canonical store; their HEADs simply are not ancestors of `origin/
 side branches. Retiring them loses a *branch pointer*, not history. That distinction is invisible
 to the HEAD-only gate and is why the commit census was worth running.
 
-## What would actually be destroyed
+## CORRECTION (same day, after this document was first committed)
+
+**The "3,630 insertions … with no remote copy" figure below is WRONG by roughly 24×, and the
+error is mine.** The real content-level exposure is **at most 151 lines**, and most of that is
+superseded text rather than novel work.
+
+The commit census asked *"is this COMMIT in the canonical object store"* and answered correctly:
+4 commits are absent by SHA. I then inferred that their **content** was absent. **Commit-SHA
+absence is not content absence** — a commit can be rebased, squashed or re-committed downstream,
+leaving the content present under a different SHA. That inference is precisely the failure
+`rules/common/fan-out-contract.md` §C4 records: *a one-directional read cannot see
+two-directional divergence.*
+
+Measured with `command-center/ssot/_atrisk_content_census.py` (controls: an identical file
+reports 0 unique lines, a different file reports 91):
+
+| file | lines only in the clone | lines canonical has that the clone lacks |
+|---|---:|---:|
+| `.github/workflows/quality.yml` | 23 | **769** |
+| `hooks/_dispatch/test_wiring.py` | 15 | **208** |
+| `monitorcore/codex_tail.py` | 12 | 73 |
+| `monitorcore/codex_source.py` | 10 | 72 |
+| `tests/test_codex_tail.py` | 10 | **142** |
+| …9 more | | |
+| **total** | **151** | — |
+
+**Every row is DIVERGED with canonical far ahead.** `D:/pr-b3-clone` is a *stale* checkout, not
+a stranded one: the PR-B3 monitorcore work landed in canonical and was then developed well past
+this clone. The live proof is that `mon cockpit` renders a working codex pane from canonical,
+and `tools/monitorcore` passes **1,184 tests**.
+
+**151 is an upper bound, not a count of lost work.** The differ compares by line-set membership,
+so a line that was merely *reworded* upstream counts as "unique" even though its meaning is
+superseded. The genuinely novel remainder is smaller still and was not separated out.
+
+**What does NOT change:** the retire *gate* stands. `rev-list HEAD --not --remotes` really is
+too weak, the corrected predicate really does fail these 4 candidates, and nothing should be
+retired without checking. What changes is the **stakes** — this is stale-clone cleanup, not a
+data-loss emergency. The overclaim is kept above rather than deleted, per the standing practice
+that a claim wrong once will be wrong again if only its conclusion is edited.
+
+## What would actually be destroyed (ORIGINAL TEXT — superseded by the correction above)
 
 ```
 lf2-C26        76eae59  2026-07-30  "verify C26"                    16 files  +515 −67
