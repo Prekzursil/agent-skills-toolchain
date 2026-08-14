@@ -214,6 +214,58 @@ def test_url_counts_as_evidence_anchor() -> None:
     check("URL is an anchor", "no-evidence-anchor" not in rules_of(report, "C1"))
 
 
+# --- R3b an anchor must name a FILE, not merely contain a colon -------------
+# The rule used to be `\S+:\d+`, which 9 of 9 measured non-references satisfied
+# (command-center/p2-next/_d1_anchor_corpus.py). These pin BOTH directions: the
+# false negative that was live, and the false positive the obvious fix would create.
+
+
+def _anchor_fires(item: str) -> bool:
+    return "no-evidence-anchor" in rules_of(
+        claim_gate.evaluate(payload(evidence=[item])), "C1"
+    )
+
+
+def test_timestamp_is_not_an_evidence_anchor() -> None:
+    # The measured hole: a CONFIRMED verdict satisfied its evidence requirement by
+    # carrying the time it was written.
+    check("bare timestamp fires", _anchor_fires("2026-08-12T05:15:00"))
+    check("timestamp in prose fires", _anchor_fires("measured at 2026-08-12T05:15:00"))
+
+
+def test_clock_ratio_and_version_are_not_evidence_anchors() -> None:
+    check("clock time fires", _anchor_fires("05:15"))
+    check("ratio fires", _anchor_fires("ratio 3:1"))
+    check("version fires", _anchor_fires("v1.2:3"))
+
+
+def test_extensionless_filename_is_an_evidence_anchor() -> None:
+    # The false positive an extension-required rule would create. Measured: it would
+    # reject all three of these real anchors.
+    check("Makefile is an anchor", not _anchor_fires("Makefile:12"))
+    check("Dockerfile is an anchor", not _anchor_fires("Dockerfile:5"))
+    check("LICENSE is an anchor", not _anchor_fires("LICENSE:3"))
+
+
+def test_paths_remain_evidence_anchors() -> None:
+    check("posix path is an anchor", not _anchor_fires("tools/mcp/host.py:12"))
+    check(
+        "dotfile dir is an anchor",
+        not _anchor_fires(".github/workflows/quality.yml:1026"),
+    )
+    check(
+        "anchor inside prose is found",
+        not _anchor_fires("see receipt_schema_gate.py:515 now"),
+    )
+    # This estate is Windows; a drive-letter path must not be collateral damage.
+    check(
+        "windows path is an anchor",
+        not _anchor_fires(
+            "C:\\Users\\Prekzursil\\source\\ast-integrate\\claim_gate.py:113"
+        ),
+    )
+
+
 # --- R4 unscoped absolutes -------------------------------------------------
 
 
