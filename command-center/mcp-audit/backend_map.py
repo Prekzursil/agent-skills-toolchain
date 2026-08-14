@@ -20,6 +20,24 @@ are deterministic and cheap, while the census's verdict is a dated claim that mu
 re-asserted per PR.  Assertions here (CI-wired), census there (excluded) -- the same split
 ``_r2_ruff_census.py`` already sets.
 
+THE ACCOUNT LAYER IS NOT A BACKEND (added round 2).  Every backend used to own its own
+``*_account_*`` family -- ``rp_account_current`` counted as RunPod surface, ``kg_account_*``
+as Kaggle surface, and so on.  That is wrong, and it was inflating dead surface: those tools
+are cloud-hub's OWN multi-account shim (env-var/CLI profile bookkeeping) and they keep
+working while the backend behind them is down.
+
+Measured 2026-08-14, four probes, deliberately chosen so the hypothesis could FAIL -- three
+of the four sit over a backend independently measured non-functional in the same session:
+
+    aws_account_current  -> ok:true   while every aws___* tool is non-dispatchable
+    rp_account_current   -> ok:true   while the RunPod backend is dead
+    kg_account_current   -> ok:true   while the Kaggle backend is dead (child exited)
+    az_account_current   -> ok:true   while every azmcp_* tool is non-dispatchable
+
+A shared ``cloud-hub-account-layer`` bucket therefore holds all eleven families.  This moves
+the number in the SAFE-LOOKING direction (less surface counted dead), which is exactly why
+it needed measurement rather than an argument -- and why C4 exists.
+
 CONTROLS (``--self-test``), each required to distinguish the two hypotheses:
 
   C1  COMPLETENESS.  Every one of cloud-hub's committed tool names classifies.  An
@@ -34,6 +52,12 @@ CONTROLS (``--self-test``), each required to distinguish the two hypotheses:
       correctly" from "classified always", which is the inert-control shape.
   C3  PARTITION.  The buckets must be disjoint and sum to the total.  Two backends claiming
       one tool would double-count dead surface.
+  C4  ACCOUNT-LAYER COMPLETENESS.  Every ``*_account_*`` name in the surface must land in
+      the account-layer bucket.  C1/C2/C3 cannot see this defect: a half-finished relocation
+      leaves the stragglers classified, disjoint, and summing correctly -- just attributed to
+      a DEAD backend, which is the precise error this change exists to remove.  C4 is the
+      only control that fails when the relocation is incomplete, so it is the one that has
+      to be proven to fire.
 
 Read-only, pure, committed inputs only.  Spawns nothing.
 """
@@ -42,6 +66,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import sys
 from typing import Iterable
 
@@ -51,28 +76,48 @@ PROXY_SERVER = "cloud-hub"
 
 # Backend -> ordered prefix/suffix/exact matchers.  Longest match wins, so a specific
 # matcher can override a general one without ordering games.
+ACCOUNT_LAYER = "cloud-hub-account-layer"
+
+# The eleven ``*_account_*`` families.  Longest-match-wins is what makes the relocation
+# safe: ``rc_account_`` (11) beats rclone's ``rc_`` (3), ``bm_account_`` beats biomni's
+# ``bm_``, ``aws_account_`` beats aws's ``aws_`` -- so the general backend matchers below
+# can stay exactly as they were and the account names still land here.
+ACCOUNT_FAMILIES: tuple[str, ...] = (
+    "aws_account_",
+    "az_account_",
+    "bm_account_",
+    "db_account_",
+    "gc_account_",
+    "kg_account_",
+    "lg_account_",
+    "md_account_",
+    "ov_account_",
+    "rc_account_",
+    "rp_account_",
+)
+
 BACKENDS: dict[str, tuple[str, ...]] = {
     "rclone": ("config_", "core_", "operations_", "sync_", "rc_"),
-    "runpod": ("rp_account_", "-pod", "-endpoint", "-template", "-tag", "-job"),
-    "modal": ("modal_", "md_account_"),
-    "databricks": ("dbx_", "db_account_"),
+    "runpod": ("-pod", "-endpoint", "-template", "-tag", "-job"),
+    "modal": ("modal_",),
+    "databricks": ("dbx_",),
     "biomni": ("bm_",),
     "aws": ("aws_", "aws___"),
-    "azure": ("azmcp_", "az_account_"),
-    "gcloud": ("run_gcloud_command", "gc_account_"),
-    "lightning": ("lightning_", "lg_account_"),
-    "ovh": ("ovh_", "ov_account_"),
+    "azure": ("azmcp_",),
+    "gcloud": ("run_gcloud_command",),
+    "lightning": ("lightning_",),
+    "ovh": ("ovh_",),
     "kaggle": (
         "competition",
         "dataset",
         "kernel",
         "model",
         "discussion",
-        "kg_account_",
         "benchmark_leaderboard",
         "file_upload",
     ),
     "compute-unified": ("compute_",),
+    ACCOUNT_LAYER: ACCOUNT_FAMILIES,
 }
 
 # RunPod's REST-style names are hyphenated verbs.  These carry none of the suffix hints
@@ -115,14 +160,39 @@ NEGATIVE_FIXTURES = (
 )
 
 
-def classify(tool: str) -> str | None:
+Table = dict[str, tuple[str, ...]]
+
+# C4's INDEPENDENT detector.  Deliberately NOT the family table: it constrains the NAME
+# SHAPE and the shim's fixed six-verb op set, and never enumerates which prefixes exist.
+# If C4 asked ACCOUNT_FAMILIES which names belong to the account layer it would be asking
+# the mutant to grade itself -- both sides would shrink together and the control could never
+# fire.  That is the inert-control shape this repo has measured.
+#
+# It started life as the substring ``_account_`` and that was WRONG: on its first run over
+# the real surface it claimed three stragglers -- ``azmcp_cosmos_account_list``,
+# ``azmcp_storage_account_list`` and ``ovh_account_info`` -- which are backend tools about
+# cloud ACCOUNTS, not the hub's account shim.  Classic use-vs-mention: the word appears in
+# the name without the name being one.  The shape + verb set separates them, and the control
+# catching its own author is the reason it is written down here.
+ACCOUNT_OPS = ("add", "current", "cycle", "list", "remove", "switch")
+ACCOUNT_NAME_RE = re.compile(rf"^[a-z]{{2,3}}_account_(?:{'|'.join(ACCOUNT_OPS)})$")
+
+
+def _table(families: tuple[str, ...] | None = None) -> Table:
+    """The matcher table, optionally with a REDUCED account-layer family tuple (C4 only)."""
+    if families is None:
+        return BACKENDS
+    return {**BACKENDS, ACCOUNT_LAYER: families}
+
+
+def classify(tool: str, table: Table | None = None) -> str | None:
     """Backend owning ``tool``, or None when no matcher claims it (never a guess)."""
     if not tool:
         return None
     if tool in RUNPOD_EXACT:
         return "runpod"
     best: tuple[int, str] | None = None
-    for backend, matchers in BACKENDS.items():
+    for backend, matchers in (table or BACKENDS).items():
         for m in matchers:
             hit = (
                 tool.startswith(m)
@@ -134,17 +204,31 @@ def classify(tool: str) -> str | None:
     return best[1] if best else None
 
 
-def bucket(tools: Iterable[str]) -> tuple[dict[str, list[str]], list[str]]:
+def bucket(
+    tools: Iterable[str], table: Table | None = None
+) -> tuple[dict[str, list[str]], list[str]]:
     """(backend -> tool names, unclassified names).  Unclassified is RETURNED, never dropped."""
     buckets: dict[str, list[str]] = {}
     unclassified: list[str] = []
     for t in tools:
-        b = classify(t)
+        b = classify(t, table)
         if b is None:
             unclassified.append(t)
         else:
             buckets.setdefault(b, []).append(t)
     return buckets, unclassified
+
+
+def account_stragglers(
+    names: Iterable[str], buckets: dict[str, list[str]]
+) -> list[str]:
+    """Account-layer tools that landed somewhere ELSE -- typically on a dead backend.
+
+    Uses ``ACCOUNT_NAME_RE`` rather than the family table so it stays independent of the
+    thing it is checking.
+    """
+    owned = set(buckets.get(ACCOUNT_LAYER, ()))
+    return sorted(n for n in names if ACCOUNT_NAME_RE.match(n) and n not in owned)
 
 
 def proxy_tool_names(base: pathlib.Path | None = None) -> list[str]:
@@ -198,6 +282,36 @@ def self_test(base: pathlib.Path | None = None) -> int:
         f"  {'ok ' if not bad else 'BAD'} C3 {len(buckets)} disjoint buckets summing to {total}"
     )
 
+    # ---- C4a: the independent detector's OWN both-states fixture.  The loose version of
+    # this regex shipped three false positives, so it needs a guard of its own or the next
+    # loosening lands silently.
+    must_match = ("aws_account_current", "rc_account_add", "kg_account_switch")
+    must_refuse = (
+        "azmcp_cosmos_account_list",  # an Azure resource listing, not the hub shim
+        "azmcp_storage_account_list",
+        "ovh_account_info",  # real OVH account read; 'info' is not one of the six ops
+        "compute_status",
+    )
+    det = [f"C4a regex missed {n!r}" for n in must_match if not ACCOUNT_NAME_RE.match(n)]
+    det += [f"C4a regex accepted {n!r}" for n in must_refuse if ACCOUNT_NAME_RE.match(n)]
+    bad.extend(det)
+    print(
+        f"  {'ok ' if not det else 'BAD'} C4a detector matches {len(must_match)} shim names, "
+        f"refuses {len(must_refuse)} look-alikes"
+    )
+
+    # ---- C4 account-layer completeness, over the real surface.
+    stragglers = account_stragglers(names, buckets)
+    if stragglers:
+        bad.append(
+            f"C4 {len(stragglers)} account-layer tool(s) attributed elsewhere: "
+            f"{stragglers[:8]}"
+        )
+    n_acct = len(buckets.get(ACCOUNT_LAYER, []))
+    if not n_acct:
+        bad.append("C4 the account-layer bucket is EMPTY -- the relocation did not happen")
+    print(f"  {'ok ' if not stragglers and n_acct else 'BAD'} C4 {n_acct} account-layer tools, 0 stragglers")
+
     # ---- a control that cannot go red is not a control: prove C1 FIRES on a broken input.
     _, tail = bucket([*names, "zzz_unownable_tool_name"])
     if len(tail) != 1:
@@ -206,6 +320,27 @@ def self_test(base: pathlib.Path | None = None) -> int:
         )
     print(
         f"  {'ok ' if len(tail) == 1 else 'BAD'} C1 fires when an unownable name is injected"
+    )
+
+    # ---- and prove C4 fires on the defect it exists for.  The mutation drops ``rc_account_``
+    # ONLY.  That family is the isolating case: ``rc_account_*`` still matches rclone's
+    # ``rc_``, so it stays classified, the buckets stay disjoint and still sum to 424 --
+    # C1, C2 and C3 all remain GREEN while 6 working tools are attributed to a DEAD backend.
+    # A mutation that made the names unclassifiable would trip C1 and prove nothing about C4.
+    reduced = tuple(f for f in ACCOUNT_FAMILIES if f != "rc_account_")
+    mut_buckets, mut_tail = bucket(names, _table(reduced))
+    mut_stragglers = account_stragglers(names, mut_buckets)
+    mut_sum = sum(len(v) for v in mut_buckets.values()) + len(mut_tail)
+    c4_isolated = bool(mut_stragglers) and not mut_tail and mut_sum == len(names)
+    if not c4_isolated:
+        bad.append(
+            f"C4 did not fire in isolation (stragglers={len(mut_stragglers)}, "
+            f"unclassified={len(mut_tail)}, sum={mut_sum})"
+        )
+    print(
+        f"  {'ok ' if c4_isolated else 'BAD'} C4 fires on an incomplete relocation "
+        f"({len(mut_stragglers)} straggler(s) -> {classify('rc_account_add', _table(reduced))!r}) "
+        f"while C1/C3 stay green"
     )
 
     if bad:

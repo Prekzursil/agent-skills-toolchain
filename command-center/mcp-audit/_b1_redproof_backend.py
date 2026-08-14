@@ -141,11 +141,20 @@ def part_b(ev: s4_evidence.Evidence) -> list[str]:
 
     real_classify, real_bucket = backend_map.classify, backend_map.bucket
 
+    # The mutants must mirror the REAL signatures, including the optional ``table`` seam
+    # backend_map grew for its C4 control.  ``bucket`` resolves ``classify`` through the
+    # module namespace, so a patched 1-arg lambda is called with 2 args from inside the
+    # real ``bucket`` and dies with a TypeError -- which the gate reported as this
+    # red-proof failing rather than as the mutation being caught.  Accepting and ignoring
+    # ``table`` keeps each mutation semantically identical to what it was before.
+
     # ---- B1: an unclassified tail must abort, never under-report.
     try:
-        backend_map.classify = lambda t: None if t == names[0] else real_classify(t)
-        backend_map.bucket = lambda ts: (
-            real_bucket([t for t in ts if t != names[0]])[0],
+        backend_map.classify = (
+            lambda t, table=None: None if t == names[0] else real_classify(t, table)
+        )
+        backend_map.bucket = lambda ts, table=None: (
+            real_bucket([t for t in ts if t != names[0]], table)[0],
             [names[0]],
         )
         rd.backend_view("cloud-hub", cap, len(names), ev)
@@ -165,8 +174,8 @@ def part_b(ev: s4_evidence.Evidence) -> list[str]:
         survivors.append("B2 could not find a dead-backend tool to drop")
     else:
         try:
-            backend_map.bucket = lambda ts: real_bucket(
-                [t for t in ts if t != dead_tool]
+            backend_map.bucket = lambda ts, table=None: real_bucket(
+                [t for t in ts if t != dead_tool], table
             )
             rd.backend_view("cloud-hub", cap, len(names), ev)
             print("  B2 double-sum disagreement                    -> SURVIVED")

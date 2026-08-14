@@ -37,7 +37,7 @@
   },
   "s4_evidence_source": {
     "path": "s4-evidence.json",
-    "records": 17,
+    "records": 28,
     "server_level": 10,
     "why": "S4 used to be a dict literal inside this producer -- a claim living inside the thing that certifies it, undated, unattributed, and unable to say which BACKEND of a proxy answered. It is now committed data the producer reads, and load() fails closed when it is absent rather than degrading to 'no S4 evidence' (an absent source is zero signals, not one)"
   },
@@ -233,6 +233,26 @@
         "attribution": "backend_map over the committed tools/list surface (its C1 control proves every name classifies, C3 that the buckets partition it)",
         "probed": [
           {
+            "backend": "aws",
+            "tool": "aws___list_regions",
+            "verdict": "not-dispatchable",
+            "result": "the server answered \"Unknown tool: 'aws___list_regions'\" although that name IS in the committed tools/list surface and IS resolvable in this session's client namespace. Corroborated as a FAMILY failure rather than a typo: aws_account_current on the SAME server returned ok:true in the same batch, so cloud-hub is up and dispatching. All 9 aws___* tools are advertised; none was reachable.",
+            "backing_resource": "cloud-hub tool router (mcp-proxy-for-aws family; no backend reached)",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
+            "backend": "azure",
+            "tool": "azmcp_subscription_list",
+            "verdict": "not-dispatchable",
+            "result": "'The tool azmcp_subscription_list was not found'. TWO different azmcp_ tools were tried (azmcp_subscription_list, azmcp_bestpractices_get) and both failed identically, while az_account_current on the same server returned ok:true -- so the whole 14-tool azmcp_ family is undispatchable rather than one name being wrong. UNVERIFIED which layer emits this string (client registry vs proxy router); the two families' error wording differs and that was not chased. Settling experiment: an MCP tools/list capture compared against the client's deferred-tool catalogue.",
+            "backing_resource": "cloud-hub tool router (@azure/mcp family; no backend reached)",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
             "backend": "biomni",
             "tool": "bm_whoami",
             "verdict": "dead",
@@ -240,6 +260,26 @@
             "backing_resource": "local biomni cookie-broker",
             "measured_utc_date": "2026-08-13",
             "measured_by": "mcp-audit grounding lane round 2 (in-session tool call), migrated from _g3_backend_liveness.BACKEND_PROBES",
+            "corroboration": null
+          },
+          {
+            "backend": "cloud-hub-account-layer",
+            "tool": "aws_account_current",
+            "verdict": "live",
+            "result": "ok:true, mode=env. Probed FOUR times across families whose backends are in different states -- aws (not-dispatchable), runpod (dead), kaggle (dead), azure (not-dispatchable) -- and all four returned ok:true. Three of the four sit over a backend measured non-functional in this same session, which is what establishes this layer as hub-local bookkeeping rather than backend-dependent. No credential VALUE was read or printed; the shim reports env-var NAMES only.",
+            "backing_resource": "cloud-hub local account store (env-var / CLI profile bookkeeping)",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
+            "backend": "compute-unified",
+            "tool": "compute_catalog",
+            "verdict": "live",
+            "result": "compute_catalog(provider=lightning) returned ok:true with 45 items. Cross-checked: that 45-item list is EXACTLY EQUAL as a sequence to lightning_machine_types' own output, so two independent tool paths to the same backend agree. The JSON envelopes differ (provider/kind/items vs machine_types), so this is list equality and explicitly NOT byte identity.",
+            "backing_resource": "cloud-hub unified compute layer (over Lightning AI for this probe)",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
             "corroboration": null
           },
           {
@@ -253,6 +293,36 @@
             "corroboration": null
           },
           {
+            "backend": "gcloud",
+            "tool": "run_gcloud_command",
+            "verdict": "live",
+            "result": "a real Cloud Resource Manager read (projects list, limit 1) returned lifecycleState=ACTIVE. The output was projected to lifecycleState ONLY, so no project identifier was read into the transcript or recorded here.",
+            "backing_resource": "Google Cloud Resource Manager API",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
+            "backend": "kaggle",
+            "tool": "competitions_list",
+            "verdict": "dead",
+            "result": "cloud-hub reported backend 'Kaggle (kaggle-mcp-server)' unavailable: initialize failed: CHILD EXITED -- a different failure mode from the deadline-exceeded backends, and the proxy states in the same breath that its other tools stay listed",
+            "backing_resource": "kaggle-mcp-server child process",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
+            "backend": "lightning",
+            "tool": "lightning_machine_types",
+            "verdict": "live",
+            "result": "returned ok:true with 45 Studio machine types (A100/H100/H200/B200/L40S/T4/CPU families) -- a real SDK read that returns fleet-specific data, not a health ping",
+            "backing_resource": "Lightning AI SDK",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
             "backend": "modal",
             "tool": "modal_whoami",
             "verdict": "hang",
@@ -260,6 +330,16 @@
             "backing_resource": "Modal API",
             "measured_utc_date": "2026-08-13",
             "measured_by": "mcp-audit grounding lane round 2 (in-session tool call), migrated from _g3_backend_liveness.BACKEND_PROBES",
+            "corroboration": null
+          },
+          {
+            "backend": "ovh",
+            "tool": "ovh_api_catalog",
+            "verdict": "live",
+            "result": "returned the 52-category OVH API catalog. Recorded LIVE DELIBERATELY: the first OVH probe (ovh_services) failed, and marking the backend dead on that alone would have counted ~30 working tools as dead surface. What is established is that ovh_services reached something answering in OVH's OWN error envelope (class Client::NotFound), so the module dispatches and surfaces real API errors. UNVERIFIED whether the catalog itself is fetched or served from a local static list; settling experiment: a tool that must transit the network (e.g. ovh_vps_list) compared on latency and error shape.",
+            "backing_resource": "OVH API",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
             "corroboration": null
           },
           {
@@ -288,26 +368,21 @@
           }
         ],
         "dead_backends": [
+          "aws",
+          "azure",
           "biomni",
           "databricks",
+          "kaggle",
           "modal",
           "rclone",
           "runpod"
         ],
-        "unprobed": [
-          "aws",
-          "azure",
-          "compute-unified",
-          "gcloud",
-          "kaggle",
-          "lightning",
-          "ovh"
-        ],
-        "tools_over_dead_backend": 267,
-        "dead_surface_pct": 63.0
+        "unprobed": [],
+        "tools_over_dead_backend": 311,
+        "dead_surface_pct": 73.3
       },
       "disposition": "KEEP",
-      "evidence": "real initialize+tools/list returned 424 tools in 230ms -- SCOPE: the call succeeded, the capability did not. backend measured non-functional: biomni, databricks, modal, rclone, runpod, 267/424 advertised tools (63.0%); 7 further backend(s) UNMEASURED"
+      "evidence": "real initialize+tools/list returned 424 tools in 230ms -- SCOPE: the call succeeded, the capability did not. backend measured non-functional: aws, azure, biomni, databricks, kaggle, modal, rclone, runpod, 311/424 advertised tools (73.3%)"
     },
     {
       "name": "search-hub",
@@ -353,6 +428,26 @@
         "attribution": "NOT ATTRIBUTED: no tool->backend map exists for 'search-hub', so the advertised tools cannot be split across its backends. Null is not zero.",
         "probed": [
           {
+            "backend": "exa",
+            "tool": "web_search_exa",
+            "verdict": "live",
+            "result": "a real 1-result search returned a titled result with URL and highlights -- the capability answered, not merely the server. search_usage separately reports 11 Exa key slots of which 9 report usable=true; the slot labels are account identifiers and are deliberately not reproduced. NOTE: a PostToolUse sentinel flagged this successful call as an infra failure by matching the word 'Timeout' inside the RESULT CONTENT (a page about MCP ping timeouts) -- a use-vs-mention failure in that hook, not a failed call.",
+            "backing_resource": "Exa search API",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
+            "backend": "firecrawl",
+            "tool": "firecrawl_scrape",
+            "verdict": "no-credential",
+            "result": "search-hub refused LOCALLY: 'no usable Firecrawl API key: set FIRECRAWL_API_KEY (and optional FIRECRAWL_API_KEY_2.. backups) or add one via fc_account_add'. Measured rather than carried over from the usable:false flag on purpose: that flag's meaning was confirmed on Tavily by a separate call, and generalising from one confirmed instance is exactly the step this lane exists to avoid.",
+            "backing_resource": "Firecrawl API (never contacted -- refused at the local key store)",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
+          },
+          {
             "backend": "searxng-instance",
             "tool": "searxng_instance_info",
             "verdict": "dead",
@@ -361,17 +456,29 @@
             "measured_utc_date": "2026-08-13",
             "measured_by": "mcp-audit BUILD lane round 1 (in-session tool call)",
             "corroboration": null
+          },
+          {
+            "backend": "tavily",
+            "tool": "tavily_search",
+            "verdict": "no-credential",
+            "result": "search-hub refused LOCALLY: 'no usable Tavily API key: set TAVILY_API_KEY (and optional TAVILY_API_KEY_2.. backups) or add one via tv_account_add'. The backend was never contacted. This also SETTLES the semantics of search_usage's usable:false flag, which until this call was an inference: both Tavily slots report usable:false and the call fails for want of key material.",
+            "backing_resource": "Tavily API (never contacted -- refused at the local key store)",
+            "measured_utc_date": "2026-08-14",
+            "measured_by": "mcp-audit BUILD lane round 2 (in-session read-only tool call)",
+            "corroboration": null
           }
         ],
         "dead_backends": [
-          "searxng-instance"
+          "firecrawl",
+          "searxng-instance",
+          "tavily"
         ],
         "unprobed": [],
         "tools_over_dead_backend": null,
         "dead_surface_pct": null
       },
       "disposition": "KEEP",
-      "evidence": "real initialize+tools/list returned 68 tools in 241ms -- SCOPE: the call succeeded, the capability did not. backend measured non-functional: searxng-instance"
+      "evidence": "real initialize+tools/list returned 68 tools in 241ms -- SCOPE: the call succeeded, the capability did not. backend measured non-functional: firecrawl, searxng-instance, tavily"
     },
     {
       "name": "paper-search",

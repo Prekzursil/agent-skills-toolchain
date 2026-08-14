@@ -61,6 +61,7 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
     ("s4_evidence (validator both-states)", ["s4_evidence.py", "--self-test"], 0),
     ("b1_redproof_backend", ["_b1_redproof_backend.py"], 0),
     ("cost_rank (invariants)", ["cost_rank.py"], 0),
+    ("render_table (G1-G4 both-states)", ["render_table.py", "--self-test"], 0),
     ("overlap_report", ["overlap_report.py", "capability-matrix-r2.json"], 0),
     ("r2_reproduce (round-1 defects)", ["_r2_reproduce.py"], 0),
     ("r2_redproof_invariants", ["_r2_redproof_invariants.py"], 0),
@@ -190,14 +191,18 @@ def determinism(rev: str) -> tuple[list[str], int]:
     """
     problems: list[str] = []
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="mcpaudit-determinism-"))
+    # (repo-relative committed path, argv, temp output).  The path is carried in full
+    # rather than assembled from a fixed prefix: a produced artifact does not have to live
+    # beside its producer, and DISPOSITION-TABLE.md -- the one that actually drifted --
+    # lives under docs/.
     jobs = [
         (
-            "disposition.json",
+            "command-center/mcp-audit/disposition.json",
             ["rank_disposition.py", "--base", str(HERE), "-o", str(tmp / "d.json")],
             tmp / "d.json",
         ),
         (
-            "overlap-report.json",
+            "command-center/mcp-audit/overlap-report.json",
             [
                 "overlap_report.py",
                 "capability-matrix-r2.json",
@@ -207,12 +212,18 @@ def determinism(rev: str) -> tuple[list[str], int]:
             tmp / "o.json",
         ),
         (
-            "cost-rank.json",
+            "command-center/mcp-audit/cost-rank.json",
             ["cost_rank.py", "--base", str(HERE), "-o", str(tmp / "c.json")],
             tmp / "c.json",
         ),
+        (
+            "docs/mcp-audit/DISPOSITION-TABLE.md",
+            ["render_table.py", "--base", str(HERE), "-o", str(tmp / "t.md")],
+            tmp / "t.md",
+        ),
     ]
-    for name, argv, out in jobs:
+    for path, argv, out in jobs:
+        name = path.rsplit("/", 1)[-1]
         rc, marker = run(argv)
         if rc != 0:
             problems.append(f"{name}: producer exited {rc} ({marker})")
@@ -221,7 +232,7 @@ def determinism(rev: str) -> tuple[list[str], int]:
             problems.append(f"{name}: producer wrote nothing (fail closed)")
             continue
         regen = out.read_bytes()
-        shipped = blob(rev, f"command-center/mcp-audit/{name}")
+        shipped = blob(rev, path)
         if shipped is None:
             problems.append(
                 f"{name}: the producer runs but the artifact does not exist at {rev[:12]} "
