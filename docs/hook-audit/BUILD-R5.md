@@ -149,6 +149,20 @@ worth having — **the hooks fleet has no working directory-level pytest entry p
 collectable suites can only be run file-by-file, and the 32 standalone ones only via `python`.
 Not fixed here: reshaping 32 files is its own round with its own red-first proof.
 
+## 3a. Wired, so it does not depend on anyone remembering
+
+The 11 regressions are now a step in `.github/workflows/hook-audit.yml`, and
+`_b10_ci_proof.py` executes all five wired commands from a **fresh clone of HEAD** with `HOME`
+and `USERPROFILE` redirected to a nonexistent directory: **5/5 green**, with the redirection
+proven to bite, the gate proven still able to go RED inside the clone, and the clone proven to
+contain the wired files. Working-tree green is not clone green; this lane has shipped that
+mistake before.
+
+That probe kept its own hand-written copy of the workflow's command list — the same hardcoded-list
+shape that let a CI-red file stay invisible for two commits in `_r4_blobgate.py`. It now carries
+**C4**, which compares its list against the workflow's actual `run:` steps in both directions and
+fails closed if the workflow cannot be read.
+
 ## 4. What is still hazardous, stated rather than implied
 
 **`_r4_githygiene_range.py` remains unsafe to re-run on its SUCCESS path.** Four of its cited
@@ -166,6 +180,23 @@ from source, not executed. **Settling experiment:** run it on an idle box until
 to replace those four citations with the stable ones already in the file
 (`arms_discriminate`, `stamp_restored_exact`, `range_ms`) and waive the wall-time table.
 
+**And the scan's "0 offenders" is narrower than it sounds.** It measures TRUNCATE-AND-BAIL — a
+partial payload written over committed evidence with a non-zero exit in the *same statement
+list*. A probe that writes a **complete** record and only then decides to exit non-zero is
+deliberately out of scope, pinned by control **C6**
+<!-- cite: id=R5-c6 file=B13-FAILPATH-WRITES.json path=controls.C6_complete_record_write_is_out_of_scope value=True -->,
+because widening the rule would flag the honest record-the-failure-completely pattern and turn
+the scan into the noise this audit's own axes complain about.
+
+The residual that leaves is real and smaller: `_b10_ci_proof.py` and both of my own `_b13_*`
+probes write their evidence before the exit decision, so a failing run still REPLACES the
+committed file — with a full record, but one whose booleans have flipped. `B10-CI-PROOF.json`'s
+`controls.C2_gate_can_fail_in_clone` is cited by BUILD-R2, so a failing CI-proof run would
+break that citation. Key loss cannot happen there; value flipping can. **Settling experiment:**
+force `_b10_ci_proof.py` to fail (point `WORKFLOW` at a missing file so C4 goes false), then run
+the citation gate and count the broken ids — if it is non-zero, route those writes through
+`write_evidence` too. I did not run it, so I do not claim the count.
+
 ## 5. Detector controls
 
 | probe | control | why it exists |
@@ -175,6 +206,8 @@ to replace those four citations with the stable ones already in the file
 | | C3 untracked fail-path write NOT flagged | separates *destroys evidence* from *writes on a fail path* |
 | | C4 walk non-empty (≥20 files, ≥5 tracked JSON) | a zero from a blind walker is not a clean bill |
 | | C5 pinned pre-fix blobs still show the defect | else the "3 → 0" claim loses its *before* |
+| | C6 complete-record write NOT flagged | pins the detector's SCOPE — see §4 |
+| `_b10_ci_proof.py` | C4 WIRED list matches the workflow | a hand-copied command list drifts silently |
 | `_b13_destruction_repro.py` | D1-D5 | baseline clean, fail path really taken, file untouched, axis unmoved, nothing else moved |
 
 <!-- uncited-table: reason=index of which control guards which probe; each control's value is asserted and cited at its point of use above rather than re-cited here -->

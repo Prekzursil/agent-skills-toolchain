@@ -144,3 +144,10 @@ jobs:
       # 53 regressions for the pre-deploy gate (the gate itself is local-only, see the header).
       - name: gate-hook-audit pre-deploy gate tests
         run: python -m pytest command-center/hook-audit/test_hook_predeploy_gate.py -q
+      # Round 5: 11 regressions for the fail-path evidence-destruction defect. Wired because a
+      # regression that only runs when an agent remembers is a producer with no consumer -- the
+      # same class as the /rollback gap this audit opened with, and as this gate's own two
+      # unwired rounds. Runner-safe: it reads only the repo (git ls-files + source text) and
+      # never touches ~/.claude, unlike the pre-deploy gate it sits beside.
+      - name: gate-hook-audit fail-path evidence regressions
+        run: python -m pytest command-center/hook-audit/test_failpath_evidence.py -q

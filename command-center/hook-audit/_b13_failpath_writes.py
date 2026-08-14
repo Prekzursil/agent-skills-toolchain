@@ -39,6 +39,17 @@ CONTROLS (all five must hold or the scan refuses to publish):
      files resolved, else exit 2. A zero from a blind walker is not a clean bill.
   C5 baseline intact -- the three PINNED pre-fix blobs must still show the defect. Without
      it the "3 -> 0" claim loses its 'before' the moment the fix is committed.
+  C6 SCOPE BOUNDARY, and the most important one to read before quoting "0 offenders". A
+     probe that writes a COMPLETE record and only afterwards decides a non-zero exit -- the
+     `write(...)` then `if not ok: return 1` shape used by `_b10_ci_proof.py` and by this
+     file itself -- must NOT be flagged. C6 pins that as deliberate, not as a miss.
+
+     The distinction being measured is TRUNCATE-AND-BAIL, not write-then-fail. Widening the
+     rule to every write-then-fail would flag the honest "record the failure completely"
+     pattern and turn this scan into the kind of noise the audit's own axes complain about.
+     The residual that leaves open is real and is disclosed in BUILD-R5.md section 4: a
+     complete-record write still REPLACES committed evidence on a failing run, so a cited
+     boolean can flip. It is a smaller hazard than key loss, and it is not zero.
 """
 
 from __future__ import annotations
@@ -188,6 +199,18 @@ def main() -> int:
     return 0
 """
 
+# Scope boundary: a COMPLETE record written before the exit decision. Deliberately not flagged.
+C6_SRC = """
+from pathlib import Path
+def main() -> int:
+    out = {"everything": 1, "controls": {}}
+    Path("R4-GITHYGIENE-RANGE.json").write_text("{}")
+    if not ok:
+        print("FAILED:x")
+        return 1
+    return 0
+"""
+
 C3_SRC = """
 from pathlib import Path
 def main() -> int:
@@ -257,6 +280,8 @@ def main() -> int:
     # C5: the pinned pre-fix blobs must still show the defect. If the baseline reads clean,
     # the "3 -> 0" claim has lost its 'before' and must not be published.
     c5 = bool(baseline.get("readable")) and baseline.get("n_offender_probes", 0) == 3
+    # C6: the complete-record-then-exit shape is OUT of scope by design, not missed.
+    c6 = not scan_source(C6_SRC, tracked)
 
     out = {
         "probe": "_b13_failpath_writes.py",
@@ -272,9 +297,16 @@ def main() -> int:
             "C3_untracked_failpath_write_not_flagged": c3,
             "C4_walk_non_empty": c4,
             "C5_prefix_baseline_still_shows_the_defect": c5,
+            "C6_complete_record_write_is_out_of_scope": c6,
         },
+        "scope": (
+            "TRUNCATE-AND-BAIL only: a partial payload written over committed evidence and a "
+            "non-zero exit in the same statement list. A COMPLETE record written before the "
+            "exit decision is out of scope by design (C6) and still replaces committed "
+            "evidence on a failing run -- see BUILD-R5.md section 4."
+        ),
     }
-    ok = c1 and c2 and c3 and c4 and c5
+    ok = c1 and c2 and c3 and c4 and c5 and c6
     out["controls_all_pass"] = ok
     OUT.write_text(json.dumps(out, indent=1), encoding="utf-8")
     print(json.dumps(out, indent=1))
