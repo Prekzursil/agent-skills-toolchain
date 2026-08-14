@@ -175,7 +175,12 @@ def old_gate(tmp: Path, retarget: Path | None) -> Path:
                 "FAILED:cite-gate-test could not retarget the old gate -- its hardcoded "
                 "REPO line is gone, so this control no longer measures what it claims"
             )
-    out = tmp / f"old_gate_{'fix' if retarget else 'asis'}.py"
+    # Name the extract after its TARGET, not just fix-vs-asis: H1 and H2 both retarget, so the
+    # old two-value scheme wrote both to `old_gate_fix.py`. It happened to work because the calls
+    # are sequential, but a silent overwrite between two controls is one reordering away from one
+    # control measuring the other's gate.
+    tag = "asis" if retarget is None else re.sub(r"\W+", "_", str(retarget)).strip("_")[-28:]
+    out = tmp / f"old_gate_{tag}.py"
     out.write_text(src, encoding="utf-8")
     return out
 
@@ -232,7 +237,20 @@ def main() -> int:
         )
 
         # ---- H2 WRONG REPO -----------------------------------------------------
-        rc_o2, out_o2 = run_gate(old_gate(tmp, None), clean)
+        # RETARGETED AT THE REAL REPO, and it must be. Passing None leaves the pinned blob's
+        # own hardcoded line in place -- blob 66855eed4857 line 48 is literally
+        #     REPO = Path("C:/Users/Prekzursil/source/ast-integrate")
+        # a Windows absolute path frozen into history. On the author's box that resolves and the
+        # control passed; on a Linux runner it cannot exist, the old gate reads nothing, and the
+        # control returned False. Measured: this was the single failure in `24 cases, 1 failed`
+        # on CI while the same run was 24/24 locally -- not flake, unsatisfiable by construction.
+        #
+        # Retargeting preserves what the control actually asserts. The claim is "the old gate
+        # ignores its cwd and reports documents from somewhere else"; pointing it at REPO (the
+        # real repo, resolved at run time) still makes it report a document that is NOT in
+        # `clean`, which is the whole defect. What changes is only that the somewhere-else is
+        # discovered rather than frozen to one machine.
+        rc_o2, out_o2 = run_gate(old_gate(tmp, REPO), clean)
         case(
             "H2 control: the OLD gate reports on ANOTHER repo's documents",
             "ROUND2-CORRECTIONS.md" in out_o2,
