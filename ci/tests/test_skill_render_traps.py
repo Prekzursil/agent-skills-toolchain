@@ -196,12 +196,16 @@ def test_block_scalar_in_VALID_frontmatter_does_not_fire(tmp_path: Path) -> None
     11 of the 12 live folded-scalar skills render in full.  Blocking on folds alone
     would be the refuted claim re-shipped as code.
     """
-    body = "---\nname: t\ndescription: >\n  Use when a folded scalar is fine\n---\n\n# t\n"
+    body = (
+        "---\nname: t\ndescription: >\n  Use when a folded scalar is fine\n---\n\n# t\n"
+    )
     exit_code, violations = _run(_root_with(tmp_path, "r", "t", body))
     assert exit_code == gate.EXIT_OK, violations
 
 
-def test_strict_invalid_with_a_plain_description_is_advisory_only(tmp_path: Path) -> None:
+def test_strict_invalid_with_a_plain_description_is_advisory_only(
+    tmp_path: Path,
+) -> None:
     """5 of 6 such live skills render in full, so this must not block.
 
     Shipping the opposite claim is the defect the refutation stage blocked on.
@@ -287,7 +291,9 @@ def test_the_gate_is_wired_into_ci() -> None:
 
 
 @pytest.mark.parametrize("marker", WORKFLOW_MARKERS)
-def test_removing_a_wire_turns_the_wiring_check_red(marker: str, tmp_path: Path) -> None:
+def test_removing_a_wire_turns_the_wiring_check_red(
+    marker: str, tmp_path: Path
+) -> None:
     """The red proof for the wiring assertion itself.
 
     Without this, ``test_the_gate_is_wired_into_ci`` could be a tautology that
@@ -296,7 +302,9 @@ def test_removing_a_wire_turns_the_wiring_check_red(marker: str, tmp_path: Path)
     text = WORKFLOW.read_text(encoding="utf-8")
     assert marker in text
     mutated = tmp_path / "skill-dual-write.yml"
-    mutated.write_text(text.replace(marker, "echo cut-wire"), encoding="utf-8", newline="")
+    mutated.write_text(
+        text.replace(marker, "echo cut-wire"), encoding="utf-8", newline=""
+    )
     remaining = mutated.read_text(encoding="utf-8")
     assert marker not in remaining, "the mutation did not cut the wire it targeted"
     still_missing = [m for m in WORKFLOW_MARKERS if m not in remaining]

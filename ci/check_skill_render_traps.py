@@ -179,7 +179,11 @@ def _scan_keys(frontmatter: str) -> tuple[dict[str, str], dict[str, str]]:
         # on any of them, so the whole logical scalar is collected.
         collected = [value]
         cursor = index + 1
-        while cursor < len(lines) and lines[cursor][:1].isspace() and lines[cursor].strip():
+        while (
+            cursor < len(lines)
+            and lines[cursor][:1].isspace()
+            and lines[cursor].strip()
+        ):
             collected.append(lines[cursor].strip())
             cursor += 1
         plain_values[key] = "\n".join(collected)
@@ -235,7 +239,9 @@ def _comment_cut(value: str) -> int | None:
     return match.start() if match else None
 
 
-def evaluate(files: list[SkillFile]) -> tuple[list[dict[str, object]], dict[str, object]]:
+def evaluate(
+    files: list[SkillFile],
+) -> tuple[list[dict[str, object]], dict[str, object]]:
     """Return (violations, advisory).  Violations block; advisory never does."""
     violations: list[dict[str, object]] = []
     strict_invalid: list[str] = []
@@ -321,7 +327,9 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="skill root to walk (repeatable); defaults to the two repo roots",
     )
-    parser.add_argument("--json", action="store_true", help="emit machine-readable output")
+    parser.add_argument(
+        "--json", action="store_true", help="emit machine-readable output"
+    )
     args = parser.parse_args(argv)
 
     roots = [Path(r) for r in args.roots] if args.roots else list(DEFAULT_ROOTS)
