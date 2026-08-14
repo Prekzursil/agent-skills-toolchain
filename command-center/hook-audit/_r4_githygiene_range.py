@@ -39,6 +39,8 @@ import sys
 import time
 from pathlib import Path
 
+from _evidence_io import write_evidence
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 CHECK = REPO / "hooks" / "git-hygiene" / "check.py"
@@ -120,13 +122,14 @@ def main() -> int:
     out["arms_discriminate"] = bool(a > 0 and b / a >= 100)
     if not out["arms_discriminate"]:
         out["verdict"] = "INCONCLUSIVE"
-        (HERE / "R4-GITHYGIENE-RANGE.json").write_text(
-            json.dumps(out, indent=1), encoding="utf-8"
-        )
+        # NOT the committed evidence file: this run measured nothing, and overwriting it
+        # here removed six top-level keys and took the citation gate to 18 unbacked
+        # (executed in `_b13_destruction_repro.py`). See `_evidence_io`.
+        where = write_evidence(HERE / "R4-GITHYGIENE-RANGE.json", out, ok=False)
         print(json.dumps(out, indent=1))
         print(
             "FAILED:r4-githygiene the two arms did not separate -- the throttle was probably "
-            "never defeated, so no cost number here may be cited"
+            f"never defeated, so no cost number here may be cited; partial output -> {where.name}"
         )
         return 1
 
@@ -146,9 +149,7 @@ def main() -> int:
     out["h4_recorded_run_ms"] = 0.3
     out["understatement_factor_vs_h4"] = round(b / 0.3)
     out["verdict"] = "H4_ROW_IS_THE_EARLY_RETURN"
-    (HERE / "R4-GITHYGIENE-RANGE.json").write_text(
-        json.dumps(out, indent=1), encoding="utf-8"
-    )
+    write_evidence(HERE / "R4-GITHYGIENE-RANGE.json", out, ok=True)
     print(json.dumps(out, indent=1))
     print("SUCCESS:r4-githygiene")
     return 0

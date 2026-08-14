@@ -31,6 +31,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from _evidence_io import write_evidence
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 LIVE = Path(os.path.expanduser("~")) / ".claude"
@@ -157,13 +159,15 @@ def main() -> int:
     # Fail closed: without discrimination the exit code is unmeasured, not "fine".
     if not result["arms_discriminate"]:
         result["verdict"] = "INCONCLUSIVE"
-        (HERE / "R4-WIRE-EXIT.json").write_text(
-            json.dumps(result, indent=1), encoding="utf-8"
-        )
+        # Not the committed file -- see `_evidence_io`. This branch's damage mode differs
+        # from the other two: the cited KEYS survive, but `repo_finding_rc` and
+        # `repo_clean_rc` are equal here by definition, so the committed values would be
+        # silently replaced with a non-measurement that still parses as one.
+        where = write_evidence(HERE / "R4-WIRE-EXIT.json", result, ok=False)
         print(json.dumps(result, indent=1))
         print(
             "FAILED:r4-wire-exit the two arms returned the same rc -- this probe cannot "
-            "tell a constant exit code from one that tracks the verdict"
+            f"tell a constant exit code from one that tracks the verdict; partial output -> {where.name}"
         )
         return 1
 
@@ -173,9 +177,7 @@ def main() -> int:
         else "DISCRIMINATES_BUT_UNEXPECTED_POLARITY"
     )
     result["claim_that_wire_py_exits_0_on_FAILED"] = "REFUTED"
-    (HERE / "R4-WIRE-EXIT.json").write_text(
-        json.dumps(result, indent=1), encoding="utf-8"
-    )
+    write_evidence(HERE / "R4-WIRE-EXIT.json", result, ok=True)
     print(json.dumps(result, indent=1))
     print("SUCCESS:r4-wire-exit")
     return 0

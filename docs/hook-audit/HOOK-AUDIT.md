@@ -124,12 +124,23 @@ discriminate: a synthetic 90 s-in-35 s is flagged, a synthetic 5 s-in-35 s is no
 closed below 20 checks compared) finds
 <!-- cite: id=R4-bc-live file=R4-BUDGET-CEILING.json path=live_violation_count value=1 -->
 **1** such pair live and
-<!-- cite: id=R4-bc-repo file=R4-BUDGET-CEILING.json path=repo_violation_count value=2 -->
-**2** in the repo:
+<!-- cite: id=R4-bc-repo file=R4-BUDGET-CEILING.json path=repo_violation_count value=1 -->
+**1** in the repo.
+
+> **This cell read 2 until round 5, and 2 was correct when it was written.** Commit
+> `6c6d9a69` then lowered `Stop/git-hygiene` 90 s → 30 s in the repo manifest, which removed
+> that row — but nobody regenerated `R4-BUDGET-CEILING.json`, so the committed evidence went
+> on describing a tree that no longer existed. Round 5 re-ran the probe and the gate caught
+> the drift immediately (`repo_violation_count is 1 on disk but 2 in the staged blob`). The
+> reason it went unnoticed for a round is the round-5 defect itself: re-running any of these
+> three probes could destroy their evidence, so re-running them was the one thing nobody did.
+> The remaining repo row is `PreToolUse/edit-checkpoints`; BUILD-R4 §4 REFUTED it as a defect
+> by measuring the **enforced** 20 s ceiling instead of the manifest's stale 15 s mirror, and
+> this probe still counts it only because it reads that mirror.
+
 <!-- cite: id=R4-bc-un file=R4-BUDGET-CEILING.json path=live.violations.0.unreachable_s value=55.0 -->
-**55 s of git-hygiene's 90 s is unreachable in both trees**, and the repo additionally has
-`edit-checkpoints` at 15 s inside a 15 s PreToolUse event — the /rollback producer the deploy
-plan proposes arming, declared a budget it can never spend. So the honest pair of numbers for
+**55 s of git-hygiene's 90 s is unreachable live**, which is the row still awaiting a deploy.
+So the honest pair of numbers for
 the guarded path is
 <!-- cite: id=R4-gh-p90 file=R4-GITHYGIENE-RANGE.json path=range_pct_of_declared_90s_check_budget.1 value=36.3 -->
 **≤ 36.3% of the declared 90 s** but

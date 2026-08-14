@@ -188,10 +188,18 @@ reading in this program. It compared
 27 repo checks, and found
 <!-- cite: id=R4c-bc-live file=R4-BUDGET-CEILING.json path=live_violation_count value=1 -->
 **1** violation live,
-<!-- cite: id=R4c-bc-repo file=R4-BUDGET-CEILING.json path=repo_violation_count value=2 -->
-**2** in the repo:
+<!-- cite: id=R4c-bc-repo file=R4-BUDGET-CEILING.json path=repo_violation_count value=1 -->
+**2** in the repo **at the time this round measured it**; the cell now reads **1**:
 
-* `Stop/git-hygiene` 90 s inside a 35 s event, **both trees** —
+> **The cited value moved from 2 to 1, and neither number was ever wrong.** This round's own
+> §5.1 fix (`6c6d9a69`, `Stop/git-hygiene` 90 s → 30 s in the repo manifest) removed the first
+> bullet below from the repo side — but the evidence file was not regenerated, so it kept
+> asserting the pre-fix count for a whole round. Round 5 re-ran the probe and the gate flagged
+> the drift on the first attempt. Recorded rather than quietly reconciled, because the failure
+> is not the number: a round that fixes a defect and does not re-run the probe measuring it
+> publishes evidence for a tree that no longer exists.
+
+* `Stop/git-hygiene` 90 s inside a 35 s event — **live only now**, repo fixed by §5.1 —
   <!-- cite: id=R4c-bc-un file=R4-BUDGET-CEILING.json path=live.violations.0.unreachable_s value=55.0 -->
   **55 s unreachable**. The 30 → 90 s raise bought at most ~5 s of real headroom over the old
   30 s, not 60.

@@ -39,6 +39,8 @@ import json
 import os
 from pathlib import Path
 
+from _evidence_io import write_evidence
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 LIVE = Path(os.path.expanduser("~")) / ".claude"
@@ -109,11 +111,14 @@ def main() -> int:
     out["control_clean_state_flags"] = len(cold)
     out["controls_discriminate"] = len(hot) == 1 and len(cold) == 0
     if not out["controls_discriminate"]:
-        (HERE / "R4-BUDGET-CEILING.json").write_text(
-            json.dumps(out, indent=1), encoding="utf-8"
-        )
+        # Not the committed file -- see `_evidence_io`. At this point `out` holds only the
+        # two control counts, so writing it here would drop every measured key.
+        where = write_evidence(HERE / "R4-BUDGET-CEILING.json", out, ok=False)
         print(json.dumps(out, indent=1))
-        print("FAILED:r4-budget-ceiling controls do not discriminate; verdict withheld")
+        print(
+            "FAILED:r4-budget-ceiling controls do not discriminate; verdict withheld; "
+            f"partial output -> {where.name}"
+        )
         return 1
 
     for label, path in (
@@ -139,9 +144,7 @@ def main() -> int:
     ]
     out["fail_closed_ok"] = bool(counts) and min(counts) >= MIN_CHECKS
     if not out["fail_closed_ok"]:
-        (HERE / "R4-BUDGET-CEILING.json").write_text(
-            json.dumps(out, indent=1), encoding="utf-8"
-        )
+        write_evidence(HERE / "R4-BUDGET-CEILING.json", out, ok=False)
         print(json.dumps(out, indent=1))
         print(
             f"FAILED:r4-budget-ceiling compared {counts} checks, floor is {MIN_CHECKS} -- "
@@ -151,9 +154,7 @@ def main() -> int:
 
     out["repo_violation_count"] = len(out["repo"]["violations"])
     out["live_violation_count"] = len(out["live"]["violations"])
-    (HERE / "R4-BUDGET-CEILING.json").write_text(
-        json.dumps(out, indent=1), encoding="utf-8"
-    )
+    write_evidence(HERE / "R4-BUDGET-CEILING.json", out, ok=True)
     print(json.dumps(out, indent=1))
     print("SUCCESS:r4-budget-ceiling")
     return 0
