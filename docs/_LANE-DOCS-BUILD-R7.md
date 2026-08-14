@@ -140,6 +140,18 @@ ruff 0.15.17   check "All checks passed!" exit 0 ; format --check "6 files alrea
 EOL            byte census (CR/LF counts, not grep): all three carriers CR=0 before the round;
                CRLF after `git checkout --` restored them (autocrlf). The apply script MEASURES
                per file and re-emits unchanged.
+blob gate      SUCCESS:docs-r7-blobcheck rev=HEAD files=7 blob_format=clean control_fires=True
+               `ruff format --check` re-run on bytes from `git cat-file -p` in BYTE mode -- a
+               PowerShell `>` redirect re-encodes and joins with the OS newline, so a
+               redirect-based census of the same blob is not trustworthy. ruff.toml is carried
+               into the temp root and the repo-relative path mirrored, because a bare temp dir
+               makes ruff fall back to its own line-length and answer a different question.
+               All 7 blobs CR=0. CONTROL: a mangled file in the SAME harness exits non-zero,
+               so the green is not an inert invocation.
+clone green    fresh depth-1 clone of the commit -> 23 passed, exit 0, and the new non-test
+               helper module imports correctly there. That clone checked out CRLF on this box;
+               the LF form CI sees is covered by the blob gate above and by the in-suite EOL
+               control -- NOT by a Linux run.
 diff surface   ci/tests/test_command_doc_promises.py +153/-0 (append + 1 import)
                docs/_LANE-DOCS-BUILD-R6.md +14/-6      -- no whole-file EOL rewrite
 ```
@@ -151,8 +163,11 @@ diff surface   ci/tests/test_command_doc_promises.py +153/-0 (append + 1 import)
 1. **No real CI run, and this lane does not push.** Everything is local, on the CI interpreter
    (3.11.9). Settling experiment: push and read `gate-lint-format (ruff)` and the
    `gate-tests-coverage docs executable claims` step.
-2. **No fresh-clone run of the suite.** Mitigated for the load-bearing claim only: R7-1 *is* a
-   clone experiment. The rest is working-tree.
+2. **Fresh-clone run: DONE for this lane's gate, not for the repo.** A depth-1 clone of the
+   commit runs the 23-test suite green, and R7-1 is itself a clone experiment. What is still
+   NOT-CHECKED is the *rest* of `ci/tests` from a clone, and any run on Linux — the clone
+   checked out CRLF here, so the LF arm rests on `_lane_docs_r7_blobcheck.py` and the in-suite
+   EOL control rather than on a real runner.
 3. **Full `ci/tests` sweep NOT-CHECKED.** 812 tests collect cleanly; prior rounds measured 4
    Windows-only failures at parent `96362031` that are not this lane's. I ran the 6 suites that
    touch what I changed.
