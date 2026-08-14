@@ -232,6 +232,40 @@ have read as a clean tree.
 
 ---
 
+## Post-commit verification (`f725baf4`)
+
+Everything below was run AFTER the commit, against committed bytes — not against the working
+tree that produced them.
+
+| check | reading |
+|---|---|
+| commit surface | 11 paths, 1 `M` + 10 `A`, **0** under `--diff-filter=D`, **0** paths outside `command-center/slop-report/` |
+| published-commands gate at HEAD | rc **0** — 377 commands across 335 documents, **0 NEW**, 0 stale (1 inherited baseline row still open) |
+| gate self-test | rc **0**, including both example-marker controls |
+| **blob-level ruff at my commit** (`_r2_gate_now.py --rev f725baf4`) | `ruff check rc=0`, `format --check rc=0`, **0 would-reformat**, `all_controls_pass: true` |
+| frozen evidence at lane END | `FROZEN-UNTOUCHED-PROVEN` again — 9/9 hash-identical, live-detector control fires at 5 |
+
+The ruff line is the CI-relevant one: it reads the **stored blobs** (LF), not the CRLF worktree,
+so a local green cannot disagree with CI the way this estate has already been bitten by once.
+Before the commit the pre-commit self-check predicted exactly one unresolved command
+(`_r5_bucket_c.py`, untracked at the time, with the control firing on both documents); after the
+commit the real gate reports 0 NEW. Predicted and observed agree.
+
+### A side effect I caused, disclosed rather than quietly reverted
+
+Re-running `_r2_gate_now.py` to produce the blob-level line above **overwrote
+`_r2_gate_now.out.json`, which was already dirty at lane start** (it is one of the four
+`_r2_`/`_r3_` receipts the round-4 handoff recorded as dirty-before-that-round too). Whatever
+uncommitted reading it held is gone and cannot be recovered. Mitigating facts, not excuses: it is
+this lane's own instrument, its content is a rev-stamped ruff measurement whose own banner says
+*"THIS TREE MOVES — re-run before citing this line"*, and the producer is tracked and takes
+`--rev`, so any rev can be re-measured on demand. I restored the file to its committed state with
+`git checkout --` so it now sits in a well-defined, reproducible state rather than one I invented.
+The other three pre-existing dirty receipts were never opened by this round and are left exactly
+as found.
+
+---
+
 *Round-5 artifacts, all committed: `SLOP-BUILD-R5.md`, `_r5_frozen.py`, `_r5_bucket_c.py`,
 `_r5_reclassify.py`, `_r5_cost.py` and their `.out.json`, plus `_r5_buckets_snapshot.json`.
 Corrections annotated in place in `SLOP-BUILD-R4.md` — the refuted wording is struck through and
