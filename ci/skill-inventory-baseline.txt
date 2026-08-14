@@ -1,0 +1,78 @@
+# Pinned skill-INVENTORY asymmetry.  SHRINK-ONLY.
+#
+# Read by ci/check_skill_inventory_parity.py.  Every line names a skill that is
+# asymmetric across the two D-001 roots TODAY and is grandfathered so the gate is
+# green at HEAD instead of red-blocking main.  The gate refuses a STALE entry
+# (skill now symmetric), an UNKNOWN entry (skill in neither root), and a
+# DIRECTION change (the asymmetry flipped sides), so this file can only get
+# shorter: reconcile a skill and you MUST delete its line in the same change.
+#
+# Format, one per line:
+#   canonical-only:<skill>           directory in .agents/skills/, absent from skills/
+#   projection-only:<skill>          directory in skills/, absent from .agents/skills/
+#   skill-md-canonical-only:<skill>  directory in BOTH, SKILL.md only in .agents/skills/
+#   skill-md-projection-only:<skill> directory in BOTH, SKILL.md only in skills/
+#
+# WHY A PIN AND NOT A FIX: which direction wins is a per-skill OWNER decision.
+# claim-verify-gate is deliberately canonical-only (quality.yml executes it from
+# .agents/skills/claim-verify-gate/scripts/, so a projection copy would be a
+# second unexecuted twin), and copying 12 skills into the generated projection
+# changes what every consumer of that tree sees.  This file makes the standing
+# decision explicit and stops a NEW asymmetry from joining it unnoticed.
+#
+# MEASURED 2026-08-14 at HEAD by two mechanically independent enumerations that
+# agreed exactly (os walk of the working tree; git ls-tree of the committed
+# tree):
+#     directories  .agents/skills 347   skills 339   336 in both
+#     SKILL.md     .agents/skills 346   skills 337
+#     asymmetric   12 canonical-only, 3 projection-only  (15 total)
+#
+# READ THIS BEFORE "CORRECTING" THE COUNTS.  A first pass at this file compared
+# DIRECTORY presence only, measured 11 canonical-only, and concluded that the
+# plan section which opened this item (12 + 3) had gone stale because
+# microsoft-foundry now "exists in both roots".  That was wrong, and it was wrong
+# in the most expensive direction -- a detector that answers an easier question
+# than the one asked.  skills/microsoft-foundry/ holds 42 of the canonical
+# copy's 204 files and NO SKILL.md: a directory, not a loadable skill.  The plan's
+# 12 + 3 was measured on the SKILL.md surface and is still exactly right.  The
+# gate now measures BOTH surfaces so the two readings cannot silently disagree
+# again.
+
+# --- canonical-only, directory absent from skills/ (11) -----------------------
+# Executed by .github/workflows/quality.yml from the canonical root.
+canonical-only:claim-verify-gate
+
+# The nine per-mode Codex wrappers.  codex-orchestrate's description says it
+# "Replaces" them; they remain present in SSOT and undeployed, which is a routing
+# decision, not drift.  Retiring or projecting them is tracked separately.
+canonical-only:codex-audit
+canonical-only:codex-brainstorm
+canonical-only:codex-coordinate
+canonical-only:codex-curate
+canonical-only:codex-discuss
+canonical-only:codex-fix
+canonical-only:codex-governance
+canonical-only:codex-review
+canonical-only:codex-triage
+
+canonical-only:qdx-rush
+
+# --- canonical-only, directory present but SKILL.md missing (1) ---------------
+# HALF-PROJECTED, and the reason this rule exists.  skills/microsoft-foundry/
+# holds 42 of the canonical copy's 204 files -- foundry-agent/ and scripts/ and
+# nothing else, in particular no SKILL.md -- so it is unselectable in the
+# projection while LOOKING present to any check that only asks whether the
+# directory is there.  Repairing it means completing a 162-file projection of a
+# third-party pack (author: Microsoft; ruff.toml already excludes the canonical
+# copy as vendored), which is an owner call, not this gate's.  Pinned so it stays
+# visible and shrink-only rather than silently symmetric.
+skill-md-canonical-only:microsoft-foundry
+
+# --- projection-only (3) ------------------------------------------------------
+# These three are the DANGEROUS direction: skills/ is generated, so a
+# projection-only skill has no authoritative source and the next full projection
+# run can drop it.  Their D-001 repair is to CREATE the canonical copy, not to
+# prune the projection.
+projection-only:harness-module-authoring
+projection-only:patent-fto-search
+projection-only:social-corpus-extraction
