@@ -3,7 +3,12 @@
 Round 1 of this build lane shipped `hook_predeploy_gate.py` and settled P0/P1/P3-premise. Its §9
 left five items. This round works that list, and opens with something none of the five predicted.
 
-Four commits: `2a139b87` · `0e2370be` · `7ccaa24b` · `0d040fff`.
+Five commits: `2a139b87` · `b0cbfe28` · `7ccaa24b` · `0d040fff` · this report.
+
+> Corrected before you read it: the first version of this line credited `0e2370be`, which is a
+> **sibling lane's** commit. `B10-CI-PROOF.json` records `clone_head=0e2370be` truthfully — that
+> was HEAD when the clone was taken — and I read a shared-worktree HEAD as if it were my own
+> commit. In a tree where four lanes commit, HEAD is not authorship.
 
 ---
 
