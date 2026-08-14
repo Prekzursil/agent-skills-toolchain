@@ -142,6 +142,10 @@ per-PR gate. The behavioural gate that *does* run in CI is unchanged and still g
 
 ## 5. Evidence (executed; commands and their real output)
 
+Shipped as **`65af5451`** (5 files, +560/-10 — the four corrections plus the pinned probe and
+the EOL census) and **`a946b643`** (1 file, +88 — the blob-level check). Both verified ancestors
+of HEAD; both committed with explicit pathspecs, so no sibling path was swept in.
+
 ```
 pinned counts    SUCCESS:docs-r6-pinned controls=C1,C2,C3-ok
                  pre_fix=20/16 post_fix=19/15 head_moving=19/15
