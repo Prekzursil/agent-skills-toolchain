@@ -1,0 +1,36 @@
+chore(slop): re-anchor the three proof receipts to the rev they now describe
+
+The receipts committed in 54c57a88 were measured at 2c036164 and at the intermediate state
+before the use-vs-mention fix. Re-run at 6b34cd9b and committed so the evidence is anchored to
+the tree it actually describes rather than to a rev two commits back.
+
+  _i5_ci_wiring_verify.out.json   WIRING-PROVEN, 14 of 14, clone head 6b34cd9b
+  _i9_claims_redproof.out.json    CLAIMS-GATE-RED-PROVEN, 8 of 8, every pre-existing gate blind
+  _i9_c5_fix.out.json             C5-FIX-PROVEN, 5 of 5
+
+Checked BEFORE committing this time, which was the lesson of the previous commit: the claims
+gate reads receipts as well as documents, so refreshing a receipt can change what is
+checkable. Run with --no-write against the working tree carrying these three: rc 0,
+TRANSCRIPTION-CLEAN, 42 claims, receipt left clean.
+
+Also measured at this rev, with controls, and NOT claimed beyond its scope:
+
+  ruff format --check .   56 would-reformat, 0 of them TRACKED
+  ruff check .            14 violations across 10 files, 0 of them TRACKED
+  charter_check.sh        OK -- 7 gates consistent
+  frozen evidence         casualty/probes 0 dirty of 7 tracked;
+                          p2-wave/probes/AUD-0006/control 0 dirty of 2 tracked
+
+The tracked/untracked split carries its own control (the oracle must load more than 1000
+tracked paths and classify a known-tracked file correctly) because a split that silently
+loaded nothing would report zero tracked offenders for the wrong reason. The frozen counts are
+fail-closed on the LITERAL directory path, not the */control glob, which matches zero tracked
+files as a git pathspec and would report clean by matching nothing.
+
+So gate-lint-format is green on tracked content at this rev. That is not a claim that main is
+green: the other quality.yml steps are NOT-CHECKED. The 56 untracked format failures are the
+DoD-2 residual, unchanged and still not mine to sweep -- they are other lanes' in-flight
+evidence, and committing them unformatted is precisely what would turn that gate red.
+
+The three receipts dirty since earlier rounds (_r2_bucket_c, _r3_redproof, _r3_twinsurface)
+are deliberately left alone again. They belong to the rounds that wrote them.
