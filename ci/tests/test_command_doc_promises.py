@@ -62,6 +62,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import io
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -163,7 +164,7 @@ def _skill_references(
     for rel in _command_docs(tracked):
         # newline="" so line endings are never rewritten on read; line numbers
         # are counted on the raw text.
-        text = (REPO_ROOT / rel).read_text(encoding="utf-8", newline="")
+        text = io.open((REPO_ROOT / rel), encoding="utf-8", newline="").read()
         for match in SKILL_REF.finditer(text):
             if not include_mentions and _is_mention(
                 _sentence_around(text, match.start(), match.end())
@@ -384,3 +385,187 @@ def test_control_mention_filter_is_sentence_scoped() -> None:
         "a negation in the PREVIOUS sentence suppressed this delegation; the "
         "mention window is too wide"
     )
+
+
+# --------------------------------------------------------------------------
+# Round 5 arm: command-doc PROSE may not assert a repo path that is absent
+# --------------------------------------------------------------------------
+#
+# Measured surface that motivated this arm (docs/_LANE-DOCS-BUILD-R5.md):
+#   20 bare ``scripts/...`` references in command docs, 16 of which do not resolve.
+#   13 of those 16 sit inside fenced code blocks -- they are INVOCATIONS the user
+#   runs against the deployed harness, not claims about this repo, and gating them
+#   would fire on every vendored command doc. That is the false-positive class that
+#   gets a gate switched off within a week.
+#   Of the 3 in prose, exactly ONE was a genuine defect. The other two are
+#   ``node scripts/orchestrate-worktrees.js plan.json`` (an invocation) and the
+#   English phrase "scripts/commands" (not a path at all). Reporting 16, or even 3,
+#   would have been an overclaim -- 16x and 3x respectively.
+#
+# The discriminator is therefore deliberately narrow: a backticked span containing
+# NO whitespace is a bare path and reads as an assertion that the path exists; a
+# backticked span with spaces is a command line.
+
+#: A single backtick span on one line.
+BACKTICK_SPAN = re.compile(r"`([^`\n]+)`")
+
+#: An opening or closing code fence.
+FENCE_LINE = re.compile(r"^\s*(?:```|~~~)")
+
+#: A bare repo-relative path under ``scripts/`` that carries a file extension.
+#: ``${CLAUDE_PLUGIN_ROOT}/scripts/...`` and ``~/.claude/...`` are excluded by the
+#: anchor: they name their resolution root and so assert nothing about this repo.
+BARE_REPO_SCRIPT = re.compile(r"^scripts/[A-Za-z0-9._/-]+\.[A-Za-z0-9]+$")
+
+#: Floor for the number of backtick spans examined. A collapsed extractor must
+#: fail loudly rather than pass vacuously.
+MIN_PROSE_SPANS = 150
+
+
+def _prose_backtick_spans(text: str) -> list[tuple[int, int, str, int]]:
+    """``(abs_start, abs_end, span, lineno)`` for backtick spans OUTSIDE code fences.
+
+    Offsets are absolute into ``text`` so the existing sentence window can be reused.
+    ``text`` is split on ``\\n`` only, so a ``\\r`` stays inside its line and the
+    offsets remain correct for CRLF bytes.
+    """
+    spans: list[tuple[int, int, str, int]] = []
+    offset = 0
+    in_fence = False
+    for lineno, line in enumerate(text.split("\n"), 1):
+        if FENCE_LINE.match(line):
+            in_fence = not in_fence
+        elif not in_fence:
+            for match in BACKTICK_SPAN.finditer(line):
+                spans.append(
+                    (
+                        offset + match.start(1),
+                        offset + match.end(1),
+                        match.group(1),
+                        lineno,
+                    )
+                )
+        offset += len(line) + 1
+    return spans
+
+
+def _path_resolves(path: str, tracked: frozenset[str]) -> bool:
+    return path in tracked or (REPO_ROOT / path).exists()
+
+
+def _prose_path_claims_in_text(
+    text: str, tracked: frozenset[str]
+) -> list[tuple[int, str]]:
+    """``(lineno, path)`` for every prose assertion of an ABSENT repo path."""
+    claims: list[tuple[int, str]] = []
+    for start, end, span, lineno in _prose_backtick_spans(text):
+        if any(ch.isspace() for ch in span):
+            continue  # a command line, not a path assertion
+        if not BARE_REPO_SCRIPT.match(span):
+            continue
+        if _is_mention(_sentence_around(text, start, end)):
+            continue
+        if not _path_resolves(span, tracked):
+            claims.append((lineno, span))
+    return claims
+
+
+def _prose_path_claims(tracked: frozenset[str]) -> list[tuple[str, int, str]]:
+    out: list[tuple[str, int, str]] = []
+    for rel in _command_docs(tracked):
+        text = io.open((REPO_ROOT / rel), encoding="utf-8", newline="").read()
+        for lineno, path in _prose_path_claims_in_text(text, tracked):
+            out.append((rel, lineno, path))
+    return out
+
+
+def test_prose_span_extraction_is_not_empty(tracked: frozenset[str]) -> None:
+    """A collapsed extractor would make the arm below pass while measuring nothing."""
+    total = sum(
+        len(
+            _prose_backtick_spans(
+                io.open((REPO_ROOT / rel), encoding="utf-8", newline="").read()
+            )
+        )
+        for rel in _command_docs(tracked)
+    )
+    assert total >= MIN_PROSE_SPANS, (
+        f"only {total} prose backtick spans found across the command docs "
+        f"(floor {MIN_PROSE_SPANS}); the extractor has collapsed and this arm "
+        "is no longer measuring anything"
+    )
+
+
+def test_no_command_doc_prose_claims_a_missing_repo_path(
+    tracked: frozenset[str],
+) -> None:
+    """Prose must not present a bare ``scripts/...`` path this repo does not ship."""
+    claims = _prose_path_claims(tracked)
+    assert not claims, (
+        "command-doc prose asserts repo paths that do not exist:\n"
+        + "\n".join(f"  {doc}:{line} -> {path}" for doc, line, path in claims)
+        + "\n\nEither ship the file, or name the root the path actually resolves "
+        "against (for example ${CLAUDE_PLUGIN_ROOT}/... or ~/.claude/...) so the "
+        "sentence stops asserting that this repo contains it."
+    )
+
+
+def test_control_prose_claim_fires_on_a_missing_path(tracked: frozenset[str]) -> None:
+    """H1 predicate discriminates vs H2 predicate always silent."""
+    text = "Combine the metrics emitted by `scripts/hooks/zzz-absent-r5.js` for this.\n"
+    assert _prose_path_claims_in_text(text, tracked) == [
+        (1, "scripts/hooks/zzz-absent-r5.js")
+    ], "the arm did not fire on an absent bare repo path"
+
+
+def test_control_prose_claim_is_silent_on_a_present_path(
+    tracked: frozenset[str],
+) -> None:
+    """H1 predicate discriminates vs H2 predicate always fires."""
+    assert _path_resolves("scripts/longrun.ps1", tracked), (
+        "precondition: scripts/longrun.ps1 must exist for this control to mean anything"
+    )
+    text = "Wrap it with `scripts/longrun.ps1` before running.\n"
+    assert _prose_path_claims_in_text(text, tracked) == [], (
+        "the arm fired on a path that DOES exist"
+    )
+
+
+def test_control_an_invocation_span_is_not_a_path_claim(
+    tracked: frozenset[str],
+) -> None:
+    """The two hypotheses give DIFFERENT answers, which is what makes this a control.
+
+    Same absent file, two spans: bare (a claim) and invoked (a command line). A
+    predicate that ignored whitespace would return two hits here rather than one.
+    """
+    bare = "See `scripts/hooks/zzz-absent-r5.js` for details.\n"
+    invoked = "Run `node scripts/hooks/zzz-absent-r5.js --flag` to start.\n"
+    assert len(_prose_path_claims_in_text(bare, tracked)) == 1
+    assert _prose_path_claims_in_text(invoked, tracked) == [], (
+        "an invocation was misread as a path assertion; this is the "
+        "false-positive class that gets the gate disabled"
+    )
+
+
+def test_control_fenced_code_is_excluded(tracked: frozenset[str]) -> None:
+    """Identical token inside vs outside a fence must give different answers."""
+    prose = "See `scripts/hooks/zzz-absent-r5.js` here.\n"
+    fenced = "```bash\n`scripts/hooks/zzz-absent-r5.js`\n```\n"
+    assert len(_prose_path_claims_in_text(prose, tracked)) == 1
+    assert _prose_path_claims_in_text(fenced, tracked) == [], (
+        "a fenced code block was scanned as prose"
+    )
+
+
+def test_control_the_arm_is_eol_agnostic(tracked: frozenset[str]) -> None:
+    """CRLF bytes must produce the same verdict as LF bytes.
+
+    commands/sessions.md is a 333-CRLF file, so an offset bug that swallowed the
+    ``\\r`` would silently change the sentence window on the very doc this arm fixed.
+    """
+    lf = "See `scripts/hooks/zzz-absent-r5.js` here.\nNext line.\n"
+    crlf = lf.replace("\n", "\r\n")
+    assert _prose_path_claims_in_text(lf, tracked) == _prose_path_claims_in_text(
+        crlf, tracked
+    ), "the arm is not EOL-agnostic"

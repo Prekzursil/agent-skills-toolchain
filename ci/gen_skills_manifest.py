@@ -57,6 +57,7 @@ import argparse
 import pathlib
 import re
 import sys
+import io
 from typing import NamedTuple
 
 SKILLS_ROOT = "skills"
@@ -274,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.write:
         manifest.parent.mkdir(parents=True, exist_ok=True)
-        manifest.write_text(expected, encoding="utf-8", newline="\n")
+        io.open(manifest, "w", encoding="utf-8", newline="\n").write(expected)
         print(f"wrote {MANIFEST_RELPATH}: {_summary(result, repo)}")
         if result.orphans:
             print(

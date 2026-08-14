@@ -15,6 +15,7 @@ from __future__ import annotations
 import pathlib
 import subprocess
 import sys
+import io
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
@@ -51,7 +52,7 @@ def _skill(root: pathlib.Path, name: str, description: str) -> None:
 def _manifest(root: pathlib.Path, body: str) -> None:
     path = root / MANIFEST_RELPATH
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(body, encoding="utf-8", newline="\n")
+    io.open(path, "w", encoding="utf-8", newline="\n").write(body)
 
 
 # --------------------------------------------------------------------------- live repo

@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import io
 
 BASE_SKILL = "# existing-skill\n\nbase content\n"
 
@@ -49,7 +50,7 @@ class Repo:
     def write(self, rel: str, text: str) -> None:
         path = self.root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8", newline="\n")
+        io.open(path, "w", encoding="utf-8", newline="\n").write(text)
 
     def write_bytes(self, rel: str, data: bytes) -> None:
         path = self.root / rel

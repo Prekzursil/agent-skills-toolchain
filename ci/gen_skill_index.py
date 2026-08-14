@@ -41,6 +41,7 @@ import argparse
 import json
 import pathlib
 import sys
+import io
 
 CANONICAL_ROOT = ".agents/skills"
 PROJECTION_ROOTS = ("skills", "skills-claude-only")
@@ -171,7 +172,7 @@ def write_marketplace(repo: pathlib.Path) -> bool:
     rendered = render_marketplace(repo)
     if mp.read_text(encoding="utf-8") == rendered:
         return False
-    mp.write_text(rendered, encoding="utf-8", newline="\n")
+    io.open(mp, "w", encoding="utf-8", newline="\n").write(rendered)
     return True
 
 
