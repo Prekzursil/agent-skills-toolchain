@@ -618,6 +618,20 @@ measurements that can actually land, both re-run **after** the commit:
 `python command-center/_synthrev2_bothstates.py` now runs exactly those two and keeps the original
 mistake in its docstring, because the mistake is the transferable part.
 
+**Third correction, same probe, caught by re-running it once more.** The replacement first
+*asserted* the `437 → 443` delta — a fact that is true **exactly once**, so the probe went red on
+its very next run while nothing was wrong. A committed probe that stands permanently red is the
+`CL9` failure mode: *"a standing false red trains you to ignore the output."* The assertion is now
+the stable invariant (receipts present in the HEAD blob, every target resolving in `git ls-files`,
+gate green); the delta is **reported**, anchored to the introducing commit, not asserted. Verified
+by running it twice: rc=0, rc=0.
+
+**Three drafts of one control, and each was wrong in a different direction** — first it could not
+deliver the broken state, then it read its own silence as the gate's property, then it asserted a
+one-shot fact as an invariant. The finding it exists to support never changed. **That ratio — one
+finding, three broken instruments — is the honest shape of this estate's error budget, and it is
+why "I ran a control" is not a claim until you say what the control did in the broken state.**
+
 ### Confirmed — re-executed and identical
 
 - **The gate table holds.** 22 gates re-run plus a 23rd probe, behind a three-state control that
