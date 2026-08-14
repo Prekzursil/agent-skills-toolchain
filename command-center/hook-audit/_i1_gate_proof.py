@@ -108,12 +108,16 @@ def main() -> int:
     out["declared_fetch_depth"] = depth
     out["gate_is_wired"] = wired
     if not wired:
+        # Deliberately WITHOUT writing I1-GATE-PROOF.json. That file is tracked, so a stub
+        # written on this fail path would overwrite committed evidence with a partial record
+        # -- the exact defect round 5 gated in test_failpath_evidence.py, and this script
+        # shipped it: the regression went red the moment the evidence file became tracked.
+        # Leaving the last good measurement in place is the correct failure mode; the reason
+        # goes to stdout, where a terminal state belongs.
         print(
             "FAILED:gate-proof the citation gate is NOT among the commands "
-            f"{WORKFLOW.name} declares -- the rule may work and it is not reachable"
-        )
-        (EVID / "I1-GATE-PROOF.json").write_text(
-            json.dumps(out, indent=1), encoding="utf-8"
+            f"{WORKFLOW.name} declares -- the rule may work and it is not reachable. "
+            f"Parsed steps: {cmds}"
         )
         return 1
 

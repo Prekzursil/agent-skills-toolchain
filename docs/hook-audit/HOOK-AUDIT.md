@@ -305,6 +305,7 @@ from the inert set** rather than pick a side, and named the settling experiment:
 
 Detector controls, both directions, all passed: wired-control (`wire-check`) found = True;
 synthetic absent-control found = False; and — the control the synthetic one cannot supply —
+<!-- cite: id=I1-mentioned file=B6-FLEET.json path=inertness.control_mentioned_only_count value=2 -->
 **2 dirs came back MENTIONED-BUT-NOT-PATH-WIRED** (`checkpoint`, `sonar-secrets`), which is
 direct evidence that the loose document-level search over-reports. My first version used
 that loose search and reported **8 dark of 73** while calling 65 dirs wired; its synthetic
@@ -326,6 +327,21 @@ publishing a cost with no evidence the producer worked** — the index lands in
 `CKPT_ROOT/<session_id>/index.ndjson`, a per-session subdir, and my check looked at the
 root. Corrected: index written, 1 record, 1 real snapshot ref created.
 
+**The gap itself, re-anchored to evidence that is now IN GIT (integrate round).** Until
+2026-08-14 this section's anchor, `H8-ROLLBACK-GAP.json`, was UNTRACKED — present on one
+disk, absent from every clone, and named by no `cite:` marker, so nothing could check it and
+its absence was invisible. It is tracked now and the two load-bearing facts are pinned:
+the producer is
+<!-- cite: id=I1-r-manifest file=H8-ROLLBACK-GAP.json path=deployment.in_live_manifest value=False -->
+**absent from the live manifest** while it
+<!-- cite: id=I1-r-writes file=H8-ROLLBACK-GAP.json path=producer.index_written value=True -->
+**does write the index when fired** — verdict
+<!-- cite: id=I1-r-verdict file=H8-ROLLBACK-GAP.json path=verdict value=PRODUCING -->
+`PRODUCING`. That pairing is the whole finding: the hook works and is wired nowhere, so
+`/rollback` reads an index no live hook writes. If the producer is ever deployed and the
+probe re-run, `in_live_manifest` flips and this citation goes RED, which is the point — the
+document can no longer describe a gap that has been closed.
+
 ## DoD 4 — false-positive sources named with a fix
 
 Three mechanisms, all fixed in `hooks/wire-check/check.py`, each with a red-first
@@ -338,6 +354,14 @@ does **not** raise: the decode dies in `subprocess._readerthread`, `communicate(
 and the os.walk fallback was never reached. Zero references is this hook's dead-code
 trigger, and since the odds of a non-cp1252 byte rise with output size, the failure is
 **inverted: most wrong about the most-referenced symbols.**
+
+Re-anchored in the integrate round for the same reason as DoD-3: `H7-WIRECHECK-FP.json` was
+UNTRACKED and uncited, so the mechanism above rested on a file no clone has. Tracked and
+pinned now —
+<!-- cite: id=I1-f1-empty file=H7-WIRECHECK-FP.json path=silently_emptied_count value=3 -->
+**3 of the 6 probed patterns came back silently emptied**, with a bogus-token row in the same
+table returning 0 lines on both arms so "emptied" stays distinguishable from "genuinely
+absent".
 
 Controlled A/B, HEAD blob vs worktree, interleaved over the same tree (`B3-AB-BUDGET.json`):
 
