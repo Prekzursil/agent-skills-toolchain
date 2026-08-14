@@ -49,7 +49,7 @@ Verdict = what I measured. Resolution = fix-doc / fix-code / no-action, with the
 | **R6-4** | `docs/_LANE-DOCS-BUILD-R5.md` §4: "would leave **20** equally-referenced siblings behind" | measured three candidate referents; **none is 20**. `hooks/hooks.json` names **23 distinct** `scripts/hooks/*` targets across **51** occurrences (-> **22** siblings excluding `cost-tracker.js`); `~/.claude/scripts/hooks/` holds **27** files (26 siblings); `commands/*.md` names **2** distinct such tokens. Detector control: `scripts/hooks/zzz-not-real` -> **0** matches, so the zero-arm is not a broken matcher | **REFUTED — an unanchored number that reproduces to nothing** | **FIX DOC.** Replaced with the measured **22**, with all three candidate referents recorded inline so the choice is auditable. Not flagged by the audit; found by re-measuring every number in the file rather than only the flagged one. |
 | **R6-5** | `docs/_LANE-DOCS-BUILD-R5.md` §8.8: "committed by someone else (`b0e3bf98`, **owner**)" | `git log -60 --format="%an <%ae>" \| Sort-Object -Unique` returns exactly **1** identity — `Andrei Mihai Visalon <54636077+Prekzursil@users.noreply.github.com>` | **UNFALSIFIABLE from git metadata** — no signal separates agent-authored from owner-authored | **FIX DOC.** Rewritten to the falsifiable form: *this lane's own commit action did not produce it*. The attribution is withdrawn, not restated. |
 | **R6-6** | the audit's F4: "scope expansion beyond `docs/**` was **undisclosed**" | read the committed artifact: `docs/_LANE-DOCS-BUILD-R5.md` §8 item **5** already says *"Scope widened into `commands/` and `ci/tests/`"* with its precedent and its reason | **HALF-REFUTED.** CONFIRMED for the returned report, which omitted it; REFUTED for the committed artifact, which discloses it | **no doc action.** Carried into this round's report instead (§3.5). Recording only the confirmed half would have been the same overclaim in the opposite direction. |
-| **R6-7** | should the pinned-count probe become a CI gate? | `quality.yml`: the docs steps live in job `test-python` (line 283), whose checkout at line 287 has **no `with:` block** -> `fetch-depth` defaults to **1**, a shallow clone. The only `fetch-depth: 0` in the file is line 1631, a **different** job (gitleaks). Separately the probe takes **33.5 s** | **NO — structurally unrunnable there, and too slow** | **no CI wiring.** Two independent grounds. A history-reading gate in a shallow-checkout job fails closed on every run; that is the gate the next lane disables. It stays an on-demand re-derivation. |
+| **R6-7** | should the pinned-count probe become a CI gate? | `quality.yml`: the docs steps live in job `test-python` (line 283), whose checkout at line 287 has **no `with:` block** -> `fetch-depth` defaults to **1**, a shallow clone. The only `fetch-depth: 0` in the file is line 1631, a **different** job (gitleaks). Separately the probe takes **33.5 s** | **NO — but "structurally unrunnable" is REFUTED; see the round-7 correction. The decision survives, the reason does not** | **no CI wiring.** Two independent grounds. A history-reading gate in a shallow-checkout job fails closed on every run; that is the gate the next lane disables. It stays an on-demand re-derivation. *Correction (round 7): the verdict wording was **REFUTED**. Measured with a two-arm clone control (`docs/_lane_docs_r7_shallow_control.py`): a depth-1 clone fails closed exactly as claimed, and the SAME clone after `fetch --unshallow` returns `SUCCESS:docs-r6-pinned pre_fix=20/16 post_fix=19/15`. So the probe is not structurally unrunnable in CI; it needs `fetch-depth: 0`, a two-line setting that **6 workflows in this repo already carry as a live YAML field — including `quality.yml` itself**, in a different job. The decision not to wire it SURVIVES on a reason round 6 did not give: the probe's inputs are two immutable commits, so its answer is frozen and a gate on it can never go red because reality changed, only because the probe or the checkout broke. The defect that actually recurred is the anchor being stripped off the sentence, and that is checkable in milliseconds with no history at all — which is what round 7 shipped instead.* |
 
 ---
 
@@ -134,9 +134,9 @@ the wrong reason. Fixed by reconstructing directory existence from tracked prefi
 That is **one self-inflicted detector failure this round**, caught by a control rather than by
 inspection, and disclosed rather than quietly fixed.
 
-**Why it is not wired into CI** — two independent measurements, not a preference (see R6-7): the
-hosting job's checkout is shallow, so the pinned commits would not exist; and 33.5 s is not a
-per-PR gate. The behavioural gate that *does* run in CI is unchanged and still green.
+**Why it is not wired into CI** — *rewritten in round 7. The original reasoning is kept below because it was REFUTED, not merely improved.* The probe reads two IMMUTABLE commits, so its verdict is frozen: a CI gate on it cannot detect a new defect, only its own breakage. That is the surviving reason.
+
+REFUTED wording (round 6): *"two independent measurements, not a preference (see R6-7): the hosting job's checkout is shallow, so the pinned commits would not exist; and 33.5 s is not a per-PR gate."* The first is true as a PREMISE and false as the CONCLUSION drawn from it — a depth-1 clone does fail closed (re-measured), but `fetch-depth: 0` is the remedy and 6 workflows here already set it, one of them `quality.yml`. The second was only ever a Windows measurement (re-timed at 27.8 s) and was never taken on a Linux runner. The behavioural gate that *does* run in CI is unchanged and still green.
 
 ---
 
@@ -197,8 +197,10 @@ probe timing     33,535 ms
    experiment, still routed to hook-audit, still not gated red.
 5. **`skill-dual-write.yml` still has no `push:` trigger** — carried from INTEGRATE §6.1, not
    mine.
-6. **The 33.5 s pinned probe is on-demand only.** If the docs steps ever move to a job with
-   `fetch-depth: 0`, re-evaluate; today they do not.
+6. **The pinned probe is on-demand only** — for the frozen-input reason in §4, not for the
+   shallow-checkout reason round 6 gave, which round 7 REFUTED. Nor is "the docs steps
+   moving" the precondition: adding `fetch-depth: 0` to the hosting job would be, and that
+   is a deliberate cost (full history on the repo's largest job) bought for a frozen answer.
 7. **One self-inflicted detector failure this round** (§4, the `.exists()`-vs-`ls-tree` directory
    asymmetry). Caught by C1, disclosed, fixed. Also a Windows-only `UnicodeDecodeError` from
    `subprocess(text=True)` decoding as cp1252 — CI's UTF-8 default would have hidden it; the fix

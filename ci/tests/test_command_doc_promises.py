@@ -64,6 +64,8 @@ from pathlib import Path
 import pytest
 import io
 
+from docs_count_anchors import ROUND5_COUNT_ANCHORS
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 #: ``skills/<name>/SKILL.md`` inside backticks, optionally with a ``./`` prefix.
@@ -584,3 +586,158 @@ def test_control_the_arm_is_eol_agnostic(tracked: frozenset[str]) -> None:
     assert _prose_path_claims_in_text(lf, tracked) == _prose_path_claims_in_text(
         crlf, tracked
     ), "the arm is not EOL-agnostic"
+
+
+# --------------------------------------------------------------------------
+# Round 7 arm: the round-5 surface counts must keep their commit anchors
+# --------------------------------------------------------------------------
+#
+# Round 5 shipped the pair "20 bare refs / 16 unresolved" with no anchor, in two
+# files. It had already gone stale by one when it was committed; an audit refuted
+# it; round 6 fixed both sentences by pinning each number to the immutable commit
+# it was measured at. Nothing yet stopped a later edit from stripping the anchor
+# back off -- which is exactly how the defect arrived the first time.
+#
+# This arm pins the ANCHOR, not the number. Pinning the number would re-create
+# the defect, because a count tied to HEAD moves on every sibling commit.
+#
+# WHY THE EXPECTED SHAS LIVE IN ANOTHER MODULE
+# --------------------------------------------
+# The first version of this arm held them in a constant HERE -- inside one of the
+# files it checks. ``docs/_lane_docs_r7_bothstates.py`` mutated the real file and
+# proved that version INERT: stripping the anchor from the carrier also stripped
+# it from the constant, so the expectation moved with the thing it was expecting
+# and the gate stayed GREEN on a genuinely broken file. A gate whose expected
+# value lives inside the artifact under test cannot detect that value's removal.
+#
+# It is deliberately cheap -- two file reads, no git history walk. That is the
+# point: this suite runs in a checkout with fetch-depth 1, where a history walk
+# fails closed. Re-deriving the counts themselves DOES need full history, so it
+# stays an on-demand probe. Both states are measured in
+# docs/_LANE-DOCS-BUILD-R7.md.
+#
+# SCOPE, stated so the arm is not read as wider than it is: it proves an anchor
+# survives in the REGION that states the counts. It does not prove that every
+# number in either file is anchored, nor that the anchor names the right commit
+# -- the on-demand probe settles that.
+
+#: The module holding the expected SHAs. MUST NOT be a carrier; a control pins it.
+ANCHOR_SOURCE = "ci/tests/docs_count_anchors.py"
+
+#: Tracked files that state the round-5 surface counts.
+COUNT_CARRIERS = (
+    "ci/tests/test_command_doc_promises.py",
+    "docs/_LANE-DOCS-BUILD-R5.md",
+)
+
+
+def _carrier_source(rel: str) -> str:
+    """Read a carrier with ``newline=""`` so its line endings survive verbatim."""
+    return io.open((REPO_ROOT / rel), encoding="utf-8", newline="").read()
+
+
+def _count_region(rel: str, source: str) -> str:
+    """The slice of a carrier that states the round-5 surface counts.
+
+    Scoping to a REGION rather than the whole file is load-bearing: both SHAs
+    appear elsewhere in these files (in prose about the correction), so a
+    whole-file search would pass even after the count itself lost its anchor.
+    """
+    lines = source.splitlines()
+    if rel.endswith(".md"):
+        for line in lines:
+            if line.lstrip().startswith("| **R5-5** |"):
+                return line
+        raise AssertionError(f"{rel}: row R5-5 is gone, and it carried the counts")
+
+    start = None
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("# Round 5 arm:"):
+            start = i
+            break
+    if start is None:
+        raise AssertionError(f"{rel}: the round-5 banner comment is gone")
+
+    block: list[str] = []
+    for line in lines[start:]:
+        stripped = line.strip()
+        if stripped == "" or stripped.startswith("#"):
+            block.append(line)
+        else:
+            break
+    return "\n".join(block)
+
+
+def _missing_anchors(region: str) -> list[str]:
+    return [sha for sha in ROUND5_COUNT_ANCHORS if sha not in region]
+
+
+def test_round5_counts_keep_their_commit_anchors() -> None:
+    """The gate proper: neither carrier may state the counts unanchored."""
+    offenders = {}
+    for rel in COUNT_CARRIERS:
+        missing = _missing_anchors(_count_region(rel, _carrier_source(rel)))
+        if missing:
+            offenders[rel] = missing
+    assert not offenders, (
+        "a round-5 surface count lost the commit it was measured at, which is how "
+        "it reads as CURRENT and goes stale:\n"
+        + "\n".join(
+            f"  {rel} -> missing {missing}" for rel, missing in offenders.items()
+        )
+    )
+
+
+def test_control_the_expectation_does_not_live_in_a_carrier() -> None:
+    """The control that the first version of this arm failed.
+
+    H1: the expectation is independent of the artifact -> stripping an anchor
+    from a carrier leaves ROUND5_COUNT_ANCHORS intact and the gate fires.
+    H2: the expectation lives in the carrier -> it is stripped too and the gate
+    stays green. The two give different answers only if this holds.
+    """
+    assert ANCHOR_SOURCE not in COUNT_CARRIERS, (
+        f"{ANCHOR_SOURCE} became one of the files it is the expectation for; "
+        "the gate is now inert -- see docs/_lane_docs_r7_bothstates.py"
+    )
+    assert ROUND5_COUNT_ANCHORS, "the expectation module declares no anchors"
+
+
+def test_control_anchor_arm_fires_when_an_anchor_is_stripped() -> None:
+    """Every anchor, every carrier: removing it must be detected."""
+    for rel in COUNT_CARRIERS:
+        source = _carrier_source(rel)
+        for sha in ROUND5_COUNT_ANCHORS:
+            broken = source.replace(sha, "")
+            assert sha in _missing_anchors(_count_region(rel, broken)), (
+                f"{rel}: stripping {sha} did not make the arm fire -- it is "
+                "reading something other than the region that carries the count"
+            )
+
+
+def test_control_anchor_arm_is_silent_on_the_shipped_text() -> None:
+    """The other direction: the arm must not fire on the state we ship."""
+    for rel in COUNT_CARRIERS:
+        assert _missing_anchors(_count_region(rel, _carrier_source(rel))) == []
+
+
+def test_control_the_region_is_not_the_whole_file() -> None:
+    """A region equal to the whole file would make the check trivially green."""
+    rel = "ci/tests/test_command_doc_promises.py"
+    source = _carrier_source(rel)
+    marker = "WHY THE RESOLVER IS MULTI-ROOT"
+    assert marker in source, "precondition: the module docstring still says this"
+    assert marker not in _count_region(rel, source), (
+        "the extracted region swallowed the module docstring; it is not scoped "
+        "to the comment block that carries the counts"
+    )
+
+
+def test_control_anchor_arm_is_eol_agnostic() -> None:
+    """A CRLF working tree and an LF blob must produce the same verdict."""
+    for rel in COUNT_CARRIERS:
+        lf = _carrier_source(rel).replace("\r\n", "\n")
+        crlf = lf.replace("\n", "\r\n")
+        assert _missing_anchors(_count_region(rel, lf)) == _missing_anchors(
+            _count_region(rel, crlf)
+        ), f"{rel}: the arm's verdict depends on line endings"
