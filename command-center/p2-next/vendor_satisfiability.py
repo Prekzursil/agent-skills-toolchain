@@ -119,6 +119,45 @@ CROSS_CLAUSE = re.compile(
 SAT, BLOCKED_RAIL = "SATISFIABLE_NOW", "RAIL_BLOCKED"
 
 
+def cross_vendor_fulfilled(rec: dict, produced: str) -> bool:
+    """Has this unit ALREADY consumed cross-vendor review capacity?
+
+    The ladder above answers what a receipt DEMANDS. That is the right input for
+    keeping the two populations apart, and it is what `split_review_gate.py`
+    independently reproduces -- so it is deliberately NOT redefined here.
+
+    But it is the wrong input for PRICING the queue, and the two were conflated.
+    A unit can demand a cross-vendor refuter and already HAVE one: measured, three
+    of the rail-blocked 42 carry an executed openai PASS (`_j2_fulfilled_census.py`).
+    Counting those as unmet capacity overstates what restoring the rail buys.
+
+    Deliberately strict, because the failure direction that matters is
+    overstating fulfilment:
+      * the reviewer_id FIELD must name the vendor -- not the notes, not the
+        requirement prose. ADV-0006's reviewer_id reads
+        "codex-cli-0.145.0 (openai) -- DISPATCH BLOCKED" with verdict NOT-REVIEWED;
+        a document that NAMES a codex reviewer did not GET one (use-vs-mention).
+      * verdict must be PASS and `independent` must be exactly True.
+      * the reviewing vendor must differ from the producing vendor, or it is not
+        cross-vendor at all.
+    """
+    rvw = rec.get("reviewer")
+    if not isinstance(rvw, dict):
+        return False
+    if str(rvw.get("verdict") or "").upper() != "PASS":
+        return False
+    if rvw.get("independent") is not True:
+        return False
+    vid = str(rvw.get("reviewer_id") or "")
+    if not vid:
+        return False
+    o, a = bool(OPENAI_TOKEN.search(vid)), bool(ANTHROPIC_TOKEN.search(vid))
+    if o == a:  # names both vendors, or neither -- ambiguous, so not counted
+        return False
+    reviewed_by = "openai" if o else "anthropic"
+    return reviewed_by != (produced or "anthropic").lower()
+
+
 def other(vendor: str) -> str:
     return "openai" if (vendor or "anthropic").lower() == "anthropic" else "anthropic"
 
@@ -287,8 +326,83 @@ def _selftest() -> int:
         if v != expected:
             print(f"FAILED:selftest [{label}] expected {expected} got {v} via {rule}")
             bad += 1
+
+    # ---- cross_vendor_fulfilled, exercised in BOTH states --------------------
+    # A predicate that only ever sees the satisfied case proves it can say yes, not
+    # that it can say no. Every rejecting branch gets a case, and the first case is
+    # the ACCEPTING one so a wholesale "return False" cannot pass the block.
+    def rec(vid: str, verdict: str = "PASS", indep: bool = True) -> dict:
+        return {
+            "reviewer": {
+                "reviewer_id": vid,
+                "verdict": verdict,
+                "independent": indep,
+            }
+        }
+
+    CODEX_ID = "openai/codex-cli-0.145.0 (gpt-5.x), fresh context, cross-vendor"
+    fcases = [
+        (
+            rec(CODEX_ID),
+            "anthropic",
+            True,
+            "an executed openai PASS on an anthropic unit",
+        ),
+        (
+            rec(
+                "codex-cli-0.145.0 (openai) -- DISPATCH BLOCKED", verdict="NOT-REVIEWED"
+            ),
+            "anthropic",
+            False,
+            "reviewer_id NAMES codex but the verdict is NOT-REVIEWED (use-vs-mention)",
+        ),
+        (
+            rec(CODEX_ID, verdict="FAIL"),
+            "anthropic",
+            False,
+            "a cross-vendor FAIL is not fulfilment",
+        ),
+        (
+            rec(CODEX_ID, indep=False),
+            "anthropic",
+            False,
+            "a non-independent PASS is not fulfilment",
+        ),
+        (
+            rec("p2next-build-lane-fresh-context-claude-opus-5-reviewer"),
+            "anthropic",
+            False,
+            "an anthropic PASS on an anthropic unit is SAME-vendor, not cross",
+        ),
+        (
+            rec(CODEX_ID),
+            "openai",
+            False,
+            "an openai PASS on an OPENAI unit is same-vendor",
+        ),
+        (
+            rec("openai and anthropic both reviewed this"),
+            "anthropic",
+            False,
+            "an ambiguous reviewer_id naming both vendors is not counted",
+        ),
+        (rec(""), "anthropic", False, "an empty reviewer_id is not counted"),
+        ({}, "anthropic", False, "a receipt with no reviewer block is not counted"),
+    ]
+    for receipt, prod, expected, label in fcases:
+        got = cross_vendor_fulfilled(receipt, prod)
+        if got is not expected:
+            print(f"FAILED:selftest [fulfilled: {label}] expected {expected} got {got}")
+            bad += 1
+    if not any(e for *_, e, _ in fcases):
+        print(
+            "FAILED:selftest fulfilment cases carry no accepting case; block is inert"
+        )
+        bad += 1
+
     print(
-        f"  selftest: {'PASS' if not bad else 'FAIL'} ({len(cases)} cases incl. the v1 and both v2 regressions)"
+        f"  selftest: {'PASS' if not bad else 'FAIL'} ({len(cases)} ladder cases incl. the v1 "
+        f"and both v2 regressions; {len(fcases)} fulfilment cases, both states)"
     )
     return bad
 
@@ -389,6 +503,8 @@ def load_units(basis: str, rev: str = "HEAD") -> list[dict]:
         )
         req = str(u.get("reviewer_requirement") or "")
         rv, rule = resolve(blocked_on, notes, req, produced or "anthropic")
+        verdict = BLOCKED_RAIL if rv == "openai" else SAT
+        fulfilled = cross_vendor_fulfilled(rec, produced or "anthropic")
         rows.append(
             {
                 "id": u["id"],
@@ -400,7 +516,12 @@ def load_units(basis: str, rev: str = "HEAD") -> list[dict]:
                 "produced_by_known": produced_known,
                 "reviewer_vendor": rv,
                 "rule": rule,
-                "verdict": BLOCKED_RAIL if rv == "openai" else SAT,
+                "verdict": verdict,
+                #: What the receipt DEMANDS (`verdict`) vs whether that demand is
+                #: already MET. Conflating the two priced three already-reviewed
+                #: units as unmet review capacity.
+                "cross_vendor_fulfilled": fulfilled,
+                "still_needs_cross_vendor": verdict == BLOCKED_RAIL and not fulfilled,
                 "reviewer_requirement": " ".join(req.split())[:300],
                 "blocked_on": " ".join((blocked_on or "").split())[:300],
                 "output_path": p,
@@ -497,6 +618,20 @@ def main(argv: list[str] | None = None) -> int:
         ],
         "blocked_units": len(rows),
         "verdict_counts": dict(Counter(r["verdict"] for r in rows)),
+        #: DEMAND vs UNMET DEMAND. `rail_blocked` counts units whose receipt demands a
+        #: cross-vendor reviewer; `rail_blocked_unfulfilled` counts those that do not yet
+        #: HAVE one. The gap is what restoring the rail actually buys.
+        "rail_blocked_fulfilled": sum(
+            1
+            for r in rows
+            if r["verdict"] == BLOCKED_RAIL and r["cross_vendor_fulfilled"]
+        ),
+        "rail_blocked_unfulfilled": sum(
+            1 for r in rows if r["still_needs_cross_vendor"]
+        ),
+        "cross_vendor_fulfilled_ids": sorted(
+            r["id"] for r in rows if r["cross_vendor_fulfilled"]
+        ),
         "reviewer_vendor_counts": dict(Counter(r["reviewer_vendor"] for r in rows)),
         "rule_counts": dict(Counter(r["rule"] for r in rows)),
         "basis_comparison": {

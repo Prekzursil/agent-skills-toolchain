@@ -150,6 +150,12 @@ REQUIRED_FIELDS = (
     "basis",
     "blocked_units",
     "rail_blocked",
+    #: DEMAND vs UNMET DEMAND. `rail_blocked` is what receipts ASK FOR;
+    #: `rail_blocked_unfulfilled` is what is still OWED. They differed by 3 the day
+    #: this field was added (ADV-0023/0035/0042 already hold an executed openai PASS),
+    #: and publishing only the first overstated what restoring the rail buys.
+    "rail_blocked_unfulfilled",
+    "rail_blocked_fulfilled",
     "satisfiable_now",
     "reviewed_satisfiable",
     "catalog_units",
@@ -206,6 +212,14 @@ def counts_at(basis: str) -> dict[str, int]:
     return {
         "blocked_units": len(rows),
         "rail_blocked": c[_vs.BLOCKED_RAIL],
+        "rail_blocked_unfulfilled": sum(
+            1 for r in rows if r.get("still_needs_cross_vendor")
+        ),
+        "rail_blocked_fulfilled": sum(
+            1
+            for r in rows
+            if r["verdict"] == _vs.BLOCKED_RAIL and r.get("cross_vendor_fulfilled")
+        ),
         "satisfiable_now": c[_vs.SAT],
     }
 
@@ -248,6 +262,8 @@ def check_block(
         "basis": basis,
         "blocked_units": str(derived["blocked_units"]),
         "rail_blocked": str(derived["rail_blocked"]),
+        "rail_blocked_unfulfilled": str(derived["rail_blocked_unfulfilled"]),
+        "rail_blocked_fulfilled": str(derived["rail_blocked_fulfilled"]),
         "satisfiable_now": str(derived["satisfiable_now"]),
         "reviewed_satisfiable": str(reviewed),
         "catalog_units": str(catalog_units),
@@ -431,6 +447,8 @@ GOOD_DOC = """# Cross-vendor review rail is DOWN -- and it gates 42 blocked unit
 basis: committed
 blocked_units: 52
 rail_blocked: 42
+rail_blocked_unfulfilled: 39
+rail_blocked_fulfilled: 3
 satisfiable_now: 10
 reviewed_satisfiable: 10
 catalog_units: 2007
@@ -439,20 +457,33 @@ derived_by: command-center/p2-next/vendor_satisfiability.py --basis committed
 
 42 of 52 blocked units wait on the rail. The other 10 units were reviewed on 2026-08-12 at
 port 8812 with python 3.11.
+39 units are still owed a cross-vendor review.
 On the authoring box the dirty tree gave 41 units. [worktree-observed 2026-08-13]
 The earlier census said 43 of 47 receipts. [superseded 2026-08-13]
 """
 
 
 def _selftest() -> int:
-    d = {"blocked_units": 52, "rail_blocked": 42, "satisfiable_now": 10}
+    d = {
+        "blocked_units": 52,
+        "rail_blocked": 42,
+        "rail_blocked_unfulfilled": 39,
+        "rail_blocked_fulfilled": 3,
+        "satisfiable_now": 10,
+    }
     bad = 0
 
     def prose(doc: str) -> list[str]:
         return check_prose(doc, d, 2007, 10)[0]
 
+    #: Counted, not asserted. The header used to hardcode "30 cases" and was already stale by
+    #: the time this line was read -- the same rot the gate exists to catch in the doc.
+    ran = [0, 0]  # [total, cases that expected a FIRE]
+
     def expect(label: str, problems: list[str], want_fire: bool) -> None:
         nonlocal bad
+        ran[0] += 1
+        ran[1] += 1 if want_fire else 0
         fired = bool(problems)
         if fired != want_fire:
             bad += 1
@@ -483,6 +514,43 @@ def _selftest() -> int:
         check_block(
             {**fields, "derived_by": "a person, from memory"}, d, 10, 2007, "committed"
         ),
+        True,
+    )
+    # The DEMAND-vs-UNMET field. Silence on the correct value is only meaningful next to a
+    # fire on a wrong one and on its absence -- otherwise the field is declared and unchecked,
+    # which is the shape the whole C5 content hole had.
+    expect(
+        "C1 rail_blocked_unfulfilled correct is silent",
+        check_block(fields, d, 10, 2007, "committed"),
+        False,
+    )
+    expect(
+        "C1 rail_blocked_unfulfilled stale fires",
+        check_block(
+            {**fields, "rail_blocked_unfulfilled": "42"}, d, 10, 2007, "committed"
+        ),
+        True,
+    )
+    expect(
+        "C1 rail_blocked_unfulfilled missing fires",
+        parse_block(GOOD_DOC.replace("rail_blocked_unfulfilled: 39\n", ""))[1],
+        True,
+    )
+    # C4 -- the subset invariant, both directions.
+    expect("C4 unfulfilled within range is silent", plausibility(d), False)
+    expect(
+        "C4 unfulfilled above rail_blocked fires",
+        plausibility({**d, "rail_blocked_unfulfilled": 43}),
+        True,
+    )
+    expect(
+        "C4 a dropped predicate reporting zero owed fires",
+        plausibility({**d, "rail_blocked_unfulfilled": 0}),
+        True,
+    )
+    expect(
+        "C4 fulfilled + unfulfilled must partition rail_blocked",
+        plausibility({**d, "rail_blocked_fulfilled": 7}),
         True,
     )
 
@@ -661,8 +729,13 @@ def _selftest() -> int:
     )
 
     print(
-        f"  selftest: {'PASS' if not bad else 'FAIL'} (30 cases, every check in both states)"
+        f"  selftest: {'PASS' if not bad else 'FAIL'} ({ran[0]} cases, {ran[1]} of them "
+        f"expecting a FIRE, every check in both states)"
     )
+    #: A suite of only-silent cases proves the instrument runs, not that it discriminates.
+    if ran[1] == 0 or ran[1] == ran[0]:
+        print("FAILED:selftest cases are one-sided; this suite cannot discriminate")
+        bad += 1
     return bad
 
 
@@ -676,6 +749,30 @@ def plausibility(derived: dict[str, int]) -> list[str]:
     if derived["rail_blocked"] + derived["satisfiable_now"] != derived["blocked_units"]:
         return [
             "C4 verdict counts do not sum to the population -- resolver shape change"
+        ]
+    #: Unfulfilled is a SUBSET of rail-blocked by construction. If the producer ever stops
+    #: emitting `still_needs_cross_vendor`, `counts_at` sums zero and this reads as "the
+    #: whole queue is already served" -- the most flattering possible wrong answer, and the
+    #: one an owner would act on. Fail closed on both ends rather than publish it.
+    if not 0 <= derived["rail_blocked_unfulfilled"] <= derived["rail_blocked"]:
+        return [
+            f"C4 rail_blocked_unfulfilled={derived['rail_blocked_unfulfilled']} is outside "
+            f"0..rail_blocked={derived['rail_blocked']} -- the producer changed shape"
+        ]
+    if (
+        derived["rail_blocked_unfulfilled"] + derived["rail_blocked_fulfilled"]
+        != derived["rail_blocked"]
+    ):
+        return [
+            f"C4 fulfilled({derived['rail_blocked_fulfilled']}) + "
+            f"unfulfilled({derived['rail_blocked_unfulfilled']}) != "
+            f"rail_blocked({derived['rail_blocked']}) -- the split does not partition"
+        ]
+    if derived["rail_blocked"] and not derived["rail_blocked_unfulfilled"]:
+        return [
+            "C4 every rail-blocked unit reports as already fulfilled. That is either the end "
+            "of the queue or a dropped field; it fails closed so a missing predicate cannot "
+            "publish itself as completion"
         ]
     return []
 
@@ -759,7 +856,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  basis={args.basis}  doc={where}")
     print(
         f"  FRESH DERIVATION: {derived['blocked_units']} blocked units, "
-        f"{derived['rail_blocked']} rail-blocked, {derived['satisfiable_now']} satisfiable now, "
+        f"{derived['rail_blocked']} rail-blocked "
+        f"({derived['rail_blocked_unfulfilled']} still owed a cross-vendor review, "
+        f"{derived['rail_blocked_fulfilled']} already served), "
+        f"{derived['satisfiable_now']} satisfiable now, "
         f"{reviewed} of those reviewed; catalog carries {catalog_units} units, "
         f"{ready} of them READY"
     )

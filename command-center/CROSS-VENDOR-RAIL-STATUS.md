@@ -1,26 +1,130 @@
-# Cross-vendor review rail is DOWN — and it gates 42 blocked units
+# The cross-vendor review rail ANSWERS — and 39 blocked units are still owed a review
 
 <!-- RAIL-COUNT
 basis: committed
 blocked_units: 52
 rail_blocked: 42
+rail_blocked_unfulfilled: 39
+rail_blocked_fulfilled: 3
 satisfiable_now: 10
 reviewed_satisfiable: 10
 catalog_units: 2007
 derived_by: command-center/p2-next/vendor_satisfiability.py --basis committed
-gated_by: command-center/p2-next/rail_count_gate.py
 -->
 
-**Rail probed 2026-08-12 ~10:45. Counts re-derived 2026-08-13 from the COMMITTED tree.**
-The block above is not a summary of this page — it is the page's contract with CI.
-`rail_count_gate.py` recomputes every field on each push and pull request and fails when this
-document, or `command-center/p2-next/VENDOR-SATISFIABILITY.json`, disagrees with a fresh
-derivation. Re-derive it yourself in about a second:
+> ## REFUTED 2026-08-14 — the previous title of this page was
+> ## *"Cross-vendor review rail is DOWN — and it gates 42 blocked units"*
+>
+> It is kept here rather than deleted, because it is preserved verbatim in the permanent commit
+> message of `fd615ce7` and cannot be corrected there. The rail was pronounced down on **one
+> transport**: a single failing `mcp__codex__codex` call. That is one route onto the rail, not the
+> rail. The page even taught the right lesson — *"before a cross-vendor fan-out, spend one unit
+> proving the rail end-to-end"* — and then violated it, because `claude mcp list` was replaced with
+> a different single signal instead of a second independent one.
+
+**Rail re-probed 2026-08-14 ~03:02–03:05Z on two mechanically independent transports, with a
+control. Counts re-derived from the COMMITTED tree.** The block above is not a summary of this
+page — it is the page's contract with CI. `rail_count_gate.py` recomputes every field on each push
+and pull request and fails when this document, or
+`command-center/p2-next/VENDOR-SATISFIABILITY.json`, disagrees with a fresh derivation.
 
 ```
 python command-center/p2-next/rail_count_gate.py --self-test   # prove the gate can fail
 python command-center/p2-next/rail_count_gate.py               # then trust its silence
 ```
+
+## The rail answers. Two transports, and a control that proves the probe can see failure.
+
+| transport | result |
+|---|---|
+| `codex exec --ignore-user-config --sandbox read-only -o <f> -` | **exit 0**, 7.9 s, output file 22 B, body is the exact nonce the prompt demanded, session `019ffe3a-2a43-7dd2-a36d-d836364b77dc`, 25,474 tokens |
+| `mcp__codex__codex` (sandbox read-only, approval never) | **success**, `threadId 019ffe3a-0ba7-7812-a7e6-5e9bcba4c25a`, returned the exact nonce |
+| **CONTROL** — the same CLI call with `CODEX_HOME` pointed at an EMPTY directory | **exit 1**, `401 Unauthorized: Missing bearer or basic authentication` |
+
+The CLI leg satisfies the full AND-gate `rules/common/cross-vendor-dispatch.md` §2 requires, not an
+exit code alone: exit 0 **AND** the `-o` file exists **AND** is non-empty **AND** validates — it
+carries a nonce generated for that run, so a truncated or empty generation cannot pass.
+
+**The control is what makes the green informative.** With no credential reachable the same call
+fails 401, so the probe demonstrably *can* see an auth failure. Its success on the live path is a
+reading, not a silence. No credential was written, rotated, read for value, or printed; the control
+only redirects one subprocess's home at an empty temp directory. `codex login` was NOT attempted.
+
+Receipt: `command-center/p2-next/J1-RAIL-PROBE.json`.
+
+### The first run of that probe was a detector failure that would have confirmed this page
+
+Passing the bare name `codex` to `subprocess` returned
+`[WinError 2] The system cannot find the file specified` for **both** the live call and the
+control, because `codex` on PATH is `codex.ps1` — a PowerShell shim `CreateProcess` cannot launch.
+A live leg that "fails" is exactly what this page used to assert, and the run was one step from
+being reported as agreement with it. The probe's `control_discriminates` assertion refused: the
+control failed too, so the instrument was measuring nothing. Same defect class as `which` in Git
+Bash missing a `.cmd` shim.
+
+### The refutation was already inside this program's own committed artifact, unread
+
+`command-center/p2-next/_AUDIT-BLOCKED-POP.json`, written on 2026-08-11/12, verbatim:
+
+> the `mcp__codex__codex` rail failed with 'agent identity registration failed'; **the codex CLI on
+> the same credentials succeeded, so the MCP failure was a transport fault and not an auth
+> verdict.**
+
+and, on a different unit:
+
+> STRIKE 2 — `codex exec --ignore-user-config --sandbox read-only` … **the model AUTHENTICATED and
+> ran (25,899 tokens), so the openai-auth-401 blocker ADV-0006 recorded is GONE** and has been
+> REPLACED by a different one — the host sandbox policy DECLINED every read-only filesystem probe.
+
+So a correct reading was available on disk before this page was written, and before the round that
+priced it. The dominant failure here was recall, not detection.
+
+## What unblocks the queue — the correction that matters for pricing
+
+The previous version of this page named `codex login` as the owner action that unblocks the rail.
+**That is not established.** Auth is not the measured blocker on either transport today, and on the
+one occasion the CLI leg was driven to a real review it authenticated and was then stopped by the
+**host sandbox policy** rejecting read-only filesystem probes — a different failure with a
+different fix.
+
+`codex login` remains an owner-only action under AGENTS.md §9 and no agent has attempted it. But it
+should no longer be priced as the lever: **there is currently no measured auth blocker to clear.**
+The residual work is dispatch capacity and the host policy, not a credential.
+
+NOT-CHECKED, inline: whether a full review dispatch across the remaining queue succeeds end to end
+under the current host sandbox policy. What was measured is that the transport authenticates and
+returns a demanded token. The settling experiment is to dispatch one real review unit and require
+the §2 AND-gate plus a non-trivial verdict.
+
+## Demand is not the same as unmet demand — 3 of the 42 are already served
+
+`vendor_satisfiability.py` classifies each receipt by the reviewer vendor it **demands**, and
+`split_review_gate.py` independently reproduces that split from different fields. That is the right
+input for keeping the two populations apart, so it is unchanged.
+
+It is the wrong input for **pricing**, and the two were conflated. Three of the rail-blocked units
+already carry an executed, independent, cross-vendor Codex PASS:
+
+| unit | `reviewer_id` (verbatim head) |
+|---|---|
+| ADV-0023 | `openai/codex-cli-0.145.0 (gpt-5.x), fresh context, cross-vendor` |
+| ADV-0035 | `codex-cli GPT-5 Codex (OpenAI), session 019ff3f2, dispatched via 'codex exec …'` |
+| ADV-0042 | `codex-exec-cli refuter (ADV-0042)`, `vendor: openai` |
+
+So the queue is **39 units**, not 42. Both figures are now published and gated separately:
+`rail_blocked` is what receipts ask for, `rail_blocked_unfulfilled` is what is still owed.
+
+The predicate is deliberately strict, because the dangerous direction is overstating fulfilment. It
+requires `verdict == PASS` **and** `independent is true` **and** a `reviewer_id` **field** naming a
+vendor different from the producer. ADV-0006 is the case that proves it discriminates: its
+`reviewer_id` reads `codex-cli-0.145.0 (openai) -- DISPATCH BLOCKED` while its verdict is
+`NOT-REVIEWED`. A receipt that *names* a Codex reviewer did not *get* one.
+
+**Detector control, discriminating:** the same reader returns 3 cross-vendor passes among the 42
+rail-blocked and **0** among the 10 satisfiable — while a counter that merely detected "has a
+reviewer" returns 38 and 10 on the same rows. The two counters separate, so what is being measured
+is cross-vendor fulfilment and not reviewer presence. Receipt:
+`command-center/p2-next/J2-FULFILLED-CENSUS.json`.
 
 ## The number, and why it is not the number this page used to carry
 
@@ -29,17 +133,15 @@ It summed TAG OCCURRENCES from `blocker_census.py` and printed the total beside 
 so a receipt carrying three review tags contributed three. That counts the document instead of
 the field.
 
-Every published figure the program produced for this one quantity, and what each was actually
-measuring:
-
 | published | where | what it really counted |
 |---|---|---|
 | 43 of 47 units *[superseded]* | this page, first version | tag occurrences, not units |
 | 41 of 51 units *[worktree-observed 2026-08-13]* | `VENDOR-SATISFIABILITY.json`, round 1 | a **worktree** read, which silently absorbed a sibling lane's uncommitted edit to ADV-0041 |
 | 47 of 51 units *[superseded]* | re-running the producer, round 1 | a resolver bug: this lane's own receipt edits removed the word "Claude" from `failure.blocked_on`, and an ungated rule inverted six same-vendor requirements into cross-vendor demands |
-| **42 of 52 units** | **here, committed basis** | **units, once each, from HEAD blobs** |
+| **42 of 52 units** | here, committed basis | units, once each, from HEAD blobs — what receipts DEMAND |
+| **39 of 52 units** | **here, committed basis** | **the same population minus those already reviewed — what is still OWED** |
 
-Two mechanically independent instruments now agree on the split, which is the only reason it is
+Two mechanically independent instruments agree on the demand split, which is the only reason it is
 stated without a hedge: `vendor_satisfiability.py` resolves a seven-rule vendor ladder per receipt
 and returns 42 rail-blocked / 10 satisfiable; `split_review_gate.py` classifies from receipt
 *classification tags* plus the catalog `reviewer_requirement` and returns 42 CROSS_VENDOR /
@@ -49,82 +151,39 @@ On the authoring box the dirty tree gave 41 of 51 units. *[worktree-observed 202
 The single difference is ADV-0041: BLOCKED in every commit, SUCCESS only in an uncommitted sibling
 edit. That figure is a point-in-time reading of one machine's dirt — it is not re-derivable
 anywhere else, which is exactly why the number an owner acts on is the committed one and why CI
-checks it there. The gate refuses to accept such a number unless the line carrying it says so, and
-it prints how many lines used that escape so a document cannot be quietly marked instead of fixed.
+checks it there.
 
-## "Connected" is not "works"
+## "Connected" is not "works" — and one failing call is not "down"
 
 | probe | result |
 |---|---|
 | `codex --version` | `codex-cli 0.145.0` |
-| `Get-Command codex` | `…\npm\codex.ps1` — on PATH in both shell views |
-| `claude mcp list` | `codex: codex mcp-server - ✔ Connected` (line 37 of 67; 55 servers connected) |
-| **an actual `mcp__codex__codex` call** | **FAILS**: `agent identity registration failed for https://auth.openai.com/api/accounts/v1/agent/register` |
+| `Get-Command codex` | `…\npm\codex.ps1` — a SHIM, not a launchable binary; `codex.cmd` is the one `subprocess` can start |
+| `claude mcp list` | `codex: codex mcp-server - ✔ Connected` |
+| an actual `mcp__codex__codex` call, 2026-08-12 | **FAILED**: `agent identity registration failed …/agent/register` *[superseded 2026-08-14]* |
+| the same call, 2026-08-14 | **succeeds**, returns the demanded nonce |
 
-Three green signals and the rail is still unusable. The health check proves the server *starts*; it
-does not exercise OpenAI auth. This is the single-signal trap in its most expensive form — had the
-whole gated queue been dispatched instead of probing one unit first, every dispatch would have
-failed, likely after burning wall-clock on each.
+The health check proves the server *starts*; it does not exercise OpenAI auth. That much stands.
+The lesson the earlier version drew from it does not: a single failing call was then treated as
+proof of the negative, which is the same single-signal trap one step further along. An intermittent
+transport fault and a dead rail look identical through one probe.
 
-That is the reusable lesson: before a cross-vendor fan-out, spend one unit proving the rail
-end-to-end. `claude mcp list` is not that proof.
-
-## Read-only diagnosis (no credential action taken)
-
-`~/.codex/auth.json` — 215 bytes, modified **2026-08-11 22:15**:
-
-```
-top-level keys: ['auth_mode', 'OPENAI_API_KEY']
-```
-
-Key *names* only; no value was read, printed, or logged. What this shows:
-
-- There is **no OAuth token object** — no `tokens`, no `id_token`/`access_token`/`refresh_token`, so
-  there is no JWT whose `exp` could be checked. The file is API-key mode only.
-- The failing endpoint is `accounts/v1/agent/register` — *agent identity* registration, which is a
-  ChatGPT-account-session operation, not an API-key operation.
-
-So the most likely cause (**likely, 55-80%**) is that `codex mcp-server` requires the ChatGPT login
-session for agent registration and only the API key is configured. The competing explanation
-(**uncertain, 20-55%**) is that the key exists but lacks the agent-registration entitlement. Both
-are settled by the same one command, which is why no further probes were spent separating them.
-
-UNVERIFIED, inline: nobody established *what* modified `auth.json` at 22:15 on 2026-08-11, roughly
-when that session began. It was not that session — no credential file has been written here.
-Settling experiment: check the file's prior version if any backup exists, or correlate against the
-other session's activity.
-
-## What unblocks it — OWNER ACTION, not an agent's
-
-```
-codex login
-```
-
-AGENTS.md §9 reserves credential lifecycle to the owner: never remove, rotate, revoke, regenerate,
-unset or otherwise modify any API key or token. `codex login` writes credentials, so it is yours.
-Read-only diagnosis — presence, size, key names, whether it authenticates — is expected and is what
-was done here.
-
-NOT-CHECKED, inline: whether `codex login` actually clears the `agent/register` failure. It is an
-owner-only credential write; no agent attempted it and `~/.codex/auth.json` was never read for
-value. Settling experiment is the command itself, followed by one real `mcp__codex__codex` call.
-
-Note also, observed while probing and unrelated to the fix: `claude mcp list` prints
-*"claude.ai connectors are disabled because ANTHROPIC_API_KEY or another auth source is set and takes
-precedence over your claude.ai login"*. Same shape — an env-set API key shadowing a login session.
-Reported, not touched.
+Both directions now have the same requirement: **two mechanically independent transports, and a
+control that fires in the known-broken state.**
 
 ## What the rail is worth — and the ceiling above it
 
-Restoring the rail is what makes 42 blocked units reviewable. It is **not** what makes them
-DELIVERED. `platform/lib/receipt_schema_gate.py` condition 11 hard-rejects `state=SUCCESS` while
-`manifest_registration.registered` is false, and nothing in production sets that flag — the only
-writers are test fixtures. So a unit can pass a perfect cross-vendor review and still not ship.
-That is escalated separately, with the measurements, in
+Restoring dispatch capacity is what makes the remaining units reviewable. It is **not** what makes
+them DELIVERED. `platform/lib/receipt_schema_gate.py` condition 11 hard-rejects `state=SUCCESS`
+while `manifest_registration.registered` is false, and nothing in production sets that flag — the
+only writers are test fixtures. So a unit can pass a perfect cross-vendor review and still not
+ship. That is escalated separately, with the measurements, in
 [`p2-next/OWNER-DECISION-condition-11.md`](p2-next/OWNER-DECISION-condition-11.md).
 
-Price the two decisions together. `codex login` buys review capacity for the rail-blocked queue;
-condition 11 decides whether anything in that queue can then reach DELIVERED.
+This is now the *whole* owner decision, and it got simpler: with no measured auth blocker, the
+credential write that was previously priced as the unlock is not on the critical path. Condition 11
+is. The three units that already hold a cross-vendor PASS are the proof — they cleared the review
+gate and still cannot reach DELIVERED.
 
 ## What was already done without the rail
 
@@ -140,26 +199,27 @@ would satisfy the gate's letter and defeat its purpose, and the split above exis
 keep the two populations apart. An independent auditor re-derived the split from the **pre-edit**
 blobs — before the ten receipts were touched — and got the same ten ids.
 
-## Residual — this lane ended CONTESTED, and here is what is still open
+## Residual — still open
 
-1. **REFUTED and now fixed:** the adversarial refuter proved the published verification command did
-   not reproduce its own number — running `vendor_satisfiability.py` printed 47 where the artifact
-   said 41, overwrote the committed artifact as a side effect, and turned the lane's own verifier
-   red. Fix shipped: rule D only inverts when the requirement carries a cross-vendor clause, rule A2
-   catches an undirected cross-vendor demand, `--basis committed` is the default, and the script is
-   CHECK-only unless `--write`. The refuter also asked that the count be RE-DERIVED rather than read
-   back from stored JSON; that is what `rail_count_gate.py` does, and it is why this page is now
-   wired into CI instead of merely being correct today.
-2. **Corrected here, inline:** the headline moved 43 → 42 and the population 47 → 52. Both earlier
-   figures are marked superseded above rather than deleted, because the next reader will otherwise
-   re-derive the same wrong number from the same census line.
-3. **UNVERIFIED [uncertain, 20-55%]:** whether the 42 would reach DELIVERED after a Codex review.
-   What was measured is what the receipts DEMAND, not whether a review would PASS — and condition 11
-   bounds that answer regardless of vendor. Settling experiment: run the open-defect and
-   completion-sentinel checks across the 42, then re-read condition 11.
-4. **Known gap in the gate:** it enforces the counts and the review status; it does not verify the
-   *content* of any review. A reviewer PASS with empty reasoning would satisfy C5. Settling
-   experiment: extend C5 to assert a reviewer-notes floor and a falsification method per receipt.
-5. **NOT-CHECKED:** full CI. The gates touching this change were run (ruff check and format, the
-   gate's own self-test, `vendor_satisfiability.py`, `split_review_gate.py`, `charter_check.sh`);
-   the suite has roughly 25 steps and they were not all run locally.
+1. **The rail verdict was wrong for two days and no gate could have caught it.**
+   `rail_count_gate.py` makes no network or subprocess call to codex; it checks that a published
+   number equals a fresh derivation from receipts, and returns the identical SUCCESS whether the
+   rail is up or down. That is a control that looks the same under both hypotheses. It is not a
+   defect in the gate — arithmetic is what it was built to check — but "gate-enforced" must never
+   be read as evidence for the rail claim. **UNVERIFIED whether a liveness probe belongs in CI at
+   all**: it would make a hermetic gate depend on a live third-party endpoint, which
+   `rules/common/ci-hygiene.md` §2 forbids in the fast suite. Settling experiment: a separate
+   scheduled job with a hard timeout, never the per-PR gate.
+2. **UNVERIFIED [uncertain, 20-55%]:** whether the MCP transport was genuinely failing on 08-12 and
+   recovered, or was intermittent throughout. Settling experiment: correlate `~/.codex` session
+   logs against the earlier probe timestamps. It does not change the verdict either way — the CLI
+   leg was recorded as working in this program's own committed artifact on 08-11.
+3. **UNVERIFIED [uncertain, 20-55%]:** whether the 39 would PASS a Codex review. What is measured
+   is what receipts DEMAND and which have already been SERVED, never what a review would conclude.
+4. **The host sandbox policy blocked a real review dispatch once**, after auth succeeded. Not
+   re-measured this round. That is the concrete next blocker to price, not the credential.
+5. **Known gap in the gate:** it enforces the counts, the review status, and a reviewer-notes
+   content floor; the resolvable-evidence-anchor half stays ADVISORY because none of the reviewed
+   receipts carry a resolving anchor and enforcing it would red CI on every one of them.
+6. **NOT-CHECKED:** full CI. A Windows-local green is not CI green; the suite has roughly 25 steps
+   and they were not all run locally.
