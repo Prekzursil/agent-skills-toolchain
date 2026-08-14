@@ -208,6 +208,18 @@ Disclosed rather than counted as coverage.
 
 ## Residual — inline, none of it blocks
 
+- **The DoD ledger still prints `cost-measured=16/23`, and that is not a contradiction —
+  but it reads like one, so it is stated here rather than left for a reader to trip over.**
+  `_r2_dod_check` counts rows in **`disposition.json`** carrying a cost field, and those come
+  from the stdio handshake sweep, which still reaches 16. The round-4 measurement lives in
+  `unsampled-surface.json` and `cost-rank.json`, which I did not back-port into
+  `disposition.json`. So both numbers are true of the artifact each reads: **16/23 rows carry
+  a sweep-derived cost; 23/23 rows have a measured RESIDENT cost across the two producers.**
+  I deliberately did not widen `disposition.json` late in the round — it feeds `render_table`
+  and the committed `DISPOSITION-TABLE.md`, and a ripple through the determinism set at this
+  point buys less than it risks. *Settling experiment:* join `unsampled-surface.json` into
+  `rank_disposition` and re-run the determinism set; the ledger counter should then read
+  23/23 for resident and keep 16/23 for contingent.
 - **CONTINGENT fleet total is still a lower bound**, and structurally so: a deferred-schema
   client never materialises schemas for the 7 client-listed rows. *Settling experiment:* an
   eager-schema client, or an HTTP `tools/list` with credentials this lane does not read.
