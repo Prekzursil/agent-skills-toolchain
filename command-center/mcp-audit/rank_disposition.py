@@ -62,6 +62,17 @@ import backend_map  # noqa: E402
 import s4_evidence  # noqa: E402
 from probe_capability import MOUNTED, load_specs  # noqa: E402
 
+# The RESIDENT instrument enum and the `*` cell convention live in render_table, which is
+# the SSOT renderer and stdlib-only (so this import cannot cycle).  Importing rather than
+# re-declaring is deliberate: this module's legacy `--md` output and the committed
+# DISPOSITION-TABLE.md must mark the SAME cells, and two copies of a constant is how the
+# committed table drifted from its generator before render_table existed.
+from render_table import (  # noqa: E402
+    INSTR_CLIENT,
+    INSTR_STDIO,
+    resident_cell,
+)
+
 KEEP, DISABLE, INVESTIGATE = "KEEP", "DISABLE", "INVESTIGATE"
 
 # The S4 legend is a module constant so the text that SHIPS and the text the invariant
@@ -285,6 +296,92 @@ MEASURED_BASIS = "stdio child sampled at handshake time"
 NOT_MEASURED = "not-measured:"
 LIVENESS_FIELDS = ("pid", "rss_bytes", "tool_count")
 
+# --------------------------------------------------------------- RESIDENT cost join
+#
+# ROUND 4 MEASURED THE 7 HTTP ROWS AND THE DELIVERABLE NEVER SHOWED THEM.  The fleet
+# denominator stopped being UNMEASURED in round 4: `unsampled-surface.json` carries a
+# tool count and a resident byte count for every one of the 7 rows the stdio sweep cannot
+# spawn, transcribed from the client's own deferred-tool listing.  But nothing joined it
+# back, so `disposition.json` still shipped seven nulls and DISPOSITION-TABLE.md -- the
+# only artifact a human reads -- still printed `--` in all seven `tools` cells.  A
+# measurement that reaches no consumer is indistinguishable from one never taken; that is
+# the same "producer nothing invokes" shape this lane's CI wiring exists to close, one
+# level down, in the lane's own output.
+#
+# The join is a READ, never a recomputation.  `unsampled_surface.py` owns those numbers
+# and `cost_rank.py` already sums them; a second module deriving them independently is how
+# two artifacts start disagreeing.  `assert_resident_completeness()` requires the joined
+# values to equal the source exactly, so a drift between the two files fails the run
+# instead of shipping.
+UNSAMPLED_SOURCE = "unsampled-surface.json"
+RESIDENT_STDIO = "stdio child sampled at handshake time"
+RESIDENT_CLIENT = (
+    "client tool listing: this session's mounted mcp__<server>__ namespace, the second "
+    "instrument recorded in unsampled-surface.json (RESIDENT only -- schemas are deferred "
+    "by this client and never materialised, so schema_bytes stays null for these rows)"
+)
+
+
+def load_unsampled(base: pathlib.Path) -> dict[str, dict[str, Any]]:
+    """Rows of ``unsampled-surface.json`` keyed by server name.
+
+    FAILS CLOSED ON ABSENCE OR EMPTINESS, and that is the whole point.  A join whose
+    source silently resolves to ``{}`` restores exactly the seven nulls it exists to
+    remove, and every downstream check would then agree with every other one that the
+    fleet is fine -- the inert shape this repo has measured four times.  Missing source
+    and empty source are therefore two separate aborts, not one fallback.
+    """
+    path = base / UNSAMPLED_SOURCE
+    if not path.exists():
+        raise SystemExit(
+            f"FAILED:rank-disposition {UNSAMPLED_SOURCE} is missing -- the HTTP rows' "
+            "resident cost has no source and an empty join would silently reinstate the "
+            "nulls this join removes (fail closed)"
+        )
+    blob = json.loads(path.read_text(encoding="utf-8"))
+    rows = blob.get("rows") or []
+    if not rows:
+        raise SystemExit(
+            f"FAILED:rank-disposition {UNSAMPLED_SOURCE} carries no rows -- an empty "
+            "surface is a finding, not a default (fail closed)"
+        )
+    return {r["name"]: r for r in rows}
+
+
+def resident_view(
+    cap: dict[str, Any], unsampled: dict[str, Any] | None
+) -> tuple[Any, Any, str, str | None]:
+    """``(resident_tool_count, resident_bytes, resident_basis, resident_instrument)``.
+
+    ``resident_instrument`` is a small ENUM (``stdio`` / ``client-listing`` / ``None``)
+    and exists so the two renderers can mark a client-listed cell without matching a
+    prose prefix against ``resident_basis``.  A renderer keyed on prose silently stops
+    marking the day someone improves the sentence -- the field says what the prose means.
+
+    RESIDENT is deliberately a SEPARATE field set from ``tool_count``/``name_bytes``
+    rather than a widening of them.  Those two are read by ``liveness_basis``, which
+    describes the stdio child, and an HTTP row has no child: writing a client-listed
+    count into ``tool_count`` would leave a row asserting a measurement beside a basis
+    that says ``not-measured:`` -- the round-2 "verified and failed in one object" defect
+    in a new column.  The instrument that took the number travels WITH the number.
+    """
+    if cap.get("tool_count") is not None:
+        return cap.get("tool_count"), cap.get("name_bytes"), RESIDENT_STDIO, INSTR_STDIO
+    if unsampled:
+        return (
+            unsampled.get("tool_count"),
+            unsampled.get("resident_bytes"),
+            RESIDENT_CLIENT,
+            INSTR_CLIENT,
+        )
+    return (
+        None,
+        None,
+        f"{NOT_MEASURED} neither the stdio sweep nor the client listing reached this "
+        "server",
+        None,
+    )
+
 
 def liveness_view(cap: dict[str, Any]) -> tuple[Any, Any, str]:
     """Split the prober's ``last_error`` into a real error and a categorical note.
@@ -496,6 +593,87 @@ def assert_liveness_consistency(rows: list[dict[str, Any]]) -> None:
         )
 
 
+def assert_resident_completeness(
+    rows: list[dict[str, Any]], unsampled: dict[str, dict[str, Any]]
+) -> None:
+    """Every mounted row carries a RESIDENT cost and names the instrument that took it.
+
+    THIS IS THE CHECK THAT FAILS IF THE JOIN IS MISSING.  Run against the artifact as it
+    shipped before this round, it reports seven rows with no resident cost at all; run
+    against the artifact after, it is silent.  Both states are exercised by
+    ``_i5_resident_join.py``, which reads the two committed blobs -- so the claim "the
+    integration is wired" is a measurement rather than an assurance.
+
+    Four shapes abort the run:
+
+      1. a mounted row with a null resident cost, or with a ``not-measured:`` basis.
+         This is the state the join removes; after it, silence here is the result.
+      2. a row whose basis names an instrument but whose numbers are null -- a claim of
+         measurement with nothing behind it.
+      3. a client-listed row whose numbers DISAGREE with ``unsampled-surface.json``.  The
+         join is a read; if the two files drift, one of them is wrong and neither should
+         ship.  Note this compares against the SOURCE, not against a recomputation in
+         this module: recomputing here would agree with itself under either hypothesis.
+      4. ZERO client-listed rows.  A join that matched nothing passes checks 1-3 trivially
+         whenever the stdio sweep happens to cover everything, so its own emptiness has to
+         be the failure -- otherwise the day the surface file goes stale is the day this
+         invariant goes quiet.
+    """
+    bad: list[str] = []
+    joined = 0
+    for r in rows:
+        if not r.get("session_mounted"):
+            continue
+        basis = (r.get("resident_basis") or "").strip()
+        instr = r.get("resident_instrument")
+        count, byts = r.get("resident_tool_count"), r.get("resident_bytes")
+        if not basis:
+            bad.append(f"{r['name']}: no resident_basis (a cost with no instrument)")
+            continue
+        if basis.startswith(NOT_MEASURED) or count is None or byts is None:
+            bad.append(
+                f"{r['name']}: mounted but no resident cost "
+                f"(tools={count}, bytes={byts}, basis={basis[:40]!r})"
+            )
+            continue
+        # The enum and the prose must agree.  They are written together and read apart --
+        # renderers key off the enum, humans read the basis -- so a row where they
+        # disagree ships a `*` mark contradicting its own stated instrument.
+        if instr not in (INSTR_STDIO, INSTR_CLIENT):
+            bad.append(
+                f"{r['name']}: resident_instrument {instr!r} is not a known enum"
+            )
+            continue
+        expected = RESIDENT_CLIENT if instr == INSTR_CLIENT else RESIDENT_STDIO
+        if basis != expected:
+            bad.append(
+                f"{r['name']}: resident_instrument={instr!r} contradicts its basis "
+                f"{basis[:48]!r}"
+            )
+        if instr == INSTR_CLIENT:
+            joined += 1
+            src = unsampled.get(r["name"])
+            if not src:
+                bad.append(
+                    f"{r['name']}: basis says client-listed but it is absent from "
+                    f"{UNSAMPLED_SOURCE}"
+                )
+            elif (count, byts) != (src.get("tool_count"), src.get("resident_bytes")):
+                bad.append(
+                    f"{r['name']}: joined ({count}, {byts}) != {UNSAMPLED_SOURCE} "
+                    f"({src.get('tool_count')}, {src.get('resident_bytes')})"
+                )
+    if not joined:
+        bad.append(
+            f"0 rows joined from {UNSAMPLED_SOURCE} -- an inert join would satisfy every "
+            "other check here, so emptiness is the failure (fail closed)"
+        )
+    if bad:
+        raise SystemExit(
+            "FAILED:rank-disposition resident cost incomplete:\n  " + "\n  ".join(bad)
+        )
+
+
 def assert_reversible(rows: list[dict[str, Any]]) -> None:
     bad = [
         r["name"] for r in rows if r["disposition"] not in {KEEP, DISABLE, INVESTIGATE}
@@ -592,6 +770,10 @@ def main(argv: list[str] | None = None) -> int:
     ev = s4_evidence.load(base)
     s4_calls = ev.server_calls()
 
+    # Round-4's measurement of the 7 rows the stdio sweep cannot spawn.  Read, never
+    # recomputed; `assert_resident_completeness` requires the joined values to equal it.
+    unsampled = load_unsampled(base)
+
     rows: list[dict[str, Any]] = []
     for name in MOUNTED:
         cap = caps.get(name, {})
@@ -638,6 +820,24 @@ def main(argv: list[str] | None = None) -> int:
             "name_bytes": cap.get("name_bytes"),
             "schema_bytes": cap.get("schema_bytes"),
             "elapsed_ms": cap.get("elapsed_ms"),
+            # RESIDENT cost, carried beside the instrument that took it.  16 rows are the
+            # stdio child's own sample; the other 7 are joined from unsampled-surface.json,
+            # which is why every mounted row now has one and DISPOSITION-TABLE.md no longer
+            # prints `--` in seven `tools` cells.  CONTINGENT (schema_bytes) is deliberately
+            # NOT joined: a deferred-schema client never materialises schemas for these
+            # rows, so there is no honest figure to carry and null stays null.  The
+            # asymmetry is the measurement, not an omission.
+            **dict(
+                zip(
+                    (
+                        "resident_tool_count",
+                        "resident_bytes",
+                        "resident_basis",
+                        "resident_instrument",
+                    ),
+                    resident_view(cap, unsampled.get(name)),
+                )
+            ),
             # pid + rss_bytes are the names mcpctl.matrix.Liveness reads, so a row whose
             # liveness_basis is MEASURED_BASIS is an injectable snapshot.  Round 2 said
             # this of "a row of the shipped table" without qualification; measured in
@@ -668,17 +868,27 @@ def main(argv: list[str] | None = None) -> int:
     assert_reversible(rows)
     assert_signal_consistency(rows, S4_LEGEND)
     assert_liveness_consistency(rows)
+    assert_resident_completeness(rows, unsampled)
     assert_backend_consistency(rows, ev)
     order = {DISABLE: 0, INVESTIGATE: 1, KEEP: 2}
+    # Sort on RESIDENT count, not the stdio one.  While 7 rows had no measured count they
+    # sorted as 0 and sank to the bottom, which was honest.  Now that every row has one,
+    # keeping the old key would print `github` (47 tools) BELOW `claude-code-mcp` (1) --
+    # an ordering that silently contradicts the numbers in its own cells.
     rows.sort(
-        key=lambda r: (order[r["disposition"]], -(r["tool_count"] or 0), r["name"])
+        key=lambda r: (
+            order[r["disposition"]],
+            -(r["resident_tool_count"] or 0),
+            r["name"],
+        )
     )
 
     counts = {d: sum(1 for r in rows if r["disposition"] == d) for d in order}
     print("== disposition ==")
     for r in rows:
         print(
-            f"  {r['disposition']:12} {r['name']:22} tools={str(r['tool_count']):>4} "
+            f"  {r['disposition']:12} {r['name']:22} "
+            f"tools={resident_cell(r, 'resident_tool_count'):>5} "
             f"cfg={r['config_state']:16} host={r['host_reachable']:10} "
             f"call={'Y' if r['call_verified'] else 'n'}({r['call_method'] or '-'})"
         )
@@ -829,24 +1039,25 @@ def render_md(rows: list[dict[str, Any]], counts: dict[str, int]) -> str:
         body.append(
             f"| **{r['disposition']}** | `{r['name']}` | {r['config_state']} | "
             f"{r['host_reachable']} | {'yes' if r['session_mounted'] else 'no'} | {s4} | "
-            f"{r['tool_count'] if r['tool_count'] is not None else '--'} | "
-            f"{r['name_bytes'] if r['name_bytes'] is not None else '--'} | "
+            f"{resident_cell(r, 'resident_tool_count')} | "
+            f"{resident_cell(r, 'resident_bytes')} | "
             f"{r['schema_bytes'] if r['schema_bytes'] is not None else '--'} | "
             f"{r['evidence']} |"
         )
     verified = sum(1 for r in rows if r["call_verified"])
-    measured = sum(
-        1 for r in rows if not (r["liveness_basis"] or "").startswith(NOT_MEASURED)
-    )
+    contingent = sum(1 for r in rows if r.get("schema_bytes") is not None)
+    listed = sum(1 for r in rows if r.get("resident_basis") == RESIDENT_CLIENT)
     tail = (
         f"\n\n`S4 PASS` = stdio initialize+tools/list handshake.  `S4 PASS*` = a real "
         f"in-session tool call instead (HTTP transport cannot be spawned).  Both count "
         f"as S4 `call_verified`, which is their union: {verified}/{len(rows)} rows.  "
         f"Counts: {counts}.\n\n"
-        f"A `--` in the cost columns is **not measured**, never zero: cost comes from a "
-        f"stdio child and {len(rows) - measured} of {len(rows)} rows have none to sample. "
-        f"Each such row states why in its own `liveness_basis`, and "
-        f"`assert_liveness_consistency()` refuses to write a null without one.\n"
+        f"RESIDENT cost (`tools`, `name B`) is measured on {len(rows)}/{len(rows)} rows: "
+        f"{len(rows) - listed} sampled from the stdio child, {listed} marked `*` and "
+        f"joined from the client's own tool listing.  CONTINGENT cost (`schema B`) is "
+        f"measured on {contingent}/{len(rows)}: a deferred-schema client never "
+        f"materialises schemas for the `*` rows, so `--` there is **not measured**, "
+        f"never zero -- and the fleet contingent total stays a lower bound.\n"
     )
     return head + "\n".join(body) + tail
 

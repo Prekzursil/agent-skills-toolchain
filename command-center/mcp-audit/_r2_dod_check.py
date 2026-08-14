@@ -174,6 +174,9 @@ def dod2(rows: list[dict[str, Any]]) -> list[str]:
 
 
 COST_FIELDS = ("tool_count", "name_bytes", "schema_bytes", "rss_bytes")
+# RESIDENT = what every request carries for a mounted server (the tool NAMES).  Separate
+# from COST_FIELDS because those describe the stdio child and 7 mounted rows have none.
+RESIDENT_FIELDS = ("resident_tool_count", "resident_bytes")
 NOT_MEASURED = "not-measured:"
 
 
@@ -190,18 +193,50 @@ def dod3(rows: list[dict[str, Any]]) -> list[str]:
 
     The predicate is now: a gap is acceptable ONLY beside a ``liveness_basis`` that
     starts with ``not-measured:`` and gives a reason.  Silence is the failure.
+
+    THE INTEGRATE ROUND ADDED A SECOND, STRICTER LIMB, AND DELIBERATELY GAVE IT NO
+    ESCAPE HATCH.  Round 4 measured the RESIDENT cost of the 7 HTTP rows the stdio sweep
+    cannot spawn, and nothing joined it back -- so the deliverable still printed `--` in
+    seven `tools` cells while the number sat measured in a sibling artifact.  The limb
+    above would happily accept that state forever: "not measured, and here is why" is a
+    true sentence about the stdio child, and it stays true after a second instrument has
+    answered the question.
+
+    So for a MOUNTED row, a resident cost is REQUIRED and no stated reason excuses it.
+    That asymmetry is the point.  A reason-accepting version of this check could not fail
+    if the join were reverted -- the reverted rows would carry exactly the honest
+    ``not-measured: transport='http'...`` basis they carried before -- and a check that
+    cannot fail in the state it exists to detect is not a check.  Every mounted server
+    appears in the client's own tool listing by definition of being mounted, so there is
+    no legitimate case where this limb fires spuriously; if one ever does, the run goes
+    red and a human decides, rather than the gate going quiet.
+
+    CONTINGENT cost is deliberately NOT required: a deferred-schema client never
+    materialises schemas for those rows, so demanding one would force a fabrication.
     """
     bad = []
     for r in rows:
         gaps = [f for f in COST_FIELDS if r.get(f) is None]
-        if not gaps:
+        if gaps:
+            basis = r.get("liveness_basis") or ""
+            reason = (
+                basis[len(NOT_MEASURED) :].strip()
+                if basis.startswith(NOT_MEASURED)
+                else ""
+            )
+            if len(reason) < 12:
+                bad.append(f"{r['name']}: {gaps} unmeasured with no stated reason")
+        if not r.get("session_mounted"):
             continue
-        basis = r.get("liveness_basis") or ""
-        reason = (
-            basis[len(NOT_MEASURED) :].strip() if basis.startswith(NOT_MEASURED) else ""
-        )
-        if len(reason) < 12:
-            bad.append(f"{r['name']}: {gaps} unmeasured with no stated reason")
+        rgaps = [f for f in RESIDENT_FIELDS if r.get(f) is None]
+        if rgaps:
+            bad.append(
+                f"{r['name']}: mounted with no RESIDENT cost {rgaps} -- every mounted "
+                "server is listed by the client, so this is a join that did not happen, "
+                "not a measurement that cannot be taken"
+            )
+        elif not (r.get("resident_basis") or "").strip():
+            bad.append(f"{r['name']}: resident cost with no instrument named")
     return bad
 
 
@@ -248,6 +283,31 @@ def break_for(control: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if any(r.get(f) is None for f in COST_FIELDS):
                 r["liveness_basis"] = ""
                 break
+    elif control == "blank-resident-cost":
+        # A mounted row whose resident cost simply went null.
+        for r in bad:
+            if r.get("session_mounted"):
+                r["resident_tool_count"] = None
+                break
+    elif control == "unjoin-with-a-good-reason":
+        # THE CONTROL THAT CAN DISTINGUISH THE TWO HYPOTHESES, and the reason DoD3's
+        # second limb takes no reason.  This reproduces the EXACT state the artifact
+        # shipped in before the join: resident cost null on a client-listed row, beside
+        # the entirely truthful basis those rows already carried about the stdio child.
+        # Under a reason-accepting predicate this input is indistinguishable from a
+        # correctly-disclosed residual and the gate stays green -- which is how a
+        # measurement can sit unreached for a whole round while every check agrees the
+        # artifact is fine.  It MUST fire.
+        for r in bad:
+            if r.get("resident_instrument") == "client-listing":
+                r["resident_tool_count"] = None
+                r["resident_bytes"] = None
+                r["resident_basis"] = (
+                    f"{NOT_MEASURED} transport='http': no stdio command -- no child "
+                    "process exists to sample"
+                )
+                r["resident_instrument"] = None
+                break
     elif control == "irreversible-disposition":
         bad[0]["disposition"] = "REMOVE"
     return bad
@@ -270,10 +330,19 @@ CHECKS: dict[
         ["flip-call-verified"],
     ),
     "DoD3": (
-        "per-server context cost measured, or a stated reason",
+        "per-server RESIDENT cost measured on every mounted row; contingent cost "
+        "measured or a stated reason",
         dod3,
-        # BOTH branches, because the predicate has two and round 2 only controlled one.
-        ["drop-rss-on-measured-row", "strip-reason-from-unmeasured-row"],
+        # FOUR branches now.  Round 2 controlled one of two; the INTEGRATE round added a
+        # limb and both of its states, the second of which is the load-bearing one:
+        # `unjoin-with-a-good-reason` is the only control here that would still pass if
+        # the limb quietly started accepting a reason.
+        [
+            "drop-rss-on-measured-row",
+            "strip-reason-from-unmeasured-row",
+            "blank-resident-cost",
+            "unjoin-with-a-good-reason",
+        ],
     ),
     "DoD4": (
         "reversible recommendations with evidence",
@@ -333,9 +402,17 @@ def main(argv: list[str]) -> int:
         if (r.get("liveness_basis") or "").strip()
         and not r["liveness_basis"].startswith(NOT_MEASURED)
     )
+    # RESIDENT and CONTINGENT are reported SEPARATELY because they are now different
+    # numbers, and round 4 shipped a report explaining that `cost-measured=16/23` was not
+    # a contradiction of its own 23-row fleet total -- it was one counter standing for two
+    # quantities. A single figure could only ever be wrong about one of them.
+    resident = sum(1 for r in rows if r.get("resident_tool_count") is not None)
+    contingent = sum(1 for r in rows if r.get("schema_bytes") is not None)
     print(
         f"  summary: call_verified={verified}/{len(rows)}  "
-        f"cost-measured={measured}/{len(rows)}  dispositions={counts}"
+        f"resident-measured={resident}/{len(rows)}  "
+        f"contingent-measured={contingent}/{len(rows)}  "
+        f"stdio-sampled={measured}/{len(rows)}  dispositions={counts}"
     )
     if failed:
         print(f"FAILED:dod-check {failed}")

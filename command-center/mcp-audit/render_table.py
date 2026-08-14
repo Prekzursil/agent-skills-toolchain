@@ -48,6 +48,33 @@ HEADER = (
 RULE = "|---|---|---|---|---|---|---|---|---|---|"
 HANDSHAKE = "stdio-handshake"
 
+# The RESIDENT instrument enum, and the one place the `*` convention is defined.  Both
+# this renderer and rank_disposition's legacy ``--md`` renderer import these, so the two
+# cannot drift into marking different cells -- the defect class that produced a
+# hand-maintained table disagreeing with its own generator in the first place.
+#
+# It is an ENUM rather than a prefix test on ``resident_basis`` on purpose: a renderer
+# that decides by matching prose stops marking the day the prose is reworded, silently,
+# and a table that quietly loses its provenance marks is worse than one that never had
+# them -- every number then reads as a stdio measurement.
+INSTR_STDIO = "stdio"
+INSTR_CLIENT = "client-listing"
+CLIENT_MARK = "*"
+
+
+def resident_cell(row: dict[str, Any], field: str) -> str:
+    """A resident-cost cell, marked ``*`` when the client listing took the number.
+
+    ``--`` still means NOT MEASURED and never zero; after the round-4 join no mounted row
+    should reach that branch, and ``assert_resident_completeness()`` fails the producer
+    if one does.
+    """
+    v = row.get(field)
+    if v is None:
+        return "--"
+    mark = CLIENT_MARK if row.get("resident_instrument") == INSTR_CLIENT else ""
+    return f"{v}{mark}"
+
 
 def s4_cell(row: dict[str, Any]) -> str:
     """PASS = stdio handshake; PASS* = a real in-session call instead; -- = neither."""
@@ -69,8 +96,8 @@ def cells(row: dict[str, Any]) -> list[str]:
         str(row.get("host_reachable") or "--"),
         "yes" if row.get("session_mounted") else "no",
         s4_cell(row),
-        num(row.get("tool_count")),
-        num(row.get("name_bytes")),
+        resident_cell(row, "resident_tool_count"),
+        resident_cell(row, "resident_bytes"),
         num(row.get("schema_bytes")),
         str(row.get("evidence") or "--"),
     ]
@@ -102,7 +129,9 @@ def render(blob: dict[str, Any]) -> str:
 
     total = len(rows)
     verified = sum(1 for r in rows if r.get("call_verified"))  # G3
-    unsampled = sum(1 for r in rows if r.get("tool_count") is None)
+    listed = sum(1 for r in rows if r.get("resident_instrument") == INSTR_CLIENT)
+    resident = sum(1 for r in rows if r.get("resident_tool_count") is not None)
+    contingent = sum(1 for r in rows if r.get("schema_bytes") is not None)
     counts: dict[str, int] = {}
     for r in rows:
         counts[r["disposition"]] = counts.get(r["disposition"], 0) + 1
@@ -117,12 +146,23 @@ def render(blob: dict[str, Any]) -> str:
         f"`S4 PASS` = stdio initialize+tools/list handshake.  `S4 PASS*` = a real "
         f"in-session tool call instead (HTTP transport cannot be spawned).  Both count as "
         f"S4 `call_verified`, which is their union: {verified}/{total} rows.  "
-        f"Counts: {ordered}.",
+        f"Counts: {ordered}.  Throughout this table `{CLIENT_MARK}` means the same thing "
+        f"in every column: **measured by the client, not by a stdio child** -- so it "
+        f"marks a real measurement's instrument, never a weaker one.",
         "",
-        f"A `--` in the cost columns is **not measured**, never zero: cost comes from a "
-        f"stdio child and {unsampled} of {total} rows have none to sample. Each such row "
-        f"states why in its own `liveness_basis`, and `assert_liveness_consistency()` "
-        f"refuses to write a null without one.",
+        f"RESIDENT cost -- the `tools` and `name B` columns, what every request carries "
+        f"for a mounted server -- is measured on {resident}/{total} rows: "
+        f"{resident - listed} sampled from a stdio child, {listed} marked `{CLIENT_MARK}` "
+        f"and joined from the client's own tool listing "
+        f"(`unsampled-surface.json`), which reaches the HTTP transports no stdio sweep "
+        f"can spawn. `assert_resident_completeness()` fails the producer if a mounted row "
+        f"carries no resident cost, or if a joined value drifts from that source.",
+        "",
+        f"CONTINGENT cost -- the `schema B` column -- is measured on {contingent}/{total} "
+        f"rows. A `--` there is **not measured**, never zero: this client defers schemas "
+        f"and never materialises them for the `{CLIENT_MARK}` rows, so no honest figure "
+        f"exists and the fleet contingent total remains a LOWER BOUND. The asymmetry "
+        f"between the two paragraphs is the measurement, not an omission.",
         "",
     ]
     return "\n".join(lines)
@@ -150,20 +190,30 @@ _GOOD: dict[str, Any] = {
             "tool_count": 3,
             "name_bytes": 30,
             "schema_bytes": 300,
+            "resident_tool_count": 3,
+            "resident_bytes": 30,
+            "resident_instrument": INSTR_STDIO,
             "evidence": "a real handshake returned 3 tools",
         },
         {
+            # The round-4 shape: an HTTP row with NO stdio child, so tool_count/name_bytes
+            # /schema_bytes are null, but a resident cost the client listing did measure.
+            # schema_bytes stays null on purpose -- that is the honest asymmetry, and a
+            # fixture that filled it would stop this file testing the case it exists for.
             "name": "b",
             "disposition": "DISABLE",
             "config_state": "disabled",
             "host_reachable": "FAILED",
-            "session_mounted": False,
+            "session_mounted": True,
             "call_verified": False,
             "call_method": None,
             "tool_count": None,
             "name_bytes": None,
             "schema_bytes": None,
-            "evidence": "no stdio child to sample",
+            "resident_tool_count": 5,
+            "resident_bytes": 50,
+            "resident_instrument": INSTR_CLIENT,
+            "evidence": "no stdio child to sample; resident cost from the client listing",
         },
     ],
 }
@@ -226,6 +276,35 @@ def self_test() -> int:
         f"  {'ok ' if 'KEEP' in render(flipped) else 'BAD'} G3 footer counts follow the rows"
     )
 
+    # G5 BOTH STATES on the provenance mark.  The round-4 join put real numbers into
+    # cells that used to read `--`, so a reader can no longer tell which instrument took
+    # one -- unless the `*` is there.  A renderer that dropped the mark would produce a
+    # table where seven client-listed counts read exactly like stdio measurements, which
+    # is a worse artifact than the one with seven honest `--`.  So: the mark must appear
+    # on the client row, must NOT appear on the stdio row, and flipping the enum must
+    # move it.  A test that only asserted "a `*` appears somewhere" would pass under both
+    # hypotheses.
+    marked = render(json.loads(json.dumps(_GOOD)))
+    client_line = [ln for ln in marked.splitlines() if "`b`" in ln][0]
+    stdio_line = [ln for ln in marked.splitlines() if "`a`" in ln][0]
+    if "| 5* |" not in client_line or "| 50* |" not in client_line:
+        problems.append(f"G5 client-listed row is unmarked: {client_line}")
+    if "*" in stdio_line.split("|")[7]:
+        problems.append(f"G5 stdio row is wrongly marked: {stdio_line}")
+    print(
+        f"  {'ok ' if '| 5* |' in client_line else 'BAD'} G5 client-listed cells carry "
+        f"`{CLIENT_MARK}`, stdio cells do not"
+    )
+    flipped_instr = json.loads(json.dumps(_GOOD))
+    flipped_instr["rows"][1]["resident_instrument"] = INSTR_STDIO
+    unmarked = [ln for ln in render(flipped_instr).splitlines() if "`b`" in ln][0]
+    if "| 5 |" not in unmarked:
+        problems.append("G5 flipping the instrument did not remove the mark")
+    print(
+        f"  {'ok ' if '| 5 |' in unmarked else 'BAD'} G5 flipping the instrument enum "
+        f"moves the mark (control fires)"
+    )
+
     # G4 fail closed.
     try:
         render({"rows": []})
@@ -243,7 +322,7 @@ def self_test() -> int:
         print(f"FAILED:render-table self-test {len(problems)} problem(s)")
         return 1
     print(
-        "SUCCESS:render-table self-test 6/6 invariants behaved, shipped artifact renders"
+        "SUCCESS:render-table self-test 8/8 invariants behaved, shipped artifact renders"
     )
     return 0
 

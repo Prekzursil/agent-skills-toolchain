@@ -211,6 +211,17 @@ $ python -m ruff check command-center/mcp-audit/    # ruff 0.15.17 == the CI pin
 All checks passed!
 ```
 
+> **REFUTED by the adversarial round, corrected here rather than deleted.** The comment
+> `== the CI pin` is true of the ruff VERSION and false of the ruff GATE. `quality.yml`'s
+> `gate-lint-format` job runs **two** steps — `ruff check` *and* `ruff format --check .` —
+> with no `continue-on-error`, and only the first was ever run above. Executed against the
+> stored blobs of this round's commit, the second was **RED**: `backend_map.py` and
+> `_b1_redproof_backend.py` were clean at the parent and "would reformat" at the commit, so
+> this lane inherited a green gate and turned it red, and a job stops at its first failing
+> step — which also suppressed the three later gates in the same job. Remediated
+> out of lane by sibling commit `2ef977cd`; the formatting is clean at HEAD. Recorded
+> because the sentence, not the code, was the defect: half a gate quoted as the whole one.
+
 `r4_selfcheck` independently reports **9/9 blobs 0 CRLF** at this commit (it was 4/4 before;
 it picked up the new files). `git` printed *"LF will be replaced by CRLF"* working-copy
 warnings on commit — those describe the working tree, not the blob, and the determinism
@@ -246,6 +257,16 @@ byte-identical to `git show`'s blob bytes on all three interpreters.
 - **CI-runner behaviour still UNVERIFIED.** Green locally on three interpreters at the
   CI-pinned ruff; the residual is the runner *environment*. *Settling experiment:* the first
   `workflow_dispatch` after merge.
+  > **REFUTED by the adversarial round.** The residual was **not** the runner environment.
+  > It was the half of the pinned gate this round never ran — `ruff format --check` — and
+  > that half was RED on the exact blobs the sentence above certifies. Narrowing an
+  > unverified claim to "the environment" made the one reachable failure invisible, because
+  > an environment is not something a local run can test and so nothing was expected of it.
+  > The lesson generalises past ruff: when a gate has N steps, "green at the CI pin" means
+  > all N, and a residual scoped to the part you cannot measure will hide the part you can.
+  > *Settling experiment, unchanged:* the first `workflow_dispatch` after merge — but the
+  > cheaper half is to run every step of the pinned job locally first, which this round's
+  > successor did (see `LANE-MCPRESEARCH-INTEGRATE.md`).
 - **A `POTENTIAL-CREDENTIAL` artifact notice fired**, id `sha256:14c745ad1f24`, report-only —
   the same id R1 recorded. Surfaced for the owner; no credential was read, printed, rotated
   or edited (AGENTS.md §9).

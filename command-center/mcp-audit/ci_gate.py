@@ -95,7 +95,14 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
         ["scope_lint.py", "--self-test"],
         0,
     ),
-    ("render_table (G1-G4 both-states)", ["render_table.py", "--self-test"], 0),
+    ("render_table (G1-G5 both-states)", ["render_table.py", "--self-test"], 0),
+    # INTEGRATE: round 4 MEASURED the 7 HTTP rows and nothing joined the number back, so
+    # the deliverable still printed `--` in seven `tools` cells.  This gate proves the
+    # join is reachable end to end -- the completeness invariant fires on the pinned
+    # pre-join blob and is silent now, its integrity and empty-join limbs each fire in
+    # isolation, and the RENDERED table went from 7 unmeasured cost rows to 0.  It reads
+    # only committed blobs plus the artifact beside it, so it is deterministic per PR.
+    ("i5_resident_join (join reachable, both-states)", ["_i5_resident_join.py"], 0),
     ("overlap_report", ["overlap_report.py", "capability-matrix-r2.json"], 0),
     ("r2_reproduce (round-1 defects)", ["_r2_reproduce.py"], 0),
     ("r2_redproof_invariants", ["_r2_redproof_invariants.py"], 0),
