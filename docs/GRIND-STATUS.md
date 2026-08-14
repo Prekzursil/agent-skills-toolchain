@@ -107,10 +107,31 @@ B1 is the most urgent, because while it holds, nothing else can be *verified* ev
 Recorded verbatim rather than silently fixed, because a claim that was wrong once will be wrong
 again if only its conclusion is edited.
 
-**C1 — "PR #281 is green and mergeable." STALE.** Re-measured now: `mergeable=UNKNOWN`,
-`mergeStateStatus=UNKNOWN`. It *was* green; CI going down invalidated the evidence, and this
-estate's own note already records that **`mergeStateStatus: UNKNOWN` is not a synonym for
-mergeable**. The record also said "PR #281" singular when there are **three** open PRs.
+**C1 — WITHDRAWN, and the withdrawal is the interesting part.** This entry originally read:
+*"'PR #281 is green and mergeable.' STALE. Re-measured now: `mergeable=UNKNOWN`."* **That
+correction was itself wrong**, and it was wrong by committing the exact error the rest of
+this document is about.
+
+`mergeable` is computed **asynchronously**: GitHub returns `UNKNOWN` on the first query and
+resolves on a subsequent one. I read it once, saw `UNKNOWN`, and — because this estate has a
+note saying *"`mergeStateStatus: UNKNOWN` is not a synonym for mergeable"* — treated the
+single reading as evidence the earlier claim had decayed. The note is correct; using it to
+convert one unresolved poll into a verdict is not. Re-polled 20 seconds later, **MEASURED**:
+
+| PR | mergeable | state |
+|---|---|---|
+| #281 | MERGEABLE | CLEAN |
+| #282 | MERGEABLE | CLEAN |
+| #283 | MERGEABLE | UNSTABLE (its checks are the dead ones) |
+
+So the original record was **right**: #281 is green and mergeable. Only the "one open PR"
+part was wrong — there are **three**.
+
+This also **narrows §0**. I had briefly widened the hypothesis to "GitHub is degraded for
+this repo generally", on the strength of all three PRs reading UNKNOWN at once. They resolve
+normally, so mergeability computation is healthy and **only Actions is broken** — which
+raises confidence in the Actions-specific reading (quota / billing / disablement) rather
+than a platform-wide fault.
 
 **C2 — "the `scratch` directory is retire-safe." REFUTED, withdrawn in place.** It was under
 active write by a live lane; publishing that verdict would have destroyed lane artifacts. 21
