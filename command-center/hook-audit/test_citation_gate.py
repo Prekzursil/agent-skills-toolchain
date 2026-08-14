@@ -499,6 +499,77 @@ def main() -> int:
             True,
         )
 
+        # ---- WIRING: the gate must be REACHABLE, not merely correct --------------
+        # A rule that works and is invoked by nobody is a producer with no consumer -- the
+        # defect this whole audit opened with, and one this gate has already been guilty of
+        # (it sat unwired for two rounds while exiting 1). So the gate's own suite asserts
+        # that CI still declares it.
+        #
+        # It parses the `run:` FIELD, never the document. `hook-audit.yml`'s header mentions
+        # `check_citations.py` a dozen times in prose and mentions `probe_hook_fleet.py` in
+        # the "deliberately NOT wired" list; a grep over the file text cannot tell a wired
+        # command from a paragraph about one. `probe_hook_fleet.py` is the control that makes
+        # that difference measurable rather than asserted.
+        #
+        # Plain text, no yaml import: the workflow installs pytest and nothing else, so a
+        # PyYAML dependency here would be an ImportError on the runner -- a wiring guard that
+        # cannot run in CI is the exact shape it exists to prevent.
+        wf = REPO / ".github" / "workflows" / "hook-audit.yml"
+        case("WIRING the workflow file exists", wf.is_file(), True)
+        wf_text = wf.read_text(encoding="utf-8") if wf.is_file() else ""
+        run_steps = [
+            ln.split("run:", 1)[1].strip()
+            for ln in wf_text.splitlines()
+            if ln.strip().startswith("run:") or ln.strip().startswith("- run:")
+        ]
+        case(
+            "WIRING at least one run: step was parsed",
+            len(run_steps) > 0,
+            True,
+            "-- zero parsed steps would make every case below trivially False",
+        )
+        case(
+            "WIRING check_citations.py is a declared run: step",
+            any("check_citations.py" in s for s in run_steps),
+            True,
+            "-- the H5 rule is only reachable if CI still invokes the gate",
+        )
+        # The two steps are NOT interchangeable and the case above cannot tell them apart:
+        # `--self-test` proves the gate CAN fail, the bare invocation is the gate. Deleting
+        # the bare one leaves `check_citations.py` present in a run: step, so a single
+        # membership test stays green through a real unwiring. Measured -- the proof script's
+        # ARM-F removed exactly that line and this suite did not notice.
+        case(
+            "WIRING the gate itself is declared, not only its self-test",
+            any(
+                "check_citations.py" in s and "--self-test" not in s for s in run_steps
+            ),
+            True,
+        )
+        case(
+            "WIRING the gate's self-test is declared too",
+            any("check_citations.py" in s and "--self-test" in s for s in run_steps),
+            True,
+            "-- without it a green gate proves nothing about whether it can fail",
+        )
+        case(
+            "WIRING this regression file is a declared run: step",
+            any("test_citation_gate.py" in s for s in run_steps),
+            True,
+        )
+        case(
+            "WIRING control: a mention-only script is NOT a run: step",
+            any("probe_hook_fleet.py" in s for s in run_steps),
+            False,
+            "-- it IS in the file text, so this separates the field from the document",
+        )
+        case(
+            "WIRING control: the mention-only script really is in the text",
+            "probe_hook_fleet.py" in wf_text,
+            True,
+            "-- otherwise the case above passes because the token is simply absent",
+        )
+
         # The classifier's own both-states control, called directly rather than inferred
         # from a green run: a silent classifier reports zero violations forever.
         sys.path.insert(0, str(HERE))
