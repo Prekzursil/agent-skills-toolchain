@@ -262,3 +262,32 @@ measured the separators and CPython's behaviour, not the Databricks runtime. Set
 experiment: run the notebook in a workspace, or insert one `# COMMAND ----------` above the
 `from __future__` line and see whether the import is then accepted. Until then PR #282 stays
 open and unmerged, which is where the owner wanted it.
+
+## R5-1 — the wiring round, and a count I got wrong in its own commit message
+
+The gate was wired into CI (`.github/workflows/interpreter-floor.yml`, new file; zero existing
+workflows edited) and is now reachable on push to main and on pull requests. Three commits:
+`07dbda3d` wires it, `ea51f7e1` and `c9c9250f` fix defects the wiring itself exposed.
+
+**The correction.** `c9c9250f`'s message ends "Local: self-test 23/23". The true figure is
+**22/22**, measured two ways after the fact: `grep -c "  OK \["` over the local run and over CI
+run 31768988821 both return 22, with 0 `XX` rows. The subset fix removed one exclusion row
+(`excused: fmt/only.py`) and added one (`a [format].exclude entry stays BLOCKING`), a net change
+of zero, and the message was written as though it had added one. Nothing downstream rests on the
+digit — the self-test prints every row on every run and `--report` recomputes the sweep counts —
+but a commit message cannot be edited after pushing, so the record goes here rather than nowhere.
+This is the same failure mode R3 recorded twice already: a number written from expectation rather
+than re-read from the instrument that had just printed it.
+
+**What the wiring round measured, all from real CI runs:**
+
+| run | commit | verdict |
+|---|---|---|
+| 31767795175 | `3e54214a` | FAILURE — first ever execution, `FileNotFoundError: 'py'` |
+| 31768095604 | `ea51f7e1` | success — 22/22 self-test, skew row confirmed present |
+| 31768988821 | `c9c9250f` | success — 2,439 blocking + 225 advisory, 0 blocking |
+| 31768988858 | `c9c9250f` | quality 8/8 jobs, 0 failed steps |
+
+**R4-4 is unaffected.** Both `batch_runner.py` mirrors remain excluded by `ruff.toml`, so the
+gate reports them as ADVISORY — printed every run with the pattern excusing them, not silenced.
+PR #282 stays open and unmerged; when it lands, those two advisory lines disappear on their own.
