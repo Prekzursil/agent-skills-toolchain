@@ -252,6 +252,19 @@ join did not disturb the round-4 cost figures — the numbers were joined, not r
   unreachable — a shallow clone, a rewritten history — the probe fails closed rather than
   silently skipping. That is the correct direction, but it does mean the gate depends on
   `fetch-depth: 0`, which `mcp-audit.yml` already sets for four other gates.
+- **The new gate has never run on Linux, and this lane has measured that that matters.**
+  `INTEGRATION.md` §3 found **4 of 15** gates broken on `ubuntu-latest` while green on
+  Windows — a host-bound `pathlib.is_absolute()`, two Windows-only controls that are
+  *unobservable* rather than merely inconvenient on POSIX, and a control scored off path
+  noise. Every one of them looked portable. So "it is only stdlib and `git`" is reasoning,
+  not measurement, and it is labelled as such here. What I can say concretely: this gate
+  tests no path absoluteness, resolves no `PATHEXT`/`.cmd` shim, passes git forward-slash
+  repo-relative paths, and reads bytes rather than text — the four shapes that broke the
+  others. *Settling experiment:* `python3 command-center/mcp-audit/_i1_ci_portability.py`
+  in a full Linux clone (**not** this linked worktree, whose `.git` is a file holding a
+  Windows path that Linux git cannot resolve, so every probe run there returns clean zeros
+  — the trap `INTEGRATION.md` §3 documents). Risk assessed *likely (55-80%)* to pass
+  first time; that is a prior, not a reading.
 - **A report-only `POTENTIAL-CREDENTIAL` artifact notice fired**, id `sha256:14c745ad1f24`
   — the same id rounds 1 and 4 recorded. No credential was read, printed, rotated or
   edited. No agent action clears it; surfaced for the owner.

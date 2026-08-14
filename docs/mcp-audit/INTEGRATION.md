@@ -8,6 +8,12 @@ Companion to `MCP-CAPABILITY-AND-DISPOSITION.md` and the four
 `ROUND{1,2,3,4}-DEFECT-CLOSURE` ledgers. Those four rounds produced the gates. **This round
 makes them run**, and answers the round-1 refutation that was never closed.
 
+> **SUCCEEDED BY `LANE-MCPRESEARCH-INTEGRATE.md`.** This document made the lane's *gates*
+> reachable. A later round found the lane's *measurement* was not: round 4 measured the 7
+> HTTP rows and nothing joined the number back, so the shipped table still printed `--` in
+> seven cost cells. Read that report for the join, its red-proof, and the current residual
+> list — several items in §6 below have since moved.
+
 COVERAGE: everything below carries executed output. **NOT measured:** the other ~21
 `quality.yml` steps (types, per-package coverage, node, opengrep, gitleaks, osv); whether the
 new workflow behaves on a real GitHub runner (it has never run on one); the 7 HTTP-transport
@@ -227,9 +233,17 @@ What changed, and what deliberately did not:
 1. **15 of 16 handshake-verified rows have no capability-in-use evidence.** Only `searxng` was
    probed. **UNVERIFIED** how many others advertise a surface over a dead backend.
    *Settling experiment:* one cheapest-read-only tool call per server, recorded into a committed
-   JSON that `rank_disposition.py` READS (the shape `S4_EXECUTED` should have had from the
-   start — it is currently a hand-typed dict of literals in the producer, i.e. a claim inside
-   the thing it certifies, which an earlier verifier flagged and which is still true).
+   JSON that `rank_disposition.py` READS.
+   > **The parenthetical here was STALE WHEN WRITTEN, corrected rather than deleted.** It read
+   > *"the shape `S4_EXECUTED` should have had from the start — it is currently a hand-typed
+   > dict of literals in the producer … which is still true"*. It was not still true.
+   > `git grep -n S4_EXECUTED -- command-center/mcp-audit/` returns no definition in
+   > `rank_disposition.py`; the only hits are docstrings in `s4_evidence.py` and
+   > `_g3_backend_liveness.py` **describing the defect they closed**. The records moved into
+   > `s4-evidence.json` in round 2 and `rank_disposition.py:770` loads them via
+   > `s4_evidence.load()`, which fails closed when the file is absent. Naming a fixed defect as
+   > live is the mirror of the error this lane keeps finding — a sentence wider than its
+   > evidence — and it sends the next round to re-fix something already done.
 2. **The workflow has never run on a real GitHub runner.** Everything here is a local Ubuntu
    24.04 clone with python **3.12**; CI pins **3.11**. *Settling experiment:* the first
    `workflow_dispatch` after merge. Risk assessed **low** (no 3.12-only syntax; `uvx` is not
