@@ -231,9 +231,59 @@ python command-center/p2-next/_e2_ready_vendor.py    -> 95 / 49 / 20 / 285, 6/6 
 
 Gate results, ruff, and the blob check are recorded in §7 once run.
 
-## 7. Gates run this round
+## 7. Gates run this round — on the COMMITTED state
 
-Populated at the end of the round; if this section still reads UNKNOWN, no gate verdict here may
-be cited.
+| gate | result |
+|---|---|
+| `claim_gate.py --self-test` | OK: all 11 rules fire in the known-broken state |
+| `test_claim_gate.py` | All 42 test functions passed (was 39) |
+| `test_claim_gate_mutations.py` | 9/9 mutations killed (was 8/8) |
+| `rail_count_gate.py --self-test` | PASS (30 cases, every check in both states) |
+| `rail_count_gate.py` | SUCCESS — 52 / 42 / 10 / 10, catalog 2007, READY 449 |
+| `vendor_satisfiability.py --basis committed` | SUCCESS, artifact drift False |
+| `split_review_gate.py --basis committed` | SUCCESS |
+| `gen_skill_index.py --check --fail-on-drift` | INDEX DRIFT: no; canonical NOT declared: 0 |
+| `gen_skills_manifest.py --check` | skills_tracked=337 manifest_rows=337 malformed_lines=0 |
+| `check_skill_description_ratchet.py` | SUCCESS, no violations |
+| `_c4_blobcheck_mine.py 8096dff3` / `b09136ae` | 0 CRLF, ruff-clean in LF form, control fires |
+| `ruff@0.15.17 check` + `format --check` | All checks passed / already formatted |
+| `check_skill_dual_write.py --strict-parity` | **RED** — pre-existing, see below |
 
-UNKNOWN - not yet measured.
+**Two detector notes, because both nearly produced a false reading.**
+
+1. `check_skill_dual_write.py --strict-parity` with no `--base/--head` returned **OK** while my
+   changes were uncommitted — a VACUOUS GREEN, because the changed-set between `origin/main` and
+   `HEAD` did not yet contain them. Re-run in the documented per-commit form it reproduces round
+   1's finding exactly, with a discriminating control:
+
+   | commit | verdict |
+   |---|---|
+   | `8096dff3` (mine) | VIOLATIONS: 1 |
+   | `1b1e1e4e` (round 1, already in main) | VIOLATIONS: 1 |
+   | `7618a6fa` (touches no canonical-only skill) | OK |
+
+   Pre-existing and systemic. Not remediated here for the reasons in `P2NEXT-BUILD-R3.md` §5.
+
+2. Both new probes are pinned to a BEFORE sha and were re-run against the FIXED commit to prove
+   they fail closed rather than reporting a clean sheet: `_e3` and `_e4` both print *"8096dff3
+   already carries the fix; it is not a before-state"* and exit 2.
+
+**~14 of ~25 CI steps ran locally. A Windows-local green is not CI green.** Not run: the node/npm
+steps, CodeQL, gitleaks, the hook and workflow gates owned by sibling lanes, and everything in
+`quality.yml` beyond the ones tabled above.
+
+**Shared file NOT edited:** `.github/workflows/quality.yml` carries stale counts in a comment
+(*"29 test functions passed, 5/5 mutations killed"* — now 42 and 9/9). The CI step itself runs all
+three commands, so the drift is in prose only. It is the shared file that red-blocked this repo's
+PRs, so it is reported here rather than edited.
+
+## 8. Commits
+
+| sha | what | files |
+|---|---|---|
+| `8096dff3` | `fix(claim-gate)`: host.tld:port was a valid file:line anchor | 7 |
+| `b09136ae` | `docs(p2next)`: the READY-unit sentence was false | 6 |
+
+Both committed with `git commit -F <msgfile> -- <explicit paths>` and verified per-commit with
+`git diff-tree --name-only`: only my files landed. Siblings committed to the shared tree between
+them (`0cc7873e`, `eb5495ce`, `6698065f` are another lane's).
