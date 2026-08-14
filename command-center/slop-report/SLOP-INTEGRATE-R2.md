@@ -192,7 +192,8 @@ Two things I was careful about:
   reimplemented), count unresolved rows, and either widen or baseline what remains — the
   same method round 1 used for the commands gate, which found the cost was 216 rows.
 - **The claim FORM is narrower than the corpus, and my own report proves it.** The extractor
-  recognises a backticked `key: value` pair and a `histogram` line. Running it over my
+  recognises exactly two shapes — a backticked pair of a name, a colon, a space and a
+  value; and a line whose numeric parts follow the word histogram. Running it over my
   working tree scanned 11 documents against 10 committed — the extra one being this file —
   and the claim count did **not move**: 42 both times. So this document, which publishes
   numbers in almost every section, contributed **zero** checkable claims, and the gate that
@@ -240,7 +241,29 @@ Two things I was careful about:
    name. The check it gates reads `controls` and genuinely found the new keys, so the
    verdict stands — but the null sat in the output and I only noticed on the second read.
    Disclosed rather than trimmed out of the receipt.
-4. **The dup-guard hook caught me redefining a helper** that already exists in
+4. **I shipped the gate RED on my own commit, and the reason is the fifth instance of the
+   class this lane keeps paying for.** Immediately after committing, the wired step returned
+   `TRANSCRIPTION-VIOLATIONS`, rc 1 — on this document. The offending line was the sentence
+   in §5 describing the extractor's claim form: I wrote a backticked example *of the shape*,
+   and the extractor read it as an assertion, looked the name up, found a real receipt
+   carrying it, and correctly called it a disagreement. **The gate cannot tell an
+   illustration from an instruction** — the same defect round 1 hit on an illustrative
+   command, now on an illustrative claim, and again inside the paragraph warning about it.
+
+   Two things made it mine rather than the gate's. First, `claims_found` moved 42 → 43 and
+   `receipts_indexed` 85 → 88 at the same commit: my own new receipts made a previously
+   unanswerable name answerable, so a line that was inert became checkable the moment I
+   committed evidence. Second, and worse, **I ran the pre-commit check and then edited the
+   document.** §3.3's clean reading was true for the bytes I checked; §5 was added
+   afterwards and I committed different bytes without re-running. The tool worked. I stopped
+   using it one edit too early.
+
+   Fixed by rewording so the sentence describes the shape without instantiating it, verified
+   by re-extracting every claim in this file (1 before, 0 after) rather than by re-reading
+   the paragraph. Not fixed with the REFUTED marker: that marker means "a superseded number
+   preserved on purpose", and this was never a number.
+
+5. **The dup-guard hook caught me redefining a helper** that already exists in
    `_r5_bucket_c.py`. I kept the local copy deliberately: importing that module executes its
    module-level hardcoded root, which is the exact defect this round is removing. Recording
    the trade rather than pretending the hook did not fire.
