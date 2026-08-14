@@ -990,3 +990,280 @@ def test_control_invocation_arm_is_eol_agnostic(tracked: frozenset[str]) -> None
         assert _invocation_tokens(lf) == _invocation_tokens(lf.replace("\n", "\r\n")), (
             f"{rel}: the arm's token set depends on line endings"
         )
+
+
+# --------------------------------------------------------------------------
+# INTEGRATE arm: a DEAD classification must be ROUTED, not merely muted
+# --------------------------------------------------------------------------
+#
+# Round 8 resolved two confirmed-dead published commands as "ROUTE, not
+# fix-doc ... an implement-or-retire decision for the owner". The classification
+# is right and the route had no destination. Measured by
+# ``docs/_lane_docs_i2_register_census.py``:
+#
+#   * ``scripts/claw.js`` -- 15 tracked carriers, and NOT ONE of them is an
+#     actionable row. Every carrier is either a doc that publishes the broken
+#     command, a skill that repeats it, a routing fixture, or a lane's own build
+#     log.
+#   * ``scripts/harness-audit.js`` -- recorded on **2026-07-13**, a month before
+#     round 8 rediscovered it, in ``docs/audit-design-2026-07-13/`` as
+#     ``document_id: gate/harness-audit-cmd``, ``status: broken-canonical``,
+#     ``implementation_status: "BROKEN-PACKAGING -- target repo lacks
+#     scripts/harness-audit.js"``. Nothing reads those files, nothing gates on
+#     that status, and the command is still published and still dead.
+#
+# So the failure is not that the debt was unknown. It is that ``DEAD`` in
+# ``KNOWN_UNRESOLVED_INVOCATIONS`` is a MUTE BUTTON: its only effect is to keep
+# the ratchet above green. This arm turns it into a routing obligation --
+# classifying a token ``DEAD`` now REQUIRES a register row that names an owner
+# and a settling action, in a file that is tracked so a clone can read it.
+#
+# Self-retiring, for the same reason the SLOP lane's published-command baseline
+# is: if the script lands, the row must go, or the register becomes a stale
+# document read as current -- this lane's own charter defect.
+#
+# COUNT THE FIELD, NOT THE DOCUMENT. The register has to discuss both tokens in
+# prose to be worth reading, so a prose mention must not satisfy the obligation.
+# Only a structured table row does, and
+# ``test_control_a_prose_mention_is_not_a_register_row`` is the control for that.
+
+#: The implement-or-retire register for confirmed-dead command promises.
+DEAD_PROMISE_REGISTER = "docs/DEAD-COMMAND-PROMISES.md"
+
+#: A register row: ``| `<token>` | published by | measured | owner | settling |``.
+#: Anchored at the line start with a leading pipe, so only a real table row
+#: qualifies -- a backticked token in a prose sentence cannot.
+REGISTER_ROW = re.compile(r"^\|\s*`(scripts/[A-Za-z0-9._/-]+)`\s*\|")
+
+#: Cells that are present but say nothing. A row may not be satisfied by filler.
+EMPTY_CELL = re.compile(r"^(?:[-—–]*|n/?a|tbd|todo|\?+)$", re.I)
+
+#: token | published-by | measured | owner | settling action, plus the two empty
+#: strings a leading and trailing pipe produce when the row is split.
+MIN_ROW_CELLS = 7
+
+
+def _register_source(tracked: frozenset[str]) -> str:
+    """The register's bytes, or ``""`` when it is missing or untracked.
+
+    Untracked reads as absent on purpose: a register that exists only on the
+    author's disk is precisely the defect this repo has already paid for once,
+    when 45 cited probe scripts were gitignored and resolved for nobody else.
+    """
+    if DEAD_PROMISE_REGISTER not in tracked:
+        return ""
+    if not (REPO_ROOT / DEAD_PROMISE_REGISTER).is_file():
+        return ""  # fail CLOSED and readably, never with a traceback
+    return _carrier_source(DEAD_PROMISE_REGISTER)
+
+
+def _register_rows_in(text: str) -> dict[str, list[str]]:
+    """``token -> cells`` for every structured row. Pure, so it takes mutations.
+
+    Split on UNESCAPED pipes. A markdown cell may legally contain ``\\|`` -- the
+    real register does, quoting ``--format <text\\|json>`` from the command doc --
+    and a naive ``split("|")`` turns that row into 8 cells, silently shifting
+    every column one to the right. Measured, not theorised: the first version of
+    this parser did exactly that, so the owner check read the *measured* column
+    and the settling check read the *owner* column. Both cells held prose, so the
+    arm passed -- for the wrong reason, on the one row it most needed to judge.
+    That is the manifest-DICT shape: a check that reads the wrong collection and
+    agrees with itself. ``test_control_an_escaped_pipe_does_not_shift_columns``
+    is what stops it coming back.
+    """
+    rows: dict[str, list[str]] = {}
+    for line in text.split("\n"):
+        stripped = line.rstrip("\r")
+        match = REGISTER_ROW.match(stripped)
+        if match:
+            cells = [cell.strip() for cell in re.split(r"(?<!\\)\|", stripped)]
+            rows[match.group(1)] = cells
+    return rows
+
+
+def _dead_tokens() -> set[str]:
+    return {
+        token for token, kind in KNOWN_UNRESOLVED_INVOCATIONS.items() if kind == "DEAD"
+    }
+
+
+def _routing_violations(
+    dead: set[str], register_text: str, tracked: frozenset[str]
+) -> list[str]:
+    """Every way a DEAD classification could be muted rather than routed."""
+    bad: list[str] = []
+    rows = _register_rows_in(register_text)
+
+    for token in sorted(dead - set(rows)):
+        bad.append(
+            f"unrouted: {token} is classified DEAD but has no row in "
+            f"{DEAD_PROMISE_REGISTER}"
+        )
+
+    for token in sorted(rows):
+        cells = rows[token]
+        if len(cells) < MIN_ROW_CELLS:
+            bad.append(
+                f"short-row: {token} has {len(cells)} cells, needs {MIN_ROW_CELLS}"
+            )
+            continue
+        owner, settling = cells[4], cells[5]
+        if not owner or EMPTY_CELL.match(owner):
+            bad.append(f"no-owner: {token}'s row names no owner")
+        if not settling or EMPTY_CELL.match(settling):
+            bad.append(f"no-settling-action: {token}'s row names no settling action")
+        if _path_resolves(token, tracked):
+            bad.append(
+                f"paid-debt: {token} resolves now, so its row is a stale document "
+                "read as current -- delete the row and its DEAD classification"
+            )
+    return bad
+
+
+def test_every_dead_classification_is_routed_to_a_register_row(
+    tracked: frozenset[str],
+) -> None:
+    """The integration assertion: DEAD must mean routed, not merely silenced."""
+    violations = _routing_violations(_dead_tokens(), _register_source(tracked), tracked)
+    assert violations == [], (
+        "a confirmed-dead published command is muted rather than routed:\n"
+        + "\n".join(f"  - {v}" for v in violations)
+        + f"\n\nAdd a row to {DEAD_PROMISE_REGISTER} naming the owner and the "
+        "settling action, or -- if the script now exists -- delete both the row "
+        "and the KNOWN_UNRESOLVED_INVOCATIONS entry."
+    )
+
+
+def test_the_register_is_tracked_so_a_clone_can_read_it(
+    tracked: frozenset[str],
+) -> None:
+    """A register only on the author's disk routes nothing for anyone else."""
+    assert DEAD_PROMISE_REGISTER in tracked, (
+        f"{DEAD_PROMISE_REGISTER} is not tracked in git, so every row in it "
+        "resolves to nothing in a clone"
+    )
+
+
+def test_control_the_register_parser_is_not_empty(tracked: frozenset[str]) -> None:
+    """A collapsed parser would make the routing arm vacuously green."""
+    rows = _register_rows_in(_register_source(tracked))
+    assert rows, "the register parsed to zero rows; the arm above is measuring nothing"
+    assert _dead_tokens(), (
+        "no token is classified DEAD, so this arm has no obligation to check and "
+        "its green says nothing. Re-derive before deleting it."
+    )
+
+
+def test_control_routing_arm_fires_when_a_row_is_deleted(
+    tracked: frozenset[str],
+) -> None:
+    """H1 the arm reads rows -> deleting one fires. H2 it reads the file's mere
+    existence -> deleting a row changes nothing. Different answers."""
+    text = _register_source(tracked)
+    victim = sorted(_dead_tokens())[0]
+    assert victim in _register_rows_in(text), "precondition: the row is there"
+    broken = "\n".join(
+        line for line in text.split("\n") if not REGISTER_ROW.match(line.rstrip("\r"))
+    )
+    assert len(broken) < len(text), "control precondition: no row was removed"
+    found = _routing_violations(_dead_tokens(), broken, tracked)
+    assert any(v.startswith("unrouted") for v in found), found
+
+
+def test_control_routing_arm_fires_on_a_row_with_no_settling_action(
+    tracked: frozenset[str],
+) -> None:
+    """The subtler shape: a row exists but says nothing actionable."""
+    token = sorted(_dead_tokens())[0]
+    hollow = f"| `{token}` | somewhere | measured | | -- |\n"
+    found = _routing_violations({token}, hollow, tracked)
+    assert any(v.startswith("no-owner") for v in found), found
+    assert any(v.startswith("no-settling-action") for v in found), found
+    assert not any(v.startswith("unrouted") for v in found), (
+        "control: the row IS present in this mutation, so `unrouted` must not fire"
+    )
+
+
+def test_control_a_prose_mention_is_not_a_register_row(
+    tracked: frozenset[str],
+) -> None:
+    """Use-vs-mention, the sharpest control here.
+
+    The register must DISCUSS both tokens to be worth reading, and this repo has
+    twice mislabelled a document that merely names a path as one that depends on
+    it. H1 only a structured row counts -> the prose form is still `unrouted`.
+    H2 any occurrence counts -> prose satisfies the obligation and the register
+    can be a paragraph with no owner in it.
+    """
+    token = sorted(_dead_tokens())[0]
+    prose = (
+        f"The command still publishes `{token}`, which resolves nowhere.\n"
+        f"See the round-8 measurement for `{token}`.\n"
+    )
+    assert _register_rows_in(prose) == {}, "a prose mention parsed as a row"
+    found = _routing_violations({token}, prose, tracked)
+    assert any(v.startswith("unrouted") for v in found), found
+
+
+def test_control_an_escaped_pipe_does_not_shift_columns(
+    tracked: frozenset[str],
+) -> None:
+    """The defect this arm shipped with, made permanent.
+
+    H1 the parser splits on UNESCAPED pipes -> a cell quoting ``<text\\|json>``
+    keeps the owner in column 4 and the row is judged on the right cells.
+    H2 it splits on every pipe -> that row gains a cell, every column shifts
+    right, and the owner check silently reads the *measured* column instead.
+
+    Both hypotheses produce a PASSING row, because all the cells hold prose.
+    Only the cell COUNT and the cell CONTENT tell them apart, so this control
+    asserts both -- a green here would otherwise mean nothing.
+    """
+    escaped = "| `scripts/x.js` | doc `--format <text\\|json>` | m | OWNER-CELL | ACT |"
+    cells = _register_rows_in(escaped)["scripts/x.js"]
+    assert len(cells) == MIN_ROW_CELLS, (
+        f"an escaped pipe changed the column count to {len(cells)}"
+    )
+    assert cells[4] == "OWNER-CELL", f"column 4 is {cells[4]!r}, not the owner cell"
+
+    # The real register must carry at least one such cell, or this control is
+    # guarding a shape that no longer occurs and its green is decorative.
+    source = _register_source(tracked)
+    assert "\\|" in source, (
+        "no escaped pipe remains in the register, so this control no longer "
+        "exercises the shape it exists for. Re-derive before deleting it."
+    )
+    for token, row in _register_rows_in(source).items():
+        assert len(row) == MIN_ROW_CELLS, (
+            f"{token}: {len(row)} cells -- a column shift is live in the register"
+        )
+
+
+def test_control_routing_arm_fires_on_a_paid_debt(tracked: frozenset[str]) -> None:
+    """The self-retiring property, which the register advertises, asserted.
+
+    H1 the arm re-checks resolution -> a row for a script that EXISTS fires.
+    H2 it only checks that a row is present -> a stale row passes forever and
+    the register becomes the stale-document defect it was built to route.
+    """
+    resolving = "scripts/longrun.ps1"
+    assert _path_resolves(resolving, tracked), "precondition: this script exists"
+    stale = f"| `{resolving}` | a doc | measured | an owner | an action |\n"
+    found = _routing_violations(set(), stale, tracked)
+    assert any(v.startswith("paid-debt") for v in found), found
+
+    absent = sorted(_dead_tokens())[0]
+    assert not _path_resolves(absent, tracked), "precondition: this one is absent"
+    live = f"| `{absent}` | a doc | measured | an owner | an action |\n"
+    assert not any(
+        v.startswith("paid-debt") for v in _routing_violations({absent}, live, tracked)
+    ), "control: paid-debt fired on a token that does NOT resolve"
+
+
+def test_control_the_routing_arm_is_eol_agnostic(tracked: frozenset[str]) -> None:
+    """A CRLF working tree and an LF blob must route identically."""
+    lf = _register_source(tracked).replace("\r\n", "\n")
+    assert (
+        _register_rows_in(lf).keys()
+        == _register_rows_in(lf.replace("\n", "\r\n")).keys()
+    ), "the register parse depends on line endings"
