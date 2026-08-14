@@ -1,5 +1,16 @@
 # GRIND-STATUS — what is done, what is not, and what only the owner can unblock
 
+> **THERE ARE TWO GRIND-STATUS DOCUMENTS. Read the other one too.**
+> `command-center/GRIND-STATUS.md` is the later nine-lane synthesis (2026-08-14, after this one).
+> It re-executes all 22 lane gates first-hand and supersedes this document on three points: §4
+> here reports `check_citations.py` as `FAILED:cite-check`, which now **PASSES**; §0 here could not
+> rule out an org-level Actions disablement, which is now **ruled out** (`actions/permissions`
+> returns `enabled:true`); and it adds a blocker this document does not contain — two lanes' gates
+> ride a `pull_request`-only workflow and so have never run on the pushes that deliver the work.
+> **This document is NOT superseded as a whole and is deliberately left otherwise unedited:** its
+> §3 corrections are frozen evidence of what was wrong when, and its §0 CI diagnosis is still the
+> fuller write-up.
+
 Written by the orchestrator on 2026-08-14, **not** by the workflow's `synthesize` stage. That
 stage has now died three times before writing anything — twice on `401 API key is invalid`, once
 on a session limit — so this document exists because a deliverable that is only ever *scheduled*
