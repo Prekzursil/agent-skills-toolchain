@@ -43,14 +43,38 @@ name: hook-audit
 #   1. `check_citations.py --self-test` FIRST, as the both-states control. It mutates every
 #      citation's expected value and requires the checker to go RED for each; a citation the
 #      checker cannot fail is not being checked. If this step passes and step 3 also passes,
-#      step 3's green means something. Measured locally: 181 citations, all red when mutated.
+#      step 3's green means something. It mutates EVERY citation the gate can see and
+#      requires each to go red; the self-test prints its own count at run time.
 #
-#   2. `python test_citation_gate.py` -- NOT `pytest`. Measured 2026-08-14:
-#      `pytest command-center/hook-audit/test_citation_gate.py -q` collects ZERO tests and
-#      exits 0, because the file is a standalone script with `main()` rather than pytest
-#      functions. Wiring it the obvious way would have been a permanently green no-op
-#      (ci-hygiene section 1) sitting directly on top of the gate that exists to stop exactly
-#      that. Run correctly it reports 24 cases, ALL PASS -- including the pairing that requires
+#      NO PINNED COUNT HERE, deliberately. This header said "181 citations" while the
+#      round-2 report said 188 and the gate itself printed 189 -- three numbers for one
+#      quantity, none of them wrong at the moment it was written, because the count moves
+#      every time ANY lane commits a document or an evidence file. Commit `01febbed`
+#      already adopted "stop citing a number that changes every time a sibling commits"
+#      for the prose and then left this header pinned. A count that must be re-verified on
+#      every unrelated commit is a maintenance trap, not evidence.
+#
+#   2. `python test_citation_gate.py` -- NOT `pytest`. The file is a standalone script with
+#      `main()` rather than pytest functions, so pytest collects ZERO tests from it.
+#
+#      THE REASON RECORDED HERE UNTIL 2026-08-14 WAS MEASURABLY FALSE, and is kept rather
+#      than quietly swapped. It said pytest "collects ZERO tests and exits 0 ... a
+#      permanently green no-op (ci-hygiene section 1)". Measured:
+#          python -m pytest command-center/hook-audit/test_citation_gate.py -q
+#            -> "no tests ran", exit 5 (EXIT_NOTESTSCOLLECTED)
+#      reproduced three times across two invocation forms, with a control proving the
+#      instrument can return 0 in the same shell (`test_hook_predeploy_gate.py` -> exit 0,
+#      53 passed) and with no pytest config anywhere that governs this path (no root
+#      pytest.ini / pyproject.toml / tox.ini / setup.cfg / conftest.py).
+#
+#      The CONSEQUENCE INVERTS. Exit 5 is non-zero, so a GitHub `run:` step fails on it:
+#      the naive wiring would have turned this workflow RED without ever executing the 24
+#      cases -- loud and wrong, not silently green. `python` is still the correct wiring,
+#      but for the opposite reason to the one recorded, and the ci-hygiene section 1
+#      citation was misapplied: that rule is about a `python -m` gate whose module has no
+#      `main()`, which is not this file's failure mode.
+#
+#      Run correctly it reports 24 cases, ALL PASS -- including the pairing that requires
 #      the PRE-round-3 gate to PASS a fixture this one must FAIL, so "no drift found" stays
 #      distinguishable from "drift is not looked for".
 #
