@@ -79,8 +79,17 @@ that block is a **lower bound on the fleet**.
 
 ### The blast radius, which is why this is not cosmetic
 
-`707` had been copied into prose as a fleet total in **five** places, across documents round
-3 never opened:
+Measured by `scope_lint` before the fix: **18 unscoped occurrences** of the three figures
+across **6 documents**. Of the **8** unscoped occurrences of `707` specifically, **5 assert
+it as a measured total** — the fleet-total reading, listed below. The other 3
+(`LANE-MCPRESEARCH-BUILD-R1.md:73`, `MCP-CAPABILITY-AND-DISPOSITION.md:504`,
+`ROUND3-DEFECT-CLOSURE.md:205`) are *corroboration* statements — two readers agreeing, or
+two sweeps being byte-identical — which is a **determinism** claim, not a scope claim. They
+were true as written and are scoped anyway, because a reader can take them as certifying the
+figures fleet-wide.
+
+The 5 that read as fleet totals — four in documents round 3 never opened, and one in round
+3's own report:
 
 | site | what it said |
 |---|---|
