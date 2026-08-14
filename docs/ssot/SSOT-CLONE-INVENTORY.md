@@ -202,12 +202,67 @@ you must pass `-uall`. **I read that note and then failed to apply it.** Correct
 
 ---
 
+## 2c. The five no-remote checkouts, finally measured — added 2026-08-14, BUILD round 3
+
+> **REFUTED, kept not deleted:** round 2 scored the DoD item "unique-content measured per clone"
+> as **PASS** while five rows carried `unpushed: null` with the note *"no_remote: unpushed is
+> undefined, not 0"*. Declining to report a false 0 was right; scoring the item PASS was not.
+> `null` is the **absence of a measurement**, and these five are the highest-risk rows on the
+> board — with no remote, no push can have carried anything out of them. Round 2 named the
+> settling experiment in its own residual #2 and did not run it. This runs it.
+
+Measured at **blob** level, not commit level, because commit-object identity is the wrong
+instrument: `REPO-TOPOLOGY.md` rule 4 and this lane's own round-1 finding both record that
+squash-merge keeps a unique commit SHA forever, so an absent commit says nothing about absent
+content. What matters for data loss is whether the **bytes** exist elsewhere.
+
+| checkout | commits | tracked blobs | absent by raw SHA | genuinely unique |
+|---|---|---|---|---|
+| `…/plugins/cache/…/plugin-install-64I3il/…/0.2.0` | 0 | — | — | nothing committed |
+| `…/Temp/adv0010/repo` | 2 | 7,323 | 5,518 | **0** |
+| `…/Temp/adv0010/repo2` | 2 | 7,323 | 5,518 | **0** |
+| `~/source/_advver_M14/chk` | 1 | 5,561 | **0** | **0** |
+| `~/source/_advver_M14/scratch` | 0 | — | — | nothing committed |
+
+**The 11,036-blob false alarm, and what caught it.** The first probe stopped at raw SHA and
+reported 5,518 blobs absent from the canonical store in each of the two `adv0010` checkouts.
+Written up unchecked, that is "two checkouts hold 11,036 files that exist nowhere else" — a
+fleet-scale data-loss alarm. It is an artifact. **5,518 of 5,518 contain CRLF, and 5,518 of
+5,518 are present in canonical after CRLF→LF normalisation.** Every one is a line-ending twin of
+a blob already in the store. Round 1 had already burned a control on this exact shape — its
+content signal read `positive=False negative=False` because the tree is CRLF and git stores LF —
+and the lesson is in `windows-shell.md` §8b. It still nearly shipped a second time.
+
+**Controls, both states:** the hasher must reproduce a known canonical blob's SHA exactly and
+must *not* reproduce it from a deliberately mangled copy of the same bytes; the reader must find
+a known SHA and miss a fabricated one. A hasher that cannot tell a mangled copy apart makes every
+number in the table meaningless, so it is checked before any of them is believed.
+
+**What is NOT cleared by this.** The two 0-commit rows have nothing committed to compare, so the
+blob test is silent about them by construction — and `~/source/_advver_M14/scratch` is precisely
+where the exposure lives: no commits, no remote, thousands of untracked entries in no store
+anywhere. That is an **uncommitted** exposure, not an unpushed one, and it remains open (§7 R9).
+
+---
+
 ## 3. Q3 — inbound references
 
 use-vs-mention applied at the **field** level, not the document level. No line from a
 credential-bearing file was ever printed.
 
 ### Nothing schedules, PATHs, or env-references any checkout
+
+> **SCOPE CORRECTED 2026-08-14 (round 3) — the conclusion survives, its evidence did not cover
+> the population it was quoted for.** Everything in this subsection was measured over **25**
+> checkouts. Round 2 then scored the lane's DoD item "inbound-reference measured per clone" as
+> PASS over **178**, on the strength of `classify_population.py` — whose corpus is *config files
+> only* (`~/.claude/{hooks,skills,commands,workflows,agents,rules,plugins}`, `~/.agents`,
+> `~/.codex`, `~/.local/opt`, seven named files). Scheduled Tasks, PATH and the environment are
+> not in that corpus, so three of the five pointer kinds the DoD enumerates were carried at the
+> 25-row scope into a 7×-larger population. Error direction was the dangerous one: a checkout a
+> scheduled task launches from would read `inbound_exec = 0` and land in the retire list.
+> Re-measured at 178 in **§3b**, where the answer is still zero — now with evidence that covers
+> the claim.
 
 - **Scheduled Tasks: 0 hits across 330 task-actions** (`Execute` / `Arguments` / `WorkingDirectory`).
   **Control, both states:** the same scanner finds `mcp_agent_mail`, `MCPAgentMail` and `Prekzursil`
@@ -271,6 +326,56 @@ found by widening the population rather than by any new technique.
 
 It is also the second time this exact path has broken a §4 verdict: the `refs/stash` correction
 below was likewise a rule that contradicted `ast-harness-reconcile`'s RETIRE listing.
+
+---
+
+## 3b. The three surfaces re-measured at 178 — added 2026-08-14, BUILD round 3
+
+`inbound_surfaces.py`. Windows Scheduled Tasks, PATH (Machine+User) and the environment
+(Machine+User), intersected with all 178 checkouts. **All three are silent.**
+
+| surface | read | checkouts named |
+|---|---|---|
+| Scheduled Tasks | **329 actions** (172 with an `Execute`) | **0** |
+| PATH | **87 entries** | **0** |
+| Environment | **388 variables** | **0** |
+
+**Why the silence is believable this time.** Each surface is scanned three times: once over the
+real data, once over the real data **plus one synthetic row naming a real population path**, and
+once plus a fabricated path. The synthetic run must gain exactly one hit and the fabricated run
+must gain none — otherwise a zero would be indistinguishable from a reader that cannot see the
+surface at all. All three discriminate (`0 → 1 → 0`). Each surface also carries a plausibility
+floor and fails closed below it, so "0 tasks" can never be reported as "no task references a
+checkout". The synthetic row exists only in the probe's memory: no task is created, no variable
+is set, and env values are matched in memory with only the VARIABLE NAME ever recorded, because
+this surface sits next to live credentials.
+
+Two hypotheses were named before the probe ran — H1 "nothing references a checkout" and H2 "the
+extractor cannot see this surface" — precisely so the control could tell them apart. It does.
+
+**Consequence:** the 43 retire candidates in §5a were computed from a config-only scan, and that
+scan is now corroborated on the three surfaces it never covered. No verdict changes.
+
+### 3c. Every reference resolved to its FIELD — no row left to hand-reading
+
+`resolve_ref_fields.py` parses each naming file (TOML/JSON) and walks it for keys whose **name**
+or **value** resolves to a checkout, so a hit is a field, not a document. Round 2 left
+`Documents/Playground` as "6 hits, not re-resolved"; that residual is now **CLOSED**.
+
+| checkout | live fields | kind |
+|---|---|---|
+| `~/source/agent-skills-toolchain` | 16 | MCP server `command`/`args`, `workspaceRoot`, Codex `local-projects.*.rootPaths[0]`, thread cwd/path, `remote-projects[0].remotePath` |
+| `~/Documents/Playground` | **2** | `~/.codex/config.toml` → `projects."…\Playground"` (trust registration) and `desktop.open-in-target-preferences.perPath."…\Playground"` |
+| `~/source/ast-harness-reconcile` | 1 | `~/.codex/.codex-global-state.json` → `local-projects.<uuid>.rootPaths[0]` |
+
+The other 4 of Playground's 6 file-level hits are **backups** of that config (`.agents/backups/*`,
+`.codex/backups/*`) — counted, and correctly not treated as live. One naming file is not
+field-resolvable: `~/.claude/workflows/reconcile-all-branches-prs-imporant.js` is JavaScript, not
+a parseable config; it names canonical, which is KEEP regardless, so no verdict rests on it.
+
+**Control:** the walker is run against a synthetic document containing one table-key hit and one
+value hit, and against a fabricated path. It must find exactly 2 of both kinds and 0 — proving it
+descends the tree rather than returning empty for every document.
 
 **Detector honesty.** The first version of this scan scored 5 checkouts, and the two extra were
 artifacts of the naive rule this document already warns about — `.codex/plugins/cache/**` audit
@@ -432,7 +537,22 @@ Settling experiment: for each of the 5, test each commit's presence in canonical
   `git -C ast-integrate cat-file -p origin/main:<path>` — never `git archive` (CRLF on this box).
 - **R3 — scheduled-task indirection.** Action fields only. **Settle:** extract each task's
   `Execute`+`Arguments` script path and grep those files' contents.
-- **R4 — the Codex plugin cache holds a COPY of canonical's worktree admin dir.**
+- **R4 — MEASURED 2026-08-14 (round 3), and the hazard is armed.** `r4_cache_worktree_probe.py`:
+  the cache admin dir holds **5 registrations, 3 of them ARMED** — the `gitdir` names a directory
+  that exists right now: `~/source/ast-harness-reconcile`, `D:/inc1-wt/ast-increment1`, and
+  `~/source/ast-integrate` (this worktree). `ast-statusline-capture` and `D:/ckwt/cookie-bridge-skill`
+  are stale, their targets gone. **A contradiction had to be resolved to trust this:** the cache
+  row that `classify_population.py` reports as `kind-signals-disagree` has a `.git` that is a
+  FILE, and a file cannot contain `worktrees/*/gitdir`. There are **two** cache copies —
+  `…/agent-skills-toolchain/agent-skills-toolchain/0.2.0` (`.git` is a DIRECTORY, R4's subject)
+  and `…/plugin-install-64I3il/…/0.2.0` (`.git` is a FILE pointing at
+  `<canonical>/.git/worktrees/agent-skills-toolchain`, which **does not exist**, so every git
+  command there exits 128). Both are in the population; neither was mis-enumerated. The apparent
+  self-contradiction was a two-paths problem, not a detector failure — but only measurement could
+  establish that. Whether a cache-side `worktree remove` would delete a real tree stays
+  **UNVERIFIED**: the probe is destructive and was not run, and declining it is still correct.
+  The standing instruction is unchanged and now has a measured blast radius.
+- **R4 (original wording, superseded) — the Codex plugin cache holds a COPY of canonical's worktree admin dir.**
   `.codex/plugins/cache/…/0.2.0/.git/worktrees/{ast-integrate,ast-harness-reconcile,ast-increment1,
   ast-statusline-capture,cookie-bridge-skill}/gitdir` point at the **real live directories**. The
   link is one-directional — the real `ast-integrate/.git` points back at canonical, not the cache —
@@ -464,6 +584,20 @@ Settling experiment: for each of the 5, test each commit's presence in canonical
   line content.
 - **R7 — disk is only measured for 12 of 25** (3.31 GB, itself an over-count because of the shared
   hardlinked packs). Disk is not the argument here; drift and split-brain are.
+- **R9 — OPEN, and it is now the sharpest exposure on the board.** `~/source/_advver_M14/scratch`:
+  **0 commits, no remote**, thousands of untracked entries, so nothing in it is in git anywhere.
+  §2c clears the *committed* content of the no-remote five and says nothing about this, by
+  construction. Round 1 snapshotted 21 live lane artifacts out of it; the remainder is
+  unprotected. It was under **active write by other lanes** while being measured, and a
+  uniqueness census of a moving target cannot license any action — which is why it was measured
+  and left alone, not retired. **Settle:** `find <dir> -newermt '10 minutes ago'` to establish it
+  is quiescent, then run the §2c blob probe over its *working tree* rather than a tree-ish.
+- **R10 — the population is 178 distinct REAL paths, re-tested at the new size.** Round 1's
+  junction dedupe and the round-1 audit's 0-collision check were both taken at 170; round 2 added
+  8 rows without re-testing. Re-run at 178 (`noremote_and_alias.py`): **178 realpath groups, 0
+  collisions**, with a control proving a known junction pair collapses and a known-distinct pair
+  does not. Two rows are spelled through the legacy `Local Settings` junction and neither has its
+  resolved twin in the population, so 178 is not inflated by aliasing.
 
 ---
 
@@ -484,6 +618,13 @@ Settling experiment: for each of the 5, test each commit's presence in canonical
 | `ssot_drift_gate.py` | is the EXECUTED checkout stale against `main`? exit 1 drift / 3 fail-closed |
 | `ssot_wiring_check.py` | §9 — is the rule above still REACHABLE and consistent? six wires |
 | `_integrate_redproof.py` | the before/after red-proof of §9, rebuilt from `git show HEAD:` |
+| `identity_by_ancestry.py` | the identity test; rc 0/1/128 kept apart → `identity-by-ancestry.json` |
+| `classify_population.py` | all 178 on every DoD axis → `population-classified.json` |
+| `inbound_surfaces.py` | §3b — Scheduled Tasks + PATH + env at 178, synthetic-row controls → `inbound-surfaces.json` |
+| `resolve_ref_fields.py` | §3c — every reference resolved to its config KEY, values never emitted → `ref-fields-resolved.json` |
+| `noremote_and_alias.py` | §2c + R10 — realpath collisions at 178, and the no-remote blob census → `noremote-alias.json` |
+| `noremote_content_truth.py` | §2c — is the absent-blob gap unique content or CRLF? → `noremote-content-truth.json` |
+| `r4_cache_worktree_probe.py` | R4 — which cache-held worktree registrations are ARMED → `r4-cache-worktrees.json` |
 
 ---
 

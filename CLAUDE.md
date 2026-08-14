@@ -33,10 +33,19 @@ automated budget-pacing enforcement is gone. Budget pacing is now advisory and m
 
 Measured 2026-08-14: **178 checkouts across 168 object stores** — 9 linked worktrees, which share
 a store and so cannot diverge in history, and 168 independent clones, which can. **132 of them
-hold unpushed commits, dirty files or a staged index; 5 have no remote at all**, so nothing in
-them is in git anywhere else. Three are named by live harness config — one of which
-(`~/source/ast-harness-reconcile`, a registered Codex local-project root) the inventory lists as
-a retire candidate, so check §3a before retiring anything.
+hold unpushed commits, dirty files or a staged index; 5 have no remote at all.** Three are named
+by live harness config — one of which (`~/source/ast-harness-reconcile`, a registered Codex
+local-project root) the inventory lists as a retire candidate, so check §3a before retiring
+anything.
+
+> **REFUTED 2026-08-14 (round 3), kept rather than deleted:** this paragraph used to end "5 have
+> no remote at all, *so nothing in them is in git anywhere else*". The premise is right and the
+> conclusion does not follow. Measured (§2c): those five hold **zero unique committed bytes** —
+> three have their whole committed tree in the canonical store, two of them *only* after CRLF→LF
+> normalisation, and two are 0-commit working copies with nothing committed to compare. A raw-SHA
+> comparison calls 11,036 of those blobs missing and every one is a line-ending twin. Their real
+> exposure is **uncommitted, not unpushed**: `~/source/_advver_M14/scratch` has no commits at all
+> and carries thousands of untracked entries that are in no store anywhere.
 
 The earlier figures **25** (2026-08-12/13) and **170** (round 1) are both REFUTED and kept in the
 inventory's §0 with the defect that produced each: a name test standing in for an identity test,
@@ -53,6 +62,12 @@ then `merge-base --is-ancestor` compared `== 0`, which files rc=128 ("could not 
   this list yet:** two checkouts hold files that exist nowhere else, one of them only in a staged
   index that `git worktree remove` destroys. That command also **follows junctions and deletes
   their targets**.
+- **Never run a `worktree` subcommand from the Codex plugin cache.** Measured 2026-08-14:
+  `~/.codex/plugins/cache/agent-skills-toolchain/agent-skills-toolchain/0.2.0/.git/worktrees/`
+  holds 5 registrations and **3 are armed** — their `gitdir` names a directory that exists right
+  now, including `~/source/ast-integrate` itself. A cache-side `worktree remove`/`prune` resolves
+  those registrations against the real trees. Receipt:
+  `command-center/ssot/r4-cache-worktrees.json`.
 - **Before exiting a scratch worktree, push the branch.** Four real commits were stranded because
   agent worktrees had no push-before-exit step.
 
