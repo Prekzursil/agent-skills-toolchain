@@ -404,8 +404,14 @@ def check_reviewed(basis: str, rows: list[dict]) -> tuple[int, list[str], int]:
         problems += review_problems(r["id"], rec)
         # ADVISORY, never blocking. Reported so the gap cannot stay invisible: measured 0 of 10
         # today, so making it blocking would fail every existing receipt at once (and the only
-        # anchor-SHAPED token in the ten is a TIMESTAMP, `2026-08-12T05:15:00`, which satisfies
-        # claim_gate's `\S+:\d+` anchor rule -- a second reason not to enforce that shape here).
+        # anchor-SHAPED token in the ten is a TIMESTAMP, `2026-08-12T05:15:00`).
+        #
+        # STALE, corrected: that sentence used to end "...which satisfies claim_gate's `\S+:\d+`
+        # anchor rule -- a second reason not to enforce that shape here". claim_gate no longer has
+        # that rule; it rejected the timestamp from round 1 and rejects `example.com:443` from
+        # round 2. This check is unaffected either way, and deliberately so: `_ANCHOR` above is
+        # only a SHAPE, and the `.exists()` test below is what decides, which is strictly stronger
+        # than any shape rule -- a host:port cannot pass it because no such file exists.
         notes = rv.get("notes")
         for match in _ANCHOR.finditer(notes if isinstance(notes, str) else ""):
             path = match.group(1)

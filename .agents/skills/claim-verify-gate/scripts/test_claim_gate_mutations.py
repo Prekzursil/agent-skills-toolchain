@@ -48,12 +48,28 @@ MUTATIONS = [
         r'    if "/" in head or "\\" in head:',
         "    if True:",
     ),
-    # The other direction: an extension must carry a LETTER, which is what separates
-    # `host.py` from the version number `v1.2`. Dropping that re-admits versions.
+    # RETIRED, recorded rather than deleted: "extension need not contain a letter (a version
+    # reads as a filename)", which mutated `_EXTENSION` from the 0-5/letter/0-5 window to
+    # `\.[A-Za-z0-9]+$`. It SURVIVED once the extension allowlist landed, because the allowlist
+    # already rejects `2` from `v1.2` for the same reason it rejects `com` — so the letter rule
+    # had become a second decision guarding nothing. The honest fix was to remove the redundant
+    # decision from claim_gate rather than to write a test pinning it: the only shape on which
+    # the two forms differed was `x.entitlements:5`, which the window rejected WRONGLY. Its
+    # replacement is the allowlist mutation below, which is killed. A survivor that is chased
+    # with a test asserting the wrong behaviour is worse than no mutation at all.
+    # The auditor's residual, re-injected. Accepting ANY letter-bearing extension is exactly
+    # the state in which `example.com:443` passed as a file:line anchor.
     (
-        "extension need not contain a letter (a version reads as a filename)",
-        r'_EXTENSION = re.compile(r"\.[A-Za-z0-9]{0,5}[A-Za-z][A-Za-z0-9]{0,5}$")',
-        r'_EXTENSION = re.compile(r"\.[A-Za-z0-9]+$")',
+        "any letter-bearing extension is a filename (the host.tld:port hole)",
+        "        return match.group(1).lower() in _FILE_EXTENSIONS",
+        "        return True",
+    ),
+    # The other direction: without the structural dotfile branch, `.gitattributes:2` is
+    # rejected — a real anchor the allowlist alone cannot rescue.
+    (
+        "dotfiles are not recognised structurally",
+        '    if head.startswith("."):',
+        "    if False:",
     ),
     (
         "absolute-wording detector disabled",

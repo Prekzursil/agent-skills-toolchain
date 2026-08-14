@@ -129,9 +129,48 @@ _URL = re.compile(r"https?://\S+")
 _FILE_LINE = re.compile(
     r"(?<![A-Za-z0-9_./-])([A-Za-z0-9_.][A-Za-z0-9_./\\-]*):(\d+)\b"
 )
-# A real extension carries at least one LETTER (`.py`, `.md`, `.7z`). Requiring that is what
-# separates a filename from a version number: `v1.2` has a dot and is not a file.
-_EXTENSION = re.compile(r"\.[A-Za-z0-9]{0,5}[A-Za-z][A-Za-z0-9]{0,5}$")
+# A separator-less head's extension, whatever it is. The rule that used to live in this regex —
+# "0-5 chars, at least one LETTER, 0-5 chars", which separated `host.py` from the version `v1.2` —
+# is now carried by the allowlist below, which rejects `2` for the same reason it rejects `com`.
+# Keeping both would leave a decision no test could pin: with the allowlist in place, relaxing the
+# letter rule changed behaviour for exactly one shape (`x.entitlements:5`, 12 chars, overflowing
+# the old window), and that shape is a real anchor the window WRONGLY rejected. Measured: over
+# 4,186 corpus heads the windowed and unwindowed forms agree on every single one, so this is a
+# simplification, not a behaviour change. The corresponding mutation is retired in
+# test_claim_gate_mutations.py with the same reasoning.
+#
+# REFUTED, and kept rather than deleted: "a letter-bearing extension" was NOT sufficient. An
+# independent auditor measured that `example.com:443` and `site.io:8080` still passed, because
+# `.com` and `.io` satisfy it — a host:port is not a reference to a line of anything, and it is
+# the same class of defect (non-evidence satisfying a CONFIRMED verdict's evidence requirement)
+# that the letter rule had just closed. So a separator-less head must now carry a KNOWN FILE
+# extension. The direction was chosen on evidence, not taste: a TLD BLOCKLIST fails OPEN — the
+# corpus below contains `db.internal:5432` and `srv.corp:5432`, which no list of TLDs catches —
+# while an allowlist fails CLOSED and loudly, and the author's fix is to include the directory.
+#
+# Measured before shipping (command-center/p2-next/_e3_anchor_corpus.py) over 4,186 anchor-shaped
+# heads extracted from 4,969 committed markdown blobs, with MECHANICAL ground truth: a head counts
+# as a real anchor when it resolves to a path `git ls-files` tracks.
+#     real anchors (resolve)     2,567 — kept by this rule 2,567/2,567, regressions 0
+#     non-resolving heads        1,619 — newly rejected 11, every one a hostname
+#                                        (`turn.cloudflare.com` x42, `stun.cloudflare.com` x18,
+#                                         `db.internal`, `postgres.render-internal.com`, …)
+# It also FIXES one pre-existing false positive: `.gitattributes:2` was rejected (13 chars of
+# extension overflowed the length window) while `.gitignore:2` was accepted by accident of being
+# shorter. A dotfile is now recognised structurally instead — a hostname never begins with a dot.
+_EXTENSION = re.compile(r"\.([A-Za-z0-9]+)$")
+# Extensions a repository actually cites in evidence. Generous on purpose: a false positive here
+# reds a legitimate claim, and a gate that false-fires gets switched off.
+_FILE_EXTENSIONS = frozenset(
+    """py pyi pyc ipynb js mjs cjs jsx ts tsx vue svelte rs go java kt kts scala rb php pl pm
+    c h cc cpp cxx hpp hxx cs m mm swift dart lua r jl ex exs erl hs ml mli clj cljs sh bash zsh
+    fish ps1 psm1 psd1 bat cmd sql graphql proto thrift md markdown mdx rst adoc txt text log
+    json jsonl json5 yaml yml toml ini cfg conf properties env xml html htm css scss sass less
+    csv tsv parquet avro orc lock sum mod gradle sbt cmake make mk dockerfile tf tfvars hcl
+    plist entitlements xcconfig gemspec podspec cabal nix bzl bazel star patch diff snap
+    tpl tmpl j2 hbs mustache ejs pug haml erb slim asciidoc org tex bib sty cls
+    7z zip tar gz bz2 xz zst exe dll so dylib bin""".split()
+)
 # The extension-less files a repo actually cites. Kept small and lowercase-compared: this list
 # exists to prevent a measured false positive, not to enumerate every possible filename.
 _EXTENSIONLESS = frozenset(
@@ -158,8 +197,13 @@ def _is_path_head(head: str) -> bool:
     """Does the text before `:<line>` name a FILE, rather than merely contain a colon?"""
     if "/" in head or "\\" in head:
         return True
-    if _EXTENSION.search(head):
+    if head.startswith("."):
+        # A dotfile (`.gitignore`, `.gitattributes`, `.env.local`). Structural, not an
+        # allowlist entry: a hostname never begins with a dot.
         return True
+    match = _EXTENSION.search(head)
+    if match:
+        return match.group(1).lower() in _FILE_EXTENSIONS
     return head.lower() in _EXTENSIONLESS
 
 

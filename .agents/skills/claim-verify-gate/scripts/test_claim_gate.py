@@ -266,6 +266,41 @@ def test_paths_remain_evidence_anchors() -> None:
     )
 
 
+# --- R3c a host:port is not a file:line -------------------------------------
+# The letter-bearing-extension rule above was REFUTED by an independent auditor:
+# `.com` and `.io` carry letters, so `example.com:443` still passed. Measured over
+# 4,186 anchor-shaped heads from the committed markdown corpus
+# (command-center/p2-next/_e3_anchor_corpus.py): closing it rejects 11 further heads,
+# every one a hostname, and loses 0 of 2,567 heads that resolve to a tracked path.
+
+
+def test_host_port_is_not_an_evidence_anchor() -> None:
+    check("gTLD host:port fires", _anchor_fires("example.com:443"))
+    check("ccTLD-style host:port fires", _anchor_fires("site.io:8080"))
+    check("real service host:port fires", _anchor_fires("turn.cloudflare.com:3478"))
+    # The case a TLD blocklist cannot catch, which is why the rule is an allowlist.
+    check("internal host:port fires", _anchor_fires("db.internal:5432"))
+    check("corp host:port fires", _anchor_fires("srv.corp:5432"))
+
+
+def test_dotfiles_are_evidence_anchors() -> None:
+    # `.gitattributes` was a PRE-EXISTING false positive: 13 characters of extension
+    # overflowed the length window while the shorter `.gitignore` passed by accident.
+    check(".gitattributes is an anchor", not _anchor_fires(".gitattributes:2"))
+    check(".gitignore is an anchor", not _anchor_fires(".gitignore:16"))
+    check(".env.local is an anchor", not _anchor_fires(".env.local:3"))
+
+
+def test_known_extensions_survive_the_allowlist() -> None:
+    check("bare .py filename", not _anchor_fires("claim_gate.py:113"))
+    check("long extension", not _anchor_fires("rows.jsonl:1200"))
+    check("digit-bearing extension", not _anchor_fires("archive.7z:1"))
+    check("double extension", not _anchor_fires("probe.out.json:4"))
+    check("binary extension", not _anchor_fires("node.exe:1"))
+    # Only the separator-less case is allowlisted; a path is an anchor regardless.
+    check("unknown extension WITH a path", not _anchor_fires("a/b/thing.qqq:9"))
+
+
 # --- R4 unscoped absolutes -------------------------------------------------
 
 
