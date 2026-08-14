@@ -199,10 +199,25 @@ JSON schema, which is schema lag, not evidence that they do not exist.
   - ` #` (space-hash) opens a comment and **silently truncates** the description there.
     Measured live: `bc-drive-plus` lost 440 of its 793 characters to one `#` and rendered in
     the listing as a dangling `...(closes bc-drive's`.
-  - `: ` (colon-space) reads as a nested mapping and makes the **whole frontmatter
-    unparseable** — no truncation, no partial text, the entry just fails. This one bit while
-    writing the fix for the first one, which is why the repair script parse-checks the AFTER
+  - `: ` (colon-space) makes the frontmatter **invalid YAML**, and every strict parser
+    rejects the whole file — PyYAML, and the packaging and CI that use one. It bit while
+    writing the fix for the trap above, which is why the repair script parse-checks the AFTER
     state rather than trusting the edit.
+    **An earlier version of this section added "no truncation, no partial text, the entry just
+    fails". That was REFUTED**, and is recorded here rather than deleted. Measured across all
+    328 curated skills: exactly 7 fail a strict parse, and **5 of the 6 whose `: ` sits in the
+    `description` still render in full** in a live listing (`agent-as-judge`,
+    `diff-blind-test-synth`, `execution-grounded-bon`, `refactor-equivalence`,
+    `rubric-verifier`). The listing is more forgiving than YAML is.
+    It stops being forgiving in one measured case: a description written as a **folded (`>`)
+    block in a file that is also strict-invalid** loses its description entirely and the entry
+    falls back to the body `# H1`. `cv-studio` was the fleet's only such file — a `: ` in its
+    *license* line cost it a 729-character description and rendered 74 characters of heading
+    instead, until the value was quoted.
+    `MODEL, LIKELY (55-80%)` for the why: the client parses strictly first and, on failure,
+    recovers a single-LINE description but not a folded block. Not read from client source.
+    Settling experiment: take a strict-invalid file whose description is one plain line,
+    confirm it still renders, then fold that same description and confirm it drops to the H1.
 
   Either quote the scalar, or keep both sequences out of it. Whichever you choose,
   **re-parse the file after writing** — the failure mode is silent in both directions.
