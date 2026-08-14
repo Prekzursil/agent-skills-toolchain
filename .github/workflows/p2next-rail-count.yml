@@ -82,3 +82,22 @@ jobs:
       # stated without a hedge; if they ever diverge, that is a detector failure and must be loud.
       - name: gate-p2next-split-review-gate
         run: python command-center/p2-next/split_review_gate.py --basis committed
+      # The BLAST-RADIUS sweep. Everything above reads a DECLARED set of documents -- C6 checks
+      # CROSS-VENDOR-RAIL-STATUS.md against the one page listed in SECONDARY_DOCS -- so all of it
+      # is structurally blind to a page nobody declared. Round 4 measured that and disclosed it as
+      # a prospective residual: "a NEW owner-facing page could assert it tomorrow and C6 would not
+      # scan it." A survey run once by hand cannot close that, because the next page is written
+      # after the survey ran. This scans EVERY tracked .md at HEAD using the gate's OWN imported
+      # predicate, so the sweep cannot drift from what the gate enforces.
+      # Its self-test runs first for the same reason every other self-test here does, and 2 of its
+      # 6 cases expect a HIT -- a one-sided suite would prove only that the instrument runs.
+      # --check derives and asserts but never writes K4-TREE-SURVEY.json: round 2 of this lane had
+      # to fix vendor_satisfiability.py for exactly that, a gate laundering the receipt it verifies.
+      # Red-proof, with rail_count_gate.py measured BLIND to the same injected page:
+      # command-center/p2-next/L1-REDPROOF.json. The step itself is pinned by
+      # ci/tests/test_p2next_tree_survey_wiring.py, which runs in skill-dual-write.yml's ci/tests
+      # directory sweep (quality.yml has no tree-wide ci/tests step -- see quality.yml:685).
+      - name: gate-p2next-tree-survey self-test
+        run: python command-center/p2-next/_k4_tree_survey.py --self-test
+      - name: gate-p2next-tree-survey
+        run: python command-center/p2-next/_k4_tree_survey.py --check
