@@ -71,6 +71,17 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
         ["claim_lint.py", "--self-test"],
         0,
     ),
+    # Round 3B: the audit's SECOND overclaim, truncated out of round 3's handoff.  C5 above
+    # scopes the per-ROW share; the aggregate feeding it was still labelled `fleet` while
+    # summing 16 of 23 rows, and five prose sites copied it as a fleet total.  A control on
+    # the share cannot see the scope of the aggregate, so the class gets its own reader.
+    # Deterministic over committed inputs: it reads its figures OUT of cost-rank.json.
+    ("scope_lint (aggregate scope in prose)", ["scope_lint.py"], 0),
+    (
+        "scope_lint (both-states on the real defect)",
+        ["scope_lint.py", "--self-test"],
+        0,
+    ),
     ("render_table (G1-G4 both-states)", ["render_table.py", "--self-test"], 0),
     ("overlap_report", ["overlap_report.py", "capability-matrix-r2.json"], 0),
     ("r2_reproduce (round-1 defects)", ["_r2_reproduce.py"], 0),

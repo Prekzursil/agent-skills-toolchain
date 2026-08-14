@@ -96,6 +96,12 @@ ALLOW: dict[tuple[str, int, str], str] = {
     ("LANE-MCPRESEARCH-BUILD-R3.md", 113, "search-hub"): (
         "the round-3 report quotes the refuted figure as the defect under repair"
     ),
+    ("LANE-MCPRESEARCH-BUILD-R3B.md", 113, "search-hub"): (
+        "round 3B's finding table restates D1 to say which defect round 3 closed. Declared "
+        "rather than rephrased: this gate fired on it unprompted, and quietly rewording the "
+        "row to slip past a guard that just worked correctly is the failure the exemption "
+        "mechanism exists to make visible"
+    ),
 }
 
 

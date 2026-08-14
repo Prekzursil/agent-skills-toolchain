@@ -203,8 +203,14 @@ figures, so the docs and the shipped JSON now disagree.* `_r3_hunt.py` measured 
 ```
 
 The two sweeps are byte-identical on every cost field, so the docs' `707` / `11,645` /
-`603,233` / `51.8x` / `53.2%` are correct against either matrix. **REFUTED**, and the
-re-derivation strengthens round 2's corroboration claim rather than weakening it.
+`603,233` / `51.8x` / `53.2%` (each a sum over the **16 SAMPLED** rows of 23) are correct
+against either matrix. **REFUTED**, and the re-derivation strengthens round 2's
+corroboration claim rather than weakening it.
+
+> **Later note (round 3B).** "Correct against either matrix" is a *determinism* verdict and
+> remains true. It is not a *scope* verdict, and these figures turned out to need one: each
+> sums the **16 SAMPLED rows of 23**, not the fleet. Recorded here because this paragraph is
+> one of the sites a reader could otherwise take as certifying the figures fleet-wide.
 
 ---
 

@@ -134,7 +134,8 @@ Three design decisions, each forced by a measurement rather than chosen up front
    was built for is not a weak gate, it is an inert one.
 2. **A count with no server *before* it is left unattributed.** The first version fell back
    to the next name downstream, and that fallback produced this file's only false positive:
-   `"707 tools"` in `MCP-FLEET-AUDIT.md` — the fleet total — charged to `cloud-hub` because
+   `"707 tools"` in `MCP-FLEET-AUDIT.md` — an aggregate, and *not* the fleet total this
+   sentence originally called it (round 3B: it sums the 16 sampled rows) — charged to `cloud-hub` because
    cloud-hub happened to be named two sentences later. I removed the fallback rather than
    exempting the symptom; an exemption would have left the same trap armed for every future
    summary paragraph. Unattributed counts are reported, never silently dropped (16 of them).

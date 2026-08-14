@@ -71,8 +71,10 @@ RESIDENT 11,645 B (~2,911 tok/turn, rough) | CONTINGENT 603,233 B | 51.8x
 ```
 
 Those totals were computed independently here and **match the grounding lane's exactly**
-(707 / 11,645 / 603,233 / 51.8x / 12-of-16 rank movement) — two readers, same artifact,
-same answer.
+(707 / 11,645 / 603,233 / 51.8x / 12-of-16 rank movement, each over the **16 SAMPLED** rows
+of 23) — two readers, same artifact, same answer. Agreement between two readers of the same
+artifact establishes reproducibility, not scope: round 3B found these figures were
+reproducible *and* published under a fleet label they had not earned.
 
 **Headline:** cloud-hub is **60.1%** of the every-turn resident cost of the **16 SAMPLED**
 servers, and **4,172 B of that (59.6% of the row, ~1,043 tokens on EVERY request)** buys

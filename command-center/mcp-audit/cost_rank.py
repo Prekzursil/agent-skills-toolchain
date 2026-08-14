@@ -72,6 +72,14 @@ HEADLINE_TMPL = (
 # on the real defect instead of on a fixture invented to be caught.
 REFUTED_HEADLINE_TMPL = "{name} is {share}% of every-turn resident MCP cost"
 
+# Same reasoning as HEADLINE_TMPL, for the aggregate block C6 guards: these are the module
+# constants the producer actually builds its key names from, so the control can replace them
+# and re-run ``build`` rather than asserting against a predicate in isolation.
+# ``AGG_KEY`` was literally "fleet" through round 3 while holding sampled-only sums.
+AGG_KEY = "sampled_aggregate"
+AGG_SUFFIX = "_sampled"
+REFUTED_AGG_KEY = "fleet"
+
 BASIS_LEGEND = {
     "resident_bytes": (
         "name_bytes -- the tool NAMES, carried on every request for every mounted "
@@ -228,7 +236,7 @@ def build(base: pathlib.Path) -> dict[str, Any]:
             f"FAILED:cost-rank headline lost its denominator -- expected {required!r}, a "
             "share stated without its scope is exactly the round-2 overclaim"
         )
-    return {
+    payload = {
         "report": "mcp-cost-rank",
         "generated_utc_date": "2026-08-13",
         "token_basis": BASIS_LEGEND,
@@ -238,16 +246,30 @@ def build(base: pathlib.Path) -> dict[str, Any]:
             "one and this ranking inverts -- the basis is a property of the CLIENT, not "
             "of the servers, so it is stated rather than assumed."
         ),
-        "fleet": {
+        # Round 3 put the scope into the per-ROW share and left this block named `fleet`,
+        # holding sums over the sampled rows only.  A second audit finding: the same
+        # denominator defect, one level up.  `707 tools` was then copied into five prose
+        # sites as a fleet total -- including round 3's own report, which called it "the
+        # fleet total" three sections after fixing the share.  The block name is what a
+        # copier sees, so the scope now lives in the name AND in every value key.
+        AGG_KEY: {
+            "scope": (
+                f"SUMS OVER THE SAMPLED ROWS ONLY -- the {len(measured)} of "
+                f"{len(all_rows)} mounted servers with a stdio child to enumerate. These "
+                f"are NOT fleet totals: the {len(all_rows) - len(measured)} unsampled rows "
+                "contribute an unknown, non-zero amount, so every figure here is a LOWER "
+                "BOUND on the fleet. The scope is in the block name and in each value key "
+                "on purpose -- a bare number gets copied into prose and its footnote does not."
+            ),
             "servers_ranked": len(measured),
             "servers_total": len(all_rows),
             "servers_not_measured": len(all_rows) - len(measured),
-            "tools": tot_tools,
-            "resident_bytes": tot_name,
-            "contingent_bytes": tot_schema,
-            "contingent_over_resident": round(tot_schema / tot_name, 1),
-            "resident_tokens_rough": round(tot_name / BYTES_PER_TOKEN),
-            "contingent_tokens_rough": round(tot_schema / BYTES_PER_TOKEN),
+            f"tools{AGG_SUFFIX}": tot_tools,
+            f"resident_bytes{AGG_SUFFIX}": tot_name,
+            f"contingent_bytes{AGG_SUFFIX}": tot_schema,
+            f"contingent_over_resident{AGG_SUFFIX}": round(tot_schema / tot_name, 1),
+            f"resident_tokens_rough{AGG_SUFFIX}": round(tot_name / BYTES_PER_TOKEN),
+            f"contingent_tokens_rough{AGG_SUFFIX}": round(tot_schema / BYTES_PER_TOKEN),
         },
         "headline": headline,
         "refuted": {
@@ -265,6 +287,22 @@ def build(base: pathlib.Path) -> dict[str, Any]:
                 "cloud-hub IS the largest resident row by a wide margin, and the "
                 "dead-backend slice of it is unchanged. Only the scope of the percentage "
                 "moved"
+            ),
+            "round_3_wording": (
+                "the aggregate block was named `fleet` and held `tools: 707`, "
+                "`resident_bytes: 11645`, `contingent_bytes: 603233` -- all sums over the "
+                "16 sampled rows. Downstream prose then read '707 tools' as a fleet total "
+                "in MCP-FLEET-AUDIT.md, MCP-CAPABILITY-AND-DISPOSITION.md (COVERAGE line, "
+                "the TOTAL table row and the DoD ledger), and in "
+                "LANE-MCPRESEARCH-BUILD-R3.md, which called it 'the fleet total' three "
+                "sections after fixing the per-row share"
+            ),
+            "round_3_why": (
+                "the SAME defect as round 2's, one level up: round 3 fixed the share and "
+                "left the aggregate that feeds it labelled fleet. Measured, not inferred: "
+                "sum(row.tool_count) over the 16 ranked rows == 707 exactly, and 7 of the "
+                "23 mounted rows carry tool_count null. Kept here rather than deleted so "
+                "the wording that shipped stays auditable"
             ),
         },
         "controls": {
@@ -284,9 +322,41 @@ def build(base: pathlib.Path) -> dict[str, Any]:
                 "rows sampled) or the run fails -- the round-2 overclaim was a share "
                 "quoted without its scope"
             ),
+            "C6_aggregate_scope_in_keys": (
+                "the aggregate block is not named `fleet` and every summed value key ends "
+                "in `_sampled` -- C5 protected the per-row share while the block one level "
+                "up still published sampled sums under a fleet label, and five prose sites "
+                "copied them as fleet totals"
+            ),
         },
         "rows": rows,
     }
+
+    # --- C6, enforced rather than merely described -------------------------
+    # The failure this catches is the one that got past C5: a correctly-scoped percentage
+    # sitting beside an aggregate whose NAME says fleet.  Checked structurally (key names),
+    # because that is what a downstream copier reads.
+    if REFUTED_AGG_KEY in payload:
+        raise SystemExit(
+            f"FAILED:cost-rank the aggregate block is named `{REFUTED_AGG_KEY}` but sums "
+            "only the sampled rows -- that label is the round-3 overclaim one level up"
+        )
+    summed = (
+        "tools",
+        "resident_bytes",
+        "contingent_bytes",
+        "contingent_over_resident",
+        "resident_tokens_rough",
+        "contingent_tokens_rough",
+    )
+    agg = payload[AGG_KEY]
+    unscoped = [k for k in summed if k in agg]
+    if unscoped:
+        raise SystemExit(
+            f"FAILED:cost-rank aggregate key(s) {unscoped!r} lost the `_sampled` suffix -- "
+            "a bare total gets copied into prose as a fleet figure"
+        )
+    return payload
 
 
 def self_test(base: pathlib.Path) -> int:
@@ -330,6 +400,49 @@ def self_test(base: pathlib.Path) -> int:
         )
     )
 
+    # --- C6, both states, on the two constants the producer builds keys from ----------
+    # C5 was green through this entire defect: the per-row share carried its scope while
+    # the block one level up published sampled sums under the label `fleet`.  A control
+    # that only checks the share cannot distinguish those two states -- so C6 mutates the
+    # key names themselves, which is what a downstream copier actually reads.
+    global AGG_KEY, AGG_SUFFIX
+    good_key, good_suffix = AGG_KEY, AGG_SUFFIX
+    try:
+        AGG_KEY = REFUTED_AGG_KEY
+        build(base)
+        fired_name = False
+    except SystemExit:
+        fired_name = True
+    finally:
+        AGG_KEY = good_key
+    cases.append(
+        ("C6 fires when the block is renamed back to `fleet`", fired_name, True)
+    )
+
+    try:
+        AGG_SUFFIX = ""
+        build(base)
+        fired_suffix = False
+    except SystemExit:
+        fired_suffix = True
+    finally:
+        AGG_SUFFIX = good_suffix
+    cases.append(("C6 fires when a summed key loses `_sampled`", fired_suffix, True))
+    cases.append(
+        (
+            "...and the producer is green again once both are reverted",
+            bool(build(base)),
+            True,
+        )
+    )
+    cases.append(
+        (
+            "the shipped aggregate states its scope in the block itself",
+            "NOT fleet totals" in build(base)[AGG_KEY]["scope"],
+            True,
+        )
+    )
+
     bad = [n for n, got, want in cases if got != want]
     for n, got, want in cases:
         print(f"  {'ok ' if got == want else 'BAD'} {n:56} fired={got} want={want}")
@@ -351,14 +464,17 @@ def main(argv: list[str] | None = None) -> int:
         return self_test(pathlib.Path(args.base))
 
     payload = build(pathlib.Path(args.base))
-    f = payload["fleet"]
+    f = payload["sampled_aggregate"]
     print(
-        f"  fleet: {f['servers_ranked']}/{f['servers_total']} rows ranked "
-        f"({f['servers_not_measured']} not measured), {f['tools']:,} tools"
+        f"  SAMPLED ONLY: {f['servers_ranked']}/{f['servers_total']} rows ranked "
+        f"({f['servers_not_measured']} not measured), {f['tools_sampled']:,} tools"
     )
     print(
-        f"  RESIDENT {f['resident_bytes']:,} B (~{f['resident_tokens_rough']:,} tok/turn, rough) | "
-        f"CONTINGENT {f['contingent_bytes']:,} B | {f['contingent_over_resident']}x"
+        f"  RESIDENT {f['resident_bytes_sampled']:,} B "
+        f"(~{f['resident_tokens_rough_sampled']:,} tok/turn, rough) | "
+        f"CONTINGENT {f['contingent_bytes_sampled']:,} B | "
+        f"{f['contingent_over_resident_sampled']}x   <- sums over the SAMPLED rows, "
+        "a lower bound on the fleet"
     )
     print(
         f"  {'server':<22} {'tools':>5} {'RESIDENT':>9} {'share*':>7} {'DEAD-BACKEND B':>15} {'move':>6}"
@@ -388,8 +504,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"wrote {args.out}")
     print(
-        f"SUCCESS:cost-rank resident={f['resident_bytes']:,}B contingent="
-        f"{f['contingent_bytes']:,}B over {f['servers_ranked']} ranked rows"
+        f"SUCCESS:cost-rank resident={f['resident_bytes_sampled']:,}B contingent="
+        f"{f['contingent_bytes_sampled']:,}B over {f['servers_ranked']} SAMPLED rows "
+        f"of {f['servers_total']} (a lower bound on the fleet, never a fleet total)"
     )
     return 0
 

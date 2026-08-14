@@ -12,8 +12,10 @@ changed. No credential read, printed, or modified.
 
 > **ROUND 1 BUILD LANDED — read [`MCP-CAPABILITY-AND-DISPOSITION.md`](MCP-CAPABILITY-AND-DISPOSITION.md)
 > alongside this.** The gap named in §0 is now produced: 21 of 23 mounted servers carry a
-> real-call verdict (was 2), per-server context cost is measured for 707 tools in both
-> channels, and every mounted row has a reversible KEEP/DISABLE/INVESTIGATE disposition with
+> real-call verdict (was 2), per-server context cost is measured for 707 tools over the
+> **16 SAMPLED rows of 23** in both channels — a lower bound on the fleet, never a fleet
+> total; the other 7 are HTTP transports with no stdio child to enumerate, and unmeasured is
+> not zero — and every mounted row has a reversible KEEP/DISABLE/INVESTIGATE disposition with
 > evidence. Three claims here are **refined** by that measurement, in this file's favour:
 > `cloud-hub = 424` reproduced independently, `chrome-devtools = 29` now has a third
 > corroborating method, and the `searxng` ⊂ `search-hub` containment is confirmed by computed

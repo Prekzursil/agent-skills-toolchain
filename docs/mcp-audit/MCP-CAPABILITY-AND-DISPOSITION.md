@@ -9,8 +9,9 @@ and turned it into a ranked, reversible disposition per row.
 COVERAGE: §1 prober BUILT + EXECUTED · §2 detector control EXECUTED, 4 states, 4/4
 red-proof mutations caught · §3 capability sweep MEASURED for all 23 mounted servers
 (16 by stdio handshake) · §4 in-session real calls EXECUTED for 5 HTTP-transport servers
-· §5 context cost MEASURED (707 tools, both channels, in bytes — NOT tokens, see the
-unit caveat inline) · §6 duplication COMPUTED by exact set arithmetic · §7 disposition
+· §5 context cost MEASURED (707 tools over the 16 SAMPLED rows of 23 — a lower bound on
+the fleet, never a fleet total; both channels, in bytes — NOT tokens, see the unit caveat
+inline) · §6 duplication COMPUTED by exact set arithmetic · §7 disposition
 COMPLETE for 23/23 mounted rows · §8 DoD ledger per item · §11 round-2 closure of the 3
 defects an independent verifier CONFIRMED, each reproduced before its fix and each fix
 red-proofed. **NOT measured:** the 122 non-mounted config rows were deliberately not
@@ -235,6 +236,20 @@ names-only surface (this session's **deferred** regime); `schema_bytes` = the fu
 declaration as the server sends it, `name + description + inputSchema`, the **eager**
 regime. Schemas were measured and deliberately **not stored**.
 
+> **SCOPE — every figure in this section covers the 16 SAMPLED rows, not the fleet.** These
+> are the mounted servers with a stdio child to enumerate; the other **7 of 23**
+> (`agent-mail`, `basic-memory`, `brightdata`, `deepwiki`, `figma`, `github`,
+> `huggingface`) are HTTP transports with no child to spawn and carry `tool_count: null`.
+> Null means *not measured*, never zero — so the totals below are a **lower bound on the
+> fleet**, not a fleet total.
+>
+> **REFUTED, corrected in round 3B, kept rather than deleted.** Round 3 fixed the per-row
+> *share* to say `of the 16 SAMPLED servers` and left this table's `TOTAL` row, the COVERAGE
+> line and the DoD ledger reading as fleet totals — the same denominator defect one level
+> up. Measured, not inferred: `sum(row.tool_count)` over the 16 ranked rows is **exactly
+> 707**, and 7 of the 23 mounted rows carry `tool_count: null`
+> (`command-center/mcp-audit/scope_lint.py`, which now fails CI on any unscoped restatement).
+
 | server | tools | name B | schema B | share of eager | commit MB (direct child) |
 |---|---|---|---|---|---|
 | **cloud-hub** | 424 | 6,998 | **321,053** | **53.2%** | 16.3 |
@@ -253,10 +268,12 @@ regime. Schemas were measured and deliberately **not stored**.
 | qlty | 5 | 67 | 3,013 | 0.5% | **69.3** |
 | claude-code-mcp | 1 | 11 | 2,594 | 0.4% | 6.6 |
 | codex | 2 | 16 | 2,340 | 0.4% | 6.5 |
-| **TOTAL** | **707** | **11,645** | **603,233** | | |
+| **TOTAL — 16 SAMPLED rows of 23 (a lower bound, NOT a fleet total)** | **707** | **11,645** | **603,233** | | |
 
-* **`cloud-hub` alone is 53.2% of the eager surface and 60% of the deferred one.** It is
-  the only row where a cost decision has leverage; the bottom eight rows together are 5%.
+* **`cloud-hub` alone is 53.2% of the eager surface and 60% of the deferred one** — both
+  shares are *of the 16 sampled rows*, so its true fleet share is strictly lower than each.
+  It is still the only row where a cost decision has leverage; the bottom eight rows
+  together are 5%.
 * **Cost rank ≠ RAM rank.** `qlty` is 0.5% of the tool surface and the heaviest resident
   child measured (69.3 MB); `paper-search` is 7.2% of the surface at 1.0 MB. `impact.py`
   is right to keep the two axes anti-correlated and unblended — this data reproduces that.
@@ -352,7 +369,7 @@ SUCCESS:dod-check 4/4 DoD items PASS, 4/4 negative controls fired
 |---|---|---|
 | every mounted server inventoried with its **scope and source file** | **PASS** | 23/23 rows in `disposition.json` carry `definition_scope`, `source_file` (absolute), `config_basis`, `transport`. The 122 non-mounted config rows keep their scope/basis in `mcpctl-matrix.json`; they were deliberately not spawned. |
 | **liveness distinguished from capability by a real call** | **PASS** | 21/23 verified: 16 by stdio `initialize`+`tools/list`, 5 by a real in-session tool call. 2 declined with the reason recorded. The four signals stay in four columns, and S4's two methods stay in three fields (`call_verified` = union, `handshake_verified` / `s4_executed` = the halves, `call_method` = which answered). Round 1 passed this item with a field that contradicted its own legend (§11 D1); the artifact now fails closed on that shape. |
-| **per-server context cost measured** | **PASS** | §5: 707 tools, `name_bytes` + `schema_bytes` per server from the same payloads, ranked, with the bytes-vs-tokens caveat inline. Not inherited from any constant. |
+| **per-server context cost measured** | **PASS, scope disclosed** | §5: 707 tools over the **16 SAMPLED rows of 23**, `name_bytes` + `schema_bytes` per server from the same payloads, ranked, with the bytes-vs-tokens caveat inline. Not inherited from any constant. The other 7 rows are HTTP transports with no stdio child, each stating that in its own `liveness_basis`; their cost is **not measured, never zero**, so this PASS is over the sampled subset and the totals are a lower bound. *Settling experiment:* an HTTP `tools/list` probe that needs no stdio child. |
 | **recommendations reversible (disable, not remove) with evidence per row** | **PASS** | `assert_reversible()` makes REMOVE unrepresentable; every row carries an `evidence` sentence naming its measurement; the one DISABLE names the reversal mechanism and the scope that actually prevents a spawn. |
 
 ## 9. Explicitly NOT done in round 1
@@ -503,7 +520,9 @@ INVESTIGATE 2 / KEEP 20.
 
 One hypothesis was **REFUTED** and is recorded rather than dropped: the round-1 and round-2
 sweeps are byte-identical on every cost field (707 tools / 11,645 name B / 603,233 schema B
-on both), so no doc figure was stale.
+on both, each over the 16 SAMPLED rows), so no doc figure was stale. *Stale* and *correctly
+scoped* are different claims, and round 3B found these figures were the former without being
+the latter — see the SCOPE note in §5.
 
 ## 13. Round-4 defect closure — the one claim that was simply untrue
 
