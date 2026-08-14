@@ -131,7 +131,36 @@ the W3 wire firing on a real, unplanned defect — observed red, then green afte
 |---|---|
 | `python command-center/ssot/ssot_wiring_check.py` | `SUCCESS:ssot-wiring-check wires=6 all intact` |
 | `python -m pytest ci/tests/test_ssot_wiring.py -q` | `16 passed` |
-| `ruff format` / `ruff check` (0.15.17, the CI pin) on all 6 touched `.py` | 2 reformatted, then `All checks passed!` |
+| `python -m pytest ci/tests -q` (the whole suite CI runs, under `longrun`) | **`1 failed, 842 passed, 1 skipped in 103.82s`** — see below |
+| `ruff format` / `ruff check` (0.15.17, the CI pin) on every touched `.py` | reformatted, then `All checks passed!` |
+| `python command-center/ssot/_blob_ci_check.py 874a66b5` | `SUCCESS:blob-ci-check files=6 lint=0 format=0` · **0 CRLF** across the extracted blobs · mangled-file control **FIRED** |
+
+**The one failure is not mine, proven by two independent signals rather than asserted.**
+`test_check_skill_dual_write.py::test_strict_parity_keeps_distinct_invalid_utf8_path_bytes_distinct`
+dies on `os.fsdecode(b"\xff")` → `UnicodeDecodeError`, a Windows platform difference in
+another lane's suite. (a) Neither of my commits touches that file —
+`git show --name-only 874a66b5 c3cfefde | grep skill_dual_write` is empty. (b) The failing
+expression is byte-identical in the PRE-fix blob `874a66b5^:ci/tests/test_check_skill_dual_write.py`.
+Last touched by `f15cddbf`, a different lane. **NOT-CHECKED:** whether it also fails on the
+Linux CI runner — I cannot run that from here, and it is plausible this is Windows-only.
+
+**A first `longrun` invocation reported `exit code 0` while the suite never ran** (the bash
+wrapper rejected `-Id` with `Unknown option`). Taking that green would have been a
+completion claim resting on a wrapper's exit code rather than on any test result — the
+single-signal failure this lane keeps measuring. The number above is from the re-run.
+
+### The committed state verified in BOTH states
+
+`python command-center/ssot/_r4_verify_committed.py <rev>` reads the STORED BLOBS
+(`git show <rev>:<path>`, not the CRLF working tree, and not `git archive`, which converts).
+
+    at HEAD          -> SUCCESS:r4-verify-committed checks=14 all pass (blob form)
+    at 874a66b5^     -> FAILED:r4-verify-committed 9 of 11 checks failed
+
+The pre-fix run is the control. Exactly two rows stay green there, and they are the right
+two: *primary disagreement still recorded* and *round-3 original wording kept* — the facts
+this round PRESERVED rather than created. A verifier green in both states would measure
+nothing.
 
 ## 6. Definition of Done (lane), re-scored with this round's scope
 
@@ -162,3 +191,11 @@ the W3 wire firing on a real, unplanned defect — observed red, then green afte
    carried the same kind of refresh in 3 hunks and had to be committed with my fix; disclosed
    in the commit message.
 6. **Every count is a snapshot.** `main` moved during this round. Re-run before acting.
+7. **One pre-existing suite failure on this box, outside this lane** (§5). Reported, not
+   touched, and NOT-CHECKED on Linux.
+8. **The verifier's own residual, carried unchanged:** whether a reference to a checkout
+   exists on a surface nobody has read — Windows services, WMI event subscriptions, IDE
+   workspace files, shell rc files outside the corpus roots. **Settle:** extend
+   `inbound_surfaces.py` with a services + `Get-CimInstance __EventFilter` surface, each
+   with the same synthetic-row control.
+9. **Not pushed.** Local `main` is ahead of `origin/main`.
