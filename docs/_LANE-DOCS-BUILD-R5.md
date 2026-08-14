@@ -47,7 +47,7 @@ Verdict = what the probe measured. Resolution = fix-doc / fix-code / route, with
 | **R5-2** | R4 §4: "24 name `scripts/hooks/*.js`, and all 24 are absent from VCS" | literally true, but the **loader-resolved** surface is **3 distinct** targets — the other references are run-with-flags *label* arguments, not paths the loader resolves | **R4's sentence is ACCURATE; the actionable count is 3, not 24** | **fix the sentence's scope, not the code.** Recorded so the next round does not size the work at 24. |
 | **R5-3** | `commands/sessions.md:289` presents `scripts/hooks/cost-tracker.js` as a repo path | absent from VCS (`scripts/hooks` = **0** tracked files) while `scripts/` itself has **86** — so the *parent* is real, which is exactly what makes the reference mislead. Every OTHER reference to that tree in the same document is wrapped in a 3-root runtime resolver (`${CLAUDE_PLUGIN_ROOT}` → `~/.claude/` → ECC plugin cache) | **REFUTED — the bullet is under-qualified relative to its own document** | **FIX DOC.** See §4 for why fix-code is wrong here. Gated by (3) + a both-states control on the real blob. |
 | **R5-4** | *(new)* the whole `scripts/hooks/` tree is this repo's missing work | the file's own SessionStart command hunts `~/.claude/plugins/everything-claude-code*` for a root and warns *"could not resolve ECC plugin root"*; 27 files exist live under `~/.claude/scripts/hooks/`; 61 tracked files name `everything-claude-code` | **REFUTED — third-party (ECC) origin, not unreconciled owner work** | **no harness-vcs-hygiene action.** That rule covers live-authored work; importing 27 files of another plugin to satisfy one sentence is the wrong scope. |
-| **R5-5** | *(new)* dangling `scripts/...` refs in command docs are systemic and worth a broad gate | 20 bare refs, **16** unresolved — but **13** are inside fenced code blocks (invocations against the deployed harness, not claims about this repo) | **the gateable surface is PROSE only** | **scope the gate narrowly.** Gating code blocks would fire on every vendored command doc — the false-positive class that gets a gate disabled. |
+| **R5-5** | *(new)* dangling `scripts/...` refs in command docs are systemic and worth a broad gate | **20 bare refs / 16 unresolved, measured at `67137879` — the PRE-FIX parent.** From the fix `5d573583` onward the same probe returns **19 / 15**. Of the 16, **13** sat inside fenced code blocks (invocations against the deployed harness, not claims about this repo). *Correction (round 6): this cell originally read "20 bare refs, 16 unresolved" with no anchor, which reads as CURRENT. That wording was **REFUTED** — an independent audit measured 19/15 at HEAD, and `docs/_lane_docs_r6_pinned_counts.py` reproduced 20/16 at the parent and 19/15 at the fix, from committed blobs, with a parity control. The delta of 1 is exactly the line R5-3 fixed.* | **the gateable surface is PROSE only** | **scope the gate narrowly.** Gating code blocks would fire on every vendored command doc — the false-positive class that gets a gate disabled. |
 | **R5-6** | *(new)* the 3 remaining prose refs are all defects | read individually: `sessions.md:289` genuine; `orchestrate.md:204` is `` `node scripts/… plan.json --execute` `` (an invocation); `update-docs.md:18` is the **English phrase** "scripts/commands" in "Extract all scripts/commands with their descriptions" — not a path at all | **only 1 of 3 is a defect** | **no action on the other 2.** Reporting 3 would have been a 3x overclaim; reporting 16, a 16x one. |
 
 ---
@@ -90,8 +90,18 @@ capable or merely more consistent.
 Here the capability is **already real and unaffected**: the hook is deployed (27 files measured
 live) and does emit the metrics. Only the *path presentation* was wrong. FIX CODE would mean
 importing another plugin's 27-file tree into this repo to justify one sentence — which would not
-add a capability, would import third-party code under a false provenance, and would leave 20
+add a capability, would import third-party code under a false provenance, and would leave **22**
 equally-referenced siblings behind.
+
+> *Correction (round 6): that figure read "20" and matched nothing measurable. Three candidate
+> referents were measured and none is 20 — `hooks/hooks.json` names **23 distinct**
+> `scripts/hooks/*` targets across **51** occurrences (so 22 siblings once `cost-tracker.js`
+> itself is excluded, which is the number now in the sentence); `~/.claude/scripts/hooks/` holds
+> **27** files (26 siblings); `commands/*.md` names **2** distinct such tokens. The regex was
+> controlled against a known-absent token (`scripts/hooks/zzz-not-real` -> 0 matches), so the
+> zero-arm is not a broken matcher. The argument the sentence makes is unaffected by which of
+> these three it meant — but an unanchored number that reproduces to nothing is the same defect
+> as the refuted 20/16 above, in the same document, and is corrected rather than left standing.*
 
 The fix also makes the bullet **internally consistent with its own document**, which already
 resolves this exact family of paths across three roots:
@@ -179,6 +189,13 @@ settling probe   SUCCESS:docs-r5-probe plugin_root_targets_absent=3 control_meta
 independent      SUCCESS:docs-r5-probe2 fixtures_stub_only=True origin_settled=False
 surface          SUCCESS:docs-r5-surface control=3-state-ok bare_refs=20 missing=16
                  scripts_tracked=86 scripts_hooks_tracked=0
+                 ^ REFUTED AS WRITTEN (round 6). 20/16 is the PRE-FIX reading, taken at the
+                 parent 67137879 before R5-3 landed; this block presented it as the state
+                 AFTER the fix. From 5d573583 onward the same probe returns 19/15. The
+                 sibling "prose split" line below did disclose its own before/after and this
+                 one did not -- inconsistent hygiene inside one evidence block, not a
+                 systematic convention. Settled by docs/_lane_docs_r6_pinned_counts.py:
+                 SUCCESS:docs-r6-pinned controls=C1,C2,C3-ok pre_fix=20/16 post_fix=19/15
 prose split      SUCCESS:docs-r5-prose control=ok prose_missing=2 code_block_missing=13
                  (was 3 before the fix; the 2 remaining are the measured non-defects)
 published-cmds   SUCCESS:published-cmds 0 NEW unrunnable (1 inherited)
@@ -215,10 +232,23 @@ CI wiring        quality.yml:1481 already runs this file (R4). quality.yml NOT e
    that touch what I changed.
 7. **`skill-dual-write.yml` still has no `push:` trigger** — carried forward from INTEGRATE §6.1,
    unchanged and not mine to fix.
-8. **This lane's gate arm was committed by someone else** (`b0e3bf98`, owner). The bytes at HEAD
-   are the corrected 3.11-safe version and all 17 tests pass there, so nothing is lost — but the
-   commit surface of this lane is smaller than its work, and anyone auditing "what did DOCS R5
-   ship" must read `b0e3bf98` as well as this lane's own commit.
-9. **The pre-fix blob pin `3bfb914d` remains valid** — re-checked after HEAD moved:
-   `git rev-parse HEAD:commands/sessions.md` still returns it, so the both-states control is
-   still comparing against genuinely broken bytes rather than against itself.
+8. **This lane's gate arm was not carried by this lane's own commit** — it landed in `b0e3bf98`.
+   The bytes at HEAD are the corrected 3.11-safe version and all 17 tests pass there, so nothing
+   is lost — but the commit surface of this lane is smaller than its work, and anyone auditing
+   "what did DOCS R5 ship" must read `b0e3bf98` as well as this lane's own commit.
+   *Correction (round 6): this item originally read "committed by someone else (`b0e3bf98`,
+   **owner**)". That attribution is **UNFALSIFIABLE** and is withdrawn — every one of the last 60
+   commits carries the single identity `Andrei Mihai Visalon
+   <54636077+Prekzursil@users.noreply.github.com>` (`git log -60 --format="%an <%ae>" |
+   Sort-Object -Unique` -> 1 row), so no git-metadata signal separates agent-authored from
+   owner-authored. What IS falsifiable, and true, is the scoped form now in the heading: this
+   lane's own commit action did not produce it.*
+9. **The pre-fix blob pin `3bfb914d` remains valid** — but the probe originally cited for it was
+   wrong. *Correction (round 6): this item read "`git rev-parse HEAD:commands/sessions.md` still
+   returns it". It does not, and it must not: `HEAD:commands/sessions.md` is `df9d9d76` (the
+   FIXED blob), while `3bfb914d` is the blob at the parent `67137879`. Had the stated probe been
+   true, the fix would not have been at HEAD at all — the sentence contradicted this same
+   document's "the fixed line still present at HEAD". The **conclusion** survives on a correct
+   probe: `git rev-parse 67137879:commands/sessions.md` -> `3bfb914d`, and that blob contains
+   **0** occurrences of the fixed `${CLAUDE_PLUGIN_ROOT}/...cost-tracker.js` line against **1**
+   at HEAD — so the both-states control is still comparing against genuinely broken bytes.*

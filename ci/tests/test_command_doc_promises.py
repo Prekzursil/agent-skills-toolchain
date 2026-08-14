@@ -392,7 +392,22 @@ def test_control_mention_filter_is_sentence_scoped() -> None:
 # --------------------------------------------------------------------------
 #
 # Measured surface that motivated this arm (docs/_LANE-DOCS-BUILD-R5.md):
-#   20 bare ``scripts/...`` references in command docs, 16 of which do not resolve.
+#   20 bare ``scripts/...`` references in command docs, 16 of which do not resolve
+#   -- AS MEASURED AT COMMIT 67137879, the parent of the fix that motivated this arm.
+#   From that fix (5d573583) onward the same probe returns 19 / 15; the delta of 1 IS
+#   the reference this arm was written to stop.
+#
+#   Round-6 correction, recorded rather than deleted: these two lines originally said
+#   "20 ... 16" with no anchor, which reads as a CURRENT count and had already gone
+#   stale by one when it was committed. That is the exact defect class this file
+#   exists to catch, reproduced inside the file that catches it. Both numbers are now
+#   pinned to immutable commits and re-derivable:
+#       py -3.11 docs/_lane_docs_r6_pinned_counts.py
+#       -> SUCCESS:docs-r6-pinned pre_fix=20/16 post_fix=19/15
+#   The pinned form is deliberate. A number tied to HEAD moves every time a sibling
+#   adds a command doc, and a comment that must be re-edited on every sibling commit
+#   is a comment that goes stale again -- so no assertion here is tied to a live count.
+#
 #   13 of those 16 sit inside fenced code blocks -- they are INVOCATIONS the user
 #   runs against the deployed harness, not claims about this repo, and gating them
 #   would fire on every vendored command doc. That is the false-positive class that
