@@ -21,9 +21,19 @@ approximately: ``C3`` fails closed unless the buckets re-sum to the number that 
 That is the difference between a control that checks the claim and one that only proves the
 file was readable.
 
-SCOPE, inline: 16 of 23 rows have a sampled tool surface at all.  The other 7 are HTTP
-transports with no stdio child, so their cost is NOT MEASURED -- never zero.  They are
-excluded from the ranking and counted in the header, not silently dropped.
+SCOPE, AND WHY IT IS IN THE FIELD NAME.  16 of 23 rows have a sampled tool surface at all.
+The other 7 are HTTP transports with no stdio child, so their cost is NOT MEASURED -- never
+zero.  They are excluded from the ranking and counted in the header, not silently dropped.
+
+That disclosure was already here, and it was not enough.  An independent audit of round 2
+found the share being quoted downstream as "cloud-hub is 60.1% of every-turn resident MCP
+cost" and, at its widest, "of the FLEET's every-turn resident MCP cost" -- a claim over 23
+servers resting on a denominator of 16.  A share is only meaningful with its denominator,
+and a docstring does not travel with a copied number, so the denominator now rides in the
+field NAME (``resident_share_pct_of_sampled``) and in the headline STRING, and ``C5`` fails
+the run closed if the headline ever loses it.  Publishing a fleet-wide figure instead is not
+available: the 7 rows have no tool names anywhere in the repository, so the true fleet
+denominator is UNMEASURED, not merely unpublished.
 
 Deterministic: committed inputs only, sorted output, ``newline="\\n"``.  Spawns nothing.
 
@@ -49,6 +59,19 @@ import s4_evidence  # noqa: E402
 MATRIX = "capability-matrix-r2.json"
 BYTES_PER_TOKEN = 4.0  # rough, and labelled rough at every use
 
+# The headline is a module constant so the C5 control can REPLACE it and re-run ``build``.
+# Checking a predicate in isolation would prove the predicate works, not that the producer
+# enforces it -- and "the control ran" is not the same claim as "the guard is wired".
+HEADLINE_TMPL = (
+    "{name} is {share}% of the every-turn resident cost of the {n_sampled} SAMPLED "
+    "servers -- NOT of the fleet: {n_unsampled} of {n_total} rows have no stdio child to "
+    "enumerate, so their names are unmeasured (never zero) and the true fleet share of "
+    "this row is strictly lower"
+)
+# The wording an independent audit REFUTED, verbatim, kept executable so the control fires
+# on the real defect instead of on a fixture invented to be caught.
+REFUTED_HEADLINE_TMPL = "{name} is {share}% of every-turn resident MCP cost"
+
 BASIS_LEGEND = {
     "resident_bytes": (
         "name_bytes -- the tool NAMES, carried on every request for every mounted "
@@ -59,6 +82,14 @@ BASIS_LEGEND = {
         "schema_bytes -- the full tool schemas, paid only when a schema is materialised. "
         "Large but mostly unpaid here; ranking by it ranks by a cost the fleet does not "
         "incur. Kept visible so the choice of basis stays auditable."
+    ),
+    "resident_share_pct_of_sampled": (
+        "this row's share of the resident bytes of the SAMPLED servers only -- the ones "
+        "with a stdio child to enumerate. It is NOT a share of the fleet: the unsampled "
+        "rows contribute an unknown, non-zero amount to the true denominator, so the real "
+        "fleet share of any row is strictly LOWER than this number. The scope is in the "
+        "field name on purpose, because a bare percentage gets copied and its footnote "
+        "does not."
     ),
     "resident_bytes_over_dead_backends": (
         "the slice of resident cost buying tools whose BACKEND was measured "
@@ -143,7 +174,9 @@ def build(base: pathlib.Path) -> dict[str, Any]:
                 "rank_delta": delta,
                 "tool_count": r["tool_count"],
                 "resident_bytes": r["name_bytes"],
-                "resident_share_pct": round(100.0 * r["name_bytes"] / tot_name, 1),
+                "resident_share_pct_of_sampled": round(
+                    100.0 * r["name_bytes"] / tot_name, 1
+                ),
                 "contingent_bytes": r["schema_bytes"],
                 "resident_bytes_over_dead_backends": dead_bytes,
                 "tools_over_dead_backends": dead_tools,
@@ -168,6 +201,33 @@ def build(base: pathlib.Path) -> dict[str, Any]:
 
     top = rows[0]
     dead_top = top["resident_bytes_over_dead_backends"]
+    n_sampled, n_total = len(measured), len(all_rows)
+    headline = HEADLINE_TMPL.format(
+        name=top["name"],
+        share=top["resident_share_pct_of_sampled"],
+        n_sampled=n_sampled,
+        n_unsampled=n_total - n_sampled,
+        n_total=n_total,
+    ) + (
+        f". {dead_top:,} B of the row ({round(100.0 * dead_top / top['resident_bytes'], 1)}%"
+        f", ~{round(dead_top / BYTES_PER_TOKEN):,} tokens on EVERY request, rough) buys "
+        f"tools whose backend was measured non-functional"
+        if dead_top
+        else ""
+    )
+    # C5: a share without its denominator is the defect an audit CONFIRMED against round 2 --
+    # the number was quoted downstream as fleet-wide while resting on 16 of 23 rows.  The
+    # docstring already disclosed the scope and that did not travel with the copied figure,
+    # so the headline must carry both counts or the run fails rather than shipping a
+    # percentage that reads wider than its evidence.
+    # The tokens are STRUCTURAL phrases, not bare digits: "16" and "23" can appear inside an
+    # unrelated byte count and let the check pass for the wrong reason.
+    required = (f"{n_sampled} SAMPLED", f"of {n_total} rows")
+    if not all(tok in headline for tok in required):
+        raise SystemExit(
+            f"FAILED:cost-rank headline lost its denominator -- expected {required!r}, a "
+            "share stated without its scope is exactly the round-2 overclaim"
+        )
     return {
         "report": "mcp-cost-rank",
         "generated_utc_date": "2026-08-13",
@@ -189,17 +249,24 @@ def build(base: pathlib.Path) -> dict[str, Any]:
             "resident_tokens_rough": round(tot_name / BYTES_PER_TOKEN),
             "contingent_tokens_rough": round(tot_schema / BYTES_PER_TOKEN),
         },
-        "headline": (
-            f"{top['name']} is {top['resident_share_pct']}% of every-turn resident MCP "
-            f"cost"
-            + (
-                f", and {dead_top:,} B of that ({round(100.0 * dead_top / top['resident_bytes'], 1)}%"
-                f" of the row, ~{round(dead_top / BYTES_PER_TOKEN):,} tokens on EVERY "
-                f"request, rough) buys tools whose backend was measured non-functional"
-                if dead_top
-                else ""
-            )
-        ),
+        "headline": headline,
+        "refuted": {
+            "round_2_wording": (
+                "cloud-hub is 60.1% of every-turn resident MCP cost -- and, at its widest "
+                "in LANE-MCPRESEARCH-GROUNDING.md, 'of the FLEET's every-turn resident MCP "
+                "cost'"
+            ),
+            "why": (
+                "the arithmetic was right and the SENTENCE was wider than it: the "
+                "denominator is the sampled rows only. Kept here rather than deleted so "
+                "the wording that shipped stays auditable"
+            ),
+            "still_true": (
+                "cloud-hub IS the largest resident row by a wide margin, and the "
+                "dead-backend slice of it is unchanged. Only the scope of the percentage "
+                "moved"
+            ),
+        },
         "controls": {
             "C1_rank_movement": (
                 f"{moved}/{len(rows)} rows change rank between the two bases -- the "
@@ -212,16 +279,76 @@ def build(base: pathlib.Path) -> dict[str, Any]:
                 "an attribution"
             ),
             "C4_slice_bound": "no adjusted slice may exceed its own row's resident bytes",
+            "C5_denominator_declared": (
+                f"the headline names its denominator ({len(measured)} of {len(all_rows)} "
+                "rows sampled) or the run fails -- the round-2 overclaim was a share "
+                "quoted without its scope"
+            ),
         },
         "rows": rows,
     }
+
+
+def self_test(base: pathlib.Path) -> int:
+    """BOTH STATES for C5: the guard must go red on the wording that was refuted.
+
+    The mutation is applied to the module constant the producer actually formats, so a
+    pass here means the enforcement path is wired -- not merely that a predicate exists.
+    """
+    global HEADLINE_TMPL
+    good = HEADLINE_TMPL
+    cases: list[tuple[str, bool, bool]] = []
+
+    payload = build(base)
+    cases.append(
+        (
+            "the shipped headline declares its denominator",
+            "16 SAMPLED" in payload["headline"] and "of 23 rows" in payload["headline"],
+            True,
+        )
+    )
+    try:
+        HEADLINE_TMPL = REFUTED_HEADLINE_TMPL
+        build(base)
+        fired = False
+    except SystemExit:
+        fired = True
+    finally:
+        HEADLINE_TMPL = good
+    cases.append(("C5 fires on the REFUTED round-2 wording", fired, True))
+    # Restoring must restore: a guard that stays red after the mutation is reverted would
+    # make the case above pass for the wrong reason.
+    cases.append(
+        ("...and the producer is green again once reverted", bool(build(base)), True)
+    )
+    # The rename is load-bearing -- the bare key is what got copied without its scope.
+    cases.append(
+        (
+            "no row carries the unscoped legacy key",
+            any("resident_share_pct" in r for r in payload["rows"]),
+            False,
+        )
+    )
+
+    bad = [n for n, got, want in cases if got != want]
+    for n, got, want in cases:
+        print(f"  {'ok ' if got == want else 'BAD'} {n:56} fired={got} want={want}")
+    if bad:
+        print(f"FAILED:cost-rank self-test {bad}")
+        return 1
+    print(f"SUCCESS:cost-rank self-test {len(cases)}/{len(cases)} controls behaved")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--base", default=str(HERE))
     ap.add_argument("-o", "--out", default="")
+    ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args(argv)
+
+    if args.self_test:
+        return self_test(pathlib.Path(args.base))
 
     payload = build(pathlib.Path(args.base))
     f = payload["fleet"]
@@ -234,7 +361,7 @@ def main(argv: list[str] | None = None) -> int:
         f"CONTINGENT {f['contingent_bytes']:,} B | {f['contingent_over_resident']}x"
     )
     print(
-        f"  {'server':<22} {'tools':>5} {'RESIDENT':>9} {'share':>7} {'DEAD-BACKEND B':>15} {'move':>6}"
+        f"  {'server':<22} {'tools':>5} {'RESIDENT':>9} {'share*':>7} {'DEAD-BACKEND B':>15} {'move':>6}"
     )
     print(f"  {'-' * 22} {'-' * 5} {'-' * 9} {'-' * 7} {'-' * 15} {'-' * 6}")
     for r in payload["rows"]:
@@ -244,8 +371,13 @@ def main(argv: list[str] | None = None) -> int:
         move = "same" if delta == 0 else f"{delta:+d}"
         print(
             f"  {r['name']:<22} {r['tool_count']:>5} {r['resident_bytes']:>9,} "
-            f"{r['resident_share_pct']:>6.1f}% {adj_txt:>15} {move:>6}"
+            f"{r['resident_share_pct_of_sampled']:>6.1f}% {adj_txt:>15} {move:>6}"
         )
+    print(
+        f"  * share is of the {f['servers_ranked']} SAMPLED rows, not of the "
+        f"{f['servers_total']}-row fleet: {f['servers_not_measured']} rows have no stdio "
+        "child to enumerate and are unmeasured, never zero"
+    )
     for k, v in payload["controls"].items():
         print(f"  ok  {k}: {v}")
     print(f"\n  HEADLINE: {payload['headline']}")

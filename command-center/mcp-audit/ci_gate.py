@@ -61,6 +61,16 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
     ("s4_evidence (validator both-states)", ["s4_evidence.py", "--self-test"], 0),
     ("b1_redproof_backend", ["_b1_redproof_backend.py"], 0),
     ("cost_rank (invariants)", ["cost_rank.py"], 0),
+    # Round 3: an audit CONFIRMED a share quoted without its denominator and a prose count
+    # transposed across rows.  Both lived where no producer computes -- a percentage's
+    # wording, and a sentence -- so both are now enforced by something that executes.
+    ("cost_rank (C5 both-states)", ["cost_rank.py", "--self-test"], 0),
+    ("claim_lint (prose counts vs surfaces)", ["claim_lint.py"], 0),
+    (
+        "claim_lint (both-states on the real defect)",
+        ["claim_lint.py", "--self-test"],
+        0,
+    ),
     ("render_table (G1-G4 both-states)", ["render_table.py", "--self-test"], 0),
     ("overlap_report", ["overlap_report.py", "capability-matrix-r2.json"], 0),
     ("r2_reproduce (round-1 defects)", ["_r2_reproduce.py"], 0),

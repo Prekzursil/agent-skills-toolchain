@@ -222,9 +222,25 @@ $ python command-center/mcp-audit/_g4_cost_rollup.py
 The control matters: if the two bases ranked identically the distinction would be decorative.
 12 of 16 rows move.
 
-**Combine §3 and §6 for the actual headline:** `cloud-hub` is 60.1% of the fleet's every-turn
-resident MCP cost, and **63% of that row is advertised over a backend measured non-functional**
-— roughly **4,400 B / ~1,100 tokens paid on every single request for tools that cannot run.**
+**Combine §3 and §6 for the actual headline:** `cloud-hub` is 60.1% of the every-turn resident
+MCP cost **of the 16 sampled rows**, and **63% of that row is advertised over a backend
+measured non-functional** — roughly **4,400 B / ~1,100 tokens paid on every single request for
+tools that cannot run.**
+
+> **REFUTED, corrected in round 3.** This sentence shipped as *"60.1% of **the fleet's**
+> every-turn resident MCP cost"* — the widest form the figure took anywhere, and the one an
+> independent audit flagged. The denominator is 16 of 23 rows. The other 7 are HTTP
+> transports with no stdio child to enumerate; their tool names exist nowhere in the
+> repository, so the fleet denominator is **unmeasured, not merely unpublished**, and the
+> true fleet share of this row is strictly *lower* than 60.1%.
+>
+> The uncomfortable part: the producer's own output, quoted verbatim in the code block
+> directly above this paragraph, already reads **`(16 of 23 rows sampled)`**. The scope was
+> on screen and the sentence dropped it. This was a recall failure, not a detector failure —
+> which is why the fix is a guard in the producer (`cost_rank.py` C5) rather than a
+> resolution to read more carefully. The 63% / ~1,100 tok figures in this sentence were
+> separately superseded by round 2's byte-exact measurement (73.2% / ~1,281 tok); both are
+> kept rather than deleted.
 
 Context for the fleet size: industry consensus in 2026 puts the practical ceiling at **5-7
 connected MCP servers** before degradation ([Albato](https://albato.com/blog/publications/embedded-mcp-context-bloat-hallucinations),

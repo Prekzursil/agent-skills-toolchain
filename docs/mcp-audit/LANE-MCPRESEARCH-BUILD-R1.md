@@ -74,9 +74,26 @@ Those totals were computed independently here and **match the grounding lane's e
 (707 / 11,645 / 603,233 / 51.8x / 12-of-16 rank movement) — two readers, same artifact,
 same answer.
 
-**Headline:** cloud-hub is **60.1%** of every-turn resident MCP cost, and **4,172 B of that
-(59.6% of the row, ~1,043 tokens on EVERY request)** buys tools whose backend was measured
-non-functional.
+**Headline:** cloud-hub is **60.1%** of the every-turn resident cost of the **16 SAMPLED**
+servers, and **4,172 B of that (59.6% of the row, ~1,043 tokens on EVERY request)** buys
+tools whose backend was measured non-functional.
+
+> **TWO CORRECTIONS, applied in round 3. Neither is deleted.**
+>
+> 1. **SCOPE — REFUTED.** This read *"60.1% of every-turn resident MCP cost"*, which an
+>    independent audit read as fleet-wide. It is not: the denominator is the **16 rows with
+>    a sampled tool surface**, not the 23 mounted servers. The 7 HTTP-transport rows have no
+>    stdio child to enumerate, their tool names appear nowhere in the repository, and their
+>    cost is therefore **unmeasured — never zero**. The true fleet share of this row is
+>    strictly *lower* than 60.1%; how much lower is not computable from committed inputs.
+>    The producer now carries the scope in the field name
+>    (`resident_share_pct_of_sampled`) and in the headline string, and `cost_rank.py` C5
+>    fails the run closed if the headline loses it.
+> 2. **VALUE — SUPERSEDED by round 2.** The dead-backend slice `4,172 B / 59.6% / ~1,043
+>    tok` was correct for the five backends measured at the time; round 2 probed the
+>    remaining eight and it became **5,125 B / 73.2% / ~1,281 tok**. Round 2 recorded that
+>    supersession in its own report but left no marker here, so a reader landing on this
+>    line saw a stale number with nothing to say so. That gap is closed by this note.
 
 That 4,172 B is **exact, not pro-rated**. `name_bytes` is defined upstream as
 `sum(len(n) for n in tool_names)`, so per-tool attribution reconciles against the committed

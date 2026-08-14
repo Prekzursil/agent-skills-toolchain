@@ -226,9 +226,20 @@ byte-identical to `git show`'s blob bytes on all three interpreters.
   observed this session.
 - **`dead_surface_pct` is still null for every non-`cloud-hub` row**, `search-hub` included.
   Its four backends are now all *measured*, but no tool→backend map exists for it, so its
-  113 non-exa tools cannot be attributed by bytes. Null means **not attributed**, never zero.
-  *Settling experiment:* extend `backend_map` with a search-hub table (`ex_`/`tv_`/`fc_`/
-  `searxng_` families) — mechanical, and deliberately not done blind this round.
+  **54** non-exa tools — of a committed surface of **68** — cannot be attributed by bytes.
+  Null means **not attributed**, never zero.
+  > **REFUTED, corrected in round 3.** This sentence shipped reading *113 non-exa tools*.
+  > `search-hub` advertises 68 in total, so 113 could not be a subset of it under any
+  > reading. The figure is `424 − 311`: the count of **cloud-hub** tools *not* over a dead
+  > backend, transposed one paragraph across a row boundary. Nothing computed from it —
+  > every gate stayed green — because it lived only in prose. The refutation is recorded
+  > rather than deleted, and the class now has an executable guard: `claim_lint.py` refuses
+  > any prose count that exceeds the surface it is attributed to.
+  *Settling experiment:* extend `backend_map` with a search-hub table. Measured this round,
+  and the reason it is still not done blind: name shape resolves only 61 of the 68 —
+  `_exa`/`ex_` 14, `firecrawl_`/`fc_` 32, `tavily_`/`tv_` 11, `searxng_`+`web_url_read` 4 —
+  leaving **7 genuinely unattributable** (`agent_*` ×4, `deep_researcher_*` ×2,
+  `search_usage`), each of which could belong to more than one backend.
 - **The two `not-dispatchable` families are reported, not diagnosed.** I did not determine
   whether the tools are missing server-side, shadowed, or mis-registered. The audit fact —
   23 advertised tools that cannot run and still cost context — stands either way.
