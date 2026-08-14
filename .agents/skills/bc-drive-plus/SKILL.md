@@ -1,6 +1,6 @@
 ---
 name: bc-drive-plus
-description: Additive enhancements to the bc-drive Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) canvas driver on rooted BlueStacks. Adds (1) a BOUNDED one-shot touch-dispatch capture that hooks the already-resolved dispatch fn 0x668C70 for a SINGLE tap then detaches, recovering the runtime evidence to resolve the stripped NewButton ctor RVA (closes bc-drive's #1 open gap) with thread-selection safety honored; (2) OmniParser V2 set-of-mark numbered grounding for the DOM-less GLES canvas; (3) minitouch/evdev low-latency input vs per-process adb tap; (4) a save-snapshot ring + auto-rollback encoding the HGT-safe-restore discipline. Use for advanced BC UI-driving, native widget-tree recovery, or automated save protection. Requires adb + frida-server; builds on bc-drive and bcsfe-save-roundtrip.
+description: Use when driving a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) on rooted BlueStacks beyond bc-drive. Adds bounded one-shot touch-dispatch capture to resolve the stripped NewButton ctor RVA, OmniParser V2 set-of-mark grounding for the DOM-less GLES canvas, minitouch/evdev low-latency input, and a save-snapshot ring with auto-rollback. Needs adb + frida-server; builds on bc-drive and bcsfe-save-roundtrip.
 license: MIT
 ---
 

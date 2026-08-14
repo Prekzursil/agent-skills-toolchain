@@ -129,17 +129,89 @@ correct — read both bodies and union-merge by hand. It is also not a prune: tw
 (`microsoft-foundry`, `qdx-rush`) are absent from repo `skills/`, so any mirror-with-delete
 sync deletes them.
 
+## The skill listing budget — why a good description can still be invisible
+
+A skill you cannot see is a skill Claude cannot auto-pick. **Before rewriting a description
+that "isn't triggering", check whether it is being rendered at all.** The mechanism is
+documented by the vendor; it does not need re-deriving:
+
+<https://code.claude.com/docs/en/skills> — "Skill listing budget", fetched 2026-08-14:
+
+> The listing always contains every skill name, but if you have many skills, Claude Code
+> shortens descriptions to fit the listing's character budget... The budget scales at 1% of
+> the model's context window. When the listing overflows, Claude Code drops descriptions
+> **starting with the skills you invoke least**, so the skills you use most keep their full text.
+
+Three consequences that change what you should do:
+
+1. **A dark skill is a cold-start problem, not a wording problem.** Drop order is
+   least-invoked-first, so a never-invoked skill loses its description, which makes it harder
+   to auto-pick, which keeps it never-invoked. Rewriting the text cannot break that loop — the
+   entry is not in the listing to be read. Several of the currently-dark descriptions on this
+   estate are among the best-written in the fleet, which is why "just rewrite them" was
+   rejected: it trades good text for nothing while the entry stays hidden.
+2. **Every character you add to one description is taken from another skill's.** This surface
+   is already over budget. Adding a clause is not free — it pushes the tail further into the
+   dark. Prefer a char-neutral edit: add the clause and trim equivalent filler in the same pass.
+3. **The per-entry cap is 1,536 characters** for `description` + `when_to_use` combined, and it
+   applies independently of the total budget. Only text past 1,536 is truncated per-file;
+   everything else that goes missing went missing to the BUDGET, not to a per-file limit.
+
+**Read the instruments before theorising** — all three ship with the client:
+
+| instrument | what it answers |
+|---|---|
+| `/doctor` | estimated listing context cost and its biggest contributors |
+| `/context`, Skills row | listing size AFTER the budget is applied = what the model actually received |
+| `claude --debug` | writes a warning to the debug log when the listing exceeds its budget |
+
+**The four levers**, in the order worth trying:
+
+| lever | note |
+|---|---|
+| `skillOverrides: {"<skill>": "name-only"}` | explicit, reversible, zero file edits; frees that entry's characters. Plugin skills are NOT affected by it |
+| de-curate the deployed tree | a skill that is not deployed costs nothing |
+| `skillListingBudgetFraction` | **measured 0.04 on this estate (4x the 1% default) — this lever is already spent** |
+| `skillListingMaxDescChars` | raises/lowers the 1,536 per-entry cap |
+
+**The settling experiment**, if the drop order ever needs re-confirming on this box: invoke a
+dark skill once by name (the listing always keeps every NAME, so explicit invocation always
+works), start a fresh session, then check whether it gained a description while a different
+never-invoked skill lost one.
+
+**Do not** validate these settings against schemastore.org — they are absent from the community
+JSON schema, which is schema lag, not evidence that they do not exist.
+
 ## SKILL.md Structure
 
 **Frontmatter (YAML):**
-- Only two fields supported: `name` and `description`
-- Max 1024 characters total
+- `name` and `description` are the two that matter, but **the schema is not limited to them.**
+  `when_to_use`, `argument-hint`, `arguments`, `disable-model-invocation`, `user-invocable`,
+  `allowed-tools`, `disallowed-tools`, `model`, `effort`, `context`, `agent`, `background` and
+  `hooks` are all supported. Every field is optional; only `description` is recommended.
+- **1,024 is NOT the render limit.** The listing truncates `description` + `when_to_use`
+  combined at **1,536** characters (`skillListingMaxDescChars`). 1,024 is the agentskills.io
+  PACKAGING limit and binds only if you publish the skill as a package. Conflating the two is a
+  live defect on this estate: an exemptions list pins five descriptions as "over the 1,024 spec
+  max" when only one of them is over any limit that truncates anything.
 - `name`: Use letters, numbers, and hyphens only (no parentheses, special chars)
+- **A plain (unquoted) YAML scalar has two traps, and the second is worse than the first:**
+  - ` #` (space-hash) opens a comment and **silently truncates** the description there.
+    Measured live: `bc-drive-plus` lost 440 of its 793 characters to one `#` and rendered in
+    the listing as a dangling `...(closes bc-drive's`.
+  - `: ` (colon-space) reads as a nested mapping and makes the **whole frontmatter
+    unparseable** — no truncation, no partial text, the entry just fails. This one bit while
+    writing the fix for the first one, which is why the repair script parse-checks the AFTER
+    state rather than trusting the edit.
+
+  Either quote the scalar, or keep both sequences out of it. Whichever you choose,
+  **re-parse the file after writing** — the failure mode is silent in both directions.
 - `description`: Third-person, describes ONLY when to use (NOT what it does)
   - Start with "Use when..." to focus on triggering conditions
   - Include specific symptoms, situations, and contexts
   - **NEVER summarize the skill's process or workflow** (see CSO section for why)
-  - Keep under 500 characters if possible
+  - Keep under 500 characters if possible — not because of a per-file cap, but because the
+    listing budget is shared and every character you spend is taken from another skill
 
 ```markdown
 ---
