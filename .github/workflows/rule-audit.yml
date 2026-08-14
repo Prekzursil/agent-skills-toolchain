@@ -92,15 +92,27 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - name: install tiktoken
-        run: pip install tiktoken==0.13.0
+      # tiktoken: see the block above. pytest: r6_wiring_redproof.py drives the reachability
+      # guard (ci/tests/test_rule_audit_ci_wiring.py) as a SUBPROCESS across five synthesized
+      # trees, so without pytest on the runner that red-proof cannot execute at all. Pinned,
+      # matching hook-audit.yml:93.
+      - name: install tiktoken + pytest
+        run: pip install tiktoken==0.13.0 pytest==8.4.2
       # BOTH-STATES CONTROL FOR THE GATE ITSELF, first. Twelve cases: every check this gate
       # makes, exercised against a known-broken input (must FIRE) and a known-good one (must
       # stay SILENT) -- including the three ways it could go inert, a CI_PLAN that shrank, an
       # allowlist that shrank, and an expected-FAIL entry that quietly started passing.
       - name: gate-rule-audit self-test
         run: python docs/rule-audit/ci_gate.py --self-test
-      # The gate. Eight planned invocations over eight gates with their REAL exit codes captured
+      # INTEGRATE-R3 ADDS A NINTH, and it closes the hole this whole FILE was standing in:
+      # everything above is reachable through this one workflow, and nothing pinned the
+      # workflow. ci/tests/test_rule_audit_ci_wiring.py now does -- named in quality.yml, which
+      # fires on a push to main -- and r6_wiring_redproof.py is the red-proof that the guard
+      # goes red when this file is deleted, weakened, unnamed or de-triggered, with an
+      # unmutated control arm that must stay GREEN so a broken harness cannot masquerade as a
+      # firing detector. (First run of it failed exactly there, and the control is what caught it.)
+      #
+      # The gate. Nine planned invocations over nine gates with their REAL exit codes captured
       # per child (never through a pipe -- a pipeline reports the LAST command's status, which
       # turns a red gate green), every *.py in the directory asserted to be planned or
       # excluded-with-a-reason, plus the two in-repo invariants:

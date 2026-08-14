@@ -901,6 +901,28 @@ jobs:
       # 1 failed; unmutated 29 passed.
       - name: gate-tests-coverage rules doc coherence (review boundary + perl examples)
         run: python -m pytest ci/tests/test_rules_doc_coherence.py -q
+      # RULE-AUDIT REACHABILITY. The rule-audit lane's ten gates all hang off ONE file,
+      # .github/workflows/rule-audit.yml, and NOTHING pinned it. Measured with the search
+      # controlled in both directions: grepping ci/ and .github/ for that filename returns a
+      # single hit outside the workflow itself -- hook-audit.yml:20, a prose comment listing
+      # sibling workflows -- while the same search shape finds test_wf_timeout_ci_wiring.py for
+      # wf-timeout (positive control) and nothing for a bogus token (negative control). So
+      # deleting or quietly weakening that one workflow removes every rule-audit gate from CI
+      # and nothing goes red: the exact defect the lane exists to fix ("a gate nobody invokes is
+      # indistinguishable from one that does not exist"), recurring silently.
+      # Named HERE because quality.yml is the workflow carrying `push: branches: [main]` and
+      # ci/tests/ has no tree-wide step (quality.yml:685). skill-dual-write.yml does sweep the
+      # directory, but only on `pull_request`, and this program's commits land by direct push --
+      # so the sweep alone would leave the primary path uncovered. Reuses the existing
+      # gate-tests-coverage charter slug on purpose (not a new gate), so
+      # .quality/charter_check.sh stays consistent with no charter.yml edit. Stdlib-only: it
+      # AST-parses CI_PLAN instead of importing ci_gate, which would pull in tiktoken.
+      # FAIL-FIRST MEASURED on the pre-wiring tree: 2 failed / 13 passed, failing on
+      # `wiring-suite-not-named`. With this step present: 16 passed. The process-level
+      # red-proof is docs/rule-audit/r6_wiring_redproof.py (5 arms, control must stay GREEN).
+      - name: gate-tests-coverage rule-audit gate reachability
+        run: |
+          python -m pytest ci/tests/test_rule_audit_ci_wiring.py -q
 
       # L13 adoption: the checked-in adversarial corpus plus its miner regressions.
       - name: gate-tests-coverage adversarial harness corpus

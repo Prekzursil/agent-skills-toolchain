@@ -133,6 +133,21 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
         ["r5_driftgate_redproof.py"],
         0,
     ),
+    # INTEGRATE-R3.  Everything above is reachable through exactly ONE file --
+    # .github/workflows/rule-audit.yml -- and nothing pinned it.  Measured with the search
+    # controlled in both directions: the only reference to it anywhere in ci/ or .github/
+    # outside itself is a prose comment in hook-audit.yml:20, while the same search shape
+    # finds test_wf_timeout_ci_wiring.py for wf-timeout and nothing for a bogus token.  So
+    # deleting that workflow silently removed every gate in this plan and NOTHING went red --
+    # the lane's founding defect, recurring.  ci/tests/test_rule_audit_ci_wiring.py now pins
+    # it (and is itself named in quality.yml, the workflow that fires on a push to main); this
+    # entry is the red-proof that the guard actually goes red, driven as a process across five
+    # synthesized trees with an unmutated control arm that must stay GREEN.
+    (
+        "r6_wiring_redproof (proves the reachability guard fires)",
+        ["r6_wiring_redproof.py"],
+        0,
+    ),
 ]
 
 # --------------------------------------------------- the invariants (DoD-1 and deploy parity)
