@@ -32,15 +32,22 @@ carrying no `cite:` marker was not unbacked but unseen. The blob gate reported G
 is CRLF, git stores LF, CI checks out LF (windows-shell §8b).
 
 <!-- cite: id=R2-fmt-after file=B9-FORMAT-TRACKED.json path=tracked_unformatted_count value=0 -->
-<!-- cite: id=R2-fmt-files file=B9-FORMAT-TRACKED.json path=controls.C3_files exists=true -->
 <!--
-  C3_files is `exists=true`, not a pinned value, and that is a correction rather than a
-  convenience. Pinned at 2595 it fired EVIDENCE-DRIFT twice in one session -- both times
-  correctly: re-running the probe regenerates the blob, and the tracked-file count moves
-  whenever ANY lane commits a .py. The load-bearing number is the offender count, which stays
-  pinned at 0 so that a regression still turns this gate red.
+  `controls.C3_files` (the tracked-file count) is deliberately NOT cited, after three attempts
+  to cite it fired EVIDENCE-DRIFT -- every one of them correct. Two facts make that field
+  uncitable rather than merely awkward: re-running the probe REGENERATES the blob it would be
+  cited from, and the count moves whenever ANY of the four lanes in this worktree commits a
+  .py (2,593 -> 2,595 -> 2,621 -> 2,623 within one session). `exists=true` does not rescue it:
+  that escape relaxes the VALUE pin, while the drift check compares worktree against staged
+  blob per path and is independent of it -- correctly, since it exists to catch evidence that
+  no longer matches what a clone reads.
+
+  So the counts in the table below are reported as what they were when measured, and the
+  citations pin only what is stable and load-bearing: the offender count (0) and the detector
+  controls. A regression still turns this gate red; a sibling adding a file does not.
 -->
 <!-- cite: id=R2-fmt-ctl1 file=B9-FORMAT-TRACKED.json path=controls.C1_positive value=True -->
+<!-- cite: id=R2-fmt-ctl2 file=B9-FORMAT-TRACKED.json path=controls.C2_negative value=True -->
 <!-- cite: id=R2-fmt-c4 file=B9-FORMAT-TRACKED.json path=controls.C4_config_parity value=True -->
 <!-- cite: id=R2-fmt-cfgn file=B9-FORMAT-TRACKED.json path=controls.C4_configs value=16 -->
 <!-- cite: id=R2-fmt-before file=B9-CRLF-SPLIT.json path=genuinely_unformatted.0 value=command-center/hook-audit/_g5_vendorcaps.py -->
