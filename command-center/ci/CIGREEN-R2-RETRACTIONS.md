@@ -166,14 +166,46 @@ declared slug (verified: `charter_check: OK -- 7 gates consistent`).
 The note is explicit that *"a fix that is only ever observed in the healthy state has not been
 shown to separate them."* Two forced-failure runs were dispatched against the same tree:
 
-| state forced | expected failing step | run id | result |
-|---|---|---|---|
-| install broken (URL → nonexistent tag) | `gate-sast opengrep install` | UNKNOWN - not yet measured | UNKNOWN - not yet measured |
-| scan finding (seeded rule hit) | `gate-sast opengrep scan` | UNKNOWN - not yet measured | UNKNOWN - not yet measured |
-| healthy (this branch) | none | UNKNOWN - not yet measured | UNKNOWN - not yet measured |
+| state forced | run | install step | scan step | job |
+|---|---|---|---|---|
+| install broken (URL → nonexistent tag) | 31757664129 | **failure** | *skipped* | failure |
+| scan finding (seeded `os.system`) | 31757804386 | success | **failure** | failure |
+| healthy (PR #283 @ `7040637a`) | 31757865783 | success | success | **success** |
 
-If this table still reads UNKNOWN, the controls were never run and the split has NOT been shown
-to discriminate — treat the change as unverified and do not cite it.
+Three states, three distinct signatures. That is the property the note asked for: the failing
+step NAME now separates an infrastructure failure from a finding, where before both rendered as
+`failure  gate-sast (opengrep)` and nothing else.
+
+Each control failed for the intended reason, not merely at the intended step:
+
+    31757664129  curl: (22) The requested URL returned error: 404      <- x5, at 13.9s 16.9s 19.9s
+                 ##[error]Process completed with exit code 22             22.9s 25.9s = --retry 5
+                                                                          --retry-delay 3, observed
+    31757804386  _cigreen_r2_seeded_finding.py
+                 ❯❯❱ quality.opengrep.python-os-system
+
+The retry cadence in control A is worth keeping: five attempts three seconds apart is direct
+evidence that `--retry 5 --retry-delay 3` is in force, rather than merely written down.
+
+Both control branches (`lane-cigreen/_ctrl-sast-install`, `lane-cigreen/_ctrl-sast-scan`) were
+throwaway and are deleted; the run records above outlive them.
+
+**UNVERIFIED [likely 55-80%]** that this covers the real-world failure distribution. Only the two
+forced states were measured. A genuine truncated-but-non-empty transfer — the case `test -s`
+explicitly does not catch — was not reproduced, and would still surface in the scan half.
+Settling experiment: serve a deliberately truncated binary and record which step names the
+failure. The original flake (`curl: (56)`, connection died mid-transfer) is closer to that case
+than to control A's clean 404, so this residual is the honest limit of what was proven.
+
+### The rest of that PR run, disclosed rather than filtered
+
+Run 31757865783 was 7 of 8 jobs green. The one red is `gate-tests-coverage (python packages)`,
+step `gate-tests-coverage docs executable claims`, and it is INHERITED FROM THE BASE, not caused
+here: `origin/main` @ `b0e3bf98` still carries the bare `scripts/hooks/cost-tracker.js` at
+`commands/sessions.md:289`, and the identical assertion failure appears on the base. It is
+already fixed on unpushed `main` by sibling `5d573583`, which rewrites that line to the
+three-root `${CLAUDE_PLUGIN_ROOT}/…` form. Predicted in the PR body before the run finished, and
+the run matched.
 
 ---
 
