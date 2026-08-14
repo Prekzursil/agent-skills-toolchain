@@ -33,13 +33,41 @@ identical across all of them and does not look like a test failure:
 * the last 60 runs on `main` are `failure:36, success:20, skipped:4` — the 20 successes are all
   from **before** 04:33:59.
 
-**Most likely GitHub Actions quota or a billing hold — "likely", 60-80%, not confirmed.** I could
-not raise the confidence because the two APIs that would settle it are both closed to this token:
-the billing endpoint returns **410 Gone** and the check-runs endpoint returns **403**. A
-zero-step failure across every workflow simultaneously is also consistent with an org-level
-Actions disablement or a runner outage, and I have no instrument that separates those three.
-Calling it "quota" as a fact would be exactly the single-signal error this estate's rules exist to
-prevent, so it stays a band and not a verdict.
+### Diagnosis, narrowed — the discriminator is PRIVATE vs PUBLIC
+
+The first version of this section said "likely quota, 60-80%" and stopped, on the grounds that
+the billing endpoint returned 410 and check-runs returned 403. **The 410 was a moved endpoint,
+not a closed one.** `users/{user}/settings/billing/usage` works and returns real data. Reporting
+an instrument as unavailable without trying its replacement is how a diagnosis stalls at a band.
+
+**MEASURED, and each line eliminates something:**
+
+| probe | reading | eliminates |
+|---|---|---|
+| `repos/{r}/actions/permissions` | `enabled: true`, `allowed_actions: all` | repo/org-level Actions disablement |
+| `user.plan` | **pro** | unpaid / free-tier-without-Actions |
+| August billing, all products | **$0.99 billed** (storage only); everything else discounted to $0 | unpaid balance / hard billing hold |
+| **Reframe** (same account) latest run | **`success` at 06:05:25Z today** — after this repo broke at 04:33:59Z | account suspension, global GitHub outage, org policy |
+| `agent-skills-toolchain` visibility | **private** | — |
+| `Reframe` visibility | **public** | — |
+| failed-run duration | created 06:59:29Z, updated 06:59:34Z — **5 seconds, `steps=0`** | a test/step failure; this is a refusal to allocate a runner |
+
+**The account can run Actions right now — but only on a PUBLIC repo.** Public repos draw from a
+free, unmetered pool; private repos draw on the Pro plan's 3,000-minute monthly allowance. So
+Reframe succeeding is *not* a clean control for the private allowance — it is a control for
+everything else, and it clears all of it.
+
+**Best reading: the private-repo included-minutes allowance is exhausted, with no spending limit
+configured to let it overflow into paid usage. Confidence "likely", 65-80%** — raised from the
+original band because four alternative causes are now eliminated by measurement rather than
+assumed away, but *not* higher, because I never obtained a direct remaining-minutes figure. The
+one probe that would settle it (`check-suites`, which carries the refusal reason) returns **403
+for this token** — a detector limit, not evidence of anything.
+
+**Where the owner should look:** GitHub → Settings → Billing → *Actions minutes used this month*
+and *spending limit*. If the allowance is spent, raising or enabling the spending limit restores
+private-repo CI immediately. **UNVERIFIED** that this is the cause; it is the hypothesis that
+survives every probe I could run.
 
 **Consequence, and it is the important part: no claim of "green" below is CI-verified after
 04:33:59.** For everything committed since, "green" means *the repo's own gates pass locally* —
@@ -151,7 +179,34 @@ had introduced in the same push.
 
 ## 4. What "green" currently rests on
 
-**MEASURED.** With CI unavailable I ran the repo's own lane gates locally as the substitute:
+**MEASURED.** With CI unavailable, two committed runners execute the CI steps that *can* run on
+this box — **76 steps green, 0 failing**:
+
+| runner | scope | result |
+|---|---|---|
+| `_ci_local_substitute.py` | the 8 small workflows | **29/29 pass** |
+| `_ci_quality_nopip.py` | quality.yml's no-`pip install` slice | **47/47 pass** |
+
+Still unverified and not claimed: every `--cov-fail-under=100` suite (they need a per-subproject
+`pip install -e`), the opengrep SAST scan and the gitleaks secret scan (Linux binaries), and the
+docker-service benchmark. No count of passing steps substitutes for those.
+
+Three scope bugs were found *in the runners themselves*, each by a control rather than by review,
+and each fixed by delegating to a gate that already existed:
+
+* `ruff format --check .` reported 50 red files — it walked the working tree (313 untracked lane
+  files CI never sees) **and** the working-tree bytes, while `core.autocrlf=true` means a tracked
+  file is CRLF on disk when its blob is LF. Delegated to `_b9_format_tracked.py`, which
+  materialises from `git cat-file -p`: **0 of 2,716 tracked files unformatted**, 4 controls firing.
+* `ruff check .` reported 4 violations, every one in untracked scratch.
+* Its replacement then reported **90** violations while `ruff check .` reported 0 — a
+  self-contradiction, and the new tool was wrong: ruff applies `extend-exclude` during file
+  *discovery*, so paths named on argv bypass it and the deliberate p2-wave control fixtures read
+  as real findings. `--force-exclude` fixes it: **0 violations on 2,700 tracked files**.
+
+All three were the same defect wearing different clothes — measuring a surface CI does not have.
+
+The earlier hand-run of the lane gates, for the record:
 
 ```
 mcp-audit/ci_gate.py                     SUCCESS:mcp-audit-ci-gate
