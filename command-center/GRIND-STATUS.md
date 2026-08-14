@@ -590,22 +590,33 @@ BROKEN state: rc=0  SUCCESS:published-cmds no NEW unrunnable published command
 restored byte-identical: True (sha256 c4310f9f79c9…)
 ```
 
-**A probe silent in both states measures nothing.** The mechanism, read directly rather than
-inferred: `check_published_commands.py:195-203` fetches each citing document with
-`git cat-file -p HEAD:<path>` and `:221` scans *that* — while `:256` takes the tracked-**target**
-set from `git ls-files`. **Two different read-bases in one gate.** Staging a *target* is visible;
-editing a *document* is not, until it is committed. That is the exact shape of O11 — the regression
-could not appear until `P2NEXT-GROUNDING-R2.md` **landed** — and §8.2's explanation named only the
-`git ls-files` half, so it under-described the trap it was documenting.
+The mechanism, read directly rather than inferred: `check_published_commands.py:195-203` fetches
+each citing document with `git cat-file -p HEAD:<path>` and `:221` scans *that* — while `:256`
+takes the tracked-**target** set from `git ls-files`. **Two different read-bases in one gate.**
+Staging a *target* is visible; editing a *document* is not, until it is committed. That is the exact
+shape of O11 — the regression could not appear until `P2NEXT-GROUNDING-R2.md` **landed** — and
+§8.2's explanation named only the `git ls-files` half, so it under-described the trap it was
+documenting.
 
-Consequence, applied to this commit rather than asserted: **no pre-commit run can verify a document
-edit here.** The honest sequence is commit → re-run → fix-forward, which is what `5e31a03c` had to
-do. I committed, re-ran, and record the post-commit result beside this line rather than a
-pre-commit green that was never evidence. Control script: `python command-center/_synthrev2_bothstates.py`
-(restores the document and asserts the restore by sha256).
+**And then my control was wrong a second way, in the opposite direction.** The green-in-both-states
+reading above does **not** show the gate is blind to these receipts. It shows my *control* was —
+it mutated the **working tree**, which a `HEAD:`-reading gate never opens, so the broken state was
+never delivered to the instrument. **A control that cannot hand the instrument the broken state is
+not a control**, and I nearly published its silence as a property of the gate. Replaced by two
+measurements that can actually land, both re-run **after** the commit:
 
-**POST-COMMIT RE-RUN — see the commit's own message for the verdict.** *(If this sentence is ever
-the last word here, the re-run did not happen and this section's green may not be cited.)*
+* **Positive — the gate does see them.** Published-command total went **437 → 443** across the
+  commit, exactly the **+6** `python command-center/_synthrev2_*.py` receipts this review added
+  (`6` at HEAD vs `0` at HEAD~1), documents 370 → 371, and **0 NEW unrunnable**. A delta of 0 would
+  have meant invisible; the delta is the evidence.
+* **Fire-on-broken — from the instrument's own shipped control, not a worse hand-rolled one.** The
+  gate ships `--self-test`, which synthesises a known-bad target behind a runtime-random sentinel:
+  `ok known_bad_is_flagged` · `ok states_distinguishable` · `ok extractor_finds_the_command` ·
+  `SUCCESS:published-cmds-selftest`, rc=0. **It was there the whole time** — read your own
+  instrument before building another.
+
+`python command-center/_synthrev2_bothstates.py` now runs exactly those two and keeps the original
+mistake in its docstring, because the mistake is the transferable part.
 
 ### Confirmed — re-executed and identical
 

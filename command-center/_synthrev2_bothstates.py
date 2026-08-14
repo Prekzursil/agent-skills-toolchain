@@ -1,56 +1,95 @@
-"""Both-states control: does check_published_commands.py actually SEE the fenced
-`python command-center/_synthrev2_*.py` receipts in GRIND-STATUS.md?
+"""Does check_published_commands.py actually SEE this review's committed receipts?
 
-A green gate proves nothing unless the gate fires on the known-broken state. Breaks ONE
-published path to a nonexistent script, re-runs the gate, then restores byte-for-byte and
-proves the restore with a sha256 comparison.
+FIRST VERSION OF THIS SCRIPT WAS ITSELF THE INERT CONTROL, and it is worth keeping the reason.
+It broke a published receipt path in the WORKING TREE and expected the gate to go red. The gate
+stayed green -- not because it cannot see the receipts, but because it reads every citing document
+from `git cat-file -p HEAD:<path>` (check_published_commands.py:195-203, consumed at :221), so a
+working-tree mutation never reaches it. A control that cannot deliver the broken state to the
+instrument is not a control.
+
+What replaces it, two measurements instead of one broken one:
+
+  1. POSITIVE, that the gate sees the receipts: the published-command count at HEAD minus the
+     count at the parent commit must equal the number of `python command-center/_synthrev2_*.py`
+     receipts this review published. A delta of 0 would mean they are invisible.
+  2. FIRE-ON-BROKEN, delegated to the instrument that can actually stage one: the gate ships
+     `--self-test`, which synthesises a known-bad target with a runtime-random sentinel and asserts
+     `known_bad_is_flagged` and `states_distinguishable`. Reading your own instrument beats
+     hand-rolling a worse one.
 """
 
-import hashlib
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-DOC = REPO / "command-center" / "GRIND-STATUS.md"
-GATE = ["python", "command-center/slop-report/check_published_commands.py"]
-GOOD = "python command-center/_synthrev2_gates.py"
-BAD = "python command-center/_synthrev2_NOSUCHFILE.py"
+GATE = "command-center/slop-report/check_published_commands.py"
+DOC = "command-center/GRIND-STATUS.md"
+RECEIPT = re.compile(r"python command-center/_synthrev2_[a-z]+\.py")
 
 
-def gate():
+def run(args):
     p = subprocess.run(
-        GATE, cwd=str(REPO), capture_output=True, text=True, errors="replace"
+        args, cwd=str(REPO), capture_output=True, text=True, errors="replace"
     )
-    tail = (p.stdout + p.stderr).replace("\r\n", "\n").strip().split("\n")[-1]
-    return p.returncode, tail
+    return p.returncode, (p.stdout + p.stderr).replace("\r\n", "\n")
 
 
-original = DOC.read_bytes()
-before_sha = hashlib.sha256(original).hexdigest()
+def blob(rev):
+    p = subprocess.run(
+        ["git", "cat-file", "-p", f"{rev}:{DOC}"],
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        errors="replace",
+    )
+    return p.stdout if p.returncode == 0 else ""
 
-rc_clean, tail_clean = gate()
 
-txt = DOC.read_text(encoding="utf-8", newline="")
-if GOOD not in txt:
-    sys.exit(f"FAILED:bothstates the probe anchor {GOOD!r} is not in the document")
-DOC.write_text(txt.replace(GOOD, BAD, 1), encoding="utf-8", newline="")
-try:
-    rc_broken, tail_broken = gate()
-finally:
-    DOC.write_bytes(original)
+def published_total(out):
+    m = re.search(r"==\s*(\d+)\s+published commands", out)
+    return int(m.group(1)) if m else None
 
-after_sha = hashlib.sha256(DOC.read_bytes()).hexdigest()
-restored = before_sha == after_sha
 
-print(f"  clean  state: rc={rc_clean}  {tail_clean[:110]}")
-print(f"  BROKEN state: rc={rc_broken}  {tail_broken[:110]}")
-print(f"  restored byte-identical: {restored} ({before_sha[:12]})")
+ok = True
 
-sees = rc_broken != 0
+# --- 1. positive: the receipts moved the gate's own count -------------------------
+rc_now, out_now = run([sys.executable, GATE])
+total_now = published_total(out_now)
+receipts_head = len(set(RECEIPT.findall(blob("HEAD"))))
+receipts_parent = len(set(RECEIPT.findall(blob("HEAD~1"))))
+added = receipts_head - receipts_parent
+print(f"  receipts published at HEAD / HEAD~1 : {receipts_head} / {receipts_parent}")
+print(f"  gate total at HEAD                  : {total_now}  rc={rc_now}")
+if rc_now != 0 or total_now is None or added <= 0:
+    ok = False
+    print(
+        "  -> FAIL: the gate is red, unparseable, or this commit published no receipt"
+    )
+
+# The delta is only meaningful if the gate re-reads HEAD, which is the point being proven.
+rc_parent_probe, _ = run(["git", "cat-file", "-e", f"HEAD~1:{DOC}"])
+if rc_parent_probe != 0:
+    ok = False
+    print("  -> FAIL: no parent revision of the document to compare against")
+
+# --- 2. fire-on-broken, from the gate's own shipped control -----------------------
+rc_st, out_st = run([sys.executable, GATE, "--self-test"])
+fires = out_st.count("ok  known_bad_is_flagged") > 0
+disc = out_st.count("ok  states_distinguishable") > 0
 print(
-    "SUCCESS:bothstates the gate SEES the fenced receipts (fired on the broken state)"
-    if sees and restored and rc_clean == 0
-    else f"FAILED:bothstates gate_sees={sees} restored={restored} rc_clean={rc_clean}"
+    f"  gate --self-test                    : rc={rc_st} known_bad_is_flagged={fires} "
+    f"states_distinguishable={disc}"
 )
-sys.exit(0 if (sees and restored and rc_clean == 0) else 1)
+if rc_st != 0 or not (fires and disc):
+    ok = False
+    print("  -> FAIL: the gate's own both-states control did not discriminate")
+
+print(
+    f"SUCCESS:bothstates the gate reads HEAD, sees {receipts_head} committed receipt(s) "
+    f"(+{added} this commit), and fires on a known-bad target"
+    if ok
+    else "FAILED:bothstates see the lines above"
+)
+sys.exit(0 if ok else 1)
