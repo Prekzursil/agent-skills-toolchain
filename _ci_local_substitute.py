@@ -10,6 +10,25 @@ What is left is the set of pure-stdlib gates the small workflows run, plus the r
 ruff pair from quality.yml. Those are exactly the ones that guard the lanes' recent commits.
 
 Each step prints SUCCESS:<id> / FAILED:<id> (AGENTS.md section 4) so the log is diffable.
+
+A FAILURE HERE IS NOT AUTOMATICALLY A DEFECT. This runs against a SHARED working tree with
+nine lanes committing into it, so a gate can go red simply because it read a document while an
+agent was part-way through writing it. Measured twice on 2026-08-14, both transient and both
+green minutes later with no fix applied:
+
+  * `cite-gate` -- `docs/hook-audit/INTEGRATE-R1.md` had ZERO citations while untracked and
+    135 s old; it was a lane's integrate document mid-write. CI would never have seen it,
+    because it was not committed.
+  * `failpath-tests` -- 1 failed / 10 passed, then 11/11 on re-run. Two hypotheses were
+    tested and BOTH refuted (an untracked `.py` in the directory; an untracked `.py`
+    referencing untracked evidence), so the cause is recorded as UNDIAGNOSED rather than
+    guessed at.
+
+Before treating a red here as real: re-run it, then check whether the file it names is
+untracked or was written in the last few minutes (`find <path> -newermt '10 minutes ago'`).
+CI only ever sees COMMITTED bytes, so an uncommitted file cannot be the cause of a CI failure.
+Do NOT "fix" a document a live agent is editing -- that is how the retire-safe verdict on a
+directory under active write nearly destroyed 21 lane artifacts.
 """
 
 from __future__ import annotations
