@@ -21,8 +21,8 @@ cited.
 | `NUL` writer, UNVERIFIED since round-1 R10 | **SETTLED** — identified, both-states controlled |
 | DoD-1 every candidate classified into four buckets | **DONE** — 287 untracked, 5 controls pass |
 | DoD-2 bucket (b) committed rather than deleted | **PARTIAL** — strong-signal (b) is empty by construction; 18 in-scope files committed; 179 weak-signal files belong to other lanes and stay uncommitted, with the reason |
-| DoD-3 bucket (c) deletion backed by a shown regenerating command | **DONE** — one executed, `BUCKET-C-PROVEN` |
-| DoD-4 frozen evidence untouched | **VERIFIED** — 0 dirty lines both dirs, lane start and end |
+| DoD-3 bucket (c) deletion backed by a shown regenerating command | ~~**DONE** — one executed, `BUCKET-C-PROVEN`~~ **REFUTED by the round-4 audit (D1) — see round 5.** The cycled file was already TRACKED at the classification rev, so it is in no bucket; ZERO bucket-(c) files were deleted. Corrected verdict: **PASS vacuously + demonstrated on a stand-in**; round 5 re-ran it on a real bucket-(c) candidate |
+| DoD-4 frozen evidence untouched | ~~**VERIFIED** — 0 dirty lines both dirs, lane start and end~~ **REFUTED by the round-4 audit (D2) — see round 5.** The conclusion is true but this evidence did not show it: the `*/control` glob matches 0 tracked files as a git pathspec, so its 0 was inert. Re-proven in round 5 by HEAD-blob hash identity with a live-detector control |
 | ruff attribution for my commit | **DONE** — 0 failures added, proven at my rev AND its parent |
 | the ~84 non-ruff `quality.yml` steps | NOT-CHECKED — out of reach, unchanged from rounds 2-3 |
 
@@ -42,8 +42,17 @@ measured over the 323-document corpus.
 | `pybare` (`python foo.py`, no slash) | 49 | **46 (94%)** | **REFUTED** |
 
 **The headline is the negative result: widening the verb set produces ZERO new bucket-(b) files.**
-Every one of the 6 `pytest`/`node` violations was located on disk (`_r4_locate.py`, controlled
-positive and negative) and **all 5 that exist are already TRACKED**:
+~~Every one of the 6 `pytest`/`node` violations was located on disk (`_r4_locate.py`, controlled
+positive and negative) and **all 5 that exist are already TRACKED**:~~
+
+> **REFUTED by the round-4 audit (overclaim 1) — the sentence was wider than the table under it.**
+> This probe's own receipt prints `"NOWHERE": 1`. Correctly scoped: of the 5 `pytest` targets,
+> **FOUR** exist on disk and are TRACKED — two-root-resolver false positives against a third root
+> (`platform/lib/`) the resolver does not model. The **fifth**, `tests/test_foo.py`, resolves
+> **nowhere** and is a documentation placeholder needing a baseline row or an example marker,
+> not slop. Zero of the five are uncommitted evidence, so the negative headline above still
+> stands. Settling experiment for the residual: model the third root explicitly and re-run
+> `_r4_promise.py`.
 
 | citer | promised | actually at | tracked? |
 |---|---|---|---|
@@ -145,7 +154,18 @@ fix holding, not an absence of looking.
 | `platform/architecture/_secfirst_probe_denydefault.out.json` | `python platform/architecture/_secfirst_probe_denydefault.py` |
 | `platform/architecture/_secfirst_selfaudit.out.json` | `python platform/architecture/_secfirst_selfaudit.py` |
 
-## B4 — DoD-3: a bucket-(c) deletion, executed
+## B4 — DoD-3: ~~a bucket-(c) deletion, executed~~ the cycle demonstrated on a STAND-IN
+
+> **REFUTED by the round-4 audit (D1).** `_r4_bucket_c.py:60` targets
+> `command-center/slop-report/_r4_shellcov.out.json`, which `git ls-tree -r 7ccaa24b` shows was
+> **already TRACKED at the classification rev** — so it was never an untracked candidate and
+> appears in **no bucket**, while the bucket-(c) table below lists a different file. Nothing was
+> lost and the delete→absent→regenerate→present property really was demonstrated, but the
+> heading and the handoff's "one deletion EXECUTED" both read as a bucket-(c) deletion.
+> Correctly scoped: **ZERO bucket-(c) files were deleted**, so no deletion lacks a regenerating
+> command; the property was shown on a tracked artifact this lane owns. Round 5 re-ran the whole
+> cycle on a real bucket-(c) candidate (`_r5_bucket_c.py`) — and that run then reclassified the
+> candidate OUT of bucket (c).
 
 `python command-center/slop-report/_r4_bucket_c.py` → **`BUCKET-C-PROVEN`**, rc 0. The full cycle,
 not an assertion that one could be run:
@@ -154,10 +174,18 @@ not an assertion that one could be run:
 `present_after_regen` → `K6_substantive_content_reproduced` (14 rows before, 14 after, same
 targets, same resolutions) → `K4` no OTHER tracked file dirtied.
 
-The target is one of **this lane's own** artifacts on purpose. The other three bucket-(c) files
-belong to `p2-wave` and `platform/architecture`, and regenerating those means EXECUTING another
-lane's script while that lane is running — the side effect this lane has declined twice and been
-vindicated for. **Proposed, not executed.**
+The target is one of **this lane's own** artifacts on purpose. ~~The other three bucket-(c) files
+belong~~ The bucket-(c) files (all of them — the target above is in none) belong to `p2-wave` and
+`platform/architecture`, and regenerating those means EXECUTING another lane's script while that
+lane is running — the side effect this lane has declined twice and been vindicated for.
+**Proposed, not executed.**
+
+> **Round-5 update.** Round 5 ran the cycle on one of them anyway, safely: back up the bytes
+> outside the repo → delete → assert absent → regenerate → assert present → **restore and verify
+> the restore by digest**. That removes the "executing a sibling's script rewrites their receipt"
+> objection, because the receipt is put back byte-for-byte. It also produced a finding this
+> round could not see: the file regenerates HERE but **four of its producer's six inputs are
+> untracked**, so a clone cannot rebuild it — it is bucket (b), not (c).
 
 ## MY OWN DETECTOR FAILURES, recorded rather than dropped
 
@@ -210,8 +238,17 @@ declined twice.
 ## FROZEN EVIDENCE — UNTOUCHED
 
 `git status --porcelain -uall` at lane start **and** lane end:
-`command-center/casualty/probes` → **0 lines**; `command-center/p2-wave/probes/*/control` →
-**0 lines**. No file under either path was opened for write.
+`command-center/casualty/probes` → **0 lines**; ~~`command-center/p2-wave/probes/*/control` →
+**0 lines**~~. No file under either path was opened for write.
+
+> **REFUTED by the round-4 audit (D2): the second reading was an INERT control.** As a git
+> pathspec, `command-center/p2-wave/probes/*/control` matches **0 tracked files**
+> (`git ls-files` on it returns nothing), so its "0 dirty lines" could not distinguish *clean*
+> from *matched nothing* — it passed under both hypotheses and was recorded as diligence. The
+> real path is `command-center/p2-wave/probes/AUD-0006/control` (2 tracked files). The
+> CONCLUSION was nevertheless true; round 5 re-proves it the strong way in `_r5_frozen.py`:
+> all 9 frozen files byte-identical to their HEAD blobs, a fail-closed count, a live-detector
+> positive control on the adjacent dirty parent dir, and a both-states check on the comparator.
 
 ## Commits
 
@@ -238,9 +275,14 @@ declined twice.
 * **179 weak-signal bucket-(b) files stay uncommitted**, and this is the honest gap in DoD-2.
   They are other lanes' in-flight evidence, outside my declared scope
   (`command-center/slop-report/**`), and committing 179 unformatted files would redden
-  `gate-lint-format` for every sibling (round 3 measured 23 format + 11 lint failures in that
-  set). The dangerous subset is empty (S1 = 0). Settling experiment for the rest: each owning
-  lane commits its own, or a per-lane gate requires it at lane close.
+  `gate-lint-format` for every sibling (~~round 3 measured 23 format + 11 lint failures in that
+  set~~ — **stale, and an UNDERSTATEMENT**: the audit re-measured 51 format / 14 lint at its rev,
+  and round 5 measured **52 format / 13 lint findings across 9 files at `5423de0f`**, all of them
+  untracked, 0 tracked. The number moves whenever a sibling commits, so it must be quoted with
+  its rev). The dangerous subset is empty (S1 = 0). Settling experiment for the rest: each owning
+  lane commits its own, or a per-lane gate requires it at lane close. Round 5 makes that
+  actionable — of the 99 bucket-(b) `.py`, **66 are ruff-clean today and cost the gate nothing to
+  commit**; only 33 need their owner to format first.
 * **The two-root resolver misses a third root** (`platform/lib/`, and `skills/…` for the skill
   packs). Not a live defect — the shipped `python` and `shell` classes produce 0 false positives
   today — but it is what makes `pytest` unshippable. Settling experiment: model the roots
