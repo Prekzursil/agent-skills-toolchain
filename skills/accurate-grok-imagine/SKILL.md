@@ -1,6 +1,6 @@
 ---
 name: "accurate-grok-imagine"
-description: "Precision prompting workflow for Grok Imagine xAI image generation and editing. Optimized for photorealistic composites, identity-preserving edits, reference-based compositing, anatomy and lighting repairs, and iterative refinement. Trigger on requests for accurate picture generation or editing with preservation requirements."
+description: Precision prompting for Grok Imagine xAI image generation and editing - photorealistic composites, identity-preserving edits, reference-based compositing, anatomy and lighting repairs, iterative refinement. Trigger on accurate picture generation or editing with preservation needs. NOT for the OpenAI Image API (use imagegen).
 ---
 
 # accurate-grok-imagine

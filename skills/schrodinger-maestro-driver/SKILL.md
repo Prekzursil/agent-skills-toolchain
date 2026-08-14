@@ -1,6 +1,6 @@
 ---
 name: schrodinger-maestro-driver
-description: Use when driving the local schrodinger MCP server for structure-based drug discovery on a Schrodinger Suite install - SMILES to 3D, LigPrep ligand preparation, Protein Preparation Wizard, Glide grid generation, Glide docking, Prime MM-GBSA binding free energy, QikProp ADMET, structure format conversion, RDKit descriptors, or the run_schrodinger_python escape hatch. Covers the SCHRODINGER environment setup and the license-token-free vs token-consuming tool split for the full receptor-prep to docked-and-rescored pipeline.
+description: Use when driving the local schrodinger MCP server for structure-based drug discovery on a Schrodinger Suite install - SMILES to 3D, LigPrep, Protein Preparation Wizard, Glide grid generation, Glide docking, Prime MM-GBSA binding free energy, QikProp ADMET, structure format conversion, RDKit descriptors, or the run_schrodinger_python escape hatch. Covers SCHRODINGER environment setup and the license-token-free vs token-consuming split. NOT for the whole prep-to-rescore campaign (use structure-based-screening).
 ---
 
 # Schrodinger / Maestro Driver

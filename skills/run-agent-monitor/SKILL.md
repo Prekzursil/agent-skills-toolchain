@@ -1,6 +1,6 @@
 ---
 name: run-agent-monitor
-description: Run, drive, and smoke-test the monitorcore agent tail + discovery — the read-only per-agent tailer and flat/workflow subagent discovery for Claude Code Task subagents. Use when asked to run, start, monitor, watch, or smoke-test the agent monitor / subagent dashboard, tail a subagent transcript, or verify agent-monitor works.
+description: Run and smoke-test the monitorcore agent tail + discovery - the read-only per-agent tailer and flat/workflow subagent discovery for Claude Code Task subagents. Use when asked to run, watch, or smoke-test the agent monitor / subagent dashboard, or tail a subagent transcript. NOT the launcher itself (use monitor-launcher).
 ---
 
 # Run: agent-monitor (monitorcore)

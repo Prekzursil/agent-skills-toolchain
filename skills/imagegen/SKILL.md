@@ -1,6 +1,6 @@
 ---
 name: "imagegen"
-description: "Use when the user asks to generate or edit images via the OpenAI Image API (for example: generate image, edit/inpaint/mask, background removal or replacement, transparent background, product shots, concept art, covers, or batch variants); run the bundled CLI (`scripts/image_gen.py`) and require `OPENAI_API_KEY` for live calls."
+description: Use when asked to generate or edit images via the OpenAI Image API (generate, edit/inpaint/mask, background removal/replacement, transparent background, product shots, concept art, covers, batch variants); run `scripts/image_gen.py`, needs `OPENAI_API_KEY`. NOT for video (use sora) or Grok Imagine (use accurate-grok-imagine).
 ---
 
 

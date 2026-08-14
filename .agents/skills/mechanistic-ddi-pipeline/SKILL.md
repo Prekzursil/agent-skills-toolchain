@@ -1,6 +1,6 @@
 ---
 name: mechanistic-ddi-pipeline
-description: Use to orchestrate a full mechanistic drug-drug interaction verdict by combining two MCP stacks - ToolUniverse CYP/UGT/transporter and DDI knowledge plus FDA-label evidence with Schrodinger structure tools (SMILES to 3D, descriptors, ADMET, optional docking). Use when a DDI question needs both biomedical knowledge-base lookups and structure-level computation fused into one perpetrator-victim verdict with severity, mechanism, and management.
+description: Use to orchestrate a full mechanistic drug-drug interaction verdict by combining two MCP stacks - ToolUniverse CYP/UGT/transporter and DDI knowledge plus FDA-label evidence with Schrodinger structure tools (SMILES to 3D, descriptors, ADMET, docking) - fusing knowledge-base and structure-level evidence into one perpetrator-victim verdict with severity and management. NOT for knowledge-base DDI lookups alone (use ddi-admet-research).
 ---
 
 # Mechanistic DDI Pipeline (cross-stack orchestrator)

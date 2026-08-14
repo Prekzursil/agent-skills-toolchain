@@ -1,6 +1,6 @@
 ---
 name: reverse-engineering-toolkit
-description: Use when selecting or sequencing reverse-engineering tools for Windows native analysis, dump triage, live debugging, binary diffing, signature generation, import repair, or MCP-backed disassembler workflows. Especially useful for choosing between WinDbg Preview, x64dbg, Cheat Engine, IDA Pro MCP, Ghidra MCP, Binary Ninja MCP, HexStrike AI, Frida, BinDiff/BinExport, ret-sync, and related helpers.
+description: Use when selecting or sequencing reverse-engineering tools for Windows native analysis, dump triage, live debugging, binary diffing, signature generation, import repair, or MCP disassembler workflows. Choose from WinDbg Preview, x64dbg, Cheat Engine, IDA Pro MCP, Ghidra MCP, Binary Ninja MCP, HexStrike AI, Frida, BinDiff/BinExport, ret-sync. NOT for triaging a binary (use re-triage-preflight).
 ---
 
 # Reverse Engineering Toolkit

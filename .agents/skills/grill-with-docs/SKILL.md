@@ -1,6 +1,6 @@
 ---
 name: grill-with-docs
-description: Use when stress-testing a plan against the workspace's accumulated domain knowledge and prior decisions — challenge terminology, sharpen fuzzy language, check the plan against what was already decided, and write resolved decisions back. Use when the user says "grill against our docs/decisions", "does this match our domain model", or wants a glossary-aware, decision-store-aware design grill.
+description: Use when stress-testing a plan against the workspace's domain knowledge and prior decisions - challenge terminology, sharpen fuzzy language, and write resolved decisions back. Use when the user says grill against our docs or decisions, or wants a glossary-aware design grill. NOT for a plain plan interview (use grill-me) or a program-scale scope (use grill-me-extensive).
 ---
 
 # Grill With Docs
