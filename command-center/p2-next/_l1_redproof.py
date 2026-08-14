@@ -28,6 +28,7 @@ Run:  python command-center/p2-next/_l1_redproof.py
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -60,13 +61,20 @@ WIRING_TEST = [
 INJECTED = "The cross-vendor review rail is DOWN and cannot be used.\n"
 
 
+#: pytest prints its wall-clock duration ("6 passed in 1.11s"), which differs on every run. Left
+#: raw, the receipt is dirty after every invocation for reasons that carry no information, and a
+#: reader cannot tell a meaningless re-time from a real change in the measurement.
+_DURATION = re.compile(r"\bin \d+\.\d+s\b")
+
+
 def run(cmd: list[str], cwd: Path) -> dict:
     real = [sys.executable] + cmd[1:] if cmd[0] == "python" else cmd
     proc = subprocess.run(real, cwd=cwd, capture_output=True, timeout=900)
+    tail = proc.stdout.decode("utf-8", "replace").strip().splitlines()[-3:]
     return {
         "cmd": " ".join(cmd),
         "rc": proc.returncode,
-        "tail": proc.stdout.decode("utf-8", "replace").strip().splitlines()[-3:],
+        "tail": [_DURATION.sub("in <t>s", ln) for ln in tail],
     }
 
 

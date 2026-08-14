@@ -131,6 +131,13 @@ workflow must contain the wiring before any leg runs, so a silent copy failure c
 misread as leg C failing to find it. The probe now prints which path it took
 (`lane files: ALREADY at clone HEAD`) and passes 4/4 from the committed state.
 
+One more, found by watching `git status` after the final sweep: `L1-REDPROOF.json` captured
+pytest's wall-clock line verbatim (`6 passed in 1.11s`), so **every run of the probe dirtied the
+tree for no informational reason** and a reader could not tell a meaningless re-time from a real
+change in the measurement. The duration is now normalised to `in <t>s`. Proven, rather than
+assumed: two consecutive runs produce a byte-identical receipt (`sha256[:16] = 4e8213d3ee0d3f21`
+both times).
+
 ## 5. Gate sweep — measured on the working tree, after the reformat
 
 `ruff format` rewrote all three files after they first went green, so every check below was
