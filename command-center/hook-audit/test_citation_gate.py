@@ -179,7 +179,11 @@ def old_gate(tmp: Path, retarget: Path | None) -> Path:
     # old two-value scheme wrote both to `old_gate_fix.py`. It happened to work because the calls
     # are sequential, but a silent overwrite between two controls is one reordering away from one
     # control measuring the other's gate.
-    tag = "asis" if retarget is None else re.sub(r"\W+", "_", str(retarget)).strip("_")[-28:]
+    tag = (
+        "asis"
+        if retarget is None
+        else re.sub(r"\W+", "_", str(retarget)).strip("_")[-28:]
+    )
     out = tmp / f"old_gate_{tag}.py"
     out.write_text(src, encoding="utf-8")
     return out
