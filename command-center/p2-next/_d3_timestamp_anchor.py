@@ -3,8 +3,14 @@
 A gate that reads a claim is not a gate, so this does not inspect the regex -- it runs the real
 CLI, twice, with ONE unmodified probe:
 
-  OLD  = claim_gate.py as committed at HEAD (the state before this round's edit)
-  NEW  = claim_gate.py in the worktree      (the state this round ships)
+  OLD  = claim_gate.py at PRE_FIX, the commit before the fix landed
+  NEW  = claim_gate.py in the worktree
+
+OLD is PINNED to a SHA, not to `HEAD`. It read `HEAD` while the fix was still uncommitted, which
+was correct exactly once: the moment the fix was committed, `HEAD` began carrying the FIX, case C
+became "old exit 1, new exit 1", and this probe reported FAILED for a defect that was closed. A
+committed probe that goes red when re-run is a landmine for the next reader, so the before-state
+is now named explicitly and this file stays truthful on every future run.
 
 Three cases, and the middle one is the load-bearing control:
 
@@ -29,6 +35,10 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 GATE = ".agents/skills/claim-verify-gate/scripts/claim_gate.py"
+# The parent of 1b1e1e4e ("a timestamp was a valid evidence anchor"), i.e. the last commit whose
+# claim_gate.py still carried `_ANCHOR = re.compile(r"https?://\S+|\S+:\d+")`. Override with
+# argv[1] to re-point the before-state at another rev.
+PRE_FIX = "5d573583"
 
 PROBE = {
     "tool": "python",
@@ -82,24 +92,30 @@ def run(gate_path: Path, payload: dict, work: Path) -> int:
     return proc.returncode
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    rev = (argv if argv is not None else sys.argv[1:] or [PRE_FIX])[0]
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         old = work / "claim_gate_old.py"
         blob = subprocess.run(
-            ["git", "show", f"HEAD:{GATE}"],
+            ["git", "show", f"{rev}:{GATE}"],
             cwd=REPO,
             capture_output=True,
             encoding="utf-8",
             errors="replace",
         )
         if blob.returncode != 0:
-            print("FAILED: cannot read claim_gate.py at HEAD")
+            print(f"FAILED: cannot read claim_gate.py at {rev}")
             return 2
         old.write_text(blob.stdout, encoding="utf-8", newline="")
         new = REPO / GATE
+        # Fail closed: if the before-state does NOT carry the old rule, this probe is comparing
+        # two fixed gates and its silence would mean nothing.
+        if "_is_anchor" in blob.stdout:
+            print(f"FAILED: {rev} already carries the fix; it is not a before-state")
+            return 2
 
-        print(f"OLD = HEAD:{GATE}")
+        print(f"OLD = {rev}:{GATE}")
         print(f"NEW = worktree {GATE}")
         print()
         bad = 0
