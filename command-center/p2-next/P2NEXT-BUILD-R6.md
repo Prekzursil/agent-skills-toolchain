@@ -159,23 +159,50 @@ Post-commit gate sweep is in §7.
 6. **The dual-write blocker is unchanged and NOT implicated** — this round touches no
    `.agents/skills/**` file. Control in §7.
 
-## 7. Gate sweep — after the commit, on the COMMITTED state
+## 7. Gate sweep — measured AFTER the commit (`7ab8a35e`), on the COMMITTED state
+
+`.github/workflows/p2next-rail-count.yml` runs the first four. All green.
 
 | gate | result |
 |---|---|
-| `rail_count_gate.py --self-test` | UNKNOWN - not yet measured |
-| `rail_count_gate.py` (committed basis) | UNKNOWN - not yet measured |
-| `vendor_satisfiability.py --basis committed` | UNKNOWN - not yet measured |
-| `split_review_gate.py --basis committed` | UNKNOWN - not yet measured |
-| `_j3_redproof.py` (round 3's red-proof, must still pass) | UNKNOWN - not yet measured |
-| `_c4_blobcheck_mine.py <sha>` | UNKNOWN - not yet measured |
-| `ci/check_skill_dual_write.py --strict-parity` + control | UNKNOWN - not yet measured |
+| `rail_count_gate.py --self-test` | PASS — 50 cases, 27 expecting a FIRE, every check in both states |
+| `rail_count_gate.py` (committed basis) | SUCCESS — 52 / 42 (39 owed, 3 served) / 10 / 10; catalog 2007, READY 449; **C6: block declares UP probed 2026-08-14, 3 assertions across 2 pages agree** |
+| `vendor_satisfiability.py --basis committed` | SUCCESS — artifact drift False |
+| `split_review_gate.py --basis committed` | SUCCESS |
+| `_j3_redproof.py` (round 3's red-proof — must survive my change) | SUCCESS, 3/3 legs; leg B's missing-field list now also names `rail_state`, confirming the new field is required and did not displace the old ones |
+| `_c4_blobcheck_mine.py 7ab8a35e` | 3 python blobs, **0 CRLF**, blob-form `ruff check` and `format --check` rc=0, **CONTROL mangled blob fires rc=1** |
+| `ci/check_skill_dual_write.py --strict-parity` on `7ab8a35e` | **OK** — this round touches no `.agents/skills/**` file. **Control:** the same command on `1b1e1e4e` still reports `VIOLATIONS: 1`, so the gate discriminates |
+| `ci/gen_skill_index.py --check --fail-on-drift` | INDEX DRIFT: no; canonical NOT declared: 0 |
+| `ci/gen_skills_manifest.py --check` | skills_tracked=337 manifest_rows=337 malformed_lines=0 |
+| `uvx ruff@0.15.17 check` / `format --check` (4 files) | All checks passed / already formatted |
 
-## 8. DoD
+**A detector failure of mine, in this very sweep.** My first dual-write run reported `OK` on *both*
+`7ab8a35e` **and** `1b1e1e4e` — a commit round 1 measured as violating. Two agreeing greens, one of
+which had to be wrong. Cause: I omitted `--strict-parity`, so I ran a different check from the one
+CI runs and from the one the earlier rounds measured. The control is what exposed it; without a
+commit known to fail, I would have reported a green that measured the wrong thing. Both rows above
+are the corrected `--strict-parity` runs.
+
+Not run: the node/npm steps, CodeQL, gitleaks, and the hook/workflow gates owned by sibling lanes.
+
+## 8. DoD — re-derived first-hand from committed blobs (`_k3_dod.py`), not cited from a prior round
+
+```
+DoD1 rows=52 unique_ids=52 {'RAIL_BLOCKED': 42, 'SATISFIABLE_NOW': 10}
+DoD2 non-empty reviewer_requirement 52/52; blocked_on 43/52
+DoD3 satisfiable=10 reviewed_PASS_independent=10 notes 1027-2092 chars
+DoD4 rail_blocked=42 still_owed=39 already_served=3
+CONTROL fulfilment counter separates the populations: True (satisfiable fulfilled=0)
+SUCCESS:k3-dod
+```
 
 | item | status |
 |---|---|
-| the 52 split into cross-vendor-required vs any-independent-reviewer | UNKNOWN - not yet measured |
-| receipt text quoted per unit | UNKNOWN - not yet measured |
-| the satisfiable subset reviewed and receipted | UNKNOWN - not yet measured |
-| the rail-blocked remainder counted exactly | UNKNOWN - not yet measured |
+| the population split into cross-vendor-required vs any-independent-reviewer | **PASS** — 42 / 10 of 52. (The brief's "48" is superseded and marked so in-tree; the population is 52.) |
+| receipt text quoted per unit | **PASS for `reviewer_requirement` — 52/52 non-empty.** Scoped, per round 1's refuted overclaim: `blocked_on` is non-empty on **43** of 52; the 9 empty ones are faithful, their receipts carrying no `blocked_on` at all. |
+| the satisfiable subset reviewed and receipted | **PASS** — 10/10 `verdict=PASS` + `independent=true`, notes 1027-2092 chars, all clearing C5's floor |
+| the rail-blocked remainder counted exactly | **PASS** — 42 demanded, **39 still owed**, 3 already served; gate-enforced and partition-checked |
+
+The control on DoD4 is what makes 39/3 a measurement rather than a reader artifact: the same
+predicate returns **0** fulfilled across the SATISFIABLE population. A counter that merely detected
+"has a reviewer" would have returned 10 there.
