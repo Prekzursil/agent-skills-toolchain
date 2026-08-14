@@ -29,6 +29,9 @@ import sys
 import tempfile
 
 REPO = pathlib.Path("C:/Users/Prekzursil/source/ast-integrate")
+# Default set. Pass commit-ish arguments on the command line to check a different set --
+# a later round should not have to edit this list, and hardcoding it is why round 4's
+# commit was not covered until it was passed in explicitly.
 LANE_COMMITS = ["df6377ab", "3043d615", "a435ae7c", "33f3f2d3"]
 
 
@@ -37,10 +40,12 @@ def sh(args: list[str], cwd: str | None = None) -> tuple[int, str]:
     return p.returncode, (p.stdout or "") + (p.stderr or "")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     # Every python file this lane committed.
+    commits = list(argv) if argv else LANE_COMMITS
+    print(f"commits under check: {' '.join(commits)}")
     paths: set[str] = set()
-    for c in LANE_COMMITS:
+    for c in commits:
         rc, out = sh(["git", "-C", str(REPO), "show", "--name-only", "--format=", c])
         for ln in out.split("\n"):
             ln = ln.strip()
@@ -121,4 +126,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
