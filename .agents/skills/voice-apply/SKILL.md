@@ -1,6 +1,6 @@
 ---
 name: voice-apply
-description: Applies a voice profile to transform content. Use when user asks to write in a specific voice, match a tone, apply a style, or transform content to sound like a particular voice profile.
+description: Applies a voice profile to transform content. Use when asked to write in a specific voice, match a tone, or restyle content. NOT for creating a profile (use voice-create).
 license: MIT
 metadata:
   version: 1.0.0

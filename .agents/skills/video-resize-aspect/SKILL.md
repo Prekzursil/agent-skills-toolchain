@@ -1,6 +1,6 @@
 ---
 name: video-resize-aspect
-description: "Use when changing a video's ASPECT RATIO or RESOLUTION for social delivery (9:16 / 1:1 / 4:5 / 16:9), i.e. turning a horizontal source into a vertical Reel/Short, squaring a clip, or scaling to a fixed canvas. Covers the exact scale + crop (cover) filter math this codebase uses, the SAR/DAR +."
+description: Use when changing a video ASPECT RATIO or RESOLUTION for social delivery (9:16 / 1:1 / 4:5 / 16:9) - horizontal into a vertical Reel/Short, squaring, or scaling to a canvas, with scale + crop and SAR/DAR math. NOT for subject-tracking reframe (use reframe) or codec changes (use video-convert).
 ---
 
 # Video resize / aspect-ratio change (geometry layer)

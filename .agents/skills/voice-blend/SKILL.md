@@ -1,6 +1,6 @@
 ---
 name: voice-blend
-description: Combine multiple voice profiles with weighted mixing to create hybrid voices. Use when user wants to mix or blend two or more writing styles together.
+description: Combine multiple voice profiles with weighted mixing to create hybrid voices. Use when mixing two or more styles. NOT for one (use voice-apply).
 license: MIT
 metadata:
   version: 1.0.0

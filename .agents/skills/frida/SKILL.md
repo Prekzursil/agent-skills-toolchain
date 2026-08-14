@@ -1,6 +1,6 @@
 ---
 name: frida
-description: Use when runtime hooking, device instrumentation, API tracing, or patch-on-the-fly behavior matters more than static disassembly alone.
+description: Use when runtime hooking, device instrumentation, API tracing matters more than static disassembly. NOT for MCP setup (use frida-mcp).
 ---
 
 # Frida
