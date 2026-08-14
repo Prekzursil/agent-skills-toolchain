@@ -149,9 +149,17 @@ Post-commit gate sweep is in §7.
 2. **After this fix, C6 has nothing live to fire on in the citing page** (0 assertions there now).
    Its value is prospective: it turns the next unmarked contradiction from silent into loud. Leg B
    is what proves it fires on real bytes, and leg B reads a pinned historical blob.
-3. **C6 cannot see a contradiction in a page outside `SECONDARY_DOCS`.** The set is one document.
-   A page nobody declared can still rot. Settling experiment: scan every tracked markdown file for
-   rail-state assertions and review the list — I ran that scan only over 3 candidates, not the tree.
+3. **C6 cannot see a contradiction in a page outside `SECONDARY_DOCS`** — the set is one document,
+   so a page nobody declared can still rot. This was going to ship as a disclosed residual; I ran
+   the settling experiment instead (`_k4_tree_survey.py`, AGENTS.md §9b — remediate the whole set,
+   not the first symptom). Over **every tracked `.md`** at HEAD, using the gate's own imported
+   predicate so the survey cannot drift from what the gate enforces:
+   **0 LIVE pages assert the retracted verdict**; 4 hits remain and all 4 are round artifacts whose
+   job is to record it (`P2NEXT-BUILD-R2/R5/R6`, `P2NEXT-GROUNDING`), classified by PATH so the
+   use-vs-mention call is inspectable. **CONTROL:** the historical bucket is non-empty, so the zero
+   is a measurement and not a broken grep — had both buckets been empty the survey would have
+   exited 2 rather than reporting clean. The residual that REMAINS is prospective only: a NEW
+   owner-facing page could assert it tomorrow and C6 would not scan it.
 4. **UNVERIFIED [uncertain, 20-55%]:** whether the 39 owed units would PASS a Codex review. This
    lane has only ever measured what receipts DEMAND and which are already SERVED.
 5. **NOT-CHECKED: full CI.** 11 gates ran locally out of roughly 25 steps. A Windows-local green is
