@@ -33,12 +33,19 @@ FRESH DERIVATION: 52 blocked units, 42 rail-blocked, 10 satisfiable now, 10 of t
 | DoD item | State | Evidence |
 |---|---|---|
 | the blocked set split cross-vendor vs any-independent-reviewer | **PASS** | `VENDOR-SATISFIABILITY.json` @ HEAD: 52 rows, `Counter({'RAIL_BLOCKED': 42, 'SATISFIABLE_NOW': 10})` |
-| receipt text quoted per unit | **PASS** | every row carries verbatim `reviewer_requirement` + `blocked_on` |
+| receipt text quoted per unit | **PASS** | 52/52 rows carry a verbatim `reviewer_requirement`; 43/52 also carry a verbatim `blocked_on` [1] |
 | satisfiable subset reviewed and receipted | **PASS** | 10 of 10, each `verdict=PASS, independent=true`, notes 1027-2092 chars |
 | rail-blocked remainder counted exactly | **PASS** | 42, gate-enforced against the published doc |
 
 No same-vendor review was substituted anywhere a receipt demands cross-vendor. The 42/10 split
 is unchanged by this round's work.
+
+> [1] **REFUTED — round 2.** This row originally read *"every row carries verbatim
+> `reviewer_requirement` + `blocked_on`"*. Measured: **9** of the 52 rows carry an EMPTY
+> `blocked_on` — ADV-0001, -0006, -0007, -0014, -0015, -0020, -0021, -0022, -0036. Reading all
+> nine receipts shows every one has `failure.blocked_on` = null, so the extraction is faithful with
+> **0 data loss** and the DoD item still PASSES. The code was right and the sentence was wider than
+> its evidence.
 
 ## 2. What this round shipped: a timestamp was a valid evidence anchor
 
@@ -75,6 +82,12 @@ B measured what that costs:
 So the shipped rule tests whether the head names a **path** (contains a separator, or carries an
 extension with at least one letter, or is a known extension-less filename), not whether it has a
 dot. `C:\...\claim_gate.py:113` is covered explicitly — this estate is Windows.
+
+> **SUPERSEDED — round 2.** "An extension with at least one letter" was REFUTED by an independent
+> auditor: `.com` and `.io` carry letters, so `example.com:443` still passed. The letter clause is
+> gone; a separator-less head must now carry a KNOWN FILE extension, dotfiles are recognised
+> structurally, and a path separator still short-circuits everything. Measured over 2,568
+> mechanically-verified real anchors: 0 regressions. `P2NEXT-BUILD-R4.md` §2.
 
 ### Both-states proof at the CLI, one unmodified probe (`_d3_timestamp_anchor.py`)
 
@@ -121,6 +134,19 @@ flagged it): a control that shares its subject's reader inherits the defect it e
   ledgers. Section B (10 hand-built anchors) carries the false-positive verdict, not section C.
   Settling experiment: run the shipped rule over a corpus of real EVIDENCE blocks once more
   ledgers exist. [likely 55-80%] that no further false positive exists.
+
+  > **SETTLED — round 2, in the direction of the code.** The named experiment was run with
+  > mechanical ground truth (`_e3_anchor_corpus.py`: a head is a real anchor when it resolves to a
+  > path `git ls-files` tracks). Over **2,568** real anchors from 4,972 committed markdown blobs:
+  > **0 regressions**, and one PRE-EXISTING false positive fixed (`.gitattributes:2`, whose
+  > 13-character extension overflowed the length window while the shorter `.gitignore` passed by
+  > accident). The 55-80% band was an UNDER-claim; it is [almost certain, 90-99%] for a
+  > separator-less head whose extension is in the allowlist, or any head containing a path
+  > separator. The residual moved rather than vanished — the corpus is markdown-only, and the
+  > allowlist is now a maintenance surface. Both are carried in `P2NEXT-BUILD-R4.md` §5.
+  >
+  > The same run REFUTED this round's own rule as sufficient: `example.com:443` and `site.io:8080`
+  > still passed, because `.com` and `.io` carry letters. Closed in round 2.
 - **`CLAIM-REGISTRY.json` uses `verifier_probe`; claim_gate reads `verify_probe`.** Found while
   measuring, NOT fixed here — it is a schema question for that registry's owner, not an anchor
   question, and claim_gate is not run over it in CI. UNVERIFIED whether this is drift or two
@@ -150,8 +176,12 @@ that CREATED this skill and on the previous round, both already in `origin/main`
 | `00d0a311` previous round, same files | VIOLATIONS: 1 |
 | `1b1e1e4e` this round | VIOLATIONS: 1 |
 
-Cause: `.agents/skills/` holds 347 skills, `skills/` projects 339. About ten — claim-verify-gate
-and the `codex-*` family — are deliberately canonical-only, and the index agrees with that
+Cause: `.agents/skills/` holds **347 skill directories** and `skills/` projects **339** (counting
+`SKILL.md` files instead gives 352 and 338 — five nested `SKILL.md` under `microsoft-foundry/**`
+and one template are the difference, which is also why an SKILL.md-path diff mis-files the
+published `microsoft-foundry` as canonical-only). **Eleven** directories are deliberately
+canonical-only — claim-verify-gate, the nine `codex-*` skills, and qdx-rush — and the index agrees
+with that
 (`gen_skill_index.py --check` reports `canonical NOT declared: 0`, `INDEX DRIFT: no`;
 `gen_skills_manifest.py --check` reports `skills_tracked=337 manifest_rows=337`). The
 strict-parity rule does not accommodate that convention: it reds whenever a canonical-only skill
@@ -183,5 +213,21 @@ sets `manifest_registration.registered`. **`codex login` buys review capacity fo
 delivers zero of them.** Pricing it alone overstates its value. Neither was attempted: the first
 is a credential write (AGENTS.md §9), the second a contract collision.
 
-No READY units were built — all 449 name a cross-vendor reviewer, so building them manufactures
-more un-reviewable work behind the same two blockers.
+No READY units were built.
+
+> **REFUTED — round 2.** This paragraph originally read *"all 449 name a cross-vendor reviewer, so
+> building them manufactures more un-reviewable work behind the same two blockers."* That is false,
+> and it is false in the owner-facing paragraph used to price `codex login`. The wording is kept
+> rather than deleted because the same sentence is in the permanent commit message of `1b1e1e4e`
+> and cannot be corrected there without a history rewrite.
+>
+> Measured (`_e2_ready_vendor.py`, committed blobs at `5423de0f`, 6/6 detector controls passing):
+> **95** of the 449 name a Codex reviewer outright; **49** carry a cross-vendor clause naming only
+> Anthropic; **20** carry an undirected cross-vendor clause; and **285 carry no cross-vendor demand
+> at all**. A regex-free floor needing no predicate: **33** READY units carry a
+> `reviewer_requirement` byte-identical to text this lane itself ruled `SATISFIABLE_NOW`, with a
+> 0-overlap control between the two classes.
+>
+> The ACTION was correct and lane-mandated — the spec forbids building READY units into a dead rail
+> — but the REASON was not. Corrected statement, and the caveat that cuts the other way, in
+> `P2NEXT-BUILD-R4.md` §1.
