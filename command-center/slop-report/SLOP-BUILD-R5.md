@@ -30,10 +30,19 @@ deleted as "reproducible scratch" and could not have been reproduced.
 
 | DoD item | verdict | evidence |
 |---|---|---|
-| 1. every candidate classified into four buckets with evidence | **PASS** | `_r5_reclassify.out.json` @ `5423de0f`: 305 rows == 305 untracked, `partition_total: true`, classifier's own 5 controls PASS, histogram b=179 / c=3 / d-census=100 / d-zero=18 (…and 1 of the 3 c-rows reclassified, below) |
+| 1. every candidate classified into four buckets with evidence | **PASS** | `_r5_reclassify.out.json` @ `5423de0f`: 305 rows == 305 untracked, `partition_total: true`, classifier's own 5 controls PASS, histogram b=179 / c=3 / d-census=100 / d-zero=23 (…and 1 of the 3 c-rows reclassified, below) |
 | 2. bucket (b) committed rather than deleted | **PARTIAL — unchanged as a gap, but no longer un-costed** | dangerous subset still empty by construction; 179 weak-signal files still belong to other lanes. New: **66 of the 99 bucket-(b) `.py` are ruff-clean today and cost the gate nothing to commit**; 33 need their owner to format first, listed per lane |
 | 3. bucket (c) deletions each backed by a shown regenerating command | **PASS** | **0 bucket-(c) files deleted**, so no deletion lacks backing. The command is now SHOWN and EXECUTED on a real bucket-(c) candidate (`_r5_bucket_c.out.json`, rc 0, `K8_restored: true`) |
 | 4. frozen-evidence directories untouched | **PASS, and this time proven** | `_r5_frozen.out.json` → `FROZEN-UNTOUCHED-PROVEN`: 9/9 files byte-identical to their HEAD blobs, fail-closed counts 7 + 2, live-detector control fires at 5 lines, both-states comparator check |
+
+> **REFUTED in round 6 — the DoD-1 row above shipped a mis-transcribed histogram.**
+> Original wording kept, REFUTED: ~~`histogram b=179 / c=3 / d-census=100 / d-zero=18`~~ in `_r5_reclassify.out.json`.
+> The committed receipt
+> `_r5_reclassify.out.json` says **`d-zero: 23`**. As published the parts summed to **300**
+> against the **305** asserted in the same sentence, while that sentence also cited
+> `partition_total: true` — so the row contradicted itself and its own receipt. **The classifier
+> was correct and the partition really is total; only the transcription was wrong.** Corrected in
+> the row above. Found mechanically, not by eye: `python command-center/slop-report/_r6_transcript.py`.
 
 ---
 
@@ -99,8 +108,8 @@ objection round 4 declined on, without destroying anything. **Deleted by this la
 * (i) regenerable **in this worktree** by a tracked command — round 4's test;
 * (ii) regenerable **by anyone who clones the repo** — the only one that makes deletion safe.
 
-`_secfirst_selfaudit.py` is tracked, exits 0, and rebuilds its output faithfully. Four of its six
-declared inputs are not:
+`_secfirst_selfaudit.py` is tracked, exits 0, and rebuilds its output faithfully. Four of the file
+paths it names are not tracked:
 
 ```
 platform/architecture/_secfirst_measure.out.json            UNTRACKED
@@ -110,6 +119,20 @@ platform/architecture/_secfirst_probe_denydefault.out.json  UNTRACKED
 platform/architecture/security-first.md                     tracked
 command-center/WORK-UNIT-CATALOG.json                       tracked
 ```
+
+> **REFUTED in round 6 — two things above were narrower than the instrument. Original wording
+> kept:** ~~"Four of its **six declared inputs** are not"~~, and the six-line block above read as
+> the complete set. The receipt says `n_inputs_resolved: 12`, and this document's own table two
+> screens up already said "**4 of 12**" — a self-contradiction inside one file. Worse, "inputs" is
+> not what the extractor measures: `_r5_reclassify.py`'s `FILE_LIT` regex matches **quoted file
+> literals**, and re-running it on this producer returns **13**, including the producer's *own
+> output* `_secfirst_selfaudit.out.json` and the same catalogue under two spellings
+> (`WORK-UNIT-CATALOG.json` and `command-center/WORK-UNIT-CATALOG.json`). So the denominator is a
+> literal count, not an input count. **The K7 verdict is unaffected and was independently
+> re-confirmed at source level in round 6:** `_secfirst_selfaudit.py:27-31` really does
+> `json.load` all four untracked receipts, so they are genuine inputs and the file genuinely is
+> not clone-regenerable. Correctly scoped: *four of the file paths this producer names are
+> untracked, and all four are read as inputs at lines 27-31.*
 
 Applied to every bucket-(c) row (`_r5_reclassify.py`, extractor controls E1/E2/E3 all pass):
 
