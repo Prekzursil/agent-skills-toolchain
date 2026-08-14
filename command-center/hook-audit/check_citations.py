@@ -54,6 +54,33 @@ while the flagship deliverable published unbacked numbers:
      the corpus can actually meet, not a flood that trains the reader to ignore it (which is
      itself a finding of this very audit).
 
+ROUND 5 (INTEGRATE) -- a FIFTH hole, found by the refute round, in the same family as H4:
+
+  H5 A PUBLISHED VERDICT COUNT IN PROSE WAS INVISIBLE TO EVERY RULE. H4 guards TABLES whose
+     cells carry a unit (ms/s/%/x/B). A bolded integer standing next to a VERDICT LABEL in a
+     sentence carries no unit and is in no table, so nothing looked at it. Measured
+     2026-08-14, with the ungatedness proven by a positive control rather than asserted:
+
+       docs/hook-audit/HOOK-AUDIT.md:197        "**5 dirs INERT-CONFIRMED**"
+       command-center/hook-audit/B6-FLEET.json  inertness.verdicts.INERT-CONFIRMED = 6
+
+     and `docs/hook-audit/GROUNDING.md:28` repeated the 5. The document contradicted its own
+     evidence file, its own round-3 addendum 54 lines further down (which settles `checkpoint`
+     as dark, so the inert set includes it), and a sibling document that cites 6 -- while this
+     gate printed `189 citations checked, 0 unbacked, 0 unannotated doc(s)`. Editing the
+     published 5 to a 7 kept it green; only mutating a CITED number turned it red. That is the
+     H4 defect one level down: the cheapest way to pass is to publish the number in prose.
+
+     The rule added here: a line that puts an INTEGER within VERDICT_ADJACENCY characters of a
+     verdict LABEL must carry a `cite:` marker in its neighbourhood. Scoped by construction so
+     it is a floor the corpus can meet rather than a flood -- measured against this corpus at
+     the moment it was written it flags 4 lines, 2 of which are the defect above.
+
+     The vocabulary is DERIVED FROM THE TRACKED EVIDENCE, never hand-written: any dict named
+     `verdicts` contributes its keys and any uppercase hyphenated string value contributes
+     itself. A hand list rots the moment a lane adds a verdict, and a rule that quietly stops
+     recognising the label it guards is a no-op that reports zero forever.
+
 CITATION SYNTAX -- an HTML comment next to the claim, so it renders invisibly:
 
     <!-- cite: id=C4-worst file=B6-FLEET.json path=timing.worst_pct value=17.8 tol=0.05 -->
@@ -175,6 +202,122 @@ def classifier_selfcheck() -> tuple[bool, bool]:
     hot, n_hot = measurement_tables(_SELFCHECK_HOT)
     _cold, n_cold = measurement_tables(_SELFCHECK_COLD)
     return (len(hot) == 1 and n_hot == 1), (n_cold == 0)
+
+
+# H5. A verdict label as the evidence writes it: SCREAMING-KEBAB or SCREAMING_SNAKE, at least
+# one separator, so an ordinary capitalised word ("DONE", "PASS") is not a label and a sentence
+# that merely shouts does not become a claim.
+VERDICT_LABEL = re.compile(r"^[A-Z][A-Z0-9]*(?:[-_][A-Z0-9]+)+$")
+# A bare integer, thousands separator allowed. `(?<![\w.])`/`(?![\w.])` keeps it off version
+# strings, decimals and identifiers -- `v1.4`, `0.05` and `H4` must not read as counts.
+INTEGER = re.compile(r"(?<![\w.])\d[\d,]*(?![\w.])")
+# Same line, and close enough that the integer is plausibly COUNTING the label. Measured on
+# this corpus, same-line alone and within-40-characters select the identical 6 lines, so the
+# tighter of the two is used: it is the one that stays tight as documents grow.
+VERDICT_ADJACENCY = 40
+VERDICT_LOOKBACK = 3
+VERDICT_LOOKAHEAD = 1
+
+
+def _harvest_labels(obj: object, out: set[str]) -> None:
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == "verdicts" and isinstance(v, dict):
+                out.update(str(lbl) for lbl in v if VERDICT_LABEL.match(str(lbl)))
+            _harvest_labels(v, out)
+    elif isinstance(obj, list):
+        for v in obj:
+            _harvest_labels(v, out)
+    elif isinstance(obj, str) and VERDICT_LABEL.match(obj):
+        out.add(obj)
+
+
+def verdict_vocab(repo: Path) -> tuple[set[str], int]:
+    """-> (labels, number of TRACKED evidence json files the labels were derived from).
+
+    Tracked, not on-disk: a label that exists only in an uncommitted evidence file is invisible
+    to a clone, so guarding a document against it would pass here and fail there -- the same
+    worktree-vs-blob asymmetry H1 closed for citations. The count is returned so a derivation
+    that has gone blind is loud instead of reporting an empty vocabulary as "nothing to guard".
+    """
+    p = _git(repo, "ls-files", "--", "command-center/hook-audit")
+    names = [
+        n
+        for n in p.stdout.decode("utf-8", "replace").splitlines()
+        if n.strip().endswith(".json")
+    ]
+    vocab: set[str] = set()
+    for n in names:
+        try:
+            _harvest_labels(json.loads((repo / n).read_text(encoding="utf-8")), vocab)
+        except (OSError, ValueError):
+            continue
+    return vocab, len(names)
+
+
+def verdict_counts(text: str, vocab: set[str]) -> list[dict]:
+    """Lines that publish `<integer> ... <VERDICT-LABEL>` with no citation nearby (H5)."""
+    if not vocab:
+        return []
+    # Strict boundaries, NOT `\b`: `-` is a non-word character, so `\bPATH-WIRED\b` matches
+    # inside `MENTIONED-BUT-NOT-PATH-WIRED`, which is a DIFFERENT label the document coined.
+    # Firing on it would be a use-vs-mention error -- counting the document, not the field.
+    tok = re.compile(
+        r"(?<![A-Za-z0-9_-])("
+        + "|".join(re.escape(t) for t in sorted(vocab))
+        + r")(?![A-Za-z0-9_-])"
+    )
+    lines = _strip_fenced(text).splitlines()
+    viol: list[dict] = []
+    for i, line in enumerate(lines):
+        # The marker itself carries `value=6`; leaving it in would let a citation satisfy the
+        # adjacency test with its own number.
+        bare = CITE.sub("", line)
+        tms = list(tok.finditer(bare))
+        if not tms:
+            continue
+        nms = list(INTEGER.finditer(bare))
+        if not any(
+            abs(t.start() - n.start()) <= VERDICT_ADJACENCY for t in tms for n in nms
+        ):
+            continue
+        window = "\n".join(
+            lines[max(0, i - VERDICT_LOOKBACK) : i + 1 + VERDICT_LOOKAHEAD]
+        )
+        if CITE.search(window):
+            continue
+        viol.append(
+            {
+                "line": i + 1,
+                "labels": sorted({t.group(1) for t in tms}),
+                "head": line.strip()[:90],
+            }
+        )
+    return viol
+
+
+# Both-states control for H5, run on EVERY invocation with its OWN fixed vocabulary, so it
+# still proves the rule is alive when the corpus legitimately has no verdict labels at all.
+_VERDICT_SELF_VOCAB = {"INERT-CONFIRMED", "PATH-WIRED"}
+_VERDICT_HOT = "**5 dirs INERT-CONFIRMED** -- reachable from no wiring surface\n"
+_VERDICT_COLD = (
+    "<!-- cite: id=x file=E.json path=a.b value=5 -->\n"
+    "**5 dirs INERT-CONFIRMED** -- reachable from no wiring surface\n"
+)
+_VERDICT_NONUM = "every dir the probe called dark was INERT-CONFIRMED when fired\n"
+_VERDICT_COMPOUND = (
+    "**2 dirs came back MENTIONED-BUT-NOT-PATH-WIRED**, which is not a verdict\n"
+)
+
+
+def verdict_selfcheck() -> tuple[bool, bool, bool, bool]:
+    """-> (fires_uncited, silent_when_cited, silent_without_a_number, silent_on_a_compound)."""
+    return (
+        len(verdict_counts(_VERDICT_HOT, _VERDICT_SELF_VOCAB)) == 1,
+        len(verdict_counts(_VERDICT_COLD, _VERDICT_SELF_VOCAB)) == 0,
+        len(verdict_counts(_VERDICT_NONUM, _VERDICT_SELF_VOCAB)) == 0,
+        len(verdict_counts(_VERDICT_COMPOUND, _VERDICT_SELF_VOCAB)) == 0,
+    )
 
 
 def repo_root() -> Path:
@@ -400,10 +543,25 @@ def main() -> int:
         )
         return 1
 
+    # H5 control, on the same terms and for the same reason: four arms, because "fires when
+    # uncited" alone cannot tell a working rule from one that fires on every integer.
+    v_hot, v_cold, v_nonum, v_compound = verdict_selfcheck()
+    if not (v_hot and v_cold and v_nonum and v_compound):
+        print(
+            "FAILED:cite-check the verdict-count classifier failed its own both-states "
+            f"control (fires_uncited={v_hot}, silent_when_cited={v_cold}, "
+            f"silent_without_a_number={v_nonum}, silent_on_a_compound={v_compound}) -- "
+            "it cannot be trusted to report zero, so no verdict is issued"
+        )
+        return 1
+
+    vocab, n_evidence = verdict_vocab(repo)
+
     md_files = sorted(docs.glob("*.md"))
     cites: list[dict] = []
     per_doc: dict[str, int] = {}
     table_viol: list[str] = []
+    verdict_viol: list[str] = []
     n_measure_tables = 0
     for md in md_files:
         text = md.read_text(encoding="utf-8")
@@ -414,6 +572,10 @@ def main() -> int:
         n_measure_tables += n_meas
         for v in viol:
             table_viol.append(f"{md.name}:{v['line']} -- {v['why']}: {v['head']}")
+        for v in verdict_counts(text, vocab):
+            verdict_viol.append(
+                f"{md.name}:{v['line']} -- {'/'.join(v['labels'])}: {v['head']}"
+            )
 
     if not cites:
         print(
@@ -467,6 +629,22 @@ def main() -> int:
             "table, or an <!-- uncited-table: reason=... --> waiver above it."
         )
 
+    # H5: a verdict count published in prose was in no table and carried no unit.
+    for v in verdict_viol:
+        print(
+            f"!! UNCITED-VERDICT-COUNT {v}\n"
+            "     A number published next to a verdict label must carry a cite: marker "
+            "within 3 lines above or 1 below."
+        )
+    blind = n_evidence == 0
+    if blind:
+        print(
+            "!! VERDICT-VOCAB-BLIND 0 tracked evidence json files under "
+            "command-center/hook-audit -- the H5 vocabulary is derived from them, so it is "
+            "empty for a reason that is NOT 'this corpus has no verdicts'. Reporting zero "
+            "here would be a no-op dressed as a pass."
+        )
+
     print(
         f"\n== docs scanned: {len(md_files)}  "
         + ", ".join(f"{k}={v}" for k, v in sorted(per_doc.items()))
@@ -478,11 +656,18 @@ def main() -> int:
         f"== {n_measure_tables} measurement table(s) scanned, {len(table_viol)} uncited "
         "(classifier both-states control: PASS)"
     )
-    if bad or unannotated or table_viol:
+    print(
+        f"== {len(vocab)} verdict label(s) derived from {n_evidence} tracked evidence "
+        f"file(s), {len(verdict_viol)} uncited verdict count(s) "
+        "(4-arm both-states control: PASS)"
+    )
+    if bad or unannotated or table_viol or verdict_viol or blind:
         print(
             f"FAILED:cite-check {len(bad)} published number(s) not backed by evidence, "
             f"{len(unannotated)} document(s) with no citation at all, "
-            f"{len(table_viol)} uncited measurement table(s)"
+            f"{len(table_viol)} uncited measurement table(s), "
+            f"{len(verdict_viol)} uncited verdict count(s)"
+            + (", verdict vocabulary BLIND" if blind else "")
         )
         return 1
     print("SUCCESS:cite-check")

@@ -25,7 +25,7 @@ Four rounds of HOOKRESEARCH already shipped, commits `de77c002` → `861fd533` (
 | DoD item | status | artifact |
 |---|---|---|
 | every wired hook timed against its budget | DONE (round 4 corrected round 1's table) | `docs/hook-audit/HOOK-AUDIT.md` DoD-1; `command-center/hook-audit/H4-TIMING-live.json` |
-| inert hooks proven inert BY FIRING | DONE — 5 INERT-CONFIRMED + 1 non-terminating | `HOOK-AUDIT.md` DoD-2; `B6-FLEET.json` → `inertness`; `probe_hook_fleet.py --inertness` |
+| inert hooks proven inert BY FIRING | DONE — 6 INERT-CONFIRMED <!-- cite: id=I1-g-inert file=B6-FLEET.json path=inertness.verdicts.INERT-CONFIRMED value=6 --> + 1 non-terminating (this row said 5 until 2026-08-14; see the HOOK-AUDIT.md DoD-2 correction) | `HOOK-AUDIT.md` DoD-2; `B6-FLEET.json` → `inertness`; `probe_hook_fleet.py --inertness` |
 | /rollback producer gap resolved or deploy plan | DEPLOY PLAN WRITTEN | `docs/hook-audit/ROLLBACK-DEPLOY-PLAN.md` |
 | false-positive sources named with a fix | DONE — F1/F2/F3 fixed + red-first tests | `HOOK-AUDIT.md` DoD-4; `hooks/wire-check/test_wire_check_{decode,noise}.py` |
 

@@ -44,6 +44,12 @@ run beside it, because a rule that fails every table would also fail this one:
   H4 WAIVER NO REASON the same waiver with the reason omitted             new: FAIL
   H4 PROSE TABLE      a table with no measurement in it                   new: SUCCESS
   H4 CLASSIFIER       the gate's own both-states self-check               (True, True)
+  H5 UNCITED VERDICT  annotated doc + `**5 dirs INERT-CONFIRMED**` in prose
+                      old: SUCCESS          new: FAIL naming UNCITED-VERDICT-COUNT
+  H5 CITED            the same line under a cite: marker                  new: SUCCESS
+  H5 COMPOUND         `MENTIONED-BUT-NOT-PATH-WIRED` vs vocab `PATH-WIRED` new: SUCCESS
+  H5 VOCAB-BLIND      zero TRACKED evidence json                          new: FAIL
+  H5 SELFCHECK        the rule's own 4-arm both-states check              (True x4)
 """
 
 from __future__ import annotations
@@ -124,6 +130,12 @@ PRE_R3_GATE_BLOB = "66855eed4857e47a7ea03c35e52d89812a605eac"
 # the same reason as above: `HEAD` would become the round-4 gate the moment this lands, and
 # the control would be comparing the new gate with itself.
 PRE_R4_GATE_BLOB = "b7262302f035576497a15955ec4fc78ca4b4315f"
+
+# The gate as it shipped at the END of round 4 -- the control for H5, pinned for the third
+# time for the same reason. `pinned_gate(..., must_lack="UNCITED-VERDICT-COUNT")` refuses to
+# run if this blob ever contains the fix, so the control cannot decay into comparing the new
+# gate with itself without saying so out loud.
+PRE_R5_GATE_BLOB = "ff46af27783f4620cc27ec0bb71f1da86fe32a4f"
 
 MEASURE_TABLE = (
     "\n| check | budget | measured | % |\n|---|---|---|---|\n"
@@ -377,12 +389,127 @@ def main() -> int:
             "-- the rule is scoped to measurements, not to tables",
         )
 
+        # ---- H5 UNCITED VERDICT COUNT -------------------------------------------
+        # Same construction as H4: the doc keeps its valid citation so the per-document
+        # floor is satisfied and the ONLY rule that can fire is the new one.
+        def with_verdicts(sub: str, extra: str, *, track_evidence: bool = True) -> Path:
+            root = make_fixture(tmp / sub, doc_value="1.0", blob_value="1.0")
+            (root / "command-center" / "hook-audit" / "V.json").write_text(
+                json.dumps({"inertness": {"verdicts": {"INERT-CONFIRMED": 6}}}),
+                encoding="utf-8",
+            )
+            doc = root / "docs" / "hook-audit" / "DOC.md"
+            # PADDING IS LOAD-BEARING. The fixture doc's own `id=F1` marker sits 3 lines
+            # above the appended text, which is inside VERDICT_LOOKBACK -- so without this
+            # the rule correctly saw a citation in the window and the case measured nothing.
+            # Measured: the first version of this test reported `H5 the new gate FAILS it =
+            # 0`, and the gate was right.
+            doc.write_text(
+                doc.read_text(encoding="utf-8") + ("\nfiller.\n" * 4) + extra,
+                encoding="utf-8",
+            )
+            sh(root, "git", "add", "docs")
+            if track_evidence:
+                sh(root, "git", "add", "command-center")
+            sh(root, "git", "commit", "-q", "-m", "verdict fixture")
+            return root
+
+        VERDICT_LINE = (
+            "\n**5 dirs INERT-CONFIRMED** -- reachable from no wiring surface\n"
+        )
+        h5 = with_verdicts("h5", VERDICT_LINE)
+        old5 = pinned_gate(
+            tmp,
+            PRE_R5_GATE_BLOB,
+            "old_gate_r4.py",
+            must_lack="UNCITED-VERDICT-COUNT",
+        )
+        rc_o5, _ = run_gate(old5, h5, env_root=str(h5))
+        case(
+            "H5 control: the PRE-R5 gate PASSES an uncited verdict count",
+            rc_o5,
+            0,
+            "-- if this is not 0 the hole was already closed and H5 measures nothing",
+        )
+        rc_n5, out_n5 = run_gate(GATE, h5, env_root=str(h5))
+        case("H5 the new gate FAILS it", rc_n5, 1)
+        case("H5 the failure names the rule", "UNCITED-VERDICT-COUNT" in out_n5, True)
+
+        h5c = with_verdicts(
+            "h5cited",
+            "\n<!-- cite: id=V1 file=V.json path=inertness.verdicts.INERT-CONFIRMED"
+            " value=6 -->\n**6 dirs INERT-CONFIRMED** -- proven by firing\n",
+        )
+        rc_c5, _ = run_gate(GATE, h5c, env_root=str(h5c))
+        case(
+            "H5 CITED control: a marker above the line PASSES",
+            rc_c5,
+            0,
+            "-- stops the rule passing H5 by failing every sentence with a number in it",
+        )
+
+        # use-vs-mention: `PATH-WIRED` is a real label, `MENTIONED-BUT-NOT-PATH-WIRED` is a
+        # compound the DOCUMENT coined. `\b` would match inside it because `-` is a non-word
+        # character; firing there would be counting the document instead of the field.
+        h5x = with_verdicts(
+            "h5compound",
+            "\n**2 dirs came back MENTIONED-BUT-NOT-PATH-WIRED**, which is not a verdict\n",
+        )
+        (h5x / "command-center" / "hook-audit" / "V.json").write_text(
+            json.dumps({"inertness": {"verdicts": {"PATH-WIRED": 63}}}),
+            encoding="utf-8",
+        )
+        sh(h5x, "git", "add", "command-center")
+        sh(h5x, "git", "commit", "-q", "-m", "path-wired vocabulary")
+        rc_x5, _ = run_gate(GATE, h5x, env_root=str(h5x))
+        case(
+            "H5 COMPOUND control: a label EMBEDDED in a longer token does not fire",
+            rc_x5,
+            0,
+        )
+
+        # The vocabulary is derived from TRACKED evidence, so a label living only in an
+        # uncommitted file is invisible here exactly as it is in a clone. When NOTHING is
+        # tracked the empty vocabulary means "the derivation is blind", not "this corpus has
+        # no verdicts", and the gate must say so rather than report zero. `commit=False` +
+        # `git add docs` is the only way to get there -- `make_fixture` commits the evidence,
+        # which is why the first version of this case asserted a red that never came.
+        h5u = make_fixture(
+            tmp / "h5blind", doc_value="1.0", blob_value="1.0", commit=False
+        )
+        (h5u / "docs" / "hook-audit" / "DOC.md").write_text(
+            (h5u / "docs" / "hook-audit" / "DOC.md").read_text(encoding="utf-8")
+            + ("\nfiller.\n" * 4)
+            + VERDICT_LINE,
+            encoding="utf-8",
+        )
+        sh(h5u, "git", "add", "docs")
+        sh(h5u, "git", "commit", "-q", "-m", "doc only, no evidence tracked at all")
+        rc_u5, out_u5 = run_gate(GATE, h5u, env_root=str(h5u))
+        case(
+            "H5 VOCAB-BLIND: zero tracked evidence json fails closed",
+            rc_u5,
+            1,
+            "-- also red for the UNTRACKED citation, so the naming case below is the one "
+            "that discriminates",
+        )
+        case(
+            "H5 that failure names the blindness",
+            "VERDICT-VOCAB-BLIND" in out_u5,
+            True,
+        )
+
         # The classifier's own both-states control, called directly rather than inferred
         # from a green run: a silent classifier reports zero violations forever.
         sys.path.insert(0, str(HERE))
         import importlib
 
         cc = importlib.import_module("check_citations")
+        v_hot, v_cold, v_nonum, v_comp = cc.verdict_selfcheck()
+        case("H5 SELFCHECK fires on an uncited verdict count", v_hot, True)
+        case("H5 SELFCHECK silent when the line is cited", v_cold, True)
+        case("H5 SELFCHECK silent on a label with no number", v_nonum, True)
+        case("H5 SELFCHECK silent on an embedded compound label", v_comp, True)
         case(
             "H4 CLASSIFIER fires on a measurement table",
             cc.classifier_selfcheck()[0],

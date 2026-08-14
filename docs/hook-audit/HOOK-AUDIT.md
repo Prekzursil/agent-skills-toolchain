@@ -194,11 +194,37 @@ from the manifest for those two events is computed against the wrong denominator
 it finds dark with an event-appropriate payload. Firing is what separates "named nowhere"
 from "inert" — a directory listing cannot tell a dark hook from a broken one.
 
-**5 dirs INERT-CONFIRMED** — they run cleanly standalone (exit 0) and are reachable from no
-wiring surface, i.e. the probe fires and the wiring does not: `compute-confidence-gate`,
-`figma-mirror`, `mvt-patch-leaving`, `recall-gate`, `skill-router`. All 5 also appear in the
-grounding lane's independently-derived dark list, so two mechanically different methods
-agree.
+<!-- cite: id=I1-inert file=B6-FLEET.json path=inertness.verdicts.INERT-CONFIRMED value=6 -->
+**6 dirs INERT-CONFIRMED** — they run cleanly standalone (exit 0) and are reachable from no
+PATH-shaped wiring surface, i.e. the probe fires and the wiring does not: `checkpoint`,
+`compute-confidence-gate`, `figma-mirror`, `mvt-patch-leaving`, `recall-gate`,
+`skill-router`. Five of the six also appear in the grounding lane's independently-derived
+dark list, so two mechanically different methods agree. The sixth is `checkpoint`, held out
+of the count in round 1 pending a settling experiment and SETTLED as dark in round 3 on four
+mechanically different signals — see the round-3 block below, which already says in so many
+words that "the inert set can include it".
+
+> **REFUTED 2026-08-14 (integrate round), kept rather than silently corrected.** From round 1
+> until now this paragraph opened with the wording fenced below — fenced at top level, not
+> inside this blockquote, because `_strip_fenced` anchors its fence match at the start of the
+> line and does not see a fence carrying a `>` prefix, so a quoted refuted number inside a
+> blockquote is still audited as a live claim (measured while writing this correction).
+
+```
+**5 dirs INERT-CONFIRMED** — ... `compute-confidence-gate`, `figma-mirror`,
+`mvt-patch-leaving`, `recall-gate`, `skill-router`. All 5 also appear in the grounding
+lane's independently-derived dark list ...
+```
+
+> The probe was right and the sentence was stale. Round 3 settled `checkpoint` 54 lines below
+> and nobody carried the settlement back up to the headline, so the flagship deliverable
+> disagreed with its own evidence file, with its own addendum, and with `BUILD-R3.md`, which
+> cites 6. Three review rounds read past it because **no gate could see it**: the number is
+> in prose, carries no unit and sits in no table, so the H4 uncited-measurement-table rule
+> did not reach it. Editing the published 5 to a 7 kept the gate green — measured, with the
+> gate proven alive in the same run by mutating a CITED number and watching it go red. That
+> hole is closed by the H5 rule in `check_citations.py`, and this correction is the first
+> thing it caught.
 
 **1 dir is NOT merely dark — it does not terminate.** `harness-bench` was fired once and
 **did not return inside 45 s** (`exit=TIMEOUT`). Wiring it would hang its event, so
