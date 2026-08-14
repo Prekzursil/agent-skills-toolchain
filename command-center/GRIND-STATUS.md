@@ -49,11 +49,13 @@ of them a live lane defect.** Anchor: `command-center/GRIND-GATE-RESULTS.json`.
 **almost certain (90-99%)** that every lane's CI-wired headline gate passed *on this disk at the
 commit I measured*. That is a narrower statement than "the lanes are green" — see §2 B1 and §5 CL6.
 
-> **The RULERESEARCH row above is already STALE, and I am leaving it visible rather than editing the
-> measurement.** It read PASS when I ran it. It reads **FAIL** now, because a sibling lane's
-> *uncommitted* edit to a shared workflow destroyed the fixture of one of its controls between my
-> run and this write-up. That is **B7**, and it is the sharpest illustration in this document of why
-> a gate table is a snapshot: nothing in RULERESEARCH changed.
+> **The RULERESEARCH row above went PASS → FAIL → PASS while this document was being written, and I
+> am leaving the original measurement visible rather than editing it.** The orchestrator's
+> *uncommitted* edit to a shared workflow briefly destroyed the fixture of one of its controls; the
+> edit was reverted and the gate is **green again at rc=0**. That is **B7**, and it is the sharpest
+> illustration in this document of why a gate table is a snapshot: nothing in RULERESEARCH ever
+> changed, and for about twenty minutes the honest reading of that row was the opposite of both the
+> before and the after.
 
 Volume, measured: **247 commits in 36 hours**. Per-lane last-commit age / 36h commit count —
 HOOKRESEARCH 0.4h/32 · P2NEXT 1.2h/27 · SLOP 1.7h/38 · MCPRESEARCH 1.9h/36 · SSOT 2.4h/32 ·
@@ -90,10 +92,10 @@ so this is **not** a repo-level Actions disablement.
 
 > **SUPERSEDED — read `docs/GRIND-STATUS.md` §0 for the authoritative diagnosis.** I wrote that
 > "the user billing endpoint is 410 Gone… two instruments closed, so quota stays a band". **A 410
-> here means *moved*, not *closed*, and I never tried the replacement.** A sibling did:
+> here means *moved*, not *closed*, and I never tried the replacement.** The orchestrator did:
 > `users/{user}/settings/billing/usage` returns real data. Their probe set eliminates four
 > alternatives I left open — plan is **pro**; August billing is **$0.99**, storage only, so there is
-> no unpaid hold; and **Reframe, the same account, ran Actions successfully at 06:05:25Z today**,
+> no unpaid hold; and **Reframe, on the same account, ran Actions successfully at 06:05:25Z today**,
 > which clears account suspension, a global outage and org policy. The discriminator neither of us
 > saw at first is **private vs public**: `agent-skills-toolchain` is private and draws on the Pro
 > plan's 3,000 included minutes, while Reframe is public and draws from a free unmetered pool.
@@ -113,19 +115,19 @@ correctly reads push→main **True**, `skill-dual-write.yml` **False**), and the
 on main, which lists 9 workflow names and **never** `skill-dual-write`. `ssot_drift_gate.py` is
 invoked by **no workflow at all**.
 
-> **LIVE UPDATE, measured after this document was first committed.** A sibling lane is fixing this
-> right now: the **working copy** of `.github/workflows/skill-dual-write.yml` is dirty (` M`) and
+> **LIVE UPDATE, measured after this document was first committed.** The orchestrator was probing
+> this fix while I wrote: the **working copy** of `.github/workflows/skill-dual-write.yml` is dirty (` M`) and
 > already carries `push: branches: [main]`, while `git show HEAD:` still carries `pull_request`
 > only. So the finding stands for the committed state and is being closed in the working tree —
-> and its fix has a side effect the sibling may not have seen. See **B7** and **CL7**.
+> and its fix has a side effect that was not visible from inside it. See **B7** and **CL7**.
 
 **B7 — `rule-audit` went RED mid-session and is GREEN again. RESOLVED, kept as evidence.**
-`almost certain (90-99%)`, executed at three points in time. While I wrote §1, a sibling lane was
+`almost certain (90-99%)`, executed at three points in time. While I wrote §1, **the orchestrator** was
 experimenting with the B2 fix in the working tree; `docs/rule-audit/ci_gate.py` exited 1 on
 `r6_wiring_redproof 4/5 arms behaved`. The failing arm was
 `test_control_fires_on_a_workflow_with_no_push_trigger` — a **control** that uses
-`skill-dual-write.yml` as its known-negative fixture. The sibling reverted and committed the
-analysis as `a8728558`; the file is clean again and `rule-audit ci_gate` is back to **rc=0**.
+`skill-dual-write.yml` as its known-negative fixture. It reverted and committed the analysis as
+`a8728558`, and named the misattribution in `92735ca8`; the file is clean again and `rule-audit ci_gate` is back to **rc=0**.
 Nothing in RULERESEARCH ever changed. I did not touch the shared workflow at any point.
 
 **B3 — a real §9 credential inversion in `agent-self/config/AGENTS.md`, unfixed.**
@@ -197,13 +199,13 @@ mine**. Not softened.
 | O11 | *mine* — §8 of this document, first version: *"Ran the both-states test that committing them requires"* | **True but not sufficient, and it read as sufficient.** I staged the 6 orphans, ran the 2 doc gates, saw green — then added my own 2 files and committed all 8. `check_published_commands.py` reads `git ls-files`, so it only saw the half I was cautious about, and it could not see the *transitive* target at all until the document landed. The very next run went red: `P2NEXT-GROUNDING-R2.md:159` publishes `python command-center/p2-next/_g2_independent.py`, which was untracked. | "Ran the both-states test over the 6 orphans; it did not cover the commit as a whole, and it caught a real regression on the next run." Fixed in commit `5e31a03c` by tracking the target (clean under ruff format / ruff check / py_compile); gate back to **0 NEW unrunnable**. |
 
 | O13 | *mine* — B1, first version: *"the user billing endpoint is **410 Gone**… two instruments closed, so quota stays a band"* | **A 410 means the endpoint MOVED, and I never tried its replacement** — I reported an instrument as unavailable and let the diagnosis stall at a band. `users/{user}/settings/billing/usage` works and returns real data. This is the recall failure this estate names as its dominant error: the answer was reachable and unread. | The cause is narrowed to *private-repo included minutes exhausted, no spending limit* at `likely (65-80%)`, with four alternatives eliminated by measurement. Authoritative write-up: `docs/GRIND-STATUS.md` §0. |
-| O12 | *mine* — CL7, first version: *"**Remedy is one line** — repoint the control"* | **REFUTED by a sibling lane that ran the experiment I only reasoned about.** I measured one failing arm (`r6_wiring_redproof`); they ran the whole `ci/tests` suite and got **three** failing tests. And I never saw `ci/tests/test_ci_wiring.py:163`, which forbids the push trigger for a *separate* reason: on a push `--base origin/main --head HEAD` makes base == head, so the parity gate degenerates to a permanently-green no-op. My conclusion was wider than my evidence in the estate's dominant direction. | The fix is a **coordinated multi-file change**, specified in `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`. Corrected in place in §5 CL7 rather than deleted. |
+| O12 | *mine* — CL7, first version: *"**Remedy is one line** — repoint the control"* | **REFUTED by the orchestrator, which ran the experiment I only reasoned about.** I measured one failing arm (`r6_wiring_redproof`); they ran the whole `ci/tests` suite and got **three** failing tests. And I never saw `ci/tests/test_ci_wiring.py:163`, which forbids the push trigger for a *separate* reason: on a push `--base origin/main --head HEAD` makes base == head, so the parity gate degenerates to a permanently-green no-op. My conclusion was wider than my evidence in the estate's dominant direction. | The fix is a **coordinated multi-file change**, specified in `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`. Corrected in place in §5 CL7 rather than deleted. |
 
 Real defects found this pass: **B2** (PR-only gate blind spot, independently corroborated), **B3**
 (credential inversion, already tracked by its lane), **CL3** (6 orphaned deliverables) — plus **one
 I caused and fixed** (O11). B7 resolved itself and is not counted. **Ratio 13 overclaims : 4
 defects — worse than the estate's 7:5 base rate, and 5 of the 13 are mine.** The two most useful
-lines here are O12 and O13, both cases where a sibling lane beat me by *executing* what I had only
+lines here are O12 and O13, both cases where the orchestrator beat me by *executing* what I had only
 reasoned about, or by *trying the replacement instrument* where I had recorded a closed one. A
 synthesis lane that only reads is structurally prone to both.
 
@@ -253,7 +255,7 @@ example. Re-point this control."* **A known-broken example used as a fixture mak
 expensive to fix, and nothing warns you until you try.**
 
 > **MY OWN OVERCLAIM, CORRECTED IN PLACE (O12).** I first wrote that the *"remedy is one line —
-> repoint the control"*. **That is refuted**, and by a sibling lane that ran the experiment I only
+> repoint the control"*. **That is refuted**, and by the orchestrator, which ran the experiment I only
 > reasoned about. Two things I had not measured: (a) `ci/tests/test_ci_wiring.py:163`
 > `test_workflow_does_not_advertise_null_range_events` asserts `"\n  push:\n" not in text` for this
 > workflow — the trigger was **deliberately removed and the decision encoded as a test**, because on
@@ -267,13 +269,9 @@ expensive to fix, and nothing warns you until you try.**
 > `pull_request`-only, and re-point the two controls at a genuinely push-triggerless workflow *after*
 > checking the wiring checker does not then flag that one as a violation.
 
-**CL8 — two lanes found B2 independently within the same hour, and that is the strongest signal in
-this document.** I derived it statically (trigger matrix + run history); the sibling derived it by
-*attempting the fix* and hitting three failing tests. Independent methods, same conclusion —
-corroboration, not duplication. It also means the finding is now **owner-actionable with a
-measured plan**, which it was not when I wrote §6 D3.
+**CL8 — B2 was found twice within the hour, by two different methods, by two different agents — and the second one was the orchestrator, not a lane.** I derived it statically (trigger matrix + run history); the orchestrator derived it by *attempting the fix* and hitting three failing tests. Independent methods, same conclusion — corroboration, not duplication. **The attribution matters:** my first write-up called it a "sibling lane", and `docs/GRIND-STATUS.md` C5 corrects it, because a future reader chasing *which lane broke rule-audit* would hunt a defect that never existed in any lane. The transferable lesson is sharper than the finding: **an uncommitted working-tree edit to a shared file is visible to every agent on this disk and has no branch to contain it** — which is exactly how it entered my measurements as if it were committed lane work.
 
-**CL9 — the local-RED / CI-green inverse, newly measured by the sibling and worth carrying.**
+**CL9 — the local-RED / CI-green inverse, newly measured by the orchestrator and worth carrying.**
 `python -m pytest ci/tests tools/d001-dual-write/tests -q` reports **7 failed, 909 passed** locally;
 **four fail at clean HEAD** as pure Windows artifacts (NTFS has no exec bit; Windows paths cannot
 hold non-UTF-8 bytes; one ref-race left UNVERIFIED). This repo has burned five *local-green/CI-red*
@@ -296,7 +294,7 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
 
 | # | question | recommended default | why |
 |---|---|---|---|
-| **D1** | GitHub Actions runs no steps on this **private** repo while the same account runs them fine on a **public** one (B1). Go to **Settings → Billing → Actions minutes used this month / spending limit** — is the 3,000-minute Pro allowance spent, and is the spending limit $0? | **Raise or enable the spending limit** (or wait for the monthly reset). | Every other cause is eliminated by measurement: Actions `enabled:true`, plan `pro`, August billing $0.99 storage-only, and a sibling public repo succeeding *after* this one broke. **Everything else in this document is unverifiable until this clears.** |
+| **D1** | GitHub Actions runs no steps on this **private** repo while the same account runs them fine on a **public** one (B1). Go to **Settings → Billing → Actions minutes used this month / spending limit** — is the 3,000-minute Pro allowance spent, and is the spending limit $0? | **Raise or enable the spending limit** (or wait for the monthly reset). | Every other cause is eliminated by measurement: Actions `enabled:true`, plan `pro`, August billing $0.99 storage-only, and a **public** repo on the same account succeeding *after* this one broke. **Everything else in this document is unverifiable until this clears.** |
 | **D2** | `agent-self/config/AGENTS.md` §9 tells the agent to *rotate* credentials — the inverted policy — and would deploy over the correct live copy (B3). Repair it? | **Yes**, repair the deploy source to match live, then promote `r4_credential_rule_gate` from pinned-rc=1 to blocking rc=0 **in the same change**. | Credential policy is owner-only per AGENTS.md §9. The gate already encodes the promotion step. |
 | **D3** | `skill-dual-write.yml` is `pull_request`-only, so SSOT's and SKILLS2' gates never run on a push to main (B2). Split the 6 push-safe steps into a workflow that fires on push? | **Yes, split them out** — do **not** just add `push:` to the existing file. | The D-001 dual-write job is genuinely diff-based (`--base origin/main --head HEAD`) and belongs on `pull_request`; the other six steps are absolute checks. Also: PRs #281/#282 already touch this file, so this must be sequenced with them, not raced. |
 | **D4** | Prompt Two condition 11 — `command-center/p2-next/OWNER-DECISION-condition-11.md`. | **Option B**, as that document recommends. | It gates **all 2,007 remaining units**. One decision, largest single unblock. *(FROM-RECORD — I did not re-derive the option set.)* |
@@ -360,7 +358,7 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
    `ruff check` and `py_compile`. Gate back to **0 NEW unrunnable** (435 commands / 367 documents).
    The lesson is in §4 O11: my pre-commit both-states test covered the 6 files I was cautious about
    and not the commit as a whole, and no test can see a *transitive* target until the document lands.
-6. **Diagnosed a live cross-lane collision without touching it** (B7/CL7): a sibling's uncommitted
+6. **Diagnosed a live cross-agent collision without touching it** (B7/CL7): the orchestrator's uncommitted
    push-trigger edit to `skill-dual-write.yml` currently red-fails `rule-audit` by destroying the
    fixture of another lane's control. Named the one-line remedy and three verified replacement
    fixtures instead of editing a shared workflow another agent is mid-write in.
