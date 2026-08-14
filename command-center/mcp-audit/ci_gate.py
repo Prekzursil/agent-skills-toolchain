@@ -60,6 +60,19 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
     ("backend_map (C1/C2/C3 classifier)", ["backend_map.py"], 0),
     ("s4_evidence (validator both-states)", ["s4_evidence.py", "--self-test"], 0),
     ("b1_redproof_backend", ["_b1_redproof_backend.py"], 0),
+    # Round 4: the fleet denominator stopped being UNMEASURED.  `unsampled_surface` carries
+    # the 7 HTTP rows the stdio sweep cannot spawn, transcribed from the client's own
+    # deferred-tool listing.  It belongs in CI_PLAN, not EXCLUDED, because it PROBES NOTHING
+    # at run time -- the transcription is a committed constant and every guard reads only
+    # committed files, so it is a pure function of the repo exactly like `backend_map`'s
+    # tables.  (The dated liveness probes stay excluded because they re-assert a claim about
+    # the world; this one fails closed against the matrix instead.)
+    ("unsampled_surface (fleet-denominator rows)", ["unsampled_surface.py"], 0),
+    (
+        "unsampled_surface (both-states)",
+        ["unsampled_surface.py", "--self-test"],
+        0,
+    ),
     ("cost_rank (invariants)", ["cost_rank.py"], 0),
     # Round 3: an audit CONFIRMED a share quoted without its denominator and a prose count
     # transposed across rows.  Both lived where no producer computes -- a percentage's
@@ -231,6 +244,11 @@ def determinism(rev: str) -> tuple[list[str], int]:
                 str(tmp / "o.json"),
             ],
             tmp / "o.json",
+        ),
+        (
+            "command-center/mcp-audit/unsampled-surface.json",
+            ["unsampled_surface.py", "--base", str(HERE), "-o", str(tmp / "u.json")],
+            tmp / "u.json",
         ),
         (
             "command-center/mcp-audit/cost-rank.json",

@@ -214,6 +214,17 @@ CRLF finding in this lane.
   fleet figures are strictly **higher** than 707 / 11,645 / 603,233, and every published
   share of them is strictly **lower**. *Settling experiment:* an HTTP `tools/list` probe
   needing no stdio child, for the 7 unsampled rows.
+
+  > **CLOSED in round 4 for the RESIDENT channel; still open for CONTINGENT.** The settling
+  > experiment ran by a cheaper route than the one named here: the 7 rows have no *stdio*
+  > child, but the client connects to them over HTTP and enumerates their tools, and
+  > `_g2_drift_probe` had already been treating that listing as a legitimate second
+  > instrument. Measured: **154 tools, 2,487 B**, agreeing with the audit's independent hand
+  > count on all 7 servers. Fleet resident total **14,132 B / 861 tools**; `cloud-hub` is
+  > **49.5%** of it, against 60.1% of the sampled subset — the direction this bullet
+  > predicted, now with a magnitude. CONTINGENT stays a lower bound: a deferred-schema client
+  > never materialises those schemas. Nothing above is retracted — a disclosed residual that
+  > gets measured is closed, not refuted.
 - **One exemption is declared and printed on every run** — `LANE-MCPRESEARCH-BUILD-R3B.md`
   (this file) must quote the refuted framing to record it. Keyed to `(document, figure)`;
   a stale entry fails the run. Round 3's exemption was **removed**, not carried: its

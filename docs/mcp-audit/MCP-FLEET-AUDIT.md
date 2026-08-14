@@ -12,11 +12,22 @@ changed. No credential read, printed, or modified.
 
 > **ROUND 1 BUILD LANDED — read [`MCP-CAPABILITY-AND-DISPOSITION.md`](MCP-CAPABILITY-AND-DISPOSITION.md)
 > alongside this.** The gap named in §0 is now produced: 21 of 23 mounted servers carry a
-> real-call verdict (was 2), per-server context cost is measured for 707 tools over the
-> **16 SAMPLED rows of 23** in both channels — a lower bound on the fleet, never a fleet
-> total; the other 7 are HTTP transports with no stdio child to enumerate, and unmeasured is
-> not zero — and every mounted row has a reversible KEEP/DISABLE/INVESTIGATE disposition with
-> evidence. Three claims here are **refined** by that measurement, in this file's favour:
+> real-call verdict (was 2), per-server context cost is measured — **RESIDENT cost now for
+> every one of the 23 mounted rows: 861 tools, 14,132 B**, of which 707 tools / 11,645 B is
+> the **16 SAMPLED rows of 23** that also carry a `schema_bytes` figure, so the CONTINGENT
+> total (603,233 B, same 16 SAMPLED rows) is still a lower bound — and every mounted row has
+> a reversible KEEP/DISABLE/INVESTIGATE disposition with evidence.
+>
+> > **SUPERSEDED BY MEASUREMENT in round 4, kept rather than deleted.** This read *"per-server
+> > context cost is measured for 707 tools over the 16 SAMPLED rows of 23 … a lower bound on
+> > the fleet, never a fleet total; the other 7 are HTTP transports with no stdio child to
+> > enumerate, and unmeasured is not zero"*. Every word of that was true and correctly scoped
+> > — it is **not** retracted. What changed is that its residual got closed: the 7 rows have
+> > no *stdio* child, but the client connects to them over HTTP and lists their tools, so
+> > round 4 measured them from the client's own deferred-tool listing (154 tools, 2,487 B) and
+> > the fleet RESIDENT denominator stopped being unmeasured. The CONTINGENT half is unchanged
+> > and still a lower bound, because a deferred-schema client never materialises those
+> > schemas. Producer: `command-center/mcp-audit/unsampled_surface.py`. Three claims here are **refined** by that measurement, in this file's favour:
 > `cloud-hub = 424` reproduced independently, `chrome-devtools = 29` now has a third
 > corroborating method, and the `searxng` ⊂ `search-hub` containment is confirmed by computed
 > set arithmetic. One is **narrowed**: `playwright*` share not merely similar names but

@@ -31,9 +31,31 @@ cost" and, at its widest, "of the FLEET's every-turn resident MCP cost" -- a cla
 servers resting on a denominator of 16.  A share is only meaningful with its denominator,
 and a docstring does not travel with a copied number, so the denominator now rides in the
 field NAME (``resident_share_pct_of_sampled``) and in the headline STRING, and ``C5`` fails
-the run closed if the headline ever loses it.  Publishing a fleet-wide figure instead is not
-available: the 7 rows have no tool names anywhere in the repository, so the true fleet
-denominator is UNMEASURED, not merely unpublished.
+the run closed if the headline ever loses it.
+
+That repair was correct and is untouched.  What followed it was not:
+
+    "Publishing a fleet-wide figure instead is not available: the 7 rows have no tool names
+     anywhere in the repository, so the true fleet denominator is UNMEASURED, not merely
+     unpublished."
+
+**REFUTED in round 4, and kept above rather than deleted.**  Its premise was true and its
+conclusion did not follow -- "no tool names in the REPOSITORY" is a fact about the repository,
+not about what is measurable.  The 7 rows are HTTP transports the stdio sweep cannot spawn,
+and the CLIENT connects to them anyway and lists their tools; ``_g2_drift_probe`` has treated
+that same listing as a legitimate second instrument since the grounding round.  So the
+denominator was never unmeasurable -- it was unmeasured because the producer asked one
+instrument.  ``unsampled_surface`` now supplies those 7 rows and the fleet RESIDENT total is
+published: **cloud-hub is 49.5% of the fleet**, against 60.1% of the sampled subset.
+
+Note what did NOT happen: round 3's sentence is not an overclaim and is not retracted.  It
+was correctly scoped and it disclosed a residual; round 4 closed the residual.  The
+distinction matters, because recording a correct sentence as a defect teaches the wrong
+lesson to the next round.
+
+CONTINGENT stays a lower bound.  A deferred-schema client never materialises schemas for
+those rows, so there is no honest contingent figure for them -- ``C7`` requires the fleet
+block to keep saying so in the key name.
 
 Deterministic: committed inputs only, sorted output, ``newline="\\n"``.  Spawns nothing.
 
@@ -55,6 +77,7 @@ sys.path.insert(0, str(HERE))
 
 import backend_map  # noqa: E402
 import s4_evidence  # noqa: E402
+import unsampled_surface  # noqa: E402
 
 MATRIX = "capability-matrix-r2.json"
 BYTES_PER_TOKEN = 4.0  # rough, and labelled rough at every use
@@ -63,6 +86,16 @@ BYTES_PER_TOKEN = 4.0  # rough, and labelled rough at every use
 # Checking a predicate in isolation would prove the predicate works, not that the producer
 # enforces it -- and "the control ran" is not the same claim as "the guard is wired".
 HEADLINE_TMPL = (
+    "{name} is {fleet_share}% of the every-turn resident cost of the FLEET -- all "
+    "{n_total} mounted servers, of which {n_sampled} SAMPLED by stdio handshake and the "
+    "remaining {n_unsampled} of {n_total} rows measured from the client's own tool listing "
+    "(RESIDENT only: their schemas are deferred, so the fleet CONTINGENT total is still a "
+    "lower bound). Against the {n_sampled} SAMPLED rows alone the same row is {share}%"
+)
+# Round 3's headline. NOT a defect and NOT retracted -- it was correctly scoped and
+# disclosed its residual; round 4 measured the residual away. Kept executable so the
+# supersede is auditable and so C5's tokens are checked against the wording that shipped.
+SUPERSEDED_HEADLINE_TMPL = (
     "{name} is {share}% of the every-turn resident cost of the {n_sampled} SAMPLED "
     "servers -- NOT of the fleet: {n_unsampled} of {n_total} rows have no stdio child to "
     "enumerate, so their names are unmeasured (never zero) and the true fleet share of "
@@ -79,6 +112,13 @@ REFUTED_HEADLINE_TMPL = "{name} is {share}% of every-turn resident MCP cost"
 AGG_KEY = "sampled_aggregate"
 AGG_SUFFIX = "_sampled"
 REFUTED_AGG_KEY = "fleet"
+
+# The fleet block round 4 adds. Same discipline as AGG_KEY: the scope rides in the key name,
+# because a bare number gets copied into prose and its footnote does not. `_fleet` marks a
+# figure that really is fleet-wide; the contingent total is NOT, and its key says so.
+FLEET_KEY = "fleet_aggregate"
+FLEET_SUFFIX = "_fleet"
+CONTINGENT_FLEET_KEY = "contingent_bytes_fleet_lower_bound"
 
 BASIS_LEGEND = {
     "resident_bytes": (
@@ -126,6 +166,23 @@ def build(base: pathlib.Path) -> dict[str, Any]:
     tot_name = sum(r["name_bytes"] for r in measured)
     tot_schema = sum(r["schema_bytes"] for r in measured)
     tot_tools = sum(r["tool_count"] for r in measured)
+
+    # --- round 4: the rows the stdio sweep could not reach, measured by the client -------
+    # The fleet denominator was published as UNMEASURED for three rounds. It was not
+    # unmeasurable; only one instrument had been asked. `unsampled_surface` fails closed if
+    # its server set ever stops matching the matrix's unsampled rows, so a fleet total can
+    # never be completed from a stale transcription.
+    uns = unsampled_surface.build(base)
+    uns_tools = uns["tool_count_total"]
+    uns_name = uns["resident_bytes_total"]
+    fleet_name = tot_name + uns_name
+    fleet_tools = tot_tools + uns_tools
+    # Fail closed rather than publish a "fleet" figure that does not cover the fleet.
+    if len(measured) + uns["servers"] != len(all_rows):
+        raise SystemExit(
+            f"FAILED:cost-rank {len(measured)} sampled + {uns['servers']} client-listed "
+            f"!= {len(all_rows)} mounted rows -- refusing to call the sum a fleet total"
+        )
 
     by_resident = sorted(measured, key=lambda r: (-r["name_bytes"], r["name"]))
     by_contingent = sorted(measured, key=lambda r: (-r["schema_bytes"], r["name"]))
@@ -185,6 +242,13 @@ def build(base: pathlib.Path) -> dict[str, Any]:
                 "resident_share_pct_of_sampled": round(
                     100.0 * r["name_bytes"] / tot_name, 1
                 ),
+                # Round 4. Both shares ship side by side on purpose: the sampled one is what
+                # this table RANKS by (only sampled rows have a contingent column to compare
+                # against), the fleet one is what a reader means by "share of MCP cost". A
+                # single number here would be copied without knowing which it was.
+                "resident_share_pct_of_fleet": round(
+                    100.0 * r["name_bytes"] / fleet_name, 1
+                ),
                 "contingent_bytes": r["schema_bytes"],
                 "resident_bytes_over_dead_backends": dead_bytes,
                 "tools_over_dead_backends": dead_tools,
@@ -213,6 +277,7 @@ def build(base: pathlib.Path) -> dict[str, Any]:
     headline = HEADLINE_TMPL.format(
         name=top["name"],
         share=top["resident_share_pct_of_sampled"],
+        fleet_share=top["resident_share_pct_of_fleet"],
         n_sampled=n_sampled,
         n_unsampled=n_total - n_sampled,
         n_total=n_total,
@@ -235,6 +300,15 @@ def build(base: pathlib.Path) -> dict[str, Any]:
         raise SystemExit(
             f"FAILED:cost-rank headline lost its denominator -- expected {required!r}, a "
             "share stated without its scope is exactly the round-2 overclaim"
+        )
+    # C7 (round 4): now that BOTH shares exist, the headline must name which is which.
+    # Publishing two percentages and labelling neither would be a worse defect than the one
+    # C5 caught -- a reader could not even tell that a choice of denominator had been made.
+    fleet_required = ("FLEET", f"{top['resident_share_pct_of_fleet']}%")
+    if not all(tok in headline for tok in fleet_required):
+        raise SystemExit(
+            f"FAILED:cost-rank headline does not name its FLEET denominator -- expected "
+            f"{fleet_required!r}; two unlabelled shares are worse than one"
         )
     payload = {
         "report": "mcp-cost-rank",
@@ -270,6 +344,38 @@ def build(base: pathlib.Path) -> dict[str, Any]:
             f"contingent_over_resident{AGG_SUFFIX}": round(tot_schema / tot_name, 1),
             f"resident_tokens_rough{AGG_SUFFIX}": round(tot_name / BYTES_PER_TOKEN),
             f"contingent_tokens_rough{AGG_SUFFIX}": round(tot_schema / BYTES_PER_TOKEN),
+        },
+        # Round 4. The block round 3 could not write, because the 7 rows had never been
+        # measured. Same key discipline as `sampled_aggregate`: `_fleet` marks a figure that
+        # really is fleet-wide, and the one figure that is NOT says so in its own key.
+        FLEET_KEY: {
+            "scope": (
+                f"TRUE FLEET TOTALS for RESIDENT cost -- all {len(all_rows)} mounted "
+                f"servers: {len(measured)} enumerated by stdio handshake plus the "
+                f"{uns['servers']} HTTP rows enumerated from the client's own deferred-tool "
+                "listing. Every mounted server is counted exactly once; the producer fails "
+                "closed if the two sets stop partitioning the fleet."
+            ),
+            "servers_total": len(all_rows),
+            "servers_sampled_by_stdio": len(measured),
+            "servers_measured_from_client_listing": uns["servers"],
+            f"tools{FLEET_SUFFIX}": fleet_tools,
+            f"resident_bytes{FLEET_SUFFIX}": fleet_name,
+            f"resident_tokens_rough{FLEET_SUFFIX}": round(fleet_name / BYTES_PER_TOKEN),
+            CONTINGENT_FLEET_KEY: tot_schema,
+            "contingent_scope": (
+                "LOWER BOUND, NOT A FLEET TOTAL -- and the only figure in this block that "
+                "is not fleet-wide. A deferred-schema client never materialises schemas for "
+                "the client-listed rows, so no honest contingent figure exists for them. "
+                "The gap is unmeasured, never zero, and the key name carries the caveat "
+                "because a bare number gets copied and its footnote does not."
+            ),
+            "what_this_closed": (
+                "the fleet denominator was published as UNMEASURED through rounds 2-3B. It "
+                "was never unmeasurable -- only one instrument had been asked. Round 3's "
+                "narrower sentence was correctly scoped and is superseded by measurement, "
+                "not retracted."
+            ),
         },
         "headline": headline,
         "refuted": {
@@ -328,6 +434,34 @@ def build(base: pathlib.Path) -> dict[str, Any]:
                 "up still published sampled sums under a fleet label, and five prose sites "
                 "copied them as fleet totals"
             ),
+            "C7_fleet_block_partitions_and_declares": (
+                f"resident_bytes{FLEET_SUFFIX} reconciles EXACTLY to sampled {tot_name:,} + "
+                f"client-listed {uns_name:,}, the two server sets partition all "
+                f"{len(all_rows)} mounted rows, the headline names BOTH denominators, and "
+                "the one non-fleet figure in the block keeps `_lower_bound` in its key"
+            ),
+        },
+        "superseded_not_refuted": {
+            "round_3_headline": SUPERSEDED_HEADLINE_TMPL.format(
+                name=top["name"],
+                share=top["resident_share_pct_of_sampled"],
+                n_sampled=n_sampled,
+                n_unsampled=n_total - n_sampled,
+                n_total=n_total,
+            ),
+            "why_not_a_defect": (
+                "it was correctly scoped, it disclosed its residual, and its directional "
+                "claim was right -- it said the true fleet share is strictly LOWER than "
+                f"{top['resident_share_pct_of_sampled']}%, and the measurement came in at "
+                f"{top['resident_share_pct_of_fleet']}%. Round 4 closed the residual it "
+                "named. Recorded as SUPERSEDED rather than REFUTED because filing a correct "
+                "sentence as a defect teaches the next round the wrong lesson"
+            ),
+            "what_was_refuted": (
+                "not the headline -- the cost_rank docstring's claim that a fleet figure "
+                "was 'not available' because the 7 rows 'have no tool names anywhere in the "
+                "repository'. True premise, false conclusion: the client lists them"
+            ),
         },
         "rows": rows,
     }
@@ -355,6 +489,49 @@ def build(base: pathlib.Path) -> dict[str, Any]:
         raise SystemExit(
             f"FAILED:cost-rank aggregate key(s) {unscoped!r} lost the `_sampled` suffix -- "
             "a bare total gets copied into prose as a fleet figure"
+        )
+
+    # --- C7, enforced rather than merely described -------------------------
+    # A block called `fleet_aggregate` is exactly the label round 3 was right to refuse
+    # while the 7 rows were unmeasured. Having earned the label, it has to keep earning it:
+    # the sums must reconcile to their parts, the two server sets must partition the fleet,
+    # and the ONE figure in the block that is not fleet-wide must keep saying so in its key.
+    fleet = payload[FLEET_KEY]
+    if fleet[f"resident_bytes{FLEET_SUFFIX}"] != tot_name + uns_name:
+        raise SystemExit(
+            f"FAILED:cost-rank fleet resident {fleet[f'resident_bytes{FLEET_SUFFIX}']} != "
+            f"sampled {tot_name} + client-listed {uns_name} -- a total that does not "
+            "reconcile to its parts is not a total"
+        )
+    if fleet[f"tools{FLEET_SUFFIX}"] != tot_tools + uns_tools:
+        raise SystemExit(
+            f"FAILED:cost-rank fleet tools {fleet[f'tools{FLEET_SUFFIX}']} != sampled "
+            f"{tot_tools} + client-listed {uns_tools}"
+        )
+    if (
+        fleet["servers_sampled_by_stdio"]
+        + fleet["servers_measured_from_client_listing"]
+        != fleet["servers_total"]
+    ):
+        raise SystemExit(
+            "FAILED:cost-rank the two server sets do not partition the fleet -- a row is "
+            "double-counted or missing, and either way the denominator is wrong"
+        )
+    # Same discipline C6 enforces on the sampled block: a fleet-wide sum must carry `_fleet`
+    # in its key, or it is a bare number waiting to be copied out of context.
+    fleet_summed = ("tools", "resident_bytes", "resident_tokens_rough")
+    fleet_bare = [k for k in fleet_summed if k in fleet]
+    if fleet_bare:
+        raise SystemExit(
+            f"FAILED:cost-rank fleet key(s) {fleet_bare!r} lost the `{FLEET_SUFFIX}` suffix "
+            "-- the sampled block already taught this lesson one level down"
+        )
+    # The contingent figure is sampled-only and must never acquire a bare `_fleet` key.
+    if f"contingent_bytes{FLEET_SUFFIX}" in fleet or CONTINGENT_FLEET_KEY not in fleet:
+        raise SystemExit(
+            "FAILED:cost-rank the fleet block's contingent figure must stay "
+            f"`{CONTINGENT_FLEET_KEY}` -- schemas are never materialised for the "
+            "client-listed rows, so a bare `_fleet` key would publish a lower bound as a total"
         )
     return payload
 
@@ -443,6 +620,82 @@ def self_test(base: pathlib.Path) -> int:
         )
     )
 
+    # --- C7, both states -------------------------------------------------------------
+    # Round 3 was RIGHT to refuse the label `fleet` while the 7 rows were unmeasured. Round 4
+    # earned it by measuring them, so the guards have to keep it earned. The mutations below
+    # are applied to the real constants and to the real upstream producer, not to a fixture.
+    cases.append(
+        (
+            "the shipped headline names BOTH denominators",
+            "FLEET" in payload["headline"]
+            and f"{payload['rows'][0]['resident_share_pct_of_fleet']}%"
+            in payload["headline"]
+            and f"{payload['rows'][0]['resident_share_pct_of_sampled']}%"
+            in payload["headline"],
+            True,
+        )
+    )
+
+    global FLEET_SUFFIX, CONTINGENT_FLEET_KEY
+    good_fsuffix, good_ckey = FLEET_SUFFIX, CONTINGENT_FLEET_KEY
+    try:
+        FLEET_SUFFIX = ""
+        build(base)
+        fired_fleet_bare = False
+    except SystemExit:
+        fired_fleet_bare = True
+    finally:
+        FLEET_SUFFIX = good_fsuffix
+    cases.append(("C7 fires when a fleet key loses `_fleet`", fired_fleet_bare, True))
+
+    try:
+        # The contingent total is the ONE figure in that block that is not fleet-wide.
+        # Promoting it to a bare `_fleet` key would publish a lower bound as a total.
+        CONTINGENT_FLEET_KEY = f"contingent_bytes{FLEET_SUFFIX}"
+        build(base)
+        fired_ckey = False
+    except SystemExit:
+        fired_ckey = True
+    finally:
+        CONTINGENT_FLEET_KEY = good_ckey
+    cases.append(
+        ("C7 fires when the lower-bound caveat leaves the key", fired_ckey, True)
+    )
+
+    # The mutation that matters most: a STALE surface. If `unsampled_surface` ever stops
+    # covering every unmeasured row, the sum stops being a fleet total -- and it would still
+    # look like one. Mutating the upstream producer is the only way to reach that branch;
+    # a mutation of this module's own constants cannot express it.
+    real_build = unsampled_surface.build
+
+    def _short(b, surface=None):
+        doc = real_build(b, surface)
+        dropped = doc["rows"][0]
+        doc["rows"] = doc["rows"][1:]
+        doc["servers"] -= 1
+        doc["tool_count_total"] -= dropped["tool_count"]
+        doc["resident_bytes_total"] -= dropped["resident_bytes"]
+        return doc
+
+    try:
+        unsampled_surface.build = _short
+        build(base)
+        fired_stale = False
+    except SystemExit:
+        fired_stale = True
+    finally:
+        unsampled_surface.build = real_build
+    cases.append(
+        ("C7 fires on a stale surface that misses a mounted row", fired_stale, True)
+    )
+    cases.append(
+        (
+            "...and the producer is green again once all reverted",
+            bool(build(base)),
+            True,
+        )
+    )
+
     bad = [n for n, got, want in cases if got != want]
     for n, got, want in cases:
         print(f"  {'ok ' if got == want else 'BAD'} {n:56} fired={got} want={want}")
@@ -503,10 +756,14 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n"
         )
         print(f"wrote {args.out}")
+    fl = payload[FLEET_KEY]
     print(
-        f"SUCCESS:cost-rank resident={f['resident_bytes_sampled']:,}B contingent="
-        f"{f['contingent_bytes_sampled']:,}B over {f['servers_ranked']} SAMPLED rows "
-        f"of {f['servers_total']} (a lower bound on the fleet, never a fleet total)"
+        f"SUCCESS:cost-rank FLEET resident={fl['resident_bytes_fleet']:,}B over all "
+        f"{fl['servers_total']} mounted rows ({fl['servers_sampled_by_stdio']} by stdio + "
+        f"{fl['servers_measured_from_client_listing']} from the client listing); of that, "
+        f"{f['resident_bytes_sampled']:,}B is the {f['servers_ranked']} SAMPLED rows this "
+        f"table ranks. Contingent {f['contingent_bytes_sampled']:,}B stays a LOWER BOUND "
+        "-- schemas are never materialised for the client-listed rows"
     )
     return 0
 

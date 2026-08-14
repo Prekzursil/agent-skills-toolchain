@@ -269,11 +269,22 @@ regime. Schemas were measured and deliberately **not stored**.
 | claude-code-mcp | 1 | 11 | 2,594 | 0.4% | 6.6 |
 | codex | 2 | 16 | 2,340 | 0.4% | 6.5 |
 | **TOTAL — 16 SAMPLED rows of 23 (a lower bound, NOT a fleet total)** | **707** | **11,645** | **603,233** | | |
+| *+ 7 HTTP rows, measured round 4 from the client's tool listing* | *154* | *2,487* | *— not measured* | | |
+| **FLEET TOTAL — all 23 mounted rows (resident only)** | **861** | **14,132** | **— still a lower bound** | | |
 
-* **`cloud-hub` alone is 53.2% of the eager surface and 60% of the deferred one** — both
-  shares are *of the 16 sampled rows*, so its true fleet share is strictly lower than each.
-  It is still the only row where a cost decision has leverage; the bottom eight rows
-  together are 5%.
+* **`cloud-hub` alone is 53.2% of the eager surface and 60.1% of the deferred one** — both
+  shares are *of the 16 sampled rows*. **Round 4 measured the remaining 7 rows** from the
+  client's own tool listing (154 tools, 2,487 B), so the deferred share now has a true fleet
+  figure beside it: **49.5% of the fleet's every-turn resident cost**, against 60.1% of the
+  sampled subset. It is still the only row where a cost decision has leverage; the bottom
+  eight rows together are 5%.
+
+  > **SUPERSEDED BY MEASUREMENT in round 4.** This bullet ended *"so its true fleet share is
+  > strictly lower than each"* — correct, correctly scoped, and directionally right: the
+  > measurement came in at 49.5%, which is indeed strictly lower than 60.1%. Not a defect and
+  > not retracted; the residual it disclosed is simply closed. The eager (contingent) share
+  > has **no** fleet figure and still does not, because schemas are never materialised for
+  > those 7 rows — 53.2% remains a share *of the 16 sampled rows only*.
 * **Cost rank ≠ RAM rank.** `qlty` is 0.5% of the tool surface and the heaviest resident
   child measured (69.3 MB); `paper-search` is 7.2% of the surface at 1.0 MB. `impact.py`
   is right to keep the two axes anti-correlated and unblended — this data reproduces that.
@@ -369,7 +380,7 @@ SUCCESS:dod-check 4/4 DoD items PASS, 4/4 negative controls fired
 |---|---|---|
 | every mounted server inventoried with its **scope and source file** | **PASS** | 23/23 rows in `disposition.json` carry `definition_scope`, `source_file` (absolute), `config_basis`, `transport`. The 122 non-mounted config rows keep their scope/basis in `mcpctl-matrix.json`; they were deliberately not spawned. |
 | **liveness distinguished from capability by a real call** | **PASS** | 21/23 verified: 16 by stdio `initialize`+`tools/list`, 5 by a real in-session tool call. 2 declined with the reason recorded. The four signals stay in four columns, and S4's two methods stay in three fields (`call_verified` = union, `handshake_verified` / `s4_executed` = the halves, `call_method` = which answered). Round 1 passed this item with a field that contradicted its own legend (§11 D1); the artifact now fails closed on that shape. |
-| **per-server context cost measured** | **PASS, scope disclosed** | §5: 707 tools over the **16 SAMPLED rows of 23**, `name_bytes` + `schema_bytes` per server from the same payloads, ranked, with the bytes-vs-tokens caveat inline. Not inherited from any constant. The other 7 rows are HTTP transports with no stdio child, each stating that in its own `liveness_basis`; their cost is **not measured, never zero**, so this PASS is over the sampled subset and the totals are a lower bound. *Settling experiment:* an HTTP `tools/list` probe that needs no stdio child. |
+| **per-server context cost measured** | **PASS — resident fleet-wide, contingent scope disclosed** | §5: RESIDENT cost is now measured for **all 23 mounted rows** (861 tools, 14,132 B). 707 tools / 11,645 B of that is the **16 SAMPLED rows of 23** reached by stdio handshake, which also carry `schema_bytes`; round 4 measured the remaining 7 HTTP rows (154 tools, 2,487 B) from the client's own deferred-tool listing, since they have no stdio child but the client connects to them anyway. Not inherited from any constant. **CONTINGENT is still a lower bound** over the same 16 SAMPLED rows — a deferred-schema client never materialises schemas for the other 7, so no honest figure exists and null stays null. *Settling experiment for the residual:* an HTTP `tools/list` against each of the 7 endpoints, which needs credentials this lane does not read. *Round 3's settling experiment ("an HTTP `tools/list` probe that needs no stdio child") is the one round 4 ran, by a cheaper route.* |
 | **recommendations reversible (disable, not remove) with evidence per row** | **PASS** | `assert_reversible()` makes REMOVE unrepresentable; every row carries an `evidence` sentence naming its measurement; the one DISABLE names the reversal mechanism and the scope that actually prevents a spawn. |
 
 ## 9. Explicitly NOT done in round 1
