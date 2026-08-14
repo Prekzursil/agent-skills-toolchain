@@ -179,10 +179,22 @@ diff surface   ci/tests/test_command_doc_promises.py +153/-0 (append + 1 import)
      the correct reading, which is the only reason three files were not rewritten LF -> CRLF.
    - `(Get-Content f | Measure-Object -Line).Lines` reported **486** lines against `wc -l`'s
      **586** — it counts 0 for a blank line, and the file has 100 of them.
-5. **The gate proves an anchor is PRESENT, not CORRECT.** A future edit could replace `67137879`
-   with a different valid-looking SHA and the arm would stay green. Settling experiment: the
-   on-demand `_lane_docs_r6_pinned_counts.py`, which is exactly the history-reading probe R7-1
-   explains cannot be a gate here.
+5. **The gate proves an anchor is PRESENT, and also that it is the EXPECTED string.**
+   *REFUTED wording (round 7, kept rather than deleted): "The gate proves an anchor is PRESENT,
+   not CORRECT. A future edit could replace `67137879` with a different valid-looking SHA and the
+   arm would stay green."* That was inferred, never measured — round 7's own control only ever
+   **stripped** an anchor (`source.replace(sha, "")`), and stripping is not replacing.
+   Round 8 ran the named mutation: `docs/_lane_docs_r8_anchor_mutation.py` replaces each anchor
+   with `0badc0de` in each carrier and runs the SHIPPED test — **4 mutations, 4 fired**
+   (`SUCCESS:docs-r8-anchor fixed_state_rc=0 mutations=4 fired=4 verdict=H1-exact-sha
+   restored=True`). The arm compares against exact SHAs held in a non-carrier module, so any
+   change to the anchor string is detected, not just its removal.
+   **The residual that IS real, correctly scoped:** the arm cannot check that the anchored commit
+   *produces* the counts (that `67137879` really measured 20/16). That needs history. Round 8
+   settled the cheap half locally — `git rev-parse 5d573583^` → `67137879`, confirming the
+   "parent of the fix" claim in `docs_count_anchors.py` — and re-derived the counts themselves
+   with the on-demand `_lane_docs_r6_pinned_counts.py`: `pre_fix=20/16 post_fix=19/15`, controls
+   C1/C2/C3 ok. Neither can be a CI gate here, for the fetch-depth reason R7-1 measured.
 6. **`docs/_lane_docs_r7_apply.py` is one-shot and now slightly stale.** `ruff format` rewrote the
    arm *after* it was applied, so re-running the script from a clean HEAD reproduces the arm in
    pre-format shape and needs `ruff format` after. It refuses to re-apply over itself.

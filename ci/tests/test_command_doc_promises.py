@@ -741,3 +741,252 @@ def test_control_anchor_arm_is_eol_agnostic() -> None:
         assert _missing_anchors(_count_region(rel, lf)) == _missing_anchors(
             _count_region(rel, crlf)
         ), f"{rel}: the arm's verdict depends on line endings"
+
+
+# --------------------------------------------------------------------------
+# Round 8 arm: no command doc may add a NEW invocation of a missing script
+# --------------------------------------------------------------------------
+#
+# The round-5 arm above gates PROSE path claims and deliberately excludes fenced
+# code, on the reasoning that a fence holds an invocation rather than an
+# assertion about this repo. Round 5 then scoped the fenced references out
+# entirely -- "13 code-block invocations are out of scope by design".
+#
+# Round 8 measured that assumption instead of inheriting it
+# (``docs/_lane_docs_r8_dead_invocations.py``, three-state control). Of the nine
+# unresolved tokens, four resolve under ``~/.claude/...`` at runtime and one
+# resolves against the metaswarm plugin root -- so the scoping was RIGHT for
+# those. Two do not resolve in ANY root that was searched:
+#
+#   scripts/claw.js          commands/claw.md:12   "node scripts/claw.js"
+#   scripts/harness-audit.js commands/harness-audit.md:17, which then calls it
+#                            "the source of truth for scoring and checks"
+#
+# Those two are genuine dead promises and are ROUTED, not gated red: writing the
+# missing tools is not a docs lane's call, and a gate that is red on arrival is
+# a gate the next lane deletes. What this arm stops is the class GROWING -- a
+# ratchet. A token absent from the baseline fails; the baseline may only shrink.
+#
+# The arm is repo-only on purpose. Classifying a token as RUNTIME needs
+# ``~/.claude``, which does not exist on the CI runner, so a live-root check here
+# would answer a different question on every machine. That classification stays
+# in the on-demand probe; this gate asks only "does it resolve in this repo".
+
+#: A repo-relative ``scripts/`` path carrying an extension, matched anywhere in a
+#: line rather than anchored, because an invocation embeds it (``node scripts/x.js``).
+#: Extension-less tokens are excluded for the same reason ``BARE_REPO_SCRIPT``
+#: excludes them: round 8 read both of this corpus's (``scripts/commands`` in the
+#: English phrase "scripts/commands with their descriptions", and
+#: ``scripts/hooks/lib`` inside a block of sample AUDIT OUTPUT) and neither is a
+#: path the doc promises.
+INVOCATION_SCRIPT = re.compile(r"(?<![\w./$-])(scripts/[A-Za-z0-9._/-]+\.[A-Za-z0-9]+)")
+
+#: Unresolved invocation tokens known at round 8, each with the reason it is
+#: tolerated. Measured, not assumed -- see the probe named above.
+#: RUNTIME  = absent here, present under a live deploy root.
+#: SHORTHAND= resolves against another plugin root; 3 tracked copies in this repo.
+#: DEAD     = resolves in no searched root. Routed for an implement-or-retire call.
+KNOWN_UNRESOLVED_INVOCATIONS: dict[str, str] = {
+    "scripts/lib/tmux-worktree-orchestrator.js": "RUNTIME",
+    "scripts/orchestrate-worktrees.js": "RUNTIME",
+    "scripts/orchestration-status.js": "RUNTIME",
+    "scripts/setup-package-manager.js": "RUNTIME",
+    "scripts/beads-fetch-pr-comments.ts": "SHORTHAND",
+    "scripts/claw.js": "DEAD",
+    "scripts/harness-audit.js": "DEAD",
+}
+
+#: Floor for tokens examined. A collapsed extractor must fail loudly, not pass.
+MIN_INVOCATION_TOKENS = 7
+
+
+def _invocation_tokens(text: str) -> set[str]:
+    """Every ``scripts/...`` token a command doc invokes or names.
+
+    Inside a fence the whole line is code, so the raw line is scanned. Outside
+    one only backtick spans are scanned, so ordinary prose cannot contribute a
+    false token. Split on ``\\n`` only, so a ``\\r`` stays inside its line.
+    """
+    tokens: set[str] = set()
+    in_fence = False
+    for line in text.split("\n"):
+        if FENCE_LINE.match(line):
+            in_fence = not in_fence
+            continue
+        haystack = line if in_fence else " ".join(BACKTICK_SPAN.findall(line))
+        tokens.update(INVOCATION_SCRIPT.findall(haystack))
+    return tokens
+
+
+def _doc_root(rel: str) -> str:
+    """The root a command doc's relative paths resolve against.
+
+    A vendored plugin ships its own ``scripts/`` beside its ``commands/``, so
+    ``tools/editor/metaswarm/.claude/commands/self-reflect.md`` naming
+    ``scripts/beads-fetch-pr-comments.ts`` is a CORRECT reference to
+    ``tools/editor/metaswarm/scripts/beads-fetch-pr-comments.ts``. Resolving
+    every doc against the repo root reported that as a dead promise -- it is the
+    root-anchoring error, the same shape as the round-5 substring overclaim.
+
+    Strip the trailing ``commands/<name>.md``, then a trailing ``.claude``.
+    ``commands/claw.md`` yields ``""`` -- the repo root -- which is right: a
+    top-level command doc really is claiming a repo-root path.
+    """
+    parts = rel.split("/")[:-1]
+    if parts and parts[-1] == "commands":
+        parts = parts[:-1]
+    if parts and parts[-1] == ".claude":
+        parts = parts[:-1]
+    return "/".join(parts)
+
+
+def _resolves_for_doc(token: str, rel: str, tracked: frozenset[str]) -> bool:
+    """Resolve against the doc's own root OR the repo root -- both are legitimate.
+
+    Own-root is load-bearing for a vendored plugin, which ships ``scripts/``
+    beside its ``commands/``. Repo-root is load-bearing for a mirror such as
+    ``agent-self/config/commands/``, which has no ``scripts/`` of its own (0
+    tracked paths) and whose relative references are the repo's. Dropping either
+    leg reports a live, correct reference as a dead promise; the same multi-root
+    reasoning already governs skill resolution in this module.
+    """
+    root = _doc_root(rel)
+    if root and _path_resolves(f"{root}/{token}", tracked):
+        return True
+    return _path_resolves(token, tracked)
+
+
+def _unresolved_invocations(tracked: frozenset[str]) -> dict[str, list[str]]:
+    """token -> the command docs that invoke it, for tokens absent from this repo.
+
+    Absence is judged against the doc's OWN root, not the repo root.
+    """
+    found: dict[str, list[str]] = {}
+    for rel in _command_docs(tracked):
+        for token in _invocation_tokens(_carrier_source(rel)):
+            if not _resolves_for_doc(token, rel, tracked):
+                found.setdefault(token, []).append(rel)
+    return found
+
+
+def test_no_command_doc_adds_a_new_invocation_of_a_missing_script(
+    tracked: frozenset[str],
+) -> None:
+    """The ratchet: the set of unresolved invocations may shrink, never grow."""
+    unresolved = _unresolved_invocations(tracked)
+    added = {
+        token: sorted(docs)
+        for token, docs in unresolved.items()
+        if token not in KNOWN_UNRESOLVED_INVOCATIONS
+    }
+    assert not added, (
+        "a command doc now invokes a script that does not exist in this repo:\n"
+        + "\n".join(f"  {token} <- {', '.join(docs)}" for token, docs in added.items())
+        + "\n\nEither add the script, qualify the reference with the root it "
+        "resolves against (the ${CLAUDE_PLUGIN_ROOT}/~ form is not matched here), "
+        "or -- if it is genuinely absent everywhere -- classify it in "
+        "KNOWN_UNRESOLVED_INVOCATIONS after measuring it with "
+        "docs/_lane_docs_r8_dead_invocations.py."
+    )
+
+
+def test_the_unresolved_invocation_baseline_carries_no_paid_debt(
+    tracked: frozenset[str],
+) -> None:
+    """A baseline entry that now resolves is a stale list read as current.
+
+    That is this lane's own defect class, so the baseline is held to it: once a
+    script lands in the repo its entry must go, or the list quietly overstates
+    the debt forever.
+    """
+    still_unresolved = _unresolved_invocations(tracked)
+    paid = sorted(
+        token for token in KNOWN_UNRESOLVED_INVOCATIONS if token not in still_unresolved
+    )
+    assert not paid, (
+        f"these resolve now and must leave KNOWN_UNRESOLVED_INVOCATIONS: {paid}"
+    )
+
+
+def test_control_the_doc_root_resolver_discriminates(tracked: frozenset[str]) -> None:
+    """One token, two docs, two roots -> the verdict must differ.
+
+    H1 resolution is relative to the doc's own root -> the vendored metaswarm
+    copy resolves and the top-level copy does not.
+    H2 everything is judged against the repo root -> both come back unresolved,
+    and the vendored copy is reported as a dead promise it is not.
+
+    A resolver that cannot tell these apart manufactured exactly that false
+    finding before this control existed.
+    """
+    token = "scripts/beads-fetch-pr-comments.ts"
+    vendored = "tools/editor/metaswarm/.claude/commands/self-reflect.md"
+    top_level = "commands/self-reflect.md"
+    assert _doc_root(vendored) == "tools/editor/metaswarm"
+    assert _doc_root(top_level) == ""
+    assert _resolves_for_doc(token, vendored, tracked), (
+        "precondition: the vendored plugin ships this script beside its commands"
+    )
+    assert not _resolves_for_doc(token, top_level, tracked), (
+        "precondition: the repo root does not carry scripts/ for this token"
+    )
+
+
+def test_control_invocation_arm_fires_on_a_new_missing_script(
+    tracked: frozenset[str],
+) -> None:
+    """H1 the arm reads the doc -> an injected missing token is NEW and fires.
+
+    H2 it reads something else -> the injection is invisible. Different answers.
+    """
+    injected = "scripts/zzz-round8-not-a-real-file.js"
+    assert not _path_resolves(injected, tracked), "precondition: the token is absent"
+    rel = _command_docs(tracked)[0]
+    text = _carrier_source(rel) + f"\n\n```bash\nnode {injected}\n```\n"
+    assert injected in _invocation_tokens(text)
+    assert injected not in KNOWN_UNRESOLVED_INVOCATIONS
+
+
+def test_control_invocation_arm_is_silent_on_a_resolving_script(
+    tracked: frozenset[str],
+) -> None:
+    """The other direction: a script that DOES exist must not be reported."""
+    present = "scripts/longrun.ps1"
+    assert _path_resolves(present, tracked), "precondition: the token resolves"
+    rel = _command_docs(tracked)[0]
+    text = _carrier_source(rel) + f"\n\n```bash\npwsh -File {present}\n```\n"
+    assert present in _invocation_tokens(text), "extractor missed a fenced token"
+    assert present not in _unresolved_invocations(tracked)
+
+
+def test_control_invocation_extraction_is_not_empty(tracked: frozenset[str]) -> None:
+    """A collapsed extractor would make the ratchet vacuously green."""
+    total: set[str] = set()
+    for rel in _command_docs(tracked):
+        total.update(_invocation_tokens(_carrier_source(rel)))
+    assert len(total) >= MIN_INVOCATION_TOKENS, (
+        f"only {len(total)} invocation tokens found across the corpus; the "
+        "extractor has collapsed and the ratchet is measuring nothing"
+    )
+
+
+def test_control_a_root_qualified_reference_is_not_a_repo_claim() -> None:
+    """``${CLAUDE_PLUGIN_ROOT}/scripts/x.js`` names its own root, so it is exempt.
+
+    Without the leading ``$``/``/`` guard the regex would slice the tail out of a
+    qualified path and report it as a bare repo claim -- the round-5 defect where
+    a substring match produced a 16x overclaim.
+    """
+    qualified = "```bash\nnode ${CLAUDE_PLUGIN_ROOT}/scripts/qualified-example.js\n```"
+    assert _invocation_tokens(qualified) == set()
+    bare = "```bash\nnode scripts/qualified-example.js\n```"
+    assert _invocation_tokens(bare) == {"scripts/qualified-example.js"}
+
+
+def test_control_invocation_arm_is_eol_agnostic(tracked: frozenset[str]) -> None:
+    """A CRLF working tree and an LF blob must produce the same token set."""
+    for rel in _command_docs(tracked)[:12]:
+        lf = _carrier_source(rel).replace("\r\n", "\n")
+        assert _invocation_tokens(lf) == _invocation_tokens(lf.replace("\n", "\r\n")), (
+            f"{rel}: the arm's token set depends on line endings"
+        )
