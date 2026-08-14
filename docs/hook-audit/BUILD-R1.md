@@ -30,6 +30,12 @@ with **100% of the 47 errors pointing at data loss**: every one a DIVERGED file 
 deploy-safe, because a one-directional read cannot see two-directional divergence.
 
 **Result: 12 of 12 DIVERGED. Zero REPO-AHEAD, zero LIVE-AHEAD, zero EQUAL.**
+<!-- cite: id=R1-dir-n file=B1-DIRECTION.json path=files_read value=12 -->
+<!-- cite: id=R1-dir-div file=B1-DIRECTION.json path=summary.DIVERGED value=12 -->
+<!-- cite: id=R1-dir-disp-r file=B1-DIRECTION.json path=rows.0.repo_only_lines value=91 -->
+<!-- cite: id=R1-dir-disp-l file=B1-DIRECTION.json path=rows.0.live_only_lines value=129 -->
+<!-- cite: id=R1-dir-hs-r file=B1-DIRECTION.json path=rows.4.repo_only_lines value=90 -->
+<!-- cite: id=R1-dir-pec-r file=B1-DIRECTION.json path=rows.7.repo_only_lines value=211 -->
 
 | hook | repo-only lines | live-only lines |
 |---|---|---|
@@ -123,6 +129,11 @@ returns 2", and half B would be unreadable.
 
 It discriminates across all three states. It also, in every case, left the file it objected to
 **on disk** — the hook has no power to unwrite anything.
+<!-- cite: id=R1-b4-rc2 file=B4-POSTTOOL-BLOCK.json path=cases.0.returncode value=2 -->
+<!-- cite: id=R1-b4-exempt file=B4-POSTTOOL-BLOCK.json path=cases.1.returncode value=0 -->
+<!-- cite: id=R1-b4-clean file=B4-POSTTOOL-BLOCK.json path=cases.2.returncode value=0 -->
+<!-- cite: id=R1-b4-disc file=B4-POSTTOOL-BLOCK.json path=controls.detector_discriminates value=True -->
+<!-- cite: id=R1-b4-survived file=B4-POSTTOOL-BLOCK.json path=controls.A1_file_survived_the_block value=True -->
 
 **Half B — the real tool call.** A credential-shaped placeholder was written to a scratch path
 via the actual Write tool. The harness surfaced the hook's stderr as a "hook blocking error".
@@ -172,6 +183,12 @@ CI-shaped sibling. Runs in **3.7 s**.
 
 `SUCCESS/FAILED` terminal state, `--json` for the blob, exit **2** on a control failure, **1** on
 any hazard, **0** clean. Current: **exit 1, 20 hazards of 71 findings.**
+<!-- cite: id=R1-pd-live file=B2-PREDEPLOY.json path=stats.live_manifest_checks value=25 -->
+<!-- cite: id=R1-pd-shared file=B2-PREDEPLOY.json path=stats.shared_files value=235 -->
+<!-- cite: id=R1-pd-div file=B2-PREDEPLOY.json path=stats.direction_tally.DIVERGED value=42 -->
+<!-- cite: id=R1-pd-wired file=B2-PREDEPLOY.json path=stats.wired_scripts value=45 -->
+<!-- cite: id=R1-pd-liveev file=B2-PREDEPLOY.json path=stats.live_settings_events value=20 -->
+<!-- cite: id=R1-pd-repoev file=B2-PREDEPLOY.json path=stats.repo_settings_events value=19 -->
 
 **Fail-closed is load-bearing, not decoration.** Point the gate at an unreadable live tree and it
 exits **2** naming the control that fired — it never reports clean because it could not measure.
@@ -182,6 +199,10 @@ That is the direct descendant of this program's four-probe false-parity episode.
 53 tests pass — which on its own proves nothing. `_b3_mutation_control.py` re-introduces 12
 defects that were **actually made while building this gate** and requires the suite to go RED for
 each. **12/12 CAUGHT.** Three did not, at first:
+<!-- cite: id=R1-mut-n file=B3-MUTATION.json path=mutations value=12 -->
+<!-- cite: id=R1-mut-caught file=B3-MUTATION.json path=caught value=12 -->
+<!-- cite: id=R1-mut-survived file=B3-MUTATION.json path=survived value=0 -->
+<!-- cite: id=R1-mut-na file=B3-MUTATION.json path=not_applied value=0 -->
 
 - **M5** — making a control unfalsifiable survived, because the fail-closed test asserted only
   that the control's *name* appeared in the output. It prints either way; a *different* control
