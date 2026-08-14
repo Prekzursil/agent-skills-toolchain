@@ -110,6 +110,16 @@ Harness injects `OWNER-OPS v3 GENERAL` on broad keywords / estate cwd (never blo
 
 ## 9. Security non-negotiables (all tools) — ALWAYS ON
 
+- **NEVER remove, rotate, revoke, regenerate, unset or otherwise MODIFY any API key or token.**
+  Owner instruction, 2026-08-08, all sessions, all tools. Called out especially for **OpenAI,
+  Anthropic and GitHub**, but it covers every credential on the estate — env vars at any scope
+  (`HF_TOKEN`, `OPENAI_API_KEY`, `GH_TOKEN`, …), credential files, keychain/DPAPI entries, and
+  provider-side revocation. The owner handles credential lifecycle personally.
+  READ-ONLY diagnosis is expected and fine: presence, length, which scope it is set at, and
+  whether it still authenticates (an HTTP 401 from a `whoami` probe). Never print the value; a
+  zero-entropy prefix (`hf_`, `sk-`) is acceptable, the rest is not. When a credential IS the root
+  cause: name the variable, name the scope, state the evidence, hand it back — and prefer fixing
+  the CONSUMER so a bad credential cannot break it.
 - Never hardcode secrets; use environment variables and validate presence at startup.
 - Never `--no-verify` on commits without explicit user instruction.
 - Never `git push --force` to main/master without explicit user approval.
@@ -128,7 +138,11 @@ Harness injects `OWNER-OPS v3 GENERAL` on broad keywords / estate cwd (never blo
 - On a CONFIRMED defect or a secret exposure, before declaring "done" trace its **blast radius** —
   every file, commit, index entry, and downstream consumer the bad change touched (git scope +
   wire-check + ledger) — and remediate the WHOLE set, not just the first symptom. A leaked secret
-  is compromised regardless of how briefly it was exposed → rotate, don't just delete.
+  is compromised regardless of how briefly it was exposed, so deleting it is NOT sufficient —
+  **but per §9 you do not rotate it yourself.** Report the exposure, quantify the blast radius
+  (where it leaked, what can read it, what still trusts it), recommend rotation explicitly, and
+  leave the rotation to the owner. Rotating on their behalf is the banned action, not saying it
+  is needed.
 
 ## 10. Instruction precedence (resolve collisions explicitly)
 

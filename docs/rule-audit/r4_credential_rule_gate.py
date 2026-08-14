@@ -170,17 +170,25 @@ def controls(source: str) -> list[str]:
         ),
         True,
     )
+    # INV-2's mutant is INJECTED, not string-swapped. It used to be built by replacing
+    # "report it and leave the rotation to the owner" -- a phrase that exists only because the
+    # `repaired` scaffold above put it there, and only while the real source still contained
+    # "rotate, don't just delete" for that scaffold to swap. The day the deploy source was
+    # actually repaired (2026-08-14) both replaces became no-ops, the mutant came out identical
+    # to `repaired`, INV-2 did not fire, and this control failed -- while the gate itself was
+    # working perfectly. A control coupled to its own scaffolding measures the scaffolding.
+    #
+    # Anchoring on the "## 9." heading instead is safe in both states: the positive control
+    # above already asserts that section exists and is non-empty, and `audit()` scopes INV-2 to
+    # §9 + §9b, so a bullet placed directly under the heading is always in scope.
+    inverted = repaired.replace(
+        "## 9. Security non-negotiables",
+        "## 9. Security non-negotiables\n\n- On a leak: rotate, don't just delete.\n",
+        1,
+    )
     expect(
         "INV-2 fires when the inversion is re-introduced",
-        any(
-            "INV-2" in v
-            for v in audit(
-                repaired.replace(
-                    "report it and leave the rotation to the owner",
-                    "rotate, don't just delete",
-                )
-            )
-        ),
+        any("INV-2" in v for v in audit(inverted)),
         True,
     )
     expect(

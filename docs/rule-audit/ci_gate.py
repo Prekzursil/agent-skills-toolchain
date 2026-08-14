@@ -110,16 +110,32 @@ CI_PLAN: list[tuple[str, list[str], int]] = [
     ("r2_control_count_gate", ["r2_control_count_gate.py"], 0),
     ("r2_failclosed_mutation", ["r2_failclosed_mutation.py"], 0),
     ("r4_receipt_argv_gate", ["r4_receipt_argv_gate.py"], 0),
-    # BOTH STATES.  The credential inversion in agent-self/config/AGENTS.md is REAL, unfixed,
-    # and deliberately left to the owner (AGENTS.md section 9 -- credential policy is not this
-    # lane's to change).  Pinning it at rc=1 keeps a known defect TRACKED instead of silently
-    # tolerated: the day it is repaired this entry goes red, and whoever repaired it has to
-    # promote the gate to a blocking rc=0 in the same change.
+    # PROMOTED TO BLOCKING 2026-08-14.  This entry was pinned at rc=1 while the credential
+    # inversion in agent-self/config/AGENTS.md was live, with the instruction that "whoever
+    # repaired it has to promote the gate to a blocking rc=0 in the same change".  The defect
+    # is repaired and this is that same change.
+    #
+    # WHAT WAS WRONG.  The deploy source's section 9 was MISSING the bullet forbidding an agent
+    # to rotate/revoke/regenerate a credential, and its 9b ended "rotate, don't just delete" --
+    # an imperative to perform the one action the owner reserved personally.  Deploying it over
+    # ~/.claude/AGENTS.md would have REMOVED a live safety rule and replaced it with its
+    # inverse.  The repair restores the live file's exact wording, so this is not a policy
+    # change: it is the deploy source being made to agree with the policy it ships.
+    #
+    # rc=0 means the gate now BLOCKS a regression rather than recording one.  Its six controls
+    # (including both-states arms for INV-1 and INV-2) all pass, and the live arm reports RAN
+    # rather than SKIPPED, so a green here is a measurement and not an absence.
     (
-        "r4_credential_rule_gate (must FAIL: owner action)",
+        "r4_credential_rule_gate (blocking)",
         ["r4_credential_rule_gate.py"],
-        1,
+        0,
     ),
+    # The runner's own both-states control, and the reason promoting the entry above did not
+    # cost this plan its ability to detect a failure. `--self-test` refuses to pass when no
+    # entry expects a non-zero exit; that property used to ride on the credential inversion
+    # being unfixed, so repairing a security defect turned the gate red. A control that fails
+    # BY CONSTRUCTION cannot be repaired away and carries the property permanently.
+    ("_ci_plan_control (intentional rc=1)", ["_ci_plan_control.py"], 1),
     # BUILD-R3.  The repo-vs-live drift this file's own docstring names as ungated.  On a runner
     # it prints NOT-CHECKED and exits 0 -- it CANNOT see the owner's home directory, and saying
     # so is the honest answer rather than a pass.  On the owner box it enforces the ratchet.
