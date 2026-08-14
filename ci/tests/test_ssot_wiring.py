@@ -33,6 +33,7 @@ runs ``pytest ci/tests`` as a directory AND names this file explicitly)::
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 import sys
@@ -70,6 +71,12 @@ COPY_PATHS = (
     # carry. W3 only tests `.exists()`, so the bytes need not be importable here.
     "command-center/ssot/apply_severed_resolution.py",
     "command-center/ssot/redproof_severed.py",
+    # W7 reads the measured artifact the block's counts claim to summarise. Same trap as
+    # the two lines above, and it sprang a THIRD time: adding W7 without this entry made
+    # the UNMUTATED scratch copy red, which then cascaded into all six exclusivity
+    # assertions failing. Caught by test_the_scratch_copy_is_green_before_mutation before
+    # CI ever saw it -- the control earning its place for the third round running.
+    "command-center/ssot/population-classified.json",
     ".github/workflows/skill-dual-write.yml",
 )
 
@@ -149,6 +156,55 @@ def mut_inventory_deleted(root: Path) -> None:
     (root / "docs/ssot/SSOT-CLONE-INVENTORY.md").unlink()
 
 
+# --- W7 mutations ---------------------------------------------------------------------
+# Four shapes, because W7 guards four different ways the counts can stop being true: the
+# prose drifts off the measurement, the arithmetic stops closing, the sentence carrying a
+# number disappears, or the artifact the numbers summarise is gone. Each must fire W7 and
+# nothing else -- otherwise it stays unproven that W7 is what noticed.
+POPULATION_JSON = "command-center/ssot/population-classified.json"
+
+
+def mut_w7_population_drift(root: Path) -> None:
+    _sub(
+        root / "CLAUDE.md",
+        "**178 checkouts across 168 object stores**",
+        "**179 checkouts across 168 object stores**",
+    )
+
+
+def mut_w7_arithmetic_does_not_close(root: Path) -> None:
+    """Round 4's actual defect, reconstructed: a kind split that does not add up.
+
+    That round shipped `9 + 168 = 177` against a population of 178 and every reader went
+    past it, because nothing added it up. This is the mutation that would have caught it.
+    """
+    _sub(root / "CLAUDE.md", "9 + 168 + 1 = 178", "9 + 168 + 1 = 177")
+
+
+def mut_w7_claim_sentence_deleted(root: Path) -> None:
+    """Deleting the sentence must not be quieter than getting its number wrong."""
+    _sub(root / "CLAUDE.md", "5 have no remote at all.**", "some have no remote.**")
+
+
+def mut_w7_artifact_absent(root: Path) -> None:
+    """W3 resolves only `.md`/`.py`, so before W7 nothing required this file to exist."""
+    (root / POPULATION_JSON).unlink()
+
+
+def mut_w7_artifact_disagrees_with_itself(root: Path) -> None:
+    """Break the artifact's own accounting without touching a single word of prose.
+
+    Prose measured against a ruler whose own arithmetic does not close would be certified
+    against a broken instrument, so W7 checks the artifact against itself first.
+    """
+    path = root / POPULATION_JSON
+    pc = json.loads(path.read_text(encoding="utf-8"))
+    pc["kind_arithmetic"]["severed_worktrees"] = 0
+    pc["kind_arithmetic"]["sum"] = 177
+    pc["kind_arithmetic"]["closes"] = False
+    path.write_text(json.dumps(pc, indent=2), encoding="utf-8")
+
+
 MUTATIONS: tuple[tuple[str, Callable[[Path], None], set[str], bool], ...] = (
     (
         "W1-claude-md-no-ssot-block",
@@ -178,6 +234,26 @@ MUTATIONS: tuple[tuple[str, Callable[[Path], None], set[str], bool], ...] = (
         mut_inventory_deleted,
         {"W2-rule-sentence-drift", "W3-referenced-path-missing"},
         False,
+    ),
+    ("W7-population-drift", mut_w7_population_drift, {"W7-count-drift"}, True),
+    (
+        "W7-arithmetic-does-not-close",
+        mut_w7_arithmetic_does_not_close,
+        {"W7-count-drift"},
+        True,
+    ),
+    (
+        "W7-claim-sentence-deleted",
+        mut_w7_claim_sentence_deleted,
+        {"W7-count-drift"},
+        True,
+    ),
+    ("W7-artifact-absent", mut_w7_artifact_absent, {"W7-count-drift"}, True),
+    (
+        "W7-artifact-disagrees-with-itself",
+        mut_w7_artifact_disagrees_with_itself,
+        {"W7-count-drift"},
+        True,
     ),
 )
 

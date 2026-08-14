@@ -36,6 +36,10 @@ CLAUDE_MD = "CLAUDE.md"
 INVENTORY = "docs/ssot/SSOT-CLONE-INVENTORY.md"
 WORKFLOW = ".github/workflows/skill-dual-write.yml"
 SUITE = "ci/tests/test_ssot_wiring.py"
+# The machine-readable classification the block points at. W3 resolves only `.md`/`.py`
+# paths, so before W7 nothing required this artifact to exist at all -- the block named
+# the SSOT of the whole lane and no wire held it.
+POPULATION_JSON = "command-center/ssot/population-classified.json"
 
 # The marker-delimited block in CLAUDE.md that carries the wire. Marker-delimited rather
 # than heading-matched so a heading reword cannot silently orphan the section.
@@ -54,7 +58,165 @@ CHECKS: tuple[tuple[str, str], ...] = (
     ("W4-gate-unreferenced", "the block does not name the drift gate"),
     ("W5-gate-not-runnable", "the gate has no working __main__ entry point"),
     ("W6-ci-suite-unwired", "no workflow step runs this suite"),
+    ("W7-count-drift", "CLAUDE.md counts != population-classified.json"),
 )
+
+# --- W7 ----------------------------------------------------------------------------------
+# WHY W7 EXISTS. W1-W6 gate the rule's TEXT. They say nothing about the NUMBERS in the same
+# block, and the numbers are what a future agent actually acts on: whether a checkout may be
+# retired depends on "132 hold unpushed commits" and "5 have no remote", not on the rule
+# sentence. This lane restated its headline count four times -- 25, then 170, then 177, then
+# 178 -- and round 4's central defect was an arithmetic that did not close (9 + 168 = 177
+# against a population of 178) which every reviewer read past because nothing added it up.
+# W7 makes that mechanical: an exact algorithm, not a judgement call.
+
+NUMBER_WORDS = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+}
+
+# Each claim is (human label, pattern, measured keys aligned to the capture groups).
+# Anchored on the specific phrase rather than "every integer in the block" on purpose: the
+# block deliberately PRESERVES refuted figures (177, 25, 170) inside blockquotes so a dead
+# end is not re-walked, and a scanner that treated those as live claims would fire on
+# correct content. Counting the field, not the document.
+COUNT_CLAIMS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (
+        "population / object stores",
+        r"\*\*(\d+)\s+checkouts\s+across\s+(\d+)\s+object\s+stores\*\*",
+        ("population", "distinct_object_stores"),
+    ),
+    ("linked worktrees", r"(\d+)\s+linked\s+worktrees", ("linked_worktrees",)),
+    ("independent clones", r"(\d+)\s+independent\s+clones", ("independent_clones",)),
+    ("severed worktree", r"\*\*(\d+)\s+severed\s+worktree\*\*", ("severed_worktrees",)),
+    (
+        "kind arithmetic",
+        r"(\d+)\s*\+\s*(\d+)\s*\+\s*(\d+)\s*=\s*(\d+)",
+        ("linked_worktrees", "independent_clones", "severed_worktrees", "population"),
+    ),
+    (
+        "uncommitted-work surface / no remote",
+        r"\*\*(\d+)\s+of\s+them\s+hold\s+unpushed\s+commits[^*]*?;"
+        r"\s*(\d+)\s+have\s+no\s+remote\s+at\s+all\.\*\*",
+        ("with_unique_or_uncommitted", "no_remote"),
+    ),
+    (
+        "named by live harness config",
+        r"([A-Za-z]+|\d+)\s+are\s+named\s+by\s+live\s+harness\s+config",
+        ("referenced_by_exec_config",),
+    ),
+)
+
+
+def _live_prose(body: str) -> str:
+    """Drop blockquote lines before matching a live numeric claim.
+
+    The block keeps every superseded figure as a `>` quoted REFUTED note rather than
+    deleting it. Those numbers are MENTIONS of a retired measurement, not assertions about
+    the tree, and a gate that could not tell the two apart would go red on the honesty.
+    """
+    return "\n".join(ln for ln in body.splitlines() if not ln.lstrip().startswith(">"))
+
+
+def _as_int(token: str) -> int | None:
+    return int(token) if token.isdigit() else NUMBER_WORDS.get(token.lower())
+
+
+def _measured(pc: dict) -> tuple[dict[str, int | None], list[str]]:
+    """Measured counts plus any way the artifact disagrees with ITSELF.
+
+    Self-consistency is checked first and separately. Comparing prose against an artifact
+    whose own accounting does not close would certify the prose against a broken ruler.
+    """
+
+    def _len(v: object) -> int | None:
+        return len(v) if isinstance(v, list) else None
+
+    arith = pc.get("kind_arithmetic") or {}
+    vals: dict[str, int | None] = {
+        "population": pc.get("population"),
+        "distinct_object_stores": pc.get("distinct_object_stores"),
+        "linked_worktrees": arith.get("linked_worktrees"),
+        "independent_clones": arith.get("independent_clones"),
+        "severed_worktrees": arith.get("severed_worktrees"),
+        "with_unique_or_uncommitted": _len(pc.get("with_unique_or_uncommitted")),
+        "no_remote": _len(pc.get("no_remote")),
+        "referenced_by_exec_config": _len(pc.get("referenced_by_exec_config")),
+    }
+
+    internal: list[str] = []
+    rows = pc.get("rows")
+    if not isinstance(rows, list):
+        internal.append("`rows` is not a list")
+    elif len(rows) != pc.get("population"):
+        internal.append(f"len(rows)={len(rows)} != population={pc.get('population')}")
+    if arith.get("closes") is not True:
+        internal.append("kind_arithmetic.closes is not true")
+    terms = [
+        arith.get(k)
+        for k in (
+            "linked_worktrees",
+            "independent_clones",
+            "severed_worktrees",
+            "unresolved",
+        )
+    ]
+    if all(isinstance(t, int) for t in terms) and sum(terms) != pc.get("on_disk"):
+        internal.append(
+            f"kind_arithmetic terms sum to {sum(terms)} != on_disk {pc.get('on_disk')}"
+        )
+    if _len(pc.get("severed_worktrees")) != arith.get("severed_worktrees"):
+        internal.append("severed_worktrees list length != its kind_arithmetic term")
+    return vals, internal
+
+
+def _check_counts(root: pathlib.Path, body: str) -> list[str]:
+    """Return W7 detail lines. Empty means every live count matches the measurement."""
+    path = root / POPULATION_JSON
+    if not path.exists():
+        return [f"{POPULATION_JSON} does not exist; the block's counts rest on nothing"]
+    try:
+        pc = json.loads(path.read_text(encoding="utf-8"))
+    except (ValueError, OSError) as exc:
+        return [f"{POPULATION_JSON} is unreadable: {exc}"]
+    if not isinstance(pc, dict):
+        return [f"{POPULATION_JSON} is not an object"]
+
+    vals, internal = _measured(pc)
+    details = [f"{POPULATION_JSON} disagrees with itself: {d}" for d in internal]
+    if not body:
+        return details
+
+    prose = _live_prose(body)
+    for label, pattern, keys in COUNT_CLAIMS:
+        found = list(re.finditer(pattern, prose))
+        if not found:
+            details.append(
+                f"the sentence carrying '{label}' is gone from the block, "
+                "so a future agent reads no number for it"
+            )
+            continue
+        # Every occurrence must agree: a second live sentence repeating a stale figure is
+        # the exact drift this check exists to catch.
+        for m in found:
+            for token, key in zip(m.groups(), keys):
+                claimed = _as_int(token)
+                measured = vals.get(key)
+                if claimed != measured:
+                    details.append(
+                        f"'{label}': block says {token} for {key}, measured {measured}"
+                    )
+    return details
 
 
 def _canon_md(text: str) -> str:
@@ -203,6 +365,10 @@ def run(root: pathlib.Path) -> list[tuple[str, str]]:
         fails.append(
             (CHECKS[5][0], f"{WORKFLOW} runs neither {SUITE} nor `pytest ci/tests`")
         )
+
+    # --- W7: the block's COUNTS must match the artifact they claim to summarise -------
+    for detail in _check_counts(root, body):
+        fails.append((CHECKS[6][0], detail))
 
     return fails
 
