@@ -136,15 +136,42 @@ def p2_node_blast_radius(files: list[str]) -> dict[str, object]:
         _ = citer_dir
 
     def resolves(token: str, citers: set[str]) -> bool:
+        """Resolve against the repo root or ANY ancestor of the citing document.
+
+        CORRECTED after a second signal disagreed. The first version tried only
+        the citer's immediate parent, which is the root-anchoring error round 8
+        already documented (R8-7) -- a vendored plugin or a skill pack ships its
+        own tree, so ``skills/ui-audit/…md`` naming ``uicrit-pack/_test_pack.mjs``
+        is a CORRECT reference to ``skills/ui-audit/uicrit-pack/_test_pack.mjs``.
+        Reporting those as dead promises inflated the count. Walking the
+        ancestors is the generalisation of the gate's own ``_doc_root``.
+        """
         if token in trackedset:
             return True
         for citer in citers:
-            root = str(Path(citer).parent).replace("\\", "/")
-            if f"{root}/{token}" in trackedset:
-                return True
+            parts = citer.split("/")[:-1]
+            while parts:
+                if "/".join(parts) + "/" + token in trackedset:
+                    return True
+                parts.pop()
         return False
 
     unresolved = {t: sorted(c) for t, c in invocations.items() if not resolves(t, c)}
+
+    # CONTROL that discriminates, replacing two that only proved the extractor
+    # ran. An ancestor-resolving token must be resolved by this function and NOT
+    # by a parent-only one; if both agree, the ancestor walk is inert and the
+    # count is the old, inflated one.
+    def parent_only(token: str, citers: set[str]) -> bool:
+        if token in trackedset:
+            return True
+        return any(
+            "/".join(c.split("/")[:-1]) + "/" + token in trackedset for c in citers
+        )
+
+    ancestor_only = sorted(
+        t for t, c in invocations.items() if resolves(t, c) and not parent_only(t, c)
+    )
     return {
         "corpus_md_files": len(corpus),
         "node_tokens": len(invocations),
@@ -152,6 +179,8 @@ def p2_node_blast_radius(files: list[str]) -> dict[str, object]:
         "unresolved_sample": sorted(unresolved)[:12],
         "control_corpus_non_empty": len(corpus) > 100,
         "control_some_token_found": len(invocations) > 0,
+        "control_ancestor_walk_discriminates": bool(ancestor_only),
+        "resolved_only_via_ancestor": ancestor_only,
     }
 
 
@@ -224,6 +253,11 @@ def main() -> int:
         problems.append("P1 control: the gate matcher fired on NEITHER sample")
     if not p2["control_corpus_non_empty"]:
         problems.append("P2 control: corpus collapsed")
+    if not p2["control_ancestor_walk_discriminates"]:
+        problems.append(
+            "P2 control: no token resolves via an ancestor root, so the ancestor "
+            "walk is inert and the unresolved count is the parent-only one"
+        )
     if not control["has_actionable_row"]:
         problems.append(
             "P3 control: the searcher found no actionable row for "
