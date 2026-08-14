@@ -174,6 +174,36 @@ branch and returned a `hookEventName: "SessionStart"` envelope while I was feedi
 payload. Three arms agreed with each other and all three were void. Any future probe that fires a
 check must pass the manifest's argv or it is not testing the wired program.
 
+## 3b. A NEW defect, found by re-running the lane's own tool instead of citing it
+
+`_b10_ci_proof.py` is the probe that proves the wired CI commands are green from a fresh clone
+with `HOME` redirected. Round 2 shipped it and cited its artifact. Re-running it this round: **it
+failed closed with `CONTROL C2 = FAIL (mutation anchor not found)`**, exit 2.
+
+Its C2 control mutated a hardcoded citation — `id=R2-fmt-files … value=2595` in `BUILD-R2.md` — and
+required the gate to go red. Traced through git, that anchor was introduced in `b0cbfe28`,
+re-pointed in `b99ee2e7` ("a pinned count that legitimately moves") and **deleted outright in
+`01febbed`** — three commits by the same lane that wrote the probe. From `01febbed` onward the
+anchor could not match, so the runner-safety proof stopped working two commits after it was
+recorded, and nobody re-ran it: round 2 cited the stored artifact, and the verifier ran the four
+wired commands directly rather than through this probe. Two independent readings agreed the CI
+proof was fine because neither executed it.
+
+It failed CLOSED rather than reporting a false green, which is the correct direction and worth
+saying plainly. But a control anchored to content that legitimately moves is the same maintenance
+trap this audit keeps finding — and it is the second instance in this lane, after `_r4_blobgate.py`
+walking a hardcoded 8-entry path list.
+
+**Fixed by removing the defect class, not the instance:** C2 now DERIVES its mutation target,
+scanning the docs at run time for any citation carrying a numeric `value=` and mutating that. It
+survives any document being rewritten and still fails closed when there is nothing to mutate.
+Re-run after the fix: the gate goes RED when mutated and GREEN when restored
+<!-- cite: id=R3-ci-c2 file=B10-CI-PROOF.json path=controls.C2_gate_can_fail_in_clone value=True -->
+<!-- cite: id=R3-ci-hot file=B10-CI-PROOF.json path=controls.C2_rc_mutated value=1 -->
+<!-- cite: id=R3-ci-cold file=B10-CI-PROOF.json path=controls.C2_rc_restored value=0 -->,
+and all four wired commands are green in a fresh clone
+<!-- cite: id=R3-ci-green file=B10-CI-PROOF.json path=all_wired_commands_green value=True -->.
+
 ## 4. Detector controls, and the do-not-fire list
 
 | probe | control that had to hold |

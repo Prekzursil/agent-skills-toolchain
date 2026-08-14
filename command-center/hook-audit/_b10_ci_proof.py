@@ -137,14 +137,41 @@ def main() -> int:
             print(f"rc={rc}  {' '.join(cmd[1:])}\n      {tail}")
 
         # C2: the gate must still be able to FAIL inside the clone.
-        doc = clone / "docs" / "hook-audit" / "BUILD-R2.md"
-        original = doc.read_text(encoding="utf-8")
-        mutated = re.sub(
-            r"(id=R2-fmt-files[^>]*?value=)2595", r"\g<1>9999", original, count=1
-        )
-        if mutated == original:
+        #
+        # THE ANCHOR IS DERIVED, NOT HARDCODED, and that is a fix rather than a style
+        # choice. This control used to mutate the literal `id=R2-fmt-files ... value=2595`
+        # in BUILD-R2.md. That citation was introduced in `b0cbfe28`, re-pointed in
+        # `b99ee2e7` ("a pinned count that legitimately moves") and DELETED outright in
+        # `01febbed` -- three commits of the same lane that wrote this probe. From
+        # `01febbed` onward the anchor could never match, so the probe failed closed with
+        # "mutation anchor not found" and stopped being usable as a runner-safety proof.
+        # It failed closed rather than reporting a false green, which is the correct
+        # direction, but a control anchored to content that legitimately moves is a
+        # maintenance trap of exactly the kind this audit keeps finding.
+        #
+        # So: find ANY citation carrying a numeric `value=` in ANY scanned doc at run time
+        # and mutate that. The control now survives any document being rewritten, and it
+        # still fails closed when there is nothing to mutate.
+        cite_num = re.compile(r"(<!--\s*cite:[^>]*?\bvalue=)(\d+)(\s*-->)")
+        doc = None
+        original = mutated = ""
+        for cand in sorted((clone / "docs" / "hook-audit").glob("*.md")):
+            text = cand.read_text(encoding="utf-8")
+            m = cite_num.search(text)
+            if not m:
+                continue
+            # Mutate to a value the evidence cannot possibly hold.
+            new_val = str(int(m.group(2)) + 987654)
+            doc = cand
+            original = text
+            mutated = text[: m.start(2)] + new_val + text[m.end(2) :]
+            out["controls"]["C2_anchor"] = (
+                f"{cand.name}: {m.group(0)[:60]} -> {new_val}"
+            )
+            break
+        if doc is None or mutated == original:
             out["controls"]["C2_gate_can_fail_in_clone"] = False
-            print("CONTROL C2 = FAIL (mutation anchor not found)")
+            print("CONTROL C2 = FAIL (no numeric citation found to mutate)")
             print("FAILED:ci-proof could not mutate a citation -- control inert")
             return 2
         doc.write_text(mutated, encoding="utf-8", newline="")
