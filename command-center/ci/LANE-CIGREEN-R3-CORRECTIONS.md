@@ -202,11 +202,13 @@ gate pass"; reading it as the latter is how a green step gets reported as red.
 | location | shipped | measured in round 4 | fix |
 |---|---|---|---|
 | D1 table, last row | `HEAD` = 1 | 3 at `8e7ff68c`, this file's own commit | rows pinned to shas |
-| sweep paragraph | 2,618 tracked `.py` | 2,619 at `c9f6cca4` **and** at `8e7ff68c` | count now printed with its revision |
+| sweep paragraph | 2,618 tracked `.py` | 2,618 at `3f3c4b14`; **2,619** at `c9f6cca4` and at `8e7ff68c` | count now printed with its revision |
 
-2,618 was never true at any commit: the sweep ran before `git add` staged the gate itself, so it
-counted a tree that was never committed. Both are O3's own defect — an unanchored number cannot
-be told apart from a stale one — committed inside the retraction that names it.
+2,618 was true — at `3f3c4b14`, the parent of the gate's own commit, because the sweep ran before
+`git add` staged the gate file. That is the whole point rather than a footnote: the number was
+correct at a revision the sentence gave no way to identify, and already stale at both commits a
+reader would reasonably take it for. An unanchored number cannot be told apart from a stale one,
+which is O3's own defect, committed inside the retraction that names it.
 
 ## R4-3 — the structural fix, and the control that proves it fires
 
@@ -216,15 +218,25 @@ Correcting two digits does not stop the third. The gate now reports what it scan
 scanned 2643 tracked .py at the 3.11 floor @ 64c28c70db98+2dirty -> 4 that do not parse
 ```
 
-The anchor is mutation-tested, not asserted. Baseline `--self-test` is 8/8 green; three stubs of
-`describe_tree` each turn it red, each caught by a *different* check:
+The anchor is mutation-tested, not asserted. Baseline `--self-test` is 8/8 green, and every stub
+of `describe_tree` turns it red:
 
-| mutation | rc | caught by |
+| mutation | rc | which check caught it |
 |---|---|---|
 | baseline, unmutated | 0 | — |
 | returns `("UNKNOWN", 0)` | 1 | commit-id shape **and** the dirty read |
-| real-looking sha, always `1` | 1 | the clean read |
-| real-looking sha, always `0` | 1 | the dirty read |
+| fixed sha, always `1` | 1 | the clean read |
+| fixed sha, always `0` | 1 | the dirty read |
+| sha MOVES between calls, dirty counts correct | 1 | the commit must not move when only the worktree does |
+
+> **REFUTED inside the hour, kept rather than deleted:** this paragraph first said the three
+> stubs were "each caught by a *different* check", and `f0d111ad`'s commit message says the same.
+> Its own table refutes it — the first and third both trip the dirty read. Re-reading the table
+> then exposed the larger hole: all three returned a CONSTANT sha, so the fourth check was
+> satisfied trivially and had never fired at all, which would have made "the anchor is
+> mutation-tested" wider than its evidence. The last row is the mutation added to fire it, and it
+> fires that check alone. All four fire across the set now. The pushed commit message is not
+> being rewritten; it is corrected here.
 
 The control is hermetic — a throwaway repo, read clean then dirty — because reading *this*
 worktree would race the siblings committing into it. Not theoretical: `HEAD` moved twice during
