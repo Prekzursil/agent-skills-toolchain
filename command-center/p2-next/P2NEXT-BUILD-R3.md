@@ -130,7 +130,52 @@ flagged it): a control that shares its subject's reader inherits the defect it e
   ten reviews this lane did not perform. Unchanged from `00d0a311`.
 - **Windows-local green is not CI green.** ~9 of ~25 steps run here.
 
-## 5. The two owner decisions still price together
+## 5. BLOCKER found by running the gate I did not expect to matter
+
+`ci/check_skill_dual_write.py --strict-parity` is **RED** for this round's commit:
+
+```
+D-001 DUAL-WRITE VIOLATION
+  - claim-verify-gate  [canonical-divergent]
+      .agents/skills/claim-verify-gate/scripts/claim_gate.py
+      canonical side: final counterpart: skills/claim-verify-gate/scripts/claim_gate.py
+```
+
+**It is pre-existing and systemic, not introduced here.** The same command reds on the commit
+that CREATED this skill and on the previous round, both already in `origin/main`:
+
+| commit | strict-parity verdict |
+|---|---|
+| `d34b74a7` created claim-verify-gate | VIOLATIONS: 1 |
+| `00d0a311` previous round, same files | VIOLATIONS: 1 |
+| `1b1e1e4e` this round | VIOLATIONS: 1 |
+
+Cause: `.agents/skills/` holds 347 skills, `skills/` projects 339. About ten — claim-verify-gate
+and the `codex-*` family — are deliberately canonical-only, and the index agrees with that
+(`gen_skill_index.py --check` reports `canonical NOT declared: 0`, `INDEX DRIFT: no`;
+`gen_skills_manifest.py --check` reports `skills_tracked=337 manifest_rows=337`). The
+strict-parity rule does not accommodate that convention: it reds whenever a canonical-only skill
+is TOUCHED, so the condition is invisible until someone edits one.
+
+Why main is not already red: `skill-dual-write.yml` triggers on **`pull_request` only**, while
+this lane's commits reach `origin/main` by direct push. The gate has therefore never run on the
+two historical violations. It would run on a PR.
+
+**Deliberately NOT remediated here, and the reason matters.** The two available fixes are both
+worse than reporting:
+
+1. *Mirror the 3 changed scripts into `skills/`* — satisfies the gate (it compares changed paths
+   only) but creates a `scripts/`-without-`SKILL.md` half-skill: an incoherent published surface.
+2. *Mirror the whole skill* — publishes a skill the repo deliberately kept unpublished, and
+   cascades into `gen_skills_manifest --check` (337 -> 338 rows), the marketplace index, and the
+   description ratchet. That is a skill-surface POLICY decision, not a p2-next decision.
+
+Editing the checker to accept canonical-only skills is the third option and the worst one to take
+unilaterally: weakening a gate so my own commit passes is the anti-pattern the gate exists to
+prevent. Escalated as an owner/orchestrator call. [almost certain 90-99%] on the measurement;
+the right remedy is a judgement I do not own.
+
+## 6. The two owner decisions still price together
 
 Unchanged and still the decisive fact: all 10 reviewed units remain blocked on completion
 condition 11, which `receipt_schema_gate.py:515-527` hard-rejects while nothing in production
