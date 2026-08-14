@@ -120,6 +120,17 @@ Earlier in the round I also reported `_k4_tree_survey.py` as untracked, on the s
 commit's `--stat` not listing it. `git ls-files` says it is tracked — it was committed a commit
 earlier. A commit's file list is not a tracked/untracked test.
 
+**And I shipped, then repaired, the exact defect this lane already fixed once.** `_l1_redproof.py`
+copied its lane files into the clone and `git commit`-ed them with `check=True`. That works only
+while those files are UNCOMMITTED. The moment my own commit landed, the clone already carried
+them, `git commit` exited 1 with "nothing to commit", and the probe went red **because its subject
+was correct** — the same shape as `48252d5e` ("the before/after probe went red the moment its fix
+was committed"). Fixed: `commit()` stages, checks `git diff --cached --quiet`, and treats a no-op
+as the post-integration state rather than an error. A control was added with it — the clone's
+workflow must contain the wiring before any leg runs, so a silent copy failure can never be
+misread as leg C failing to find it. The probe now prints which path it took
+(`lane files: ALREADY at clone HEAD`) and passes 4/4 from the committed state.
+
 ## 5. Gate sweep — measured on the working tree, after the reformat
 
 `ruff format` rewrote all three files after they first went green, so every check below was

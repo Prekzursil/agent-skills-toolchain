@@ -70,8 +70,20 @@ def run(cmd: list[str], cwd: Path) -> dict:
     }
 
 
-def commit(clone: Path, paths: list[str], msg: str) -> None:
+def commit(clone: Path, paths: list[str], msg: str) -> bool:
+    """-> True if a commit was made, False if there was nothing staged to commit.
+
+    A no-op is NOT an error here, and treating it as one is a defect this lane has already
+    shipped once (`48252d5e`: a before/after probe that went red the moment its own fix was
+    committed). Once these lane files are committed upstream, the clone ALREADY carries them --
+    which is the post-integration state this probe wants. `git commit` then exits 1 with
+    "nothing to commit", and failing on that would make the probe red exactly when its subject
+    is correct. So: stage, and commit only if staging produced something.
+    """
     subprocess.run(["git", "add", "--"] + paths, cwd=clone, check=True)
+    staged = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=clone)
+    if staged.returncode == 0:  # nothing staged
+        return False
     subprocess.run(
         [
             "git",
@@ -87,6 +99,7 @@ def commit(clone: Path, paths: list[str], msg: str) -> None:
         cwd=clone,
         check=True,
     )
+    return True
 
 
 def main() -> int:
@@ -110,7 +123,21 @@ def main() -> int:
             dst = clone / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(REPO / rel, dst)
-        commit(clone, LANE_FILES, "wire the blast-radius sweep into CI")
+        made = commit(clone, LANE_FILES, "wire the blast-radius sweep into CI")
+        results["lane_files_needed_a_commit"] = made
+        print(
+            f"  lane files: {'committed into the clone' if made else 'ALREADY at clone HEAD'} "
+            "-- either way the clone is the post-integration state"
+        )
+        # CONTROL: whichever path was taken, the wiring MUST be present in the clone before any
+        # leg runs. Without this, a silent copy failure would read as "leg C cannot find the
+        # wiring" and be reported as a probe error rather than a missing integration.
+        wf_text = (clone / ".github/workflows/p2next-rail-count.yml").read_text(
+            encoding="utf-8"
+        )
+        if "_k4_tree_survey.py" not in wf_text:
+            print("FAILED:l1-redproof the clone does not carry the wiring under test")
+            return 2
 
         # --- leg 0: the good state -------------------------------------------------------
         leg0 = {
