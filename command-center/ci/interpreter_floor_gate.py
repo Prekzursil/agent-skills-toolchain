@@ -125,6 +125,14 @@ json.dump(bad, sys.stdout)
 """
 
 
+def _ver(v: str) -> tuple[int, ...]:
+    """`"3.9"` -> `(3, 9)`. Ordering versions as STRINGS puts 3.9 above 3.11; this does not."""
+    try:
+        return tuple(int(x) for x in v.split("."))
+    except ValueError:
+        return ()
+
+
 def repo_root() -> Path:
     out = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
@@ -146,7 +154,7 @@ def discover_floor(root: Path) -> tuple[str | None, dict[str, list[str]]]:
             seen.setdefault(version, []).append(path.name)
     if not seen:
         return None, seen
-    floor = min(seen, key=lambda v: tuple(int(x) for x in v.split(".")))
+    floor = min(seen, key=_ver)
     return floor, seen
 
 
@@ -520,15 +528,30 @@ def self_test(interp: list[str], floor: str) -> int:
 
         # The floor really is the floor: on a NEWER interpreter the bad file must parse,
         # which is what makes "it compiles for me" an unreliable local signal.
+        #
+        # Two defects lived in this loop until the gate was actually wired and ran on Linux
+        # for the first time. Both are kept in the comment rather than silently corrected:
+        #   * `subprocess.run` RAISES FileNotFoundError for a missing executable, it does not
+        #     return non-zero. `py` is the Windows launcher and does not exist on ubuntu, so
+        #     the very first probe crashed the whole self-test. It never showed locally
+        #     because `py` is present here -- an unwired gate cannot be wrong on a platform
+        #     it has never run on. `floor_interpreter` already had the try/except; this did not.
+        #   * the version test was a STRING comparison, and "3.9" > "3.11" is True
+        #     lexicographically while 3.9 < 3.11 numerically. A runner offering only 3.9 would
+        #     have been selected as "newer", and the row below would then demand that
+        #     3.12-only syntax parse on 3.9 -- inverting the control into a false failure.
         newer = None
         for probe in (["py", "-3.12"], ["python3.12"], [sys.executable]):
-            got = subprocess.run(
-                [*probe, "-c", "import sys;print('%d.%d' % sys.version_info[:2])"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if got.returncode == 0 and got.stdout.strip() > floor:
+            try:
+                got = subprocess.run(
+                    [*probe, "-c", "import sys;print('%d.%d' % sys.version_info[:2])"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except OSError:
+                continue
+            if got.returncode == 0 and _ver(got.stdout.strip()) > _ver(floor):
                 newer = probe
                 break
         if newer is None:
@@ -542,6 +565,17 @@ def self_test(interp: list[str], floor: str) -> int:
                 still,
                 set(),
             )
+
+    # Regression for a defect that shipped in this file's OWN control: version strings were
+    # ordered lexicographically, which puts 3.9 ABOVE 3.11 and would have selected an older
+    # interpreter as "newer". Both rows are needed -- the first fails under a string compare,
+    # the second fails under any comparator that simply inverts.
+    check(
+        "3.9 orders BELOW 3.11 (a string compare inverts this)",
+        _ver("3.9") < _ver("3.11"),
+        True,
+    )
+    check("3.12 orders ABOVE 3.11", _ver("3.12") > _ver("3.11"), True)
 
     anchor_control(check)
     exclusion_control(check)
