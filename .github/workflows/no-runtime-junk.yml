@@ -136,3 +136,26 @@ jobs:
         run: |
           python command-center/slop-report/check_published_commands.py --self-test
           python command-center/slop-report/check_published_commands.py
+      # A committed SLOP report may not publish a number its own committed receipt
+      # refutes. Round 6 of this lane found two such lines BY HAND in SLOP-BUILD-R5.md: a
+      # histogram published `d-zero=18` against a receipt saying 23, whose parts summed to
+      # 300 against the 305 asserted in the same sentence. Nothing mechanical was checking
+      # any of it, and every adversarial finding against this lane across seven rounds was
+      # the same shape -- the receipt was right and the SENTENCE was wider than it.
+      #
+      # `--committed` reads the docs AND the receipts from HEAD blobs, which is the question
+      # a CLONE asks. The default worktree mode answers only "clean on this disk" -- the
+      # false negative round 7 measured in BOTH directions on a genuinely divergent key
+      # (`n_before`, worktree 73 against committed 1). It writes no receipt, so the step
+      # cannot dirty the tree it is checking.
+      #
+      # There is no separate --self-test here, on purpose: the T1/T5 both-states fixtures
+      # live INSIDE the gate, run on every invocation and gate its exit code, so a silent
+      # result is impossible without them having fired first. A gate that has never failed
+      # is indistinguishable from a no-op, and this repo has shipped that exact shape.
+      # Red-proof, executed in a fresh LF clone with the pre-existing CI measured BLIND to
+      # the same injected defect:
+      # command-center/slop-report/_i9_claims_redproof.out.json
+      - name: gate-published-claims (no report may publish a number its receipt refutes)
+        run: |
+          python command-center/slop-report/_r6_transcript.py --committed

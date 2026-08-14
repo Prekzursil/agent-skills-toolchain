@@ -316,7 +316,24 @@ def main() -> int:
     # published in the COMMITTED docs agree with the COMMITTED receipts? The default stays
     # the working tree so an author can check a doc BEFORE committing it (round 6 shipped
     # a wrong number precisely because nothing checked it pre-commit).
-    committed = "--committed" in sys.argv
+    # INTEGRATE round 2: flags are VALIDATED, and a worktree run can decline to write.
+    # Measured live this round, not hypothesised: `_r6_transcript.py --help` was silently
+    # accepted as "no flags", ran the DEFAULT worktree mode, and OVERWROTE the tracked
+    # receipt `_r6_transcript.out.json`. Two consequences, both fixed here. (1) A typo'd
+    # flag silently answers a different question than the one asked -- unknown flags now
+    # fail closed with rc 2. (2) The one command an author is told to run BEFORE committing
+    # a doc punished them for running it, because the pre-commit check must read the
+    # WORKING TREE (the doc is not committed yet) and that is the mode that writes.
+    # `--no-write` gives that check without mutating a tracked file.
+    argv = sys.argv[1:]
+    unknown = [a for a in argv if a not in ("--committed", "--no-write")]
+    if unknown:
+        print("FAILED:r6-transcript unknown flag(s): " + " ".join(unknown))
+        print("usage: _r6_transcript.py [--committed] [--no-write]")
+        return 2
+    committed = "--committed" in argv
+    # Default (no flags) still writes, so the run meant to refresh the receipt still does.
+    no_write = committed or "--no-write" in argv
     receipts = load_receipts(committed)
     baseline = {}
     if os.path.exists(BASELINE):
@@ -408,7 +425,7 @@ def main() -> int:
     # beside this one would be picked up by `load_receipts` on the next worktree run --
     # the gate indexing its own output, which is the false-negative round 6 caught as F4
     # and removed. The committed-mode result is captured by `_r7_verify.py` instead.
-    if not committed:
+    if not no_write:
         with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
             json.dump(res, fh, indent=1, sort_keys=True)
 
