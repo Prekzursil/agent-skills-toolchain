@@ -221,3 +221,21 @@ Arm 2 is what makes arm 1 worth anything. A clone that merely ran green would be
 consistent with the gate being absent there; only the asymmetry — delete the register inside the
 clone and the arm goes red, naming the unrouted token — shows the gate is live on a machine that
 is not mine. It also confirms the arm needs no git history, so it cannot fail closed in CI.
+
+## 8. Commit attribution, stated because the shared tree makes it non-obvious
+
+| commit | what it carries |
+|---|---|
+| `fd450c9c` | the register, the +9 gate arms, the census and three-state probes (5 files, +888/-0) |
+| `06ca73f1` | the shallow-clone proof and §7 |
+| `c72f71f5` | the 16 → 13 correction, in `DEAD-COMMAND-PROMISES.md` and this file (2 files) |
+| `75adbd27` | **not mine.** A sibling ran `ruff format` across the tree and swept my in-flight edit to `docs/_lane_docs_i2_register_census.py` into its own commit — so the ancestor-walk fix and its control reached `main` under a sibling's message, not under `c72f71f5`. Verified present in the HEAD blob (`ancestor` ×9, `control_ancestor_walk_discriminates` ×2) and the working tree is identical to it. Anyone auditing *what did INTEGRATE R2 ship* must read `75adbd27` too. |
+
+This is the same shape an audit faulted round 5 for: a lane's commit surface being smaller than
+its work. Recorded rather than left for a reader to trip over.
+
+One prior finding re-checked while here, and it **holds**: the round-5 audit called
+"`b0e3bf98` is owner-authored" unfalsifiable because git carries one identity. Measured now over
+60 commits — `git log -60 --format="%an <%ae>" | sort | uniq -c` returns exactly one row,
+`Andrei Mihai Visalon`. So authorship still cannot separate agent from owner, and the sweep above
+was identified by its *content and timing*, not by its author field.
