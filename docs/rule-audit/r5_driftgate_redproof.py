@@ -11,7 +11,7 @@ from the in-repo ``rules/`` tree, so it runs identically on this box and on a ru
 drives the gate's actual ``main()`` through ``subprocess`` -- real argv, real exit code, real
 stdout -- rather than re-testing the pure predicates the gate's own ``--self-test`` covers.
 
-The four states it forces:
+The five states it forces:
 
   A  live tree ABSENT          -> rc=0, marker says NOT-CHECKED and does NOT claim the baseline
                                   holds.  The state a runner is actually in.
@@ -23,6 +23,11 @@ The four states it forces:
                                   happened silently while 167 tests stayed green.
   D  repo tree EMPTY           -> rc=1, "detector broken".  Fail closed: a walk that found
                                   nothing must never be reported as a tree with no drift.
+  E  a paths-scoped rule has   -> rc=1 AND a LOAD CLASS divergence line.  A deploy that strips
+     its frontmatter stripped     or adds frontmatter changes the live turn-0 set, which no
+     in the live copy             gate in this repo checked before BUILD-R3.  The rule to
+                                  promote is chosen by measurement, not hardcoded, so the proof
+                                  survives any single rule being re-scoped.
 
 Plus the discrimination control that AGENTS-level rule 3c demands: state B must contain SHRANK
 and NOT contain GREW, and state C must contain both.  If every run printed both words, the
@@ -31,7 +36,7 @@ output, not that it can tell a repair from a regression.
 
 Run::
 
-    python docs/rule-audit/_b12_driftgate_redproof.py
+    python docs/rule-audit/r5_driftgate_redproof.py
 """
 
 from __future__ import annotations
@@ -49,6 +54,7 @@ REPO_RULES = REPO / "rules"
 
 sys.path.insert(0, str(HERE))
 import r5_deploy_drift_gate as gate  # noqa: E402
+import rule_audit  # noqa: E402  (same reader/parser the gate itself uses)
 
 # A rule that is always-on (no frontmatter) and is NOT in the drifted baseline, so mutating it
 # must read as a NEW divergence rather than as a change to an already-known one.
@@ -151,6 +157,38 @@ def main() -> int:
             (
                 "C reports BOTH directions in one run",
                 "GREW" in out_c and "SHRANK" in out_c,
+            )
+        )
+
+        # ---- E: the deployed copy changes its LOAD CLASS -----------------------------
+        # Strip the frontmatter from a paths-scoped rule in the "live" copy: that rule would
+        # then be injected at turn 0 by the deployed tree and not by the repo tree.  The file
+        # is chosen by measurement, not hardcoded, so it survives a rule being re-scoped.
+        promoted = tmp / "promoted"
+        shutil.copytree(REPO_RULES, promoted)
+        lazy_rel = next(
+            (
+                rel
+                for rel in sorted(
+                    p.relative_to(REPO_RULES).as_posix()
+                    for p in REPO_RULES.rglob("*.md")
+                )
+                if rule_audit.parse_frontmatter(rule_audit.read_lf(REPO_RULES / rel))[0]
+            ),
+            None,
+        )
+        if lazy_rel is None:
+            print("FAILED:r5_driftgate_redproof no paths-scoped rule found to promote")
+            return 1
+        (promoted / lazy_rel).write_text(
+            "# frontmatter STRIPPED by a bad deploy\n", encoding="utf-8", newline="\n"
+        )
+        rc_e, out_e = run_gate(REPO_RULES, promoted)
+        checks.append(("E rc==1 when the deployed copy changes load class", rc_e == 1))
+        checks.append(
+            (
+                f"E names it as a LOAD CLASS divergence ({lazy_rel})",
+                "LOAD CLASS divergence" in out_e and repr(lazy_rel) in out_e,
             )
         )
 

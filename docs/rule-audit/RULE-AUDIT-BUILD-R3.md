@@ -129,6 +129,32 @@ A rule with no `paths:` frontmatter is injected at turn 0 into every agent; a la
 nothing until a matching file is touched. The 7 always-on drifted rules are therefore 7 wrong
 instructions in force, which is why they are a separate pinned set and printed by name.
 
+### A fourth axis nothing in this repo checked: repo↔live LOAD CLASS
+
+`ci_gate` invariant 4 compares load semantics between the two **in-repo** deploy sources and
+stops there. Nobody compared it against the **deployed** tree — the one agents actually read. If
+a deploy stripped or added `paths:` frontmatter, the live turn-0 set would differ from the repo's
+and DoD-1 would be measuring the wrong tree.
+
+Measured, with a control proving the classifier can disagree at all (a bare file and a
+paths-scoped file classify `True`/`False`):
+
+```
+repo files=88 always-on=8
+live files=88 always-on=8
+always-on ONLY in repo (live DEMOTED it): []
+always-on ONLY in live (live PROMOTED it): []
+```
+
+**Clean negative result: the drift is content-only.** The 7 drifted always-on rules are still
+always-on live — which is the bad news restated precisely (the wrong text *is* being injected),
+but no rule silently changed its load class in deployment.
+
+This also closed a robustness hole in my own gate, which is why it is asserted rather than just
+recorded: the always-on/lazy severity split is computed from the **repo** copy's frontmatter, so
+a live-side demotion would have filed a lazy rule under "read by every session right now" and
+nothing would have caught it. The baseline for this axis is EMPTY, so any entry is a failure.
+
 ## 5. Shipped: the red-proof that stops the ratchet being decorative (`r5_driftgate_redproof.py`)
 
 A gate that is inert in CI and has never been seen red in CI is indistinguishable from a no-op —
@@ -144,8 +170,9 @@ real argv, real exit code, real stdout — rather than re-testing the pure predi
   ok  A rc==0 when live tree absent / marker says NOT-CHECKED / does NOT claim baseline holds
   ok  B rc==1 when the drift disappears · SHRANK for all 29 · does NOT report GREW
   ok  C rc==1 when a new always-on rule drifts · names it in an ALWAYS-ON GREW line · both directions
+  ok  E rc==1 when the deployed copy changes load class · names it (README.md)
   ok  D rc==1 on an empty repo tree · says the detector is broken
-SUCCESS:r5_driftgate_redproof 12/12 states forced
+SUCCESS:r5_driftgate_redproof 14/14 states forced
 ```
 
 Two of those twelve are the ones that make the rest mean anything:
@@ -159,12 +186,14 @@ Two of those twelve are the ones that make the rest mean anything:
 
 | control | broken state | good state |
 |---|---|---|
-| `r5_deploy_drift --self-test`, 15 cases | each FIRES | each SILENT — rc=0 |
+| `r5_deploy_drift --self-test`, 18 cases | each FIRES | each SILENT — rc=0 |
 | CRLF-only difference | raw-byte counter SEES it (83) | LF-normalised does NOT count it as drift (29) |
 | always-on vs lazy classification | a change to a `paths:`-scoped file lands in `lazy_drift` and NOT in `always_on_drift`, and vice versa | — |
+| load class: live PROMOTED / live DEMOTED | each caught by name | a pure CONTENT change is NOT reported as a load-class change |
 | empty repo tree / empty live tree | RuntimeError, rc=1, "detector broken" | 88/88 scanned |
-| `r5_driftgate_redproof`, 12 states | rc 0→1 forced in both directions | — |
+| `r5_driftgate_redproof`, 14 states | rc 0→1 forced in both directions | — |
 | `ci_gate --self-test`, 12 predicates | each FIRES | each SILENT — rc=0 |
+| committed **blobs** vs ruff 0.15.17 + `ruff.toml` | a mangled blob is reported (rc=1) | 3 blobs clean, CRLF=0 |
 
 Full-gate receipt after wiring, on this box:
 

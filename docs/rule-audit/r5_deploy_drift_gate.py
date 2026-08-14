@@ -25,6 +25,14 @@ this gate reports three outcomes, and only one of them is a clean bill of health
     drift == BASELINE  -> rc=0.  The known, owner-visible deploy debt is unchanged.
     drift != BASELINE  -> rc=1, in BOTH directions (see below).
 
+FOUR AXES, not one.  Content drift is only the obvious axis; the other three are the ones that
+move silently: which files exist on each side, and -- the axis nothing in this repo checked --
+whether the DEPLOYED copy of a rule carries the same ``paths:`` frontmatter as the repo copy.
+``ci_gate`` invariant 4 compares load semantics between the two IN-REPO deploy sources and stops
+there, so a deploy that stripped or added frontmatter would change the live turn-0 set with no
+gate anywhere noticing.  Measured this round with a control: repo always-on=8, live always-on=8,
+sets identical, so that baseline is EMPTY and any entry is a failure.
+
 BOTH DIRECTIONS, because a repair that nobody records is how an allowlist rots into silence --
 the same discipline ``ci_gate.divergence_problems`` already applies to the two in-repo trees:
 
@@ -130,6 +138,21 @@ BASELINE_LAZY_DRIFT: set[str] = {
 BASELINE_ONLY_IN_REPO: set[str] = set()
 BASELINE_ONLY_IN_LIVE: set[str] = set()
 
+# LOAD-SEMANTICS PARITY, repo vs LIVE.  ci_gate invariant 4 checks this between the two IN-REPO
+# deploy sources and stops there; nothing checked it against the deployed tree, which is the one
+# agents actually read.  If a deployed file gained or lost `paths:` frontmatter, the live
+# always-on set would differ from the repo one -- and the always-on set is the whole of DoD-1.
+#
+# It also protects THIS gate from being quietly wrong about itself: the always-on/lazy severity
+# split above is computed from the REPO copy's frontmatter, so a live-side demotion would file a
+# lazy rule under "read by every session right now" and nobody would notice.
+#
+# Measured 2026-08-14, with a control proving the classifier can disagree at all (a bare file
+# and a paths-scoped file classify True/False): repo always-on=8, live always-on=8, sets
+# IDENTICAL -- zero promotions, zero demotions.  The drift is content-only.  Baseline is
+# therefore EMPTY and any entry at all is a failure.
+BASELINE_LOAD_CLASS_DIVERGENCE: set[str] = set()
+
 
 # --------------------------------------------------------------------------- measurement
 def _md_files(root: pathlib.Path) -> dict[str, pathlib.Path]:
@@ -159,7 +182,7 @@ def measure(repo_root: pathlib.Path, live_root: pathlib.Path) -> dict[str, objec
             "report drift"
         )
 
-    always_on, lazy, raw_differ = set(), set(), set()
+    always_on, lazy, raw_differ, load_class = set(), set(), set(), set()
     for rel, rpath in repo_files.items():
         lpath = live_files.get(rel)
         if lpath is None:
@@ -167,13 +190,21 @@ def measure(repo_root: pathlib.Path, live_root: pathlib.Path) -> dict[str, objec
         if rpath.read_bytes() != lpath.read_bytes():
             raw_differ.add(rel)
         repo_text = rule_audit.read_lf(rpath)
-        if repo_text != rule_audit.read_lf(lpath):
-            has_fm, _ = rule_audit.parse_frontmatter(repo_text)
-            (lazy if has_fm else always_on).add(rel)
+        live_text = rule_audit.read_lf(lpath)
+        repo_fm, _ = rule_audit.parse_frontmatter(repo_text)
+        if repo_text != live_text:
+            (lazy if repo_fm else always_on).add(rel)
+        # Load class is compared even when the CONTENT matches: a file could differ only in its
+        # frontmatter block and still be byte-different, but the reverse is what matters here --
+        # this is the axis, not a by-product of the content check.
+        live_fm, _ = rule_audit.parse_frontmatter(live_text)
+        if repo_fm != live_fm:
+            load_class.add(rel)
 
     return {
         "always_on_drift": always_on,
         "lazy_drift": lazy,
+        "load_class_divergence": load_class,
         "only_in_repo": set(repo_files) - set(live_files),
         "only_in_live": set(live_files) - set(repo_files),
         "repo_count": len(repo_files),
@@ -209,6 +240,11 @@ def problems(measured: dict[str, object]) -> list[str]:
         + _delta(measured["only_in_repo"], BASELINE_ONLY_IN_REPO, "undeployed-file set")
         + _delta(
             measured["only_in_live"], BASELINE_ONLY_IN_LIVE, "unreconciled-file set"
+        )
+        + _delta(
+            measured["load_class_divergence"],
+            BASELINE_LOAD_CLASS_DIVERGENCE,
+            "repo-vs-live LOAD CLASS divergence (the deployed turn-0 set differs from the repo's)",
         )
     )
 
@@ -352,6 +388,48 @@ def self_test() -> int:
             )
         )
 
+        # --- LOAD CLASS: the deployed copy changed what it costs at turn 0 ------------
+        # The severity split above is computed from the REPO frontmatter, so without this the
+        # gate could file a live-lazy rule under "read by every session right now".
+        live_promoted = _tree(
+            tmp / "l7",
+            {
+                "common/a.md": always_on_body,
+                "common/b.md": "# frontmatter STRIPPED in deploy\n",
+            },
+        )
+        m = measure(r, live_promoted)
+        cases.append(
+            (
+                "measure / live copy PROMOTED to always-on is caught",
+                m["load_class_divergence"] == {"common/b.md"},
+                True,
+            )
+        )
+        live_demoted = _tree(
+            tmp / "l8",
+            {
+                "common/a.md": '---\npaths: ["**/*"]\n---\n# demoted\n',
+                "common/b.md": lazy_body,
+            },
+        )
+        m = measure(r, live_demoted)
+        cases.append(
+            (
+                "measure / live copy DEMOTED out of turn-0 is caught",
+                m["load_class_divergence"] == {"common/a.md"},
+                True,
+            )
+        )
+        m = measure(r, live_ch)
+        cases.append(
+            (
+                "measure / a pure CONTENT change is NOT a load-class change",
+                bool(m["load_class_divergence"]),
+                False,
+            )
+        )
+
         # --- FAIL CLOSED on an empty walk ---------------------------------------------
         # The control that matters most: a broken walk and a clean tree produce the same
         # "0 differ", and this is the only check that can tell them apart.
@@ -423,7 +501,8 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"   always-on drift={len(m['always_on_drift'])} (every turn-0 prompt) · "
         f"lazy drift={len(m['lazy_drift'])} · only-in-repo={len(m['only_in_repo'])} · "
-        f"only-in-live={len(m['only_in_live'])}"
+        f"only-in-live={len(m['only_in_live'])} · "
+        f"load-class divergence={len(m['load_class_divergence'])}"
     )
 
     probs = problems(m)
