@@ -46,8 +46,14 @@ of them a live lane defect.** Anchor: `command-center/GRIND-GATE-RESULTS.json`.
 | SKILLS2 | `test_deploy_skills_daily` · `test_check_skill_deploy_drift` | **PASS** ×2 | skill-dual-write.yml | **NO** ⚠ |
 | CIGREEN | `command-center/ci/interpreter_floor_gate.py` | **PASS** | interpreter-floor.yml | yes |
 
-**almost certain (90-99%)** that every lane's CI-wired headline gate passes *on this disk at this
-commit*. That is a narrower statement than "the lanes are green" — see §2 B1 and §5 CL6.
+**almost certain (90-99%)** that every lane's CI-wired headline gate passed *on this disk at the
+commit I measured*. That is a narrower statement than "the lanes are green" — see §2 B1 and §5 CL6.
+
+> **The RULERESEARCH row above is already STALE, and I am leaving it visible rather than editing the
+> measurement.** It read PASS when I ran it. It reads **FAIL** now, because a sibling lane's
+> *uncommitted* edit to a shared workflow destroyed the fixture of one of its controls between my
+> run and this write-up. That is **B7**, and it is the sharpest illustration in this document of why
+> a gate table is a snapshot: nothing in RULERESEARCH changed.
 
 Volume, measured: **247 commits in 36 hours**. Per-lane last-commit age / 36h commit count —
 HOOKRESEARCH 0.4h/32 · P2NEXT 1.2h/27 · SLOP 1.7h/38 · MCPRESEARCH 1.9h/36 · SSOT 2.4h/32 ·
@@ -86,13 +92,32 @@ annotations return **403** to this PAT. Two instruments closed, so "quota" stays
 **Owner-only. No agent action clears it.**
 
 **B2 — SSOT and SKILLS2 gates have never run on the path the work actually takes.**
-`almost certain (90-99%)`. Their only CI wiring is `skill-dual-write.yml:114` (and its `ci/tests`
-glob), and that workflow's `on:` block is **`pull_request` only** — no `push:` key at all. Meanwhile
-**all 247 commits landed by direct push to main.** Two independent signals: the static `on:` parse
-(control: `quality.yml` correctly reads push→main **True**, `skill-dual-write.yml` **False**), and
-the observed run history on main, which lists 9 workflow names and **never** `skill-dual-write`.
-`ssot_drift_gate.py` is invoked by **no workflow at all**. Blocker: fixing it means editing
-`.github/workflows/skill-dual-write.yml`, which open PRs **#281** and **#282** both touch — see §6 D4.
+`almost certain (90-99%)` **as of the committed state.** Their only CI wiring is
+`skill-dual-write.yml:114` (and its `ci/tests` glob), and that workflow's `on:` block in the HEAD
+blob is **`pull_request` only** — no `push:` key at all. Meanwhile **all 247 commits landed by
+direct push to main.** Two independent signals: the static `on:` parse (control: `quality.yml`
+correctly reads push→main **True**, `skill-dual-write.yml` **False**), and the observed run history
+on main, which lists 9 workflow names and **never** `skill-dual-write`. `ssot_drift_gate.py` is
+invoked by **no workflow at all**.
+
+> **LIVE UPDATE, measured after this document was first committed.** A sibling lane is fixing this
+> right now: the **working copy** of `.github/workflows/skill-dual-write.yml` is dirty (` M`) and
+> already carries `push: branches: [main]`, while `git show HEAD:` still carries `pull_request`
+> only. So the finding stands for the committed state and is being closed in the working tree —
+> and its fix has a side effect the sibling may not have seen. See **B7** and **CL7**.
+
+**B7 — `rule-audit` is RED right now, and the cause is the in-flight fix for B2.**
+`almost certain (90-99%)`, executed. `docs/rule-audit/ci_gate.py` now exits 1 on
+`r6_wiring_redproof 4/5 arms behaved`. The failing arm is
+`test_control_fires_on_a_workflow_with_no_push_trigger` — a **control**, which uses
+`skill-dual-write.yml` as its known-negative fixture, i.e. "a workflow with no push trigger".
+Adding a push trigger to that file destroys the fixture, so the control can no longer fire and the
+red-proof correctly refuses to certify itself. Arms B–E still behave. This is not a defect in
+either lane's logic; it is two lanes sharing one file. **I did not touch it** — it is another lane's
+uncommitted work in the exact file class that red-blocked every PR on main.
+**Whoever lands the push trigger must, in the same change, repoint that control at a different
+no-push-trigger workflow** (`autofix-models.yml`, `codex-runner.yml` and `dependabot-auto-merge.yml`
+all qualify) or the rule-audit gate stays red.
 
 **B3 — a real §9 credential inversion in `agent-self/config/AGENTS.md`, unfixed.**
 `almost certain (90-99%)`, executed. `r4_credential_rule_gate` reports 4 violations: the bullet
@@ -160,9 +185,11 @@ mine**. Not softened.
 | O8 | *mine* — *"HOOKRESEARCH `test_citation_gate` FAIL"* | Wrong invocation (pytest on a `main()` script). | 43/43 PASS. |
 | O9 | *mine* — mtime control printed `discriminates=False` | The instrument was fine; my **threshold** was mis-set (I asserted a 5-minute bound on a file written 14 minutes earlier). A self-contradicting control is a detector failure and I re-ran it properly rather than waving it through. | Re-run with a just-created temp file: `discriminates=True`. |
 | O10 | prior `docs/GRIND-STATUS.md` §4: *"`hook-audit/check_citations.py` **FAILED:cite-check**"* | True when written (an untracked doc was mid-write); **STALE now**. | Re-executed this session: **PASS**. |
+| O11 | *mine* — §8 of this document, first version: *"Ran the both-states test that committing them requires"* | **True but not sufficient, and it read as sufficient.** I staged the 6 orphans, ran the 2 doc gates, saw green — then added my own 2 files and committed all 8. `check_published_commands.py` reads `git ls-files`, so it only saw the half I was cautious about, and it could not see the *transitive* target at all until the document landed. The very next run went red: `P2NEXT-GROUNDING-R2.md:159` publishes `python command-center/p2-next/_g2_independent.py`, which was untracked. | "Ran the both-states test over the 6 orphans; it did not cover the commit as a whole, and it caught a real regression on the next run." Fixed in commit `5e31a03c` by tracking the target (clean under ruff format / ruff check / py_compile); gate back to **0 NEW unrunnable**. |
 
 Real defects found this pass: **B2** (PR-only gate blind spot), **B3** (credential inversion, was
-already tracked by its lane), **CL3** (6 orphaned deliverables). Ratio 10:3.
+already tracked by its lane), **B7** (the in-flight B2 fix red-fails rule-audit), **CL3** (6
+orphaned deliverables) — plus **one I caused and fixed** (O11). Ratio 11 overclaims : 4 defects.
 
 ---
 
@@ -200,6 +227,18 @@ promotion. HOOKRESEARCH instead **excludes** its local-only gate from CI with a 
 measurement. SSOT has no equivalent mechanism for `ssot_drift_gate.py`, which is simply unwired.
 RULERESEARCH's pattern is the one to propagate.
 
+**CL7 — the fix for CL1/B2 breaks RULERESEARCH's red-proof, and only a cross-lane view shows it.**
+`almost certain (90-99%)`, executed. `ci/tests/test_rule_audit_ci_wiring.py::test_control_fires_on_a_workflow_with_no_push_trigger`
+uses `skill-dual-write.yml` as its **known-negative fixture** — the one workflow in the repo with no
+push trigger. The correct fix for B2 is to give that workflow a push trigger. Doing so silently
+destroys another lane's control, and `r6_wiring_redproof` then reports `4/5 arms behaved` and turns
+the whole `rule-audit` gate red. Neither lane can see this from inside its own scope: SSOT/SKILLS2
+see "our gate now runs on main", RULERESEARCH sees "my control stopped firing". The two facts only
+join up here. **Remedy is one line** — repoint the control at `autofix-models.yml`,
+`codex-runner.yml` or `dependabot-auto-merge.yml`, all of which have no push trigger — but it must
+land in the *same* change, or main goes red. A fixture that is a *live file another lane is
+expected to change* is the underlying design smell.
+
 **CL6 — "green" currently means "green on this disk".** CI has executed no step since 04:33:59Z, so
 **no lane's green claim after that time is CI-verified**, including every claim in §1. This repo has
 already burned five distinct local-green/CI-red mechanisms (CRLF-vs-LF blobs, f-strings under
@@ -230,8 +269,11 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
 1. **D1 — restore the runner.** Nothing below can be *verified* while B1 holds, only asserted.
 2. **D2 — repair the §9 credential inversion.** The only finding here with a security blast radius:
    a deploy would overwrite correct live policy with the banned instruction.
-3. **D3 — give SSOT and SKILLS2 a gate on the delivery path** (split the 6 push-safe steps out).
-   Sequence after PRs #281/#282 land to avoid a shared-file collision.
+3. **D3 — give SSOT and SKILLS2 a gate on the delivery path**, and in the **same change** repoint
+   `test_control_fires_on_a_workflow_with_no_push_trigger` at a workflow that still has no push
+   trigger. A sibling is mid-edit on this and `rule-audit` is red until both halves land (B7/CL7).
+   Verified push-trigger-free replacements: `autofix-models.yml` (`workflow_run`),
+   `codex-runner.yml` (`workflow_dispatch`), `dependabot-auto-merge.yml` (`pull_request_target`).
 4. **D4 — decide condition 11.** Unblocks 2,007 units; pure decision, zero engineering.
 5. **Wire `ssot_drift_gate.py` into a push-triggered workflow**, or adopt RULERESEARCH's pinned-entry
    pattern (CL5). It is currently invoked by nothing.
@@ -266,7 +308,19 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
    `docs/GRIND-STATUS.md` is left otherwise untouched — its §3 corrections are frozen evidence.
 4. **Re-executed all 22 lane gates** and published the raw results as
    `command-center/GRIND-GATE-RESULTS.json`, so the next pass inherits a receipt instead of a claim.
-5. **Recorded three of my own overclaims** (O7, O8, O9) in §4 beside the lanes', rather than
+5. **Caught and fixed a regression I caused, on the next gate run** (O11). Committing
+   `P2NEXT-GROUNDING-R2.md` landed a document publishing `python
+   command-center/p2-next/_g2_independent.py` against an **untracked** target, taking
+   `gate-published-commands` from 0 NEW unrunnable to 1 NEW. Fixed in `5e31a03c` by tracking the
+   target — it exists (7,488 B), is real rerunnable evidence, and is clean under `ruff format`,
+   `ruff check` and `py_compile`. Gate back to **0 NEW unrunnable** (435 commands / 367 documents).
+   The lesson is in §4 O11: my pre-commit both-states test covered the 6 files I was cautious about
+   and not the commit as a whole, and no test can see a *transitive* target until the document lands.
+6. **Diagnosed a live cross-lane collision without touching it** (B7/CL7): a sibling's uncommitted
+   push-trigger edit to `skill-dual-write.yml` currently red-fails `rule-audit` by destroying the
+   fixture of another lane's control. Named the one-line remedy and three verified replacement
+   fixtures instead of editing a shared workflow another agent is mid-write in.
+7. **Recorded four of my own overclaims** (O7, O8, O9, O11) in §4 beside the lanes', rather than
    silently correcting them.
 
 What I deliberately did **not** do: edit `.github/workflows/skill-dual-write.yml` (open PRs #281 and
