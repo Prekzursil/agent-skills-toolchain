@@ -170,4 +170,35 @@ EOL              test file CR 1270 -> 1269 after reformat (preserved, NOT normal
 
 ## 7. Post-commit verification
 
-Filled in after the commit; see the commit hash and the blob-level format result recorded there.
+Commit **`fd450c9c`** — exactly 5 files, +888/-0. No sibling path, no `.github/workflows/**`, no
+`AGENTS.md` / `CLAUDE.md` / `README.md` (asserted, not assumed: `git show --name-only | grep -E`
+returns nothing). The follow-up commit adds `docs/_lane_docs_i2_cloneproof.py` and this section.
+
+**Blob-level format, the check the working-tree ruff run could not make.**
+
+```
+SUCCESS:docs-r7-blobcheck rev=HEAD files=7 blob_format=clean control_fires=True
+                          test_command_doc_promises.py:CR=0  (+6 others)
+```
+
+`control_fires=True` matters: a mangled copy fails in the same harness, so the green is a
+measurement rather than proof that ruff was invoked. The blob is CR=0 while the working tree is
+CR=1269 — which is exactly why §6.4 says the working-tree run did not cover this file.
+
+**Shallow-clone proof — the one claim this lane may not assert without evidence.**
+
+The whole finding is that *a register only the author can read routes nothing*. So the register
+was checked from outside the tree that produced it, at depth 1 (the `fetch-depth` the hosting job
+actually gets):
+
+```
+clone_head = fd450c9c   want = fd450c9c   shallow = True   depth = 1
+register_in_clone = True      arm_collected = True
+arm_rc_present = 0            arm_rc_deleted = 1     red_names_token = True
+SUCCESS:docs-i2-clone
+```
+
+Arm 2 is what makes arm 1 worth anything. A clone that merely ran green would be equally
+consistent with the gate being absent there; only the asymmetry — delete the register inside the
+clone and the arm goes red, naming the unrouted token — shows the gate is live on a machine that
+is not mine. It also confirms the arm needs no git history, so it cannot fail closed in CI.
