@@ -186,6 +186,24 @@ Textbook single-signal verification failure.
 red on three findings *inside my own fixer*, and `gate-lint-format` newly red from a regression I
 had introduced in the same push.
 
+**C5 — the synthesis lane's B7/CL7 "sibling lane" was me.** `command-center/GRIND-STATUS.md`
+records that `rule-audit` flipped PASS→FAIL mid-session because *"a sibling lane's uncommitted
+edit to a shared workflow destroyed the fixture of one of its controls"*, and correctly notes
+nothing in RULERESEARCH changed. **There was no sibling lane.** It was this orchestrator: I added
+`push: branches: [main]` to `skill-dual-write.yml` in the working tree, which is the known-bad arm
+of two `test_control_fires_on_a_workflow_with_no_push_trigger` controls.
+
+The edit is **reverted** and B7 is **resolved** — re-measured after the revert: `rule-audit`
+self-test 12/12, gate 9/9, `test_rule_audit_ci_wiring.py` 16 passed, `test_docs_gate_ci_wiring.py`
++ `test_ci_wiring.py` 25 passed. The lane independently observed it go green and marked B7
+RESOLVED without being told.
+
+Recorded because the misattribution is the expensive part: a future reader chasing "which lane
+broke rule-audit" would be hunting a defect that never existed in any lane. The real lesson is
+that **an uncommitted working-tree edit to a shared file is visible to every other agent on this
+disk** — it has no branch to contain it. The full analysis of what I was attempting, and why it
+was refuted, is in `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`.
+
 ---
 
 ## 4. What "green" currently rests on
