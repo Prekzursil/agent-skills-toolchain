@@ -24,7 +24,7 @@ standalone script first.
 
 ## Script
 
-`C:/Users/Prekzursil/.Codex/skills/re-triage-preflight/triage.py` — stdlib-only,
+`C:/Users/Prekzursil/.claude/skills/re-triage-preflight/triage.py` — stdlib-only,
 Python 3.9+. External tools (diec / FLOSS / capa / Triton) are invoked as
 **subprocesses only** (never imported), so the script is import-safe even when
 they are absent.
@@ -115,7 +115,7 @@ high-entropy section. Detect-It-Easy, when installed, corroborates it by name.
   follow-on; keep it on the cheap lifecycle path, never a new PreToolUse spawn.
 - **Triton dynamic taint** — build a per-target taint harness; wire its summary
   as an additional tool once a standard entrypoint exists.
-- **VulnHuntr** (Codex-native source-vuln chains for our own Python/MCP surface)
+- **VulnHuntr** (Claude-native source-vuln chains for our own Python/MCP surface)
   and **objdiff + m2c** (matching-decomp, two-binary diff) are *conditional* and
   need source / a binary pair — out of scope for a single-file preflight; invoke
   them by hand when the case calls for it.

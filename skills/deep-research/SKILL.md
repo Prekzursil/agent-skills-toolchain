@@ -28,6 +28,11 @@ into that spine.
 - Any question requiring synthesis from multiple sources
 - User says "research", "deep dive", "investigate", or "what's the current state of"
 
+**Wrong lane?** `research-ops` is the thin router over this stack: it escalates *here* for
+anything needing multiple sources, citations, or confidence grading, and routes elsewhere for a
+single quick fact (the `exa` MCP) or research-before-*coding* (`search-first`). This skill is the
+synthesis engine that router points at -- the full loop and output format live here, not there.
+
 ## MCP Requirements
 
 At least one search provider. The harness routes across whichever of these are

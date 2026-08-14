@@ -71,7 +71,7 @@ ida-multi-mcp --install        # installs the IDA plugin + client glue
 python3.11 -m pip install --user "git+https://github.com/MeroZemory/ida-multi-mcp.git"
 ```
 
-Register as an MCP server (Codex / Codex / Cursor):
+Register as an MCP server (Claude Code / Codex / Cursor):
 ```json
 { "command": "ida-multi-mcp", "args": [] }
 ```
@@ -162,7 +162,7 @@ leaner buses: `qiling-emulation` (skill), planned angr-MCP into the re-harness,
 # 1) skill is well-formed / vault-admissible (frontmatter parses, no angle brackets in description)
 python - <<'PY'
 import re, pathlib
-p = pathlib.Path.home()/".Codex/skills/ida-multi-mcp/SKILL.md"
+p = pathlib.Path.home()/".claude/skills/ida-multi-mcp/SKILL.md"
 t = p.read_text(encoding="utf-8"); fm = t.split("---",2)[1]
 assert "\nname: ida-multi-mcp" in fm and "\ndescription:" in fm, "frontmatter missing"
 desc = re.search(r"\ndescription:\s*(.+)", fm).group(1)

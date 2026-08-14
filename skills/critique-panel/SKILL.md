@@ -33,7 +33,7 @@ dedupes + ranks them into one findings list with a weighted composite.
 **When NOT to use:**
 - Driving the app / measuring pixels → that is `ui-audit` Track-A (this consumes its output).
 - Picking the winning redesign direction → the **human decides at G4** (`frontend-design-direction`).
-- The whole 8-gate loop end-to-end → `design-review-loop` (this is one leaf gate).
+- The whole 8-gate loop end-to-end → `design-studio` (this is one leaf gate).
 
 ---
 
@@ -117,7 +117,7 @@ G3 CRITIQUE ─ critique-panel  ◀ discuss edge          ──verdict──▶
 ```
 
 **REQUIRED NEIGHBORS:** `ui-audit` (supplies `audit.json` + screenshots, shares the
-DESIGN-EVAL v1 rubric) · `design-review-loop` (the orchestrator that invokes this at G3) ·
+DESIGN-EVAL v1 rubric) · `design-studio` (the orchestrator that invokes this at G3) ·
 `frontend-design-direction` (G4, where the human picks among the enumerated directions).
 
 ---

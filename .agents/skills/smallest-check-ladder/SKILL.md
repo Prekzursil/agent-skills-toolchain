@@ -112,6 +112,10 @@ diff-cover coverage.xml --compare-branch=main
 - Does **not** author tests — that is `tdd-workflow` / `test-driven-development` (write the test
   first, watch it fail). This ladder only *selects and runs existing* tests.
 - Does **not** own coverage thresholds — `.coverage-thresholds.json` does.
+- **Pairs with `two-tier-verify`**, the same split stated as a decision rule: its INNER loop
+  (after every edit) is L0+L1 here, its OUTER loop (once, at the commit boundary) is L2+L3. Go
+  there for when to run which tier and its jest/vitest/pytest recipes; stay here for the rung
+  commands and the selector caveats.
 - **Deferred (handBuild):** wiring the concrete L1 command into `ClaimWarningModule` /
   `claim_warning` so a "tests pass" claim is auto-annotated with (or checked against) the
   smallest-check command that was actually run. That integration ships separately and, per

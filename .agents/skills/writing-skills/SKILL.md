@@ -1052,6 +1052,75 @@ scopes itself to its own directory is a hazard, not an instrument.** A repair to
 target explicitly, fail closed when the target is missing, and report the count it CHANGED next to
 the count it FOUND - `patched=0 found=0` and `patched=0 found=8` must not print the same line.
 
+### A blind vendor find-and-replace is one-way, and the sibling tree is not always the pre-image
+
+A reconcile pass once ran a vendor rename across the trees and shipped it: commit `9513a3bc`
+(2026-07-21) ADDED the line `Register as an MCP server (Codex / Codex / Cursor):` to
+`.agents/skills/ida-multi-mcp/SKILL.md:74`, where the text had read `Claude Code / Codex / Cursor`.
+Three properties make this class expensive, and each has a measurement rather than an opinion.
+
+**1. The rewrite is many-to-one, so it cannot be inverted from the corrupted text alone.** `Claude`,
+`claude`, `Claude Code` and `.claude` all collapse onto `Codex` / `.Codex`. Reading
+`Codex / Codex / Cursor` you cannot tell which of the two tokens was original, and `~/.Codex/` is
+ambiguous in a worse way - it is either a mangled `~/.claude/` that must be RESTORED, or a real
+Codex path that must merely be LOWER-CASED, and those are different fixes. The corrupted bytes do
+not carry the answer, so recovery needs an external pre-image. Guessing re-corrupts.
+
+**2. "Diff the two skill roots and keep the clean side" recovers less than it appears to.** That
+works only while one tree escaped the rewrite. Measured 2026-08-14 across both roots (690
+`SKILL.md` files): of the 24 files carrying `~/.Codex/`, **10 carry it identically in BOTH roots**,
+so the diff is empty and the corruption is invisible to it. `source-command-save-session/SKILL.md`
+holds `~/.Codex/` x4 and `~/.claude/` x0 in the canonical root AND in the projection; its pre-image
+is not in the sibling skill tree at all, but in a different artifact family -
+`commands/save-session.md`, which holds `~/.claude/` x4 and `~/.Codex/` x0. Establish the pre-image
+by PROVENANCE - what was this file ported FROM - not by assuming the other tree is clean.
+
+**3. The detector must be case-SENSITIVE or it measures nothing.** The corrupt marker differs from a
+legitimate token only in case, so a case-insensitive matcher cannot separate them. Same walk:
+
+| query | case-sensitive | case-INSENSITIVE |
+|---|---|---|
+| `~/.Codex/` (corrupt) | 67 hits / 24 files | 89 / 44 |
+| `~/.codex/` (legitimate) | 22 hits / 20 files | 89 / 44 |
+
+The case-insensitive column returns the SAME pair of numbers for BOTH queries - it is answering
+"does this path appear in any casing", not "is it corrupt". PowerShell `Select-String` is
+case-insensitive by DEFAULT and produced exactly this phantom during the sweep that found the
+defect; pass `-CaseSensitive`, or use a Python `re` probe without `IGNORECASE`. The durable part is
+the SHAPE - one number answering two different questions - not the counts, which move as repairs
+land.
+
+**4. And the counts move because DOCUMENTATION carries the markers too.** Every number above was
+measured on the tree BEFORE this section existed. Writing it ADDED `~/.Codex/` to the naive census
+**six times in this file** - and the file is dual-written, so **twelve** times across the two skill
+roots. That delta is a property of this page and holds however the rest of the tree moves; the
+ABSOLUTE total it lands on does NOT, because sibling files are under concurrent repair - so do not
+quote a post-edit census as though it closed an identity. An earlier revision of this paragraph said
+"ten ... five per dual-written root" and reconciled 67 + 10 = 77 "exactly": both terms were wrong
+together, which is how a false identity closes (REFUTED 2026-08-14, kept rather than deleted). The
+`by:Codex` census moved 1 -> 3 the same way, when a sibling documented the same control in
+`systematic-debugging`. So a detector for this class MUST discriminate USE from MENTION - skip fenced
+blocks, skip backticked spans - or its first red will be the very paragraph teaching the trap, and
+the second will be the gate's own test fixtures. Verify that discrimination before trusting the
+count, the same way you verify the case-sensitivity above.
+
+**Both-states control, on blobs that cannot drift.** Run it before trusting any zero; a probe that
+is also silent in the BROKEN state has measured nothing:
+
+```
+git show 9513a3bc:.agents/skills/ida-multi-mcp/SKILL.md | grep -c "Codex / Codex / Cursor"        # 1 = fires
+git show HEAD:skills/ida-multi-mcp/SKILL.md            | grep -c "Codex / Codex / Cursor"        # 0 = silent
+git show HEAD:skills/ida-multi-mcp/SKILL.md            | grep -c "Claude Code / Codex / Cursor"  # 1 = real negative
+```
+
+The third line is the one people skip, and it is what makes the second mean anything: without it a
+typo in the path returns the same reassuring `0`. (Content probe, so the CRLF that `git show`
+returns on this box is irrelevant here - it is NOT safe for a formatter check.)
+
+A standing gate for this class, `ci/check_skill_vendor_substitution.py`, is specified but **does not
+exist yet** - measured 2026-08-14, `ci/` holds six `check_skill_*` gates and none is it. Until it
+lands, run the probe above by hand, and do not cite a gate name as though it were enforcement.
+
 ## The Bottom Line
 
 **Creating skills IS TDD for process documentation.**

@@ -128,6 +128,37 @@ Push back when:
 
 **Signal if uncomfortable pushing back out loud:** "Strange things are afoot at the Circle K"
 
+## When a Finding Is an Overclaim
+
+A third case sits between "the reviewer is wrong" and "the code is wrong": the reviewer is right, the code is fine, and the defect is in your **sentence**.
+
+Measured across three lanes and four adversarial reviews: **5 of 8 refuted claims were overclaims, not broken fixes** — the implementation was correct and the claim was wider than the evidence. Only 3 of 8 were genuine defects, and each closed in a single round. So when a finding refutes something you *claimed* rather than something you *built*, check the sentence before you touch the code.
+
+```
+IF a finding refutes a CLAIM (not an implementation):
+  1. Re-read your own sentence beside the evidence you actually have
+  2. IF the code is right and only the sentence over-reaches:
+       Fix the SENTENCE. Do NOT change working code to match an overclaim.
+```
+
+**Fixing the sentence means all three:**
+
+| Step | Overclaim | Scoped |
+|------|-----------|--------|
+| State the scope actually measured | "recall = 1.0" | "recall = 1.0 on the 12-case fixture set" |
+| Disclose the residual INLINE | "three holes closed" | "two closed; the third is scoped below" |
+| Name the settling experiment | (none) | "settled by re-running X against Y" |
+
+Inline means adjacent to the claim. A limitations section at the end does not satisfy this — if a recommendation rests on an unverified premise, the tag belongs in the recommendation's own heading.
+
+**A correctly-scoped claim is CONFIRMED.** A residual gap that is honestly scoped and disclosed is **not** a refuted item and must **not** block.
+
+**Record that the earlier wording was REFUTED — do not silently delete it.** Deleting the wrong sentence erases the dead-end and the next reader re-walks it. Keep it, mark it REFUTED, and put the scoped version beside it.
+
+**If you are the reviewer:** an overclaim is a REFUTED verdict **even when the underlying code is fine**. Say so explicitly, and hand back the correctly-scoped wording rather than a request to change code that is already correct.
+
+**Why this makes review terminate:** it turns "round N until fully green" from unbounded into tractable. Convergence comes from scoping claims to their evidence, not from closing every conceivable gap.
+
 ## Acknowledging Correct Feedback
 
 When feedback IS correct:

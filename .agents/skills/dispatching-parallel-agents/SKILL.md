@@ -107,6 +107,35 @@ Do NOT just increase timeouts - find the real issue.
 Return: Summary of what you found and what you fixed.
 ```
 
+## Durability mandate
+
+**A unit that holds its results in memory until the end is a total-loss risk.** Measured: one
+review unit ran **70 minutes**, produced **691 KB** of transcript, completed a full mutation
+harness -- then froze and wrote **nothing**. Unrecoverable. A relaunched unit under a
+write-as-you-go mandate produced a truthful artifact within **3 minutes** and survived every
+later check.
+
+**Any unit you expect to run longer than 10 minutes MUST be told to write as it goes.** Put all
+three of these in its prompt:
+
+1. **Write the artifact IMMEDIATELY** as a skeleton -- every claim it will make, enumerated and
+   marked `UNKNOWN - not yet measured`, plus a `COVERAGE:` line naming which sections are still
+   unmeasured.
+2. **REWRITE it at each milestone** (per lane, per phase, per file checked) -- never once at the
+   end.
+3. **Whatever is on disk must ALWAYS be truthful.** A partial file with honest UNKNOWNs is a
+   SUCCESS; a perfect file that never gets written is a total loss.
+
+Include this sentence verbatim in the skeleton, so a corpse is self-labelling:
+
+> If it still reads this way, the unit died before measuring anything and no verdict here may be
+> cited.
+
+Do not reach for a probe timeout instead. The freeze cause was NOT an unbounded external probe
+(measured: zero hung git/git-crypt processes). Bounding probes is good hygiene but did not address
+it -- write-as-you-go is the fix that makes the cause irrelevant, because it converts a dead unit
+from a total loss into a partial result you can read.
+
 ## Common Mistakes
 
 ** Too broad:** "Fix all the tests" - agent gets lost

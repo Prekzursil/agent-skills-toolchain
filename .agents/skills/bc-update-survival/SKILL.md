@@ -147,7 +147,7 @@ python aob_resolver.py verify tools/offsets/en-15.4.1.json /path/to/live/libnati
 It re-resolves every pinned sig in the given `.so` and compares to the pinned
 RVA. Drift (a moved/missing/ambiguous function, or a changed `so_sha256`) is
 **observed and logged only** — appended to a bounded, auto-rotating sink
-(`~/.Codex/logs/bc-update-survival-drift.log`, cap 256 KB + one rotation;
+(`~/.claude/logs/bc-update-survival-drift.log`, cap 256 KB + one rotation;
 override with `$BC_DRIFT_SINK`). It **always exits 0**, prints advisory `advice`,
 and never blocks or fails a caller. This is the shadow-first, reversible path the
 council mandated for new gates: the loud "offsets stale — re-port before trusting

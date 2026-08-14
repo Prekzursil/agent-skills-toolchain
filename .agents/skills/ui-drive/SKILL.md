@@ -1,6 +1,6 @@
 ---
 name: ui-drive
-description: Thin rail-router driver for a LIVE running web or Electron app — attach to it, resolve any target through three fallback rails (a11y-ref then CDP css then vision xy), point at an element with a screenshot-visible highlight, discuss it with full context, and actuate it (click/fill/hover/press/select). Also drives the ephemeral restyle loop — preview a CSS candidate as an injected style overlay, apply/accept/revert it, and harvest the accepted deltas as a PROPOSED patch — WITHOUT ever editing application source. Rides the vendored playwright at exactly 1.61.1 from the sibling ui-audit skill, so no new browser dependency. Every mutating verb logs to a bounded shadow sink (observe-only, never blocks). Use as the low-level app-driving and pointing channel under design-studio-session and design-review-loop. NOT for the design-quality verdict (use ui-audit) and NOT for element-to-source mapping or micro-commits (use design-studio-session).
+description: Thin rail-router driver for a LIVE running web or Electron app — attach to it, resolve any target through three fallback rails (a11y-ref then CDP css then vision xy), point at an element with a screenshot-visible highlight, discuss it with full context, and actuate it (click/fill/hover/press/select). Also drives the ephemeral restyle loop — preview a CSS candidate as an injected style overlay, apply/accept/revert it, and harvest the accepted deltas as a PROPOSED patch — WITHOUT ever editing application source. Rides the vendored playwright at exactly 1.61.1 from the sibling ui-audit skill, so no new browser dependency. Every mutating verb logs to a bounded shadow sink (observe-only, never blocks). Use as the low-level app-driving and pointing channel under design-studio-session and design-studio. NOT for the design-quality verdict (use ui-audit) and NOT for element-to-source mapping or micro-commits (use design-studio-session).
 metadata:
   origin: user
 ---
@@ -10,19 +10,19 @@ metadata:
 A **thin rail-router driver** for a live app. Where `ui-audit` *looks* and *scores*, `ui-drive`
 *points*, *drives*, and *previews* — the actuation channel an agent uses to touch a running UI.
 
-**Skill location:** `~/.Codex/skills/ui-drive/` (files: `SKILL.md`, `drive.mjs`).
+**Skill location:** `~/.claude/skills/ui-drive/` (files: `SKILL.md`, `drive.mjs`).
 
 ---
 
 ## When to use
 
-- Point Codex (or the owner) at a specific live element and screenshot it with a highlight box.
+- Point Claude (or the owner) at a specific live element and screenshot it with a highlight box.
 - Actuate a running app deterministically: click, fill, hover, press, check, select, scroll, focus.
 - Drive the **ephemeral restyle loop** — preview a CSS candidate as an injected overlay, apply /
   accept / revert it, then **harvest** the accepted deltas as a proposed patch — with **zero**
   source edits.
 - As the low-level driver invoked by **`design-studio session`** (interactive-modify, N.2) and the
-  **`design-review-loop`** gates.
+  **`design-studio`** gates.
 
 **Not for:** the design-quality VERDICT (use `ui-audit`), nor element→source resolution and
 micro-commits (use `design-studio-session`).
@@ -171,5 +171,5 @@ its own lifetime) or in one programmatic `Driver` process. This is by design, no
 - **`ui-audit`** — sees and scores (READ-ONLY verdict). ui-drive drives and previews.
 - **`design-studio-session`** (N.2) — orchestrates ui-drive's preview→apply→accept→revert→harvest
   loop, adds element→source mapping and scoped micro-commits, and re-audits via `ui-audit`.
-- **`design-review-loop`** — the batch G0–G7 state machine that can call ui-drive to point at and
+- **`design-studio`** — the batch G0–G7 state machine that can call ui-drive to point at and
   drive individual screens.

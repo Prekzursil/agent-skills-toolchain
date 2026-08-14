@@ -108,8 +108,8 @@ This is `rules/common/windows-shell.md` §10, which records the heredoc shape ki
 consecutive calls in one session before the pattern was recognised.
 
 The same rule applies to every apostrophe-bearing payload, not just PR bodies: commit messages go
-through `git commit -F <file>`, issue bodies through `--body-file`, and multi-line scripts through
-`python <script.py>` rather than `python -c '…'`.
+through `git commit -F <file>` and never `-m "…"` with prose, issue bodies through `--body-file`,
+and multi-line scripts through `python <script.py>` rather than `python -c '…'`.
 
 Then: Cleanup worktree (Step 5)
 

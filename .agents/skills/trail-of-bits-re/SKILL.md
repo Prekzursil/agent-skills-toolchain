@@ -1,6 +1,6 @@
 ---
 name: trail-of-bits-re
-description: Use when you want the Trail of Bits security/RE skill packs — differential-review (security-focused review of a code CHANGE, folding in git history to catch vulnerabilities a diff introduced), variant-analysis (find the SAME bug class across a codebase / other repos by pattern), and yara-authoring (write high-quality YARA-X detection rules with linting and atom analysis). Also the map to the rest of the trailofbits/skills marketplace (dwarf-expert, firebase-apk-scanner, constant-time-analysis, static-analysis, insecure-defaults, sharp-edges, semgrep-rule-creator, and more). These are advisory prompt/skill packs — Codex reasons with them, nothing auto-blocks. Install selectively (cherry-pick, do not bulk-install all 40 — catalogue tax). CC BY-SA 4.0.
+description: Use when you want the Trail of Bits security/RE skill packs — differential-review (security-focused review of a code CHANGE, folding in git history to catch vulnerabilities a diff introduced), variant-analysis (find the SAME bug class across a codebase / other repos by pattern), and yara-authoring (write high-quality YARA-X detection rules with linting and atom analysis). Also the map to the rest of the trailofbits/skills marketplace (dwarf-expert, firebase-apk-scanner, constant-time-analysis, static-analysis, insecure-defaults, sharp-edges, semgrep-rule-creator, and more). These are advisory prompt/skill packs — Claude reasons with them, nothing auto-blocks. Install selectively (cherry-pick, do not bulk-install all 40 — catalogue tax). CC BY-SA 4.0.
 origin: user
 metadata:
   gem: E5-ida-multi-mcp
@@ -9,7 +9,7 @@ metadata:
 
 # trail-of-bits-re — Trail of Bits security/RE skill packs
 
-`trailofbits/skills` is a **Codex plugin marketplace** of ~40 installable skill
+`trailofbits/skills` is a **Claude Code plugin marketplace** of ~40 installable skill
 packs distilling Trail of Bits' audit expertise. They are **prompt/skill packs** — no
 runtime, no MCP server, no vector-DB — so they ride the native `/plugin` bus and add
 zero always-on cost until invoked. Licensed **CC BY-SA 4.0** (attribution +
@@ -40,7 +40,7 @@ see the `mcp-fleet-curation` discipline).
 
 ## Install (selective — user/setup step)
 
-Codex:
+Claude Code:
 ```
 /plugin marketplace add trailofbits/skills
 /plugin menu        # browse, then install ONLY the packs you need
@@ -88,12 +88,12 @@ outside the RE core; install on demand.)
 
 ## How it rides the existing bus
 
-- **Native `/plugin`** — no new runtime, no MCP, no daemon. Just skills Codex reads.
+- **Native `/plugin`** — no new runtime, no MCP, no daemon. Just skills Claude reads.
 - **Complements, does not duplicate** — `differential-review` + `security-review`
   (delta vs branch); `variant-analysis` + `semgrep`/`qlty` MCP (reason vs run-at-scale);
   `yara-authoring` + the RE disassembler stack (encode a finding into detection); the
   offline `hacktricks` KB stays the first-stop reference lookup.
-- **Advisory, not a gate** — these packs make Codex reason better; **none of them
+- **Advisory, not a gate** — these packs make Claude reason better; **none of them
   block, nag, or auto-fail** anything. That is by design and satisfies the shadow-first
   posture (there is no behavior gate here to shadow).
 
@@ -114,7 +114,7 @@ outside the RE core; install on demand.)
 # skill is well-formed / vault-admissible (frontmatter parses, no angle brackets in description)
 python - <<'PY'
 import re, pathlib
-p = pathlib.Path.home()/".Codex/skills/trail-of-bits-re/SKILL.md"
+p = pathlib.Path.home()/".claude/skills/trail-of-bits-re/SKILL.md"
 t = p.read_text(encoding="utf-8"); fm = t.split("---",2)[1]
 assert "\nname: trail-of-bits-re" in fm and "\ndescription:" in fm, "frontmatter missing"
 desc = re.search(r"\ndescription:\s*(.+)", fm).group(1)
@@ -123,5 +123,5 @@ print("SUCCESS trail-of-bits-re SKILL.md well-formed")
 PY
 
 # after install, confirm the packs are present:
-#   /plugin menu   (Codex)  or  codex plugin list  (Codex)
+#   /plugin menu   (Claude Code)  or  codex plugin list  (Codex)
 ```

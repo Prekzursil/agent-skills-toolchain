@@ -14,7 +14,7 @@ running app and asserts UI **invariants** after every step. Where a hand-written
 scripted path, this oracle explores thousands of paths and, on failure, **shrinks** to the shortest
 sequence that reproduces the violation.
 
-**Skill location:** `~/.Codex/skills/ui-invariant-walk/`
+**Skill location:** `~/.claude/skills/ui-invariant-walk/`
 
 Two invariants ship by default:
 
@@ -44,7 +44,7 @@ agentic-repair-2 #9 / agentic-repair-1 #10 — "invariant random-walk UI oracle"
 This oracle is **advisory / observe-only**. It is a *heuristic random explorer*, so it enters the ladder at **SHADOW**, never blocks, never nags:
 
 - **Exit code is always 0** in shadow mode — a violation is **logged, not failed**. CI stays green; the oracle only *reports*.
-- Findings + counterexamples go to a **separate, bounded, auto-rotating** sink: `~/.Codex/shadow-logs/ui-invariant-walk.jsonl` (rotates at 5 MB, keeps 3). **Never** the main event ledger / `terminal.jsonl` (C5(iii): 40 shadow modules would DoS the F1 scorer).
+- Findings + counterexamples go to a **separate, bounded, auto-rotating** sink: `~/.claude/shadow-logs/ui-invariant-walk.jsonl` (rotates at 5 MB, keeps 3). **Never** the main event ledger / `terminal.jsonl` (C5(iii): 40 shadow modules would DoS the F1 scorer).
 - Graduation SHADOW→ADVISE→ENFORCE is a **later, human** decision, justified only by a **measured escape/false-positive rate** from the shadow log — not by this skill.
 - Set `WALK_MODE=advise` to print a non-zero-styled summary to stdout (still exit 0); `WALK_MODE=enforce` (opt-in, human-graduated) exits 1 on a confirmed violation.
 
@@ -53,7 +53,7 @@ This oracle is **advisory / observe-only**. It is a *heuristic random explorer*,
 ## Install once
 
 ```powershell
-cd ~/.Codex/skills/ui-invariant-walk
+cd ~/.claude/skills/ui-invariant-walk
 npm init -y
 npm install fast-check@3 playwright
 npx playwright install chromium
@@ -84,7 +84,7 @@ const MAX_STEPS = Number(process.env.WALK_STEPS || 20);      // steps per walk
 const ERR_ROUTES = (process.env.WALK_ERR_ROUTES || '/error,/404,/500').split(',');
 
 // --- bounded, rotating shadow sink (C5(iii)) ---
-const SINK_DIR = path.join(os.homedir(), '.Codex', 'shadow-logs');
+const SINK_DIR = path.join(os.homedir(), '.claude', 'shadow-logs');
 const SINK = path.join(SINK_DIR, 'ui-invariant-walk.jsonl');
 function logShadow(rec) {
   try {
@@ -223,7 +223,7 @@ async function main() {
   console.log(`ui-invariant-walk: INVARIANT VIOLATION [mode=${MODE}]`);
   console.log('  minimal sequence:', JSON.stringify(seq));
   console.log('  detail:', rec.message);
-  console.log(`  logged to ~/.Codex/shadow-logs/ui-invariant-walk.jsonl`);
+  console.log(`  logged to ~/.claude/shadow-logs/ui-invariant-walk.jsonl`);
   // C5: shadow/advise NEVER fail the build; only graduated enforce mode exits non-zero.
   process.exit(MODE === 'enforce' ? 1 : 0);
 }

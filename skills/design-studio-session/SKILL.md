@@ -1,11 +1,11 @@
 ---
 name: design-studio-session
-description: The interactive-modify capability behind `design-studio session` mode. Use when the owner wants to point at a LIVE element in a running app (Reframe, momentstudio, WebCoder, bilbo) and iteratively restyle it with Claude and Codex — preview candidates as injected style overlays FIRST, resolve the clicked element back to its source file:line, apply ONE scoped micro-commit, incrementally re-audit only the changed screen, and auto-decide KEEP or REVERT through the SAME revert-gate as the batch design-review loop. Do NOT use for a whole-app batch audit (use design-review-loop / ui-audit) or for driving the app without modifying it (use ui-drive).
+description: The interactive-modify capability behind `design-studio session` mode. Use when the owner wants to point at a LIVE element in a running app (Reframe, momentstudio, WebCoder, bilbo) and iteratively restyle it with Claude and Codex — preview candidates as injected style overlays FIRST, resolve the clicked element back to its source file:line, apply ONE scoped micro-commit, incrementally re-audit only the changed screen, and auto-decide KEEP or REVERT through the SAME revert-gate as the batch design-review loop. Do NOT use for a whole-app batch audit (use design-studio / ui-audit) or for driving the app without modifying it (use ui-drive).
 ---
 
 # design-studio session — interactive-modify (gem N.2)
 
-The **interactive twin** of the batch `design-review-loop`. Where the batch loop audits a
+The **interactive twin** of the batch `design-studio`. Where the batch loop audits a
 whole flow G0→G7, `session` runs ONE tight modify cycle per element, with the owner in the
 loop and Claude + Codex as rival suggesters. It is deliberately a **consolidation, not a new
 runtime**: it reuses the **same revert-gate**, the **same ui-audit summary shape**, and the
@@ -80,7 +80,7 @@ lease/role card with `node session.mjs mingle`.
 ## Consolidation ledger (what it reuses, not rebuilds)
 
 - **revert-gate:** dynamically imports `revertDecision()` from the sibling
-  `design-review-loop` (or renamed `design-studio`) `gates.mjs`; a byte-identical `inlineRevert`
+  `design-studio` `gates.mjs`; a byte-identical `inlineRevert`
   fallback keeps it standalone. Same KEEP/REVERT law as the batch loop.
 - **audit summary:** `scoreSummary()` reads ui-audit's `run_audit.mjs` `aggregate().summary`
   (pageErrors, clickErrors, deadControls, axe, spacing, affordance, motion) — no new metric.

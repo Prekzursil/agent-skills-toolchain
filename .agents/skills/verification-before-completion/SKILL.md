@@ -42,12 +42,39 @@ Skip any step = lying, not verifying
 | Claim | Requires | Not Sufficient |
 |-------|----------|----------------|
 | Tests pass | Test command output: 0 failures | Previous run, "should pass" |
+| Commit is green | Suite run from a FRESH CLONE of that commit: exit 0 | Working-tree green |
 | Linter clean | Linter output: 0 errors | Partial check, extrapolation |
 | Build succeeds | Build command: exit 0 | Linter passing, logs look good |
 | Bug fixed | Test original symptom: passes | Code changed, assumed fixed |
 | Regression test works | Red-green cycle verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
+
+## Working-Tree Green Is Not Clone Green
+
+Your working tree is not what CI checks out, so a green run there is evidence
+about YOUR disk -- not about the commit.
+
+- **Untracked and uncommitted files leak in.** A suite reporting **3,910 passed**
+  in the working tree produced **31 collection errors** from a FRESH CLONE of the
+  SAME commit (measured 2026-08-10). The tree was green on files git never saw.
+- **On Windows, CRLF flips formatter verdicts.** The working tree is CRLF, the
+  stored blob is LF, and a formatter can decide differently on the two bodies.
+  A local `ruff format --check` green is NOT a CI green.
+
+Verify against the STORED BLOB, not the file on disk:
+
+```
+git ls-files -s -- <path>     # the blob sha you are about to commit
+git cat-file -p <blob-sha>    # the exact bytes CI checks out
+```
+
+**Do NOT reach for `git archive` here.** Measured 2026-08-14 on a CRLF-tracked
+markdown file in this repo, one file through three routes: `git archive` + `tar -x`
+returned CRLF-converted bytes (139 CRLF) -- `git archive` applies export-time EOL
+conversion -- while `git cat-file -p` and `git show <rev>:<path>` each returned the
+blob (0 CRLF). All three are identical after LF-normalisation, so the only delta is
+the line endings -- which is exactly the delta that flips the formatter.
 
 ## Red Flags - STOP
 

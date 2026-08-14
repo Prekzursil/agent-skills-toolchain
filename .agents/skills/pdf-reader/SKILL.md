@@ -44,7 +44,7 @@ array whose entries are real spans from the PDF.
   **`page_location`** with `start_page_number` / `end_page_number` (**1-indexed**).
   (Plain-text sources instead carry `char_location` with `start_char_index` /
   `end_char_index`.) Carry `cited_text` + the page range into every claim.
-- **Model / limits.** Any current Codex model. PDF limits: 32 MB request, 600
+- **Model / limits.** Any current Claude model. PDF limits: 32 MB request, 600
   pages (100 on 200k-context models); base64 data must have no newlines.
 - **Hard constraint.** Citations is **incompatible with `output_config.format`
   (structured JSON output)** — the pair returns a **400**. If you need a cited

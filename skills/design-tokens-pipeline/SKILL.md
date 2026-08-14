@@ -100,7 +100,7 @@ G0/G5 ─ extract_tokens (code -> DTCG) ──▶ validate_tokens (gate) ──�
 G6   ─ token_diff (forward + inverse patch)  ◀ the lossless revert surface
 ```
 
-**REQUIRED NEIGHBORS:** `design-review-loop` (invokes this token spine at G5/G6) ·
+**REQUIRED NEIGHBORS:** `design-studio` (invokes this token spine at G5/G6) ·
 `figma` (`use_figma`) + Tokens Studio (the Figma side of the round-trip) · `design-system`
 (consumes the validated token set) · `figma-implement-design` (G6 code-side apply-back).
 

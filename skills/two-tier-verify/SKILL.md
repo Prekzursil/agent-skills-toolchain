@@ -51,6 +51,12 @@ the OUTER loop's full suite + golden-journey exist to close.
 4. **Never cite the INNER result as "done."** "Related tests pass" ≠ "the app works." The
    done-signal lives in the OUTER loop (full suite + golden-journey), per seed-golden-journey.
 
+> **Neighbour — `smallest-check-ladder`** states this same split as four rungs: L0 lint/typecheck
+> the edited file, L1 impacted tests, L2 full suite, L3 e2e against the built artifact. INNER here
+> is its L0+L1; OUTER is its L2+L3. Go there for the rung-by-rung selector commands and the "name
+> the rung you actually reached" honesty rails; stay here for the decision rule and the
+> per-framework recipes below.
+
 ## Command recipes — JS / TS (jest, vitest, playwright)
 
 **INNER (per edit):**

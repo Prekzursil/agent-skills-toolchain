@@ -1,17 +1,17 @@
 ---
 name: execution-grounded-bon
-description: "Use when you have SEVERAL candidate patches/solutions for the same task — typically from a cross-vendor Codex+Codex worktree fan-out — and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion rerank ≈ chance). Synthesize distinguishing inputs where the candidates diverge, execute all candidates on them, cluster by behavior (behavioral-diff), knock out crashers/timeouts, and select by EXECUTION-CONSENSUS — where an independent Codex candidate and an independent Codex candidate agree, that agreement is the signal (cross-vendor = independent failures). A BoN-MAV aspect jury ranks within the winning cluster. Distinct from A3 fail-first (validates ONE author's own tests) and diff-blind-test-synth (one patch vs spec-derived tests). Ships SHADOW: observe + log only, never blocks. Evidence: MASTER A4, COUNCIL C3; arXiv 2502.14382 (S*), 2409.08692 (B4), 2503.15223 (PatchDiff), 2207.10397 (CodeT)."
+description: "Use when you have SEVERAL candidate patches/solutions for the same task — typically from a cross-vendor Claude+Codex worktree fan-out — and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion rerank ≈ chance). Synthesize distinguishing inputs where the candidates diverge, execute all candidates on them, cluster by behavior (behavioral-diff), knock out crashers/timeouts, and select by EXECUTION-CONSENSUS — where an independent Claude candidate and an independent Codex candidate agree, that agreement is the signal (cross-vendor = independent failures). A BoN-MAV aspect jury ranks within the winning cluster. Distinct from A3 fail-first (validates ONE author's own tests) and diff-blind-test-synth (one patch vs spec-derived tests). Ships SHADOW: observe + log only, never blocks. Evidence: MASTER A4, COUNCIL C3; arXiv 2502.14382 (S*), 2409.08692 (B4), 2503.15223 (PatchDiff), 2207.10397 (CodeT)."
 ---
 # Execution-Grounded Best-of-N + Behavioral-Diff Reranker
 
 When N agents produce N candidate patches for the same task, the naive rerank is to ask a model "which is best?" — and that is proven near-worthless: an LLM judge over candidate code lands around chance on adversarial selection (JudgeBench), and it is exactly the same-context self-grading the whole Theme-A verification program exists to route around (Goodhart + the intrinsic self-correction ceiling, Huang ICLR'24). The done-signal must be **external and agent-inauthorable**.
 
-Execution is that signal. Instead of an opinion, run every candidate on inputs chosen to make them disagree, watch what they actually *do*, and let their behavior cluster them. Candidates that crash or hang eliminate themselves. Candidates that independently converge on the same behavior — especially across two different vendors — are the ones to trust: two independent samples agreeing is the classic oracle-free consensus signal (CodeT), and cross-vendor agreement makes the two samples' blind spots independent (a Codex bug and a Codex bug are unlikely to be the *same* bug).
+Execution is that signal. Instead of an opinion, run every candidate on inputs chosen to make them disagree, watch what they actually *do*, and let their behavior cluster them. Candidates that crash or hang eliminate themselves. Candidates that independently converge on the same behavior — especially across two different vendors — are the ones to trust: two independent samples agreeing is the classic oracle-free consensus signal (CodeT), and cross-vendor agreement makes the two samples' blind spots independent (a Claude bug and a Codex bug are unlikely to be the *same* bug).
 
 Grounded in: **S\*** (2502.14382, distinguishing-input synthesis for candidate selection), **B4** (2409.08692, Bayesian best-selection over execution results), **PatchDiff** (2503.15223, behavioral patch differencing), **CodeT** (2207.10397, dual-execution agreement without a ground-truth oracle). MASTER A4 / COUNCIL C3 both mandate: gate on executable evidence, **never model opinion**.
 
 ## When to run
-- You fanned out the same task to ≥2 candidates (Codex subagents in worktrees, and/or Codex threads via `mcp__codex__codex`) and need to pick ONE to keep.
+- You fanned out the same task to ≥2 candidates (Claude subagents in worktrees, and/or Codex threads via `mcp__codex__codex`) and need to pick ONE to keep.
 - A fleet/orchestrated work-unit produced competing patches and "they all pass their own tests" is not enough to choose.
 - Best-of-N sampling of a single model where you want to select the winner by behavior, not by re-prompting a judge.
 - NOT for: a single patch (use `diff-blind-test-synth` for the spec-vs-patch oracle, or `refactor-equivalence` for pure refactors); choosing between designs/prose with no executable behavior (there is nothing to execute — this skill does not apply).
@@ -23,11 +23,11 @@ Grounded in: **S\*** (2502.14382, distinguishing-input synthesis for candidate s
 
 ## The bus this rides (do not rebuild)
 - **Worktree isolation** — each candidate already lives in / can be checked out to its own worktree (the existing `WorktreeCreate` / `Agent(isolation:worktree)` flow). The reranker runs each candidate's command in that candidate's `cwd`; it never edits any tree.
-- **Cross-vendor fan-out** — Codex candidates from parallel `Agent()` subagents; Codex candidates from parallel `mcp__codex__codex` threads. Tag each candidate's `vendor` so the consensus stage can reward independence.
+- **Cross-vendor fan-out** — Claude candidates from parallel `Agent()` subagents; Codex candidates from parallel `mcp__codex__codex` threads. Tag each candidate's `vendor` so the consensus stage can reward independence.
 - **Event ledger** — the verdict is logged (shadow), not enforced; `note.py` or `--ledger` records the `BON_RERANK` line.
 
 ## Protocol
-1. **Collect the candidates.** For each, record: a stable `id`, its `vendor` (`Codex` | `codex` | …), and either its `cwd`+`cmd` (a deterministic command that consumes one probe input and emits observable output) or precomputed `observations`. Optionally `diffLines` (for the parsimony juror).
+1. **Collect the candidates.** For each, record: a stable `id`, its `vendor` (`claude` | `codex` | …), and either its `cwd`+`cmd` (a deterministic command that consumes one probe input and emits observable output) or precomputed `observations`. Optionally `diffLines` (for the parsimony juror).
 2. **Synthesize distinguishing inputs** (the crux — S\* / PatchDiff). You want inputs where the candidates *diverge*, because inputs they all handle identically carry no selection signal. Practical recipe:
    - Ask each candidate (or a fresh agent) for 1–2 inputs that would **break the other candidates** — adversarial boundary cases, off-by-one edges, empty/oversized/malformed inputs, the exact case the task's bug was about.
    - Union those with the task's existing tests / acceptance inputs.
@@ -65,7 +65,7 @@ node rerank.mjs --self-test
   ],
   "candidates": [
     // EXECUTE mode: give cmd (+ optional cwd, probeArg, timeoutMs, diffLines)
-    { "id": "claudeA", "vendor": "Codex", "cwd": "/wt/a", "cmd": ["node","solve.mjs"], "probeArg": "stdin", "timeoutMs": 20000, "diffLines": 12 },
+    { "id": "claudeA", "vendor": "claude", "cwd": "/wt/a", "cmd": ["node","solve.mjs"], "probeArg": "stdin", "timeoutMs": 20000, "diffLines": 12 },
     // PRECOMPUTED mode: give observations (one per probe)
     { "id": "codexB",  "vendor": "codex",
       "observations": [ { "probe": "p1", "status": "ok", "exit": 0, "stdout": "42", "stdout2": "42" } ] }
@@ -86,10 +86,10 @@ node rerank.mjs --self-test
 ### Verdict (excerpt)
 ```json
 {
-  "ok": true, "task": "…", "winner": "claudeA", "winnerVendor": "Codex",
+  "ok": true, "task": "…", "winner": "claudeA", "winnerVendor": "claude",
   "winnerCluster": "c1", "confidence": "high", "discrimination": 1.0,
   "indistinguishable": false,
-  "clusters": [ { "id": "c1", "members": ["claudeA","codexA"], "vendors": ["Codex","codex"], "size": 2 } ],
+  "clusters": [ { "id": "c1", "members": ["claudeA","codexA"], "vendors": ["claude","codex"], "size": 2 } ],
   "knockedOut": [ { "id": "codexB", "reason": "timeout on probe p5" } ],
   "reasons": [ "cross-vendor consensus (independent failures) — strongest signal" ]
 }

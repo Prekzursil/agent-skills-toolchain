@@ -1,6 +1,6 @@
 ---
 name: llm-decompile-verify
-description: Use when recovering readable, COMPILABLE C from a stripped binary or a decompiler's pseudo-C and you refuse to trust the model's own claim that the decompilation is correct. The decompilation is only "done" when the regenerated source RECOMPILES and RE-EXECUTES identically to the original on the same inputs (the recompile-verify round-trip). The model runs on HF Inference or cloud-hub GPU; the compile-and-run oracle runs in a cloud-hub Modal sandbox or locally. NOT for the table-stakes "LLM reads Ghidra/IDA pseudo-C" flow (Codex+ghidra-mcp already do that) and NOT for pure static mapping (use game-re-binary) - the gem here is the anti-faking round-trip gate, not the reading. Cite SK2Decompile (arXiv 2509.22114) and LLM4Decompile.
+description: Use when recovering readable, COMPILABLE C from a stripped binary or a decompiler's pseudo-C and you refuse to trust the model's own claim that the decompilation is correct. The decompilation is only "done" when the regenerated source RECOMPILES and RE-EXECUTES identically to the original on the same inputs (the recompile-verify round-trip). The model runs on HF Inference or cloud-hub GPU; the compile-and-run oracle runs in a cloud-hub Modal sandbox or locally. NOT for the table-stakes "LLM reads Ghidra/IDA pseudo-C" flow (Claude+ghidra-mcp already do that) and NOT for pure static mapping (use game-re-binary) - the gem here is the anti-faking round-trip gate, not the reading. Cite SK2Decompile (arXiv 2509.22114) and LLM4Decompile.
 origin: user
 ---
 
@@ -10,7 +10,7 @@ origin: user
 
 Neural decompilers (LLM4Decompile, Nova, SK2Decompile) turn a decompiler's pseudo-C
 into clean, human-readable C. The failure mode of every one of them - and of a naive
-"ask Codex to clean up the Ghidra output" flow - is **plausible-but-wrong C**: the
+"ask Claude to clean up the Ghidra output" flow - is **plausible-but-wrong C**: the
 model emits code that *looks* like a faithful reconstruction and *claims* success, but
 silently changed a constant, a sign, a loop bound, or an operator.
 
@@ -166,7 +166,7 @@ re-run it as the skill's self-test whenever you touch the recipe.
 - **Toolchain must match** the original's compiler/flags for objdiff-style comparison;
   for pure I/O equivalence any conforming toolchain is fine.
 - Low-novelty siblings to avoid re-building: GhidrOllama, aidapal, Gepetto, JADX-AI-MCP
-  ("LLM reads decompiler output") - already covered by Codex + `ghidra-mcp`.
+  ("LLM reads decompiler output") - already covered by Claude + `ghidra-mcp`.
 
 ## References
 

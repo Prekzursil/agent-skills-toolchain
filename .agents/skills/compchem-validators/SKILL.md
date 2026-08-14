@@ -88,11 +88,11 @@ adv["advisory"]     # human-readable nudge (or None)
 - Fires the log **only when a claim is actually seen** (keeps the fire-rate hypothesis honest).
 
 **Shadow sink (COUNCIL C5.iii):** would-have-fired events go to a **separate, bounded,
-auto-rotating** JSONL — `~/.Codex/gem-hunt-2026-07-12/shadow/compchem-claim-gate.jsonl`
+auto-rotating** JSONL — `~/.claude/gem-hunt-2026-07-12/shadow/compchem-claim-gate.jsonl`
 (rotates at 512 KB; override dir with `$COMPCHEM_SHADOW_DIR`) — **not** the main ledger.
 
 **Anti-zombie contract (COUNCIL C5.i):** `posebusters.SHADOW_CONTRACT` carries the named
-promotion metric (shadow-precision vs the owner's Codex-reflect corrections on compchem claims),
+promotion metric (shadow-precision vs the owner's claude-reflect corrections on compchem claims),
 the promotion bar (≥0.80 over ≥20 fires, false-nag <5 %), the owner, a 30-day graduation
 deadline, and a falsifiable fire-rate hypothesis. It graduates OFF→SHADOW→ADVISE→ENFORCE only
 by hitting that bar, and auto-retires otherwise — it is never left in shadow limbo.

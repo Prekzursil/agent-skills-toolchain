@@ -43,6 +43,53 @@ Use for ANY technical issue:
 - You're in a hurry (rushing guarantees rework)
 - Manager wants it fixed NOW (systematic is faster than thrashing)
 
+## Control your detector
+
+Every phase below turns a probe's output into a belief. Until you have shown the probe can tell
+the two answers apart, "nothing found" / "it crashed" / "it's fixed" are claims about your
+INSTRUMENT, not about the system. Most absence findings are a broken matcher, a wrong shell, or a
+stale cache - not an absence.
+
+**1. Prove the probe FIRES on the known-broken state.**
+
+Before a probe's silence counts as evidence, run it against input you know is bad and confirm it
+fires there. A probe that is silent in both states measures nothing, so its silence after a fix is
+not proof the fix landed. This is the both-states test, and it is the cheapest step in this file.
+`tools/detector-self-test/` mechanizes it: point
+`python tools/detector-self-test/detector_self_test.py --root PATH` at a `broken/` + `fixed/`
+fixture pair and it fails any detector that is silent-in-both, firing-in-both, or inverted.
+
+**2. A control that cannot distinguish the two hypotheses is not a control.**
+
+State both hypotheses BEFORE you read the output, then ask what a PASS would look like under each.
+If PASS looks identical under both, the control proves only that the instrument ran - it measured
+readability, not your claim. This is the failure the both-states test does NOT catch, and it is the
+more seductive one, because the control PASSES and you record it as diligence. Prefer a control
+that COUNTS the thing you are comparing and fails closed when the count is implausible; a
+suspiciously round, suspiciously equal number on both sides is more often a collection-level
+mistake than genuine parity.
+
+**3. Two traps that hand you a confident, wrong number.**
+
+- **The doubled zero.** `grep -c pat || echo 0` does not yield `0` when the pattern is absent - it
+  yields `0` twice, which compares unequal to `"0"` and corrupts every downstream test. Measured
+  2026-08-14 on this box: with the pattern ABSENT, `grep -c` printed `0` AND exited 1, so the `||`
+  fallback fired as well; the captured value was 3 bytes (`0`, newline, `0`) and `[ "$out" = "0" ]`
+  was false. Control: with the pattern PRESENT the same shape returned `1` and the fallback stayed
+  silent, so only the no-match path is broken. *Almost certain (90-99%)* - reproduced directly.
+
+- **A case-insensitive matcher cannot detect a case-change signature.** When the defect IS the case
+  (`Codex` where `codex` is correct), a case-insensitive probe fires on the clean file too and
+  manufactures a phantom hit. Measured 2026-08-14 on this box: PowerShell
+  `Select-String -Pattern 'by:Codex'` returned 1 hit against a known-GOOD file holding the correct
+  lowercase `by:codex`, so it could not distinguish the two states. Adding `-CaseSensitive` gave
+  known-bad 1 / known-good 0, and `rg` (case-sensitive by default) agreed. `Select-String` is
+  case-insensitive unless you pass `-CaseSensitive`. *Almost certain (90-99%)* - reproduced
+  directly in both states.
+
+**When your probe and someone else's disagree, suspect YOUR probe first** - check that it is
+reading the collection you think it is reading, at the level you think it is.
+
 ## The Four Phases
 
 You MUST complete each phase before proceeding to the next.
@@ -160,6 +207,8 @@ You MUST complete each phase before proceeding to the next.
    - Did it work? Yes -> Phase 4
    - Didn't work? Form NEW hypothesis
    - DON'T add more fixes on top
+   - A silent probe proves nothing until it has passed the both-states test (see "Control your
+     detector" above) - otherwise you are reading your instrument, not the bug
 
 4. **When You Don't Know**
    - Say "I don't understand X"

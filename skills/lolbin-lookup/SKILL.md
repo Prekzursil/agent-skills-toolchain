@@ -40,6 +40,9 @@ command; for LOLBAS, `[LOLBAS] <name>` then each command tagged with its `Catego
 ## When to use which skill
 
 - **lolbin-lookup (this skill):** you already know the binary and want its abuse techniques + exact commands.
+- **gtfobins-lookup:** the Unix-only sibling over the same GTFOBins corpus, but every abuse
+  vector is paired with its blue-team detection + hardening. Reach for it when the answer must
+  also serve a defender; stay here for the faster two-corpora (GTFOBins + LOLBAS) summary.
 - **secsearch:** prose/cross-source security lookups (techniques, CVE classes, methodology) over all corpora.
 - For ATT&CK context behind a `MitreID`, pivot into `secsearch` against `atomic-red-team` (`T####.md`).
 

@@ -6,7 +6,7 @@ description: "Use when orchestrating a multi-agent or multi-step coding workflow
 
 Five orchestration patterns that ride the **already-mounted bus** on this Windows 11 machine
 (codex mcp-server, Serena LSP, the docker + cloud-hub/modal MCPs, WSL2, the smallest-check
-ladder). They are **advisory patterns Codex applies while orchestrating** — not a new runtime,
+ladder). They are **advisory patterns Claude applies while orchestrating** — not a new runtime,
 not a new gate, not a hook. Every one deliberately re-uses existing infrastructure rather than
 building a parallel stack (the anti-overfit gate: no 2nd orchestration runtime, no vector/KG
 memory engine, no tree-sitter chunker, no local sandbox build, no trained router).
@@ -30,7 +30,7 @@ memory engine, no tree-sitter chunker, no local sandbox build, no trained router
 | Architect→Editor split | `mcp__codex__codex` (mounted codex mcp-server) | none |
 | Sandbox ladder | WSL2 · `mcp__docker__*` · `mcp__cloud-hub__modal_sandbox_*` | none |
 | Serena PageRank repo-map | `mcp__plugin_serena_serena__*` (LSP edges) + `mcp__repomix__pack_codebase` | none |
-| Goose lead/worker escalation | Codex orchestrator (lead) + Task()/Codex workers | none (pattern only) |
+| Goose lead/worker escalation | Claude orchestrator (lead) + Task()/Codex workers | none (pattern only) |
 | Per-edit lint ladder | `smallest-check-ladder` L0 (changed-file lint) | none |
 
 ---
@@ -137,13 +137,13 @@ Serena split-brain, pending an in/out decision). Before relying on this pattern:
 
 **Shape (concrete trigger for the planned MaAS / A5 layer).** Borrow Block's Goose lead/worker
 loop — the **pattern, not the runtime** (SKIP-list: copy the loop shape, do not install a 2nd
-orchestrator). On this box the **lead = the Codex orchestrator**; **workers = Task() subagents +
+orchestrator). On this box the **lead = the Claude orchestrator**; **workers = Task() subagents +
 Codex threads**.
 
 - Track **per-WU consecutive failures** (a worker's `FAILED:<id>` terminal markers, §4).
 - On the **Nth failure (threshold, default N=3)**, the worker **does NOT relaunch identically**.
   It **escalates to the lead**, which **re-decomposes** (split the WU smaller), **re-routes**
-  (hand the stuck WU cross-vendor — e.g. Codex if Codex is stuck, or vice-versa), or asks the
+  (hand the stuck WU cross-vendor — e.g. Codex if Claude is stuck, or vice-versa), or asks the
   owner. This is the mechanism form of the two-strikes-pivot / anti-tunnel-vision rule
   (AGENTS.md §2/§4b).
 - The escalation carries a **structured summary** (§5), not the failed worker's raw transcript.
@@ -174,7 +174,7 @@ hook. Log the reflection count; never hard-block a commit and never nag on it.
 
 ## Shadow-mode / advisory posture (council C5)
 
-This skill is **advisory documentation** — Codex reads it and applies the patterns. There is **no
+This skill is **advisory documentation** — Claude reads it and applies the patterns. There is **no
 auto-firing dispatcher hook here, so there is nothing to "shadow"** in the gate sense. Where a
 pattern touches a would-be gate (the lint-ladder reflection cap, the failure-threshold), follow it
 in **observe/advise mode**: record the signal to a bounded sink, never hard-block, never nag. If
