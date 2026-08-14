@@ -1,0 +1,70 @@
+feat(slop): the lane's second gate was reachable by nobody, and its verifier by one disk
+
+Round 7 closed with `_r6_transcript.py is still not CI-wired`. It stayed that way because
+wiring it looked like a separate change with an open corpus-cost question. Measured at
+46029e92 rather than assumed: `--committed` returns TRANSCRIPTION-CLEAN over 10 docs and 85
+receipts, 42 claims, all 8 internal controls PASS, in 7.5s, and it writes nothing. There was
+no cost question left to answer, only an unwired gate.
+
+Wired as step `gate-published-claims` in no-runtime-junk.yml, beside `gate-published-commands`.
+The two are the same rule on the two things a committed document can promise: that gate fails
+when a doc publishes a COMMAND a clone cannot run, this one when a doc publishes a NUMBER its
+own committed receipt refutes. Every adversarial finding against this lane across seven rounds
+was the second shape -- the receipt was right and the sentence was wider than it -- and nothing
+mechanical was checking it.
+
+`--committed` on purpose: it reads docs AND receipts from HEAD blobs, which is the question a
+clone asks. The worktree default answers only "clean on this disk", the false negative round 7
+measured in both directions on a genuinely divergent key.
+
+THREE FIXES THIS COMMIT CARRIES, each one measured, not anticipated.
+
+1. The gate punished the author for checking. Running `_r6_transcript.py --help` this round was
+   silently accepted as "no flags", ran the DEFAULT worktree mode, and OVERWROTE the tracked
+   receipt `_r6_transcript.out.json`. I did that by accident while reading the CLI surface and
+   had to `git checkout --` it. So the one command an author is told to run before committing a
+   doc dirtied a tracked file belonging to another round, and a typo'd flag silently answered a
+   different question. Now: unknown flags fail closed at rc 2, and `--no-write` gives the
+   pre-commit worktree check without mutating anything. Default still writes, so the run meant
+   to refresh the receipt still does.
+
+2. The wiring verifier was not clone-valid. `_i5_ci_wiring_verify.py:36` bound
+   `ROOT = Path("C:/Users/Prekzursil/source/ast-integrate")` -- the instrument that certifies
+   "this gate is reachable from a runner" could only ever measure this laptop. That is the third
+   occurrence of the class in this lane: round 6 shipped it in the transcript gate, round 7
+   confirmed and fixed it there, and the verifier standing over both had it the whole time. Root
+   now resolves from `__file__` via `git rev-parse --show-toplevel`, the same mechanism the
+   CI-wired sibling already used.
+
+3. W1-W4 cannot see defect 2, so W5 exists. A gate binding an absolute root passes every one of
+   them: the step is wired, the command exits 0, the name matches, the script is invoked. Only
+   portability separates "runs" from "runs on the runner". W5 decides it with `ast` over
+   ASSIGNMENT targets, never a regex: about 70 scripts in this directory contain that literal and
+   most only MENTION it in a docstring, including both gates' own paragraphs warning against it.
+   Its both-states control uses two REAL committed files rather than synthetic strings --
+   check_published_commands.py must come back silent, _r5_reclassify.py must come back firing --
+   plus a third arm asserting the silent one CONTAINS the literal in prose, so a green W5 cannot
+   mean the predicate never fires.
+
+The verifier was generalized from one step to a table of two, so its check count grew.
+SLOP-INTEGRATE-R1.md's published `WIRING-PROVEN 5/5` is correct at its rev for its step and is
+not a number to compare against the new reading; that is stated in the module docstring rather
+than left for a reader to trip over.
+
+`_i9_prewire_redstate.json` is the RED state, captured before this commit rather than
+reconstructed after it: with the workflow edit present in the working tree but not committed,
+the verifier reads the HEAD blob and reports `gate-published-claims:W1_step_is_wired: false`,
+verdict FAILED, rc 1 -- while every check for the already-wired step passes in the same run.
+That is the check going red for the real reason, not a simulated one.
+
+Line endings pinned by `_i9_apply.py` because the two files disagree: the gate is pure LF
+(0 CRLF), the workflow is 100% CRLF (138/138). Applied on bytes with the original asserted as an
+exact prefix. `git diff --numstat`: 23 0 on the workflow, 19 2 on the gate. No deletions.
+
+.github/workflows/no-runtime-junk.yml is sibling-visible and is declared here. `git status
+--porcelain -- .github/` was empty immediately before the write and carried only my own
+modification immediately after.
+
+NOT claimed: that main is green. Measured here are ruff check rc 0 and ruff format --check rc 0
+at the CI pin 0.15.17 on the three changed scripts, and the gate green at HEAD. The ~84 other
+quality.yml steps are NOT-CHECKED.

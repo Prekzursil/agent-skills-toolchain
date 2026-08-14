@@ -25,11 +25,23 @@ DETECTOR CONTROLS, both states, printed before any verdict:
   C1 mention scan, positive  a basename known to be widely cited must return hits.
   C2 mention scan, negative  a uuid4 basename must return ZERO hits. A scanner that
                              "finds" a name that cannot exist would make every (b) bogus.
-  C3 producer, positive      a known `X.py`/`X.out.json` tracked pair must be detected.
-  C4 producer, negative      a uuid4 stem must NOT be detected as having a producer.
-  C5 published-cmd agreement the S1 set must equal the shipped gate's view of untracked
-                             targets. If they disagree, one of the two is wrong and no
-                             number below may be cited.
+  C3 producer, positive      `sibling_producer` itself, run on a real tracked pair, must
+                             return a runnable command.
+  C4 producer, negative      the same function on a uuid4 stem must return None.
+  C5 scan liveness           a MUTATION pair on the published-command scan: with nothing
+                             tracked its finding set must GROW, and with every target
+                             tracked it must EMPTY. Perturbing the input and requiring the
+                             output to move is what makes it a control.
+
+REFUTED, kept rather than deleted: C5 shipped as `the S1 set must equal the shipped gate's
+view of untracked targets`, implemented as `sorted(X) == sorted(<the expression that
+produced X>)`. That is f(x) == f(x) -- it returned true in all three states, including a
+scan that returns nothing and a scan that fabricates -- while sitting in the PASS
+conjunction as the ONLY control over S1. C3 was refuted the same way: it tested set
+membership beside `sibling_producer` instead of calling it, and was not in PASS at all.
+Both were reported by an adversarial round and are fixed in place here, with the receipt
+NOT regenerated: this file's committed output belongs to rounds 4 and 5, and rewriting it
+would move numbers that sibling documents already publish.
 """
 
 from __future__ import annotations
@@ -201,17 +213,44 @@ def main() -> int:
     ctl = {
         "C1_mention_positive_hits": len(ctl_hits.get(pos, [])),
         "C2_mention_negative_hits": len(ctl_hits.get(neg, [])),
-        "C3_producer_positive": (c3_stem in stems_tracked)
-        or (c3_stem + ".py" in untracked),
-        "C4_producer_negative": f"x/_{uuid.uuid4().hex}" not in stems_tracked,
-        "C5_gate_agreement": sorted(gate_untracked_targets)
-        == sorted({f["target"] for f in G.scan(REPO, tracked, corpus)[0]}),
+        # C3, SECOND VERSION. The first one read
+        #     (c3_stem in stems_tracked) or (c3_stem + ".py" in untracked)
+        # which never called `sibling_producer` at all -- it tested set membership beside
+        # the detector instead of exercising it -- and it was not in the PASS conjunction
+        # either, so the producer signal that bucket (c) rests on had no live control.
+        # Now it runs the real function on a real tracked pair and demands a command back.
+        "C3_producer_positive": bool(sibling_producer(c3_stem + ".out.json")),
+        "C4_producer_negative": sibling_producer(f"x/_{uuid.uuid4().hex}.out.json")
+        is None,
+        # C5, SECOND VERSION. REFUTED as shipped. The first one read
+        #     sorted(gate_untracked_targets)
+        #         == sorted({f["target"] for f in G.scan(REPO, tracked, corpus)[0]})
+        # and `gate_untracked_targets` is that exact expression, assigned ~100 lines above.
+        # So it was `f(x) == f(x)`: true when the scan works, true when it returns nothing,
+        # and true when it fabricates. It was the ONLY control covering S1 -- the signal
+        # this file calls its strongest -- and it sat inside the PASS conjunction that
+        # gates "no number below may be cited". A control that cannot fail is not a
+        # control; it only proves the module imported.
+        #
+        # Replaced with a MUTATION pair: perturb the scan's INPUT and require its OUTPUT to
+        # move. Both broken states above now fail C5a -- a scan returning nothing cannot
+        # grow, and a scan returning a constant cannot change.
+        "C5a_scan_grows_when_nothing_is_tracked": len(
+            {f["target"] for f in G.scan(REPO, set(), corpus)[0]}
+        )
+        > len(gate_untracked_targets),
+        "C5b_scan_empties_when_every_target_is_tracked": not {
+            f["target"]
+            for f in G.scan(REPO, tracked | gate_untracked_targets, corpus)[0]
+        },
     }
     ctl["PASS"] = (
         ctl["C1_mention_positive_hits"] > 0
         and ctl["C2_mention_negative_hits"] == 0
+        and ctl["C3_producer_positive"]
         and ctl["C4_producer_negative"]
-        and ctl["C5_gate_agreement"]
+        and ctl["C5a_scan_grows_when_nothing_is_tracked"]
+        and ctl["C5b_scan_empties_when_every_target_is_tracked"]
     )
 
     counts: dict[str, int] = {}
