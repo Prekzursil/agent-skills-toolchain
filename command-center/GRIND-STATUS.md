@@ -85,10 +85,23 @@ quota / a spending limit.
 Measured on run `31777879813` (`quality`, event=push, main): **all 8 jobs `conclusion=failure` with
 `nsteps: 0`**, started 06:53:27Z and completed 06:53:30–38Z — 3 to 11 seconds, no checkout, no
 install, no logs (`--log-failed` returns empty). Every workflow on main behaves identically.
-What I could newly rule out that the previous pass could not: `actions/permissions` returns
-`{"enabled":true,"allowed_actions":"all"}`, so this is **not** a repo-level Actions disablement.
-What still blocks a verdict: the user billing endpoint is **410 Gone** (moved) and check-run
-annotations return **403** to this PAT. Two instruments closed, so "quota" stays a band.
+What I newly ruled out: `actions/permissions` returns `{"enabled":true,"allowed_actions":"all"}`,
+so this is **not** a repo-level Actions disablement.
+
+> **SUPERSEDED — read `docs/GRIND-STATUS.md` §0 for the authoritative diagnosis.** I wrote that
+> "the user billing endpoint is 410 Gone… two instruments closed, so quota stays a band". **A 410
+> here means *moved*, not *closed*, and I never tried the replacement.** A sibling did:
+> `users/{user}/settings/billing/usage` returns real data. Their probe set eliminates four
+> alternatives I left open — plan is **pro**; August billing is **$0.99**, storage only, so there is
+> no unpaid hold; and **Reframe, the same account, ran Actions successfully at 06:05:25Z today**,
+> which clears account suspension, a global outage and org policy. The discriminator neither of us
+> saw at first is **private vs public**: `agent-skills-toolchain` is private and draws on the Pro
+> plan's 3,000 included minutes, while Reframe is public and draws from a free unmetered pool.
+> Best reading: **the private-repo included-minutes allowance is exhausted with no spending limit
+> configured to overflow into paid usage** — `likely (65-80%)`, held there because no direct
+> remaining-minutes figure was obtained (`check-suites`, which carries the refusal reason, is 403
+> to this token).
+
 **Owner-only. No agent action clears it.**
 
 **B2 — SSOT and SKILLS2 gates have never run on the path the work actually takes.**
@@ -106,18 +119,14 @@ invoked by **no workflow at all**.
 > only. So the finding stands for the committed state and is being closed in the working tree —
 > and its fix has a side effect the sibling may not have seen. See **B7** and **CL7**.
 
-**B7 — `rule-audit` is RED right now, and the cause is the in-flight fix for B2.**
-`almost certain (90-99%)`, executed. `docs/rule-audit/ci_gate.py` now exits 1 on
-`r6_wiring_redproof 4/5 arms behaved`. The failing arm is
-`test_control_fires_on_a_workflow_with_no_push_trigger` — a **control**, which uses
-`skill-dual-write.yml` as its known-negative fixture, i.e. "a workflow with no push trigger".
-Adding a push trigger to that file destroys the fixture, so the control can no longer fire and the
-red-proof correctly refuses to certify itself. Arms B–E still behave. This is not a defect in
-either lane's logic; it is two lanes sharing one file. **I did not touch it** — it is another lane's
-uncommitted work in the exact file class that red-blocked every PR on main.
-**Whoever lands the push trigger must, in the same change, repoint that control at a different
-no-push-trigger workflow** (`autofix-models.yml`, `codex-runner.yml` and `dependabot-auto-merge.yml`
-all qualify) or the rule-audit gate stays red.
+**B7 — `rule-audit` went RED mid-session and is GREEN again. RESOLVED, kept as evidence.**
+`almost certain (90-99%)`, executed at three points in time. While I wrote §1, a sibling lane was
+experimenting with the B2 fix in the working tree; `docs/rule-audit/ci_gate.py` exited 1 on
+`r6_wiring_redproof 4/5 arms behaved`. The failing arm was
+`test_control_fires_on_a_workflow_with_no_push_trigger` — a **control** that uses
+`skill-dual-write.yml` as its known-negative fixture. The sibling reverted and committed the
+analysis as `a8728558`; the file is clean again and `rule-audit ci_gate` is back to **rc=0**.
+Nothing in RULERESEARCH ever changed. I did not touch the shared workflow at any point.
 
 **B3 — a real §9 credential inversion in `agent-self/config/AGENTS.md`, unfixed.**
 `almost certain (90-99%)`, executed. `r4_credential_rule_gate` reports 4 violations: the bullet
@@ -187,9 +196,16 @@ mine**. Not softened.
 | O10 | prior `docs/GRIND-STATUS.md` §4: *"`hook-audit/check_citations.py` **FAILED:cite-check**"* | True when written (an untracked doc was mid-write); **STALE now**. | Re-executed this session: **PASS**. |
 | O11 | *mine* — §8 of this document, first version: *"Ran the both-states test that committing them requires"* | **True but not sufficient, and it read as sufficient.** I staged the 6 orphans, ran the 2 doc gates, saw green — then added my own 2 files and committed all 8. `check_published_commands.py` reads `git ls-files`, so it only saw the half I was cautious about, and it could not see the *transitive* target at all until the document landed. The very next run went red: `P2NEXT-GROUNDING-R2.md:159` publishes `python command-center/p2-next/_g2_independent.py`, which was untracked. | "Ran the both-states test over the 6 orphans; it did not cover the commit as a whole, and it caught a real regression on the next run." Fixed in commit `5e31a03c` by tracking the target (clean under ruff format / ruff check / py_compile); gate back to **0 NEW unrunnable**. |
 
-Real defects found this pass: **B2** (PR-only gate blind spot), **B3** (credential inversion, was
-already tracked by its lane), **B7** (the in-flight B2 fix red-fails rule-audit), **CL3** (6
-orphaned deliverables) — plus **one I caused and fixed** (O11). Ratio 11 overclaims : 4 defects.
+| O13 | *mine* — B1, first version: *"the user billing endpoint is **410 Gone**… two instruments closed, so quota stays a band"* | **A 410 means the endpoint MOVED, and I never tried its replacement** — I reported an instrument as unavailable and let the diagnosis stall at a band. `users/{user}/settings/billing/usage` works and returns real data. This is the recall failure this estate names as its dominant error: the answer was reachable and unread. | The cause is narrowed to *private-repo included minutes exhausted, no spending limit* at `likely (65-80%)`, with four alternatives eliminated by measurement. Authoritative write-up: `docs/GRIND-STATUS.md` §0. |
+| O12 | *mine* — CL7, first version: *"**Remedy is one line** — repoint the control"* | **REFUTED by a sibling lane that ran the experiment I only reasoned about.** I measured one failing arm (`r6_wiring_redproof`); they ran the whole `ci/tests` suite and got **three** failing tests. And I never saw `ci/tests/test_ci_wiring.py:163`, which forbids the push trigger for a *separate* reason: on a push `--base origin/main --head HEAD` makes base == head, so the parity gate degenerates to a permanently-green no-op. My conclusion was wider than my evidence in the estate's dominant direction. | The fix is a **coordinated multi-file change**, specified in `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`. Corrected in place in §5 CL7 rather than deleted. |
+
+Real defects found this pass: **B2** (PR-only gate blind spot, independently corroborated), **B3**
+(credential inversion, already tracked by its lane), **CL3** (6 orphaned deliverables) — plus **one
+I caused and fixed** (O11). B7 resolved itself and is not counted. **Ratio 13 overclaims : 4
+defects — worse than the estate's 7:5 base rate, and 5 of the 13 are mine.** The two most useful
+lines here are O12 and O13, both cases where a sibling lane beat me by *executing* what I had only
+reasoned about, or by *trying the replacement instrument* where I had recorded a closed one. A
+synthesis lane that only reads is structurally prone to both.
 
 ---
 
@@ -227,17 +243,43 @@ promotion. HOOKRESEARCH instead **excludes** its local-only gate from CI with a 
 measurement. SSOT has no equivalent mechanism for `ssot_drift_gate.py`, which is simply unwired.
 RULERESEARCH's pattern is the one to propagate.
 
-**CL7 — the fix for CL1/B2 breaks RULERESEARCH's red-proof, and only a cross-lane view shows it.**
-`almost certain (90-99%)`, executed. `ci/tests/test_rule_audit_ci_wiring.py::test_control_fires_on_a_workflow_with_no_push_trigger`
-uses `skill-dual-write.yml` as its **known-negative fixture** — the one workflow in the repo with no
-push trigger. The correct fix for B2 is to give that workflow a push trigger. Doing so silently
-destroys another lane's control, and `r6_wiring_redproof` then reports `4/5 arms behaved` and turns
-the whole `rule-audit` gate red. Neither lane can see this from inside its own scope: SSOT/SKILLS2
-see "our gate now runs on main", RULERESEARCH sees "my control stopped firing". The two facts only
-join up here. **Remedy is one line** — repoint the control at `autofix-models.yml`,
-`codex-runner.yml` or `dependabot-auto-merge.yml`, all of which have no push trigger — but it must
-land in the *same* change, or main goes red. A fixture that is a *live file another lane is
-expected to change* is the underlying design smell.
+**CL7 — the repo uses its own unfixed defect as a test fixture, so fixing B2 is expensive.**
+`almost certain (90-99%)`. `ci/tests/test_rule_audit_ci_wiring.py:435` —
+`test_control_fires_on_a_workflow_with_no_push_trigger` — uses `skill-dual-write.yml` as its
+**known-negative fixture**: it needs a *real* push-triggerless workflow as its known-bad arm.
+Fixing B2 destroys the fixture. The control's own assertion message anticipates it verbatim:
+*"precondition: skill-dual-write.yml gained a push: trigger, so it is no longer a known-broken
+example. Re-point this control."* **A known-broken example used as a fixture makes the defect
+expensive to fix, and nothing warns you until you try.**
+
+> **MY OWN OVERCLAIM, CORRECTED IN PLACE (O12).** I first wrote that the *"remedy is one line —
+> repoint the control"*. **That is refuted**, and by a sibling lane that ran the experiment I only
+> reasoned about. Two things I had not measured: (a) `ci/tests/test_ci_wiring.py:163`
+> `test_workflow_does_not_advertise_null_range_events` asserts `"\n  push:\n" not in text` for this
+> workflow — the trigger was **deliberately removed and the decision encoded as a test**, because on
+> a push `--base origin/main --head HEAD` makes base == head, so the parity gate degenerates to a
+> **permanently-green no-op**, which is the Goodhart-green shape `rules/common/ci-hygiene.md` §1
+> forbids; and (b) the change breaks **three** tests, not the one failing arm I measured — I ran
+> `r6_wiring_redproof`, they ran the whole `ci/tests` suite. My sentence was wider than my evidence
+> in exactly the estate's dominant direction.
+> **The authoritative plan is theirs, not mine:** `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`
+> — split the six state checks onto `push` + `pull_request`, keep the diff-based parity check
+> `pull_request`-only, and re-point the two controls at a genuinely push-triggerless workflow *after*
+> checking the wiring checker does not then flag that one as a violation.
+
+**CL8 — two lanes found B2 independently within the same hour, and that is the strongest signal in
+this document.** I derived it statically (trigger matrix + run history); the sibling derived it by
+*attempting the fix* and hitting three failing tests. Independent methods, same conclusion —
+corroboration, not duplication. It also means the finding is now **owner-actionable with a
+measured plan**, which it was not when I wrote §6 D3.
+
+**CL9 — the local-RED / CI-green inverse, newly measured by the sibling and worth carrying.**
+`python -m pytest ci/tests tools/d001-dual-write/tests -q` reports **7 failed, 909 passed** locally;
+**four fail at clean HEAD** as pure Windows artifacts (NTFS has no exec bit; Windows paths cannot
+hold non-UTF-8 bytes; one ref-race left UNVERIFIED). This repo has burned five *local-green/CI-red*
+mechanisms (CL6); this is the mirror image, and it matters because a local CI substitute that swept
+`ci/tests` wholesale would show four permanent false reds — and a standing false red trains you to
+ignore the output.
 
 **CL6 — "green" currently means "green on this disk".** CI has executed no step since 04:33:59Z, so
 **no lane's green claim after that time is CI-verified**, including every claim in §1. This repo has
@@ -254,7 +296,7 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
 
 | # | question | recommended default | why |
 |---|---|---|---|
-| **D1** | GitHub Actions runs no steps (B1). Raise / re-authorise the Actions spending limit for `Prekzursil`? | **Yes — check the spending limit first.** | Actions is `enabled:true`, so it is not a repo setting. Billing API is 410 to me and annotations 403, so only you can read it. **Everything else is unverifiable until this clears.** |
+| **D1** | GitHub Actions runs no steps on this **private** repo while the same account runs them fine on a **public** one (B1). Go to **Settings → Billing → Actions minutes used this month / spending limit** — is the 3,000-minute Pro allowance spent, and is the spending limit $0? | **Raise or enable the spending limit** (or wait for the monthly reset). | Every other cause is eliminated by measurement: Actions `enabled:true`, plan `pro`, August billing $0.99 storage-only, and a sibling public repo succeeding *after* this one broke. **Everything else in this document is unverifiable until this clears.** |
 | **D2** | `agent-self/config/AGENTS.md` §9 tells the agent to *rotate* credentials — the inverted policy — and would deploy over the correct live copy (B3). Repair it? | **Yes**, repair the deploy source to match live, then promote `r4_credential_rule_gate` from pinned-rc=1 to blocking rc=0 **in the same change**. | Credential policy is owner-only per AGENTS.md §9. The gate already encodes the promotion step. |
 | **D3** | `skill-dual-write.yml` is `pull_request`-only, so SSOT's and SKILLS2' gates never run on a push to main (B2). Split the 6 push-safe steps into a workflow that fires on push? | **Yes, split them out** — do **not** just add `push:` to the existing file. | The D-001 dual-write job is genuinely diff-based (`--base origin/main --head HEAD`) and belongs on `pull_request`; the other six steps are absolute checks. Also: PRs #281/#282 already touch this file, so this must be sequenced with them, not raced. |
 | **D4** | Prompt Two condition 11 — `command-center/p2-next/OWNER-DECISION-condition-11.md`. | **Option B**, as that document recommends. | It gates **all 2,007 remaining units**. One decision, largest single unblock. *(FROM-RECORD — I did not re-derive the option set.)* |
@@ -269,11 +311,13 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
 1. **D1 — restore the runner.** Nothing below can be *verified* while B1 holds, only asserted.
 2. **D2 — repair the §9 credential inversion.** The only finding here with a security blast radius:
    a deploy would overwrite correct live policy with the banned instruction.
-3. **D3 — give SSOT and SKILLS2 a gate on the delivery path**, and in the **same change** repoint
-   `test_control_fires_on_a_workflow_with_no_push_trigger` at a workflow that still has no push
-   trigger. A sibling is mid-edit on this and `rule-audit` is red until both halves land (B7/CL7).
-   Verified push-trigger-free replacements: `autofix-models.yml` (`workflow_run`),
-   `codex-runner.yml` (`workflow_dispatch`), `dependabot-auto-merge.yml` (`pull_request_target`).
+3. **D3 — give SSOT and SKILLS2 a gate on the delivery path, following the plan in
+   `docs/harness/skill-dual-write-trigger-gap-2026-08-14.md`, not the one-line version.** Split the
+   six state checks onto `push` + `pull_request`; keep the diff-based parity check
+   `pull_request`-only (on a push base == head, and a gate that cannot fail is the defect, not the
+   safety property); re-point the two `no_push_trigger` controls, then confirm the wiring checker
+   does not flag the replacement. Coordinated multi-file CI change — **do it after D1**, because
+   shipping unverifiable CI wiring while the runner is dead is how main goes red invisibly.
 4. **D4 — decide condition 11.** Unblocks 2,007 units; pure decision, zero engineering.
 5. **Wire `ssot_drift_gate.py` into a push-triggered workflow**, or adopt RULERESEARCH's pinned-entry
    pattern (CL5). It is currently invoked by nothing.
