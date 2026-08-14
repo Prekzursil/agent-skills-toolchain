@@ -286,7 +286,7 @@ if (aliases.length === 0) {
 ## Operator Notes
 
 - Session files persist `Project`, `Branch`, and `Worktree` in the header so `/sessions info` can disambiguate parallel tmux/worktree runs.
-- For command-center style monitoring, combine `/sessions info`, `git diff --stat`, and the cost metrics emitted by `scripts/hooks/cost-tracker.js`.
+- For command-center style monitoring, combine `/sessions info`, `git diff --stat`, and the cost metrics emitted by the `cost-tracker` stop hook. That hook ships with the deployed harness rather than this repo, so -- exactly like the `session-manager` and `session-aliases` requires above -- it resolves at runtime as `${CLAUDE_PLUGIN_ROOT}/scripts/hooks/cost-tracker.js`, falling back to `~/.claude/`.
 
 ## Arguments
 
