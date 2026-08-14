@@ -85,6 +85,30 @@ def main() -> int:
 
     exe = args.executed
     if not pathlib.Path(exe).exists():
+        # THREE OUTCOMES, not two -- the same distinction `r5_deploy_drift_gate.py` draws.
+        # An absent checkout is not a failed comparison, it is an UNPERFORMABLE one, and
+        # which answer is honest depends on WHY it is absent:
+        #
+        #   default path absent  -> the runner world. DEFAULT_EXECUTED is the hardcoded
+        #       "C:/Users/Prekzursil/source/agent-skills-toolchain", which cannot exist on
+        #       ubuntu-latest. Reporting NOT-CHECKED names that world and asserts nothing.
+        #   explicit path absent -> the caller named a path and got it wrong. That is a
+        #       real error and still fails closed at rc=2, so a typo cannot be laundered
+        #       into a clean-looking NOT-CHECKED.
+        #
+        # WHY THIS MATTERS: measured 2026-08-14, this gate is invoked by NO workflow, and
+        # the synthesis lane's ranked action #5 was to wire it into a push-triggered one.
+        # Wired unchanged it would have exited 2 on every run -- `FAILED:ssot-drift-gate
+        # executed checkout absent: C:/Users/...` -- and turned CI permanently red. The
+        # hardcoded Windows absolute path is the same local-green/CI-red mechanism that
+        # broke the hook-audit H2 control earlier in the same session.
+        if exe == DEFAULT_EXECUTED:
+            print(
+                "SUCCESS:ssot-drift-gate NOT-CHECKED -- the executed checkout is ABSENT "
+                f"({exe}); this is the runner world, and this run asserted NOTHING about "
+                "whether the live fleet is executing stale bytes."
+            )
+            return 0
         print(f"FAILED:ssot-drift-gate executed checkout absent: {exe}")
         return 2
 
