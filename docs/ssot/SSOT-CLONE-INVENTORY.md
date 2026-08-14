@@ -5,10 +5,18 @@ content check, the §5 retire-criterion correction, R8). **Read-only against eve
 **Nothing was deleted, and nothing may be deleted from this document alone — every RETIRE below
 is a recommendation with a named precondition.**
 
-COVERAGE: questions 1–4 all measured against the **full 25-checkout fleet**. §2b content-checks
-the stranded work in 4 locations (not all 25 — the other 21 hold no object-unique commits).
-Residuals in §7; the three claims corrected on 2026-08-13 are marked inline where they occur,
-with the refuted wording kept rather than deleted.
+COVERAGE: questions 1–4 measured against a **25-checkout fleet — a population REFUTED twice
+since.** Round 1 (2026-08-13) showed the enumerator tested for the repo NAME rather than its
+identity; round 2 (2026-08-14) showed the corrected enumerator silently discarded 20 rows whose
+identity it could not determine. The measured population is now **178**, and the whole of §1–§4
+below is scoped to the 25 it was computed over. §2b content-checks the stranded work in 4 of
+those (the other 21 hold no object-unique commits). Every row here is still true of its own
+subject; what is refuted is the DENOMINATOR, and one §3 conclusion — see §3a.
+
+Residuals in §7; corrections are marked inline where they occur, with the refuted wording kept
+rather than deleted. The full 178 are classified on every DoD axis in
+`command-center/ssot/population-classified.json` (`classify_population.py`, three both-states
+controls). §6 carries the round-2 summary.
 
 > If it still reads this way, the unit died before measuring anything and no verdict here may be
 > cited. (It did not — every row carries a measured value.)
@@ -22,11 +30,26 @@ with the refuted wording kept rather than deleted.
 | owner ("nine separate clones") | 9 | subset |
 | `REPO-TOPOLOGY.md` (2026-08-09) | "9 local checkouts / 2 stores" | a **different** nine; 2 of its entries no longer exist |
 | this lane, first pass (hand-written lists) | 14 / 8 stores | still an undercount |
-| **exhaustive filesystem sweep (911 git checkouts walked)** | **25 checkouts / 18 object stores** | measured |
+| exhaustive filesystem sweep (911 git checkouts walked) | 25 checkouts / 18 object stores | **REFUTED — see below** |
+| round 1 (2026-08-13), identity by ancestry | 170 | **REFUTED — 20 rows dropped** |
+| **round 2 (2026-08-14), ancestry + resolved undecidables** | **178 checkouts / 168 object stores** | measured |
 
 Both prior documents landing on "9" is coincidence, not corroboration. I only got the right number
 by refusing to trust either list and walking the filesystem — the first pass gave 14 and I had
 labelled that *likely (55–80%) complete*, which was correctly calibrated and still wrong.
+
+**And 25 was wrong too, for the same reason one level up.** The sweep identified a checkout by
+whether the string `agent-skills-toolchain` appeared in its remote URL or store path — a NAME test
+standing in for an IDENTITY test (round 1, `enum_defect_proof.py`, 7/7 both-direction assertions).
+Replacing it with ancestry gave 170. That figure is **also refuted**: `merge-base --is-ancestor`
+returns 0/1/**128**, and round 1 compared `== 0`, folding "the root object is absent from this
+store, so the question could not be asked" into "not an ancestor". 20 rows landed there;
+105 + 20 = 125 is exactly round 1's published "REJECTED : 125", so the arithmetic closes.
+Resolving those 20 on origin + root-markers recovers 8 real checkouts →
+**178** (`rc128_redproof.py`, `identity_by_ancestry.py`, `rc128_resolve_probe.py`).
+
+The pattern across all three is one error: **a question the instrument could not answer, recorded
+as a confident negative.** The count is still not the problem — §3a is.
 
 **The clone count is not the SSOT defect.** Two things actually matter:
 
@@ -224,6 +247,45 @@ scored **208** hits for canonical; field-level resolution reduces it to **8**.
 
 ---
 
+## 3a. CORRECTED 2026-08-14 — a third checkout IS referenced, and §4 calls it disposable
+
+> **REFUTED:** "every one of the load-bearing field-level references points at
+> `~/source/agent-skills-toolchain`". Kept, not deleted, because the *method* that produced it is
+> still the better method — what was wrong is that it was only ever run over 25 of 178 paths.
+
+Re-run over the full 178 (`classify_population.py`, one corpus pass, hits split by whether the
+naming file lives INSIDE a checkout of this repo), **three** checkouts are named by live harness
+config:
+
+| checkout | harness refs | where |
+|---|---|---|
+| `~/source/agent-skills-toolchain` | 12 | `.claude.json`, `.codex/.codex-global-state.json`, a `.claude/workflows/*.js`, codex job state |
+| `~/Documents/Playground` | 6 | `.codex/config.toml` (+ 3 backups of it) |
+| **`~/source/ast-harness-reconcile`** | **1** | `.codex/.codex-global-state.json` → `local-projects.<uuid>.rootPaths[0]` |
+
+The third is the finding. `rootPaths[0]` is a field Codex **reads** to resolve a registered local
+project — not prose. **§4 lists `ast-harness-reconcile` as a RETIRE candidate**, and §5's rule says
+"no config/task/hook/skill may reference one". So a live tool is registered against a checkout this
+document says is disposable — the same shape as the scheduled-task-on-a-scratch-worktree class,
+found by widening the population rather than by any new technique.
+
+It is also the second time this exact path has broken a §4 verdict: the `refs/stash` correction
+below was likewise a rule that contradicted `ast-harness-reconcile`'s RETIRE listing.
+
+**Detector honesty.** The first version of this scan scored 5 checkouts, and the two extra were
+artifacts of the naive rule this document already warns about — `.codex/plugins/cache/**` audit
+JSON naming worktree paths, and a plugin-cache copy of this repo whose `tools/crcp/**` test
+fixtures name their own directory. Filtering hits whose source file lives inside the population
+removed both, and a both-states control confirms the filter does not also remove canonical's real
+harness hits (12 kept, 12 reclassified as intra-repo; fabricated path still 0).
+
+UNVERIFIED, inline: the 3 survivors are field-level for canonical and `ast-harness-reconcile`
+(both hand-resolved to a JSON key path above) but the `Documents/Playground` hits were **not**
+re-resolved key-by-key this round. Settling experiment: resolve each of the 6 to its TOML key in
+`.codex/config.toml`, as §3 did for the original 8.
+
+---
+
 ## 4. Verdicts
 
 **KEEP (2)** — `~/source/agent-skills-toolchain` (8 load-bearing refs; 2 dirty are `accounts.json`,
@@ -296,6 +358,51 @@ Mechanically checkable corollaries:
    >   stash is not.
 3. **Scratch belongs on a pushed branch or it does not exist.** Four real commits were stranded
    precisely because agent worktrees had no push-before-exit step.
+
+---
+
+## 5a. The full 178, classified — added 2026-08-14, BUILD round 2
+
+§1–§4 are computed over 25 checkouts. This closes that gap over the corrected population.
+`classify_population.py` → `population-classified.json`. An algorithm, not a fan-out: every axis
+here is file-vs-directory, set membership, or counting, and `fan-out-contract.md` §C4 measured
+what happens when that class is handed to LLM judgement (86% accuracy, **100% of the errors
+pointing at data loss**).
+
+| axis | measured |
+|---|---|
+| population | **178**, all 178 still on disk |
+| linked worktrees | 9 |
+| independent clones (own object store) | 168 |
+| kind signals disagree | 1 |
+| distinct object stores | 168 |
+| named by live harness config | **3** (see §3a) |
+| holding unpushed commits, dirty or staged files | **132** |
+| no remote at all (nothing is in git anywhere else) | 5 |
+| clean **and** referenced by nothing **and** has a remote | **43** ← retire candidates |
+
+Controls, all three both-states and all passing: a known linked worktree reads FILE/outside while
+a known main checkout reads DIR/inside · the dirty counter reads 315 on a known-dirty tree and 2
+on the other · a known-referenced path is found and a fabricated one is not.
+
+**The 132 is the number that matters, not the 178.** It is the fleet's uncommitted-work surface,
+and it is 5.3× the entire population this document was originally written about. Nothing here
+licenses a deletion: 43 rows meet the retire preconditions, and the recommendation is still to
+move a directory aside rather than run `git worktree remove`, which follows junctions and deletes
+their targets.
+
+The one `kind-signals-disagree` row is `.codex/plugins/cache/agent-skills-toolchain/
+plugin-install-64I3il/agent-skills-toolchain/0.2.0`: its `.git` is a FILE, but every git command
+run inside it fails, so `--git-common-dir` returns nothing. That is an independent corroboration
+of residual **R4** — the plugin cache holds a copy of canonical's worktree admin dir whose
+pointers do not resolve from there. It is also why nothing in this round ran a `worktree`
+subcommand anywhere: `git worktree repair` rewrites links **bidirectionally**, so running it from
+the cache would repoint the real live worktrees at the cache.
+
+UNVERIFIED, inline: `unpushed_commits` is reported as `null` with the reason `no_remote` for the 5
+remote-less checkouts rather than as 0 — with no remote the count is undefined, and reporting 0
+there is precisely the false-clean this lane already hit once (`salvage_atrisk.py:24-28`).
+Settling experiment: for each of the 5, test each commit's presence in canonical's object store.
 
 ---
 

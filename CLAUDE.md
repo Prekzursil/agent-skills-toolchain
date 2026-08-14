@@ -22,7 +22,7 @@ in the `multi-ai-mingle` skill (`skills/multi-ai-mingle/SKILL.md`):
 automated budget-pacing enforcement is gone. Budget pacing is now advisory and manual — see
 `agent-self/config/CLAUDE.md`, which already records this.
 
-## This repo has 25 checkouts on this box. Only two of them matter.
+## This repo has 178 checkouts on this box. Only two of them matter.
 
 <!-- SSOT-WIRE:start -->
 
@@ -31,10 +31,19 @@ automated budget-pacing enforcement is gone. Budget pacing is now advisory and m
 > other checkout is disposable scratch, so no config/task/hook/skill may reference one, and none
 > may be retired until its work is on a pushed branch.**
 
-Measured 2026-08-12/13: **25 checkouts across 18 object stores** (5 share the canonical store as
-linked worktrees, so they cannot diverge in history; the rest are independent clones that can).
-Full table, per-clone unique content and the inbound-reference scan:
-`docs/ssot/SSOT-CLONE-INVENTORY.md`.
+Measured 2026-08-14: **178 checkouts across 168 object stores** — 9 linked worktrees, which share
+a store and so cannot diverge in history, and 168 independent clones, which can. **132 of them
+hold unpushed commits, dirty files or a staged index; 5 have no remote at all**, so nothing in
+them is in git anywhere else. Three are named by live harness config — one of which
+(`~/source/ast-harness-reconcile`, a registered Codex local-project root) the inventory lists as
+a retire candidate, so check §3a before retiring anything.
+
+The earlier figures **25** (2026-08-12/13) and **170** (round 1) are both REFUTED and kept in the
+inventory's §0 with the defect that produced each: a name test standing in for an identity test,
+then `merge-base --is-ancestor` compared `== 0`, which files rc=128 ("could not be asked") as
+"no". Full table, per-checkout unique content and the inbound-reference scan:
+`docs/ssot/SSOT-CLONE-INVENTORY.md`; the machine-readable classification of all 178 is
+`command-center/ssot/population-classified.json`.
 
 - **Creating:** always `git -C <intended repo> worktree add …`. Bare `git worktree add` resolves
   the repo from cwd and has already landed an agent in an unrelated project.
