@@ -138,6 +138,24 @@ live `~/.claude/AGENTS.md` carries the protective wording; the deploy source wou
 with the inversion**. Per AGENTS.md §9 an agent does not change credential policy, so this lane may
 only propose. **Owner action (§6 D2).**
 
+> **LATE UPDATE — a fix is IN FLIGHT and UNCOMMITTED, and that distinction is the whole point.**
+> Re-measured at the end of this session, `r4_credential_rule_gate` now exits **0** and prints
+> *"the deploy source carries the credential non-negotiable and does not invert it"*, and
+> `docs/rule-audit/ci_gate.py` has promoted the entry from *must FAIL: owner action* to
+> **blocking**. **Do not read that as closed.** All three files are ` M` (uncommitted), and the
+> committed state is unchanged:
+>
+> | | lines | non-negotiable present | `rotate, don't just delete` present |
+> |---|---:|:--:|:--:|
+> | **HEAD blob** | 158 | **0** | **1** |
+> | working tree | 172 | 1 | 0 |
+>
+> So the defect is still live in `HEAD`, the gate reads green **only** off uncommitted bytes, and
+> a CI run against `HEAD` would still be red. The three files move together, which is the correct
+> sequencing — but until they are **committed**, one `git stash` or `git clean` reverts a
+> credential-policy fix and re-arms an inverted §9. **This is the same shape as B7, for the third
+> time in one session (CL8).**
+
 **B4 — 21 HAZARDs in the repo-vs-live hook fleet, structurally invisible to CI.**
 `almost certain` that the gate reports them; `uncertain (20-55%)` what fraction are genuine drift
 versus expected local-only hooks — I did not triage all 74 findings. Sample: `PreToolUse` repo has
@@ -269,7 +287,7 @@ expensive to fix, and nothing warns you until you try.**
 > `pull_request`-only, and re-point the two controls at a genuinely push-triggerless workflow *after*
 > checking the wiring checker does not then flag that one as a violation.
 
-**CL8 — B2 was found twice within the hour, by two different methods, by two different agents — and the second one was the orchestrator, not a lane.** I derived it statically (trigger matrix + run history); the orchestrator derived it by *attempting the fix* and hitting three failing tests. Independent methods, same conclusion — corroboration, not duplication. **The attribution matters:** my first write-up called it a "sibling lane", and `docs/GRIND-STATUS.md` C5 corrects it, because a future reader chasing *which lane broke rule-audit* would hunt a defect that never existed in any lane. The transferable lesson is sharper than the finding: **an uncommitted working-tree edit to a shared file is visible to every agent on this disk and has no branch to contain it** — which is exactly how it entered my measurements as if it were committed lane work.
+**CL8 — B2 was found twice within the hour, by two different methods, by two different agents — and the second one was the orchestrator, not a lane.** I derived it statically (trigger matrix + run history); the orchestrator derived it by *attempting the fix* and hitting three failing tests. Independent methods, same conclusion — corroboration, not duplication. **The attribution matters:** my first write-up called it a "sibling lane", and `docs/GRIND-STATUS.md` C5 corrects it, because a future reader chasing *which lane broke rule-audit* would hunt a defect that never existed in any lane. The transferable lesson is sharper than the finding: **an uncommitted working-tree edit to a shared file is visible to every agent on this disk and has no branch to contain it** — which is exactly how it entered my measurements as if it were committed lane work. **It happened three times in this one session**, which promotes it from an anecdote to the pass's central operational finding: (1) the `skill-dual-write.yml` push trigger, which flipped `rule-audit` red under me mid-write; (2) the same file reverted, which flipped it green again; and (3) the §9 credential repair (B3), where an uncommitted working tree makes the gate print SUCCESS while `HEAD` still carries the inverted policy. In all three the *local* gate was an honest reading of dishonest bytes. **Operational rule this earns: on a shared disk, a gate result is only citable together with the dirty-state of the files it read** — `git status --porcelain -- <subjects>` belongs in the receipt beside the exit code.
 
 **CL9 — the local-RED / CI-green inverse, newly measured by the orchestrator and worth carrying.**
 `python -m pytest ci/tests tools/d001-dual-write/tests -q` reports **7 failed, 909 passed** locally;
@@ -295,7 +313,7 @@ Each is a yes/no or pick-one with a recommended default. Nothing here is agent-a
 | # | question | recommended default | why |
 |---|---|---|---|
 | **D1** | GitHub Actions runs no steps on this **private** repo while the same account runs them fine on a **public** one (B1). Go to **Settings → Billing → Actions minutes used this month / spending limit** — is the 3,000-minute Pro allowance spent, and is the spending limit $0? | **Raise or enable the spending limit** (or wait for the monthly reset). | Every other cause is eliminated by measurement: Actions `enabled:true`, plan `pro`, August billing $0.99 storage-only, and a **public** repo on the same account succeeding *after* this one broke. **Everything else in this document is unverifiable until this clears.** |
-| **D2** | `agent-self/config/AGENTS.md` §9 tells the agent to *rotate* credentials — the inverted policy — and would deploy over the correct live copy (B3). Repair it? | **Yes**, repair the deploy source to match live, then promote `r4_credential_rule_gate` from pinned-rc=1 to blocking rc=0 **in the same change**. | Credential policy is owner-only per AGENTS.md §9. The gate already encodes the promotion step. |
+| **D2** | The §9 credential inversion in `agent-self/config/AGENTS.md` (B3) has been **repaired in the working tree and not committed** — HEAD still carries the inversion and lacks the non-negotiable. **Commit the three files together?** (`agent-self/config/AGENTS.md`, `docs/rule-audit/ci_gate.py`, `docs/rule-audit/r4_credential_rule_gate.py`) | **Yes — commit them as one change, now.** | The repair and its gate-promotion to blocking are both done and both unsaved. Until committed, `git stash`/`git clean` silently re-arms an inverted §9, and CI against HEAD is still red on this gate. Credential policy is owner-only per AGENTS.md §9, so the *content* is yours to confirm; the *committing* is the urgent part. |
 | **D3** | `skill-dual-write.yml` is `pull_request`-only, so SSOT's and SKILLS2' gates never run on a push to main (B2). Split the 6 push-safe steps into a workflow that fires on push? | **Yes, split them out** — do **not** just add `push:` to the existing file. | The D-001 dual-write job is genuinely diff-based (`--base origin/main --head HEAD`) and belongs on `pull_request`; the other six steps are absolute checks. Also: PRs #281/#282 already touch this file, so this must be sequenced with them, not raced. |
 | **D4** | Prompt Two condition 11 — `command-center/p2-next/OWNER-DECISION-condition-11.md`. | **Option B**, as that document recommends. | It gates **all 2,007 remaining units**. One decision, largest single unblock. *(FROM-RECORD — I did not re-derive the option set.)* |
 | **D5** | Merge PRs #281 / #282 / #283? | **Hold until D1 clears**, then merge #281 first. | All three are `mergeable: UNKNOWN` purely because CI is down. #281 fixes never-run gates, which is the same class as B2. |
