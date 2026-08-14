@@ -1,0 +1,51 @@
+feat(slop): run round 3's named experiment -- 14 shell commands were guarded by nothing
+
+Round 3 left 111 files in the weak bucket (b) and named the experiment that would
+settle them: "extend the gate's CMD pattern beyond `python <path>` to the other ways
+a doc can promise a file." This is that experiment, and most of it was REFUTED.
+
+Five verb classes measured over the 323-document corpus. What survived its own
+evidence, and what did not:
+
+  sh/ps   14 real invocations across 8 documents, 0 violations -> SHIPPED. Coverage
+          that genuinely did not exist: `pwsh -File scripts/sync-skills.ps1`,
+          `pwsh agent-self/bootstrap.ps1` and 12 more were published by committed
+          documents and no gate could see them.
+  pytest  37 commands, 5 violations, and every one is a FALSE POSITIVE of the
+          two-root resolver rather than slop -- all 5 targets are already TRACKED,
+          under a third root (`platform/lib/`) the resolver does not model.
+          DECLINED: 5 baseline rows to catch nothing.
+  node    1 command, 1 violation, a vendored `dist/index.js` in an ignored
+          third-party tree quoted by a discovery inventory. n=1. DECLINED.
+  pybare  `python foo.py` with no slash: 49 commands, 46 violations (94%). A
+          detector that flags almost everything it sees is measuring the wrong
+          thing. The shipped slash requirement is VINDICATED, not a hole. REFUTED.
+
+The settling answer to round 3's residual is therefore NEGATIVE and worth recording
+as such: widening the verb set produces ZERO new bucket-(b) files. The 111
+mention-only files are correctly left uncommitted.
+
+The verb is required, and `&` / `./` were deliberately rejected as verbs: with them
+the pattern matched a markdown LINK, `[`../../scripts/sync-hooks.ps1`](...)`, which
+is a mention, not an instruction. Measured 15 matches with those branches and 13
+without; both dropped were that link. The self-test now asserts that case directly.
+
+Both states, at the level of the shipped `scan()` with its reader injected, four
+states because two would not distinguish the hypotheses:
+  R1 RED     on an untracked shell target
+  R2 GREEN   on a tracked one
+  R3 GREEN   on a markdown link to the same untracked path
+  R4 CONTROL the same R1 input against the pre-change extractor set finds NOTHING,
+             so the widening is proven to have ADDED detection rather than to have
+             been redundant with something already firing.
+
+Also settles a residual carried since round 1's R10: `NUL`'s writer. It was never
+unidentified for lack of looking -- Python could not see the file. `NUL` is a
+reserved DOS device name, so every plain path this lane used measured the DEVICE
+(0 bytes) while `ls` reported the real 3,837-byte file. Read through the
+extended-length `\\?\` prefix, the file names its own writer on every line: the
+BrowserStack MCP server's pino logger. Controlled both ways -- the two routes
+disagree on `NUL` and agree on an ordinary file.
+
+Gate after the change: 362 commands / 323 documents / 0 NEW / 0 stale, self-test
+10/10, ruff check + format --check clean at the CI pin 0.15.17.

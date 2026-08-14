@@ -1,0 +1,56 @@
+docs(slop): round 4 -- 287 candidates bucketed, one deletion proven, three of my detectors wrong
+
+DoD-1: all 287 untracked candidates classified with evidence, 5 controls passing
+(mention-scan positive 30 / negative 0 on a uuid4 name; producer both ways; and the
+strong-signal set agrees with the shipped gate's own view).
+
+  (a) committed      10,994 tracked
+  (b) not committed  179  -- and S1, the DANGEROUS form (a committed document tells a
+                            reader to run a file that exists on one disk), is ZERO.
+                            Empty by construction: the gate that enforces it is wired
+                            into CI and green. All 179 are weak basename-mention only.
+  (c) reproducible   4    -- each with a concrete regenerating command
+  (d) dead           104  -- 97 cited only by machine listings, 7 with no reference
+
+DoD-3: one bucket-(c) deletion EXECUTED, not asserted --
+`python command-center/slop-report/_r4_bucket_c.py` runs
+existed -> DELETE -> assert absent -> run the command -> assert present -> assert the
+same 14 rows resolve the same way. Verdict BUCKET-C-PROVEN. The target is this lane's
+own artifact on purpose: the other three belong to p2-wave and platform/architecture,
+and regenerating those means executing another lane's script while it runs.
+
+THREE OF MY OWN DETECTORS WERE WRONG, and each is recorded rather than quietly fixed:
+
+1. The classifier reproduced the use-vs-mention failure it was built to avoid. A
+   `script_producer` signal counted "the basename appears in a tracked script" as a
+   producer and reported 42 bucket-(c) files. Its own output refuted it: one "producer"
+   was `_slop_measure4.py`, a CENSUS script whose job is to enumerate filenames. A
+   mention yields no regenerating command. Bucket (c) fell 42 -> 3.
+
+2. The first bucket-(c) verdict was NOT-PROVEN for the wrong reason. It required
+   byte-equality; the only differences were `rev` and one line number that moved because
+   a SIBLING edited that document between my two runs. Rescoped to the property that
+   makes a file safe to delete, with byte-identity reported as churn. K4 was wrong too --
+   it counted the target itself as a side effect of regenerating the target.
+
+3. My own committed receipt reclassified 90 files. `d-zero` fell 99 -> 7 between two runs
+   because commit a4400dea made `_r4_buckets.out.json` -- which enumerates every path --
+   tracked. The 7 survivors are exactly those created after it was written. So the
+   combined (d) total is the stable quantity and the census/zero split is not; the gate
+   docstring's own "a receipt poisons its corpus" warning, arriving through another door.
+
+Also adds `_r4_selfcheck.py`: the gate reads committed bytes, so a document cannot be
+tested by it until after the commit -- which is how round 3 shipped a commit whose own
+report the gate then flagged. This runs the shipped extractors over working-tree bytes
+first. Control fires on an injected sentinel, so a clean result cannot mean "never read".
+This report passes it: 0 unresolved published commands.
+
+Honest gap: the 179 weak-signal bucket-(b) files stay uncommitted. They are other lanes'
+in-flight evidence, outside this lane's declared scope, and committing them unformatted
+would redden gate-lint-format for every sibling.
+
+gate-lint-format at my parent d82b5500 and at my commit a4400dea shows the SAME 3
+would-reformat files, all under command-center/mcp-audit/, and my commit contains zero
+mcp-audit paths. Inherited, not mine, not fixed here.
+
+Frozen evidence: 0 dirty lines on both directories at lane start and lane end.
