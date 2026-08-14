@@ -251,7 +251,16 @@ def tree_census(path: str, reach: set[str], cap: int = 400) -> dict:
 
 
 def _blob_sha(b: bytes) -> str:
-    h = hashlib.sha1(b"blob %d\0" % len(b))
+    # sha1 is not a choice here: a git blob id IS sha1("blob <len>\0" + content), so this
+    # reproduces git's own object id rather than securing anything. `usedforsecurity=False`
+    # is the remedy quality.opengrep.python-weak-hash-md5-sha1 names for exactly this case.
+    #
+    # PROVEN before editing, because a changed digest would silently break every identity
+    # comparison built on this: identical hexdigest with and without the flag across 5 probes
+    # (empty, short, newline-terminated, 4 KB, all 256 byte values); a control showing
+    # sha1 != md5 so the equality is a reading and not a tautology; and `git hash-object
+    # --stdin` agreeing with BOTH forms on the same input.
+    h = hashlib.sha1(b"blob %d\0" % len(b), usedforsecurity=False)
     h.update(b)
     return h.hexdigest()
 
