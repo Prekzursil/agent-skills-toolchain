@@ -22,6 +22,7 @@ Vendor facts encoded here (each tagged with its doc claim so a doc change invali
 SECURITY: settings.json holds live credentials. This reads ONLY the `hooks` subtree and
 prints event names, timeouts and command BASENAMES. No values, no env, no full commands.
 """
+
 import json
 import re
 import sys
@@ -65,13 +66,37 @@ EXIT2_IGNORED_EVENTS = {
 }
 
 VENDOR_EVENTS = {
-    "SessionStart", "SessionEnd", "Setup", "UserPromptSubmit", "UserPromptExpansion",
-    "Stop", "StopFailure", "PreToolUse", "PostToolUse", "PostToolUseFailure",
-    "PermissionRequest", "PermissionDenied", "PostToolBatch", "SubagentStart",
-    "SubagentStop", "TaskCreated", "TaskCompleted", "InstructionsLoaded", "ConfigChange",
-    "CwdChanged", "DirectoryAdded", "FileChanged", "PreCompact", "PostCompact",
-    "Notification", "MessageDisplay", "TeammateIdle", "Elicitation", "ElicitationResult",
-    "WorktreeCreate", "WorktreeRemove",
+    "SessionStart",
+    "SessionEnd",
+    "Setup",
+    "UserPromptSubmit",
+    "UserPromptExpansion",
+    "Stop",
+    "StopFailure",
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "PermissionRequest",
+    "PermissionDenied",
+    "PostToolBatch",
+    "SubagentStart",
+    "SubagentStop",
+    "TaskCreated",
+    "TaskCompleted",
+    "InstructionsLoaded",
+    "ConfigChange",
+    "CwdChanged",
+    "DirectoryAdded",
+    "FileChanged",
+    "PreCompact",
+    "PostCompact",
+    "Notification",
+    "MessageDisplay",
+    "TeammateIdle",
+    "Elicitation",
+    "ElicitationResult",
+    "WorktreeCreate",
+    "WorktreeRemove",
 }
 
 
@@ -133,17 +158,32 @@ def main():
         if r["event"] == "SessionEnd":
             # shared 1.5s budget, auto-raised to at most 60s
             if t > SESSIONEND_AUTORAISE_MAX_S:
-                cap_violations.append({**r, "cap_s": SESSIONEND_AUTORAISE_MAX_S,
-                                       "kind": "SessionEnd declared above the 60s auto-raise max"})
+                cap_violations.append(
+                    {
+                        **r,
+                        "cap_s": SESSIONEND_AUTORAISE_MAX_S,
+                        "kind": "SessionEnd declared above the 60s auto-raise max",
+                    }
+                )
             elif t > cap:
-                cap_violations.append({**r, "cap_s": cap, "kind":
-                                       "SessionEnd declares more than the 1.5s shared budget "
-                                       "(vendor auto-raises, but the 1.5s default is what an "
-                                       "undeclared sibling gets)"})
+                cap_violations.append(
+                    {
+                        **r,
+                        "cap_s": cap,
+                        "kind": "SessionEnd declares more than the 1.5s shared budget "
+                        "(vendor auto-raises, but the 1.5s default is what an "
+                        "undeclared sibling gets)",
+                    }
+                )
         elif t > cap:
-            cap_violations.append({**r, "cap_s": cap,
-                                   "kind": "declared timeout EXCEEDS the documented event cap; "
-                                           "the cap wins, so the declared budget is fiction"})
+            cap_violations.append(
+                {
+                    **r,
+                    "cap_s": cap,
+                    "kind": "declared timeout EXCEEDS the documented event cap; "
+                    "the cap wins, so the declared budget is fiction",
+                }
+            )
     res["V3_cap_violations"] = cap_violations
     res["V3_cap_violation_count"] = len(cap_violations)
 
@@ -156,7 +196,11 @@ def main():
 
     # ---- V5: which entries sit on events where exit 2 cannot block
     res["V5_entries_on_exit2_ignored_events"] = sorted(
-        {(r["event"] + "/" + r["script"]) for r in rows if r["event"] in EXIT2_IGNORED_EVENTS}
+        {
+            (r["event"] + "/" + r["script"])
+            for r in rows
+            if r["event"] in EXIT2_IGNORED_EVENTS
+        }
     )
     res["V5_count"] = len(res["V5_entries_on_exit2_ignored_events"])
 
@@ -170,8 +214,9 @@ def main():
     per_event = {}
     for r in rows:
         per_event.setdefault(r["event"], []).append(r["timeout"])
-    res["declared_timeouts_by_event"] = {k: sorted(v, key=lambda x: (x is None, x))
-                                         for k, v in sorted(per_event.items())}
+    res["declared_timeouts_by_event"] = {
+        k: sorted(v, key=lambda x: (x is None, x)) for k, v in sorted(per_event.items())
+    }
 
     print(json.dumps(res, indent=2, default=str))
     return 0
