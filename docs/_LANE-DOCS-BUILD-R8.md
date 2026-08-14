@@ -144,9 +144,33 @@ both-states     SUCCESS:docs-r8-bothstates fixed_rc=0 broken_rc=1 arms_differ=Tr
 gate suite      31 passed, exit 0        (23 before this round's +8)
 3 docs suites   56 passed, exit 0
 3 siblings      49 passed, exit 0
-ruff 0.15.17    check "All checks passed!" exit 0 ; format --check exit 0
-                exit codes captured BEFORE any pipe
+ruff 0.15.17    check "All checks passed!" CHECK_EXIT=0 ; format --check FORMAT_EXIT=0
+                exit codes captured BEFORE any pipe. First run FAILED on all 4 files
+                ("4 files would be reformatted"); `ruff format` applied, then re-verified.
+blob parity     FAILED:docs-r8-blobparity all_identical_and_LF=False control_fires=True
+                  test_command_doc_promises.py  wt_CR=992 blob_CR=0  identical=False
+                  _lane_docs_r8_anchor_mutation.py wt_CR=0 blob_CR=0 identical=True
+                  _lane_docs_r8_bothstates.py      wt_CR=0 blob_CR=0 identical=True
+                  _lane_docs_r8_dead_invocations.py wt_CR=0 blob_CR=0 identical=True
+                ^ NOT a defect in the commit -- a defect in MY EVIDENCE. The working
+                tree of the test file is CRLF (git checked it out that way; I edited in
+                place) while the blob is LF, so the ruff run above did NOT check the
+                bytes CI reads for that one file. windows-shell 8b exactly. What DOES
+                cover it is the blob-level gate, run at HEAD after the commit:
+blob format     SUCCESS:docs-r7-blobcheck rev=HEAD files=7 blob_format=clean
+                control_fires=True  test_command_doc_promises.py:CR=0  (+6 others)
+                Its control fires on a mangled file in the same harness, so the green
+                is not an inert invocation. The 3 new probes are covered by the
+                working-tree run because for them wt == blob byte-for-byte.
+clone green     SUCCESS:docs-r8-clone rc=0 shallow=True arm_collected=True
+                depth-1 clone of 654dc583 -> 31 passed; preconditions asserted:
+                clone_head == repo_head, .git/shallow present, rev-list --count == 1.
+                Proves the arm needs no history, which is the fetch-depth-1 constraint
+                R7-1 measured. That clone checked out CRLF on this box; the LF form CI
+                sees rests on the blob gate above, NOT on a Linux run.
 CI wiring       quality.yml:1503 runs this suite ; fetch-depth: 0 set in 6 workflows
+commit          654dc583, exactly 6 files, +938/-4, no sibling paths, and none of
+                AGENTS.md / CLAUDE.md / README.md / .github/workflows / commands/**
 ```
 
 ---
@@ -154,8 +178,16 @@ CI wiring       quality.yml:1503 runs this suite ; fetch-depth: 0 set in 6 workf
 ## 6. Residual, disclosed inline rather than in a footnote
 
 1. **No real CI run, no Linux run, and this lane does not push.** Everything is local on the CI
-   interpreter (3.11.9). Settling experiment: push and read `gate-lint-format (ruff)` and the
-   `gate-tests-coverage` step.
+   interpreter (3.11.9). A fresh depth-1 clone of the commit runs the suite green and the arm is
+   collected there, so "clone green" is measured — but that clone checked out CRLF on this box,
+   so the LF form CI reads rests on the blob-format gate, not on a runner. Settling experiment:
+   push and read `gate-lint-format (ruff)` and the `gate-tests-coverage` step.
+1b. **My own format evidence was one file short of the claim, and I caught it only by measuring
+   byte-parity rather than assuming it.** `ruff format --check` on the working tree is not the CI
+   check for `ci/tests/test_command_doc_promises.py`, whose working copy is CRLF (992 CR) against
+   an LF blob. The blob-level gate covers it; the working-tree run covers the three new probes,
+   which are byte-identical to their blobs. Had I stopped at the working-tree green I would have
+   reported CI-parity I had not measured — for the one file carrying 249 of the 938 lines.
 2. **The two dead promises are ROUTED, not fixed.** `/claw` and `/harness-audit` remain published
    commands whose implementations exist nowhere. That is an implement-or-retire decision for the
    owner, exactly like G1 and G3. The ratchet stops the class growing; it does not pay the debt.
