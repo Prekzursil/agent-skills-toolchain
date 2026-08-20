@@ -51,8 +51,28 @@ KNOWN LIMITS (documented, not hidden)
     * Template-interpolation code is preserved single-level with brace tracking, so
       ``${Date.now()}`` IS caught; deeply nested templates, or a ``}`` inside a string
       inside an interpolation, may be masked imperfectly.
-    * The ``agent`` schema check looks for a literal ``schema:`` key in the call; passing
-      options via a variable (``agent(p, opts)``) is flagged as a (false) WARN.
+    * The ``agent`` schema check looks for a literal ``schema:`` key in the call. A
+      two-parameter forwarding wrapper -- ``function W(p, o) { ... return agent(p, o) }``
+      -- is recognised: its forwarding call is exempt and ``W(...)`` call sites are
+      checked instead (the governed-run template's ``countedAgent``; the old behaviour
+      flagged that template's forwarding line on every use -- measured 2026-08-17,
+      the only finding wf_gate produced over the repo's own templates). Any OTHER
+      variable-options form (a bare ``agent(p, opts)`` outside such a wrapper, an
+      arrow-function wrapper, reordered parameters) is still flagged as a (false) WARN.
+      That recognition has three residual shapes, measured 2026-08-18 by two
+      independent probes and named here rather than left to be rediscovered:
+      (a) ``return await agent(p, o)`` is NOT read as forwarding, so its forwarding
+      line still WARNs exactly as before; (b) the ``W(...)`` call-site scan matches
+      the bare name lexically, so a same-named method call or definition
+      (``tracker.W(...)``) or an unrelated ``W(...)`` can WARN as a false positive
+      that did not exist before the exemption; (c) an INDIRECT invocation -- an
+      alias (``const W2 = W``) or a wrapper exported for another file -- is not
+      retargeted, so a schema-less indirect call is now SILENT where the
+      pre-exemption rule at least fired once (at the misleading forwarding line).
+      (c) is the deliberate trade: one guaranteed false positive on every wrapper,
+      exchanged for a false negative on indirect use. All three are advisory
+      WARN-level and produce zero verdict delta over this repo's 1,342-file
+      workflow corpus.
     * The ``parallel`` check recognises an immediate ``.filter(Boolean)`` or a
       ``NAME....filter(Boolean)`` member chain on the assigned result; a barrier that
       handles nulls another way (e.g. ``r[i] && ...``) is still WARNed -- advisory only.
@@ -634,18 +654,73 @@ def _check_sandbox(masked: str, path: str, findings: list[Finding]) -> None:
 _AGENT_CALL = re.compile(r"\bagent\s*\(")
 _SCHEMA_KEY = re.compile(r"\bschema\s*:")
 
+# A two-parameter FORWARDING WRAPPER -- ``function W(p, o) { ... return agent(p, o) }``
+# -- forwards its options VERBATIM, so a literal ``schema:`` can never appear at the
+# forwarding call: the schema duty sits at W's call sites. The governed-run template
+# ships exactly this wrapper (``countedAgent``, its agent-call budget reserve), and
+# flagging the forwarding line was a measured false positive: the ONLY finding
+# ``wf_gate`` produced over the repo's own templates (2026-08-17), red under
+# ``--strict`` on the canonical template the skill tells authors to paste.
+# Recognising the wrapper does two things AT ONCE: the forwarding call stops firing,
+# and the wrapper's own call sites are checked for a literal ``schema:`` under the
+# same rule -- so the exemption closes a blind spot instead of opening one.
+_WRAPPER_DEF = re.compile(
+    r"\bfunction\s+([A-Za-z_$][\w$]*)\s*\("
+    r"\s*([A-Za-z_$][\w$]*)\s*,\s*([A-Za-z_$][\w$]*)\s*\)\s*\{"
+)
+
+
+def _forwarding_wrappers(masked: str) -> tuple[set[str], set[int]]:
+    """Names of verbatim-forwarding wrappers, plus masked offsets to EXEMPT from the
+    schema scan: each recognised wrapper's definition-site name token (so its own
+    parameter list is not read as a schema-less call) and each forwarding ``agent``
+    token itself. Reordered/renamed forwarding (``return agent(o, p)``) is NOT a
+    verbatim forward and stays under the plain advisory."""
+    names: set[str] = set()
+    skip: set[int] = set()
+    for m in _WRAPPER_DEF.finditer(masked):
+        body_close = _match_bracket(masked, m.end() - 1)
+        if body_close is None:
+            continue
+        fwd = re.compile(
+            r"\breturn\s+(agent)\s*\(\s*"
+            + re.escape(m.group(2))
+            + r"\s*,\s*"
+            + re.escape(m.group(3))
+            + r"\s*\)"
+        ).search(masked, m.end(), body_close)
+        if fwd is None:
+            continue
+        names.add(m.group(1))
+        skip.add(m.start(1))
+        skip.add(fwd.start(1))
+    return names, skip
+
 
 def _check_agent_schema(masked: str, path: str, findings: list[Finding]) -> None:
-    for m in _AGENT_CALL.finditer(masked):
-        close = _match_bracket(masked, m.end() - 1)
+    wrapper_names, skip = _forwarding_wrappers(masked)
+    calls: list[tuple[int, int]] = [
+        (m.start(), m.end() - 1)
+        for m in _AGENT_CALL.finditer(masked)
+        if m.start() not in skip
+    ]
+    for name in sorted(wrapper_names):
+        rx = re.compile(r"\b" + re.escape(name) + r"\s*\(")
+        calls.extend(
+            (m.start(), m.end() - 1)
+            for m in rx.finditer(masked)
+            if m.start() not in skip
+        )
+    for at, open_idx in sorted(set(calls)):
+        close = _match_bracket(masked, open_idx)
         if close is None:
             continue
-        if _SCHEMA_KEY.search(masked, m.end(), close):
+        if _SCHEMA_KEY.search(masked, open_idx + 1, close):
             continue
         findings.append(
             Finding(
                 path,
-                _line_at(masked, m.start()),
+                _line_at(masked, at),
                 WARN,
                 "agent-schema",
                 "agent(...) has no schema: option (SKILL.md rule 7). A fan-in agent "

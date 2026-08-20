@@ -216,7 +216,7 @@ Your winner_id MUST be exactly "${a.id}" or "${b.id}" — no other value is vali
     )
   })
 
-  const judgeResults = await parallel(judgeThunks)
+  const judgeResults = (await parallel(judgeThunks)).filter(Boolean)
 
   // Resolve winners from judge results
   const roundWinners = []

@@ -75,6 +75,38 @@ def test_discovery_ignores_non_js_fences(tmp_path: Path) -> None:
     assert wf_gate.discover_blocks(tmp_path) == []
 
 
+# --------------------------------------------------------------------------- #
+# WS-3: discovery originally stopped at templates/*.md, so the authoring skill's
+# own SKILL.md quick-start examples fired barrier-without-timeout under the
+# skill's own linter and no gate ever saw them. Both states of the extended
+# surface: a workflow-* SKILL.md IS walked (and its findings surface), a
+# SKILL.md outside workflow-* skills is NOT.
+# --------------------------------------------------------------------------- #
+def test_discovery_includes_workflow_skill_md_blocks(tmp_path: Path) -> None:
+    d = tmp_path / "skills" / "workflow-demo"
+    d.mkdir(parents=True)
+    (d / "SKILL.md").write_text(BARE_BARRIER, encoding="utf-8")
+    blocks = wf_gate.discover_blocks(tmp_path)
+    assert [b.path.name for b in blocks] == ["SKILL.md"]
+    checks = {f.check for f in wf_gate.lint_blocks(blocks, tmp_path)}
+    assert "barrier-without-timeout" in checks
+
+
+def test_discovery_ignores_skill_md_outside_workflow_skills(tmp_path: Path) -> None:
+    d = tmp_path / "skills" / "other-skill"
+    d.mkdir(parents=True)
+    (d / "SKILL.md").write_text(BAD, encoding="utf-8")
+    assert wf_gate.discover_blocks(tmp_path) == []
+
+
+def test_discovery_walks_both_surfaces_of_one_skill(tmp_path: Path) -> None:
+    _tree(tmp_path, "frag.md", CLEAN)
+    skill_md = tmp_path / "skills" / "workflow-demo" / "SKILL.md"
+    skill_md.write_text(CLEAN, encoding="utf-8")
+    names = sorted(b.path.name for b in wf_gate.discover_blocks(tmp_path))
+    assert names == ["SKILL.md", "frag.md"]
+
+
 def test_block_outside_root_still_labels(tmp_path: Path) -> None:
     """The relative_to fallback path (self-test tmp trees live outside REPO_ROOT)."""
     p = _tree(tmp_path, "x.md", BAD)
@@ -154,12 +186,34 @@ def test_self_test_fails_when_the_empty_walk_does_not_fail_closed(monkeypatch) -
     assert wf_gate.self_test() == 1
 
 
-def test_repo_templates_are_error_free() -> None:
-    """The real repo tree: zero ERRORs across every shipped template block."""
+def test_repo_doc_blocks_are_error_free() -> None:
+    """The real repo tree: zero ERRORs across every shipped doc block.
+
+    Discovery covers both surfaces since WS-3: templates/*.md and SKILL.md.
+    """
     blocks = wf_gate.discover_blocks(wf_gate.REPO_ROOT)
-    assert blocks, "discovery found no template blocks in the repo"
+    assert blocks, "discovery found no doc blocks in the repo"
     errors = [f for f in wf_gate.lint_blocks(blocks) if f.level == "error"]
     assert errors == [], errors
+
+
+def test_repo_skill_md_examples_are_finding_free() -> None:
+    """WS-3 regression pin: the shipped SKILL.md examples model NO footgun.
+
+    Pre-fix, the workflow-authoring SKILL.md's section-1 and rule-5 examples
+    both fired barrier-without-timeout -- the exact 13h-deadlock footgun the
+    skill's own rule 5b documents -- and CI never saw it because discovery
+    stopped at templates/. CI runs the gate non-strict, so a WARN in a doc
+    example would still pass the wf_gate step; this test is what makes the
+    teaching examples warn-free by force of suite.
+    """
+    blocks = [
+        b
+        for b in wf_gate.discover_blocks(wf_gate.REPO_ROOT)
+        if b.path.name == "SKILL.md"
+    ]
+    assert blocks, "discovery no longer sees any workflow-* SKILL.md block"
+    assert wf_gate.lint_blocks(blocks) == []
 
 
 def test_import_is_idempotent_when_the_lint_dir_is_already_on_the_path() -> None:

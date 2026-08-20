@@ -389,6 +389,58 @@ def test_agent_schema_in_prompt_string_does_not_count():
 
 
 # --------------------------------------------------------------------------- #
+# agent() schema -- the forwarding-wrapper exemption (the governed-run template's
+# `countedAgent`). Both-states proven: test_agent_without_schema_warns above pins
+# that a bare schema-less call still fires, and the fixtures below pin the
+# wrapper's forwarding call silent, the def-site parameter list silent, and the
+# schema duty ENFORCED at the wrapper's call sites -- the exemption must not
+# open a blind spot.
+# --------------------------------------------------------------------------- #
+_WRAPPER = (
+    "export const meta = { name: 'x' }\n"
+    "async function countedAgent(prompt, opts) {\n"
+    "  calls += 1\n"
+    "  return agent(prompt, opts)\n"
+    "}\n"
+)
+
+
+def test_forwarding_wrapper_call_is_exempt():
+    # broken-state control: before the fix this exact source warned on line 4
+    # (the forwarding call); the wrapper's call site carries the schema.
+    src = _WRAPPER + "const r = await countedAgent('p', { schema: S })\n"
+    findings = wl.lint_text(src)
+    assert not [f for f in findings if f.check == "agent-schema"]
+
+
+def test_forwarding_wrapper_call_site_without_schema_warns():
+    # the schema duty moves to the wrapper's call sites: a schema-less one fires
+    # AT ITS OWN LINE (6), which the pre-fix rule structurally could not see.
+    src = _WRAPPER + "const r = await countedAgent('p', { label: 'a' })\n"
+    warns = [f for f in wl.lint_text(src) if f.check == "agent-schema"]
+    assert [(f.line, f.level) for f in warns] == [(6, wl.WARN)]
+
+
+def test_wrapper_def_site_params_not_read_as_a_call():
+    # `function countedAgent(prompt, opts)` itself has no schema: -- must not fire
+    assert not [f for f in wl.lint_text(_WRAPPER) if f.check == "agent-schema"]
+
+
+def test_reordered_forward_is_not_a_verbatim_wrapper():
+    # `return agent(o, p)` is NOT a verbatim forward -> the plain advisory stays
+    src = "export const meta = { name: 'x' }\nfunction w(p, o) { return agent(o, p) }\n"
+    warns = [f for f in wl.lint_text(src) if f.check == "agent-schema"]
+    assert [f.line for f in warns] == [2]
+
+
+def test_wrapper_with_unbalanced_body_is_ignored():
+    # an unclosed body -> not recognised as a wrapper; the inner call warns as before
+    src = "export const meta = { name: 'x' }\nfunction w(p, o) {\nreturn agent(p, o)\n"
+    warns = [f for f in wl.lint_text(src) if f.check == "agent-schema"]
+    assert [f.line for f in warns] == [3]
+
+
+# --------------------------------------------------------------------------- #
 # parallel() filter(Boolean) (warn)
 # --------------------------------------------------------------------------- #
 def test_parallel_immediate_filter_ok():
