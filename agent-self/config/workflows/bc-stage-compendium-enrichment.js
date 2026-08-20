@@ -8,6 +8,121 @@ export const meta = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// H6 — per-agent timeout + stall heartbeat. Paste at the top of the workflow.
+// Sandbox-safe: uses only injected globals (setTimeout/clearTimeout/log/parallel).
+// No Date.now / Math.random / new Date() -> stays workflow_lint clean.
+// SCOPE: unblocks the BARRIER. Does NOT kill the agent -- the dropped agent keeps
+// running and keeps its concurrency slot until it dies on its own.
+// ---------------------------------------------------------------------------
+const H6_TIMEOUT_MS = 1800000; // 30 min; blueprint dispatch_timeout_seconds default
+const H6_STALL_MS = 90000; // 90 s; B3 falsifier #22
+
+// A typed drop-receipt (design item H3). NEVER return a bare null from a barrier:
+// null is produced for at least three different causes -- user skipped the agent,
+// the subagent died on a terminal error, and (here) our own timeout -- and
+// .filter(Boolean) throws that distinction away, making "12 of 15 returned"
+// unauditable.
+function h6Receipt(endReason, label, ms, detail) {
+  return {
+    __h6: true,
+    __endReason: endReason, // 'timeout' | 'threw' | 'null'
+    label: label,
+    ms: ms,
+    detail: detail === undefined ? null : detail,
+  };
+}
+
+function h6IsDrop(r) {
+  return !!r && r.__h6 === true;
+}
+function h6Survivors(results) {
+  return results.filter(function (r) {
+    return !h6IsDrop(r);
+  });
+}
+function h6Drops(results) {
+  return results.filter(h6IsDrop);
+}
+
+// Emit one heartbeat line if the unit is still outstanding at H6_STALL_MS.
+// Returns a canceller. This is an OBSERVATION ("still waiting"), not a verdict
+// that the agent is hung -- the sandbox cannot see orchestrator state.
+function h6Heartbeat(label, stallMs) {
+  if (typeof setTimeout !== 'function') return function () {};
+  const t = setTimeout(function () {
+    if (typeof log === 'function') {
+      log('H6 heartbeat: still waiting on ' + label + ' after ' + stallMs + 'ms');
+    }
+  }, stallMs);
+  return function () {
+    if (typeof clearTimeout === 'function') clearTimeout(t);
+  };
+}
+
+// Bound ONE thunk. Always resolves -- never rejects, never returns undefined --
+// so a barrier over wrapped thunks can no longer be poisoned by one unit.
+async function withTimeout(thunk, ms, label, stallMs) {
+  const lbl = label === undefined ? 'unit' : label;
+  const budgetMs = ms === undefined ? H6_TIMEOUT_MS : ms;
+  // Runtime-drift guard: if a future build stops injecting timers, degrade to a
+  // plain await instead of dying with a ReferenceError at fan-out time.
+  if (typeof setTimeout !== 'function') {
+    try {
+      return await thunk();
+    } catch (err) {
+      return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+    }
+  }
+  const stopBeat = h6Heartbeat(lbl, stallMs === undefined ? H6_STALL_MS : stallMs);
+  let timer = null;
+  const expiry = new Promise(function (resolve) {
+    timer = setTimeout(function () {
+      resolve(h6Receipt('timeout', lbl, budgetMs, null));
+    }, budgetMs);
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(thunk), expiry]);
+  } catch (err) {
+    return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+  } finally {
+    // ALWAYS clear on the winning path too: an un-cleared timer stays in the
+    // runtime's abort set and can hold the workflow open past its last agent.
+    if (timer !== null && typeof clearTimeout === 'function') clearTimeout(timer);
+    stopBeat();
+  }
+}
+
+// A SETTLED barrier: same shape as parallel(), but one hung unit costs you that
+// unit instead of the phase. Output is index-aligned with `thunks` and every
+// slot is either a real result or a typed drop-receipt -- no nulls, no holes.
+async function settle(thunks, ms, labels) {
+  const nameOf = function (i) {
+    return labels && labels[i] !== undefined ? labels[i] : 'unit-' + i;
+  };
+  const raw = await parallel(
+    thunks.map(function (t, i) {
+      return function () {
+        return withTimeout(t, ms, nameOf(i));
+      };
+    }),
+  );
+  return raw.map(function (r, i) {
+    // The runtime still yields null for a cause we never saw (a user skip).
+    // Type it rather than filtering it away.
+    return r === null || r === undefined ? h6Receipt('null', nameOf(i), ms, null) : r;
+  });
+}
+
+const obj = (properties, required = []) => ({
+  type: 'object', additionalProperties: false, required, properties,
+})
+const WORK_RESULT = obj(
+  { digest: { type: 'string', description: 'The prompt-specific report or requested final status message.' } },
+  ['digest'],
+)
+const runAgent = (prompt, options) => agent(prompt, { ...options, schema: WORK_RESULT }).then((result) => (result == null ? null : result.digest))
+
 const ROOT = 'D:/ReverseTools/Android/battlecats-toolkit'
 const EN = 'C:/Users/Prekzursil/Documents/bcsfe/game_data/en/15.3.0'
 const JP = 'C:/Users/Prekzursil/Documents/bcsfe/game_data/jp/15.4.0'
@@ -39,14 +154,14 @@ const tasks = [
   { label: 'dim:addition-versions', prompt: 'NEW DIMENSION — WHEN ADDED (temporal). For each category/band AND each major named stage, find the game VERSION (and date) it was ADDED. Sources: the wiki version-history pages (battlecats.miraheze.org Version_X.Y_Update pages list new stages/events/cats per version) + the event_0 min_ver field (a proxy: 50700=15.7-class, 110500=11.5 guerrilla, 140000=14.0 carrier) + the atlas inline dates. Output: category/band_or_stage | added_version | added_date | source. Cover the spread from old (EoC-era specials) to newest (15.4.x anniversary). Flag the NEWEST additions (15.3-15.4) specifically.' },
   { label: 'dim:semi-story-progressive', prompt: 'NEW DIMENSION — SEMI-STORY / PROGRESSIVE classification. Classify EACH stage/band as one of: FREELY-REPEATABLE | ONE-TIME-UNLOCK | PROGRESSIVE-CHAIN (clear A to unlock B...) | SEMI-STORY (gated, story-like progression). Sources: the prereq predicate sub_819E20 + unlock conditions in Map_option.csv (prereq columns) + STARTUP_FILTER_RE.md + the atlas unlock notes. Canonical examples to map: Gates of Aku 1255->...->1268 Unleashing (progressive chain), Aku Realms unlock, Crazed-cat unlock gating, Behemoth Culling unlock subs 1312-1318/1333-1347, EX parent-gating (4xxx entered from parent), Way-of-Cat 検定 初段->十二段 (progressive ranks), Tower floors (progressive within a tower). Output: band/stage | classification | prerequisite_chain(if any) | unlock_target | evidence.' },
 ]
-const results = (await parallel(
-  tasks.map(t => () => agent(SHARED + '\n\n=== YOUR SUBTASK ===\n' + t.prompt, { label: t.label, phase: 'Enrich' }))
-)).filter(Boolean)
+const results = h6Survivors(await settle(
+  tasks.map(t => () => runAgent(SHARED + '\n\n=== YOUR SUBTASK ===\n' + t.prompt, { label: t.label, phase: 'Enrich' }))
+, H6_TIMEOUT_MS))
 log('Enrich done: ' + results.length + '/' + tasks.length + ' enrichment streams returned')
 
 phase('Compile')
 const corpus = results.map((r, i) => '### STREAM ' + (i + 1) + ' (' + tasks[i].label + ')\n' + r).join('\n\n')
-const compendium = await agent(
+const compendium = await runAgent(
   SHARED + '\n\n=== YOUR SUBTASK: WRITE THE LIVING STAGE COMPENDIUM ===\n' +
   'Synthesize the atlas (BC-EVENT-ARCHITECTURE.md) + all enrichment streams below into ONE comprehensive LIVING compendium and WRITE it (Write tool) to ' + ROOT + '/docs/game-knowledge/BC-STAGE-COMPENDIUM.md. It MUST contain:\n' +
   '1. A short pointer to BC-EVENT-ARCHITECTURE.md for the activation model (do not duplicate it).\n' +
@@ -61,7 +176,7 @@ const compendium = await agent(
 )
 
 phase('Critique')
-const critic = await agent(
+const critic = await runAgent(
   SHARED + '\n\n=== YOUR SUBTASK: COMPLETENESS CRITIC ===\n' +
   'A living compendium was written to ' + ROOT + '/docs/game-knowledge/BC-STAGE-COMPENDIUM.md. Read it. Adversarially assess: is any compendium dimension (region/asset-status, cat-linkage, added-version, semi-story/progressive) left as a hand-wave or estimate where the LOCAL data could have made it concrete? Did the cross-region diff actually use the JP pack? Are the cat-linkages cited to a gacha-set/MapStageData/wiki line, or guessed? Is the living-update convention actually runnable? Return a prioritized punch-list (P0/P1) of remaining gaps + the cheapest closure for each.\n\n=== COMPENDIUM SUMMARY FROM WRITER ===\n' + compendium,
   { label: 'critique:compendium', phase: 'Critique' }

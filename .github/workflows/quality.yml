@@ -1062,6 +1062,15 @@ jobs:
       - name: gate-tests-coverage hook manifest conformance
         run: python -m pytest hooks/_dispatch/test_wiring.py -q -k hook_manifest_conformance
 
+      # WF-2: the DEPLOY hop for the hook wiring. test_wiring.py's live-settings assertions
+      # skip in every checkout and on every runner (SETTINGS is machine-local), so the tool
+      # that actually carries the manifest's settings_matcher onto a box -- and drops the
+      # superseded standalone group in the SAME write -- needs its own gate. Fully hermetic:
+      # every case builds a sandbox ~/.claude under tmp_path and passes --claude-root, so
+      # nothing here reads or writes a real deployment. Includes the three red-proof mutants.
+      - name: gate-tests-coverage dispatch wiring deploy (WF-2)
+        run: python -m pytest agent-self/test_deploy_dispatch_wiring.py -q
+
       # browser-rail helper -- PURE-logic unit tests only: no browser, no
       # playwright install, no network (browser_rail.py imports playwright lazily).
       # Deliberately NOT a `gate-<slug>` step name so charter_check.sh's reverse

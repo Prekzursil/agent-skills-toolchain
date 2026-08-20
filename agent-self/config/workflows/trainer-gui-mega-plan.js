@@ -11,6 +11,121 @@ export const meta = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// H6 — per-agent timeout + stall heartbeat. Paste at the top of the workflow.
+// Sandbox-safe: uses only injected globals (setTimeout/clearTimeout/log/parallel).
+// No Date.now / Math.random / new Date() -> stays workflow_lint clean.
+// SCOPE: unblocks the BARRIER. Does NOT kill the agent -- the dropped agent keeps
+// running and keeps its concurrency slot until it dies on its own.
+// ---------------------------------------------------------------------------
+const H6_TIMEOUT_MS = 1800000; // 30 min; blueprint dispatch_timeout_seconds default
+const H6_STALL_MS = 90000; // 90 s; B3 falsifier #22
+
+// A typed drop-receipt (design item H3). NEVER return a bare null from a barrier:
+// null is produced for at least three different causes -- user skipped the agent,
+// the subagent died on a terminal error, and (here) our own timeout -- and
+// .filter(Boolean) throws that distinction away, making "12 of 15 returned"
+// unauditable.
+function h6Receipt(endReason, label, ms, detail) {
+  return {
+    __h6: true,
+    __endReason: endReason, // 'timeout' | 'threw' | 'null'
+    label: label,
+    ms: ms,
+    detail: detail === undefined ? null : detail,
+  };
+}
+
+function h6IsDrop(r) {
+  return !!r && r.__h6 === true;
+}
+function h6Survivors(results) {
+  return results.filter(function (r) {
+    return !h6IsDrop(r);
+  });
+}
+function h6Drops(results) {
+  return results.filter(h6IsDrop);
+}
+
+// Emit one heartbeat line if the unit is still outstanding at H6_STALL_MS.
+// Returns a canceller. This is an OBSERVATION ("still waiting"), not a verdict
+// that the agent is hung -- the sandbox cannot see orchestrator state.
+function h6Heartbeat(label, stallMs) {
+  if (typeof setTimeout !== 'function') return function () {};
+  const t = setTimeout(function () {
+    if (typeof log === 'function') {
+      log('H6 heartbeat: still waiting on ' + label + ' after ' + stallMs + 'ms');
+    }
+  }, stallMs);
+  return function () {
+    if (typeof clearTimeout === 'function') clearTimeout(t);
+  };
+}
+
+// Bound ONE thunk. Always resolves -- never rejects, never returns undefined --
+// so a barrier over wrapped thunks can no longer be poisoned by one unit.
+async function withTimeout(thunk, ms, label, stallMs) {
+  const lbl = label === undefined ? 'unit' : label;
+  const budgetMs = ms === undefined ? H6_TIMEOUT_MS : ms;
+  // Runtime-drift guard: if a future build stops injecting timers, degrade to a
+  // plain await instead of dying with a ReferenceError at fan-out time.
+  if (typeof setTimeout !== 'function') {
+    try {
+      return await thunk();
+    } catch (err) {
+      return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+    }
+  }
+  const stopBeat = h6Heartbeat(lbl, stallMs === undefined ? H6_STALL_MS : stallMs);
+  let timer = null;
+  const expiry = new Promise(function (resolve) {
+    timer = setTimeout(function () {
+      resolve(h6Receipt('timeout', lbl, budgetMs, null));
+    }, budgetMs);
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(thunk), expiry]);
+  } catch (err) {
+    return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+  } finally {
+    // ALWAYS clear on the winning path too: an un-cleared timer stays in the
+    // runtime's abort set and can hold the workflow open past its last agent.
+    if (timer !== null && typeof clearTimeout === 'function') clearTimeout(timer);
+    stopBeat();
+  }
+}
+
+// A SETTLED barrier: same shape as parallel(), but one hung unit costs you that
+// unit instead of the phase. Output is index-aligned with `thunks` and every
+// slot is either a real result or a typed drop-receipt -- no nulls, no holes.
+async function settle(thunks, ms, labels) {
+  const nameOf = function (i) {
+    return labels && labels[i] !== undefined ? labels[i] : 'unit-' + i;
+  };
+  const raw = await parallel(
+    thunks.map(function (t, i) {
+      return function () {
+        return withTimeout(t, ms, nameOf(i));
+      };
+    }),
+  );
+  return raw.map(function (r, i) {
+    // The runtime still yields null for a cause we never saw (a user skip).
+    // Type it rather than filtering it away.
+    return r === null || r === undefined ? h6Receipt('null', nameOf(i), ms, null) : r;
+  });
+}
+
+const obj = (properties, required = []) => ({
+  type: 'object', additionalProperties: false, required, properties,
+})
+const WORK_RESULT = obj(
+  { digest: { type: 'string', description: 'The prompt-specific report or requested final status message.' } },
+  ['digest'],
+)
+const runAgent = (prompt, options) => agent(prompt, { ...options, schema: WORK_RESULT }).then((result) => (result == null ? null : result.digest))
+
 const ROOT = 'C:/Users/Prekzursil/source/reports/plan-trainer-gui-mega'
 
 const CTX = `PROJECT: Battle Cats EN 15.3.0 trainer-GUI mega-upgrade — a planning effort (NO implementation; produce a plan). KEY LOCATIONS (use Read/Grep/Glob/Bash on these):
@@ -193,50 +308,56 @@ const ALL_RESEARCH = [...MECH, ...STAGE, ...DATA, ...ALGO, ...GUI]
 
 phase('Research')
 log(`Research: launching ${ALL_RESEARCH.length} parallel deep-research agents (mechanics/stages/data/algorithm/GUI)`)
-const research = await parallel(ALL_RESEARCH.map(t => () =>
-  agent(rprompt(t[0], t[1], t[2], t[3]), { label: t[0], phase: 'Research' })))
+const research = h6Survivors(await settle(ALL_RESEARCH.map(t => () =>
+  runAgent(rprompt(t[0], t[1], t[2], t[3]), { label: t[0], phase: 'Research' })), H6_TIMEOUT_MS))
 log(`Research complete: ${research.filter(Boolean).length}/${ALL_RESEARCH.length} agents returned`)
 
 phase('SolverDeepDive')
 log(`Solver deep-dive: ${SOLVER_DEEP.length} agents on the team-solver engine (the crux)`)
-const solver = await parallel(SOLVER_DEEP.map(t => () =>
-  agent(sprompt(t[0], t[1], t[2], t[3]), { label: t[0], phase: 'SolverDeepDive' })))
+const solver = h6Survivors(await settle(SOLVER_DEEP.map(t => () =>
+  runAgent(sprompt(t[0], t[1], t[2], t[3]), { label: t[0], phase: 'SolverDeepDive' })), H6_TIMEOUT_MS))
 log(`Solver deep-dive complete: ${solver.filter(Boolean).length}/${SOLVER_DEEP.length}`)
 
 phase('Design')
 log(`Design: ${DESIGN.length} synthesis agents`)
-const design = await parallel(DESIGN.map(d => () =>
-  agent(dprompt(d[0], d[1], d[2], d[3]), { label: d[0], phase: 'Design' })))
+const design = h6Survivors(await settle(DESIGN.map(d => () =>
+  runAgent(dprompt(d[0], d[1], d[2], d[3]), { label: d[0], phase: 'Design' })), H6_TIMEOUT_MS))
 log(`Design complete: ${design.filter(Boolean).length}/${DESIGN.length}`)
 
 phase('Critique')
 log(`Critique: ${CRITIQUE.length} adversarial reviewers`)
-const critique = await parallel(CRITIQUE.map(c => () =>
-  agent(cprompt(c[0], c[1], c[2]), { label: c[0], phase: 'Critique' })))
-const verdicts = critique.map((r, i) => ({
-  id: CRITIQUE[i][0],
-  pass: /VERDICT:\s*PASS/i.test(r || ''),
-  note: ((r || '').match(/VERDICT:[\s\S]*/i) || [''])[0].slice(0, 260),
-}))
+const critique = await settle(CRITIQUE.map(c => () =>
+  runAgent(cprompt(c[0], c[1], c[2]), { label: c[0], phase: 'Critique' })), H6_TIMEOUT_MS)
+const verdicts = CRITIQUE.map((c, i) => {
+  const r = critique[i]
+  if (h6IsDrop(r)) {
+    return { id: c[0], pass: false, note: 'DROP:' + r.__endReason }
+  }
+  return {
+    id: c[0],
+    pass: /VERDICT:\s*PASS/i.test(r || ''),
+    note: ((r || '').match(/VERDICT:[\s\S]*/i) || [''])[0].slice(0, 260),
+  }
+})
 const concerns = verdicts.filter(v => !v.pass)
 log(`Critique complete: ${verdicts.filter(v => v.pass).length}/${verdicts.length} PASS; ${concerns.length} raised CONCERNS`)
 
 phase('Refine')
 log(`Refine: revising ${DESIGN_IDS.length} design sections to resolve critique concerns`)
-const refine = await parallel(DESIGN_IDS.map(id => () =>
-  agent(`${CTX}
+const refine = h6Survivors(await settle(DESIGN_IDS.map(id => () =>
+  runAgent(`${CTX}
 
 ROLE: Senior designer doing a REVISION pass on design section "${id}".
 READ: your section ${ROOT}/design/${id}.md AND all critiques in ${ROOT}/critique/ (Glob+Read). Identify every BLOCKER/MAJOR issue that touches "${id}".
 REVISE ${ROOT}/design/${id}.md in place (Write tool) to resolve those issues: fix inaccuracies, fill gaps, cut over-engineering, add the missing specifics. Keep it concrete + buildable. Do NOT regress unaffected parts.
 FINAL MESSAGE (one line): "${id}: <what you changed to resolve critique>".`,
-    { label: `refine:${id}`, phase: 'Refine' })))
+    { label: `refine:${id}`, phase: 'Refine' })), H6_TIMEOUT_MS))
 log(`Refine complete: ${refine.filter(Boolean).length}/${DESIGN_IDS.length}`)
 
 phase('Finalize')
 const FINAL = `${ROOT}/PLAN-trainer-gui-mega-features.md`
 log('Finalize: drafting the master plan')
-await agent(`${CTX}
+await runAgent(`${CTX}
 
 ROLE: Lead author. Compile the MASTER IMPLEMENTATION PLAN.
 READ: all of ${ROOT}/design/ (the REFINED designs) and skim ${ROOT}/research/ for specifics you need (Glob+Read).
@@ -252,7 +373,7 @@ FINAL MESSAGE (one line): "draft written + the single biggest open risk".`,
   { label: 'finalize-draft', phase: 'Finalize' })
 
 log('Finalize: integrating critique into the plan')
-await agent(`${CTX}
+await runAgent(`${CTX}
 
 ROLE: Editor. Harden the plan against the critique.
 READ ${FINAL} and ALL critiques in ${ROOT}/critique/ (Glob+Read) + the verdict notes: ${JSON.stringify(concerns).slice(0, 1500)}.
@@ -261,7 +382,7 @@ FINAL MESSAGE (one line): "integration done + residual risk".`,
   { label: 'finalize-integrate-critique', phase: 'Finalize' })
 
 log('Finalize: appending the phased build plan')
-await agent(`${CTX}
+await runAgent(`${CTX}
 
 ROLE: Delivery lead. Append the BUILD PLAN.
 READ ${FINAL} and ${ROOT}/design/design-build-plan.md.

@@ -7,6 +7,112 @@ export const meta = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// H6 — per-agent timeout + stall heartbeat. Paste at the top of the workflow.
+// Sandbox-safe: uses only injected globals (setTimeout/clearTimeout/log/parallel).
+// No Date.now / Math.random / new Date() -> stays workflow_lint clean.
+// SCOPE: unblocks the BARRIER. Does NOT kill the agent -- the dropped agent keeps
+// running and keeps its concurrency slot until it dies on its own.
+// ---------------------------------------------------------------------------
+const H6_TIMEOUT_MS = 1800000; // 30 min; blueprint dispatch_timeout_seconds default
+const H6_STALL_MS = 90000; // 90 s; B3 falsifier #22
+
+// A typed drop-receipt (design item H3). NEVER return a bare null from a barrier:
+// null is produced for at least three different causes -- user skipped the agent,
+// the subagent died on a terminal error, and (here) our own timeout -- and
+// .filter(Boolean) throws that distinction away, making "12 of 15 returned"
+// unauditable.
+function h6Receipt(endReason, label, ms, detail) {
+  return {
+    __h6: true,
+    __endReason: endReason, // 'timeout' | 'threw' | 'null'
+    label: label,
+    ms: ms,
+    detail: detail === undefined ? null : detail,
+  };
+}
+
+function h6IsDrop(r) {
+  return !!r && r.__h6 === true;
+}
+function h6Survivors(results) {
+  return results.filter(function (r) {
+    return !h6IsDrop(r);
+  });
+}
+function h6Drops(results) {
+  return results.filter(h6IsDrop);
+}
+
+// Emit one heartbeat line if the unit is still outstanding at H6_STALL_MS.
+// Returns a canceller. This is an OBSERVATION ("still waiting"), not a verdict
+// that the agent is hung -- the sandbox cannot see orchestrator state.
+function h6Heartbeat(label, stallMs) {
+  if (typeof setTimeout !== 'function') return function () {};
+  const t = setTimeout(function () {
+    if (typeof log === 'function') {
+      log('H6 heartbeat: still waiting on ' + label + ' after ' + stallMs + 'ms');
+    }
+  }, stallMs);
+  return function () {
+    if (typeof clearTimeout === 'function') clearTimeout(t);
+  };
+}
+
+// Bound ONE thunk. Always resolves -- never rejects, never returns undefined --
+// so a barrier over wrapped thunks can no longer be poisoned by one unit.
+async function withTimeout(thunk, ms, label, stallMs) {
+  const lbl = label === undefined ? 'unit' : label;
+  const budgetMs = ms === undefined ? H6_TIMEOUT_MS : ms;
+  // Runtime-drift guard: if a future build stops injecting timers, degrade to a
+  // plain await instead of dying with a ReferenceError at fan-out time.
+  if (typeof setTimeout !== 'function') {
+    try {
+      return await thunk();
+    } catch (err) {
+      return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+    }
+  }
+  const stopBeat = h6Heartbeat(lbl, stallMs === undefined ? H6_STALL_MS : stallMs);
+  let timer = null;
+  const expiry = new Promise(function (resolve) {
+    timer = setTimeout(function () {
+      resolve(h6Receipt('timeout', lbl, budgetMs, null));
+    }, budgetMs);
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(thunk), expiry]);
+  } catch (err) {
+    return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+  } finally {
+    // ALWAYS clear on the winning path too: an un-cleared timer stays in the
+    // runtime's abort set and can hold the workflow open past its last agent.
+    if (timer !== null && typeof clearTimeout === 'function') clearTimeout(timer);
+    stopBeat();
+  }
+}
+
+// A SETTLED barrier: same shape as parallel(), but one hung unit costs you that
+// unit instead of the phase. Output is index-aligned with `thunks` and every
+// slot is either a real result or a typed drop-receipt -- no nulls, no holes.
+async function settle(thunks, ms, labels) {
+  const nameOf = function (i) {
+    return labels && labels[i] !== undefined ? labels[i] : 'unit-' + i;
+  };
+  const raw = await parallel(
+    thunks.map(function (t, i) {
+      return function () {
+        return withTimeout(t, ms, nameOf(i));
+      };
+    }),
+  );
+  return raw.map(function (r, i) {
+    // The runtime still yields null for a cause we never saw (a user skip).
+    // Type it rather than filtering it away.
+    return r === null || r === undefined ? h6Receipt('null', nameOf(i), ms, null) : r;
+  });
+}
+
 const PROBLEM = `THE PROBLEM (user's lived pain, verbatim essence): Long, expensive agentic repair sessions on non-trivial apps (beyond CRUD) "barely move an inch." The AI claims "100% tested" and "done" while the app fundamentally does NOT work — features don't function, buttons do nothing or freeze, the core feature (make shorts) doesn't produce output, settings may be ignored, "held together with chewing gum, breakable at almost any click." It fixes a ZONE of the app in vitro (isolated), claims done, but the end-to-end flow A→B→C is completely broken and it dismisses that. It BLINDSPOTS depth + actual functionality: unless the user explicitly names each broken thing, it passes "done" — as if it ignores the app's SCOPE and that it isn't working, despite "100% coverage." It only uses a few of the many available skills, and only when explicitly asked; won't chain skills or "remove the horse blinders." The fix loop is wasteful: edit a few files → rerun the FULL test batch → repeat — repetitive, token-guzzling, ineffective. The user wants: analyze the bugs PROPERLY, then dispatch agents/workflows to fix, then CONFIRM — with independent thinking that understands what needs doing WITHOUT the user naming every defect.`
 
 const HARNESS = `THE USER'S EXISTING HARNESS (do NOT propose from zero — this is already very large; the fix is a FEW high-leverage external-signal gates, not 20 new hooks): agent-skills-toolchain has ~185 skills + 37 claude-only + ~35 hook-groups; global ~/.claude/hooks has ~60 groups incl: claim-guard, dark-surface (GREEN-not-LIVE stub detector), honest-signal, truth-verify, wire-check, stub-ledger, test-tamper-guard, fresh-verify, goal-reinject, harness-bench, harness-trim, iatrogenics, calibrated-silence (anti-nag gate), semantic-router + skill-router (skill auto-suggest), strong-tool-nudge, capability-catalog, verification-before-completion (superpowers skill), ui-audit skill (drives a running app + emits an accessibility/functional audit + a DESIGN-EVAL verdict), reframe/media skills. Plus metaswarm (design/plan/adversarial-review gates, TDD, coverage). 
@@ -35,9 +141,9 @@ const LENSES = [
   { key: 'user-side-diagnosis', prompt: `${PROBLEM}\n\n${EVIDENCE}\n\n${HONESTY}\n\nLENS: **Honest diagnosis: what is the USER doing wrong / not providing, vs what is a genuine harness/model limitation.** The user explicitly asked "what am I doing wrong or not providing so the AI can comprehensively audit + handle all errors." Split cleanly: (A) USER-CONTROLLABLE — e.g., no explicit "definition of working" / acceptance criteria; no golden end-to-end user-journey the agent must make pass; accepting "tests pass"/coverage as the done-signal; letting the agent choose its own test surface; not demanding a runnable functional demo/screenshot; not asking for a defect-map before fixes; not forbidding new pragma:no-cover/xfail. (B) HARNESS/MODEL LIMITATION the user CANNOT prompt around and that needs a gate/gem. For each USER item give the exact better instruction/artifact they should provide. Be blunt but fair. Fill schema.` },
   { key: 'red-team-solutions', prompt: `${PROBLEM}\n\n${HARNESS}\n\n${HONESTY}\n\nLENS: **Red-team the obvious fixes BEFORE we recommend them.** Candidate gems: a blocking "functional-acceptance gate" (no "done" on an app repo until an end-to-end user journey was driven + observed); a "coverage-theater detector" (flag NEW pragma:no-cover / xfail(strict) / -m 'not e2e' / coverage-excluded main paths); a "scope/user-journey enumeration" gate; a "run-the-app + screenshot + judge" verification loop generalizing ui-audit; a "triage-then-dispatch" workflow default; making skill-router ENFORCING not advisory. For EACH: how does it fail or become the nagging the user hates? Which are placebos (same-context) vs real (external-signal)? Which violate the ~6-hook anti-overfit ceiling? What is the MINIMUM set that actually moves the needle? What could BACKFIRE (false-blocks, blocking legit work, e2e flakiness making the gate untrustworthy)? Fill schema.` },
 ]
-const research = await parallel(LENSES.map(l => () =>
+const research = h6Survivors(await settle(LENSES.map(l => () =>
   agent(l.prompt, { label: `lens:${l.key}`, phase: 'Research-Audit', schema: LENS_SCHEMA, effort: 'high' })
-))
+), H6_TIMEOUT_MS))
 const dossier = research.filter(Boolean).map(r => `## ${r.lens}\nFINDINGS:\n${(r.key_findings||[]).map(f=>`- ${f.finding} — ${f.why_it_matters} [${f.source}]`).join('\n')}\nTAKEAWAYS: ${(r.actionable_takeaways||[]).join(' | ')}`).join('\n\n')
 
 phase('Synthesize')
