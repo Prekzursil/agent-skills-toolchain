@@ -161,6 +161,9 @@ HERMETIC: tuple[Probe, ...] = (
 #: registered entry requires ``textual`` (not installed on the launchpath CI step).
 #: ``crcp``: the committed shim ``runpy``s an estate-absolute path at import time, so
 #: even ``import`` starts the poll loop.
+#: ``p2r2e``: the committed shim ``runpy``s an estate-absolute path under
+#: ``command-center/p2-wave/`` (deliberately uncommitted probe-run scratch, absent from
+#: any checkout) into a ``--watch 5`` poll loop with no ``--once``.
 EXEMPT: Mapping[str, str] = {
     "wfmon": (
         "registered entry ignores argv and enters a Textual poll loop; no --once; "
@@ -170,6 +173,11 @@ EXEMPT: Mapping[str, str] = {
     "crcp": (
         "committed entry runpys an estate-absolute path at import time; "
         "this gate must not import or exec it"
+    ),
+    "p2r2e": (
+        "committed entry runpys an estate-absolute target under command-center/p2-wave/ "
+        "(uncommitted scratch, absent from any checkout) into a --watch poll loop; "
+        "nothing renderable from committed blobs"
     ),
 }
 
