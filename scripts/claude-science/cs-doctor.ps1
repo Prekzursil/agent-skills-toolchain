@@ -230,8 +230,9 @@ if ($hdrOk -eq $false) {
 # 9. slash-command route parity -- does /claude-science actually run THIS code?
 #
 # THE DEFECT THIS EXISTS FOR (measured 2026-08-12 by an independent auditor, reproduced by me):
-# round 1 renamed /cs to /claude-science, deployed both files, and confirmed "works" from the
-# session's COMMAND LISTING. A listing render is not an execution. Both files still contained
+# round 1 renamed the command to /claude-science (the /cs alias was retired 2026-08-17), deployed
+# the command files, and confirmed "works" from the session's COMMAND LISTING. A listing render
+# is not an execution. Both files still contained
 #   pwsh -NoProfile -File ~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1
 # and that checkout sat at a detached HEAD holding the PRE-FIX tool: cs-doctor.ps1 5,590 B vs
 # 13,852 B, cs.conf and cs-lib.sh absent entirely. Same box, same minute: the slash route printed
@@ -252,7 +253,7 @@ if (-not $selfHash) {
 } else {
   $routeProblems = @()
   $routeOk = @()
-  foreach ($cf in @('claude-science.md', 'cs.md')) {
+  foreach ($cf in @('claude-science.md')) {
     $cp = Join-Path $cmdDir $cf
     if (-not (Test-Path -LiteralPath $cp)) { $routeProblems += "/$($cf -replace '\.md$','') MISSING from $cmdDir"; continue }
     $body = Get-Content -Raw -LiteralPath $cp -ErrorAction SilentlyContinue
@@ -271,7 +272,7 @@ if (-not $selfHash) {
   if ($routeProblems.Count) {
     Add-Row 'Slash-command route' 'FAIL' ($routeProblems -join ' | ')
   } else {
-    Add-Row 'Slash-command route' 'PASS' "/claude-science and /cs both run this exact code ($(@($routeOk | Sort-Object -Unique) -join ', '))"
+    Add-Row 'Slash-command route' 'PASS' "/claude-science runs this exact code ($(@($routeOk | Sort-Object -Unique) -join ', '))"
   }
 }
 

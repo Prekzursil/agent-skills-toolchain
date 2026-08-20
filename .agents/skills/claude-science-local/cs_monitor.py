@@ -15,6 +15,10 @@ never starts, stops, recovers or reconfigures the daemon. `cs doctor` is itself 
 It renders NOT-CHECKED as its own column rather than folding it into PASS or WARN -- a monitor
 that shows a green board over rows nobody could measure is the same fail-open defect the doctor
 was rewritten to remove.
+
+`--once` has an 8 second total deadline by default. Use a longer `--deadline` when a complete
+doctor report matters more than caller latency. Probes run concurrently; any probe that misses
+the deadline is named as NOT-CHECKED and makes the snapshot exit non-zero.
 """
 
 from __future__ import annotations
@@ -25,6 +29,8 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -39,6 +45,11 @@ GLYPH = {
 
 def find_cs() -> Path | None:
     """Deployed copy first, repo checkout second. None if neither exists."""
+    # Hermetic render tests can select a dispatcher without touching the live service.
+    override = os.environ.get("CSMON_CS")
+    if override:
+        candidate = Path(override).expanduser()
+        return candidate if candidate.is_file() else None
     candidates = [
         Path.home() / ".local" / "bin" / "cs.ps1",
         Path.home()
@@ -68,22 +79,79 @@ def find_pwsh() -> str | None:
     return None
 
 
-def run_cs(cs: Path, pwsh: str, verb: str, timeout: int) -> tuple[dict | None, str]:
+def run_cs(cs: Path, pwsh: str, verb: str, timeout: float) -> tuple[dict | None, str]:
     """-> (parsed, error). Never raises; a dead probe is a reportable state, not a crash."""
     cmd = [pwsh, "-NoProfile", "-File", str(cs), verb, "-Json"]
-    try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        return None, "cs {} timed out after {}s (VM wedged?)".format(verb, timeout)
-    except OSError as exc:
-        return None, "cannot run cs {}: {}".format(verb, exc)
-    out = (proc.stdout or "").strip()
+    # Files cannot be held open as anonymous pipe handles by pwsh/wsl grandchildren. Driving
+    # Popen directly also avoids subprocess.run's unbounded communicate() after TimeoutExpired.
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as stdout_file:
+        try:
+            proc = subprocess.Popen(cmd, stdout=stdout_file, stderr=subprocess.STDOUT)
+            try:
+                proc.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                # Killing only pwsh leaves wsl.exe descendants alive. Kill the whole Windows
+                # process tree, then bound even the final wait: timeout handling must terminate.
+                if os.name == "nt":
+                    subprocess.Popen(
+                        ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    ).wait(timeout=2)
+                else:
+                    proc.kill()
+                try:
+                    proc.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    pass
+                return None, "cs {} timed out after {:.1f}s (VM wedged?)".format(
+                    verb, timeout
+                )
+        except (OSError, subprocess.SubprocessError) as exc:
+            return None, "cannot run cs {}: {}".format(verb, exc)
+        stdout_file.seek(0)
+        out = stdout_file.read().strip()
     if not out:
         return None, "cs {} produced no output (exit {})".format(verb, proc.returncode)
     try:
         return json.loads(out.splitlines()[-1]), ""
     except (ValueError, IndexError):
         return None, "cs {} output was not JSON: {}".format(verb, out[:160])
+
+
+def collect_probes(
+    cs: Path, pwsh: str, timeout: float, deadline: float
+) -> tuple[dict | None, dict | None, list[str]]:
+    """Run both probes concurrently and return no later than the total deadline."""
+    results: dict[str, tuple[dict | None, str]] = {}
+    lock = threading.Lock()
+
+    def probe(verb: str) -> None:
+        result = run_cs(cs, pwsh, verb, min(timeout, deadline))
+        with lock:
+            results[verb] = result
+
+    threads = {
+        verb: threading.Thread(target=probe, args=(verb,), daemon=True)
+        for verb in ("status", "doctor")
+    }
+    started = time.monotonic()
+    for thread in threads.values():
+        thread.start()
+    for thread in threads.values():
+        thread.join(max(0.0, deadline - (time.monotonic() - started)))
+
+    errors: list[str] = []
+    for verb in ("status", "doctor"):
+        if verb not in results:
+            errors.append("NOT-CHECKED / deadline exceeded: cs {}".format(verb))
+        elif results[verb][1]:
+            errors.append("NOT-CHECKED / {}".format(results[verb][1]))
+    return (
+        results.get("status", (None, ""))[0],
+        results.get("doctor", (None, ""))[0],
+        errors,
+    )
 
 
 def render(
@@ -154,7 +222,7 @@ def render(
             )
 
     for err in errors:
-        lines.append("  [X] {}".format(err))
+        lines.append("  [?] {}".format(err))
     lines.append("")
     return "\n".join(lines)
 
@@ -166,12 +234,21 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--once", action="store_true", help="render one snapshot and exit")
     ap.add_argument("--json", action="store_true", help="emit the raw combined JSON")
     ap.add_argument(
-        "--interval", type=int, default=60, help="seconds between refreshes"
+        "--interval", type=float, default=60, help="seconds between refreshes"
     )
     ap.add_argument(
-        "--timeout", type=int, default=120, help="per-probe timeout, seconds"
+        "--timeout", type=float, default=8, help="per-probe timeout, seconds"
+    )
+    ap.add_argument(
+        "--deadline",
+        type=float,
+        default=8,
+        help="total --once deadline in seconds; increase for a complete doctor report",
     )
     args = ap.parse_args(argv)
+
+    if args.timeout <= 0 or args.deadline <= 0 or args.interval <= 0:
+        ap.error("--timeout, --deadline and --interval must be positive")
 
     cs = find_cs()
     pwsh = find_pwsh()
@@ -182,13 +259,11 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     while True:
-        errors: list[str] = []
-        status, err = run_cs(cs, pwsh, "status", args.timeout)
-        if err:
-            errors.append(err)
-        doctor, err = run_cs(cs, pwsh, "doctor", args.timeout)
-        if err:
-            errors.append(err)
+        # A continuous refresh also has a total bound no larger than its interval.
+        total_deadline = args.deadline if args.once else min(args.deadline, args.interval)
+        status, doctor, errors = collect_probes(
+            cs, pwsh, min(args.timeout, total_deadline), total_deadline
+        )
 
         if args.json:
             print(
@@ -211,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
             failing = bool(doctor and doctor.get("fail"))
             return 1 if (unmeasured or failing) else 0
         try:
-            time.sleep(max(5, args.interval))
+            time.sleep(args.interval)
         except KeyboardInterrupt:
             return 0
 

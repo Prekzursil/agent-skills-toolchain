@@ -59,16 +59,13 @@ import cs_wiring_check as wiring  # noqa: E402
 COPY_PATHS = (
     "scripts/claude-science",
     "commands/claude-science.md",
-    "commands/cs.md",
     "agent-self/config/commands/claude-science.md",
-    "agent-self/config/commands/cs.md",
     ".agents/skills/claude-science-local",
     "skills/claude-science-local",
     ".agents/skills/monitor-launcher/monitors.toml",
     "skills/monitor-launcher/monitors.toml",
 )
 
-CS_MD = ("commands/cs.md", "agent-self/config/commands/cs.md")
 SCIENCE_MD = (
     "commands/claude-science.md",
     "agent-self/config/commands/claude-science.md",
@@ -115,7 +112,7 @@ def _edit(root: Path, rel: str, old: str, new: str, *, count: int = 1) -> None:
 
 
 def _break_route_stale(root: Path) -> None:
-    for rel in CS_MD:
+    for rel in SCIENCE_MD:
         _edit(root, rel, wiring.DISPATCHER, STALE)
 
 
@@ -125,8 +122,20 @@ def _break_route_absent(root: Path) -> None:
 
 
 def _break_twin(root: Path) -> None:
-    path = root / "agent-self/config/commands/cs.md"
+    path = root / "agent-self/config/commands/claude-science.md"
     path.write_bytes(path.read_bytes() + b"\n")
+
+
+def _break_no_alias_files(root: Path) -> None:
+    for rel in wiring.RETIRED_ALIAS_COMMANDS:
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("---\ndescription: retired alias\n---\n", encoding="utf-8", newline="")
+
+
+def _break_no_alias_usage(root: Path) -> None:
+    for rel in SCIENCE_MD:
+        _edit(root, rel, "```\n/claude-science", "```\n/cs <verb>\n/claude-science")
 
 
 def _break_description(root: Path) -> None:
@@ -222,6 +231,8 @@ MUTATIONS: tuple[tuple[str, str, bool, Callable[[Path], None]], ...] = (
     ("W9-config-bypass", "port-hardcoded-outside-the-seam", True, _break_config_bypass),
     ("W10-sh-eol", "shell-script-rewritten-as-crlf", True, _break_sh_eol),
     ("W10-sh-eol", "gitattributes-eol-pin-removed", True, _break_gitattributes),
+    ("W11-no-alias", "retired-alias-files-restored", True, _break_no_alias_files),
+    ("W11-no-alias", "retired-alias-usage-restored", True, _break_no_alias_usage),
 )
 
 

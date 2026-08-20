@@ -10,7 +10,7 @@
 # It also pins the specific defects that motivated each rewrite:
 #   * ROUND 1 -- on a probe TIMEOUT the DB row printed "sqlite3 or operon-cli.db not found", a
 #     factual claim about a file it never looked at. S2 asserts that string cannot reappear.
-#   * ROUND 2 / D1 -- /claude-science and /cs routed to a stale checkout, so every fix above was
+#   * ROUND 2 / D1 -- the slash routes (the /cs alias was retired 2026-08-17) used a stale checkout, so every fix above was
 #     unreachable through the command the owner types. S13-S16 drive the route row through missing,
 #     nonexistent, STALE and unreadable, and S1's control asserts it goes PASS when they agree.
 #   * ROUND 2 / D2 -- the CS_FORCE_* seam was unarmed and unmarked, so `CS_FORCE_WSL_DB=
@@ -53,7 +53,7 @@ $nowU = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 function AgoH([int]$h) { return ($nowU - ($h * 3600)).ToString() }
 
 # --- scratch slash-command dirs (for the route-parity row) ---------------------------------------
-# cs-doctor reads claude-science.md / cs.md out of CS_COMMANDS_DIR and asserts they route to code
+# cs-doctor reads claude-science.md out of CS_COMMANDS_DIR and asserts it routes to code
 # byte-identical to the doctor that is running. Pointing that at scratch dirs keeps the harness
 # hermetic AND lets the D1 defect itself be reproduced on demand: a command file that names a
 # stale dispatcher must turn the row red.
@@ -79,12 +79,8 @@ pwsh -NoProfile -File $dispatcher `$ARGUMENTS
 }
 $realDispatcher = Join-Path $PSScriptRoot 'cs.ps1'
 CmdFixture $cmdGood 'claude-science.md' $realDispatcher
-CmdFixture $cmdGood 'cs.md' $realDispatcher
-CmdFixture $cmdMissing 'claude-science.md' $realDispatcher          # cs.md deliberately absent
 CmdFixture $cmdGhost 'claude-science.md' (Join-Path $env:TEMP "cs-nope-$stamp/cs.ps1")
-CmdFixture $cmdGhost 'cs.md' (Join-Path $env:TEMP "cs-nope-$stamp/cs.ps1")
 CmdFixture $cmdStale 'claude-science.md' (Join-Path $staleTree 'cs.ps1')
-CmdFixture $cmdStale 'cs.md' (Join-Path $staleTree 'cs.ps1')
 
 # Applied to EVERY scenario, then overridden per scenario; `envRemove` drops a key entirely.
 # CS_FAULT_INJECTION=1 is what ARMS the CS_FORCE_* seam -- round 1 honoured those variables with no
@@ -135,7 +131,7 @@ $scenarios = @(
   # --- D1: the slash command must run THIS code -------------------------------------------------
   # Round 1 declared the rename "works" from a command LISTING while both files still routed to a
   # stale checkout. These four drive the row through every route state it can reach.
-  @{ name = 'S13 route: /cs missing from the commands dir'; env = (With @{ CS_COMMANDS_DIR = $cmdMissing }); expect = @{ 'Slash-command route' = 'FAIL' } }
+  @{ name = 'S13 route: /claude-science missing from the commands dir'; env = (With @{ CS_COMMANDS_DIR = $cmdMissing }); expect = @{ 'Slash-command route' = 'FAIL' } }
   @{ name = 'S14 route: dispatcher named does not exist'; env = (With @{ CS_COMMANDS_DIR = $cmdGhost }); expect = @{ 'Slash-command route' = 'FAIL' } }
   @{ name = 'S15 route: dispatcher exists but is STALE (the D1 shape)'; env = (With @{ CS_COMMANDS_DIR = $cmdStale }); expect = @{ 'Slash-command route' = 'FAIL' }
     requireDetail = @{ 'Slash-command route' = 'STALE code' } }

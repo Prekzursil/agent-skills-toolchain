@@ -197,7 +197,7 @@ cs - Claude Science (local) control
 401 on / = alive (auth gate). A slow/timeout response = WEDGED (WSL frozen, usually host-RAM).
 NOT-CHECKED is not PASS: a row whose input could not be reached says so and never renders green.
 Config: cs.conf next to this script (env vars of the same name override it).
-Slash command: /claude-science  (alias: /cs).
+Slash command: /claude-science.
 '@
   }
 }

@@ -17,12 +17,9 @@ pwsh -File ~/.local/bin/cs.ps1 <verb> # the same file, named explicitly
 pwsh -File .\cs.ps1 <verb>            # this checkout, for development only
 ```
 
-The slash command is **`/claude-science`**; **`/cs`** is kept as a thin forwarding alias because
-the dispatcher, the `cs.cmd` shim and every `cs <verb>` below still use the short name. (Claude
-Code has no `alias:` frontmatter field, and `name:` only sets the display label of a personal or
-project command — a forwarding file is the only mechanism.)
+The only slash command is **`/claude-science`**. The `cs` shell shim on `PATH` is unchanged.
 
-**Both slash commands invoke the INSTALLED dispatcher, never a checkout.** They used to name a
+**The slash command invokes the INSTALLED dispatcher, never a checkout.** It used to name a
 source tree that had drifted, so they silently ran a pre-fix build; `cs doctor`'s
 **Slash-command route** row now fails unless what they name is byte-identical to the running code
 (details under *Round 2* below). Repo → live deploys go through `install.ps1`; the reverse
@@ -110,7 +107,7 @@ repeatable table. Each row is PASS `[+]` / WARN `[!]` / FAIL `[X]` / NOT-CHECKED
 - **Backup restorable** — *opens* the newest snapshot: SQLite magic header (Windows-side, works
   even when the VM is wedged) plus `PRAGMA integrity_check` on a **temp copy** (WSL-side, the real
   proof). Copying first is what keeps the row read-only; see the round-2 notes below.
-- **Slash-command route** — do `/claude-science` and `/cs` actually run *this* code? Hashes the
+- **Slash-command route** — does `/claude-science` actually run *this* code? Hashes the
   `cs-doctor.ps1` beside the dispatcher each command file names and compares it with the doctor
   currently executing.
 - **Tab-death regfix** — Chrome/Edge discard-exception policy applied.
@@ -165,7 +162,7 @@ Round 1 shipped the fail-closed contract above and called the work done. An inde
 confirmed the contract itself but found three real defects. All three are fixed; each carries the
 probe that fires in the broken state, because a probe silent in both states measures nothing.
 
-**D1 — `/claude-science` and `/cs` executed pre-fix code.** Both command files (and both
+**D1 — the slash-command routes executed pre-fix code (the `/cs` route was renamed 2026-08-17).** The command files (and their
 `agent-self/config/commands` twins) named
 `~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1`. That checkout sat at a detached
 HEAD holding the *old* tool — `cs-doctor.ps1` 5,590 B against the deployed 13,852 B, no `cs.conf`,
@@ -282,7 +279,7 @@ python -m pytest ci/tests/test_cs_wiring.py -q       # the both-states proof, 14
 
 | code | the wire it guards | the round that cut it |
 |---|---|---|
-| `W1-route` | both slash commands invoke `~/.local/bin/cs.ps1`, never a checkout | round 2 / D1 |
+| `W1-route` | the slash command invokes `~/.local/bin/cs.ps1`, never a checkout | round 2 / D1 |
 | `W2-twin` | `commands/` ↔ `agent-self/config/commands/`, and the two skill roots | — |
 | `W3-description` | both commands keep a frontmatter description (the pick surface) | — |
 | `W4-docs-deploy` | every installed-bin path the docs name is in `install.ps1`'s list | round 4 |
