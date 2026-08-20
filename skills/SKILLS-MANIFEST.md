@@ -267,6 +267,7 @@
 | simplest-probe-first | unclassified | Use BEFORE committing to any expensive or multi-step approach (vision/OCR pipeline, multi-agent fan-out, live RE, big rewrite, long orchestration). Run the cheapest deterministic diagnostic FIRST to check whether a simpler path works.... |
 | skill-scout | unclassified | Search existing local, marketplace, GitHub, and web skill sources before creating a new skill. Use when the user wants to create, build, fork, or find a skill for a workflow. |
 | skill-stocktake | unclassified | Use when auditing Claude skills and commands for quality. Supports Quick Scan (changed skills only) and Full Stocktake modes with sequential subagent batch evaluation. |
+| skill-tree-reconcile | unclassified | Use when asked to sync skills, reconcile skill trees, deploy skills to live, choose which tree wins, compare live vs vault vs repo, run sync-from-live, or repair drift - classifies differences and applies a human-reviewed direction. |
 | slides | built-in | Create and edit presentation slide decks (.pptx) with PptxGenJS |
 | slop-check | vendored | Detect AI-generated text/images, clean artifacts, and score readability via Slop or Not Pro (macOS-only — degraded on Windows). Vendored from numen-tech/slopornot |
 | smallest-check-ladder | unclassified | Use when you need to run "the smallest test that could still catch this change" instead of blindly running the whole suite (or nothing). Provides an invocable L0 to L3 ladder - L0 lint the edited file, L1 impacted tests via... |
