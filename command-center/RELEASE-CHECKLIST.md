@@ -12,7 +12,13 @@ without evidence. They have separate checklists.
       protecting the behaviour.
 - [ ] `python -m pytest agent-self/harness/tests/test_register_gate.py -q` green.
 - [ ] `ruff check .` and `ruff format --check .` at the CI pin (`ruff==0.15.17`), checked
-      against the **LF blob** (`git archive`), not the CRLF working tree.
+      against the **LF blob** read through the one helper --
+      `python tools/measure-guard/blobread.py <path>`, i.e. `git cat-file -p <rev>:<path>` --
+      not the CRLF working tree. **Not `git archive`:** on this box it applies export-time
+      EOL conversion and hands back the CRLF checkout form, the OPPOSITE of the blob
+      (measured 2026-08-15 on `command-center/receipt_validate.py`: archive 8,412 B / 205
+      CRLF against cat-file and show both 8,207 B / 0 CRLF, all three identical after LF
+      normalisation). Receipt: `command-center/receipts/IMP-0440.json`.
 - [ ] Every state change went through `close.py`, so `events/EVENTS.jsonl` has a line for it.
 - [ ] No item was deleted. Items leave the open set by acquiring a disposition, never by
       disappearing — REACH-6 fails on a drop, and that failure is the feature.

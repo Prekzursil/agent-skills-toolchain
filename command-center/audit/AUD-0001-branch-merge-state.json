@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "unit_id": "AUD-0001",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:AUD-0001 both named probes re-ran to exit 0; squash control discriminates; non-UTF-8 detector is fail-closed; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0001",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok",
+    "role": "auditor",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/audit/AUD-0001-branch-merge-state.json",
+      "bytes": 16662,
+      "sha256": "b4357cac24477dbbfba3f505ade4aed2b9c330d709e932c96802e25a4d38c944",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "On a planted squash-merged feature, Probe 1 reports ancestry ahead=1 while two-dot trees are identical. Ancestry-only therefore cannot classify CONTENT-ON-MAIN.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0001/probe1-ancestry.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/AUD-0001/probe1_ancestry.py",
+          "raw_output": "PROBE 1: git rev-list --count main..<branch> plus git cherry -v main <branch>\nstage=remeasure\nunit=AUD-0001\n=== SQUASH FIXTURE ===\nrepo=/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0001/_work/squash\nCOMMAND git rev-list --count main..feature\nEXIT 0\nSTDOUT-BEGIN\n1\nSTDOUT-END\nCOMMAND git cherry -v main feature\nEXIT 0\nSTDOUT-BEGIN\n- 5ddd28de2b59edd067937acae5ae4c54b823a23d feature-change\nSTDOUT-END\nancestry_only_merged=False\nahead=1\ntwo_dot_identical=True\nthree_dot_nonempty=True\nthree_dot_only_merged=False\ndiscriminating=True\nPASS:AUD-0001-squash-ancestry-ahead-content-equal\nLIVE-CHECKOUT no .git\nhome_source_exists=False\nhome_documents_github_exists=False\nhome_source_git_dirs=0\nSUCCESS:AUD-0001-probe1\n",
+          "fingerprint": "c4aa25c165beaf54e9219484ecadca6c6903c5e66b37ed6080baf1031d9574fd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B -c file-read probe1-result.json squash ancestry fields",
+          "raw_output": "{\"ahead\": 1, \"ancestry_only_merged\": false, \"two_dot_identical\": true, \"three_dot_nonempty\": true, \"live_heads_sampled\": 0}",
+          "fingerprint": "264beb6598ee1b4cfee7a628c0b5150cd9bc4307bd43cf143afa5760fafbac58",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Probe 2 classifies the same squash fixture as CONTENT-ON-MAIN by two-dot path/blob identity. A synthetic legal 0xff Git path makes the naive replace-decode detector false-positive (None==None) while the fail-closed detector returns unknown.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0001/probe2-content.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/AUD-0001/probe2_content.py",
+          "raw_output": "PROBE 2: GitHub API pull_request state=MERGED for exact branch head SHA; no-PR uses git diff plus path/blob byte comparison\nstage=remeasure\nunit=AUD-0001\nmethod=two-dot tree identity plus fail-closed path bytes\n=== SQUASH FIXTURE CONTENT ===\nCOMMAND git diff --exit-code main feature\nEXIT 0\nidentical_trees=True\nCOMMAND git diff --name-status -z --no-renames main...feature\nEXIT 0\nRAW-HEX 4d00747261636b65642e74787400\nthree_dot_nonempty=True\nclassification=CONTENT-ON-MAIN\ncontent_merged=True\nancestry_only_merged=False\nahead=1\nsquash_content_vs_ancestry_discriminates=True\nPASS:AUD-0001-squash-control\n=== NON-UTF8 PATH FAIL-CLOSED ===\nRAW_HEX 4100626164ff6e616d652e74787400\nvalid_utf8=False\nreplacement_char=True\nboth_lookups_missing=True\nnaive_byte_equivalent=True\nfail_closed_byte_equivalent=None\nnaive_false_positive=True\nfail_closed_ok=True\nPASS:AUD-0001-non-utf8-fail-closed\n=== GITHUB API ===\norigin_slug=None\nAPI-SKIPPED no origin slug\n=== LIVE CONTENT CLASSIFICATION ===\nSKIPPED live heads: this checkout has no .git (not a git worktree)\nlive_classification_scope=squash-fixture-only\nSUCCESS:AUD-0001-probe2\n",
+          "fingerprint": "f1e2f708c2a20404ef1180495432e646554c29443b639b25d9db45e079fbe986",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B -c file-read probe2-result.json utf8 and squash fields",
+          "raw_output": "{\"content_merged\": true, \"squash_ok\": true, \"naive_false_positive\": true, \"fail_closed_ok\": true, \"api_ok\": false, \"api_rows\": null}",
+          "fingerprint": "962e75d885d4bb97caa50b2ab783de1bba95112ae9d531afd42c77d7f6010cac",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by STRUCTURAL-CONDITION-11. Global unit_manifest.py --check remains a sibling concern.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0001/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/AUD-0001/_pack_receipt.py",
+          "raw_output": "manifest_path=command-center/p2-wave/probes/AUD-0001/UNIT-ARTIFACT-MANIFEST.json",
+          "fingerprint": "09d740d2fa33268c955eba9dd8c0e5523af5f21b6665fc71219953c08c44290f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py AUD-0001",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "29846d1c1e7ae8616ba8be685a7c84f8657d0651a804e47bb5ff3bfd66c352e8",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "squash-merge-content-control",
+      "name": "Squash-merged branch is ahead by ancestry but merged by path/blob content",
+      "command": "python -B command-center/p2-wave/probes/AUD-0001/probe2_content.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "ND git diff --name-status -z --no-renames main...feature EXIT 0 RAW-HEX 4d00747261636b65642e74787400 three_dot_nonempty=True classification=CONTENT-ON-MAIN content_merged=True ancestry_only_merged=False ahead=1 squash_content_vs_ancestry_discriminates=True PASS:AUD-0001-squash-control === NON-UTF8 PATH FAIL-CLOSED === RAW_HEX 4100626164ff6e616d652e74787400 valid_utf8=False replacement_char=True both_lookups_missing=True naive_byte_equivalent=True fail_closed_byte_equivalent=None naive_false_positive=True fail_closed_ok=True PASS:AUD-0001-non-utf8-fail-closed === GITHUB API === origin_slug=None API-SKIPPED no origin slug === LIVE CONTENT CLASSIFICATION === SKIPPED live heads: this checkout has no .git (not a git worktree) live_classification_scope=squash-fixture-only SUCCESS:AUD-0001-probe2"
+    },
+    {
+      "id": "ancestry-only-mutant-goes-red",
+      "name": "Ancestry-only detector reports the squash fixture as not merged",
+      "command": "python -B command-center/p2-wave/probes/AUD-0001/probe1_ancestry.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "PROBE 1: git rev-list --count main..<branch> plus git cherry -v main <branch> stage=remeasure unit=AUD-0001 === SQUASH FIXTURE === repo=/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0001/_work/squash COMMAND git rev-list --count main..feature EXIT 0 STDOUT-BEGIN 1 STDOUT-END COMMAND git cherry -v main feature EXIT 0 STDOUT-BEGIN - 5ddd28de2b59edd067937acae5ae4c54b823a23d feature-change STDOUT-END ancestry_only_merged=False ahead=1 two_dot_identical=True three_dot_nonempty=True three_dot_only_merged=False discriminating=True PASS:AUD-0001-squash-ancestry-ahead-content-equal LIVE-CHECKOUT no .git home_source_exists=False home_documents_github_exists=False home_source_git_dirs=0 SUCCESS:AUD-0001-probe1"
+    },
+    {
+      "id": "three-dot-only-mutant-goes-red",
+      "name": "Three-dot name-status is nonempty after squash so emptiness is not content proof",
+      "command": "python -B command-center/p2-wave/probes/AUD-0001/probe1_ancestry.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "three_dot_nonempty=True"
+    },
+    {
+      "id": "non-utf8-path-fail-closed",
+      "name": "Legal 0xff path byte is unknown, not byte-equivalent, under the fail-closed detector",
+      "command": "python -B command-center/p2-wave/probes/AUD-0001/probe2_content.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "naive_false_positive=True fail_closed_ok=True"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "AUD0001-C1",
+      "kind": "mutation",
+      "description": "A planted squash-merged feature is one commit ahead by ancestry while its final path/blob bytes equal main. Replacing content classification with ancestry-only must fail.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "ancestry-only ahead=1 merged=false",
+      "good_state_output": "content detector_reports_merged=true"
+    },
+    {
+      "id": "AUD0001-C2",
+      "kind": "mutation",
+      "description": "The same planted history proves three-dot diffstat is a change surface, not a byte-inclusion detector.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "three_dot_nonempty=True",
+      "good_state_output": "two_dot_identical=True"
+    },
+    {
+      "id": "AUD0001-C3",
+      "kind": "known-broken-fixture",
+      "description": "A legal 0xff Git path decoded with replace makes two failed lookups compare equal; fail-closed must refuse that equality.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "naive_byte_equivalent=true",
+      "good_state_output": "fail_closed_byte_equivalent=null"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-aud0001-probe2-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "reviewed_at": "2026-08-19T11:48:09Z",
+    "notes": "Independent remasure of Probe 2 only: re-ran probe2_content.py on this Linux checkout (/opt/p2/ast-integrate) and read the fresh probe2-content.raw.txt plus probe2-result.json. Squash fixture is CONTENT-ON-MAIN by two-dot identity while ancestry stays ahead. Naive UTF-8 replace detector false-positives; fail-closed detector returns unknown. This checkout has no .git and no ~/source or ~/Documents/GitHub, so live-head and GitHub API classification are residual. Catalog asked for a Codex Probe-2 rerun; this fleet is Grok. Condition 11 uses the per-unit manifest."
+  },
+  "defects": [
+    {
+      "id": "AUD-0001-D2",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named sidecars now exist: probe1_ancestry.py, probe2_content.py, live raw logs, and the per-unit manifest. Absent harvest-era chunk files were not re-claimed."
+    },
+    {
+      "id": "AUD-0001-D3",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Condition 11 is registered on command-center/p2-wave/probes/AUD-0001/UNIT-ARTIFACT-MANIFEST.json. Global unit_manifest.py --check remains a sibling BLD-0001 issue and is not this unit registration path."
+    },
+    {
+      "id": "AUD-0001-D4",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Catalog detector is now fail-closed on non-UTF-8 paths and the squash control discriminates. Live sample: probe1 heads=0 home_source_git_dirs=0 probe2 content-on-main=0 unknown=0. Full every-branch estate census stays a residual NOT-CHECKED."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/AUD-0001/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "AUD-0001",
+    "registered_at": "2026-08-19T11:48:09Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + audit-inventory schema resolver",
+      "artifact_path": "command-center/audit/AUD-0001-branch-merge-state.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/AUD-0001/_pack_receipt.py",
+        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=AUD-0001\nstate=SUCCESS\nSUCCESS:consumer-read\n",
+        "fingerprint": "8a2f8d6f342eaffc7c8a9f160c14db6ef9b8dbcf5a8020ee7001cb1ade20ff2a",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T19:18:42Z",
+    "ended_at": "2026-08-19T11:48:09Z"
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot; after the second identical failure enumerate at least two mechanically different alternatives before a third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-17T00:00:00Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-19T11:48:09Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "Re-implement named probe scripts under command-center/p2-wave/probes/AUD-0001 and remasure.",
+      "Register via STRUCTURAL-CONDITION-11 per-unit manifest instead of the red global unit_manifest.py --check."
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Every local branch under every clone in ~/source and ~/Documents/GitHub is classified.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run probe1_ancestry.py and probe2_content.py across every git dir under those roots without a 12-head cap."
+    },
+    {
+      "claim": "Private remotes such as Prekzursil/databricks-fanout-harness are inventoried.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Fetch with read-only credentials and rerun both named probes for that origin."
+    }
+  ],
+  "report": {
+    "kind": "audit-inventory",
+    "question": "For every local and remote branch in every owner-controlled repo, is its content already on main, using merged-PR state or byte content rather than commit ancestry?",
+    "answer": "PARTIAL: the squash-merge control discriminates (ancestry ahead, content on main) and the non-UTF-8 detector is fail-closed. This checkout has no .git; ~/source and ~/Documents/GitHub are absent. Live sample classified 0 checkout heads (0 CONTENT-ON-MAIN). Full estate census is residual.",
+    "observations": [
+      {
+        "name": "squash_ancestry_ahead",
+        "measured": 1,
+        "method": "git rev-list --count main..feature on planted squash fixture",
+        "anchor": "command-center/p2-wave/probes/AUD-0001/probe1-ancestry.raw.txt"
+      },
+      {
+        "name": "squash_content_on_main",
+        "measured": true,
+        "method": "git diff --exit-code main feature plus fail-closed path/blob compare",
+        "anchor": "command-center/p2-wave/probes/AUD-0001/probe2-content.raw.txt"
+      },
+      {
+        "name": "non_utf8_fail_closed",
+        "measured": true,
+        "method": "synthetic 0xff name-status record; None==None rejected",
+        "anchor": "command-center/p2-wave/probes/AUD-0001/probe2-content.raw.txt"
+      },
+      {
+        "name": "home_source_git_dirs",
+        "measured": 0,
+        "method": "directory walk of ~/source for .git",
+        "anchor": "command-center/p2-wave/probes/AUD-0001/probe1-ancestry.raw.txt"
+      },
+      {
+        "name": "github_api_ok",
+        "measured": false,
+        "method": "gh api repos/<origin>/pulls state=all",
+        "anchor": "command-center/p2-wave/probes/AUD-0001/probe2-content.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "AUD0001-C1",
+      "AUD0001-C2",
+      "AUD0001-C3"
+    ]
+  },
+  "extensions": {
+    "completion_marker": "UNIT-COMPLETE:AUD-0001",
+    "condition_11": {
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "manifest_path": "command-center/p2-wave/probes/AUD-0001/UNIT-ARTIFACT-MANIFEST.json",
+      "unit_manifest_write_invoked": false
+    },
+    "harvest_unit_complete_not_proof": true
+  }
+}

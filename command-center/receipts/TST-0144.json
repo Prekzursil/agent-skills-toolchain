@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0144",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0144 live named probes re-ran exit 0; truncated JSON fails json.loads at byte 224 and no parsed object is retained; per-unit UNIT-ARTIFACT-MANIFEST.json registers the receipt",
+  "profile": "predicate-report",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0144",
+  "min_bytes_threshold": 512,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0144.json",
+      "bytes": 29467,
+      "sha256": "113649620bb156ebf4a24f23ec47f3880c2f5094d34bd00f63d8f5d01c43aa7e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "On a fresh run of stdlib json.loads plus ready_units.artifact_delivered, the 224-byte truncated fixture makes the parse step of condition 4 UNSATISFIED at byte offset 224, retains no object, and leaves its artifact id absent from the parse-gated cache; the complete control parses and caches.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0144/probe-a-parse-error.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/TST-0144/probe_parse_error.py",
+          "raw_output": "NAMED PROBE A: parse error with byte offset\nparser=stdlib json.loads\ncanonical_completion_predicate_present=false\ncanonical_completion_predicate_path=platform/lib/completion_predicate.py\ncondition_4_text=artifact parses against its schema\nartifact_id=TST-0144-ARTIFACT\nartifact_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0144/fixtures/truncated.json\nartifact_bytes=224\nartifact_non_empty=true\ncondition_4_outcome=UNSATISFIED\nparse_error_type=JSONDecodeError\nparse_error_message=Expecting value: line 8 column 79 (char 224)\ncharacter_offset=224\nbyte_offset=224\noffset_equals_artifact_bytes=true\ncache_entry_present=false\nretained_object_present=false\nparsed_cache_keys=[]\nready_units_delivered=false\nready_units_why=unparseable:JSONDecodeError\nCHECK|condition_4_unsatisfied|PASS\nCHECK|parse_is_jsondecodeerror|PASS\nCHECK|error_position_is_eof|PASS\nCHECK|byte_offset_is_eof|PASS\nCHECK|cache_not_written|PASS\nCHECK|no_retained_object|PASS\nCHECK|ready_units_unparseable|PASS\nPROBE-A-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-a\n",
+          "fingerprint": "a517173407c09a92d6413db81dafe09a16939f26fa3cd1624519cf7342711352",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/TST-0144/probe_cache_inspection.py",
+          "raw_output": "NAMED PROBE B: downstream consumer cache inspection\nconsumer=parse-gated wrapper over platform/plugin/cache.py + json.loads\ncache_isolation=fresh consumer instance per state\nartifact_id=TST-0144-ARTIFACT\ncanonical_completion_predicate_present=false\nimp_0229_receipt_present=false\nproduction_byte_cache=platform/plugin/cache.py\nproduction_byte_cache_json_loads=false\nproduction_receipt_consumer=command-center/ready_units.py:artifact_delivered\nb06_b07_are_allocation_buckets=true\ntruncated_condition_4_outcome=UNSATISFIED\ntruncated_cache_keys=[]\ntruncated_cache_entry_present=false\ntruncated_retained_object_present=false\ntruncated_byte_cache_key=None\ntruncated_parse_error=Expecting value: line 8 column 79 (char 224)\ncomplete_condition_4_outcome=SATISFIED\ncomplete_predicate_verdict=COMPLETE\ncomplete_cache_keys=[\"TST-0144-ARTIFACT\"]\ncomplete_cache_entry_present=true\ncomplete_retained_object_present=true\ncomplete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b\ncomplete_object_type=dict\ncomplete_cached_object_is_full_document=true\ncomplete_byte_cache_hit=true\ncomplete_byte_cache_equals_source=true\ntruncated_ready_units_delivered=false\ntruncated_ready_units_why=unparseable:JSONDecodeError\ncomplete_ready_units_delivered=true\ncomplete_ready_units_why=delivered\nCHECK|truncated_condition_4_unsatisfied|PASS\nCHECK|truncated_artifact_id_absent_from_cache|PASS\nCHECK|truncated_no_retained_object|PASS\nCHECK|complete_condition_4_satisfied|PASS\nCHECK|complete_predicate_complete|PASS\nCHECK|complete_artifact_id_present_in_cache|PASS\nCHECK|complete_cached_object_is_full_document|PASS\nCHECK|truncated_ready_units_unparseable|PASS\nCHECK|complete_ready_units_parses|PASS\nPROBE-B-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-b\n",
+          "fingerprint": "aa355e3c573771802b2175c820bb6107d7ba4019c4c16f33a12acef2881b53e4",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "A parse-gated consumer over platform/plugin/cache.py plus ready_units.artifact_delivered holds no parsed entry for the truncated artifact id and holds a full document for the complete control. platform/lib/completion_predicate.py is absent on this sparse seed; B06/B07 remain allocation buckets; IMP-0229 receipt is absent.",
+      "verdict": "CONFIRMED",
+      "confidence": "high",
+      "anchor": "command-center/p2-wave/probes/TST-0144/probe-b-cache-inspection.raw.txt",
+      "probes": [
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/TST-0144/probe_cache_inspection.py",
+          "raw_output": "NAMED PROBE B: downstream consumer cache inspection\nconsumer=parse-gated wrapper over platform/plugin/cache.py + json.loads\ncache_isolation=fresh consumer instance per state\nartifact_id=TST-0144-ARTIFACT\ncanonical_completion_predicate_present=false\nimp_0229_receipt_present=false\nproduction_byte_cache=platform/plugin/cache.py\nproduction_byte_cache_json_loads=false\nproduction_receipt_consumer=command-center/ready_units.py:artifact_delivered\nb06_b07_are_allocation_buckets=true\ntruncated_condition_4_outcome=UNSATISFIED\ntruncated_cache_keys=[]\ntruncated_cache_entry_present=false\ntruncated_retained_object_present=false\ntruncated_byte_cache_key=None\ntruncated_parse_error=Expecting value: line 8 column 79 (char 224)\ncomplete_condition_4_outcome=SATISFIED\ncomplete_predicate_verdict=COMPLETE\ncomplete_cache_keys=[\"TST-0144-ARTIFACT\"]\ncomplete_cache_entry_present=true\ncomplete_retained_object_present=true\ncomplete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b\ncomplete_object_type=dict\ncomplete_cached_object_is_full_document=true\ncomplete_byte_cache_hit=true\ncomplete_byte_cache_equals_source=true\ntruncated_ready_units_delivered=false\ntruncated_ready_units_why=unparseable:JSONDecodeError\ncomplete_ready_units_delivered=true\ncomplete_ready_units_why=delivered\nCHECK|truncated_condition_4_unsatisfied|PASS\nCHECK|truncated_artifact_id_absent_from_cache|PASS\nCHECK|truncated_no_retained_object|PASS\nCHECK|complete_condition_4_satisfied|PASS\nCHECK|complete_predicate_complete|PASS\nCHECK|complete_artifact_id_present_in_cache|PASS\nCHECK|complete_cached_object_is_full_document|PASS\nCHECK|truncated_ready_units_unparseable|PASS\nCHECK|complete_ready_units_parses|PASS\nPROBE-B-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-b\n",
+          "fingerprint": "aa355e3c573771802b2175c820bb6107d7ba4019c4c16f33a12acef2881b53e4",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit manifest allowed by STRUCTURAL-CONDITION-11.md. Global unit_manifest.py --write was not used.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0144/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/TST-0144/_pack_apply.py",
+          "raw_output": "per-unit UNIT-ARTIFACT-MANIFEST.json names catalog output_path with live LF sha256",
+          "fingerprint": "6ea44543d48b352ca26667bb6922a7c07546d439197239e22ccbdeee22454caf",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "TST-0144-T1",
+      "name": "both-states control: the complete artifact parses and caches",
+      "command": "python -B command-center/p2-wave/probes/TST-0144/probe_cache_inspection.py",
+      "result": "PASS",
+      "assertions": 9,
+      "output_tail": "imp_0229_receipt_present=false production_byte_cache=platform/plugin/cache.py production_byte_cache_json_loads=false production_receipt_consumer=command-center/ready_units.py:artifact_delivered b06_b07_are_allocation_buckets=true truncated_condition_4_outcome=UNSATISFIED truncated_cache_keys=[] truncated_cache_entry_present=false truncated_retained_object_present=false truncated_byte_cache_key=None truncated_parse_error=Expecting value: line 8 column 79 (char 224) complete_condition_4_outcome=SATISFIED complete_predicate_verdict=COMPLETE complete_cache_keys=[\"TST-0144-ARTIFACT\"] complete_cache_entry_present=true complete_retained_object_present=true complete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b complete_object_type=dict complete_cached_object_is_full_document=true complete_byte_cache_hit=true complete_byte_cache_equals_source=true truncated_ready_units_delivered=false truncated_ready_units_why=unparseable:JSONDecodeError complete_ready_units_delivered=true complete_ready_units_why=delivered CHECK|truncated_condition_4_unsatisfied|PASS CHECK|truncated_artifact_id_absent_from_cache|PASS CHECK|truncated_no_retained_object|PASS CHECK|complete_condition_4_satisfied|PASS CHECK|complete_predicate_complete|PASS CHECK|complete_artifact_id_present_in_cache|PASS CHECK|complete_cached_object_is_full_document|PASS CHECK|truncated_ready_units_unparseable|PASS CHECK|complete_ready_units_parses|PASS PROBE-B-COMPLETE:TST-0144 SUCCESS:TST-0144-probe-b"
+    },
+    {
+      "id": "TST-0144-T2",
+      "name": "negative control: a lenient parser that repairs truncated JSON must fail this test",
+      "command": "python -B command-center/p2-wave/probes/TST-0144/control_lenient.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "TST-0144 NEGATIVE CONTROL: lenient parser that repairs truncated JSON parser_mode=lenient mutation=synthesize missing value and closing braces after JSONDecodeError truncated_condition_4=SATISFIED truncated_cache_entry_present=true truncated_retained_object_present=true truncated_object_type=dict complete_condition_4=SATISFIED complete_cache_entry_present=true strict_truncated_condition_4=UNSATISFIED strict_truncated_cache_entry_present=false CHECK|lenient_repairs_truncated|PASS CHECK|lenient_caches_truncated|PASS CHECK|lenient_retains_object|PASS CHECK|contract_goes_red_under_lenient|PASS CHECK|lenient_still_accepts_complete|PASS CHECK|strict_still_rejects_truncated|PASS CONTROL-FIRED:TST-0144 SUCCESS:TST-0144-control-lenient"
+    },
+    {
+      "id": "TST-0144-T3",
+      "name": "canonical parse step isolates truncated JSON as the failing condition",
+      "command": "python -B command-center/p2-wave/probes/TST-0144/probe_parse_error.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "NAMED PROBE A: parse error with byte offset parser=stdlib json.loads canonical_completion_predicate_present=false canonical_completion_predicate_path=platform/lib/completion_predicate.py condition_4_text=artifact parses against its schema artifact_id=TST-0144-ARTIFACT artifact_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0144/fixtures/truncated.json artifact_bytes=224 artifact_non_empty=true condition_4_outcome=UNSATISFIED parse_error_type=JSONDecodeError parse_error_message=Expecting value: line 8 column 79 (char 224) character_offset=224 byte_offset=224 offset_equals_artifact_bytes=true cache_entry_present=false retained_object_present=false parsed_cache_keys=[] ready_units_delivered=false ready_units_why=unparseable:JSONDecodeError CHECK|condition_4_unsatisfied|PASS CHECK|parse_is_jsondecodeerror|PASS CHECK|error_position_is_eof|PASS CHECK|byte_offset_is_eof|PASS CHECK|cache_not_written|PASS CHECK|no_retained_object|PASS CHECK|ready_units_unparseable|PASS PROBE-A-COMPLETE:TST-0144 SUCCESS:TST-0144-probe-a"
+    },
+    {
+      "id": "TST-0144-T4",
+      "name": "run the cache assertion against production plugin Cache and ready_units.artifact_delivered",
+      "command": "python -B command-center/p2-wave/probes/TST-0144/probe_cache_inspection.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "imp_0229_receipt_present=false production_byte_cache=platform/plugin/cache.py production_byte_cache_json_loads=false production_receipt_consumer=command-center/ready_units.py:artifact_delivered b06_b07_are_allocation_buckets=true truncated_condition_4_outcome=UNSATISFIED truncated_cache_keys=[] truncated_cache_entry_present=false truncated_retained_object_present=false truncated_byte_cache_key=None truncated_parse_error=Expecting value: line 8 column 79 (char 224) complete_condition_4_outcome=SATISFIED complete_predicate_verdict=COMPLETE complete_cache_keys=[\"TST-0144-ARTIFACT\"] complete_cache_entry_present=true complete_retained_object_present=true complete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b complete_object_type=dict complete_cached_object_is_full_document=true complete_byte_cache_hit=true complete_byte_cache_equals_source=true truncated_ready_units_delivered=false truncated_ready_units_why=unparseable:JSONDecodeError complete_ready_units_delivered=true complete_ready_units_why=delivered CHECK|truncated_condition_4_unsatisfied|PASS CHECK|truncated_artifact_id_absent_from_cache|PASS CHECK|truncated_no_retained_object|PASS CHECK|complete_condition_4_satisfied|PASS CHECK|complete_predicate_complete|PASS CHECK|complete_artifact_id_present_in_cache|PASS CHECK|complete_cached_object_is_full_document|PASS CHECK|truncated_ready_units_unparseable|PASS CHECK|complete_ready_units_parses|PASS PROBE-B-COMPLETE:TST-0144 SUCCESS:TST-0144-probe-b"
+    },
+    {
+      "id": "TST-0144-T5",
+      "name": "condition 11 via per-unit UNIT-ARTIFACT-MANIFEST.json",
+      "command": "python -B command-center/p2-wave/probes/TST-0144/_pack_apply.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "route=STRUCTURAL-CONDITION-11 per-unit manifest; global unit_manifest.py --write not invoked"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-LENIENT-REPAIR",
+      "kind": "mutation",
+      "description": "Replace strict json.loads with a parser that synthesizes the missing value and closing brace; the unchanged condition/cache assertion must go red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "TST-0144 NEGATIVE CONTROL: lenient parser that repairs truncated JSON\nparser_mode=lenient\nmutation=synthesize missing value and closing braces after JSONDecodeError\ntruncated_condition_4=SATISFIED\ntruncated_cache_entry_present=true\ntruncated_retained_object_present=true\ntruncated_object_type=dict\ncomplete_condition_4=SATISFIED\ncomplete_cache_entry_present=true\nstrict_truncated_condition_4=UNSATISFIED\nstrict_truncated_cache_entry_present=false\nCHECK|lenient_repairs_truncated|PASS\nCHECK|lenient_caches_truncated|PASS\nCHECK|lenient_retains_object|PASS\nCHECK|contract_goes_red_under_lenient|PASS\nCHECK|lenient_still_accepts_complete|PASS\nCHECK|strict_still_rejects_truncated|PASS\nCONTROL-FIRED:TST-0144\nSUCCESS:TST-0144-control-lenient\n",
+      "good_state_output": "NAMED PROBE B: downstream consumer cache inspection\nconsumer=parse-gated wrapper over platform/plugin/cache.py + json.loads\ncache_isolation=fresh consumer instance per state\nartifact_id=TST-0144-ARTIFACT\ncanonical_completion_predicate_present=false\nimp_0229_receipt_present=false\nproduction_byte_cache=platform/plugin/cache.py\nproduction_byte_cache_json_loads=false\nproduction_receipt_consumer=command-center/ready_units.py:artifact_delivered\nb06_b07_are_allocation_buckets=true\ntruncated_condition_4_outcome=UNSATISFIED\ntruncated_cache_keys=[]\ntruncated_cache_entry_present=false\ntruncated_retained_object_present=false\ntruncated_byte_cache_key=None\ntruncated_parse_error=Expecting value: line 8 column 79 (char 224)\ncomplete_condition_4_outcome=SATISFIED\ncomplete_predicate_verdict=COMPLETE\ncomplete_cache_keys=[\"TST-0144-ARTIFACT\"]\ncomplete_cache_entry_present=true\ncomplete_retained_object_present=true\ncomplete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b\ncomplete_object_type=dict\ncomplete_cached_object_is_full_document=true\ncomplete_byte_cache_hit=true\ncomplete_byte_cache_equals_source=true\ntruncated_ready_units_delivered=false\ntruncated_ready_units_why=unparseable:JSONDecodeError\ncomplete_ready_units_delivered=true\ncomplete_ready_units_why=delivered\nCHECK|truncated_condition_4_unsatisfied|PASS\nCHECK|truncated_artifact_id_absent_from_cache|PASS\nCHECK|truncated_no_retained_object|PASS\nCHECK|complete_condition_4_satisfied|PASS\nCHECK|complete_predicate_complete|PASS\nCHECK|complete_artifact_id_present_in_cache|PASS\nCHECK|complete_cached_object_is_full_document|PASS\nCHECK|truncated_ready_units_unparseable|PASS\nCHECK|complete_ready_units_parses|PASS\nPROBE-B-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-b\n"
+    },
+    {
+      "id": "NC-TRUNCATED-VS-COMPLETE",
+      "kind": "malformed-input",
+      "description": "The same strict consumer rejects and does not cache the truncated state, then accepts and caches the complete state in an isolated instance.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "NAMED PROBE A: parse error with byte offset\nparser=stdlib json.loads\ncanonical_completion_predicate_present=false\ncanonical_completion_predicate_path=platform/lib/completion_predicate.py\ncondition_4_text=artifact parses against its schema\nartifact_id=TST-0144-ARTIFACT\nartifact_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0144/fixtures/truncated.json\nartifact_bytes=224\nartifact_non_empty=true\ncondition_4_outcome=UNSATISFIED\nparse_error_type=JSONDecodeError\nparse_error_message=Expecting value: line 8 column 79 (char 224)\ncharacter_offset=224\nbyte_offset=224\noffset_equals_artifact_bytes=true\ncache_entry_present=false\nretained_object_present=false\nparsed_cache_keys=[]\nready_units_delivered=false\nready_units_why=unparseable:JSONDecodeError\nCHECK|condition_4_unsatisfied|PASS\nCHECK|parse_is_jsondecodeerror|PASS\nCHECK|error_position_is_eof|PASS\nCHECK|byte_offset_is_eof|PASS\nCHECK|cache_not_written|PASS\nCHECK|no_retained_object|PASS\nCHECK|ready_units_unparseable|PASS\nPROBE-A-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-a\n",
+      "good_state_output": "NAMED PROBE B: downstream consumer cache inspection\nconsumer=parse-gated wrapper over platform/plugin/cache.py + json.loads\ncache_isolation=fresh consumer instance per state\nartifact_id=TST-0144-ARTIFACT\ncanonical_completion_predicate_present=false\nimp_0229_receipt_present=false\nproduction_byte_cache=platform/plugin/cache.py\nproduction_byte_cache_json_loads=false\nproduction_receipt_consumer=command-center/ready_units.py:artifact_delivered\nb06_b07_are_allocation_buckets=true\ntruncated_condition_4_outcome=UNSATISFIED\ntruncated_cache_keys=[]\ntruncated_cache_entry_present=false\ntruncated_retained_object_present=false\ntruncated_byte_cache_key=None\ntruncated_parse_error=Expecting value: line 8 column 79 (char 224)\ncomplete_condition_4_outcome=SATISFIED\ncomplete_predicate_verdict=COMPLETE\ncomplete_cache_keys=[\"TST-0144-ARTIFACT\"]\ncomplete_cache_entry_present=true\ncomplete_retained_object_present=true\ncomplete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b\ncomplete_object_type=dict\ncomplete_cached_object_is_full_document=true\ncomplete_byte_cache_hit=true\ncomplete_byte_cache_equals_source=true\ntruncated_ready_units_delivered=false\ntruncated_ready_units_why=unparseable:JSONDecodeError\ncomplete_ready_units_delivered=true\ncomplete_ready_units_why=delivered\nCHECK|truncated_condition_4_unsatisfied|PASS\nCHECK|truncated_artifact_id_absent_from_cache|PASS\nCHECK|truncated_no_retained_object|PASS\nCHECK|complete_condition_4_satisfied|PASS\nCHECK|complete_predicate_complete|PASS\nCHECK|complete_artifact_id_present_in_cache|PASS\nCHECK|complete_cached_object_is_full_document|PASS\nCHECK|truncated_ready_units_unparseable|PASS\nCHECK|complete_ready_units_parses|PASS\nPROBE-B-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-b\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-deliver-TST-0144-xai",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "This xAI session re-ran probe_parse_error.py, probe_cache_inspection.py, and control_lenient.py from source on /opt/p2/ast-integrate. Live results: truncated json.loads fails at byte 224; parse-gated plugin Cache plus ready_units retain no parsed object; complete control parses and caches; lenient mutant goes red. platform/lib/completion_predicate.py is absent on this sparse seed; probes bind the production surfaces that exist (json.loads, ready_units.artifact_delivered, platform/plugin/cache.py). Global unit_manifest.py --write was not used.",
+    "reviewed_at": "2026-08-19T17:18:52Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0144/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0144",
+    "registered_at": "2026-08-19T17:18:52Z"
+  },
+  "timestamps": {
+    "started_at": "2026-08-19T17:18:52Z",
+    "ended_at": "2026-08-19T17:18:52Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot; G-1 bound existing production surfaces instead of rebuilding a probe-local-only adapter"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "platform/lib/completion_predicate.py _c4_* was not executed because the file is absent on this sparse Linux seed.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Restore the canonical reducer and re-run the same truncated/complete/lenient fixtures through evaluate() condition 4."
+    },
+    {
+      "claim": "Catalog reviewer_requirement asked for an independent adversarial reviewer who did not author the harness.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a second-vendor reviewer against the live probe scripts and raw files in this tree."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok",
+    "role": "completion-predicate-tester",
+    "execution_substrate": "linux-p2-deliver"
+  },
+  "report": {
+    "kind": "predicate_report",
+    "reducer_id": "stdlib.json.loads+ready_units.artifact_delivered+plugin.cache",
+    "subject": "command-center/p2-wave/probes/TST-0144/fixtures/truncated.json",
+    "verdict": "INCOMPLETE",
+    "is_complete": false,
+    "counts": {
+      "not_applicable": 0,
+      "not_checked": 0,
+      "satisfied": 0,
+      "unsatisfied": 1
+    },
+    "unsatisfied": [
+      4
+    ],
+    "not_checked": [],
+    "conditions": [
+      {
+        "n": 4,
+        "text": "artifact parses against its schema",
+        "outcome": "UNSATISFIED",
+        "basis": "fixtures/truncated.json does not parse as JSON: Expecting value at char 224 (EOF)"
+      }
+    ]
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "title": "Truncated JSON fails schema parse and is never cached as parsed",
+    "question_or_target": "When an artifact is non-empty but truncated mid-JSON, does condition 4 fail AND does no downstream consumer retain a partially-parsed object? PASS requires the parse cache to hold no entry for that artifact after the failure.",
+    "question_answer": "YES on this tree: json.loads and ready_units.artifact_delivered fail the parse step of condition 4 on the 224-byte truncated fixture at byte offset 224, and the parse-gated consumer plus ready_units retain no parsed object. platform/plugin/cache.py stores bytes only and is written only after a successful parse. platform/lib/completion_predicate.py is absent; IMP-0229 receipt is absent; B06/B07 remain allocation buckets.",
+    "exact_canonical_condition4_executed": false,
+    "exact_production_cache_consumer_executed": true,
+    "production_surfaces": [
+      "stdlib json.loads",
+      "command-center/ready_units.py:artifact_delivered",
+      "platform/plugin/cache.py"
+    ],
+    "named_probe_files": {
+      "parse_error_with_byte_offset": "command-center/p2-wave/probes/TST-0144/probe-a-parse-error.raw.txt",
+      "consumer_cache_no_entry": "command-center/p2-wave/probes/TST-0144/probe-b-cache-inspection.raw.txt"
+    },
+    "named_probes_rerun": true,
+    "delivery_contract": {
+      "receipt_exists_nonempty": true,
+      "named_probe_raw_files_on_disk": true,
+      "negative_control_can_go_red": true,
+      "condition11_via_per_unit_manifest": true,
+      "global_unit_manifest_write": false,
+      "state_not_hand_flipped": true
+    },
+    "p2_deliver": {
+      "named_probes_restored": true,
+      "per_unit_manifest": "command-center/p2-wave/probes/TST-0144/UNIT-ARTIFACT-MANIFEST.json",
+      "global_unit_manifest_write": false,
+      "state_handflip": false,
+      "probes_exit_0_required": true
+    },
+    "completion_line": "UNIT-COMPLETE:TST-0144"
+  },
+  "defects": [
+    {
+      "id": "TST0144-D1",
+      "severity": "P2",
+      "status": "open",
+      "summary": "platform/lib/completion_predicate.py is absent on this sparse seed; condition 4 was executed as json.loads plus ready_units.artifact_delivered."
+    },
+    {
+      "id": "TST0144-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Independent reviewer who did not author the harness remains NOT-CHECKED. This session both wrote and re-ran the probes."
+    },
+    {
+      "id": "TST0144-D3",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probe scripts and raw logs now exist under command-center/p2-wave/probes/TST-0144/ and re-run to exit 0."
+    },
+    {
+      "id": "TST0144-D4",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Condition 11 satisfied via per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1). Global --check remaining red on siblings is out of this unit write scope."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + ready_units.artifact_delivered",
+      "artifact_path": "command-center/receipts/TST-0144.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/TST-0144/_pack_apply.py",
+        "raw_output": "consumer=json.loads + ready_units.artifact_delivered\nunit_id=TST-0144\nstate=SUCCESS\nSUCCESS:consumer-read\n",
+        "fingerprint": "662509e2ec7ffd3a7b89dddfe24a5847d276cd3948ffe5ea7b21f99e73fac39f",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "platform/plugin/cache.py parse-gated",
+      "artifact_path": "command-center/p2-wave/probes/TST-0144/fixtures/truncated.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "python -B command-center/p2-wave/probes/TST-0144/probe_cache_inspection.py",
+        "raw_output": "NAMED PROBE B: downstream consumer cache inspection\nconsumer=parse-gated wrapper over platform/plugin/cache.py + json.loads\ncache_isolation=fresh consumer instance per state\nartifact_id=TST-0144-ARTIFACT\ncanonical_completion_predicate_present=false\nimp_0229_receipt_present=false\nproduction_byte_cache=platform/plugin/cache.py\nproduction_byte_cache_json_loads=false\nproduction_receipt_consumer=command-center/ready_units.py:artifact_delivered\nb06_b07_are_allocation_buckets=true\ntruncated_condition_4_outcome=UNSATISFIED\ntruncated_cache_keys=[]\ntruncated_cache_entry_present=false\ntruncated_retained_object_present=false\ntruncated_byte_cache_key=None\ntruncated_parse_error=Expecting value: line 8 column 79 (char 224)\ncomplete_condition_4_outcome=SATISFIED\ncomplete_predicate_verdict=COMPLETE\ncomplete_cache_keys=[\"TST-0144-ARTIFACT\"]\ncomplete_cache_entry_present=true\ncomplete_retained_object_present=true\ncomplete_byte_cache_key=9a2fd7db16d01baef610242b44e977ddbb265ffd82cfc2d1e5ba982597e18a6b\ncomplete_object_type=dict\ncomplete_cached_object_is_full_document=true\ncomplete_byte_cache_hit=true\ncomplete_byte_cache_equals_source=true\ntruncated_ready_units_delivered=false\ntruncated_ready_units_why=unparseable:JSONDecodeError\ncomplete_ready_units_delivered=true\ncomplete_ready_units_why=delivered\nCHECK|truncated_condition_4_unsatisfied|PASS\nCHECK|truncated_artifact_id_absent_from_cache|PASS\nCHECK|truncated_no_retained_object|PASS\nCHECK|complete_condition_4_satisfied|PASS\nCHECK|complete_predicate_complete|PASS\nCHECK|complete_artifact_id_present_in_cache|PASS\nCHECK|complete_cached_object_is_full_document|PASS\nCHECK|truncated_ready_units_unparseable|PASS\nCHECK|complete_ready_units_parses|PASS\nPROBE-B-COMPLETE:TST-0144\nSUCCESS:TST-0144-probe-b\n",
+        "fingerprint": "aa355e3c573771802b2175c820bb6107d7ba4019c4c16f33a12acef2881b53e4",
+        "exit_code": 0
+      }
+    }
+  ]
+}

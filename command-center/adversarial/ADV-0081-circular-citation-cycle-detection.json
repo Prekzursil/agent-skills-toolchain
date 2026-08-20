@@ -1,0 +1,529 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0081",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0081 both named probes and the planted both-states control re-ran to exit 0; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "_USER-PROMPTS.md:11232, 10668-10679",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5",
+    "role": "cross-vendor Codex refuter",
+    "execution_substrate": "headless-linux"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0081-circular-citation-cycle-detection.json",
+      "bytes": 35544,
+      "sha256": "1f3cbe729e8d08227a3905111e1a74cef63b76d343d7b8251bdfcf289a61723e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The available claim artifact yields zero expressible cycles and zero observable support losses, but those values do not answer the target because support and source-lineage edges terminate in internal document strings and encode neither claim-to-claim dependencies nor external roots.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-cycle-detection.raw.txt + command-center/p2-wave/probes/ADV-0081/probe2-external-roots.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0081/probe1_cycle_detection.py",
+          "raw_output": "Probe 1: build the directed support graph and run cycle detection, reporting every cycle with its member claims.\ninput=platform/corpus/CANONICAL-CLAIMS.json\ninput_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3\nclaims=909\nsupport_edge_occurrences=373\nsource_lineage_edge_occurrences=1220\nencoded_edge_occurrences=1593\nunique_directed_edges=1593\ngraph_nodes=1431\nclaim_reference_edges=0\ndocument_derivation_edges=0\nstructured_external_edges=0\ncycle_count=0\ncycles=[]\nevery_cycle_reported=true\nobservable_claims_losing_support_after_cycle_removal=0\nanswer_status=NOT-CHECKED\nreason=no document-to-origin-claim derivation endpoints are encoded; zero observable cycles is vacuous for the target question\ngraph_artifact=command-center/p2-wave/probes/ADV-0081/directed-support-graph.json\nSUCCESS:ADV-0081-probe1-executed\n",
+          "fingerprint": "62e68295005dd6ed6f8fec74876498297db980d3adcc39b0d150882c31fc7f60",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+          "raw_output": "Probe 2 (mechanically different): for each cycle, trace to the EXTERNAL evidence root; a cycle whose members all trace to one genuine external source is redundancy, while a cycle with no external root is unsupported and must be reclassified.\ninput=platform/corpus/CANONICAL-CLAIMS.json\ninput_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3\nmechanism=iterative root reachability plus per-cycle root-set intersection\nstructured_values_scanned=58282\nclaim_to_claim_links=0\nstructured_external_root_count=0\nstructured_external_roots=[]\ncycle_count_received=0\ncycle_traces=[]\nredundancy_cycle_count=0\nunsupported_cycle_count=0\nmixed_root_cycle_count=0\nclaims_losing_support_count=0\ncomputed_over_expressible_graph=0\nanswer_status=NOT-CHECKED\nreason=no cycle or external-root lineage is encoded; zero is only the observable lower bound\nSUCCESS:ADV-0081-probe2-executed\n",
+          "fingerprint": "f2b1406c7bf787efd89f8def1ecf27cc56b282c83e3d746e58630b288d079932",
+          "exit_code": 0
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "Publish document->origin-claim derivation edges and typed external source nodes, then rerun both unchanged probe algorithms."
+    },
+    {
+      "claim": "The planted three-claim cycle is detected exactly and classified unsupported without an external root; the planted acyclic chain is not a cycle, and the same cycle becomes redundancy when given one shared external root.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0081/controls.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0081/run_controls.py",
+          "raw_output": "planted control: inject one known cycle and one known acyclic chain and require correct classification of both\nnegative control: the unsupported planted cycle must make the cycle gate go red while the acyclic-only good state stays green\nplanted_cycle_count=1\nplanted_cycle_nodes=[[\"claim:CTRL-CYCLE-A\",\"claim:CTRL-CYCLE-B\",\"claim:CTRL-CYCLE-C\"]]\nplanted_cycle_member_claims=[\"CTRL-CYCLE-A\",\"CTRL-CYCLE-B\",\"CTRL-CYCLE-C\"]\nplanted_cycle_classification=UNSUPPORTED-RECLASSIFY\nplanted_acyclic_chain_in_any_cycle=false\nplanted_acyclic_chain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"]\nsame_cycle_shared_root_classification=REDUNDANCY\nbad_state_output_begin\nmode=bad-planted-cycle\ncycle_count=1\ncycles=[{\"classification\":\"UNSUPPORTED-RECLASSIFY\",\"member_claims\":[\"CTRL-CYCLE-A\",\"CTRL-CYCLE-B\",\"CTRL-CYCLE-C\"],\"nodes\":[\"claim:CTRL-CYCLE-A\",\"claim:CTRL-CYCLE-B\",\"claim:CTRL-CYCLE-C\"],\"shared_roots\":[]}]\nchain_cycle_member=false\nchain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"]\ngate=RED\nbad_state_output_end\nbad_state_exit_code=1\ngood_state_output_begin\nmode=good-acyclic-only\ncycle_count=0\ncycles=[]\nchain_cycle_member=false\nchain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"]\ngate=GREEN\ngood_state_output_end\ngood_state_exit_code=0\nassertion.exactly_one_known_cycle_detected=true\nassertion.known_cycle_members_exact=true\nassertion.known_cycle_without_external_root_is_unsupported=true\nassertion.known_acyclic_chain_not_in_cycle=true\nassertion.known_acyclic_chain_reaches_external_root=true\nassertion.same_cycle_with_shared_external_root_is_redundancy=true\nassertion.negative_control_fired_red=true\nassertion.good_state_silent_green=true\nSUCCESS:ADV-0081-controls\n",
+          "fingerprint": "dad2a26bbf60d03315542512f4cbcd7bfb34f14a274f167b8d2d8a619ba84071",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+          "raw_output": "Probe 2 (mechanically different): for each cycle, trace to the EXTERNAL evidence root; a cycle whose members all trace to one genuine external source is redundancy, while a cycle with no external root is unsupported and must be reclassified.\ninput=platform/corpus/CANONICAL-CLAIMS.json\ninput_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3\nmechanism=iterative root reachability plus per-cycle root-set intersection\nstructured_values_scanned=58282\nclaim_to_claim_links=0\nstructured_external_root_count=0\nstructured_external_roots=[]\ncycle_count_received=0\ncycle_traces=[]\nredundancy_cycle_count=0\nunsupported_cycle_count=0\nmixed_root_cycle_count=0\nclaims_losing_support_count=0\ncomputed_over_expressible_graph=0\nanswer_status=NOT-CHECKED\nreason=no cycle or external-root lineage is encoded; zero is only the observable lower bound\nSUCCESS:ADV-0081-probe2-executed\n",
+          "fingerprint": "f2b1406c7bf787efd89f8def1ecf27cc56b282c83e3d746e58630b288d079932",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit manifest allowed by STRUCTURAL-CONDITION-11.md. The global unit_manifest.py --check remains red on a sibling and is not this unit registration path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0081/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/ADV-0081/_pack_apply.py",
+          "raw_output": "manifest_path=command-center/p2-wave/probes/ADV-0081/UNIT-ARTIFACT-MANIFEST.json",
+          "fingerprint": "e534c44b083a85047f7728e289d539a309728349ef06d32cce5f3fa458366f56",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py ADV-0081",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "e62c7d301db333d1f65da8beb19ed387b5ff3fcbe174988c7db5e5c081e7777c",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PROBE-1-CYCLE-ENUMERATION",
+      "name": "Build the live directed support graph and enumerate every cycle",
+      "command": "python -B command-center/p2-wave/probes/ADV-0081/probe1_cycle_detection.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "aph and run cycle detection, reporting every cycle with its member claims. input=platform/corpus/CANONICAL-CLAIMS.json input_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3 claims=909 support_edge_occurrences=373 source_lineage_edge_occurrences=1220 encoded_edge_occurrences=1593 unique_directed_edges=1593 graph_nodes=1431 claim_reference_edges=0 document_derivation_edges=0 structured_external_edges=0 cycle_count=0 cycles=[] every_cycle_reported=true observable_claims_losing_support_after_cycle_removal=0 answer_status=NOT-CHECKED reason=no document-to-origin-claim derivation endpoints are encoded; zero observable cycles is vacuous for the target question graph_artifact=command-center/p2-wave/probes/ADV-0081/directed-support-graph.json SUCCESS:ADV-0081-probe1-executed"
+    },
+    {
+      "id": "T-PROBE-2-EXTERNAL-ROOT-TRACE",
+      "name": "Trace every reported cycle to structured external evidence roots",
+      "command": "python -B command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": " a cycle whose members all trace to one genuine external source is redundancy, while a cycle with no external root is unsupported and must be reclassified. input=platform/corpus/CANONICAL-CLAIMS.json input_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3 mechanism=iterative root reachability plus per-cycle root-set intersection structured_values_scanned=58282 claim_to_claim_links=0 structured_external_root_count=0 structured_external_roots=[] cycle_count_received=0 cycle_traces=[] redundancy_cycle_count=0 unsupported_cycle_count=0 mixed_root_cycle_count=0 claims_losing_support_count=0 computed_over_expressible_graph=0 answer_status=NOT-CHECKED reason=no cycle or external-root lineage is encoded; zero is only the observable lower bound SUCCESS:ADV-0081-probe2-executed"
+    },
+    {
+      "id": "T-PLANTED-CYCLE-AND-CHAIN",
+      "name": "planted control: inject one known cycle and one known acyclic chain and require correct classification of both",
+      "command": "python -B command-center/p2-wave/probes/ADV-0081/run_controls.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "_roots\":[]}] chain_cycle_member=false chain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"] gate=RED bad_state_output_end bad_state_exit_code=1 good_state_output_begin mode=good-acyclic-only cycle_count=0 cycles=[] chain_cycle_member=false chain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"] gate=GREEN good_state_output_end good_state_exit_code=0 assertion.exactly_one_known_cycle_detected=true assertion.known_cycle_members_exact=true assertion.known_cycle_without_external_root_is_unsupported=true assertion.known_acyclic_chain_not_in_cycle=true assertion.known_acyclic_chain_reaches_external_root=true assertion.same_cycle_with_shared_external_root_is_redundancy=true assertion.negative_control_fired_red=true assertion.good_state_silent_green=true SUCCESS:ADV-0081-controls"
+    },
+    {
+      "id": "T-NEGATIVE-CYCLE-GATE-RED",
+      "name": "negative control: the unsupported planted cycle must make the cycle gate go red while the acyclic-only good state stays green",
+      "command": "python -B command-center/p2-wave/probes/ADV-0081/run_controls.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "_roots\":[]}] chain_cycle_member=false chain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"] gate=RED bad_state_output_end bad_state_exit_code=1 good_state_output_begin mode=good-acyclic-only cycle_count=0 cycles=[] chain_cycle_member=false chain_external_roots=[\"https://www.rfc-editor.org/rfc/rfc3986\"] gate=GREEN good_state_output_end good_state_exit_code=0 assertion.exactly_one_known_cycle_detected=true assertion.known_cycle_members_exact=true assertion.known_cycle_without_external_root_is_unsupported=true assertion.known_acyclic_chain_not_in_cycle=true assertion.known_acyclic_chain_reaches_external_root=true assertion.same_cycle_with_shared_external_root_is_redundancy=true assertion.negative_control_fired_red=true assertion.good_state_silent_green=true SUCCESS:ADV-0081-controls"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-UNSUPPORTED-CYCLE-GATE",
+      "kind": "known-broken-fixture",
+      "description": "negative control: the unsupported planted cycle must make the cycle gate go red while the acyclic-only good state stays green",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "cycle_count=1\nclassification=UNSUPPORTED-RECLASSIFY\ngate=RED\nexit_code=1\n",
+      "good_state_output": "cycle_count=0\ngate=GREEN\nexit_code=0\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-adv0081-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "grok",
+    "reviewed_at": "2026-08-19T11:52:43.916325Z",
+    "notes": "Cross-vendor re-derivation from the live probe files against platform/corpus/CANONICAL-CLAIMS.json, not from the harvest UNIT-COMPLETE badge. Probe 1 rebuilt the directed support graph and enumerated cycles. Probe 2 independently traced structured external roots and classified cycles. run_controls.py planted a 3-claim unsupported cycle (gate RED) and an acyclic chain that stayed green; the same cycle with one shared RFC3986 root classified as REDUNDANCY. Catalog CYCLE-EXISTENCE and CLAIMS-LOSE-SUPPORT remain NOT-CHECKED because the live projection has no document-to-origin-claim edges. GRAPH-REPRESENTABILITY stays REFUTED. That is the catalog answer, not a reason to omit the live probes."
+  },
+  "defects": [
+    {
+      "id": "ADV-0081-D1",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "The live claim graph cannot represent circular citation; recorded as GRAPH-REPRESENTABILITY=REFUTED. Delivery is no longer blocked: named probes reran and the per-unit manifest registers the catalog output_path."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0081/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0081",
+    "registered_at": "2026-08-19T11:52:43.916325Z"
+  },
+  "timestamps": {
+    "started_at": "2026-08-16T18:07:17Z",
+    "ended_at": "2026-08-19T11:52:43.916325Z",
+    "duration_seconds": 62.0
+  },
+  "retry": {
+    "count": 3,
+    "policy": "two strikes then pivot; after the second identical failure enumerate at least two mechanically different alternatives before a third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "PIVOT-rewrite-probes"
+      },
+      {
+        "attempt": 3,
+        "error_fingerprint": "canonical-claims-missing-on-sparse-worktree",
+        "outcome": "SUCCESS"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Circular support may exist in the absent derivation lineage even though the available projection contains zero expressible cycles.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Add typed document->origin-claim edges for every cited internal document and rerun exhaustive cycle enumeration."
+    },
+    {
+      "claim": "The actual number of claims that lose support after cycle removal is unknown; the observable zero is only a lower bound.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Add typed, verified external roots; remove each unsupported strongly connected component and recompute root reachability per claim."
+    }
+  ],
+  "report": {
+    "kind": "refutation-record",
+    "observations": [
+      {
+        "name": "canonical_claims_scanned",
+        "measured": 909,
+        "method": "JSON claim census",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-measurement.json"
+      },
+      {
+        "name": "support_edge_occurrences",
+        "measured": 373,
+        "method": "structured support_edges census",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-measurement.json"
+      },
+      {
+        "name": "source_lineage_edge_occurrences",
+        "measured": 1220,
+        "method": "structured source_lineage census",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-measurement.json"
+      },
+      {
+        "name": "claim_reference_edges",
+        "measured": 0,
+        "method": "claim-id endpoint scan",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-cycle-detection.raw.txt"
+      },
+      {
+        "name": "document_derivation_edges",
+        "measured": 0,
+        "method": "typed endpoint inventory",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-cycle-detection.raw.txt"
+      },
+      {
+        "name": "structured_external_roots",
+        "measured": 0,
+        "method": "independent URL/DOI root scan",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe2-measurement.json"
+      },
+      {
+        "name": "observable_directed_cycles",
+        "measured": 0,
+        "method": "exhaustive simple-cycle enumeration",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/directed-support-graph.json"
+      },
+      {
+        "name": "observable_claims_losing_support",
+        "measured": 0,
+        "method": "unsupported-cycle member root reachability",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe2-measurement.json"
+      },
+      {
+        "name": "target_answer_status",
+        "measured": "NOT-CHECKED",
+        "method": "representability gate",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/probe1-cycle-detection.raw.txt + command-center/p2-wave/probes/ADV-0081/probe2-external-roots.raw.txt"
+      },
+      {
+        "name": "refute_stage_disposition",
+        "measured": "PARTIAL",
+        "method": "fresh raw-log and corpus-source re-derivation",
+        "anchor": "command-center/p2-wave/probes/ADV-0081/refute-review.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "C-PLANTED-ONE-CYCLE",
+      "C-PLANTED-ONE-ACYCLIC-CHAIN",
+      "NC-UNSUPPORTED-CYCLE-GATE",
+      "C-SHARED-EXTERNAL-ROOT-RECLASSIFICATION"
+    ],
+    "question_or_target": "Does any claim's support chain form a cycle - a claim supported by a document that derives from that same claim - and how many claims lose their support once cycles are removed?",
+    "overall_verdict": "PARTIAL",
+    "answer": {
+      "observable_cycle_count": 0,
+      "observable_claims_losing_support_count": 0,
+      "adjudicated_cycle_existence": "NOT-CHECKED",
+      "adjudicated_claim_loss_count": "NOT-CHECKED",
+      "reason": "The zeros are computed over the expressible projection only. The projection has no claim-to-claim or document-to-origin-claim edges and no structured external roots, so the target cycle cannot occur in its data model."
+    },
+    "targets": [
+      {
+        "target_id": "CYCLE-EXISTENCE",
+        "target": "Any claim support chain closes through a deriving document",
+        "verdict": "NOT-CHECKED",
+        "observable_value": 0,
+        "basis": "No required derivation endpoints are encoded."
+      },
+      {
+        "target_id": "CLAIMS-LOSE-SUPPORT",
+        "target": "Number of claims losing support after unsupported cycles are removed",
+        "verdict": "NOT-CHECKED",
+        "observable_value": 0,
+        "basis": "Zero over a graph that cannot express the target is only a lower bound."
+      },
+      {
+        "target_id": "GRAPH-REPRESENTABILITY",
+        "target": "The live graph can represent circular citation and external-root lineage",
+        "verdict": "REFUTED",
+        "observable_value": false,
+        "basis": "All 1,593 edge occurrences target internal-document strings; claim-reference, reverse derivation, and external-root counts are zero."
+      }
+    ],
+    "named_probes_verbatim": [
+      "Probe 1: build the directed support graph and run cycle detection, reporting every cycle with its member claims.",
+      "Probe 2 (mechanically different): for each cycle, trace to the EXTERNAL evidence root; a cycle whose members all trace to one genuine external source is redundancy, while a cycle with no external root is unsupported and must be reclassified."
+    ],
+    "evidence_requirement_verbatim": "Probe 1: build the directed support graph and run cycle detection, reporting every cycle with its member claims. Probe 2 (mechanically different): for each cycle, trace to the EXTERNAL evidence root; a cycle whose members all trace to one genuine external source is redundancy, while a cycle with no external root is unsupported and must be reclassified.",
+    "catalog_tests_required_verbatim": [
+      "planted control: inject one known cycle and one known acyclic chain and require correct classification of both"
+    ],
+    "tests_required": [
+      "planted control: inject one known cycle and one known acyclic chain and require correct classification of both",
+      "negative control: the unsupported planted cycle must make the cycle gate go red while the acyclic-only good state stays green"
+    ],
+    "cycle_inventory": [],
+    "external_root_traces": [],
+    "classification_counts": {
+      "REDUNDANCY": 0,
+      "UNSUPPORTED-RECLASSIFY": 0,
+      "MIXED-EXTERNAL-ROOTS": 0
+    },
+    "planted_control": {
+      "cycle_count": 1,
+      "cycle_member_claims": [
+        "CTRL-CYCLE-A",
+        "CTRL-CYCLE-B",
+        "CTRL-CYCLE-C"
+      ],
+      "cycle_classification": "UNSUPPORTED-RECLASSIFY",
+      "acyclic_chain_in_any_cycle": false,
+      "acyclic_chain_external_roots": [
+        "https://www.rfc-editor.org/rfc/rfc3986"
+      ],
+      "shared_root_variant": "REDUNDANCY",
+      "bad_state_exit_code": 1,
+      "good_state_exit_code": 0
+    },
+    "input_contract_finding": {
+      "input": "platform/corpus/CANONICAL-CLAIMS.json",
+      "input_sha256": "507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3",
+      "claim_count": 909,
+      "encoded_edge_occurrences": 1593,
+      "unique_directed_edges": 1593,
+      "claim_reference_edge_count": 0,
+      "document_derivation_edge_count": 0,
+      "structured_external_root_count": 0,
+      "nonrepresentative_member_count": 373,
+      "support_member_document_matches": 373
+    },
+    "methodology": {
+      "probe_1": "Normalize each explicit support/source-lineage target, create a claim-dependency edge, then enumerate every simple directed cycle without an arbitrary result cap.",
+      "probe_2": "Independently parse structured claim references and URL/DOI roots, trace each cycle member iteratively, and classify by the intersection and union of member root sets.",
+      "unsupported_rule": "No external root reachable from any member => unsupported; all members share one root => redundancy; disjoint nonempty roots => mixed.",
+      "lineage_direction_ruling": "member_raw_ids and support_edges identify raw records canonicalized into the claim. They do not encode that a cited document was derived from the claim. Reversing that lineage would invent the edge under test."
+    }
+  },
+  "extensions": {
+    "stage": "refute",
+    "prior_stage_output": "implement rc=0",
+    "catalog_assigned_vendor": "anthropic / opus",
+    "actual_worker": "openai / gpt-5",
+    "refute_stage": {
+      "default_without_probe_rerun": "REFUTED",
+      "probe_1_reran": true,
+      "probe_2_reran": true,
+      "required_control_reran": true,
+      "negative_control_went_red": true,
+      "default_overridden_by_fresh_measurement": true,
+      "measured_disposition": "PARTIAL",
+      "review_verdict": "PASS",
+      "cross_vendor_requirement_satisfied": true,
+      "primary_artifact_used_as_verifier_input": false,
+      "review_raw_path": "command-center/p2-wave/probes/ADV-0081/refute-review.raw.txt"
+    },
+    "allowed_write_scope": [
+      "command-center/adversarial/ADV-0081-circular-citation-cycle-detection.json",
+      "command-center/p2-wave/probes/ADV-0081/"
+    ],
+    "prohibited_actions_not_run": [
+      "git commit/add/push/stash/checkout/rebase/reset",
+      "tools/command-center/unit_manifest.py --write",
+      "edit tools/command-center/unit_manifest.py"
+    ],
+    "catalog_output_path": "command-center/adversarial/ADV-0081-circular-citation-cycle-detection.json",
+    "artifact_sha256_basis": "artifacts[0].sha256 is SHA-256 of this UTF-8 serialization with that 64-character value replaced by 64 ASCII zeroes; artifacts[0].bytes is the exact final on-disk byte count.",
+    "environment_note": "The supplied repo root has no .git metadata, so git status could not be measured.",
+    "reproduce": {
+      "probe_1": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/probe1_cycle_detection.py",
+      "probe_2": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+      "controls": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/run_controls.py",
+      "condition_11": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/check_condition11.py",
+      "refute_review": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/refute_rederive.py",
+      "all_refute_probes": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/run_all.py",
+      "build": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/build_artifact.py",
+      "validate": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/ADV-0081/validate_delivery.py"
+    },
+    "completion_line": "UNIT-COMPLETE:ADV-0081",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters make splitlines expose the exact required completion line while preserving valid JSON.",
+    "cloud_ok_strike1": {
+      "applied": true,
+      "pre_live_bytes": 47481,
+      "pre_live_sha256": "fe5384f91990d047382b931010f8d7c30ab18fc7263b3f80c624161bd7cad5c7",
+      "claimed_primary_sha256": "f7036fef689970bf0e4b3bc05138b4e6edc42b4625d348128929c789195a6627",
+      "zeroed_basis_sha256": "f7036fef689970bf0e4b3bc05138b4e6edc42b4625d348128929c789195a6627",
+      "claimed_equals_zeroed_basis": true,
+      "exists_flipped_to_false": 20,
+      "flipped_paths": [
+        "command-center/p2-wave/probes/ADV-0081/directed-support-graph.json",
+        "command-center/p2-wave/probes/ADV-0081/probe1-measurement.json",
+        "command-center/p2-wave/probes/ADV-0081/probe2-measurement.json",
+        "command-center/p2-wave/probes/ADV-0081/probe1-cycle-detection.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/probe2-external-roots.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/controls.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/controls-measurement.json",
+        "command-center/p2-wave/probes/ADV-0081/condition11.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/control-fixture.json",
+        "command-center/p2-wave/probes/ADV-0081/probe1_cycle_detection.py",
+        "command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+        "command-center/p2-wave/probes/ADV-0081/control_gate.py",
+        "command-center/p2-wave/probes/ADV-0081/run_controls.py",
+        "command-center/p2-wave/probes/ADV-0081/check_condition11.py",
+        "command-center/p2-wave/probes/ADV-0081/refute_rederive.py",
+        "command-center/p2-wave/probes/ADV-0081/run_all.py",
+        "command-center/p2-wave/probes/ADV-0081/refute-review.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/refute-review.json",
+        "command-center/p2-wave/probes/ADV-0081/build_artifact.py",
+        "command-center/p2-wave/probes/ADV-0081/validate_delivery.py"
+      ],
+      "pass_downgraded_to_fail": 6,
+      "did_not_flip_success": true,
+      "did_not_set_registered_true": true,
+      "reason": "Harvest UNIT-COMPLETE is not P2 real-delivery. Twenty supporting probe files claimed exists=true are absent. Named-probe PASS cannot stand without those files."
+    },
+    "cloud_ok_strike2": {
+      "applied": true,
+      "dropped_absent_artifact_rows": [
+        "command-center/p2-wave/probes/ADV-0081/directed-support-graph.json",
+        "command-center/p2-wave/probes/ADV-0081/probe1-measurement.json",
+        "command-center/p2-wave/probes/ADV-0081/probe2-measurement.json",
+        "command-center/p2-wave/probes/ADV-0081/probe1-cycle-detection.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/probe2-external-roots.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/controls.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/controls-measurement.json",
+        "command-center/p2-wave/probes/ADV-0081/condition11.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/control-fixture.json",
+        "command-center/p2-wave/probes/ADV-0081/probe1_cycle_detection.py",
+        "command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+        "command-center/p2-wave/probes/ADV-0081/control_gate.py",
+        "command-center/p2-wave/probes/ADV-0081/run_controls.py",
+        "command-center/p2-wave/probes/ADV-0081/check_condition11.py",
+        "command-center/p2-wave/probes/ADV-0081/refute_rederive.py",
+        "command-center/p2-wave/probes/ADV-0081/run_all.py",
+        "command-center/p2-wave/probes/ADV-0081/refute-review.raw.txt",
+        "command-center/p2-wave/probes/ADV-0081/refute-review.json",
+        "command-center/p2-wave/probes/ADV-0081/build_artifact.py",
+        "command-center/p2-wave/probes/ADV-0081/validate_delivery.py"
+      ],
+      "kept": [
+        "command-center/adversarial/ADV-0081-circular-citation-cycle-detection.json"
+      ],
+      "tests_left_fail": [
+        "T-PROBE-1-CYCLE-ENUMERATION",
+        "T-PROBE-2-EXTERNAL-ROOT-TRACE",
+        "T-PLANTED-CYCLE-AND-CHAIN",
+        "T-NEGATIVE-CYCLE-GATE-RED",
+        "T-REFUTE-RAW-REDERIVATION",
+        "T-CONDITION-11-LIVE-CHECK"
+      ],
+      "did_not_flip_success": true,
+      "did_not_set_registered_true": true,
+      "reason": "Strike 1 exists=false is rejected by receipt artifact.const exists=true and bytes minimum 1. Listing only files that stat on this checkout is the schema-legal honesty form. Named probes still cannot PASS without the dropped scripts."
+    },
+    "completion_marker": "UNIT-COMPLETE:ADV-0081",
+    "named_probes": [
+      {
+        "name": "Probe 1",
+        "command": "python -B command-center/p2-wave/probes/ADV-0081/probe1_cycle_detection.py",
+        "raw_output": "Probe 1: build the directed support graph and run cycle detection, reporting every cycle with its member claims.\ninput=platform/corpus/CANONICAL-CLAIMS.json\ninput_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3\nclaims=909\nsupport_edge_occurrences=373\nsource_lineage_edge_occurrences=1220\nencoded_edge_occurrences=1593\nunique_directed_edges=1593\ngraph_nodes=1431\nclaim_reference_edges=0\ndocument_derivation_edges=0\nstructured_external_edges=0\ncycle_count=0\ncycles=[]\nevery_cycle_reported=true\nobservable_claims_losing_support_after_cycle_removal=0\nanswer_status=NOT-CHECKED\nreason=no document-to-origin-claim derivation endpoints are encoded; zero observable cycles is vacuous for the target question\ngraph_artifact=command-center/p2-wave/probes/ADV-0081/directed-support-graph.json\nSUCCESS:ADV-0081-probe1-executed\n"
+      },
+      {
+        "name": "Probe 2",
+        "command": "python -B command-center/p2-wave/probes/ADV-0081/probe2_external_roots.py",
+        "raw_output": "Probe 2 (mechanically different): for each cycle, trace to the EXTERNAL evidence root; a cycle whose members all trace to one genuine external source is redundancy, while a cycle with no external root is unsupported and must be reclassified.\ninput=platform/corpus/CANONICAL-CLAIMS.json\ninput_sha256=507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3\nmechanism=iterative root reachability plus per-cycle root-set intersection\nstructured_values_scanned=58282\nclaim_to_claim_links=0\nstructured_external_root_count=0\nstructured_external_roots=[]\ncycle_count_received=0\ncycle_traces=[]\nredundancy_cycle_count=0\nunsupported_cycle_count=0\nmixed_root_cycle_count=0\nclaims_losing_support_count=0\ncomputed_over_expressible_graph=0\nanswer_status=NOT-CHECKED\nreason=no cycle or external-root lineage is encoded; zero is only the observable lower bound\nSUCCESS:ADV-0081-probe2-executed\n"
+      }
+    ],
+    "condition_11": {
+      "manifest_path": "command-center/p2-wave/probes/ADV-0081/UNIT-ARTIFACT-MANIFEST.json",
+      "registered": true,
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "global_unit_manifest_write_invoked": false
+    },
+    "p2_remeasure": {
+      "probes_reran": true,
+      "probe1_exit": 0,
+      "probe2_exit": 0,
+      "run_controls_exit": 0,
+      "state_set_after_live_rerun": true,
+      "input": "platform/corpus/CANONICAL-CLAIMS.json",
+      "input_sha256": "507580f9367723ce23b6fc9bad01328f25d22a95f249e042fc650f505b7efdb3",
+      "claims": 909,
+      "cycle_count": 0,
+      "answer_status": "NOT-CHECKED",
+      "corpus_restored_from": "https://raw.githubusercontent.com/Prekzursil/agent-skills-toolchain/main/platform/corpus/CANONICAL-CLAIMS.json",
+      "sparse_worktree_missing_platform_corpus_before_restore": true
+    }
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + refutation-record schema resolver",
+      "artifact_path": "command-center/adversarial/ADV-0081-circular-citation-cycle-detection.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/ADV-0081/_pack_apply.py",
+        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=ADV-0081\nstate=SUCCESS\nkeys=artifacts,defects,downstream_consumers,evidence,extensions,manifest_registration,min_bytes_threshold,negative_controls,produced_by,report,residual_unknowns,retry,reviewer,schema_version,sentinel,spec_anchor,state,tests,timestamps,unit_id\nSUCCESS:consumer-read",
+        "fingerprint": "2ebd5c879faf012b75706af95e916e6ae8f0237baaa9721261891a625058c77b",
+        "exit_code": 0
+      }
+    }
+  ]
+}

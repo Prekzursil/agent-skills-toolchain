@@ -1,0 +1,296 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0161",
+  "state": "BLOCKED",
+  "sentinel": "FAILED:TST-0161 explicit conflicts work, but the expired writer overwrote the successor; condition 11 remains unregistered",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:83499-83539",
+  "min_bytes_threshold": 100,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0161.json",
+      "bytes": 29696,
+      "sha256": "91c8374e4abe33d40d129853c8b86d0cdcbe4428c554d3dcc45fec0538043c72",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The live file-lease surface meets both required halves: it returns an explicit same-path conflict and rejects writer 1's next write after expiry and transfer.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0161/probe-b-first-writer-post-expiry.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0161/run_probes.py # named probe a",
+          "raw_output": "NAMED PROBE (a): the second requester's returned conflict object\nevidence_requirement_verbatim=two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome\nlive_surface=platform/coordination/leases.py::acquire_lease\nclock=coordination.simclock.SimClock\nrequest_order=session-1 grant, then session-2 same-path request\nfirst_outcome=GRANTED\nsecond_return_object={\"conflicts\":[{\"holder_liveness\":\"LIVE\",\"lease_a\":\"(requested)\",\"lease_b\":\"lease-7207ebdb6989\",\"mode_a\":\"EXCLUSIVE\",\"mode_b\":\"EXCLUSIVE\",\"path_a\":\"shared.txt\",\"path_b\":\"shared.txt\",\"reason\":\"EXCLUSIVE request overlaps EXCLUSIVE lease lease-7207ebdb6989 held by session-1 (liveness=LIVE)\",\"session_a\":\"session-2\",\"session_b\":\"session-1\"}],\"kind\":\"lease_result\",\"lease\":null,\"outcome\":\"CONFLICT\",\"sentinel_line\":\"FAILED:lease outcome=CONFLICT blocked_by=['session-1']\"}\nsecond_outcome=CONFLICT\nsecond_lease_is_null=true\nsecond_conflict_count=1\nsecond_conflict_holder=session-1\nsecond_conflict_reason=EXCLUSIVE request overlaps EXCLUSIVE lease lease-7207ebdb6989 held by session-1 (liveness=LIVE)\nexplicit_conflict_object=true\nprobe_result=PASS\nPROBE-A-COMPLETE:TST-0161\n",
+          "fingerprint": "93469d44f61e500e1d2cb688f6f1d5a431bcf42b099257f793da523ea5760d32",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "run_probes.py::run_expiry_probe multiprocessing writer gated across SimClock expiry and successor acquisition",
+          "raw_output": "NAMED PROBE (b): the first writer's post-expiry write outcome\nevidence_requirement_verbatim=two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome\nlive_surface=platform/coordination/leases.py plus the filesystem write it coordinates\ntimeline=writer-1 starts while lease valid; simulated clock passes expiry; writer-2 acquires; writer-1 performs next write\nwriter_process_model=multiprocessing spawn with parent-held pre/post-transfer gates\nwriter_write_api=pathlib.Path.write_text\nsource_surface={\"functions\":[\"_active_leases\",\"_fold\",\"_holder_liveness\",\"_in_force\",\"_parts_equal\",\"_resolve_without_requiring_existence\",\"acquire_lease\",\"active\",\"detect_conflicts\",\"expired\",\"from_dict\",\"granted\",\"normalize_lease_path\",\"overlaps\",\"path_parts\",\"release_leases\",\"renew_lease\",\"require_lease\",\"sentinel_line\",\"to_dict\",\"to_dict\",\"to_dict\"],\"module_calls_itself_advisory\":true,\"path\":\"platform/coordination/leases.py\",\"sha256\":\"37df166bf97f5957f3e7554ef3c578dcb9cf76ade086f9f05ee486dea1f0c105\",\"write_guard_function_names\":[]}\nlease_1={\"acquired_at\":1800001000.0,\"expires_at\":1800001010.0,\"kind\":\"lease\",\"lease_id\":\"lease-51cfcf27718a\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"shared.txt\"],\"purpose\":\"writer 1 begins before expiry\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/expiry/workspace\",\"session_id\":\"session-1\"}\nclock_before_expiry=1800001000.0\nclock_after_expiry=1800001011.0\nlease_1_expired=true\nsuccessor_return_object={\"conflicts\":[],\"kind\":\"lease_result\",\"lease\":{\"acquired_at\":1800001011.0,\"expires_at\":1800001041.0,\"kind\":\"lease\",\"lease_id\":\"lease-e60ec91eb066\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"shared.txt\"],\"purpose\":\"successor after writer 1 expiry\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/expiry/workspace\",\"session_id\":\"session-2\"},\"outcome\":\"GRANTED\",\"sentinel_line\":\"SUCCESS:lease/lease-e60ec91eb066 outcome=GRANTED paths=1\"}\nsuccessor_granted=true\ncontent_before_stale_write_json=\"writer=session-2\\nphase=ownership-transferred\\n\"\nwriter_1_process_exit_code=0\nwriter_1_write_result={\"bytes_written\":46,\"error\":null,\"error_type\":null,\"payload\":\"writer=session-1\\nphase=post-expiry-next-write\\n\",\"write_succeeded\":true}\ncontent_after_stale_write_json=\"writer=session-1\\nphase=post-expiry-next-write\\n\"\nsuccessor_bytes_overwritten=true\nstale_writer_rejected=false\nrequired_post_expiry_outcome=REJECTED\nobserved_post_expiry_outcome=WRITE-SUCCEEDED\nfinding=expiry silently transferred the lease while writer 1 remained able to overwrite writer 2's bytes\nprobe_result=FAIL\nPROBE-B-COMPLETE:TST-0161\n",
+          "fingerprint": "1a1276beed0cd97a6e2747915bdfc81b5be7aa3626d123f7df7c1a907dcdef83",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "claim": "Non-overlapping paths lease independently, and the unchanged expiry detector goes red on an advisory-only write while accepting a reference guarded write.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0161/negative-control-advisory-only.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "run_probes.py::run_nonoverlap_control over left.txt and right.txt",
+          "raw_output": "REQUIRED TEST: both-states control: non-overlapping paths lease independently\nlive_surface=platform/coordination/leases.py::acquire_lease\nsession_a_result={\"conflicts\":[],\"kind\":\"lease_result\",\"lease\":{\"acquired_at\":1800002000.0,\"expires_at\":1800002900.0,\"kind\":\"lease\",\"lease_id\":\"lease-22b4601595f4\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"left.txt\"],\"purpose\":\"\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/nonoverlap/workspace\",\"session_id\":\"session-a\"},\"outcome\":\"GRANTED\",\"sentinel_line\":\"SUCCESS:lease/lease-22b4601595f4 outcome=GRANTED paths=1\"}\nsession_b_result={\"conflicts\":[],\"kind\":\"lease_result\",\"lease\":{\"acquired_at\":1800002000.0,\"expires_at\":1800002900.0,\"kind\":\"lease\",\"lease_id\":\"lease-7a322ea5ebcd\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"right.txt\"],\"purpose\":\"\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/nonoverlap/workspace\",\"session_id\":\"session-b\"},\"outcome\":\"GRANTED\",\"sentinel_line\":\"SUCCESS:lease/lease-7a322ea5ebcd outcome=GRANTED paths=1\"}\nboth_granted=true\ncontrol_result=PASS\nBOTH-STATES-CONTROL-COMPLETE:TST-0161\n",
+          "fingerprint": "468eac26e056db7ae8be984b0835b13fd5c4be0c452e5ce428df2564c9668aa9",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "run_probes.py::run_negative_control compare live advisory write with reference write-time expiry recheck",
+          "raw_output": "REQUIRED NEGATIVE CONTROL: negative control: an advisory-only lease with no write-time recheck must fail the second case\ndetector_assertion=after ownership transfer, writer 1's next write must be rejected and bytes must remain owned by writer 2\nbad_state_model=live advisory-only lease plus direct filesystem write with no write-time recheck\nbad_state_successor_granted=true\nbad_state_stale_writer_rejected=false\nbad_state_writer_exit_code=0\nbad_state_observed=WRITE-SUCCEEDED\nbad_oracle_command=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0161/post_transfer_oracle.py\nbad_oracle_input={\"stale_writer_rejected\":false,\"successor_bytes_unchanged\":false,\"successor_granted\":true}\nbad_oracle_stdout_json=\"successor_granted=true\\nstale_writer_rejected=false\\nsuccessor_bytes_unchanged=false\\noracle_result=FAIL\\n\"\nbad_oracle_stderr_json=\"\"\nbad_assertion_exit_code=1\ndetector_fired_on_bad_state=true\ngood_state_model=reference write-time recheck reads writer 1 lease immediately before write\ngood_state_successor_granted=true\ngood_state_reference_rejected=true\ngood_state_reference_error=write-time recheck rejected expired writer 1 lease\ngood_state_bytes_unchanged=true\ngood_oracle_command=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0161/post_transfer_oracle.py\ngood_oracle_input={\"stale_writer_rejected\":true,\"successor_bytes_unchanged\":true,\"successor_granted\":true}\ngood_oracle_stdout_json=\"successor_granted=true\\nstale_writer_rejected=true\\nsuccessor_bytes_unchanged=true\\noracle_result=PASS\\n\"\ngood_oracle_stderr_json=\"\"\ngood_assertion_exit_code=0\ndetector_silent_on_good_state=true\nnegative_control_result=PASS\nNEGATIVE-CONTROL-COMPLETE:TST-0161\n",
+          "fingerprint": "e2d5f4d69804317ceb77524b8018150af802afbd171105be539b89a9d2470abb",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Completion condition 11 is not satisfied for TST-0161: the live check is red or the current unit-artifact manifest has no registration row.",
+      "verdict": "BLOCKED",
+      "anchor": "command-center/p2-wave/probes/TST-0161/condition11-live-check.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check",
+          "raw_output": "CONDITION 11 LIVE CHECK\nunit_id=TST-0161\nstage=refute\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check\nexit_code=1\nstdout_begin\nFAILED:unit-manifest receipt command-center/receipts/TST-0160.json names absent artifact command-center/p2-wave/probes/TST-0160/runtime/cross-vendor/coordination-store/fingerprints/b470d3247f5d424be8912e7b5b3e354d1abc1ea91888b722643b5cd65e98f5f9.dup-claim-da9ddb6cd301.json\nstdout_end\nstderr_begin\n<EMPTY>\nstderr_end\ncondition11_live=false\nmanifest_write_invoked=false\nunit_manifest_edited=false\nCONDITION-11-CHECK-COMPLETE:TST-0161\n",
+          "fingerprint": "dbaf2b4d486d4a43a0bd47ebee10f443c5a9fcbd760bbaca5f5d69ed20e07c5f",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "read command-center/UNIT-ARTIFACT-MANIFEST.json and select artifacts with unit_id TST-0161",
+          "raw_output": "UNIT ARTIFACT MANIFEST REGISTRATION CHECK\nmanifest=command-center/UNIT-ARTIFACT-MANIFEST.json\nmanifest_parse_error=<NONE>\nmanifest_row_count=4\nmatching_unit_rows=0\nmatching_primary_path_rows=0\nregistered=false\nmatching_rows=[]\nmanifest_write_invoked=false\nMANIFEST-REGISTRATION-CHECK-COMPLETE:TST-0161\n",
+          "fingerprint": "368cb42d608fedcd2a0b052d9d1669010542cb9d6700775682035d07449002cb",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "TST-0161-CONFLICT",
+      "name": "second same-path requester receives an explicit conflict object",
+      "command": "run_probes.py::run_conflict_probe",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "outcome=CONFLICT; conflicts=1; holder=session-1"
+    },
+    {
+      "id": "TST-0161-EXPIRY",
+      "name": "writer 1 fails its next write after lease expiry and successor acquisition",
+      "command": "run_probes.py::run_expiry_probe",
+      "result": "FAIL",
+      "assertions": 4,
+      "output_tail": "successor_granted=True; stale_writer_rejected=False; writer_exit=0"
+    },
+    {
+      "id": "TST-0161-BOTH-STATES",
+      "name": "both-states control: non-overlapping paths lease independently",
+      "command": "run_probes.py::run_nonoverlap_control",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "left.txt=GRANTED; right.txt=GRANTED"
+    },
+    {
+      "id": "TST-0161-NEGATIVE",
+      "name": "negative control: an advisory-only lease with no write-time recheck must fail the second case",
+      "command": "run_probes.py::run_negative_control",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "bad advisory state assertion exit=1; reference guarded state assertion exit=0"
+    },
+    {
+      "id": "TST-0161-EXISTING-SUITE",
+      "name": "existing platform coordination lease suite",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q platform/coordination/test_leases.py -p no:cacheprovider --basetemp=command-center/p2-wave/probes/TST-0161/runtime/pytest-tmp",
+      "result": "NOT-RUN",
+      "duration_seconds": 0.015506461997574661,
+      "output_tail": "EXISTING LIVE LEASE SUITE\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q platform/coordination/test_leases.py -p no:cacheprovider --basetemp=command-center/p2-wave/probes/TST-0161/runtime/pytest-tmp\nexit_code=1\nstdout_begin\n<EMPTY>\nstdout_end\nstderr_begin\n/usr/bin/python3: No module named pytest\nstderr_end\nduration_seconds=0.015506\nsuite_result=NOT-RUN\nEXISTING-SUITE-COMPLETE:TST-0161\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "TST-0161-ADVISORY-ONLY",
+      "kind": "mutation",
+      "description": "negative control: an advisory-only lease with no write-time recheck must fail the second case",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "advisory-only lease; no write-time recheck; stale writer exited 0 and overwrote successor; bad_assertion_exit_code=1",
+      "good_state_output": "reference write-time expiry recheck raised LeaseConflict and preserved successor bytes; good_assertion_exit_code=0"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "prompt-two-r2e-refute-worker-TST-0161",
+    "verdict": "FAIL",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "notes": "Fresh refute-stage worker did not author the pre-existing harness; it cleared only stage-local runtime state, reran both named probes and both controls, and observed the stale writer overwrite the successor-owned bytes.",
+    "reviewed_at": "2026-08-17T02:28:12.285005Z"
+  },
+  "defects": [
+    {
+      "id": "TST-0161-STALE-WRITER",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Lease expiry permits a successor acquisition without fencing the original writer's next filesystem write."
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "timestamps": {
+    "started_at": "2026-08-17T02:28:12.000066Z",
+    "ended_at": "2026-08-17T02:28:12.285005Z",
+    "duration_seconds": 0.2849390506744385
+  },
+  "retry": {
+    "count": 0,
+    "policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+    "attempts": []
+  },
+  "failure": {
+    "classification": [
+      "detector-failure",
+      "green-not-live"
+    ],
+    "reason": "The substantive PASS criterion is false: after expiry and successor acquisition, writer 1's next write succeeded and overwrote writer 2. Condition 11 is also unsatisfied, so SUCCESS is intentionally withheld.",
+    "diagnostic_tail": "NAMED PROBE (b): the first writer's post-expiry write outcome\nevidence_requirement_verbatim=two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome\nlive_surface=platform/coordination/leases.py plus the filesystem write it coordinates\ntimeline=writer-1 starts while lease valid; simulated clock passes expiry; writer-2 acquires; writer-1 performs next write\nwriter_process_model=multiprocessing spawn with parent-held pre/post-transfer gates\nwriter_write_api=pathlib.Path.write_text\nsource_surface={\"functions\":[\"_active_leases\",\"_fold\",\"_holder_liveness\",\"_in_force\",\"_parts_equal\",\"_resolve_without_requiring_existence\",\"acquire_lease\",\"active\",\"detect_conflicts\",\"expired\",\"from_dict\",\"granted\",\"normalize_lease_path\",\"overlaps\",\"path_parts\",\"release_leases\",\"renew_lease\",\"require_lease\",\"sentinel_line\",\"to_dict\",\"to_dict\",\"to_dict\"],\"module_calls_itself_advisory\":true,\"path\":\"platform/coordination/leases.py\",\"sha256\":\"37df166bf97f5957f3e7554ef3c578dcb9cf76ade086f9f05ee486dea1f0c105\",\"write_guard_function_names\":[]}\nlease_1={\"acquired_at\":1800001000.0,\"expires_at\":1800001010.0,\"kind\":\"lease\",\"lease_id\":\"lease-51cfcf27718a\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"shared.txt\"],\"purpose\":\"writer 1 begins before expiry\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/expiry/workspace\",\"session_id\":\"session-1\"}\nclock_before_expiry=1800001000.0\nclock_after_expiry=1800001011.0\nlease_1_expired=true\nsuccessor_return_object={\"conflicts\":[],\"kind\":\"lease_result\",\"lease\":{\"acquired_at\":1800001011.0,\"expires_at\":1800001041.0,\"kind\":\"lease\",\"lease_id\":\"lease-e60ec91eb066\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"shared.txt\"],\"purpose\":\"successor after writer 1 expiry\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/expiry/workspace\",\"session_id\":\"session-2\"},\"outcome\":\"GRANTED\",\"sentinel_line\":\"SUCCESS:lease/lease-e60ec91eb066 outcome=GRANTED paths=1\"}\nsuccessor_granted=true\ncontent_before_stale_write_json=\"writer=session-2\\nphase=ownership-transferred\\n\"\nwriter_1_process_exit_code=0\nwriter_1_write_result={\"bytes_written\":46,\"error\":null,\"error_type\":null,\"payload\":\"writer=session-1\\nphase=post-expiry-next-write\\n\",\"write_succeeded\":true}\ncontent_after_stale_write_json=\"writer=session-1\\nphase=post-expiry-next-write\\n\"\nsuccessor_bytes_overwritten=true\nstale_writer_rejected=false\nrequired_post_expiry_outcome=REJECTED\nobserved_post_expiry_outcome=WRITE-SUCCEEDED\nfinding=expiry silently transferred the lease while writer 1 remained able to overwrite writer 2's bytes\nprobe_result=FAIL\nPROBE-B-COMPLETE:TST-0161\n\nCONDITION 11 LIVE CHECK\nunit_id=TST-0161\nstage=refute\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check\nexit_code=1\nstdout_begin\nFAILED:unit-manifest receipt command-center/receipts/TST-0160.json names absent artifact command-center/p2-wave/probes/TST-0160/runtime/cross-vendor/coordination-store/fingerprints/b470d3247f5d424be8912e7b5b3e354d1abc1ea91888b722643b5cd65e98f5f9.dup-claim-da9ddb6cd301.json\nstdout_end\nstderr_begin\n<EMPTY>\nstderr_end\ncondition11_live=false\nmanifest_write_invoked=false\nunit_manifest_edited=false\nCONDITION-11-CHECK-COMPLETE:TST-0161\n",
+    "blocked_on": "A production write-time lease/fencing recheck and a green condition-11 manifest check with TST-0161 registered.",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0161/run_probes.py # named probe a",
+        "raw_output": "NAMED PROBE (a): the second requester's returned conflict object\nevidence_requirement_verbatim=two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome\nlive_surface=platform/coordination/leases.py::acquire_lease\nclock=coordination.simclock.SimClock\nrequest_order=session-1 grant, then session-2 same-path request\nfirst_outcome=GRANTED\nsecond_return_object={\"conflicts\":[{\"holder_liveness\":\"LIVE\",\"lease_a\":\"(requested)\",\"lease_b\":\"lease-7207ebdb6989\",\"mode_a\":\"EXCLUSIVE\",\"mode_b\":\"EXCLUSIVE\",\"path_a\":\"shared.txt\",\"path_b\":\"shared.txt\",\"reason\":\"EXCLUSIVE request overlaps EXCLUSIVE lease lease-7207ebdb6989 held by session-1 (liveness=LIVE)\",\"session_a\":\"session-2\",\"session_b\":\"session-1\"}],\"kind\":\"lease_result\",\"lease\":null,\"outcome\":\"CONFLICT\",\"sentinel_line\":\"FAILED:lease outcome=CONFLICT blocked_by=['session-1']\"}\nsecond_outcome=CONFLICT\nsecond_lease_is_null=true\nsecond_conflict_count=1\nsecond_conflict_holder=session-1\nsecond_conflict_reason=EXCLUSIVE request overlaps EXCLUSIVE lease lease-7207ebdb6989 held by session-1 (liveness=LIVE)\nexplicit_conflict_object=true\nprobe_result=PASS\nPROBE-A-COMPLETE:TST-0161\n",
+        "fingerprint": "93469d44f61e500e1d2cb688f6f1d5a431bcf42b099257f793da523ea5760d32",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "process-table",
+        "command": "run_probes.py::run_expiry_probe multiprocessing writer gated across SimClock expiry and successor acquisition",
+        "raw_output": "NAMED PROBE (b): the first writer's post-expiry write outcome\nevidence_requirement_verbatim=two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome\nlive_surface=platform/coordination/leases.py plus the filesystem write it coordinates\ntimeline=writer-1 starts while lease valid; simulated clock passes expiry; writer-2 acquires; writer-1 performs next write\nwriter_process_model=multiprocessing spawn with parent-held pre/post-transfer gates\nwriter_write_api=pathlib.Path.write_text\nsource_surface={\"functions\":[\"_active_leases\",\"_fold\",\"_holder_liveness\",\"_in_force\",\"_parts_equal\",\"_resolve_without_requiring_existence\",\"acquire_lease\",\"active\",\"detect_conflicts\",\"expired\",\"from_dict\",\"granted\",\"normalize_lease_path\",\"overlaps\",\"path_parts\",\"release_leases\",\"renew_lease\",\"require_lease\",\"sentinel_line\",\"to_dict\",\"to_dict\",\"to_dict\"],\"module_calls_itself_advisory\":true,\"path\":\"platform/coordination/leases.py\",\"sha256\":\"37df166bf97f5957f3e7554ef3c578dcb9cf76ade086f9f05ee486dea1f0c105\",\"write_guard_function_names\":[]}\nlease_1={\"acquired_at\":1800001000.0,\"expires_at\":1800001010.0,\"kind\":\"lease\",\"lease_id\":\"lease-51cfcf27718a\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"shared.txt\"],\"purpose\":\"writer 1 begins before expiry\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/expiry/workspace\",\"session_id\":\"session-1\"}\nclock_before_expiry=1800001000.0\nclock_after_expiry=1800001011.0\nlease_1_expired=true\nsuccessor_return_object={\"conflicts\":[],\"kind\":\"lease_result\",\"lease\":{\"acquired_at\":1800001011.0,\"expires_at\":1800001041.0,\"kind\":\"lease\",\"lease_id\":\"lease-e60ec91eb066\",\"mode\":\"EXCLUSIVE\",\"paths\":[\"shared.txt\"],\"purpose\":\"successor after writer 1 expiry\",\"released_at\":null,\"renew_seq\":0,\"root\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0161/runtime/expiry/workspace\",\"session_id\":\"session-2\"},\"outcome\":\"GRANTED\",\"sentinel_line\":\"SUCCESS:lease/lease-e60ec91eb066 outcome=GRANTED paths=1\"}\nsuccessor_granted=true\ncontent_before_stale_write_json=\"writer=session-2\\nphase=ownership-transferred\\n\"\nwriter_1_process_exit_code=0\nwriter_1_write_result={\"bytes_written\":46,\"error\":null,\"error_type\":null,\"payload\":\"writer=session-1\\nphase=post-expiry-next-write\\n\",\"write_succeeded\":true}\ncontent_after_stale_write_json=\"writer=session-1\\nphase=post-expiry-next-write\\n\"\nsuccessor_bytes_overwritten=true\nstale_writer_rejected=false\nrequired_post_expiry_outcome=REJECTED\nobserved_post_expiry_outcome=WRITE-SUCCEEDED\nfinding=expiry silently transferred the lease while writer 1 remained able to overwrite writer 2's bytes\nprobe_result=FAIL\nPROBE-B-COMPLETE:TST-0161\n",
+        "fingerprint": "1a1276beed0cd97a6e2747915bdfc81b5be7aa3626d123f7df7c1a907dcdef83",
+        "exit_code": 1
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The live mcp_agent_mail service is a separate advisory lease implementation and was not treated as the catalog's platform/coordination target.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Repeat the same gated expiry timeline through the deployed mcp_agent_mail API if that service is designated as the TST-0161 target."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5",
+    "role": "headless-r2e-worker",
+    "execution_substrate": "local-parallel"
+  },
+  "report": {
+    "kind": "concurrency_report",
+    "observations": [
+      {
+        "name": "second_requester_explicit_conflict",
+        "measured": true,
+        "method": "sequential live API acquisitions against one same-path lease",
+        "anchor": "command-center/p2-wave/probes/TST-0161/probe-a-second-requester-conflict.raw.txt:1"
+      },
+      {
+        "name": "successor_granted_after_expiry",
+        "measured": true,
+        "method": "injected clock advanced eleven seconds beyond a ten-second lease",
+        "anchor": "command-center/p2-wave/probes/TST-0161/probe-b-first-writer-post-expiry.raw.txt:1"
+      },
+      {
+        "name": "stale_writer_rejected",
+        "measured": false,
+        "method": "writer process gated across expiry and transfer, then observed at its next write",
+        "anchor": "command-center/p2-wave/probes/TST-0161/probe-b-first-writer-post-expiry.raw.txt:1"
+      },
+      {
+        "name": "advisory_negative_control_goes_red",
+        "measured": true,
+        "method": "same post-transfer assertion applied to advisory and reference-guarded states",
+        "anchor": "command-center/p2-wave/probes/TST-0161/negative-control-advisory-only.raw.txt:1"
+      }
+    ],
+    "control_ids": [
+      "TST-0161-BOTH-STATES",
+      "TST-0161-ADVISORY-ONLY"
+    ]
+  },
+  "extensions": {
+    "stage": "refute",
+    "prior_stage_output": "implement rc=0",
+    "probes_reran": true,
+    "refute_disposition": "REFUTED",
+    "title": "File-lease conflict surfaces and expiry cannot silently transfer a live write",
+    "evidence_requirement_verbatim": "two independent signals: (a) the second requester's returned conflict object, and (b) the first writer's post-expiry write outcome",
+    "tests_required_verbatim": [
+      "both-states control: non-overlapping paths lease independently",
+      "negative control: an advisory-only lease with no write-time recheck must fail the second case"
+    ],
+    "question_answer": "The second requester receives an explicit conflict object. However, expiry can transfer ownership without fencing the original writer: writer 1's next write succeeded and overwrote writer 2, so the required PASS criterion fails.",
+    "primary_artifact": "command-center/p2-wave/probes/TST-0161/REFUTE.md",
+    "primary_artifact_final_line": "UNIT-COMPLETE:TST-0161",
+    "completion_line": "UNIT-COMPLETE:TST-0161",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters expose the exact completion line to Unicode splitlines while preserving one parseable JSON document.",
+    "completion_marker": "UNIT-COMPLETE:TST-0161",
+    "cloud_ok_local_revalidation": {
+      "when": "2026-08-17",
+      "strike": 1,
+      "dropped_absent_sidecar_rows": [
+        "command-center/p2-wave/probes/TST-0161/REFUTE.md",
+        "command-center/p2-wave/probes/TST-0161/IMPLEMENTATION.md",
+        "command-center/p2-wave/probes/TST-0161/GROUNDING.md",
+        "command-center/p2-wave/probes/TST-0161/run_probes.py",
+        "command-center/p2-wave/probes/TST-0161/post_transfer_oracle.py",
+        "command-center/p2-wave/probes/TST-0161/capture_condition11.py",
+        "command-center/p2-wave/probes/TST-0161/build_receipt.py",
+        "command-center/p2-wave/probes/TST-0161/validate_delivery.py",
+        "command-center/p2-wave/probes/TST-0161/measurements.json",
+        "command-center/p2-wave/probes/TST-0161/probe-a-second-requester-conflict.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/probe-b-first-writer-post-expiry.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/both-states-nonoverlap.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/negative-control-advisory-only.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/existing-lease-suite.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/condition11-live-check.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/manifest-registration-check.raw.txt",
+        "command-center/p2-wave/probes/TST-0161/probe-summary.raw.txt"
+      ],
+      "reason": "all 17 artifacts[] paths were exists:true but absent on this tree; exists.const=true forbids exists=false",
+      "live_unit_manifest_check_no_write": {
+        "exit_code": 1,
+        "first_red": "FAILED:unit-manifest receipt command-center/receipts/CC-0010.json names absent artifact command-center/p2-wave/probes/CC-0010/REFUTATION-REPORT.txt"
+      },
+      "state_left": "BLOCKED",
+      "registered_left": false
+    }
+  }
+}

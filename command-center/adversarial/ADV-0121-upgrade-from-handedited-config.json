@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0121",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0121 measurement contract complete; layout migration byte-preserving CONFIRMED; fail-open migrate then fail-closed parser PARTIAL",
+  "spec_anchor": "_USER-PROMPTS.md:10838, 11302",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "platform-fault-injector",
+    "execution_substrate": "linux-headless"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json",
+      "bytes": 24932,
+      "sha256": "e8fd54679ed7981533f89e9947c148f12f688a6fc0f6741ecb02d8cb80a85646",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0121/probe1-migration-matrix.raw.txt",
+      "bytes": 8591,
+      "sha256": "00050fe40a7bc24d6f32bf4e9f4a9aa741f4439b9da4aba4f80fdb6d1486866b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0121/probe2-semantic-diff.raw.txt",
+      "bytes": 3400,
+      "sha256": "5c3acccc20d2dd674619e1b7bcbe8e7c593684c95669f92585ea0afd1b60e9f0",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Across the oldest supported flat-v0 layout, Probe 1 preserved all six hand-edited configuration variants byte-for-byte, but the migrate command returned success for unknown-key, comment, and outside-enum variants that the current strict parser subsequently refused. The measured boundary is fail-open migration followed by fail-closed loading.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0121/probe1-migration-matrix.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/ADV-0121/probe1_migration_matrix.py",
+          "raw_output": "Probe 1: run the migration on each variant and classify the outcome: migrated correctly, refused with a clear message, crashed, or migrated with user content silently lost.\nprobe=ADV-0121-P1-public-cli-migration-matrix\nprobe_started_at=2026-08-19T19:04:57Z\nimplementation=command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate\nplatform_root=command-center/p2-wave/probes/ADV-0121/_subject/platform\noperational_N_minus_2=the implementation oldest supported fingerprint, flat-v0 (root plugin.json with no versions/ and no state/installed.json)\nclassification_scope=migration command plus destination-byte comparison; current strict-parser usability is recorded separately so a false-success cannot be mislabeled a refusal\nrequired_outcomes=[\"migrated correctly\",\"refused with a clear message\",\"crashed\",\"migrated with user content silently lost\"]\nMATRIX_BEGIN\nVARIANT_BEGIN pristine_n_minus_2\nsource_layout=flat-v0\ninput_bytes=635\ninput_sha256=3c9b45092e5d62f4ecf0ceb8596dbacc6b1540e9d3f6899f247bd743cabe9f10\ninput_eol=LF\n$ python -B command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate --prefix command-center/p2-wave/probes/ADV-0121/runs/probe1/pristine_n_minus_2/prefix --version 1.0.0 --json command-center/p2-wave/probes/ADV-0121/runs/probe1/pristine_n_minus_2/migration-ledger.json\nexit_code=0\nstdout_begin\nSUCCESS:migrate\nstdout_end\nstderr_begin\n\nstderr_end\nledger_detected_layout=flat-v0\nledger_ok=True\nledger_applied_ids=[\"move:commands\",\"move:plugin.json\",\"relocate:manifest\"]\ndestination_exists=true\nsource_exists_after=false\npost_bytes=635\npost_sha256=3c9b45092e5d62f4ecf0ceb8596dbacc6b1540e9d3f6899f247bd743cabe9f10\npost_eol=LF\nbytes_equal=true\nrequired_classification=migrated correctly\ncurrent_parser=ACCEPTED\ncurrent_parser_expected_accept=true\ncurrent_parser_expectation_met=true\ncurrent_parser_detail=current strict parser accepted the migrated manifest\nend_to_end=usable\nVARIANT_END pristine_n_minus_2\nVARIANT_BEGIN unknown_key\nsource_layout=flat-v0\ninput_bytes=664\ninput_sha256=7984b03e74541d13ff062c8a3298a581976231fd538d614e3563f5f188316e83\ninput_eol=LF\n$ python -B command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate --prefix command-center/p2-wave/probes/ADV-0121/runs/probe1/unknown_key/prefix --version 1.0.0 --json command-center/p2-wave/probes/ADV-0121/runs/probe1/unknown_key/migration-ledger.json\nexit_code=0\nstdout_begin\nSUCCESS:migrate\nstdout_end\nstderr_begin\n\nstderr_end\nledger_detected_layout=flat-v0\nledger_ok=True\nledger_applied_ids=[\"move:commands\",\"move:plugin.json\",\"relocate:manifest\"]\ndestination_exists=true\nsource_exists_after=false\npost_bytes=664\npost_sha256=7984b03e74541d13ff062c8a3298a581976231fd538d614e3563f5f188316e83\npost_eol=LF\nbytes_equal=true\nrequired_classification=migrated correctly\ncurrent_parser=REFUSED:E_MANIFEST\ncurrent_parser_expected_accept=false\ncurrent_parser_expectation_met=true\ncurrent_parser_detail=E_MANIFEST: unknown field 'user_preference' in '<root>'; use the reserved 'x-' namespace for extensions\nend_to_end=false-success-schema-invalid\nVARIANT_END unknown_key\nVARIANT_BEGIN reordered_sections\nsource_layout=flat-v0\ninput_bytes=635\ninput_sha256=007b8f0006db3141d3e9bbe8e08dc0403831d5ed6f68ffbada35c4918883f510\ninput_eol=LF\n$ python -B command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate --prefix command-center/p2-wave/probes/ADV-0121/runs/probe1/reordered_sections/prefix --version 1.0.0 --json command-center/p2-wave/probes/ADV-0121/runs/probe1/reordered_sections/migration-ledger.json\nexit_code=0\nstdout_begin\nSUCCESS:migrate\nstdout_end\nstderr_begin\n\nstderr_end\nledger_detected_layout=flat-v0\nledger_ok=True\nledger_applied_ids=[\"move:commands\",\"move:plugin.json\",\"relocate:manifest\"]\ndestination_exists=true\nsource_exists_after=false\npost_bytes=635\npost_sha256=007b8f0006db3141d3e9bbe8e08dc0403831d5ed6f68ffbada35c4918883f510\npost_eol=LF\nbytes_equal=true\nrequired_classification=migrated correctly\ncurrent_parser=ACCEPTED\ncurrent_parser_expected_accept=true\ncurrent_parser_expectation_met=true\ncurrent_parser_detail=current strict parser accepted the migrated manifest\nend_to_end=usable\nVARIANT_END reordered_sections\nVARIANT_BEGIN comments\nsource_layout=flat-v0\ninput_bytes=676\ninput_sha256=f582e4f70f2418e0cf93b2e56101dfa9f1c90a1bf514ae9a88769dd803261751\ninput_eol=LF\n$ python -B command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate --prefix command-center/p2-wave/probes/ADV-0121/runs/probe1/comments/prefix --version 1.0.0 --json command-center/p2-wave/probes/ADV-0121/runs/probe1/comments/migration-ledger.json\nexit_code=0\nstdout_begin\nSUCCESS:migrate\nstdout_end\nstderr_begin\n\nstderr_end\nledger_detected_layout=flat-v0\nledger_ok=True\nledger_applied_ids=[\"move:commands\",\"move:plugin.json\",\"relocate:manifest\"]\ndestination_exists=true\nsource_exists_after=false\npost_bytes=676\npost_sha256=f582e4f70f2418e0cf93b2e56101dfa9f1c90a1bf514ae9a88769dd803261751\npost_eol=LF\nbytes_equal=true\nrequired_classification=migrated correctly\ncurrent_parser=REFUSED:E_MANIFEST\ncurrent_parser_expected_accept=false\ncurrent_parser_expectation_met=true\ncurrent_parser_detail=E_MANIFEST: manifest is not valid JSON: Expecting property name enclosed in double quotes: line 2 column 3 (char 4)\nend_to_end=false-success-schema-invalid\nVARIANT_END comments\nVARIANT_BEGIN crlf_line_endings\nsource_layout=flat-v0\ninput_bytes=671\ninput_sha256=e18b28a651b562d4597d9c44b21ff8be2e2b586f91a66c1c48a8f06d29898698\ninput_eol=CRLF\n$ python -B command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate --prefix command-center/p2-wave/probes/ADV-0121/runs/probe1/crlf_line_endings/prefix --version 1.0.0 --json command-center/p2-wave/probes/ADV-0121/runs/probe1/crlf_line_endings/migration-ledger.json\nexit_code=0\nstdout_begin\nSUCCESS:migrate\nstdout_end\nstderr_begin\n\nstderr_end\nledger_detected_layout=flat-v0\nledger_ok=True\nledger_applied_ids=[\"move:commands\",\"move:plugin.json\",\"relocate:manifest\"]\ndestination_exists=true\nsource_exists_after=false\npost_bytes=671\npost_sha256=e18b28a651b562d4597d9c44b21ff8be2e2b586f91a66c1c48a8f06d29898698\npost_eol=CRLF\nbytes_equal=true\nrequired_classification=migrated correctly\ncurrent_parser=ACCEPTED\ncurrent_parser_expected_accept=true\ncurrent_parser_expectation_met=true\ncurrent_parser_detail=current strict parser accepted the migrated manifest\nend_to_end=usable\nVARIANT_END crlf_line_endings\nVARIANT_BEGIN outside_current_enum\nsource_layout=flat-v0\ninput_bytes=634\ninput_sha256=9a366d899b12d3a1d1aabd5ca314402fa7a0941a9034ddf5e4a71780008e4d9f\ninput_eol=LF\n$ python -B command-center/p2-wave/probes/ADV-0121/_subject/platform/plugin/astplugin.py migrate --prefix command-center/p2-wave/probes/ADV-0121/runs/probe1/outside_current_enum/prefix --version 1.0.0 --json command-center/p2-wave/probes/ADV-0121/runs/probe1/outside_current_enum/migration-ledger.json\nexit_code=0\nstdout_begin\nSUCCESS:migrate\nstdout_end\nstderr_begin\n\nstderr_end\nledger_detected_layout=flat-v0\nledger_ok=True\nledger_applied_ids=[\"move:commands\",\"move:plugin.json\",\"relocate:manifest\"]\ndestination_exists=true\nsource_exists_after=false\npost_bytes=634\npost_sha256=9a366d899b12d3a1d1aabd5ca314402fa7a0941a9034ddf5e4a71780008e4d9f\npost_eol=LF\nbytes_equal=true\nrequired_classification=migrated correctly\ncurrent_parser=REFUSED:E_MANIFEST\ncurrent_parser_expected_accept=false\ncurrent_parser_expectation_met=true\ncurrent_parser_detail=E_MANIFEST: entrypoints['user-command'].kind must be one of ['command', 'hook', 'script', 'skill']\nend_to_end=false-success-schema-invalid\nVARIANT_END outside_current_enum\nMATRIX_END\nrequired_classification_counts={\"migrated correctly\":6,\"refused with a clear message\":0,\"crashed\":0,\"migrated with user content silently lost\":0}\nexact_byte_preservation_variants=[\"pristine_n_minus_2\", \"unknown_key\", \"reordered_sections\", \"comments\", \"crlf_line_endings\", \"outside_current_enum\"]\ncurrent_parser_accepted=[\"pristine_n_minus_2\", \"reordered_sections\", \"crlf_line_endings\"]\ncurrent_parser_refused=[\"unknown_key\", \"comments\", \"outside_current_enum\"]\nmigration_false_success_schema_invalid=[\"unknown_key\", \"comments\", \"outside_current_enum\"]\nmigration_command_failures=[]\npristine_N_minus_2_control_passed=true\nparser_expectations_met=true\nsilent_content_loss_count=0\nobserved_boundary=migration is fail-open on configuration validity; the later strict parser is fail-closed with E_MANIFEST; no user bytes were discarded\nprobe_verdict=PARTIAL\nprobe_ended_at=2026-08-19T19:04:57Z\nprobe_harness_ok=true\nSUCCESS:ADV-0121-probe1\n",
+          "fingerprint": "5a1fb33d5fa2885a4ab4055cb7b1752e21a1af8d052f7b58f64dcdce85a68017",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Probe 2, calling plugin.migrate.migrate on independent prefixes, found empty semantic diffs on all six variants and the silent-discard detector transitioned 0 to 1 when a reserved x-user-hand-edit value was deleted from an otherwise valid configuration.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0121/probe2-semantic-diff.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/probes/ADV-0121/probe2_semantic_diff.py",
+          "raw_output": "Probe 2 (mechanically different): semantic diff of the pre- and post-migration configuration to detect silent loss, since a migration that succeeds and drops a users custom key looks identical to a clean success from the exit code.\nprobe=ADV-0121-P2-independent-semantic-diff\nprobe_started_at=2026-08-19T19:05:00Z\nexecution=direct plugin.migrate.migrate on fresh prefixes (not Probe 1 CLI results)\nplatform_root=command-center/p2-wave/probes/ADV-0121/_subject/platform\noracle=recursive typed JSON/JSONC value-path diff plus separate comment-byte and line-ending observations\nSEMANTIC_MATRIX_BEGIN\nVARIANT_BEGIN pristine_n_minus_2\nledger_detected_layout=flat-v0\nledger_ok=True\npre_parser=json\npost_parser=json\nsemantic_equal=true\nsemantic_diff=[]\nraw_bytes_equal=true\ncomment_lines_equal=true\ncrlf_pairs_before=0\ncrlf_pairs_after=0\nsemantic_diff_classification=no-silent-loss\nVARIANT_END pristine_n_minus_2\nVARIANT_BEGIN unknown_key\nledger_detected_layout=flat-v0\nledger_ok=True\npre_parser=json\npost_parser=json\nsemantic_equal=true\nsemantic_diff=[]\nraw_bytes_equal=true\ncomment_lines_equal=true\ncrlf_pairs_before=0\ncrlf_pairs_after=0\nsemantic_diff_classification=no-silent-loss\nVARIANT_END unknown_key\nVARIANT_BEGIN reordered_sections\nledger_detected_layout=flat-v0\nledger_ok=True\npre_parser=json\npost_parser=json\nsemantic_equal=true\nsemantic_diff=[]\nraw_bytes_equal=true\ncomment_lines_equal=true\ncrlf_pairs_before=0\ncrlf_pairs_after=0\nsemantic_diff_classification=no-silent-loss\nVARIANT_END reordered_sections\nVARIANT_BEGIN comments\nledger_detected_layout=flat-v0\nledger_ok=True\npre_parser=jsonc-full-line-comment-stripped\npost_parser=jsonc-full-line-comment-stripped\nsemantic_equal=true\nsemantic_diff=[]\nraw_bytes_equal=true\ncomment_lines_equal=true\ncrlf_pairs_before=0\ncrlf_pairs_after=0\nsemantic_diff_classification=no-silent-loss\nVARIANT_END comments\nVARIANT_BEGIN crlf_line_endings\nledger_detected_layout=flat-v0\nledger_ok=True\npre_parser=json\npost_parser=json\nsemantic_equal=true\nsemantic_diff=[]\nraw_bytes_equal=true\ncomment_lines_equal=true\ncrlf_pairs_before=36\ncrlf_pairs_after=36\nsemantic_diff_classification=no-silent-loss\nVARIANT_END crlf_line_endings\nVARIANT_BEGIN outside_current_enum\nledger_detected_layout=flat-v0\nledger_ok=True\npre_parser=json\npost_parser=json\nsemantic_equal=true\nsemantic_diff=[]\nraw_bytes_equal=true\ncomment_lines_equal=true\ncrlf_pairs_before=0\ncrlf_pairs_after=0\nsemantic_diff_classification=no-silent-loss\nVARIANT_END outside_current_enum\nSEMANTIC_MATRIX_END\nCONTROL_GOOD_BEGIN\ndescription=unmodified migrated configuration containing a valid reserved x-user-hand-edit value\npost_current_schema_valid=true\nsemantic_diff=[]\ndetector_exit=0\nCONTROL_GOOD_END\nCONTROL_BAD_BEGIN\ndescription=mutant silently deletes x-user-hand-edit while leaving the resulting configuration valid\npost_current_schema_valid=true\nsemantic_diff=[\"missing:$.x-user-hand-edit.keep\", \"missing:$.x-user-hand-edit.source\"]\ndetector_exit=1\nfinding_severity=P1\nCONTROL_BAD_END\nnegative_control_fired=true\nnegative_control_silent_on_good_state=true\nnegative_control_transition=0->1\nsemantic_equal_variants=[\"pristine_n_minus_2\", \"unknown_key\", \"reordered_sections\", \"comments\", \"crlf_line_endings\", \"outside_current_enum\"]\nsilent_loss_variants=[]\nactual_silent_loss_count=0\nprobe_verdict=CONFIRMED_NO_SILENT_LOSS\nprobe_ended_at=2026-08-19T19:05:00Z\nprobe_harness_ok=true\nSUCCESS:ADV-0121-probe2\n",
+          "fingerprint": "cef9dee2058b28628570bd963cb501026b7aa335227fe9ef89e3817852c8d025",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/ADV-0121/probe2_semantic_diff.py # CONTROL_GOOD/CONTROL_BAD",
+          "raw_output": "verifier=file-read of probe2-semantic-diff.raw.txt\nraw_bytes=3400\nraw_sha256=5c3acccc20d2dd674619e1b7bcbe8e7c593684c95669f92585ea0afd1b60e9f0\nsuccess_line=True\nnegative_control_fired=true\nnegative_control_silent_on_good_state=true\nactual_silent_loss_count=0\nprobe_verdict=CONFIRMED_NO_SILENT_LOSS\nVERIFIER_RESULT=PASS\n",
+          "fingerprint": "08fd0d0d8990b9366b1f26bd9d04969cc3f5bb79d8baa8b939decc039f2a0812",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ADV0121-PROBES",
+      "name": "Both named probes ran over all six variants with different oracles",
+      "command": "python -B command-center/p2-wave/probes/ADV-0121/probe1_migration_matrix.py ; python -B command-center/p2-wave/probes/ADV-0121/probe2_semantic_diff.py",
+      "result": "PASS",
+      "assertions": 18,
+      "output_tail": "probe1=true probe2=true silent_loss=0\nSUCCESS:ADV-0121-probe1\nSUCCESS:ADV-0121-probe2\n"
+    },
+    {
+      "id": "T-ADV0121-PRISTINE-CONTROL",
+      "name": "control: a pristine N-2 configuration must migrate cleanly",
+      "command": "python -B command-center/p2-wave/probes/ADV-0121/probe1_migration_matrix.py # pristine_n_minus_2 row",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "required_classification=migrated correctly; current_parser=ACCEPTED; bytes_equal=true; pristine_N_minus_2_control_passed=true"
+    },
+    {
+      "id": "T-ADV0121-SILENT-DISCARD-P1",
+      "name": "silent discard of a user value is a P1 finding even when the resulting configuration is valid",
+      "command": "python -B command-center/p2-wave/probes/ADV-0121/probe2_semantic_diff.py # CONTROL_GOOD/CONTROL_BAD",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "CONTROL_BAD detector_exit=1 finding_severity=P1 fired=true"
+    },
+    {
+      "id": "T-ADV0121-NEGATIVE-CONTROL",
+      "name": "negative control that can go red: delete a reserved x-user-hand-edit value while leaving the post-migration configuration valid; semantic diff must exit nonzero and classify the finding P1",
+      "command": "python -B command-center/p2-wave/probes/ADV-0121/probe2_semantic_diff.py # CONTROL_GOOD/CONTROL_BAD 0->1",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "negative_control_transition=0->1 silent_on_good=true fired=true"
+    },
+    {
+      "id": "T-ADV0121-SCHEMA",
+      "name": "Declared schema accepts the artifact and rejects a required-field mutant",
+      "command": "python -B command-center/p2-wave/probes/ADV-0121/_pack_receipt.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "validator=schema_resolver.validate_artifact\ndeclared_schema=command-center/schema/fault-injection-run.schema.json\nschema_errors=0\nmutant_kind_errors=3\ndeclared_schema_accepts=true\nstructural_accepts=true\nschema_negative_control_fired=true\nSUCCESS:ADV-0121-schema\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-ADV0121-SILENT-USER-VALUE-DISCARD",
+      "kind": "mutation",
+      "description": "A valid reserved x-user-hand-edit object is present in the good state; the bad state deletes it while remaining valid under the current parser. The semantic oracle must transition from exit 0 to exit 1 and label the silent discard P1.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "description=mutant silently deletes x-user-hand-edit while leaving the resulting configuration valid\npost_current_schema_valid=true\nsemantic_diff=[\"missing:$.x-user-hand-edit\"]\ndetector_exit=1\nfinding_severity=P1\n",
+      "good_state_output": "description=unmodified migrated configuration containing a valid reserved x-user-hand-edit value\npost_current_schema_valid=true\nsemantic_diff=[]\ndetector_exit=0\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-adv0121-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "grok",
+    "reviewed_at": "2026-08-19T19:05:02Z",
+    "notes": "Cross-vendor re-derivation from live probe1-migration-matrix.raw.txt and probe2-semantic-diff.raw.txt on this Linux worker, not from the harvest UNIT-COMPLETE badge and not from the prior Windows SUCCESS receipt. Probe 1 re-ran astplugin migrate on six flat-v0 variants; Probe 2 called plugin.migrate.migrate independently and fired the silent-discard control. Catalog asked Anthropic opus; this re-derivation is xAI/Grok versus the OpenAI producer."
+  },
+  "defects": [
+    {
+      "id": "D-ADV0121-01",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Measured as PARTIAL: migrate reports SUCCESS for three manifests the current strict parser refuses. The unit job is the measurement; the finding is closed as measured rather than as a product patch."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0121",
+    "registered_at": "2026-08-19T19:05:02Z"
+  },
+  "timestamps": {
+    "started_at": "2026-08-16T18:43:09Z",
+    "ended_at": "2026-08-19T19:05:02Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two implement-and-remeasure strikes then stop; this lock follows live probe pass",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-sidecar-files-absent-cloud-ok-refute",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-17T00:00:00Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-19T19:05:02Z"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No historical versioned N-2 configuration schema or fixture exists in the migration implementation; the probe operationalised N-2 as its oldest supported flat-v0 layout with a current-parser-valid pristine manifest.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Recover the actual N-2 release manifest/schema and rerun both scripts with that captured fixture, including any declared schema transforms."
+    },
+    {
+      "claim": "Repo-root platform/plugin is present on this remesure. migrate.py and manifest.py under probes/ADV-0121/_subject are byte-identical to platform/plugin (migrate sha256 980f37eb7e1274ce8ce6e31208d1e230d4732683ec3afdd76f39cf196e4228da). The resumed probes still resolve _subject first.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "If _subject and repo-root platform/plugin diverge, re-run both probes against the repo-root copy and compare destination hashes."
+    }
+  ],
+  "report": {
+    "kind": "fault-injection-run",
+    "observations": [
+      {
+        "name": "variants_executed",
+        "measured": 6,
+        "method": "public CLI migration matrix",
+        "anchor": "command-center/p2-wave/probes/ADV-0121/probe1-migration-matrix.raw.txt"
+      },
+      {
+        "name": "exact_byte_preservations",
+        "measured": 6,
+        "method": "pre/post SHA-256 and byte equality",
+        "anchor": "command-center/p2-wave/probes/ADV-0121/probe1-migration-matrix.raw.txt"
+      },
+      {
+        "name": "current_parser_refusals_after_success",
+        "measured": 3,
+        "method": "strict manifest load after successful migration",
+        "anchor": "command-center/p2-wave/probes/ADV-0121/probe1-migration-matrix.raw.txt"
+      },
+      {
+        "name": "semantic_loss_variants",
+        "measured": 0,
+        "method": "independent recursive semantic diff",
+        "anchor": "command-center/p2-wave/probes/ADV-0121/probe2-semantic-diff.raw.txt"
+      },
+      {
+        "name": "loss_detector_bad_state_exit",
+        "measured": 1,
+        "method": "valid-but-missing x-user-hand-edit mutant",
+        "anchor": "command-center/p2-wave/probes/ADV-0121/probe2-semantic-diff.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "NC-ADV0121-SILENT-USER-VALUE-DISCARD",
+      "T-ADV0121-PRISTINE-CONTROL"
+    ]
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "question_or_target": "Does the migration path handle a configuration that a user edited by hand - unknown keys, reordered sections, comments, a different line-ending style, or a value outside the current enum - or does it fail closed, fail open, or silently discard the users edits?",
+    "overall_target_verdict": "PARTIAL",
+    "condition_11_route": "STRUCTURAL-CONDITION-11 option 1 per-unit manifest",
+    "probes_passed_before_success": true,
+    "completion_line": "UNIT-COMPLETE:ADV-0121"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact fault-injection-run",
+      "artifact_path": "command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B -c import schema_resolver; schema_resolver.validate_artifact(doc, SCHEMA)",
+        "raw_output": "schema_error_count=0 contract=fault-injection-run mutant_errors=3 schema_negative_control_fired=true resolver_available=true",
+        "fingerprint": "bbedd29ef5588e89aaa9d785437abab6450d416878b499ac377f3f5a6697d6f3",
+        "exit_code": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,379 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0131",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0131 live named probes exit 0; mid-stream TCP reset after 8192 of 32768 payload bytes emits digest mismatch, cache has zero package-id entries, complete-download control and follow-on retry both match ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996; per-unit UNIT-ARTIFACT-MANIFEST.json registered",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0131",
+  "min_bytes_threshold": 1024,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0131.json",
+      "bytes": 30307,
+      "sha256": "216cbca23399af377e79cc828029401b63f18202aa9f5f8dd78d05aee107e30b",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt",
+      "bytes": 845,
+      "sha256": "6cc7ca03130766d4d8f17658cdcd517847e2208d31b865b942a0c5151ecccc70",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt",
+      "bytes": 1691,
+      "sha256": "388417d0d2cde7509d808096424475d127cc0d3a1f9c7e9f1939c7e0022e6622",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0131/probe-b-cache-listing.raw.txt",
+      "bytes": 789,
+      "sha256": "1d3c53241e09283191a264f7a9e75480054d52c73d20a0a1226bff5b1a040cad",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0131/negative-control.raw.txt",
+      "bytes": 836,
+      "sha256": "1856e9406d971a6625cc225941902366a109202e34cbf3c47aaa9844d3bc1734",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A mid-stream TCP reset after N of M payload bytes causes the digest-checking package downloader to emit a digest-mismatch error and leave zero cache entries for the package id.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/run_probe.py",
+          "raw_output": "NAMED PROBE A: digest-mismatch error emitted by the downloader\nunit=TST-0131\npackage_id=demo-quarantine-pkg\nfault_injection=TCP reset after 8192 of 32768 payload bytes\ncomplete_download_transport_bytes=32768\nreset_fired=true\nserver_bytes_forwarded=16384\nPROXY:midstream-reset\nevent_log=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/proxy-midstream-reset.jsonl\nevents_begin\n{\"event\": \"ready\", \"host\": \"127.0.0.1\", \"port\": 39015, \"reset_after\": 8192}\n{\"connection_id\": 1, \"event\": \"connect\", \"host\": \"127.0.0.1\", \"port\": 41709}\n{\"connection_id\": 1, \"event\": \"reset\", \"reset_after\": 8192, \"server_bytes_forwarded\": 8192}\n{\"connection_id\": 1, \"event\": \"disconnect\"}\n{\"connection_id\": 2, \"event\": \"connect\", \"host\": \"127.0.0.1\", \"port\": 41709}\n{\"connection_id\": 2, \"event\": \"reset\", \"reset_after\": 8192, \"server_bytes_forwarded\": 8192}\n{\"connection_id\": 2, \"event\": \"disconnect\"}\n{\"event\": \"shutdown\", \"reset_after\": 8192, \"reset_fired\": true, \"server_bytes_forwarded\": 16384}\nevents_end\nPROCESS:faulted-package-download\nurl=http://127.0.0.1:39015/packages/demo-quarantine-pkg-1.0.0.bin\nexit_code=1\nstdout_begin\n<EMPTY>\nstdout_end\nstderr_begin\ndigest mismatch: expected ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 got f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded received_bytes=4096 expected_bytes=32768 package_id=demo-quarantine-pkg\nstderr_end\nreceived_bytes=4096\nexpected_bytes=32768\nexpected_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\ngot_sha256=f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded\npromoted=false\ndigest_mismatch_error_emitted=true\nresult=PASS\nPROBE-A-COMPLETE:TST-0131\n",
+          "fingerprint": "4fb38deda5e570f036a55c3e90a6864fb25c1c669ba3310d4e9cf69032a4e11f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/cache_listing.py",
+          "raw_output": "NAMED PROBE B: an independent directory listing of the cache showing zero entries for the package id\nunit=TST-0131\npackage_id=demo-quarantine-pkg\nplugin_cache_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/probe-b-fault-home/cache\nplugin_cache_root_exists=false\nplugin_cache_all_entry_count=0\nplugin_cache_package_id_entry_count=0\nplugin_cache_package_id_entries_begin\n<EMPTY>\nplugin_cache_package_id_entries_end\nstaging_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/probe-b-fault-home/staging\nstaging_root_exists=true\nstaging_all_entry_count=1\nstaging_package_id_entry_count=1\npackage_id_cache_entries=0\nzero_entries_for_package_id=true\nmutant_package_id_cache_entries=2\nlisting_can_go_red=true\nresult=PASS\nPROBE-B-COMPLETE:TST-0131\n",
+          "fingerprint": "437db419e6e375131e9990d539cab0ec6343fbcea58e935c768406bb4d75493f",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The truncated remnant does not poison a later install: the complete control and the follow-on retry both install package.bin whose sha256 equals ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/run_probe.py",
+          "raw_output": "PRIMARY ARTIFACT TST-0131\nquestion=When a package download is reset after N of M bytes, is the partial file quarantined outside the cache and the integrity failure reported by digest mismatch?\npackage_id=demo-quarantine-pkg\nN=8192\nM=32768\nreset_fired=true\ndigest_mismatch_error_emitted=true\npackage_id_cache_entries_after_fault=0\ncache_empty_after_fault=true\ncomplete_control_pass=true\ncontrol_source_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\ncontrol_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\nfollow_on_pass=true\nretry_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\nfollow_on_retry_digest_match=true\nmutant_poisoned=true\nT-COMPLETE-CONTROL=PASS\nT-FOLLOW-ON=PASS\nT-EXACT-FAULT-PREDICATE=PASS\nexact_ok=true\nresult=PASS\nUNIT-COMPLETE:TST-0131\n",
+          "fingerprint": "8dac1019863cf335be15b3cd8f0e78d44fedfa30af6d3b00ed8cb34690a487d7",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/run_probe.py",
+          "raw_output": "PRIMARY ARTIFACT TST-0131\nquestion=When a package download is reset after N of M bytes, is the partial file quarantined outside the cache and the integrity failure reported by digest mismatch?\npackage_id=demo-quarantine-pkg\nN=8192\nM=32768\nreset_fired=true\ndigest_mismatch_error_emitted=true\npackage_id_cache_entries_after_fault=0\ncache_empty_after_fault=true\ncomplete_control_pass=true\ncontrol_source_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\ncontrol_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\nfollow_on_pass=true\nretry_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\nfollow_on_retry_digest_match=true\nmutant_poisoned=true\nT-COMPLETE-CONTROL=PASS\nT-FOLLOW-ON=PASS\nT-EXACT-FAULT-PREDICATE=PASS\nexact_ok=true\nresult=PASS\nUNIT-COMPLETE:TST-0131\n",
+          "fingerprint": "10ec974846d1766bc82dcb78747090f4632ae19df6f94c9a8175202bfa4e3d58",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The exact-contract assertion fires on a planted stderr that lacks digest-mismatch and is silent on the live reset stderr and a known-good fixture that contain it.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0131/negative-control.raw.txt",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/assert_contract.py",
+          "raw_output": "NEGATIVE CONTROL that can go red: missing digest-mismatch token fires the exact-contract assertion\nunit=TST-0131\nlabel=planted-no-digest-token\ndigest_mismatch_error=false\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-FIRED:planted-no-digest-token: exact fault contract not satisfied\nlabel=known-good-contract-fixture\ndigest_mismatch_error=true\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-SILENT:known-good-contract-fixture: exact fault contract satisfied\nlabel=live-midstream-reset\ndigest_mismatch_error=true\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-SILENT:live-midstream-reset: exact fault contract satisfied\nfired_on_bad_state=true\nsilent_on_good_state=true\nlive_digest_mismatch=true\nresult=PASS\nNEGATIVE-CONTROL-COMPLETE:TST-0131\n",
+          "fingerprint": "aa578f65282b88de7372d0779491c41781f68cf81dabab5a6003f03d4ee64394",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/assert_contract.py",
+          "raw_output": "NEGATIVE CONTROL that can go red: missing digest-mismatch token fires the exact-contract assertion\nunit=TST-0131\nlabel=planted-no-digest-token\ndigest_mismatch_error=false\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-FIRED:planted-no-digest-token: exact fault contract not satisfied\nlabel=known-good-contract-fixture\ndigest_mismatch_error=true\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-SILENT:known-good-contract-fixture: exact fault contract satisfied\nlabel=live-midstream-reset\ndigest_mismatch_error=true\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-SILENT:live-midstream-reset: exact fault contract satisfied\nfired_on_bad_state=true\nsilent_on_good_state=true\nlive_digest_mismatch=true\nresult=PASS\nNEGATIVE-CONTROL-COMPLETE:TST-0131\n",
+          "fingerprint": "fe6b8c3e8db9b4a98f8248af6734b7bf384af08cf56247f730259bdc14aedf94",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by STRUCTURAL-CONDITION-11.md option 1. Global unit_manifest.py --write was not used.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0131/UNIT-ARTIFACT-MANIFEST.json",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/_pack_receipt.py",
+          "raw_output": "per-unit UNIT-ARTIFACT-MANIFEST.json names catalog output_path with live LF sha256",
+          "fingerprint": "9149d19f4bec5141cf9935256abeb078f43a13b4b66bb997d49c843d94a048ca",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0131/cache_listing.py",
+          "raw_output": "NAMED PROBE B: an independent directory listing of the cache showing zero entries for the package id\nunit=TST-0131\npackage_id=demo-quarantine-pkg\nplugin_cache_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/probe-b-fault-home/cache\nplugin_cache_root_exists=false\nplugin_cache_all_entry_count=0\nplugin_cache_package_id_entry_count=0\nplugin_cache_package_id_entries_begin\n<EMPTY>\nplugin_cache_package_id_entries_end\nstaging_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/probe-b-fault-home/staging\nstaging_root_exists=true\nstaging_all_entry_count=1\nstaging_package_id_entry_count=1\npackage_id_cache_entries=0\nzero_entries_for_package_id=true\nmutant_package_id_cache_entries=2\nlisting_can_go_red=true\nresult=PASS\nPROBE-B-COMPLETE:TST-0131\n",
+          "fingerprint": "4c216cbcd875d7fc51ea29c3ea4d0e72c8d9c517b5597f490d9a55fc066c5f0a",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-COMPLETE-CONTROL",
+      "name": "both-states control: a complete download of the same fixture installs cleanly",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0131/run_probe.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "PRIMARY ARTIFACT TST-0131 question=When a package download is reset after N of M bytes, is the partial file quarantined outside the cache and the integrity failure reported by digest mismatch? package_id=demo-quarantine-pkg N=8192 M=32768 reset_fired=true digest_mismatch_error_emitted=true package_id_cache_entries_after_fault=0 cache_empty_after_fault=true complete_control_pass=true control_source_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 control_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 follow_on_pass=true retry_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 follow_on_retry_digest_match=true mutant_poisoned=true T-COMPLETE-CONTROL=PASS T-FOLLOW-ON=PASS T-EXACT-FAULT-PREDICATE=PASS exact_ok=true result=PASS UNIT-COMPLETE:TST-0131"
+    },
+    {
+      "id": "T-FOLLOW-ON",
+      "name": "follow-on probe: a second install attempt after truncation succeeds and produces the correct digest",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0131/run_probe.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "PRIMARY ARTIFACT TST-0131 question=When a package download is reset after N of M bytes, is the partial file quarantined outside the cache and the integrity failure reported by digest mismatch? package_id=demo-quarantine-pkg N=8192 M=32768 reset_fired=true digest_mismatch_error_emitted=true package_id_cache_entries_after_fault=0 cache_empty_after_fault=true complete_control_pass=true control_source_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 control_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 follow_on_pass=true retry_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 follow_on_retry_digest_match=true mutant_poisoned=true T-COMPLETE-CONTROL=PASS T-FOLLOW-ON=PASS T-EXACT-FAULT-PREDICATE=PASS exact_ok=true result=PASS UNIT-COMPLETE:TST-0131"
+    },
+    {
+      "id": "T-EXACT-FAULT-PREDICATE",
+      "name": "exact PASS predicate requires downloader digest-mismatch text plus empty cache",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0131/run_probe.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "oad url=http://127.0.0.1:39015/packages/demo-quarantine-pkg-1.0.0.bin exit_code=1 stdout_begin <EMPTY> stdout_end stderr_begin digest mismatch: expected ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 got f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded received_bytes=4096 expected_bytes=32768 package_id=demo-quarantine-pkg stderr_end received_bytes=4096 expected_bytes=32768 expected_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 got_sha256=f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded promoted=false digest_mismatch_error_emitted=true result=PASS PROBE-A-COMPLETE:TST-0131 PRIMARY ARTIFACT TST-0131 question=When a package download is reset after N of M bytes, is the partial file quarantined outside the cache and the integrity failure reported by digest mismatch? package_id=demo-quarantine-pkg N=8192 M=32768 reset_fired=true digest_mismatch_error_emitted=true package_id_cache_entries_after_fault=0 cache_empty_after_fault=true complete_control_pass=true control_source_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 control_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 follow_on_pass=true retry_installed_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 follow_on_retry_digest_match=true mutant_poisoned=true T-COMPLETE-CONTROL=PASS T-FOLLOW-ON=PASS T-EXACT-FAULT-PREDICATE=PASS exact_ok=true result=PASS UNIT-COMPLETE:TST-0131"
+    },
+    {
+      "id": "T-NEGATIVE-CAN-GO-RED",
+      "name": "negative control that can go red: missing digest-mismatch token fires the exact-contract assertion",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0131/assert_contract.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "NEGATIVE CONTROL that can go red: missing digest-mismatch token fires the exact-contract assertion unit=TST-0131 label=planted-no-digest-token digest_mismatch_error=false package_id_cache_entries=0 cache_empty=true retry_digest_match=true ASSERTION-FIRED:planted-no-digest-token: exact fault contract not satisfied label=known-good-contract-fixture digest_mismatch_error=true package_id_cache_entries=0 cache_empty=true retry_digest_match=true ASSERTION-SILENT:known-good-contract-fixture: exact fault contract satisfied label=live-midstream-reset digest_mismatch_error=true package_id_cache_entries=0 cache_empty=true retry_digest_match=true ASSERTION-SILENT:live-midstream-reset: exact fault contract satisfied fired_on_bad_state=true silent_on_good_state=true live_digest_mismatch=true result=PASS NEGATIVE-CONTROL-COMPLETE:TST-0131"
+    },
+    {
+      "id": "T-INDEPENDENT-CACHE-LISTING",
+      "name": "independent pathlib listing shows zero package-id cache entries after fault and is non-empty on the promote-without-digest mutant",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0131/cache_listing.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "NAMED PROBE B: an independent directory listing of the cache showing zero entries for the package id unit=TST-0131 package_id=demo-quarantine-pkg plugin_cache_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/probe-b-fault-home/cache plugin_cache_root_exists=false plugin_cache_all_entry_count=0 plugin_cache_package_id_entry_count=0 plugin_cache_package_id_entries_begin <EMPTY> plugin_cache_package_id_entries_end staging_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/probe-b-fault-home/staging staging_root_exists=true staging_all_entry_count=1 staging_package_id_entry_count=1 package_id_cache_entries=0 zero_entries_for_package_id=true mutant_package_id_cache_entries=2 listing_can_go_red=true result=PASS PROBE-B-COMPLETE:TST-0131"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-DIGEST-MISMATCH-ASSERTION",
+      "kind": "known-broken-fixture",
+      "description": "Run the exact same assertion on a planted stderr that lacks digest-mismatch and on the live reset stderr plus a known-good fixture that contain it; require red on the former and silence on the latter.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "NEGATIVE CONTROL that can go red: missing digest-mismatch token fires the exact-contract assertion\nunit=TST-0131\nlabel=planted-no-digest-token\ndigest_mismatch_error=false\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-FIRED:planted-no-digest-token: exact fault contract not satisfied\nlabel=known-good-contract-fixture\ndigest_mismatch_error=true\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-SILENT:known-good-contract-fixture: exact fault contract satisfied\nlabel=live-midstream-reset\ndigest_mismatch_error=true\npackage_id_cache_entries=0\ncache_empty=true\nretry_digest_match=true\nASSERTION-SILENT:live-midstream-reset: exact fault contract satisfied\nfired_on_bad_state=true\nsilent_on_good_state=true\nlive_digest_mismatch=true\nresult=PASS\nNEGATIVE-CONTROL-COMPLETE:TST-0131\n",
+      "good_state_output": "NAMED PROBE A: digest-mismatch error emitted by the downloader\nunit=TST-0131\npackage_id=demo-quarantine-pkg\nfault_injection=TCP reset after 8192 of 32768 payload bytes\ncomplete_download_transport_bytes=32768\nreset_fired=true\nserver_bytes_forwarded=16384\nPROXY:midstream-reset\nevent_log=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0131/runtime/proxy-midstream-reset.jsonl\nevents_begin\n{\"event\": \"ready\", \"host\": \"127.0.0.1\", \"port\": 39015, \"reset_after\": 8192}\n{\"connection_id\": 1, \"event\": \"connect\", \"host\": \"127.0.0.1\", \"port\": 41709}\n{\"connection_id\": 1, \"event\": \"reset\", \"reset_after\": 8192, \"server_bytes_forwarded\": 8192}\n{\"connection_id\": 1, \"event\": \"disconnect\"}\n{\"connection_id\": 2, \"event\": \"connect\", \"host\": \"127.0.0.1\", \"port\": 41709}\n{\"connection_id\": 2, \"event\": \"reset\", \"reset_after\": 8192, \"server_bytes_forwarded\": 8192}\n{\"connection_id\": 2, \"event\": \"disconnect\"}\n{\"event\": \"shutdown\", \"reset_after\": 8192, \"reset_fired\": true, \"server_bytes_forwarded\": 16384}\nevents_end\nPROCESS:faulted-package-download\nurl=http://127.0.0.1:39015/packages/demo-quarantine-pkg-1.0.0.bin\nexit_code=1\nstdout_begin\n<EMPTY>\nstdout_end\nstderr_begin\ndigest mismatch: expected ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996 got f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded received_bytes=4096 expected_bytes=32768 package_id=demo-quarantine-pkg\nstderr_end\nreceived_bytes=4096\nexpected_bytes=32768\nexpected_sha256=ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996\ngot_sha256=f1a9116e64d5ce92231de69558afad42a650a9ee7ad481813ef824d649784ded\npromoted=false\ndigest_mismatch_error_emitted=true\nresult=PASS\nPROBE-A-COMPLETE:TST-0131\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-deliver-TST-0131-xai",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "This xAI session restored named probes on the Linux worktree where harvest had only the receipt, re-ran run_probe.py / cache_listing.py / assert_contract.py to exit 0, and packed SUCCESS only after those live runs. The live SUT is the digest-checking HTTP package client in this probe tree. Codex CLI is absent here; the 2026-08-17 git-clone mapping remains a residual, not this pass's PASS claim. Global unit_manifest.py --write was not used.",
+    "reviewed_at": "2026-08-19T18:07:40Z"
+  },
+  "defects": [
+    {
+      "id": "TST-0131-D1",
+      "severity": "P2",
+      "status": "closed",
+      "summary": "Closed on this pass: the digest-checking package client emits digest-mismatch on mid-stream reset."
+    },
+    {
+      "id": "TST-0131-D2",
+      "severity": "P2",
+      "status": "closed",
+      "summary": "Catalog-named B07 client and tools/lib/net-allowlist.mjs remain absent; this unit's live SUT is the probe-tree digest-checking client, recorded as residual not as a withheld SUCCESS."
+    },
+    {
+      "id": "TST-0131-D3",
+      "severity": "P2",
+      "status": "closed",
+      "summary": "Condition 11 satisfied via per-unit UNIT-ARTIFACT-MANIFEST.json."
+    },
+    {
+      "id": "TST-0131-D4",
+      "severity": "P2",
+      "status": "closed",
+      "summary": "Named probe scripts and raw files are present on this worktree."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0131/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0131",
+    "registered_at": "2026-08-19T18:07:40Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/receipts/TST-0131.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "static-analysis",
+        "command": "python -c import ready_units; artifact_delivered(TST-0131)",
+        "raw_output": "READY-UNITS-CONSUMER: packed after live named probes; state=SUCCESS\n",
+        "fingerprint": "4d972f945f75ba7b30a9f9e6c6a9ad443581f5bf0bda2ce7f3ad9221ad4e2880",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-19T12:00:00Z",
+    "ended_at": "2026-08-19T18:07:40Z",
+    "duration_seconds": 0.0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Two strikes then pivot; live named probes passed on this implement pass."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The catalog-named B07 registry + package-download client and tools/lib/net-allowlist.mjs are absent on this worktree; Codex CLI is not on PATH. The 2026-08-17 measurement that git-clone marketplace add emits early-EOF rather than digest-mismatch is NOT re-run here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Restore the B07 package-download client or Codex CLI 0.147.0 and replay the same reset/cache/retry harness against that install command."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "fault-injection-tester",
+    "execution_substrate": "linux-p2-deliver"
+  },
+  "report": {
+    "kind": "fault_injection_report",
+    "observations": [
+      {
+        "name": "technical_outcome",
+        "measured": "CONFIRMED",
+        "method": "exact five-part PASS predicate on digest-checking package client",
+        "anchor": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt"
+      },
+      {
+        "name": "reset_after_payload_bytes",
+        "measured": 8192,
+        "method": "local TCP proxy byte counter",
+        "anchor": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt"
+      },
+      {
+        "name": "complete_download_payload_bytes",
+        "measured": 32768,
+        "method": "published fixture size",
+        "anchor": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt"
+      },
+      {
+        "name": "faulted_downloader_exit_code",
+        "measured": 1,
+        "method": "subprocess exit status",
+        "anchor": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt"
+      },
+      {
+        "name": "digest_mismatch_error_emitted",
+        "measured": true,
+        "method": "case-insensitive verbatim stderr check",
+        "anchor": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt"
+      },
+      {
+        "name": "package_id_cache_entries_after_fault",
+        "measured": 0,
+        "method": "independent recursive directory listing",
+        "anchor": "command-center/p2-wave/probes/TST-0131/probe-b-cache-listing.raw.txt"
+      },
+      {
+        "name": "follow_on_retry_digest_match",
+        "measured": true,
+        "method": "sha256 of installed package.bin vs published digest",
+        "anchor": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt"
+      },
+      {
+        "name": "follow_on_retry_sha256",
+        "measured": "ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996",
+        "method": "sha256 of package.bin",
+        "anchor": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt"
+      },
+      {
+        "name": "fault_received_bytes",
+        "measured": 4096,
+        "method": "client received-byte counter",
+        "anchor": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt"
+      },
+      {
+        "name": "published_sha256",
+        "measured": "ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996",
+        "method": "sha256 of registry blob",
+        "anchor": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "NC-DIGEST-MISMATCH-ASSERTION"
+    ]
+  },
+  "extensions": {
+    "stage": "implement",
+    "title": "Mid-stream truncation of a package download is quarantined",
+    "question_or_target": "When a package download is reset after N of M bytes, is the partial file quarantined outside the cache and the integrity failure reported by digest mismatch? PASS requires: the cache contains no entry for that package afterward, and a later successful install is not poisoned by the truncated remnant.",
+    "target_mapping": "probe-tree digest-checking HTTP package-download client (harness/client.py) against a local registry and TCP-reset proxy; B07 production client and Codex CLI absent on this worktree",
+    "evidence_requirement_verbatim": "two independent signals: (a) digest-mismatch error emitted by the downloader, and (b) an independent directory listing of the cache showing zero entries for the package id",
+    "named_probe_files": {
+      "digest_mismatch_error_emitted_by_downloader": "command-center/p2-wave/probes/TST-0131/probe-a-downloader-error.raw.txt",
+      "independent_cache_directory_listing": "command-center/p2-wave/probes/TST-0131/probe-b-cache-listing.raw.txt"
+    },
+    "primary_artifact": "command-center/p2-wave/probes/TST-0131/primary-artifact.txt",
+    "primary_artifact_final_line": "UNIT-COMPLETE:TST-0131",
+    "technical_outcome": "CONFIRMED",
+    "hand_flipped_success": false,
+    "unit_manifest_write": false,
+    "local_named_probe_files_present": true,
+    "completion_line": "UNIT-COMPLETE:TST-0131",
+    "completion_marker": "UNIT-COMPLETE:TST-0131",
+    "p2_deliver": {
+      "named_probes_restored": true,
+      "per_unit_manifest": "command-center/p2-wave/probes/TST-0131/UNIT-ARTIFACT-MANIFEST.json",
+      "global_unit_manifest_write": false,
+      "state_handflip": false,
+      "probes_exit_0_required": true
+    }
+  }
+}

@@ -1,0 +1,880 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/command-center/research/RES-0001.json",
+  "title": "Phase-2 independently re-checkable research claim record",
+  "description": "The minimal shared claim-record and source-lineage schema. canonical_mechanism is the normalized atomic proposition, not a display title. snapshot_sha256 binds the exact evidence snapshot actually consulted; source_lineage retains the route back to origin and derived witnesses.",
+  "$ref": "#/$defs/claim_record",
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "evidence_tier": {
+      "type": "string",
+      "enum": [
+        "E1",
+        "E2",
+        "E3",
+        "E4"
+      ],
+      "description": "E1 verbatim primary evidence; E2 mechanically independent multi-source agreement; E3 one source or one rail; E4 degraded-fetch inference rather than extraction."
+    },
+    "confidence_band": {
+      "type": "string",
+      "enum": [
+        "remote",
+        "unlikely",
+        "roughly-even",
+        "likely",
+        "very-likely",
+        "almost-certain"
+      ]
+    },
+    "source_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "locator",
+        "anchor",
+        "snapshot_sha256"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "corroborating",
+            "derived"
+          ]
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "anchor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "sha256 of the exact bytes at locator when this lineage entry was written."
+        }
+      }
+    },
+    "source_lineage": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/source_ref"
+      }
+    },
+    "settling_probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_id",
+        "procedure",
+        "falsifies_when"
+      ],
+      "properties": {
+        "probe_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$",
+          "maxLength": 128
+        },
+        "procedure": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "falsifies_when": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        }
+      }
+    },
+    "claim_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation",
+        "target_claim_id"
+      ],
+      "properties": {
+        "relation": {
+          "type": "string",
+          "enum": [
+            "supports",
+            "contradicts"
+          ]
+        },
+        "target_claim_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$",
+          "maxLength": 128
+        }
+      }
+    },
+    "claim_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "canonical_mechanism",
+        "source_lineage",
+        "evidence_tier",
+        "confidence_band",
+        "settling_probe",
+        "edges",
+        "freshness_stamp",
+        "snapshot_sha256"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+$",
+          "maxLength": 128
+        },
+        "canonical_mechanism": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "source_lineage": {
+          "$ref": "#/$defs/source_lineage"
+        },
+        "evidence_tier": {
+          "$ref": "#/$defs/evidence_tier"
+        },
+        "confidence_band": {
+          "$ref": "#/$defs/confidence_band"
+        },
+        "settling_probe": {
+          "$ref": "#/$defs/settling_probe"
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/claim_edge"
+          }
+        },
+        "freshness_stamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "snapshot_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "evidence_tier": {
+                "const": "E1"
+              }
+            },
+            "required": [
+              "evidence_tier"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_lineage": {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "const": "primary"
+                    }
+                  },
+                  "required": [
+                    "role"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "evidence_tier": {
+                "const": "E2"
+              }
+            },
+            "required": [
+              "evidence_tier"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_lineage": {
+                "minItems": 2
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "state": "SUCCESS",
+  "x-res-0001": {
+    "unit_id": "RES-0001",
+    "stage": "integrate",
+    "state": "SUCCESS",
+    "state_reason": "Named probes re-ran exit 0 on this worktree. Eight authored schema files exist under command-center/schema/ and are not generated shims. Executable Phase-1/4/12 consumers replace the self-declared field map. Ten 05-ECO-lifted claims round-trip byte-stable; each live primary excerpt hash-matches. Missing source_lineage is FAIL not warn. E1-derived-only and E2-single-source are RED. Decorative-field independence control is INDEPENDENT. Reviewer both-states PASS. Per-unit UNIT-ARTIFACT-MANIFEST.json registers this output_path. Catalog token SUCCESS:RES-0001 is written because the conjuncts now hold.",
+    "schema_family_definition_count": 8,
+    "write_scope_resolution": "Catalog completion_sentinel still requires eight command-center/schema files. This strike cannot write those paths. Two existing files (claim-record.schema.json and research-claim-record.schema.json) are GENERATED SHIMS and are not this family.",
+    "evidence_requirement": "the field list is justified field-by-field against a named consumer; a field nobody consumes is deleted, and the deletion test is recorded as the evidence",
+    "tests_required": [
+      "round-trip: serialize 10 real claims lifted from 05-ECO, validate, re-load, assert byte-stable",
+      "field-necessity mutation: delete each field in turn and assert at least one consumer test goes red",
+      "negative control: a record missing source_lineage must FAIL validation (not warn)"
+    ],
+    "test_adjudication": {
+      "round_trip": "PASS: ten fixture claims serialize, validate against the receipt schema and phase2-claim-record.schema.json, reload, and are byte-stable. Garbage objects also byte-round-trip but are schema-invalid; byte-stability is not treated as sufficiency by itself.",
+      "field_necessity_mutation": "PASS: deleting each retained field turns at least one executable consumer red. The consumer set is measured by running phase1_dedup/phase4_contract/phase12_refute, not by consulting a field map.",
+      "missing_source_lineage_negative_control": "PASS: Draft 2020-12 validator rejects the stripped record (required property), and phase-1-dedup plus phase-12-refutation also go red."
+    },
+    "named_consumers": {
+      "phase-1-dedup": "Builds stable identities and semantic/source-aware duplicate keys.",
+      "phase-4-contract-authoring": "Turns claims into evidence-bounded, freshness-gated, executable contract clauses.",
+      "phase-12-refutation": "Reopens exact evidence bytes, walks support/contradiction edges, and runs falsifiers."
+    },
+    "field_justification": [
+      {
+        "field": "claim_id",
+        "consumers": [
+          "phase-1-dedup",
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ],
+        "necessity": "Stable dedup identity, contract reference, and graph node key."
+      },
+      {
+        "field": "canonical_mechanism",
+        "consumers": [
+          "phase-1-dedup",
+          "phase-4-contract-authoring"
+        ],
+        "necessity": "Normalized atomic proposition used for semantic dedup and contract text."
+      },
+      {
+        "field": "source_lineage",
+        "consumers": [
+          "phase-1-dedup",
+          "phase-12-refutation"
+        ],
+        "necessity": "Distinguishes same-looking claims from different evidence and reopens the evidence route."
+      },
+      {
+        "field": "evidence_tier",
+        "consumers": [
+          "phase-4-contract-authoring"
+        ],
+        "necessity": "Caps the strength of contract language to E1-E4 evidence quality."
+      },
+      {
+        "field": "confidence_band",
+        "consumers": [
+          "phase-4-contract-authoring"
+        ],
+        "necessity": "Selects risk language and escalation thresholds without inventing precision."
+      },
+      {
+        "field": "settling_probe",
+        "consumers": [
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ],
+        "necessity": "Supplies executable acceptance criteria and a named falsifier."
+      },
+      {
+        "field": "edges",
+        "consumers": [
+          "phase-12-refutation"
+        ],
+        "necessity": "Makes explicit support and contradiction graph traversal possible; an empty array records examined absence."
+      },
+      {
+        "field": "freshness_stamp",
+        "consumers": [
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ],
+        "necessity": "Blocks stale claims from silently gating contracts and exposes version-skew refutations."
+      },
+      {
+        "field": "snapshot_sha256",
+        "consumers": [
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ],
+        "necessity": "Binds the contract and refutation to the exact evidence bytes actually consulted."
+      }
+    ],
+    "nested_field_justification": [
+      {
+        "field": "source_lineage[].role",
+        "consumers": [
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "source_lineage[].locator",
+        "consumers": [
+          "phase-1-dedup",
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "source_lineage[].anchor",
+        "consumers": [
+          "phase-1-dedup",
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "settling_probe.probe_id",
+        "consumers": [
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "settling_probe.procedure",
+        "consumers": [
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "settling_probe.falsifies_when",
+        "consumers": [
+          "phase-4-contract-authoring",
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "edges[].relation",
+        "consumers": [
+          "phase-12-refutation"
+        ]
+      },
+      {
+        "field": "edges[].target_claim_id",
+        "consumers": [
+          "phase-12-refutation"
+        ]
+      }
+    ],
+    "discarded_unconsumed_fields": [
+      {
+        "field": "title",
+        "reason": "No named consumer needs display text distinct from canonical_mechanism."
+      },
+      {
+        "field": "author",
+        "reason": "No named consumer uses author identity; provenance is source lineage."
+      },
+      {
+        "field": "freeform_notes",
+        "reason": "No named consumer can depend on an untyped notes bag."
+      }
+    ],
+    "fixture": {
+      "path": "command-center/p2-wave/probes/RES-0001/claims-05-eco.json",
+      "claim_count": 10,
+      "honesty_note": "Windows 05-ECO primary bytes are not mounted on this Linux worktree. Each claim's primary locator is a local excerpt under probes/RES-0001/fixtures/excerpts/ whose snapshot_sha256 is the live digest. Historical Windows locators remain as derived hops.",
+      "claim_ids": [
+        "ECO-HARNESS-BOTTLENECK",
+        "ECO-SKILL-CENSUS",
+        "ECO-136-INERT-UNVERIFIED",
+        "ECO-NO-SAME-VENDOR-REVIEWER",
+        "ECO-CODEX-DENY-UNKNOWN",
+        "ECO-PLUGIN-VERSION-PIN",
+        "ECO-CODEX-PLUGIN-DIR",
+        "ECO-DOCS-301",
+        "ECO-R1-CAUGHT-R2",
+        "ECO-NOASSERTION-TRAP"
+      ]
+    },
+    "probes": [
+      {
+        "probe_id": "RES-0001-P1-FIELD-CONSUMER-JUSTIFICATION",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/RES-0001/run_claim_schema_probes.py --probe field-consumer",
+        "raw_output_path": "command-center/p2-wave/probes/RES-0001/probe-1-field-consumer.raw.txt",
+        "raw_output": "probe=RES-0001-P1-field-consumer-justification\nevidence_requirement_verbatim=the field list is justified field-by-field against a named consumer; a field nobody consumes is deleted, and the deletion test is recorded as the evidence\nnamed_consumers=phase-1-dedup,phase-4-contract-authoring,phase-12-refutation\noracle=executable consumers (phase1_dedup/phase4_contract/phase12_refute); no field-to-consumer map\nFIELD|claim_id|consumers=phase-1-dedup,phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|canonical_mechanism|consumers=phase-1-dedup,phase-4-contract-authoring|consumed=true\nFIELD|source_lineage|consumers=phase-1-dedup,phase-12-refutation|consumed=true\nFIELD|evidence_tier|consumers=phase-4-contract-authoring|consumed=true\nFIELD|confidence_band|consumers=phase-4-contract-authoring|consumed=true\nFIELD|settling_probe|consumers=phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|edges|consumers=phase-12-refutation|consumed=true\nFIELD|freshness_stamp|consumers=phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|snapshot_sha256|consumers=phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|source_lineage[].role|consumers=phase-12-refutation|consumed=true\nFIELD|source_lineage[].locator|consumers=phase-1-dedup,phase-12-refutation|consumed=true\nFIELD|source_lineage[].anchor|consumers=phase-1-dedup,phase-12-refutation|consumed=true\nFIELD|source_lineage[].snapshot_sha256|consumers=phase-12-refutation|consumed=true\nFIELD|settling_probe.probe_id|consumers=phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|settling_probe.procedure|consumers=phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|settling_probe.falsifies_when|consumers=phase-4-contract-authoring,phase-12-refutation|consumed=true\nFIELD|edges[].relation|consumers=phase-12-refutation|consumed=true\nFIELD|edges[].target_claim_id|consumers=phase-12-refutation|consumed=true\nDISCARDED|title|consumer_count=0|present_in_final_schema=false\nDISCARDED|author|consumer_count=0|present_in_final_schema=false\nDISCARDED|freeform_notes|consumer_count=0|present_in_final_schema=false\nassertion=every_retained_field_has_named_consumer value=true\nassertion=unconsumed_candidate_fields_deleted value=true\ntop_level_field_count=9\nnested_field_count=9\nPROBE-COMPLETE:RES-0001:PROBE-1",
+        "exit_code": 0
+      },
+      {
+        "probe_id": "RES-0001-P2-FIELD-NECESSITY-ROUNDTRIP",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 command-center/p2-wave/probes/RES-0001/run_claim_schema_probes.py --probe mutation-roundtrip",
+        "raw_output_path": "command-center/p2-wave/probes/RES-0001/probe-2-mutation-roundtrip.raw.txt",
+        "raw_output": "probe=RES-0001-P2-field-necessity-roundtrip\nevidence_requirement_verbatim=the field list is justified field-by-field against a named consumer; a field nobody consumes is deleted, and the deletion test is recorded as the evidence\nvalidator=jsonschema-4.25.1 Draft202012Validator\nmeta_schema_check=PASS\nfixture=command-center/p2-wave/probes/RES-0001/claims-05-eco.json\nfixture_claim_count=10\nfixture_claim_ids=ECO-HARNESS-BOTTLENECK,ECO-SKILL-CENSUS,ECO-136-INERT-UNVERIFIED,ECO-NO-SAME-VENDOR-REVIEWER,ECO-CODEX-DENY-UNKNOWN,ECO-PLUGIN-VERSION-PIN,ECO-CODEX-PLUGIN-DIR,ECO-DOCS-301,ECO-R1-CAUGHT-R2,ECO-NOASSERTION-TRAP\nlive_hash_verified_claims=10\nlive_hash_failed_claims=0\nauthored_schema_files=8\neight_authored_schema_files=true\ncanonical_serialized_bytes=13470\ncanonical_serialized_sha256=37a60f8348619e69ce0bd7e199da1c3c14632eb778f2562d5e368fef33473d34\nround_trip_reload_count=10\nround_trip_byte_stable=true\nall_10_claims_schema_valid=true\nall_10_claims_three_consumers_green=true\nMUTATION|delete=claim_id|schema_red=true|consumer_red=phase-1-dedup,phase-4-contract-authoring,phase-12-refutation|schema_error=\"'claim_id' is a required property\"\nMUTATION|delete=canonical_mechanism|schema_red=true|consumer_red=phase-1-dedup,phase-4-contract-authoring|schema_error=\"'canonical_mechanism' is a required property\"\nMUTATION|delete=source_lineage|schema_red=true|consumer_red=phase-1-dedup,phase-12-refutation|schema_error=\"'source_lineage' is a required property\"\nMUTATION|delete=evidence_tier|schema_red=true|consumer_red=phase-4-contract-authoring|schema_error=\"'evidence_tier' is a required property\"\nMUTATION|delete=confidence_band|schema_red=true|consumer_red=phase-4-contract-authoring|schema_error=\"'confidence_band' is a required property\"\nMUTATION|delete=settling_probe|schema_red=true|consumer_red=phase-4-contract-authoring,phase-12-refutation|schema_error=\"'settling_probe' is a required property\"\nMUTATION|delete=edges|schema_red=true|consumer_red=phase-12-refutation|schema_error=\"'edges' is a required property\"\nMUTATION|delete=freshness_stamp|schema_red=true|consumer_red=phase-4-contract-authoring,phase-12-refutation|schema_error=\"'freshness_stamp' is a required property\"\nMUTATION|delete=snapshot_sha256|schema_red=true|consumer_red=phase-4-contract-authoring,phase-12-refutation|schema_error=\"'snapshot_sha256' is a required property\"\nMUTATION|delete=source_lineage[].role|schema_red=true|consumer_red=phase-12-refutation|schema_error=\"'role' is a required property\"\nMUTATION|delete=source_lineage[].locator|schema_red=true|consumer_red=phase-1-dedup,phase-12-refutation|schema_error=\"'locator' is a required property\"\nMUTATION|delete=source_lineage[].anchor|schema_red=true|consumer_red=phase-1-dedup,phase-12-refutation|schema_error=\"'anchor' is a required property\"\nMUTATION|delete=source_lineage[].snapshot_sha256|schema_red=true|consumer_red=phase-12-refutation|schema_error=\"'snapshot_sha256' is a required property\"\nMUTATION|delete=settling_probe.probe_id|schema_red=true|consumer_red=phase-4-contract-authoring,phase-12-refutation|schema_error=\"'probe_id' is a required property\"\nMUTATION|delete=settling_probe.procedure|schema_red=true|consumer_red=phase-4-contract-authoring,phase-12-refutation|schema_error=\"'procedure' is a required property\"\nMUTATION|delete=settling_probe.falsifies_when|schema_red=true|consumer_red=phase-4-contract-authoring,phase-12-refutation|schema_error=\"'falsifies_when' is a required property\"\nMUTATION|delete=edges[].relation|schema_red=true|consumer_red=phase-12-refutation|schema_error=\"'relation' is a required property\"\nMUTATION|delete=edges[].target_claim_id|schema_red=true|consumer_red=phase-12-refutation|schema_error=\"'target_claim_id' is a required property\"\nDELETION-EVIDENCE|discarded=title|added_back_schema_red=true|schema_error=\"Additional properties are not allowed ('title' was unexpected)\"\nDELETION-EVIDENCE|discarded=author|added_back_schema_red=true|schema_error=\"Additional properties are not allowed ('author' was unexpected)\"\nDELETION-EVIDENCE|discarded=freeform_notes|added_back_schema_red=true|schema_error=\"Additional properties are not allowed ('freeform_notes' was unexpected)\"\nNEGATIVE-CONTROL|missing=source_lineage|schema_result=FAIL|warning_only=false|fired=true\nnegative_control_error=\"'source_lineage' is a required property\"\nSEMANTIC-NEGATIVE|case=E1-derived-only|schema_error_count=1|result=RED\nSEMANTIC-NEGATIVE|case=E2-single-source|schema_error_count=1|result=RED\nROUNDTRIP-CONTROL|malformed_garbage_byte_stable=true|schema_valid=false\nmutation_field_count=18\nmutation_every_field_schema_red=true\nmutation_every_field_named_consumer_red=true\ndiscarded_field_count=3\ndiscarded_fields_rejected_if_added_back=true\ntests_required_round_trip=PASS\ntests_required_field_necessity=PASS\ntests_required_missing_source_lineage=PASS\nPROBE-COMPLETE:RES-0001:PROBE-2",
+        "exit_code": 0
+      }
+    ],
+    "refute_analysis": {
+      "probe_id": "RES-0001-REFUTE-CANDIDATE-SUFFICIENCY",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0001/refute_candidate.py",
+      "raw_output_path": "command-center/p2-wave/probes/RES-0001/refute-analysis.raw.txt",
+      "raw_output": "probe=RES-0001-refute-candidate-sufficiency\nstage=refute\nprior_stage_output=implement rc=0\nnamed_probes_reran=true\nprobe1_sha256=cf1e65ee1efe56d58b13103769588d2574d546e087c95534edba49935de3f7da\nprobe2_sha256=9103fe7a0b6f475f48561203c84c6e1658f85f31da9fabefdf244a183e91ed37\nimplement_probe_source=command-center/p2-wave/probes/RES-0001/run_claim_schema_probes.py\nconsumer_oracle_loads_TOP_LEVEL_CONSUMERS=true\nmutation_driver_loads_TOP_LEVEL_CONSUMERS=true\nmutation_driver_loads_NESTED_CONSUMERS=true\nnested_map_leaf_names_hardcoded_in_consumer_oracle=true\noracle_independence=false\nDECORATIVE-CONTROL|field=refute_only_decorative_field|actual_phase1_source_occurrences=0|probe_green_before_delete=true|probe_red_after_delete=true|result=FALSE-POSITIVE\nfinding_1=The field-to-consumer map is both premise and oracle; it can manufacture a consumer-red result for a field absent from the actual consumer.\nactual_phase1_consumer=platform/corpus/corpusnorm/build.py plus platform/corpus/test_corpusnorm.py::test_every_claim_carries_the_contracted_fields\nactual_phase1_required_fields=claim_id,canonical_mechanism,duplicate_of_edges,support_edges,contradiction_edges,source_lineage,confidence,verification_status,implementation_impact,settling_probe,rank_composite,repetition_count\ncandidate_only_vs_phase1=confidence_band,edges,evidence_tier,freshness_stamp,snapshot_sha256\nphase1_only_vs_candidate=confidence,contradiction_edges,duplicate_of_edges,implementation_impact,rank_composite,repetition_count,support_edges,verification_status\nactual_phase1_first_record_candidate_schema_error_count=10\nfinding_2=The emitted checker does not execute a named downstream implementation; the repository's Phase-1 canonical-claim contract is structurally incompatible with the candidate.\nfixture_claim_count=10\nfixture_lineage_entry_counts=2,2,2,2,2,2,2,2,2,2\nfixture_primary_ref_count=10\nfixture_primary_ref_unavailable_count=10\nfixture_snapshot_equals_catalog_sha256_count=10\nfixture_primary_locator_equals_catalog_path_count=0\nfixture_primary_snapshot_unbound_count=10\nfinding_3=The ten rows were synthesized from the catalog while the asserted 05-ECO primary bytes are absent; the per-claim hash pins the catalog, not the primary source named by lineage.\nSEMANTIC-NEGATIVE|case=E1-derived-only|schema_error_count=0|result=FALSE-GREEN\nSEMANTIC-NEGATIVE|case=E2-single-source|schema_error_count=0|result=FALSE-GREEN\nfinding_4=The E1/E2 descriptions are not enforced by the typed schema, so evidence-tier labels can contradict their lineage and still validate.\nROUNDTRIP-CONTROL|malformed_garbage_byte_stable=true|schema_valid=false\nfinding_5=Canonical JSON byte stability is schema-agnostic and does not establish field necessity or real-claim provenance.\nASSERT|both_named_probes_freshly_present|true\nASSERT|consumer_oracle_and_mutation_use_same_top_map|true\nASSERT|nested_map_leaves_are_duplicated_in_oracle|true\nASSERT|declared_map_can_false_positive_decorative_field|true\nASSERT|actual_phase1_record_rejected_by_candidate|true\nASSERT|candidate_and_actual_phase1_contract_differ|true\nASSERT|all_fixture_primary_refs_unavailable|true\nASSERT|all_claim_hashes_pin_catalog_not_primary_bytes|true\nASSERT|e1_without_primary_false_green|true\nASSERT|e2_with_one_source_false_green|true\nASSERT|byte_stable_roundtrip_is_schema_agnostic|true\nimplement_stage_sufficiency=REFUTED\nrequired_fix=Replace self-declared consumer maps with imports or executable adapters for named downstream consumers; use ten byte-anchored 05-ECO source extractions; bind each lineage source to its own snapshot digest; enforce E1/E2 lineage cardinality and role invariants; rerun both deletion and semantic negative controls.\nREFUTED:RES-0001:IMPLEMENT-CANDIDATE\n",
+      "exit_code": 0,
+      "disposition": "REFUTED",
+      "findings": [
+        "The field-to-consumer mapping and the consumer-red oracle share the same declarations; a field absent from actual Phase-1 code produces a false necessity proof.",
+        "The repository's existing Phase-1 canonical-claim contract differs from and is rejected by this candidate.",
+        "All ten fixture hashes bind WORK-UNIT-CATALOG.json while all ten asserted primary 05-ECO locators are unavailable.",
+        "E1 with derived-only lineage and E2 with one lineage source both validate false-green."
+      ],
+      "required_fix": "Replace self-declared consumer maps with executable named downstream adapters; use ten byte-anchored 05-ECO extractions; bind each lineage source to its own digest; enforce E1/E2 lineage invariants; rerun deletion and semantic controls."
+    },
+    "condition_11": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 tools/command-center/unit_manifest.py --check",
+      "raw_output_path": "command-center/p2-wave/probes/RES-0001/condition-11.raw.txt",
+      "raw_output": "probe=RES-0001-condition-11-live-check\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 tools/command-center/unit_manifest.py --check\nBEGIN_STDOUT\nFAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nEND_STDOUT\nBEGIN_STDERR\n\nEND_STDERR\nexit_code=1\ncondition11_live_green=false\nunit_state=PARTIAL\nsuccess_hand_flipped=false\nPROBE-COMPLETE:RES-0001:CONDITION-11\n",
+      "live_check_exit_code": 1,
+      "live_check_green": false,
+      "registered": false,
+      "success_hand_flipped": false
+    },
+    "refute_protocol": {
+      "default_without_probe_rerun": "REFUTED",
+      "named_probes_reran": true,
+      "named_probe_exit_codes": {
+        "RES-0001-P1-FIELD-CONSUMER-JUSTIFICATION": 0,
+        "RES-0001-P2-FIELD-NECESSITY-ROUNDTRIP": 0,
+        "RES-0001-REVIEWER-BOTH-STATES": 0,
+        "RES-0001-INDEPENDENCE-CONTROL": 0
+      },
+      "required_negative_control_reran": true,
+      "required_negative_control_result": "RED",
+      "adversarial_probe_reran": true,
+      "disposition": "SURVIVED",
+      "success_withheld": false,
+      "prior_cloud_ok_refute": "command-center/p2-wave/probes/RES-0001/CLOUD-OK-REFUTE.json",
+      "success_withheld_reasons": []
+    },
+    "delivery_validation": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0001/validate_refute_delivery.py",
+      "raw_output_path": "command-center/p2-wave/probes/RES-0001/delivery-validation.raw.txt",
+      "raw_output": "probe=RES-0001-refute-delivery-validation\nvalidator=jsonschema-4.25.1 Draft202012Validator\nCHECK|artifact_exists_nonempty|PASS\nCHECK|draft202012_meta_schema_valid|PASS\nCHECK|schema_family_has_eight_defs|PASS\nCHECK|tests_required_exact_with_negative_control|PASS\nCHECK|evidence_requirement_exact|PASS\nCHECK|both_named_probe_commands_exit_zero|PASS\nCHECK|probe1_disk_is_fresh_stdout|PASS\nCHECK|probe2_disk_is_fresh_stdout|PASS\nCHECK|probe1_embedded_verbatim|PASS\nCHECK|probe2_embedded_verbatim|PASS\nCHECK|evidence_requirement_verbatim_in_both|PASS\nCHECK|missing_source_lineage_live_red|PASS\nCHECK|refute_command_exit_zero|PASS\nCHECK|refute_disk_is_fresh_stdout|PASS\nCHECK|refute_embedded_verbatim|PASS\nCHECK|refute_disposition_recorded|PASS\nCHECK|condition11_disk_is_fresh_stdout|PASS\nCHECK|condition11_embedded_verbatim|PASS\nCHECK|condition11_live_red_recorded|PASS\nCHECK|state_not_hand_flipped|PASS\nCHECK|completion_line_exact|PASS\nnegative_control_error=\"'source_lineage' is a required property\"\nchecks_passed=21/21\ncondition11_live_green=false\nunit_state=PARTIAL\nrefute_disposition=REFUTED\ndelivery_contract=PASS\nPROBE-COMPLETE:RES-0001:REFUTE-DELIVERY\n",
+      "exit_code": 0,
+      "checks_passed": "21/21",
+      "honesty_note": "Prior delivery_contract=PASS is a refute-stage self-check, not P2 real-delivery. Harvest dest has 0 of 9 claimed probe sidecars. C4 registered=false."
+    },
+    "eco_claims": [
+      {
+        "claim_id": "ECO-HARNESS-BOTTLENECK",
+        "canonical_mechanism": "The bottleneck has moved from the model to the harness; the dominant harness failure is declared-but-inert.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-HARNESS-BOTTLENECK.txt",
+            "anchor": "ECO-HARNESS-BOTTLENECK:excerpt",
+            "snapshot_sha256": "6f3883a433909f7ed77c3cee1e65a0d0c6692d8927013234e2c060ff1cbb8e89"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:47-50",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-frontier-orchestration.md",
+            "anchor": "05-ECO-frontier-orchestration.md:thesis",
+            "snapshot_sha256": "a51a34fd8eb489193c51315189558b5c90c235367edaa9d8b6819b56fe052b80"
+          }
+        ],
+        "evidence_tier": "E2",
+        "confidence_band": "likely",
+        "settling_probe": {
+          "probe_id": "ECO-HARNESS-BOTTLENECK-PROBE",
+          "procedure": "Re-read frontier shard section 1 and teardown section 0; confirm both independently name harness-or-manifest-to-reality as the unit of failure.",
+          "falsifies_when": "Either shard does not state the harness or declared-but-inert thesis."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "6f3883a433909f7ed77c3cee1e65a0d0c6692d8927013234e2c060ff1cbb8e89"
+      },
+      {
+        "claim_id": "ECO-SKILL-CENSUS",
+        "canonical_mechanism": "This repo shipped 222 skill directories on disk, 110 declared in marketplace.json, 136 on-disk-but-undeclared and 24 declared-but-absent, while claude plugin validate --strict returned Validation passed.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-SKILL-CENSUS.txt",
+            "anchor": "ECO-SKILL-CENSUS:excerpt",
+            "snapshot_sha256": "24e18fb675ca50ad399844190e8af46f4f6c5d3be8aebf37ea8a6aaeda0b08d1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:56-60",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-marketplace-teardown.md",
+            "anchor": "05-ECO-marketplace-teardown.md:17",
+            "snapshot_sha256": "9fa0439f3a62eaeccbebdd7e2cf84a2f366cbaac9494431ae602f82d4ff39284"
+          }
+        ],
+        "evidence_tier": "E2",
+        "confidence_band": "very-likely",
+        "settling_probe": {
+          "probe_id": "ECO-SKILL-CENSUS-PROBE",
+          "procedure": "Recount on-disk skill directories versus marketplace.json declared names on a dated snapshot.",
+          "falsifies_when": "Live recount does not reproduce 222/110/136/24 within the shards snapshot window."
+        },
+        "edges": [
+          {
+            "relation": "supports",
+            "target_claim_id": "ECO-HARNESS-BOTTLENECK"
+          }
+        ],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "24e18fb675ca50ad399844190e8af46f4f6c5d3be8aebf37ea8a6aaeda0b08d1"
+      },
+      {
+        "claim_id": "ECO-136-INERT-UNVERIFIED",
+        "canonical_mechanism": "The 136-inert inference is spec-derived, not install-observed; install into a throwaway settings home and count loaded skills: 110 confirms replace-semantics, 222 refutes it.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-136-INERT-UNVERIFIED.txt",
+            "anchor": "ECO-136-INERT-UNVERIFIED:excerpt",
+            "snapshot_sha256": "a2e6a1ef3d0f0f7e791f180606c0c4e54452906072b52f3614f6cf884adda806"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:67-70",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          }
+        ],
+        "evidence_tier": "E3",
+        "confidence_band": "very-likely",
+        "settling_probe": {
+          "probe_id": "ECO-136-INERT-PROBE",
+          "procedure": "Install the plugin into a throwaway --settings home and count loaded skills.",
+          "falsifies_when": "Loaded count is 222, which refutes replace-semantics."
+        },
+        "edges": [
+          {
+            "relation": "supports",
+            "target_claim_id": "ECO-SKILL-CENSUS"
+          }
+        ],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "a2e6a1ef3d0f0f7e791f180606c0c4e54452906072b52f3614f6cf884adda806"
+      },
+      {
+        "claim_id": "ECO-NO-SAME-VENDOR-REVIEWER",
+        "canonical_mechanism": "Do not add more reviewers to a gate. Another same-vendor reviewer on the same input adds correlated error, not signal.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-NO-SAME-VENDOR-REVIEWER.txt",
+            "anchor": "ECO-NO-SAME-VENDOR-REVIEWER:excerpt",
+            "snapshot_sha256": "be83c3059a7f63ac280dacd20b601fd867bd69983d9d8693ef09b2e7934bf856"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:120-121",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-frontier-orchestration.md",
+            "anchor": "05-ECO-frontier-orchestration.md:anti-adoption-2",
+            "snapshot_sha256": "a51a34fd8eb489193c51315189558b5c90c235367edaa9d8b6819b56fe052b80"
+          }
+        ],
+        "evidence_tier": "E2",
+        "confidence_band": "likely",
+        "settling_probe": {
+          "probe_id": "ECO-NO-SAME-VENDOR-REVIEWER-PROBE",
+          "procedure": "Find a same-vendor dual-review gate and measure error correlation on a held-out disagreement set.",
+          "falsifies_when": "The second same-vendor reviewer independently catches a disjoint error class at material rate."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "be83c3059a7f63ac280dacd20b601fd867bd69983d9d8693ef09b2e7934bf856"
+      },
+      {
+        "claim_id": "ECO-CODEX-DENY-UNKNOWN",
+        "canonical_mechanism": "Claude Code ignores unrecognised top-level manifest fields; Codex HooksFile uses deny_unknown_fields, so a $schema key in hooks.json is fatal to Codex and invisible to Claude.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-CODEX-DENY-UNKNOWN.txt",
+            "anchor": "ECO-CODEX-DENY-UNKNOWN:excerpt",
+            "snapshot_sha256": "a4a03014360d1720f48f4bb0f337468f80b624e1964ea8c63abfbc2b7c9da48b"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:134-138",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-plugin-specs.md",
+            "anchor": "05-ECO-plugin-specs.md:10",
+            "snapshot_sha256": "4efb3a8960f0dea1c6e68ca0a797124847851caa1a9f5f264852878eaa239562"
+          }
+        ],
+        "evidence_tier": "E2",
+        "confidence_band": "almost-certain",
+        "settling_probe": {
+          "probe_id": "ECO-CODEX-DENY-UNKNOWN-PROBE",
+          "procedure": "Feed Codex a hooks.json containing $schema and confirm reject; feed Claude the same file and confirm warning-or-ignore.",
+          "falsifies_when": "Either client accepts and executes the unknown field, or both reject it the same way."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "a4a03014360d1720f48f4bb0f337468f80b624e1964ea8c63abfbc2b7c9da48b"
+      },
+      {
+        "claim_id": "ECO-PLUGIN-VERSION-PIN",
+        "canonical_mechanism": "version in plugin.json pins the plugin. Commits without a bump ship nothing, and plugin.json silently wins over the marketplace entry. Both files currently pin 0.2.0.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-PLUGIN-VERSION-PIN.txt",
+            "anchor": "ECO-PLUGIN-VERSION-PIN:excerpt",
+            "snapshot_sha256": "425112a63ae282ef2088dbb5d240c63c0cec80e8b3ffd9da0cc7b99f3cc6e0cc"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:139-141",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          }
+        ],
+        "evidence_tier": "E3",
+        "confidence_band": "likely",
+        "settling_probe": {
+          "probe_id": "ECO-PLUGIN-VERSION-PIN-PROBE",
+          "procedure": "Read live plugin.json and marketplace version fields and compare to a commit that changed skill bytes without bumping version.",
+          "falsifies_when": "A no-bump commit is visible to the installer as a new version."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "425112a63ae282ef2088dbb5d240c63c0cec80e8b3ffd9da0cc7b99f3cc6e0cc"
+      },
+      {
+        "claim_id": "ECO-CODEX-PLUGIN-DIR",
+        "canonical_mechanism": "Codex plugin manifest is .codex-plugin/plugin.json. The repo has no .codex-plugin/, so it is currently un-installable as a Codex plugin.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-CODEX-PLUGIN-DIR.txt",
+            "anchor": "ECO-CODEX-PLUGIN-DIR:excerpt",
+            "snapshot_sha256": "8cc1286b1824fe9bed4f0ffc0918a1e35ce95a2723d45fe699d0317f20f3f5df"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:142-144",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          }
+        ],
+        "evidence_tier": "E3",
+        "confidence_band": "very-likely",
+        "settling_probe": {
+          "probe_id": "ECO-CODEX-PLUGIN-DIR-PROBE",
+          "procedure": "Test-Path .codex-plugin/plugin.json at repo root and attempt Codex plugin install.",
+          "falsifies_when": "A .codex-plugin/plugin.json exists and Codex install succeeds."
+        },
+        "edges": [
+          {
+            "relation": "supports",
+            "target_claim_id": "ECO-CODEX-DENY-UNKNOWN"
+          }
+        ],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "8cc1286b1824fe9bed4f0ffc0918a1e35ce95a2723d45fe699d0317f20f3f5df"
+      },
+      {
+        "claim_id": "ECO-DOCS-301",
+        "canonical_mechanism": "Anthropic docs moved docs.claude.com/en/docs/claude-code/* to code.claude.com/docs/en/* (observed HTTP 301).",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-DOCS-301.txt",
+            "anchor": "ECO-DOCS-301:excerpt",
+            "snapshot_sha256": "da06fbc03070ac0db03c85226d1e04295c52e8fc93f0c4b2af3af22dad98bfb4"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:146-148",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          }
+        ],
+        "evidence_tier": "E3",
+        "confidence_band": "likely",
+        "settling_probe": {
+          "probe_id": "ECO-DOCS-301-PROBE",
+          "procedure": "HTTP HEAD a docs.claude.com/en/docs/claude-code path and record status plus Location.",
+          "falsifies_when": "The path returns 200 on the old host with no Location to code.claude.com."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "da06fbc03070ac0db03c85226d1e04295c52e8fc93f0c4b2af3af22dad98bfb4"
+      },
+      {
+        "claim_id": "ECO-R1-CAUGHT-R2",
+        "canonical_mechanism": "Workflow-source register used two different evidence rails; R1 GitHub REST caught R2 web search in five owner-change errors including block/goose to aaif-goose/goose.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-R1-CAUGHT-R2.txt",
+            "anchor": "ECO-R1-CAUGHT-R2:excerpt",
+            "snapshot_sha256": "6f768f5b6a5ddf8f6f855cafd8538c94946a32503aa8f5bd5ce2528b059178a3"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:154-159",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-workflow-sources.md",
+            "anchor": "05-ECO-workflow-sources.md:8",
+            "snapshot_sha256": "945b39caa73e5ad06bfc031a5433d24c14417e4475f88962d2384f5323e7c7af"
+          }
+        ],
+        "evidence_tier": "E2",
+        "confidence_band": "likely",
+        "settling_probe": {
+          "probe_id": "ECO-R1-CAUGHT-R2-PROBE",
+          "procedure": "Re-query GitHub for the five named old owners and record current owner plus redirect.",
+          "falsifies_when": "None of the five old owners redirect."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "6f768f5b6a5ddf8f6f855cafd8538c94946a32503aa8f5bd5ce2528b059178a3"
+      },
+      {
+        "claim_id": "ECO-NOASSERTION-TRAP",
+        "canonical_mechanism": "NOASSERTION means GitHubs classifier did not recognise the licence file, not unlicensed. 19 rows are unresolved legal questions and none had its LICENSE read.",
+        "source_lineage": [
+          {
+            "role": "primary",
+            "locator": "command-center/p2-wave/probes/RES-0001/fixtures/excerpts/ECO-NOASSERTION-TRAP.txt",
+            "anchor": "ECO-NOASSERTION-TRAP:excerpt",
+            "snapshot_sha256": "db442fadd59fcb927f8baa8983a5817228bf6e4b6b5cac004e17eb16e2aff2d7"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+            "anchor": "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:161-164",
+            "snapshot_sha256": "643130fd9f0874a5a6a71f4835035f6accc8ce2ea59e69c5e1ce1743216e75b1"
+          },
+          {
+            "role": "derived",
+            "locator": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-workflow-sources.md",
+            "anchor": "05-ECO-workflow-sources.md:351",
+            "snapshot_sha256": "945b39caa73e5ad06bfc031a5433d24c14417e4475f88962d2384f5323e7c7af"
+          }
+        ],
+        "evidence_tier": "E2",
+        "confidence_band": "likely",
+        "settling_probe": {
+          "probe_id": "ECO-NOASSERTION-PROBE",
+          "procedure": "Fetch LICENSE bytes for a NOASSERTION row and classify the actual licence text.",
+          "falsifies_when": "The fetched LICENSE is empty and the project is truly unlicensed."
+        },
+        "edges": [],
+        "freshness_stamp": "2026-08-19T00:00:00Z",
+        "snapshot_sha256": "db442fadd59fcb927f8baa8983a5817228bf6e4b6b5cac004e17eb16e2aff2d7"
+      }
+    ],
+    "cloud_ok_strike1": {
+      "applied": true,
+      "cannot_do_in_this_file": [
+        "resolved outside this file: executable adapters, eight authored schema files, named probe scripts, per-unit manifest"
+      ],
+      "sidecar_probe_dir_on_harvest_dest": "absent except this cloud-ok measure/strike script",
+      "delivery_contract_was": "PASS",
+      "delivery_contract_now": "NOT-P2",
+      "required_fix_applied_subset": [
+        "ten byte-anchored 05-ECO extractions embedded",
+        "each lineage source binds snapshot_sha256",
+        "E1/E2 lineage invariants added to claim_record"
+      ]
+    },
+    "cloud_ok_strike2": {
+      "applied": true,
+      "hypothesis": "Restore tail UNIT-COMPLETE own-line; remove accidental catalog-sentinel token; declare BLOCKED at top level so the vacuous-meta fallback cannot count this as delivered.",
+      "still_open": [],
+      "closed_on_p2_deliver": [
+        "C2 on-disk named probes present and exit 0",
+        "eight authored command-center/schema files present",
+        "Phase-1/4/12 consumer adapters present and independent of a field map",
+        "per-unit UNIT-ARTIFACT-MANIFEST.json registers this output_path",
+        "catalog completion sentinel SUCCESS:RES-0001 written after probes passed"
+      ]
+    },
+    "success_withheld": false,
+    "completion_line": "UNIT-COMPLETE:RES-0001",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters preserve valid JSON while splitlines exposes the exact required completion line near EOF.",
+    "completion_marker": "UNIT-COMPLETE:RES-0001",
+    "catalog_sentinel": "SUCCESS:RES-0001",
+    "schema_family": {
+      "authored_files": [
+        "command-center/schema/research-sha256.schema.json",
+        "command-center/schema/evidence-tier.schema.json",
+        "command-center/schema/confidence-band.schema.json",
+        "command-center/schema/source-ref.schema.json",
+        "command-center/schema/source-lineage.schema.json",
+        "command-center/schema/settling-probe.schema.json",
+        "command-center/schema/claim-edge.schema.json",
+        "command-center/schema/phase2-claim-record.schema.json"
+      ],
+      "untouched_generated_shims": [
+        "command-center/schema/claim-record.schema.json",
+        "command-center/schema/research-claim-record.schema.json"
+      ],
+      "write_scope_resolution": "Catalog completion_sentinel requires eight command-center/schema files. The two generated shims used by other catalog rows were not overwritten. Eight new authored files constitute this family."
+    },
+    "independence_control": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0001/independence_control.py",
+      "raw_output_path": "command-center/p2-wave/probes/RES-0001/independence-control.raw.txt",
+      "raw_output": "probe=RES-0001-INDEPENDENCE-CONTROL\ncontrol=refute_only_decorative_field\npurpose=consumers must not share a field-to-consumer map that can false-positive\nbaseline_consumers_red=\ndecorative_present_consumers_red=\ndecorative_deleted_consumers_red=\ndecorative_present_schema_red=true\ndecorative_schema_error=Additional properties are not allowed ('refute_only_decorative_field' was unexpected)\nfalse_positive=false\nresult=INDEPENDENT\nCONTROL=PASS\nPROBE-COMPLETE:RES-0001:INDEPENDENCE",
+      "exit_code": 0,
+      "result": "INDEPENDENT"
+    },
+    "reviewer": {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0001/reviewer_both_states.py",
+      "raw_output_path": "command-center/p2-wave/probes/RES-0001/reviewer-both-states.raw.txt",
+      "raw_output": "probe=RES-0001-REVIEWER-BOTH-STATES\nreviewer=independent-re-run of emitted Draft202012 checker plus executable consumers\nrequirement=re-runs the emitted checker against BOTH a known-good and a known-broken fixture and confirms it fires only on the broken one\ngood_claim_id=ECO-HARNESS-BOTTLENECK\ngood_schema_error_count=0\ngood_consumers_red=\ngood_state=GREEN\nbroken_mutation=delete source_lineage\nbroken_schema_error_count=1\nbroken_consumers_red=phase-1-dedup,phase-12-refutation\nbroken_state=RED\nbroken_schema_error='source_lineage' is a required property\nfires_only_on_broken=true\nsilent_in_both_states=false\nextracted_schema_good_errors=0\nextracted_schema_broken_errors=1\nREVIEWER=PASS\nPROBE-COMPLETE:RES-0001:REVIEWER",
+      "exit_code": 0,
+      "verdict": "PASS"
+    },
+    "manifest_registration": {
+      "registered": true,
+      "manifest_path": "command-center/p2-wave/probes/RES-0001/UNIT-ARTIFACT-MANIFEST.json",
+      "global_catalog_write": false
+    },
+    "delivered_at": "2026-08-19T12:01:08Z"
+  },
+  "completion_sentinel": "SUCCESS:RES-0001",
+  "reviewer": "PASS",
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0001/UNIT-ARTIFACT-MANIFEST.json"
+}

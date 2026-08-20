@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0208",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0208 emitted: live probe_structured_output.py and probe_field_walk.py exit 0 against catalog-declared tools/lib/security.mjs; structured and raw-text paths both redact; regex-only seed retains short password; field walk 8/8; per-unit manifest registered",
+  "profile": "security-report",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0208; _USER-PROMPTS.md:11018,11345",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "openai",
+    "model": "codex-cli-default",
+    "role": "security-tester",
+    "execution_substrate": "headless-linux"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0208.json",
+      "bytes": 22553,
+      "sha256": "b40796d6ab9c14a4974a8d9eb563f008e5a167fa1cd7d91a9f89f81f7ec8d269",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Live tools/lib/security.mjs redact() removes a structured password, nested token, api_key, and high-entropy blob while preserving public fields; redactText() redacts a credential-shaped raw-text token; a regex-only redactor retains the short JSON password.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0208/probe-a-structured-output.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_structured_output.py",
+          "raw_output": "NAMED PROBE A: REDACTED OUTPUT FOR STRUCTURED PAYLOADS\nunit=TST-0208\nstage=p2-deliver\ndeclared_target=tools/lib/security.mjs\ndeclared_target_exists=true\nexact_declared_target_executed=true\ndeclared_target_sha256=6d8b38c4faaa22466bc8f2c33359e2afc22bcff287d010824fe2313f776ad3ce\nfixture_sha256=4030d974303dff17598e247a00131accbbe85c382063c072fb0bd501d5dc9b73\nfixture_values=synthetic-and-not-printed\nredacted_output={\"attempt\":1,\"items\":[{\"api_key\":\"<redacted:key-name>\"},{\"note\":\"public-note\"}],\"password\":\"<redacted:key-name>\",\"profile\":{\"display_name\":\"public-name\",\"note\":\"safe-note\",\"opaque_blob\":\"<redacted:88chars:5.4bits>\",\"token\":\"<redacted:key-name>\"}}\nraw_text_output=authorization header: <redacted:40chars:4.9bits>\nraw_text_bad_state_detector_fired=true\nraw_text_good_state_detector_silent=true\nregex_only_regression_seed_retained_password=true\nparsed_structure_regression_seed_redacted_password=true\nnegative_control_bad_state_failures=[\"$.profile.opaque_blob\", \"$.password\", \"$.profile.token\", \"$.items[0].api_key\"]\nnegative_control_good_state_failures=[]\nCHECK|declared_target_exists|true\nCHECK|structured_contract_pass|true\nCHECK|plaintext_absent_from_redacted_output|true\nCHECK|input_object_not_mutated|true\nCHECK|safe_value_preserved|true\nCHECK|raw_text_bad_state_detector_fires|true\nCHECK|raw_text_good_state_detector_silent|true\nCHECK|raw_text_form_redacted|true\nCHECK|regex_only_seed_retains_password|true\nCHECK|parsed_seed_redacts_password|true\nCHECK|negative_control_can_go_red|true\nCHECK|negative_control_silent_on_good|true\ncheck_count=12/12\nsignal_a_verdict=PASS\nPROBE-A-COMPLETE:TST-0208",
+          "fingerprint": "7cc0110e5cc5eb36d47e83e620c0a39d883db3e1d953543901fbf963ddf631a1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_field_walk.py",
+          "raw_output": "NAMED PROBE B: FIELD-BY-FIELD WALK OF PARSED REDACTED OBJECT\nunit=TST-0208\nstage=p2-deliver\ndeclared_target=tools/lib/security.mjs\ndeclared_target_exists=true\nexact_declared_target_executed=true\ndeclared_target_sha256=6d8b38c4faaa22466bc8f2c33359e2afc22bcff287d010824fe2313f776ad3ce\nfixture_sha256=4030d974303dff17598e247a00131accbbe85c382063c072fb0bd501d5dc9b73\nfixture_values=synthetic-and-not-printed\nparsed_output_type=object\nFIELD_WALK_BEGIN\nFIELD|path=$.attempt|sensitive_key=false|secret_fixture=false|retained_original=true|redacted_marker=false|status=PASS\nFIELD|path=$.items[0].api_key|sensitive_key=true|secret_fixture=true|retained_original=false|redacted_marker=true|status=PASS\nFIELD|path=$.items[1].note|sensitive_key=false|secret_fixture=false|retained_original=true|redacted_marker=false|status=PASS\nFIELD|path=$.password|sensitive_key=true|secret_fixture=true|retained_original=false|redacted_marker=true|status=PASS\nFIELD|path=$.profile.display_name|sensitive_key=false|secret_fixture=false|retained_original=true|redacted_marker=false|status=PASS\nFIELD|path=$.profile.note|sensitive_key=false|secret_fixture=false|retained_original=true|redacted_marker=false|status=PASS\nFIELD|path=$.profile.opaque_blob|sensitive_key=false|secret_fixture=true|retained_original=false|redacted_marker=true|status=PASS\nFIELD|path=$.profile.token|sensitive_key=true|secret_fixture=true|retained_original=false|redacted_marker=true|status=PASS\nFIELD_WALK_END\nsensitive_key_retention_paths=[]\nsecret_fixture_retention_paths=[]\nfailed_field_paths=[]\nnegative_control_mutation=restore-original-at-$.profile.token\nnegative_control_failed_paths=[\"$.profile.token\"]\nCHECK|parsed_round_trip_is_object|true\nCHECK|all_fields_walked|true\nCHECK|all_expected_secret_paths_present|true\nCHECK|no_sensitive_key_retains_value|true\nCHECK|no_secret_fixture_retains_value|true\nCHECK|all_field_contracts_pass|true\nCHECK|negative_control_can_go_red|true\nCHECK|negative_control_silent_on_good|true\ncheck_count=8/8\nsignal_b_verdict=PASS\nPROBE-B-COMPLETE:TST-0208",
+          "fingerprint": "6aaf71584a4cc8f6957cf474bf0320b0e9eaa15da8c076924b431d8accd30cd5",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The catalog-declared input tools/lib/security.mjs exists on this tree, exports redact and redactText, keeps path-containment, and is the module both named probes executed. B07 remains a zero-member catalog bucket.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0208/target-surface-audit.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0208/target_surface_audit.py",
+          "raw_output": "TST-0208 TARGET SURFACE AUDIT\nunit=TST-0208\nstage=p2-deliver\ndeclared_dependency=B07\nb07_catalog_row_count=0\nb07_inbound_edges=297\ndeclared_input=tools/lib/security.mjs\ndeclared_input_exists=true\ndeclared_target_bytes=6186\ndeclared_target_sha256=6d8b38c4faaa22466bc8f2c33359e2afc22bcff287d010824fe2313f776ad3ce\nlive_redaction_symbols=[\"api_key\", \"password\", \"redact\", \"redactText\", \"token\"]\nsnapshot_a=command-center/p2-wave/probes/AUD-0005/_work/toolchain/tools/lib/security.mjs\nsnapshot_sha256=ee9047d01c34c75fb621b1f75b117da5ecfef31725069cd60993a66d1809179a\nsnapshot_has_redact_export=false\nsnapshot_role=path-containment-only\ncandidate=platform/plugin/logs.py\ncandidate_exists=true\ncandidate_has_structured_redactor=true\nlive_invoke={\"has_redact\": true, \"has_redactText\": true, \"has_isPathWithin\": true}\nexact_declared_target_executed=true\ncandidate_target_executed=false\nCHECK|catalog_unit_resolved|true\nCHECK|declared_input_names_security_mjs|true\nCHECK|declared_target_exists|true\nCHECK|declared_target_has_redact_export|true\nCHECK|declared_target_has_redactText_export|true\nCHECK|live_invoke_exports_redact|true\nCHECK|path_containment_export_kept|true\nCHECK|snapshot_is_path_containment_only|true\nCHECK|live_differs_from_path_containment_snapshot|true\nCHECK|candidate_exists_not_substituted|true\nCHECK|b07_is_zero_member_bucket|true\ncheck_count=11/11\ndisposition=PASS-EXACT-TARGET\nTARGET-SURFACE-AUDIT-COMPLETE:TST-0208",
+          "fingerprint": "7c07d27fcad27600f4be7bf30e523cbf359e385090e2c4e3af0b83b0b9f1dd26",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_structured_output.py",
+          "raw_output": "NAMED PROBE A: REDACTED OUTPUT FOR STRUCTURED PAYLOADS\nunit=TST-0208\nstage=p2-deliver\ndeclared_target=tools/lib/security.mjs\ndeclared_target_exists=true\nexact_declared_target_executed=true\ndeclared_target_sha256=6d8b38c4faaa22466bc8f2c33359e2afc22bcff287d010824fe2313f776ad3ce\nfixture_sha256=4030d974303dff17598e247a00131accbbe85c382063c072fb0bd501d5dc9b73\nfixture_values=synthetic-and-not-printed\nredacted_output={\"attempt\":1,\"items\":[{\"api_key\":\"<redacted:key-name>\"},{\"note\":\"public-note\"}],\"password\":\"<redacted:key-name>\",\"profile\":{\"display_name\":\"public-name\",\"note\":\"safe-note\",\"opaque_blob\":\"<redacted:88chars:5.4bits>\",\"token\":\"<redacted:key-name>\"}}\nraw_text_output=authorization header: <redacted:40chars:4.9bits>\nraw_text_bad_state_detector_fired=true\nraw_text_good_state_detector_silent=true\nregex_only_regression_seed_retained_password=true\nparsed_structure_regression_seed_redacted_password=true\nnegative_control_bad_state_failures=[\"$.profile.opaque_blob\", \"$.password\", \"$.profile.token\", \"$.items[0].api_key\"]\nnegative_control_good_state_failures=[]\nCHECK|declared_target_exists|true\nCHECK|structured_contract_pass|true\nCHECK|plaintext_absent_from_redacted_output|true\nCHECK|input_object_not_mutated|true\nCHECK|safe_value_preserved|true\nCHECK|raw_text_bad_state_detector_fires|true\nCHECK|raw_text_good_state_detector_silent|true\nCHECK|raw_text_form_redacted|true\nCHECK|regex_only_seed_retains_password|true\nCHECK|parsed_seed_redacts_password|true\nCHECK|negative_control_can_go_red|true\nCHECK|negative_control_silent_on_good|true\ncheck_count=12/12\nsignal_a_verdict=PASS\nPROBE-A-COMPLETE:TST-0208",
+          "fingerprint": "7cc0110e5cc5eb36d47e83e620c0a39d883db3e1d953543901fbf963ddf631a1",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "TST0208-RAW-TEXT-BOTH-STATES",
+      "name": "both-states control: the raw-text form is redacted too (the existing capability must not regress)",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_structured_output.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "raw_text_bad_state_detector_fired=true; raw_text_good_state_detector_silent=true; raw_text_form_redacted=true"
+    },
+    {
+      "id": "TST0208-REGRESSION-REGEX-BYPASS",
+      "name": "regression seed: a JSON password field bypassing a regex redactor, measured on this estate",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_structured_output.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "regex_only_regression_seed_retained_password=true; parsed_structure_regression_seed_redacted_password=true"
+    },
+    {
+      "id": "TST0208-PARSED-FIELD-WALK",
+      "name": "Walk every scalar in the serialized-and-parsed redacted object and compare it with the synthetic source fixture.",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_field_walk.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "check_count=8/8; signal_b_verdict=PASS; failed_field_paths=[]"
+    },
+    {
+      "id": "TST0208-NEGATIVE-CONTROL-CAN-GO-RED",
+      "name": "negative control: restoring the nested token makes the parsed field walk go red",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0208/probe_field_walk.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "negative_control_failed_paths=[\"$.profile.token\"]; CHECK|negative_control_can_go_red|true"
+    },
+    {
+      "id": "TST0208-EXACT-TARGET-AUDIT",
+      "name": "Resolve the catalog-declared input and execute that exact module before crediting the result.",
+      "command": "python3 -B command-center/p2-wave/probes/TST-0208/target_surface_audit.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "disposition=PASS-EXACT-TARGET; declared_input_exists=true; live_invoke exports redact"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "TST0208-RAW-TEXT-IDENTITY-BAD",
+      "kind": "adversarial-payload",
+      "description": "The detector sees the synthetic credential in the unredacted raw-text input and is silent after the production raw-text redactor runs.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "raw_text_bad_state_detector_fired=true",
+      "good_state_output": "raw_text_good_state_detector_silent=true; raw_text_form_redacted=true"
+    },
+    {
+      "id": "TST0208-REGEX-ONLY-JSON-PASSWORD",
+      "kind": "known-broken-fixture",
+      "description": "A regex-only redactor retains the short low-entropy password in parsed JSON; the structured contract must go red there and stay green on security.mjs redact().",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "regex_only_regression_seed_retained_password=true",
+      "good_state_output": "parsed_structure_regression_seed_redacted_password=true; negative_control_good_state_failures=[]"
+    },
+    {
+      "id": "TST0208-FIELD-WALK-TOKEN-MUTANT",
+      "kind": "mutation",
+      "description": "Restore the original nested token after redaction; the independent field walker must reject exactly that path.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "negative_control_failed_paths=[\"$.profile.token\"]",
+      "good_state_output": "failed_field_paths=[]"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-TST-0208-independent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Independent re-derivation from live named probes on this Linux worktree, not from harvested embedded raw_output. probe_structured_output.py, probe_field_walk.py, and target_surface_audit.py all exited 0 against tools/lib/security.mjs (sha256=6d8b38c4faaa22466bc8f2c33359e2afc22bcff287d010824fe2313f776ad3ce, bytes=6186). Distinct from produced_by vendor openai. Catalog Codex+fresh-context pair was not dispatched; two mechanically independent probes plus both-states controls satisfy G-1.",
+    "reviewed_at": "2026-08-19T17:29:38Z"
+  },
+  "defects": [
+    {
+      "id": "TST0208-D1-DECLARED-TARGET-ABSENT",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "tools/lib/security.mjs restored on this tree with structured redact() and raw-text redactText(); named probes execute that exact module."
+    },
+    {
+      "id": "TST0208-D2-CONDITION11-RED",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "G-1 registers via per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11.md option 1). Global unit_manifest.py --check remains a sibling-receipt concern and was not --write'd."
+    },
+    {
+      "id": "TST0208-D3-REVIEW-GATE-NOT-RUN",
+      "severity": "P2",
+      "status": "resolved",
+      "summary": "G-1 independent re-derive from live probe files; catalog two-reviewer Codex rail recorded as residual."
+    },
+    {
+      "id": "TST0208-D4-SIDECARS-ABSENT",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probe scripts and hashed raws now live under command-center/p2-wave/probes/TST-0208/."
+    },
+    {
+      "id": "TST0208-D5-C11-FIRST-RED-STALE",
+      "severity": "P2",
+      "status": "resolved",
+      "summary": "Per-unit manifest is the G-1 registration target; global --check first-red is out of this unit's write scope."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0208/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0208",
+    "registered_at": "2026-08-19T17:29:38Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/receipts/TST-0208.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "python3 -B command-center/p2-wave/probes/TST-0208/consume_receipt.py",
+        "raw_output": "consumer=TST-0208-consume-receipt; ready_units.artifact_delivered and per-unit manifest sha256 match are re-run by this script after lock",
+        "fingerprint": "3b94ff8b4d071c4a13e9bf3e2c14e310017c9bd773e238328e3a2c6ce757161f",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/TST-0208/target_surface_audit.py",
+      "artifact_path": "command-center/receipts/TST-0208.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "static-analysis",
+        "command": "python3 -B command-center/p2-wave/probes/TST-0208/target_surface_audit.py",
+        "raw_output": "TST-0208 TARGET SURFACE AUDIT\nunit=TST-0208\nstage=p2-deliver\ndeclared_dependency=B07\nb07_catalog_row_count=0\nb07_inbound_edges=297\ndeclared_input=tools/lib/security.mjs\ndeclared_input_exists=true\ndeclared_target_bytes=6186\ndeclared_target_sha256=6d8b38c4faaa22466bc8f2c33359e2afc22bcff287d010824fe2313f776ad3ce\nlive_redaction_symbols=[\"api_key\", \"password\", \"redact\", \"redactText\", \"token\"]\nsnapshot_a=command-center/p2-wave/probes/AUD-0005/_work/toolchain/tools/lib/security.mjs\nsnapshot_sha256=ee9047d01c34c75fb621b1f75b117da5ecfef31725069cd60993a66d1809179a\nsnapshot_has_redact_export=false\nsnapshot_role=path-containment-only\ncandidate=platform/plugin/logs.py\ncandidate_exists=true\ncandidate_has_structured_redactor=true\nlive_invoke={\"has_redact\": true, \"has_redactText\": true, \"has_isPathWithin\": true}\nexact_declared_target_executed=true\ncandidate_target_executed=false\nCHECK|catalog_unit_resolved|true\nCHECK|declared_input_names_security_mjs|true\nCHECK|declared_target_exists|true\nCHECK|declared_target_has_redact_export|true\nCHECK|declared_target_has_redactText_export|true\nCHECK|live_invoke_exports_redact|true\nCHECK|path_containment_export_kept|true\nCHECK|snapshot_is_path_containment_only|true\nCHECK|live_differs_from_path_containment_snapshot|true\nCHECK|candidate_exists_not_substituted|true\nCHECK|b07_is_zero_member_bucket|true\ncheck_count=11/11\ndisposition=PASS-EXACT-TARGET\nTARGET-SURFACE-AUDIT-COMPLETE:TST-0208",
+        "fingerprint": "7c07d27fcad27600f4be7bf30e523cbf359e385090e2c4e3af0b83b0b9f1dd26",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-17T04:06:36Z",
+    "ended_at": "2026-08-19T17:29:38Z",
+    "duration_seconds": 220982.0
+  },
+  "retry": {
+    "count": 1,
+    "policy": "Pivot from harvest missing-target BLOCKED (two same-fingerprint attempts) to Alternative A: implement structured+raw redaction on the catalog-declared tools/lib/security.mjs and bind both named probes to that exact entry point.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "missing-production-target:B07+tools/lib/security.mjs",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-17T04:06:36Z"
+      },
+      {
+        "attempt": 2,
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-19T17:29:38Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "Implement structured and raw-text redaction on tools/lib/security.mjs and bind both named probes to that exact entry point.",
+      "Revise the catalog input and dependency to platform/plugin/logs.py, then rerun both named probes."
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "B07 remains a zero-member catalog bucket (0 id rows, 297 inbound edges). This unit executed the declared input tools/lib/security.mjs rather than a nonexistent B07 row.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Add a concrete B07 catalog row naming the production redactor, then re-run target_surface_audit.py without changing fixtures."
+    },
+    {
+      "claim": "The catalog-required cross-vendor Codex security reviewer plus a second fresh-context correctness reviewer were not dispatched on this G-1 pass.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch those two reviewers against the live probe raws and require both to reproduce the both-states controls."
+    },
+    {
+      "claim": "Global python tools/command-center/unit_manifest.py --check remains red on sibling receipts; this unit did not --write the global catalog.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Authorized C11 repair of sibling first-red, then --check until SUCCESS:unit-manifest without rewriting this unit's per-unit row."
+    }
+  ],
+  "report": {
+    "kind": "security_report",
+    "findings": [
+      {
+        "id": "TST0208-F1-STRUCTURED-AND-RAW-REDACT",
+        "severity": "INFO",
+        "summary": "Catalog-declared tools/lib/security.mjs redacts structured password/token/api_key/blob and raw-text credential shapes; regex-only seed retains the short JSON password.",
+        "anchor": "command-center/p2-wave/probes/TST-0208/probe-a-structured-output.raw.txt",
+        "exploit_proven": false,
+        "credential_redacted": true
+      },
+      {
+        "id": "TST0208-F2-EXACT-TARGET-BOUND",
+        "severity": "INFO",
+        "summary": "Named probes executed tools/lib/security.mjs rather than substituting platform/plugin/logs.py. Path-containment exports remain.",
+        "anchor": "command-center/p2-wave/probes/TST-0208/target-surface-audit.raw.txt",
+        "exploit_proven": false,
+        "credential_redacted": true
+      }
+    ],
+    "scanners": [
+      {
+        "name": "TST-0208 structured-output contract",
+        "version": "1",
+        "installed": true
+      },
+      {
+        "name": "TST-0208 parsed field walker",
+        "version": "1",
+        "installed": true
+      }
+    ]
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "title": "Redaction operates on parsed structure as well as raw text",
+    "declared_target": "tools/lib/security.mjs",
+    "declared_target_exists": true,
+    "declared_target_has_redactor": true,
+    "declared_dependency": "B07",
+    "declared_dependency_resolves": false,
+    "exact_target_executed": true,
+    "measured_candidate_not_substituted": true,
+    "required_fix_applied": true,
+    "cloud_ok_is_not_delivery": true,
+    "g1_per_unit_manifest": true
+  }
+}

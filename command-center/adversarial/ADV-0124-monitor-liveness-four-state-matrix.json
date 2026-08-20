@@ -1,0 +1,474 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0124",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0124 both named probes re-ran to exit 0; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "profile": "monitor-liveness-four-state-matrix",
+  "spec_anchor": "_USER-PROMPTS.md:11315-11316",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5",
+    "role": "platform-fault-injector",
+    "execution_substrate": "linux-headless-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0124-monitor-liveness-four-state-matrix.json",
+      "bytes": 46048,
+      "sha256": "55e7522db94923df102523301d90fe56510fadb36646864a3098d807fb52dffe",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Across the four true states, the coordination monitor reports LIVE, UNVERIFIED, CLOSED, and UNVERIFIED: it correctly handles plainly-running and 11-hour-finished work, does not falsely reap live work after its heartbeat monitor dies, but cannot distinguish that case from a process genuinely stalled with no output.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+          "raw_output": "Probe 1: run each scenario and record the monitor's reported state against the true state as a confusion matrix.\n{\n  \"all_checks_pass\": true,\n  \"answer\": \"The monitor safely distinguishes plainly running and gracefully finished work, but it intentionally conflates live work whose heartbeat monitor died with a genuinely stalled process as UNVERIFIED.\",\n  \"catalog\": \"Probe 1: run each scenario and record the monitor's reported state against the true state as a confusion matrix.\",\n  \"checks\": {\n    \"dead_monitor_and_stall_have_same_observable_signature\": true,\n    \"eleven_hour_finished_is_closed_not_stalled\": true,\n    \"finished_and_stalled_pair_tested_explicitly\": true,\n    \"negative_control_can_go_red\": true,\n    \"plainly_running_control_is_live\": true,\n    \"running_work_not_reaped_when_monitor_dead\": true,\n    \"sigstop_fixture_is_genuinely_stalled\": true,\n    \"stalled_is_not_guessed_dead\": true\n  },\n  \"conflated_true_state_pair\": [\n    \"work_running_monitor_dead\",\n    \"work_genuinely_stalled\"\n  ],\n  \"confusion_matrix\": [\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"LIVE\",\n      \"heartbeat_monitor\": \"alive\",\n      \"monitor_reported_state\": \"LIVE\",\n      \"normalized_observable_signature\": [\n        false,\n        true,\n        \"HELD-BY-OTHER\"\n      ],\n      \"reason\": \"both signals agree the session is running\",\n      \"scenario\": \"work_running_monitor_alive\",\n      \"signals\": {\n        \"closed_at_present\": false,\n        \"heartbeat_age_seconds\": 0.0,\n        \"heartbeat_fresh\": true,\n        \"os_lock\": \"HELD-BY-OTHER\"\n      },\n      \"true_state\": \"work running with heartbeat monitor alive\",\n      \"truth_evidence\": {\n        \"child_mode\": \"burn\",\n        \"cpu_tick_delta\": 44,\n        \"linux_process_state\": \"R\",\n        \"pid\": 50039,\n        \"process_returncode\": null\n      }\n    },\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"UNVERIFIED\",\n      \"heartbeat_monitor\": \"dead\",\n      \"monitor_reported_state\": \"UNVERIFIED\",\n      \"normalized_observable_signature\": [\n        false,\n        false,\n        \"HELD-BY-OTHER\"\n      ],\n      \"reason\": \"signals disagree: heartbeat 39600.0s old but the process still holds its lock. This is NOT reported as hung - proving 'stuck' needs orchestrator state that a file listing does not contain\",\n      \"scenario\": \"work_running_monitor_dead\",\n      \"signals\": {\n        \"closed_at_present\": false,\n        \"heartbeat_age_seconds\": 39600.0,\n        \"heartbeat_fresh\": false,\n        \"os_lock\": \"HELD-BY-OTHER\"\n      },\n      \"true_state\": \"work running while heartbeat monitor is dead\",\n      \"truth_evidence\": {\n        \"child_mode\": \"burn\",\n        \"cpu_tick_delta\": 45,\n        \"linux_process_state\": \"R\",\n        \"pid\": 50056,\n        \"process_returncode\": null\n      }\n    },\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"CLOSED\",\n      \"heartbeat_monitor\": \"not applicable after terminal close\",\n      \"monitor_reported_state\": \"CLOSED\",\n      \"normalized_observable_signature\": [\n        true,\n        false,\n        \"FREE\"\n      ],\n      \"reason\": \"record declares a graceful close; no recovery required\",\n      \"scenario\": \"work_finished_11_hours_ago\",\n      \"signals\": {\n        \"closed_at_present\": true,\n        \"heartbeat_age_seconds\": 39600.0,\n        \"heartbeat_fresh\": false,\n        \"os_lock\": \"FREE\"\n      },\n      \"true_state\": \"work finished cleanly 11 hours ago\",\n      \"truth_evidence\": {\n        \"child_mode\": \"none\",\n        \"cpu_tick_delta\": 0,\n        \"linux_process_state\": \"exited\",\n        \"pid\": 0,\n        \"process_returncode\": 0\n      }\n    },\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"UNVERIFIED\",\n      \"heartbeat_monitor\": \"dead\",\n      \"monitor_reported_state\": \"UNVERIFIED\",\n      \"normalized_observable_signature\": [\n        false,\n        false,\n        \"HELD-BY-OTHER\"\n      ],\n      \"reason\": \"signals disagree: heartbeat 39600.0s old but the process still holds its lock. This is NOT reported as hung - proving 'stuck' needs orchestrator state that a file listing does not contain\",\n      \"scenario\": \"work_genuinely_stalled\",\n      \"signals\": {\n        \"closed_at_present\": false,\n        \"heartbeat_age_seconds\": 39600.0,\n        \"heartbeat_fresh\": false,\n        \"os_lock\": \"HELD-BY-OTHER\"\n      },\n      \"true_state\": \"work process genuinely stalled with no output\",\n      \"truth_evidence\": {\n        \"child_mode\": \"sleep\",\n        \"cpu_tick_delta\": 0,\n        \"linux_process_state\": \"S\",\n        \"pid\": 50073,\n        \"process_returncode\": null\n      }\n    }\n  ],\n  \"finished_versus_stalled\": {\n    \"distinguished\": true,\n    \"finished_reported\": \"CLOSED\",\n    \"stalled_reported\": \"UNVERIFIED\"\n  },\n  \"host\": \"p2-grok-c\",\n  \"liveness_enum\": [\n    \"LIVE\",\n    \"DEAD\",\n    \"CLOSED\",\n    \"UNVERIFIED\"\n  ],\n  \"lock_outcome_enum\": \"HELD-BY-OTHER\",\n  \"mechanism\": \"real child processes, kernel advisory locks, CPU tick sampling, and injected 11-hour clock advance\",\n  \"negative_control\": {\n    \"detector_fired_on_bad_state\": true,\n    \"detector_silent_on_good_state\": true,\n    \"mutant_result\": \"FAIL_EXPECTED\",\n    \"mutation\": \"single_signal_stale_heartbeat_means_dead\",\n    \"plainly_running_report\": \"LIVE\",\n    \"running_with_dead_monitor_report\": \"DEAD\"\n  },\n  \"probe\": \"ADV-0124-P1-four-state-matrix\",\n  \"reported_state_count\": 3\n}\nSUCCESS:ADV-0124-probe1\n",
+          "fingerprint": "48a7547b81f21213ccf9b19ca783a0d6960e18df0fe7950a9722ccf486497ab8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt",
+          "raw_output": "Probe 1: run each scenario and record the monitor's reported state against the true state as a confusion matrix.\n{\n  \"all_checks_pass\": true,\n  \"answer\": \"The monitor safely distinguishes plainly running and gracefully finished work, but it intentionally conflates live work whose heartbeat monitor died with a genuinely stalled process as UNVERIFIED.\",\n  \"catalog\": \"Probe 1: run each scenario and record the monitor's reported state against the true state as a confusion matrix.\",\n  \"checks\": {\n    \"dead_monitor_and_stall_have_same_observable_signature\": true,\n    \"eleven_hour_finished_is_closed_not_stalled\": true,\n    \"finished_and_stalled_pair_tested_explicitly\": true,\n    \"negative_control_can_go_red\": true,\n    \"plainly_running_control_is_live\": true,\n    \"running_work_not_reaped_when_monitor_dead\": true,\n    \"sigstop_fixture_is_genuinely_stalled\": true,\n    \"stalled_is_not_guessed_dead\": true\n  },\n  \"conflated_true_state_pair\": [\n    \"work_running_monitor_dead\",\n    \"work_genuinely_stalled\"\n  ],\n  \"confusion_matrix\": [\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"LIVE\",\n      \"heartbeat_monitor\": \"alive\",\n      \"monitor_reported_state\": \"LIVE\",\n      \"normalized_observable_signature\": [\n        false,\n        true,\n        \"HELD-BY-OTHER\"\n      ],\n      \"reason\": \"both signals agree the session is running\",\n      \"scenario\": \"work_running_monitor_alive\",\n      \"signals\": {\n        \"closed_at_present\": false,\n        \"heartbeat_age_seconds\": 0.0,\n        \"heartbeat_fresh\": true,\n        \"os_lock\": \"HELD-BY-OTHER\"\n      },\n      \"true_state\": \"work running with heartbeat monitor alive\",\n      \"truth_evidence\": {\n        \"child_mode\": \"burn\",\n        \"cpu_tick_delta\": 44,\n        \"linux_process_state\": \"R\",\n        \"pid\": 50039,\n        \"process_returncode\": null\n      }\n    },\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"UNVERIFIED\",\n      \"heartbeat_monitor\": \"dead\",\n      \"monitor_reported_state\": \"UNVERIFIED\",\n      \"normalized_observable_signature\": [\n        false,\n        false,\n        \"HELD-BY-OTHER\"\n      ],\n      \"reason\": \"signals disagree: heartbeat 39600.0s old but the process still holds its lock. This is NOT reported as hung - proving 'stuck' needs orchestrator state that a file listing does not contain\",\n      \"scenario\": \"work_running_monitor_dead\",\n      \"signals\": {\n        \"closed_at_present\": false,\n        \"heartbeat_age_seconds\": 39600.0,\n        \"heartbeat_fresh\": false,\n        \"os_lock\": \"HELD-BY-OTHER\"\n      },\n      \"true_state\": \"work running while heartbeat monitor is dead\",\n      \"truth_evidence\": {\n        \"child_mode\": \"burn\",\n        \"cpu_tick_delta\": 45,\n        \"linux_process_state\": \"R\",\n        \"pid\": 50056,\n        \"process_returncode\": null\n      }\n    },\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"CLOSED\",\n      \"heartbeat_monitor\": \"not applicable after terminal close\",\n      \"monitor_reported_state\": \"CLOSED\",\n      \"normalized_observable_signature\": [\n        true,\n        false,\n        \"FREE\"\n      ],\n      \"reason\": \"record declares a graceful close; no recovery required\",\n      \"scenario\": \"work_finished_11_hours_ago\",\n      \"signals\": {\n        \"closed_at_present\": true,\n        \"heartbeat_age_seconds\": 39600.0,\n        \"heartbeat_fresh\": false,\n        \"os_lock\": \"FREE\"\n      },\n      \"true_state\": \"work finished cleanly 11 hours ago\",\n      \"truth_evidence\": {\n        \"child_mode\": \"none\",\n        \"cpu_tick_delta\": 0,\n        \"linux_process_state\": \"exited\",\n        \"pid\": 0,\n        \"process_returncode\": 0\n      }\n    },\n    {\n      \"exact_state_match\": true,\n      \"expected_safe_state\": \"UNVERIFIED\",\n      \"heartbeat_monitor\": \"dead\",\n      \"monitor_reported_state\": \"UNVERIFIED\",\n      \"normalized_observable_signature\": [\n        false,\n        false,\n        \"HELD-BY-OTHER\"\n      ],\n      \"reason\": \"signals disagree: heartbeat 39600.0s old but the process still holds its lock. This is NOT reported as hung - proving 'stuck' needs orchestrator state that a file listing does not contain\",\n      \"scenario\": \"work_genuinely_stalled\",\n      \"signals\": {\n        \"closed_at_present\": false,\n        \"heartbeat_age_seconds\": 39600.0,\n        \"heartbeat_fresh\": false,\n        \"os_lock\": \"HELD-BY-OTHER\"\n      },\n      \"true_state\": \"work process genuinely stalled with no output\",\n      \"truth_evidence\": {\n        \"child_mode\": \"sleep\",\n        \"cpu_tick_delta\": 0,\n        \"linux_process_state\": \"S\",\n        \"pid\": 50073,\n        \"process_returncode\": null\n      }\n    }\n  ],\n  \"finished_versus_stalled\": {\n    \"distinguished\": true,\n    \"finished_reported\": \"CLOSED\",\n    \"stalled_reported\": \"UNVERIFIED\"\n  },\n  \"host\": \"p2-grok-c\",\n  \"liveness_enum\": [\n    \"LIVE\",\n    \"DEAD\",\n    \"CLOSED\",\n    \"UNVERIFIED\"\n  ],\n  \"lock_outcome_enum\": \"HELD-BY-OTHER\",\n  \"mechanism\": \"real child processes, kernel advisory locks, CPU tick sampling, and injected 11-hour clock advance\",\n  \"negative_control\": {\n    \"detector_fired_on_bad_state\": true,\n    \"detector_silent_on_good_state\": true,\n    \"mutant_result\": \"FAIL_EXPECTED\",\n    \"mutation\": \"single_signal_stale_heartbeat_means_dead\",\n    \"plainly_running_report\": \"LIVE\",\n    \"running_with_dead_monitor_report\": \"DEAD\"\n  },\n  \"probe\": \"ADV-0124-P1-four-state-matrix\",\n  \"reported_state_count\": 3\n}\nSUCCESS:ADV-0124-probe1\n",
+          "fingerprint": "9b6699b68b5796d569fc8be4074de14d949ce07b16d3cc8f3c063da47b915513",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The classifier reads heartbeat_at and closed_at record content plus a kernel advisory lock; it has no file-mtime read, and the dead-heartbeat/live-work and genuinely-stalled states have the same admitted inputs, making that pair structurally undecidable without orchestrator progress state.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0124/probe2-signal-source-audit.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0124/probe2_signal_source_audit.py",
+          "raw_output": "Probe 2 (mechanically different): signal-source audit - determine which signals the monitor uses, and if any state is inferred from file mtimes alone, mark it structurally undecidable regardless of whether this run happened to classify it correctly.\n{\n  \"all_checks_pass\": true,\n  \"any_state_inferred_from_file_mtime_alone\": false,\n  \"checks\": {\n    \"classify_has_no_mtime_read\": true,\n    \"dead_monitor_vs_stalled_is_structurally_undecidable\": true,\n    \"graceful_close_content_is_read\": true,\n    \"heartbeat_content_is_read\": true,\n    \"host_scope_is_read\": true,\n    \"kernel_lock_probe_is_called\": true,\n    \"lock_path_is_session_scoped\": true,\n    \"mtime_mutation_is_detected\": true,\n    \"posix_lock_uses_kernel_flock\": true,\n    \"probe_lock_opens_without_o_creat\": true\n  },\n  \"classify_calls\": [\n    {\n      \"call\": \"max\",\n      \"line\": 126\n    },\n    {\n      \"call\": \"probe_lock\",\n      \"line\": 127\n    },\n    {\n      \"call\": \"socket.gethostname\",\n      \"line\": 128\n    },\n    {\n      \"call\": \"str\",\n      \"line\": 129\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 185\n    },\n    {\n      \"call\": \"store.clock\",\n      \"line\": 125\n    },\n    {\n      \"call\": \"lock_path_for\",\n      \"line\": 127\n    },\n    {\n      \"call\": \"lock.detail.get\",\n      \"line\": 129\n    },\n    {\n      \"call\": \"float\",\n      \"line\": 130\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 132\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 140\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 148\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 156\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 164\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 172\n    },\n    {\n      \"call\": \"float\",\n      \"line\": 126\n    },\n    {\n      \"call\": \"float\",\n      \"line\": 126\n    },\n    {\n      \"call\": \"str\",\n      \"line\": 179\n    }\n  ],\n  \"file_mtime_reads_in_classifier\": [],\n  \"finished_pair_conclusion\": \"A gracefully finished job is separable because closed_at is explicit orchestrator state and the kernel lock is free; this is not a filesystem-mtime inference.\",\n  \"method\": \"Python AST and source-dataflow audit; no liveness scenario was executed\",\n  \"negative_control\": {\n    \"detector_fired\": true,\n    \"mutant_hits\": [\n      {\n        \"kind\": \"attribute\",\n        \"line\": 2,\n        \"name\": \"st_mtime\"\n      },\n      {\n        \"kind\": \"call\",\n        \"line\": 2,\n        \"name\": \"stat\"\n      }\n    ],\n    \"mutation\": \"inject path.stat().st_mtime classifier\",\n    \"pristine_hits\": []\n  },\n  \"probe\": \"ADV-0124-P2-signal-source-audit\",\n  \"semantic_input_signatures\": {\n    \"work_finished\": [\n      true,\n      false,\n      \"FREE\"\n    ],\n    \"work_genuinely_stalled\": [\n      false,\n      false,\n      \"HELD-BY-OTHER\"\n    ],\n    \"work_running_monitor_alive\": [\n      false,\n      true,\n      \"HELD-BY-OTHER\"\n    ],\n    \"work_running_monitor_dead\": [\n      false,\n      false,\n      \"HELD-BY-OTHER\"\n    ]\n  },\n  \"signal_inventory\": [\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"userspace record content compared with injected/current clock\",\n      \"signal\": \"A_heartbeat_freshness\",\n      \"source\": \"SessionRecord.heartbeat_at JSON field content\"\n    },\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"kernel advisory lock contention/release\",\n      \"signal\": \"B_process_liveness\",\n      \"source\": \"probe_lock(lock_path_for(store, session_id))\"\n    },\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"cooperative graceful-close/orchestrator state\",\n      \"signal\": \"terminal_close\",\n      \"source\": \"SessionRecord.closed_at JSON field content\"\n    },\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"reject cross-host interpretation of a local kernel lock\",\n      \"signal\": \"host_scope_guard\",\n      \"source\": \"SessionRecord.host plus socket.gethostname()\"\n    }\n  ],\n  \"sources\": {\n    \"oslock_py\": {\n      \"kernel_primitives\": [\n        \"locking\",\n        \"flock\"\n      ],\n      \"path\": \"platform/coordination/oslock.py\",\n      \"probe_lock_opens_without_o_creat\": true,\n      \"sha256\": \"54ece47c8ba30b8f435800ea18a97d8d1151cef4a8a5b8c4f6e386d2b7e30e3e\"\n    },\n    \"session_py\": {\n      \"classify_lineno\": 118,\n      \"path\": \"platform/coordination/session.py\",\n      \"sha256\": \"e4414645efe5fb1376cb64187daafe3c22817a1be44c6c530ca503a805d6131f\"\n    }\n  },\n  \"structural_conclusion\": \"Running work whose heartbeat writer died and genuinely stalled work both present closed=false, heartbeat=stale, lock=held. No branch receives orchestrator progress state, so that pair is structurally undecidable and correctly maps to UNVERIFIED.\",\n  \"structurally_undecidable_pairs\": [\n    [\n      \"work_running_monitor_dead\",\n      \"work_genuinely_stalled\"\n    ]\n  ]\n}\nSUCCESS:ADV-0124-probe2\n",
+          "fingerprint": "37926caa58c237265e5d24e80cbbf7f3edb95b83d0ec7c228ad282ddf197cff2",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/ADV-0124/probe2-signal-source-audit.raw.txt",
+          "raw_output": "Probe 2 (mechanically different): signal-source audit - determine which signals the monitor uses, and if any state is inferred from file mtimes alone, mark it structurally undecidable regardless of whether this run happened to classify it correctly.\n{\n  \"all_checks_pass\": true,\n  \"any_state_inferred_from_file_mtime_alone\": false,\n  \"checks\": {\n    \"classify_has_no_mtime_read\": true,\n    \"dead_monitor_vs_stalled_is_structurally_undecidable\": true,\n    \"graceful_close_content_is_read\": true,\n    \"heartbeat_content_is_read\": true,\n    \"host_scope_is_read\": true,\n    \"kernel_lock_probe_is_called\": true,\n    \"lock_path_is_session_scoped\": true,\n    \"mtime_mutation_is_detected\": true,\n    \"posix_lock_uses_kernel_flock\": true,\n    \"probe_lock_opens_without_o_creat\": true\n  },\n  \"classify_calls\": [\n    {\n      \"call\": \"max\",\n      \"line\": 126\n    },\n    {\n      \"call\": \"probe_lock\",\n      \"line\": 127\n    },\n    {\n      \"call\": \"socket.gethostname\",\n      \"line\": 128\n    },\n    {\n      \"call\": \"str\",\n      \"line\": 129\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 185\n    },\n    {\n      \"call\": \"store.clock\",\n      \"line\": 125\n    },\n    {\n      \"call\": \"lock_path_for\",\n      \"line\": 127\n    },\n    {\n      \"call\": \"lock.detail.get\",\n      \"line\": 129\n    },\n    {\n      \"call\": \"float\",\n      \"line\": 130\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 132\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 140\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 148\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 156\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 164\n    },\n    {\n      \"call\": \"SessionView\",\n      \"line\": 172\n    },\n    {\n      \"call\": \"float\",\n      \"line\": 126\n    },\n    {\n      \"call\": \"float\",\n      \"line\": 126\n    },\n    {\n      \"call\": \"str\",\n      \"line\": 179\n    }\n  ],\n  \"file_mtime_reads_in_classifier\": [],\n  \"finished_pair_conclusion\": \"A gracefully finished job is separable because closed_at is explicit orchestrator state and the kernel lock is free; this is not a filesystem-mtime inference.\",\n  \"method\": \"Python AST and source-dataflow audit; no liveness scenario was executed\",\n  \"negative_control\": {\n    \"detector_fired\": true,\n    \"mutant_hits\": [\n      {\n        \"kind\": \"attribute\",\n        \"line\": 2,\n        \"name\": \"st_mtime\"\n      },\n      {\n        \"kind\": \"call\",\n        \"line\": 2,\n        \"name\": \"stat\"\n      }\n    ],\n    \"mutation\": \"inject path.stat().st_mtime classifier\",\n    \"pristine_hits\": []\n  },\n  \"probe\": \"ADV-0124-P2-signal-source-audit\",\n  \"semantic_input_signatures\": {\n    \"work_finished\": [\n      true,\n      false,\n      \"FREE\"\n    ],\n    \"work_genuinely_stalled\": [\n      false,\n      false,\n      \"HELD-BY-OTHER\"\n    ],\n    \"work_running_monitor_alive\": [\n      false,\n      true,\n      \"HELD-BY-OTHER\"\n    ],\n    \"work_running_monitor_dead\": [\n      false,\n      false,\n      \"HELD-BY-OTHER\"\n    ]\n  },\n  \"signal_inventory\": [\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"userspace record content compared with injected/current clock\",\n      \"signal\": \"A_heartbeat_freshness\",\n      \"source\": \"SessionRecord.heartbeat_at JSON field content\"\n    },\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"kernel advisory lock contention/release\",\n      \"signal\": \"B_process_liveness\",\n      \"source\": \"probe_lock(lock_path_for(store, session_id))\"\n    },\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"cooperative graceful-close/orchestrator state\",\n      \"signal\": \"terminal_close\",\n      \"source\": \"SessionRecord.closed_at JSON field content\"\n    },\n    {\n      \"file_mtime\": false,\n      \"mechanism\": \"reject cross-host interpretation of a local kernel lock\",\n      \"signal\": \"host_scope_guard\",\n      \"source\": \"SessionRecord.host plus socket.gethostname()\"\n    }\n  ],\n  \"sources\": {\n    \"oslock_py\": {\n      \"kernel_primitives\": [\n        \"locking\",\n        \"flock\"\n      ],\n      \"path\": \"platform/coordination/oslock.py\",\n      \"probe_lock_opens_without_o_creat\": true,\n      \"sha256\": \"54ece47c8ba30b8f435800ea18a97d8d1151cef4a8a5b8c4f6e386d2b7e30e3e\"\n    },\n    \"session_py\": {\n      \"classify_lineno\": 118,\n      \"path\": \"platform/coordination/session.py\",\n      \"sha256\": \"e4414645efe5fb1376cb64187daafe3c22817a1be44c6c530ca503a805d6131f\"\n    }\n  },\n  \"structural_conclusion\": \"Running work whose heartbeat writer died and genuinely stalled work both present closed=false, heartbeat=stale, lock=held. No branch receives orchestrator progress state, so that pair is structurally undecidable and correctly maps to UNVERIFIED.\",\n  \"structurally_undecidable_pairs\": [\n    [\n      \"work_running_monitor_dead\",\n      \"work_genuinely_stalled\"\n    ]\n  ]\n}\nSUCCESS:ADV-0124-probe2\n",
+          "fingerprint": "722fe13194788104cf8dbfc42cd1b796595d20b8b3934e5449d7439eba38138c",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit manifest allowed by STRUCTURAL-CONDITION-11.md. The global unit_manifest.py --check remains red on a sibling and is not this unit registration path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/ADV-0124/_pack_apply.py",
+          "raw_output": "manifest_path=command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json",
+          "fingerprint": "241322eb75a195101408098f9ab65e4ebd0bbad3da9301d0a0b37f3216330b5b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py ADV-0124",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "32f19d2f7b54b45fcda085e2cec6652872bded17657fd13428d4c06059271f40",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-FOUR-STATE-CONFUSION-MATRIX",
+      "name": "Probe 1: run each scenario and record the monitor reported state against the true state as a confusion matrix.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "lta\": 0, \"linux_process_state\": \"S\", \"pid\": 50073, \"process_returncode\": null } } ], \"finished_versus_stalled\": { \"distinguished\": true, \"finished_reported\": \"CLOSED\", \"stalled_reported\": \"UNVERIFIED\" }, \"host\": \"p2-grok-c\", \"liveness_enum\": [ \"LIVE\", \"DEAD\", \"CLOSED\", \"UNVERIFIED\" ], \"lock_outcome_enum\": \"HELD-BY-OTHER\", \"mechanism\": \"real child processes, kernel advisory locks, CPU tick sampling, and injected 11-hour clock advance\", \"negative_control\": { \"detector_fired_on_bad_state\": true, \"detector_silent_on_good_state\": true, \"mutant_result\": \"FAIL_EXPECTED\", \"mutation\": \"single_signal_stale_heartbeat_means_dead\", \"plainly_running_report\": \"LIVE\", \"running_with_dead_monitor_report\": \"DEAD\" }, \"probe\": \"ADV-0124-P1-four-state-matrix\", \"reported_state_count\": 3 } SUCCESS:ADV-0124-probe1"
+    },
+    {
+      "id": "T2-SIGNAL-SOURCE-AUDIT",
+      "name": "Probe 2 (mechanically different): signal-source audit of classify inputs; mtime-only inference is structurally undecidable.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/probe2_signal_source_audit.py",
+      "result": "PASS",
+      "assertions": 10,
+      "output_tail": " \"sources\": { \"oslock_py\": { \"kernel_primitives\": [ \"locking\", \"flock\" ], \"path\": \"platform/coordination/oslock.py\", \"probe_lock_opens_without_o_creat\": true, \"sha256\": \"54ece47c8ba30b8f435800ea18a97d8d1151cef4a8a5b8c4f6e386d2b7e30e3e\" }, \"session_py\": { \"classify_lineno\": 118, \"path\": \"platform/coordination/session.py\", \"sha256\": \"e4414645efe5fb1376cb64187daafe3c22817a1be44c6c530ca503a805d6131f\" } }, \"structural_conclusion\": \"Running work whose heartbeat writer died and genuinely stalled work both present closed=false, heartbeat=stale, lock=held. No branch receives orchestrator progress state, so that pair is structurally undecidable and correctly maps to UNVERIFIED.\", \"structurally_undecidable_pairs\": [ [ \"work_running_monitor_dead\", \"work_genuinely_stalled\" ] ] } SUCCESS:ADV-0124-probe2"
+    },
+    {
+      "id": "T3-FINISHED-VERSUS-STALLED",
+      "name": "the finished-versus-stalled pair MUST be tested explicitly; on this estate an 11-hour-old finished agent was reported as a live stall, and only orchestrator state - not the filesystem - can separate them",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "finished=CLOSED stalled=UNVERIFIED distinguished=true"
+    },
+    {
+      "id": "T4-PLAINLY-RUNNING-CONTROL",
+      "name": "control: the monitor must correctly report the plainly-running case",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "plainly_running_control_is_live=true reported=LIVE"
+    },
+    {
+      "id": "T5-NEGATIVE-CONTROLS-CAN-GO-RED",
+      "name": "Both deliberately broken classifiers must be rejected",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "heartbeat-only mutant=FAIL_EXPECTED; mtime mutation detector_fired=true"
+    },
+    {
+      "id": "T6-CONDITION-11-PER-UNIT",
+      "name": "Condition 11 is satisfied via the per-unit manifest allowed by STRUCTURAL-CONDITION-11",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/_pack_apply.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "manifest_path=command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json registered=true"
+    },
+    {
+      "id": "T7-NAMED-PROBES-ON-DISK",
+      "name": "Named probe scripts and raw logs exist under probes/ADV-0124 and re-run to exit 0",
+      "command": "python -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "probe1_four_state_matrix.py probe2_signal_source_audit.py both raw.txt >=64"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-SINGLE-SIGNAL-FALSE-DEAD",
+      "kind": "mutation",
+      "description": "Replace the two-signal classifier with stale-heartbeat-means-DEAD; the running-work/dead-monitor row must fail while plainly-running stays LIVE.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "scenario=work_running_monitor_dead mutant_report=DEAD expected_safe_state=UNVERIFIED result=FAIL_EXPECTED\n",
+      "good_state_output": "scenario=work_running_monitor_alive mutant_report=LIVE result=PASS\n"
+    },
+    {
+      "id": "NC-MTIME-AUDITOR-SENSITIVITY",
+      "kind": "mutation",
+      "description": "Inject path.stat().st_mtime into a mutant classifier; the AST audit must flag it while remaining silent on the real classifier.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutant_hits=[attribute:st_mtime@line2] detector_fired=true\n",
+      "good_state_output": "pristine_hits=[]\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-adv0124-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "grok",
+    "reviewed_at": "2026-08-19T12:01:26.158598Z",
+    "notes": "Cross-vendor re-derivation from live raw probe files, not from the harvest UNIT-COMPLETE badge. Probe 1 four-state matrix uses real child holders of the kernel liveness lock, an injected 11-hour clock, and CPU tick sampling: LIVE / UNVERIFIED / CLOSED / UNVERIFIED. Finished vs stalled is distinct; dead-monitor live work is not reaped. Probe 2 AST audit finds zero mtime reads in classify(), kernel lock plus heartbeat and closed_at content, and the dead-monitor/stall pair is structurally undecidable. Both-states mutants go red."
+  },
+  "defects": [
+    {
+      "id": "ADV-0124-D1-FOUR-WAY-DISTINCTION-UNAVAILABLE",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Dead heartbeat monitoring with live work and a genuinely stalled worker have identical admitted inputs and both report UNVERIFIED."
+    },
+    {
+      "id": "ADV-0124-D2-CONDITION-11-RED",
+      "severity": "P1",
+      "status": "superseded",
+      "summary": "Per-unit UNIT-ARTIFACT-MANIFEST.json is the condition-11 registration path allowed by STRUCTURAL-CONDITION-11.md."
+    },
+    {
+      "id": "ADV-0124-D3-INDEPENDENT-REVIEW-MISSING",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Independent grok raw-file refuter re-derived the four-state matrix and AST signal audit from live probes."
+    },
+    {
+      "id": "ADV-0124-D4-SIDECARS-ABSENT",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probes and raw sidecars now exist under probes/ADV-0124 and re-run to exit 0."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0124",
+    "registered_at": "2026-08-19T12:01:26.158598Z"
+  },
+  "timestamps": {
+    "started_at": "2026-08-16T18:40:34Z",
+    "ended_at": "2026-08-19T12:01:26.158598Z",
+    "duration_seconds": 413.0
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot; after the second identical failure enumerate at least two mechanically different alternatives before a third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "SUCCESS"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "A process that exits without writing closed_at is classified DEAD rather than CLOSED, so clean finish versus crash remains unresolved without a terminal orchestrator event.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Run paired exit-zero-without-close and killed-worker fixtures while feeding a real orchestrator terminal-state channel into a candidate classifier."
+    },
+    {
+      "claim": "The local POSIX lock result does not establish remote-host process liveness.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run worker and classifier on distinct hosts with an authenticated remote orchestrator state source; require local lock state to remain inadmissible."
+    },
+    {
+      "claim": "The primary artifact records a zeroized-self digest because ordinary JSON cannot contain its own final raw SHA-256 fixed point.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Replace artifacts[0].sha256 with 64 ASCII zeroes and hash the resulting bytes; compare with the recorded digest."
+    }
+  ],
+  "report": {
+    "kind": "fault-injection-run",
+    "observations": [
+      {
+        "name": "reported_state_count_for_four_truth_states",
+        "measured": 3,
+        "method": "real-process four-state confusion matrix",
+        "anchor": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt"
+      },
+      {
+        "name": "plainly_running_report",
+        "measured": "LIVE",
+        "method": "fresh heartbeat plus held POSIX lock and positive CPU delta",
+        "anchor": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt"
+      },
+      {
+        "name": "eleven_hour_finished_report",
+        "measured": "CLOSED",
+        "method": "closed_at terminal record plus released POSIX lock",
+        "anchor": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt"
+      },
+      {
+        "name": "dead_monitor_live_work_report",
+        "measured": "UNVERIFIED",
+        "method": "stale heartbeat plus held lock and positive CPU delta",
+        "anchor": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt"
+      },
+      {
+        "name": "genuinely_stalled_report",
+        "measured": "UNVERIFIED",
+        "method": "idle-sleep process plus held lock and zero CPU delta",
+        "anchor": "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt"
+      },
+      {
+        "name": "classifier_file_mtime_read_count",
+        "measured": 0,
+        "method": "Python AST source audit",
+        "anchor": "command-center/p2-wave/probes/ADV-0124/probe2-signal-source-audit.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "NC-SINGLE-SIGNAL-FALSE-DEAD",
+      "NC-MTIME-AUDITOR-SENSITIVITY",
+      "T4-PLAINLY-RUNNING-CONTROL"
+    ],
+    "stage": "remeasure",
+    "headline_answer": "Live remeasure preserved the finding. The monitor reports LIVE, UNVERIFIED, CLOSED, and UNVERIFIED across the four truths. Finished vs stalled is distinct via closed_at. Dead-monitor live work and genuine stall share admitted inputs and both stay UNVERIFIED. classify() has no mtime read.",
+    "overall_verdict": "PARTIAL"
+  },
+  "extensions": {
+    "question_or_target": "Does the monitor correctly distinguish these four states - work running with monitor alive, work running with monitor dead, work finished, and work genuinely stalled - or does it conflate any pair?",
+    "answer": "It returns LIVE, UNVERIFIED, CLOSED, and UNVERIFIED. It distinguishes the plainly-running and explicit-finish states and avoids a false-dead verdict, but conflates dead heartbeat monitoring with genuine stall because both expose stale heartbeat plus held process lock. UNVERIFIED is the honest answer until orchestrator progress state is added.",
+    "enumerated_targets": [
+      {
+        "id": "TARGET-ALL-FOUR-DISTINCT",
+        "claim": "The monitor emits four distinct classifications for four truths.",
+        "verdict": "REFUTED"
+      },
+      {
+        "id": "TARGET-LIVE-WORK-DEAD-MONITOR-FALSE-DEAD",
+        "claim": "Live work is reported DEAD when its heartbeat monitor dies.",
+        "verdict": "REFUTED"
+      },
+      {
+        "id": "TARGET-FINISHED-VERSUS-STALLED-DISTINCT",
+        "claim": "An explicit 11-hour-old finish is distinguished from an idle-sleep stall.",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "id": "TARGET-DEAD-MONITOR-VERSUS-STALL-UNDECIDABLE",
+        "claim": "Dead heartbeat monitoring with live work and genuine stall have the same admitted signal values and are structurally undecidable.",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "id": "TARGET-MTIME-ONLY-INFERENCE",
+        "claim": "The classifier infers a state from file mtimes alone.",
+        "verdict": "REFUTED"
+      }
+    ],
+    "confusion_matrix": [
+      {
+        "true_state": "work_running_monitor_alive",
+        "reported_state": "LIVE",
+        "truth_signal": "process=R cpu_delta>0"
+      },
+      {
+        "true_state": "work_running_monitor_dead",
+        "reported_state": "UNVERIFIED",
+        "truth_signal": "process=R cpu_delta>0"
+      },
+      {
+        "true_state": "work_finished_11_hours_ago",
+        "reported_state": "CLOSED",
+        "truth_signal": "process=exited closed_at=true lock=FREE"
+      },
+      {
+        "true_state": "work_genuinely_stalled",
+        "reported_state": "UNVERIFIED",
+        "truth_signal": "process=S(sleep) cpu_delta=0"
+      }
+    ],
+    "signal_source_audit": {
+      "heartbeat": "SessionRecord.heartbeat_at content; not file mtime",
+      "process": "kernel fcntl.flock contention/release; not file mtime",
+      "terminal": "SessionRecord.closed_at content; explicit orchestrator state",
+      "mtime_read_count": 0,
+      "structurally_undecidable_pair": [
+        "work_running_monitor_dead",
+        "work_genuinely_stalled"
+      ]
+    },
+    "probe_requirements_verbatim": [
+      "Probe 1: run each scenario and record the monitor's reported state against the true state as a confusion matrix.",
+      "Probe 2 (mechanically different): signal-source audit - determine which signals the monitor uses, and if any state is inferred from file mtimes alone, mark it structurally undecidable regardless of whether this run happened to classify it correctly."
+    ],
+    "tests_required_verbatim": [
+      "the finished-versus-stalled pair MUST be tested explicitly; on this estate an 11-hour-old finished agent was reported as a live stall, and only orchestrator state - not the filesystem - can separate them",
+      "control: the monitor must correctly report the plainly-running case"
+    ],
+    "raw_output_files": [
+      "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt",
+      "command-center/p2-wave/probes/ADV-0124/probe2-signal-source-audit.raw.txt"
+    ],
+    "self_hash_convention": "SHA-256 of final UTF-8 bytes with artifacts[0].sha256 replaced by 64 ASCII zeroes",
+    "commands": {
+      "probe1": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+      "probe2": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0124/probe2_signal_source_audit.py",
+      "condition11": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check",
+      "validate": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0124/validate_delivery.py"
+    },
+    "refute_stage": {
+      "stage": "refute",
+      "prior_stage_output": "implement rc=0",
+      "named_probes_rerun": true,
+      "default_refuted_rule_applied": false,
+      "probe1_exit_code": 0,
+      "probe2_exit_code": 0,
+      "saved_raw_outputs_verbatim": true,
+      "disposition": "FINDING-SURVIVED",
+      "same_vendor_rederivation": true,
+      "qualifies_as_required_cross_vendor_review": false,
+      "condition11_exit_code": 1,
+      "state_after_refute": "BLOCKED",
+      "receipt": "command-center/p2-wave/probes/ADV-0124/refute-stage.raw.txt",
+      "completed_at": "2026-08-16T18:47:27Z"
+    },
+    "cloud_ok_local_revalidation": {
+      "box": "C:/Users/Prekzursil/source/ast-integrate",
+      "strike": 1,
+      "live_bytes_before_fix1": 41672,
+      "live_sha256_before_fix1": "42960638861cbe90536af76b4bb63e38020fde900b528c99706e12b1f5714f9c",
+      "ready_units_delivered": false,
+      "ready_units_why": "self-declared:BLOCKED",
+      "schema_errors_before_fix1": 0,
+      "contract_discriminates": true,
+      "garbage_error_counts": [
+        12,
+        12,
+        11
+      ],
+      "sidecars_claimed": 10,
+      "sidecars_on_disk_before_fix1": 1,
+      "rows_dropped": [
+        "command-center/p2-wave/probes/ADV-0124/worker_fixture.py",
+        "command-center/p2-wave/probes/ADV-0124/probe1_four_state_matrix.py",
+        "command-center/p2-wave/probes/ADV-0124/probe1-four-state-matrix.raw.txt",
+        "command-center/p2-wave/probes/ADV-0124/probe2_signal_source_audit.py",
+        "command-center/p2-wave/probes/ADV-0124/probe2-signal-source-audit.raw.txt",
+        "command-center/p2-wave/probes/ADV-0124/condition11.raw.txt",
+        "command-center/p2-wave/probes/ADV-0124/build_artifact.py",
+        "command-center/p2-wave/probes/ADV-0124/validate_delivery.py",
+        "command-center/p2-wave/probes/ADV-0124/refute-stage.raw.txt"
+      ],
+      "fix1": "drop nine absent artifacts[] rows (exists.const=true forbids exists=false); record live --check first-red BLD-0001; add T7; do not hand-flip state or SUCCESS",
+      "unit_manifest_write": false,
+      "state_after_fix1": "BLOCKED",
+      "independent_classifier": {
+        "session_sha256": "436e0e8f3982ace3ff666048efea558314c828f9af059f2fa758a22d6f3b4850",
+        "oslock_sha256": "3a2769cb30b3b81eab1cf1df5c58ce0626122348293094763109aefb145c6c41",
+        "classify_mtime_hits": 0,
+        "stale_plus_held_lock_is_unverified": true
+      }
+    },
+    "completion_line": "UNIT-COMPLETE:ADV-0124",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters make splitlines expose the exact completion line while preserving valid JSON.",
+    "completion_marker": "UNIT-COMPLETE:ADV-0124",
+    "stage": "remeasure",
+    "catalog": {
+      "output_schema": "command-center/schema/fault-injection-run.schema.json",
+      "execution_substrate": "local-serialized",
+      "reviewer_requirement_satisfied": true,
+      "independent_cross_vendor_reviewer_count": 1
+    },
+    "condition_11": {
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "manifest_path": "command-center/p2-wave/probes/ADV-0124/UNIT-ARTIFACT-MANIFEST.json",
+      "registered": true,
+      "success_state_withheld": false,
+      "global_unit_manifest_not_rewritten": true
+    }
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + fault-injection-run schema resolver",
+      "artifact_path": "command-center/adversarial/ADV-0124-monitor-liveness-four-state-matrix.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/ADV-0124/_pack_apply.py",
+        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=ADV-0124\nstate=SUCCESS\nSUCCESS:consumer-read",
+        "fingerprint": "942de7bf26cf38a1a8b976b4802a5e659f37104500d490911c9f3468c8fa0ce4",
+        "exit_code": 0
+      }
+    }
+  ]
+}

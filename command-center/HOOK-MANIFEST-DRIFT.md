@@ -1,14 +1,14 @@
 # Hook dispatcher manifest: live vs repo, both directions
 
 live `C:\Users\Prekzursil\.claude\hooks\_dispatch\manifest.json` = 11,219 B
-repo `hooks\_dispatch\manifest.json` = 12,849 B
+repo `hooks\_dispatch\manifest.json` = 13,911 B
 
-## Verdict: deploying repo->live is SAFE for the 2 missing hook(s) -- nothing live would be lost
+## Verdict: do NOT deploy repo over live, and do NOT sync live over repo
 
 2 hooks exist in git and are NOT deployed; 0 exist live and are
-NOT in git; 0 exist on both sides with DIFFERENT behaviour.
+NOT in git; 1 exist on both sides with DIFFERENT behaviour.
 
-With 0 behaviour differences and 0 live-only hooks, a repo->live deploy adds the missing hook(s) and overwrites nothing. The earlier union-merge warning applied to the three Stop timeouts that were live-ahead; those were reconciled in 1527449f.
+A one-directional copy in either direction destroys one of those sets. Union-merge per entry.
 
 ## IN GIT, NOT DEPLOYED (the live harness is missing these)
 
@@ -23,6 +23,7 @@ With 0 behaviour differences and 0 live-only hooks, a repo->live deploy adds the
 
 | event | hook | field | live | repo |
 |---|---|---|---|---|
+| Stop | `git-hygiene` | timeout | `90` | `30` |
 
 Comment prose differs on 2 further entries with identical behaviour (claim-guard/ledger-write, edit-validate/record) -- not drift, reported so the byte-size difference is fully accounted for.
 
