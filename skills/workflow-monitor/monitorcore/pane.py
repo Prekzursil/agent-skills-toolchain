@@ -1,7 +1,7 @@
 """``pane`` — the switchable-pane seam the unified cockpit board dispatches on (WU9-WU13).
 
 Phase 1 shipped ONE hard-coded Codex view. Phase 2 turns it into ONE board with SWITCHABLE
-PANES (codex · agents · workflows · databricks · mcp). This module owns the *seam*, never
+PANES (codex · agents · workflows · databricks/remote-workers · mcp). This module owns the *seam*, never
 the content: a :class:`Pane` is a THIN adapter that folds one already-polled
 :class:`~monitorcore.contract.Snapshot` into a :class:`PaneBody` — the ANSI-free logical
 rows the board frames, plus how many of them the cursor may land on. A pane opens no file,

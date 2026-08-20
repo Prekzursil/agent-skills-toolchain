@@ -39,17 +39,36 @@ GOOD_ENTRY = f'print("{MARKER}")\n'
 SILENT_ENTRY = "import sys\n\nsys.exit(0)\n"
 CRASHING_ENTRY = "import nonexistent_module_xyz  # noqa: F401\n"
 SLOW_ENTRY = "import time\n\ntime.sleep(30)\n"
+NONZERO_RENDER = f'import sys\nprint("{MARKER}")\nsys.exit(1)\n'
+HERMETIC_ENTRY = (
+    f'RENDER_MARKER = "{MARKER}"\n'
+    "import os\n"
+    'if __name__ == "__main__":\n'
+    '    dest = os.environ.get("EMON_SENTINEL", "SPAWNED")\n'
+    '    open(dest, "w", encoding="utf-8").write("bad")\n'
+    "    raise SystemExit(1)\n"
+)
 
 DEMO_PROBE = lp.Probe(monitor="demo", argv_tail=(), require=MARKER, timeout_s=60.0)
+DEMO_HERMETIC = lp.Probe(
+    monitor="demo",
+    argv_tail=(),
+    require=MARKER,
+    mode="import_render",
+    timeout_s=60.0,
+)
 
 
 @pytest.fixture
 def policy(monkeypatch: pytest.MonkeyPatch):
     """Point the gate's launch policy at the throwaway `[demo]` stanza."""
 
-    def apply(probes=(DEMO_PROBE,), exempt=None):
+    def apply(probes=(DEMO_PROBE,), exempt=None, hermetic=()):
         monkeypatch.setattr(lp, "PROBES", tuple(probes))
         monkeypatch.setattr(lp, "EXEMPT", dict(exempt or {}))
+        # The shipped HERMETIC names [agentmon]; a throwaway [demo] registry
+        # would otherwise look like a stale policy entry.
+        monkeypatch.setattr(lp, "HERMETIC", tuple(hermetic))
 
     return apply
 
@@ -125,6 +144,49 @@ def test_an_entry_that_hangs_is_a_finding_not_a_hang(tmp_path: Path, policy) -> 
     result = lp.scan(_fixture_repo(tmp_path, SLOW_ENTRY))
     assert not result.ok
     assert "timed out" in result.findings[0]
+
+
+def test_empty_dir_token_becomes_an_existing_empty_directory(tmp_path: Path) -> None:
+    entry = tmp_path / "argv.py"
+    entry.write_text(
+        "import pathlib, sys\n"
+        "p = pathlib.Path(sys.argv[1])\n"
+        "print(f'ARG={p};DIR={p.is_dir()};COUNT={len(list(p.iterdir()))}')\n",
+        encoding="utf-8",
+    )
+    ok, detail = lp.run_probe(
+        entry, lp.Probe("demo", (lp.EMPTY_DIR,), "DIR=True;COUNT=0"), tmp_path
+    )
+    assert ok, detail
+    created = list(tmp_path.glob("empty-*"))
+    assert len(created) == 1
+    assert created[0].is_dir() and not list(created[0].iterdir())
+    assert lp.EMPTY_DIR not in created[0].as_posix()
+
+
+def test_two_empty_dir_tokens_become_distinct_directories(tmp_path: Path) -> None:
+    entry = tmp_path / "argv.py"
+    entry.write_text(
+        "import sys\nprint('DISTINCT' if sys.argv[1] != sys.argv[2] else 'ALIASED')\n",
+        encoding="utf-8",
+    )
+    ok, detail = lp.run_probe(
+        entry,
+        lp.Probe("demo", (lp.EMPTY_DIR, lp.EMPTY_DIR), "DISTINCT"),
+        tmp_path,
+    )
+    assert ok, detail
+    assert len(list(tmp_path.glob("empty-*"))) == 2
+
+
+def test_probe_without_empty_dir_token_is_unchanged(tmp_path: Path) -> None:
+    entry = tmp_path / "argv.py"
+    entry.write_text("import sys\nprint('|'.join(sys.argv[1:]))\n", encoding="utf-8")
+    ok, detail = lp.run_probe(
+        entry, lp.Probe("demo", ("alpha", "beta"), "alpha|beta"), tmp_path
+    )
+    assert ok, detail
+    assert not list(tmp_path.glob("empty-*"))
 
 
 # --------------------------------------------------------------------------------------------
@@ -323,6 +385,303 @@ def test_both_mirrors_are_measured_independently(tmp_path: Path, policy) -> None
     assert len(result.launched) == 1
     assert not result.ok
     assert ".agents/" in result.findings[0]
+
+
+# --------------------------------------------------------------------------------------------
+# accept_nonzero (csmon renders then exits 1) and import-render (agentmon must not exec)
+# --------------------------------------------------------------------------------------------
+
+
+def test_nonzero_exit_with_marker_passes_when_accepted(tmp_path: Path, policy) -> None:
+    policy(
+        probes=(
+            lp.Probe(
+                monitor="demo",
+                argv_tail=(),
+                require=MARKER,
+                accept_nonzero=True,
+                timeout_s=60.0,
+            ),
+        )
+    )
+    result = lp.scan(_fixture_repo(tmp_path, NONZERO_RENDER))
+    assert result.ok, result.findings
+    assert "nonzero accepted" in result.launched[0]
+
+
+def test_nonzero_exit_without_marker_is_a_finding_even_when_accepted(
+    tmp_path: Path, policy
+) -> None:
+    policy(
+        probes=(
+            lp.Probe(
+                monitor="demo",
+                argv_tail=(),
+                require=MARKER,
+                accept_nonzero=True,
+                timeout_s=60.0,
+            ),
+        )
+    )
+    result = lp.scan(
+        _fixture_repo(tmp_path, SILENT_ENTRY.replace("sys.exit(0)", "sys.exit(1)"))
+    )
+    assert not result.ok
+    assert "lacks" in result.findings[0]
+
+
+def test_hermetic_import_render_passes_without_running_main(
+    tmp_path: Path, policy, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sentinel = tmp_path / "SPAWNED"
+    monkeypatch.setenv("EMON_SENTINEL", str(sentinel))
+    policy(probes=(), hermetic=(DEMO_HERMETIC,))
+    root = _fixture_repo(tmp_path, HERMETIC_ENTRY)
+    result = lp.scan(root)
+    assert result.ok, result.findings
+    assert "import-render marker present" in result.launched[0]
+    assert not sentinel.exists(), (
+        "__main__ ran; the hermetic probe opened the side-effecting path"
+    )
+
+
+def test_hermetic_import_render_is_red_when_marker_missing(
+    tmp_path: Path, policy
+) -> None:
+    policy(probes=(), hermetic=(DEMO_HERMETIC,))
+    result = lp.scan(_fixture_repo(tmp_path, 'RENDER_MARKER = "NOPE"\n'))
+    assert not result.ok
+    assert "lacks" in result.findings[0]
+
+
+def test_hermetic_import_render_is_red_when_import_crashes(
+    tmp_path: Path, policy
+) -> None:
+    policy(probes=(), hermetic=(DEMO_HERMETIC,))
+    result = lp.scan(_fixture_repo(tmp_path, CRASHING_ENTRY))
+    assert not result.ok
+    assert "import-render" in result.findings[0]
+
+
+def test_wfmon_named_driver_prints_title_without_app_run(tmp_path: Path) -> None:
+    """The wfmon driver imports the module; it must never call App.run / main."""
+    skill = tmp_path / "workflow-monitor"
+    skill.mkdir()
+    (skill / "workflow_run.py").write_text(
+        "def iter_manifest_paths(projects):\n    return []\n"
+        "def parse_manifest(path):\n    return None\n"
+        "def fleet_rollup(runs):\n    return {'runs': 0, 'active_runs': 0}\n",
+        encoding="utf-8",
+    )
+    (skill / "workflow_monitor.py").write_text(
+        "class WorkflowMonitor:\n"
+        "    TITLE = 'Workflow Cockpit'\n"
+        "def _run_label(run, now):\n"
+        "    return 'label'\n"
+        "def main():\n"
+        "    raise SystemExit('wfmon main ran')\n",
+        encoding="utf-8",
+    )
+    ok, detail = lp.run_import_render(
+        skill / "workflow_monitor.py",
+        lp.Probe(
+            monitor="wfmon",
+            argv_tail=(),
+            require="Workflow Cockpit",
+            mode="import_render",
+            timeout_s=30.0,
+        ),
+        tmp_path,
+    )
+    assert ok, detail
+
+
+def test_wfmon_named_driver_is_red_when_title_missing(tmp_path: Path) -> None:
+    skill = tmp_path / "workflow-monitor"
+    skill.mkdir()
+    (skill / "workflow_run.py").write_text(
+        "def iter_manifest_paths(projects):\n    return []\n"
+        "def parse_manifest(path):\n    return None\n"
+        "def fleet_rollup(runs):\n    return {'runs': 0, 'active_runs': 0}\n",
+        encoding="utf-8",
+    )
+    (skill / "workflow_monitor.py").write_text(
+        "class WorkflowMonitor:\n    TITLE = 'MUTANT COCKPIT'\n",
+        encoding="utf-8",
+    )
+    ok, detail = lp.run_import_render(
+        skill / "workflow_monitor.py",
+        lp.Probe(
+            monitor="wfmon",
+            argv_tail=(),
+            require="Workflow Cockpit",
+            mode="import_render",
+            timeout_s=30.0,
+        ),
+        tmp_path,
+    )
+    assert not ok
+    assert "lacks" in detail
+
+
+def test_csmon_named_driver_renders_without_main(tmp_path: Path) -> None:
+    entry = tmp_path / "cs_monitor.py"
+    entry.write_text(
+        "def render(status, doctor, errors, cs):\n"
+        "    return '  Claude Science - csmon  (fixture)\\n  NOT-CHECKED rows'\n"
+        "if __name__ == '__main__':\n"
+        "    raise SystemExit('csmon main ran')\n",
+        encoding="utf-8",
+    )
+    ok, detail = lp.run_import_render(
+        entry,
+        lp.Probe(
+            monitor="csmon",
+            argv_tail=(),
+            require="Claude Science - csmon",
+            mode="import_render",
+            timeout_s=30.0,
+        ),
+        tmp_path,
+    )
+    assert ok, detail
+
+
+def test_csmon_named_driver_is_red_on_failed_locate_string(tmp_path: Path) -> None:
+    """The live entry prints FAILED:csmon when cs.ps1 is missing. That is not a render."""
+    entry = tmp_path / "cs_monitor.py"
+    entry.write_text(
+        "def render(status, doctor, errors, cs):\n"
+        "    return 'FAILED:csmon cannot locate cs.ps1 - nothing was measured'\n",
+        encoding="utf-8",
+    )
+    ok, detail = lp.run_import_render(
+        entry,
+        lp.Probe(
+            monitor="csmon",
+            argv_tail=(),
+            require="Claude Science - csmon",
+            mode="import_render",
+            timeout_s=30.0,
+        ),
+        tmp_path,
+    )
+    assert not ok
+    assert "lacks" in detail
+
+
+def test_hermetic_extra_dirs_are_materialised(tmp_path: Path, policy) -> None:
+    policy(
+        probes=(),
+        hermetic=(
+            lp.Probe(
+                monitor="demo",
+                argv_tail=(),
+                require=MARKER,
+                mode="import_render",
+                extra_dirs=("workflow-monitor",),
+                timeout_s=30.0,
+            ),
+        ),
+    )
+    root = _repo(tmp_path)
+    _plant(root, REGISTRY, _registry())
+    _plant(
+        root,
+        f"{SKILL_DIR}/board.py",
+        (
+            "import sys\n"
+            "from pathlib import Path\n"
+            "sib = Path(__file__).resolve().parent.parent / 'workflow-monitor'\n"
+            "sys.path.insert(0, str(sib))\n"
+            "import helper\n"
+            "RENDER_MARKER = helper.MARKER\n"
+        ).encode("utf-8"),
+    )
+    _plant(
+        root,
+        "skills/workflow-monitor/helper.py",
+        f'MARKER = "{MARKER}"\n'.encode("utf-8"),
+    )
+    _commit(root)
+    result = lp.scan(root)
+    assert result.ok, result.findings
+
+
+def test_hermetic_extra_dirs_missing_is_a_finding(tmp_path: Path, policy) -> None:
+    """Same entry as the extra_dirs green leg, but the sibling is never committed."""
+    policy(
+        probes=(),
+        hermetic=(
+            lp.Probe(
+                monitor="demo",
+                argv_tail=(),
+                require=MARKER,
+                mode="import_render",
+                extra_dirs=("workflow-monitor",),
+                timeout_s=30.0,
+            ),
+        ),
+    )
+    root = _repo(tmp_path)
+    _plant(root, REGISTRY, _registry())
+    _plant(
+        root,
+        f"{SKILL_DIR}/board.py",
+        (
+            "import sys\n"
+            "from pathlib import Path\n"
+            "sib = Path(__file__).resolve().parent.parent / 'workflow-monitor'\n"
+            "sys.path.insert(0, str(sib))\n"
+            "import helper\n"
+            "RENDER_MARKER = helper.MARKER\n"
+        ).encode("utf-8"),
+    )
+    _commit(root)
+    result = lp.scan(root)
+    assert not result.ok
+    assert "import-render" in result.findings[0]
+
+
+def test_shipped_policy_covers_committed_registry_stanzas() -> None:
+    """Both registry mirrors, every stanza: exec / import-render / NOT-CHECKED."""
+    oids = lp.index_oids(lp.REPO)
+    registries = lp.registry_paths(oids)
+    assert registries, "detector control: the real repo must have registry mirrors"
+    blobs = lp.read_blobs(lp.REPO, {oids[path] for path in registries})
+    expected = {"wfmon", "agentmon", "codexmon", "crcp", "csmon", "cockpit"}
+    accounted = {probe.monitor for probe in lp.all_probes()} | set(lp.EXEMPT)
+    assert accounted == expected
+    for registry in registries:
+        stanzas = set(lp.parse_stanzas(blobs[oids[registry]], registry))
+        assert stanzas == expected, registry
+    exec_names = {probe.monitor for probe in lp.PROBES}
+    hermetic_names = {probe.monitor for probe in lp.HERMETIC}
+    assert exec_names.isdisjoint({"wfmon", "agentmon", "crcp"})
+    assert hermetic_names == {"agentmon", "csmon"}
+    assert set(lp.EXEMPT) == {"wfmon", "crcp"}
+    assert exec_names.isdisjoint(hermetic_names)
+    assert hermetic_names.isdisjoint(set(lp.EXEMPT))
+    assert all(probe.mode == "import_render" for probe in lp.HERMETIC)
+    csmon = next(probe for probe in lp.HERMETIC if probe.monitor == "csmon")
+    assert csmon.require == "Claude Science - csmon"
+    assert csmon.require != "csmon"
+
+
+def test_not_checked_is_printed_and_is_not_called_pass(
+    tmp_path: Path, policy, capsys: pytest.CaptureFixture[str]
+) -> None:
+    policy(exempt={"newcomer": "declared reason"})
+    extra = (
+        '[demo]\ndir = "demo-skill"\nentry = "board.py"\n\n'
+        '[newcomer]\ndir = "d"\nentry = "e.py"\n'
+    )
+    code = lp.main(["--repo", str(_fixture_repo(tmp_path, registry=_registry(extra)))])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "NOT-CHECKED [newcomer]: declared reason" in out
+    assert "NOT-CHECKED (not PASS)" in out
+    assert "stanza(s) exempt" not in out
 
 
 # --------------------------------------------------------------------------------------------

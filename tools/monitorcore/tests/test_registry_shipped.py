@@ -103,8 +103,9 @@ def test_unified_cockpit_is_registered_and_reachable() -> None:
 def test_cockpit_does_not_double_book_the_workflow_trigger() -> None:
     """At most ONE stanza may auto-open per trigger tool.
 
-    Two stanzas sharing a ``trigger_tool`` means two windows per call, which is the
-    still-open T0-3 duplicate-autolaunch defect reproduced inside the registry itself.
+    Two stanzas sharing a ``trigger_tool`` means two windows per call — the duplicate-
+    autolaunch hazard T0-3 (executed 2026-08-20: ``Workflow`` moved from [wfmon] to
+    [cockpit]) had to avoid; this keeps the swap a MOVE, never a copy.
     """
     specs = m.load_monitors(str(REGISTRIES[0]))
     opening = [s for s in specs.values() if s.trigger_tool and s.autolaunch == "open"]

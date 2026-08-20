@@ -20,6 +20,7 @@ from monitorcore.agents_source import (
     AgentsPayload,
     AgentsSource,
     _counts,
+    _root_label,
     row_from_scan,
     workflow_key,
 )
@@ -58,7 +59,7 @@ def _scan_row(**kw: object) -> dict[str, object]:
         "size": 120,
         "age": 4.0,
         "running": True,
-        "last": "📝 reading",
+        "last": "> reading",
     }
     base.update(kw)
     return base
@@ -242,6 +243,46 @@ def test_headline_is_the_poll_time_one_liner():
     snap = src.poll()
     assert src.headline(snap) == snap.headline
     assert "in 1 workflows" in snap.headline
+
+
+def test_headline_names_the_root_population_it_counted():
+    assert "root=/fake" in _source([_scan_row()]).poll().headline
+
+
+def test_headline_names_the_root_so_a_repicked_population_flip_is_visible():
+    """MON-cockpit-2 regression: ``poll`` re-runs ``pick_active_dir`` every frame, so with
+    two live sessions the picked root can flip between polls. Both frames' tallies are TRUE
+    — of different directories — so the counts alone rendered the flip silently; the
+    headline must name the population, and the name must differ across the flip.
+    """
+    root_a = "/projects/p/aaaa-1111/subagents"
+    root_b = "/projects/p/bbbb-2222/subagents"
+    picks = iter([root_a, root_b])
+    populations = {
+        root_a: [_scan_row(name="phen"), _scan_row(name="phen-2", running=False)],
+        root_b: [_scan_row(name="fleet")],
+    }
+    src = AgentsSource(
+        pick_fn=lambda _p: next(picks),
+        scan_fn=lambda root, *_a, **_k: populations[root],
+        exists_fn=lambda _p: True,
+        clock=lambda: NOW,
+    )
+    first, second = src.poll(), src.poll()
+    assert first.payload.root != second.payload.root  # the picker DID re-run and flip
+    assert "root=aaaa-1111/subagents" in first.headline
+    assert "root=bbbb-2222/subagents" in second.headline
+
+
+def test_root_label_keeps_the_distinguishing_tail_and_is_never_blank():
+    """The tail is the part that differs between candidate roots; the shared
+    ``~/.claude/projects/...`` prefix is what a clipped badge can afford to lose."""
+    assert (
+        _root_label(r"~\.claude\projects\proj\sess-1\subagents") == "sess-1/subagents"
+    )
+    assert _root_label("/fake/") == "/fake"
+    assert _root_label("plain") == "plain"
+    assert _root_label("") == "not-measured"
 
 
 def test_alert_classifies_error_unreachable_and_healthy():

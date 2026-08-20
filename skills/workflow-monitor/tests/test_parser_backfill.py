@@ -128,7 +128,80 @@ def test_agent_state_property_branches():
 def test_run_active_true_and_counts_all_buckets():
     run = wr.parse_manifest(MANIFEST)
     assert run.active is True  # status 'running' is non-terminal
-    assert run.counts == {"running": 1, "done": 1, "error": 1, "total": 3}
+    # LIVE-run control: the fix must not zero the running counter everywhere.
+    assert run.counts == {
+        "running": 1,
+        "done": 1,
+        "error": 1,
+        "orphaned": 0,
+        "total": 3,
+    }
+
+
+def _run_with_states(tmp_path, status, states):
+    path = tmp_path / f"wf_{status}.json"
+    rows = [
+        {"type": "workflow_agent", "agentId": f"a{i}", "label": f"a{i}", "state": state}
+        for i, state in enumerate(states)
+    ]
+    path.write_text(
+        json.dumps({"status": status, "phases": [], "workflowProgress": rows}),
+        encoding="utf-8",
+    )
+    run = wr.parse_manifest(str(path))
+    assert run is not None
+    return run
+
+
+def test_terminal_agents_orphaned_with_live_control(tmp_path):
+    """Killed fails on buggy code; live is the control that passes on both versions."""
+    states = ["done", "error", "start", "progress"]
+    killed = _run_with_states(tmp_path, "killed", states)
+    live = _run_with_states(tmp_path, "running", states)
+    assert killed.counts == {
+        "running": 0,
+        "done": 1,
+        "error": 1,
+        "orphaned": 2,
+        "total": 4,
+    }
+    assert live.counts == {
+        "running": 2,
+        "done": 1,
+        "error": 1,
+        "orphaned": 0,
+        "total": 4,
+    }
+
+
+def test_every_terminal_status_orphans_unfinished_agent(tmp_path):
+    for status in wr._TERMINAL_RUN:
+        counts = _run_with_states(tmp_path, status, ["progress"]).counts
+        assert counts["running"] == 0
+        assert counts["orphaned"] == 1
+
+
+def test_fleet_rollup_separates_live_and_orphaned(tmp_path):
+    roll = wr.fleet_rollup(
+        [
+            _run_with_states(tmp_path, "failed", ["progress"]),
+            _run_with_states(tmp_path, "running", ["progress"]),
+        ]
+    )
+    assert roll["running"] == 1
+    assert roll["orphaned"] == 1
+    assert "orphaned" in roll
+
+
+def test_counts_invariant_for_live_and_terminal_runs(tmp_path):
+    for status in ["running", *wr._TERMINAL_RUN]:
+        counts = _run_with_states(
+            tmp_path, status, ["done", "error", "progress"]
+        ).counts
+        assert (
+            sum(counts[key] for key in ("running", "done", "error", "orphaned"))
+            == counts["total"]
+        )
 
 
 # ───────────────────────── FleetPoller defensive branches ─────────────────────────

@@ -56,6 +56,7 @@ except Exception:  # pragma: no cover - fallback when the vendored package is ab
 
 # The coarse agent-state bucket is the SHARED monitorcore primitive (single source of
 # truth for the former ``_bucket`` / ``wfmon_export.model._state_bucket`` duplication).
+from monitorcore.agent_state import STALL as _SILENCE_S  # noqa: E402
 from monitorcore.agent_state import bucket_agent  # noqa: E402
 
 # The Task/Result-pane truncation cap is the SHARED monitorcore primitive (single source of
@@ -84,7 +85,9 @@ MAX_RUNS = 80  # cap tree size for whole-fleet scale (569+ runs on disk)
 MAX_AGENTS_PER_RUN = 50  # cap leaves built per run (bound _tree_lines rebuild cost)
 BACKFILL = 14  # transcript events shown when an agent is first selected
 FEED_WIDTH = 160  # width passed to the event renderer
-STALL_MS = 90_000  # idle-while-active threshold → triage "STALL"
+# Time since the last progress telemetry stamp (the last assistant message). This includes
+# in-flight tool-call time; the runtime disarms its own stall watchdog during tool calls.
+QUIET_MS = _SILENCE_S * 1000.0
 POLL_SEC = 1.0  # fleet refresh cadence
 # DETAIL_CHARS (Task/Result-pane truncation) is imported above from monitorcore.textsafe
 # (TOOL_OUTPUT_CAP) — the single shared source of the 8000-byte cap.
@@ -114,16 +117,23 @@ def _now_ms() -> float:
 
 
 def _bucket(a: "wr.WFAgent") -> str:
-    # Delegates to the shared monitorcore bucket (journal_state omitted == the cockpit's
-    # manifest-only view); keeps this file free of the duplicated state-mapping logic.
-    return bucket_agent(errored=a.errored, state=a.state, running=a.running)
+    # Delegates to the shared monitorcore bucket. ``journal_state`` is the AUTHORITATIVE
+    # signal the parser stamps from journal.jsonl — a ``result`` there outranks a stale
+    # manifest row. Omitting it (the old "manifest-only view") is precisely what made the
+    # cockpit parse the authoritative source and then throw the answer away.
+    return bucket_agent(
+        errored=a.errored,
+        state=a.state,
+        running=a.running,
+        journal_state=a.journal_state,
+    )
 
 
 def _agent_priority(a: "wr.WFAgent", now: float) -> int:
     """Triage order for floating problem agents to the top within a phase/run."""
     if a.errored:
         return 0
-    if a.running and a.idle_ms(now) > STALL_MS:  # stalled
+    if a.running and a.idle_ms(now) > QUIET_MS:  # quiet
         return 1
     if a.retrying:
         return 2
@@ -132,6 +142,17 @@ def _agent_priority(a: "wr.WFAgent", now: float) -> int:
     if a.state == "done":
         return 5
     return 4  # idle / unknown
+
+
+def _triage_budget(
+    vis: list["wr.WFAgent"], now: float, cap: int = MAX_AGENTS_PER_RUN
+) -> set[int]:
+    # A 50-done manifest phase previously starved 30 higher-priority lost rows appended
+    # in the journal-only phase. Identity keeps duplicate retry ids from exceeding the cap.
+    return {
+        id(a)
+        for a in sorted(vis, key=lambda a: (_agent_priority(a, now), a.index))[:cap]
+    }
 
 
 def _last_complete_offset(path: str) -> int:
@@ -188,8 +209,8 @@ def _fmt_elapsed(ms: float) -> str:
 def _run_flags(r: "wr.WFRun", now: float) -> tuple[bool, bool, bool]:
     err = any(a.errored for a in r.agents)
     retry = any(a.retrying for a in r.agents)
-    stall = r.active and any(a.running and a.idle_ms(now) > STALL_MS for a in r.agents)
-    return err, retry, stall
+    quiet = r.active and any(a.running and a.idle_ms(now) > QUIET_MS for a in r.agents)
+    return err, retry, quiet
 
 
 def _agent_line(a: "wr.WFAgent", now: float) -> Text:
@@ -208,20 +229,26 @@ def _agent_line(a: "wr.WFAgent", now: float) -> Text:
         meta.append(f"{a.tool_calls}tc")
     if a.last_tool:
         meta.append(a.last_tool)
+    if a.journal_only:
+        # The journal recorded this agent; the manifest never did. Say so, so a row with
+        # no model/token/tool metadata reads as "unreported", not as an idle agent.
+        meta.append("no manifest row")
     idle = a.idle_ms(now)
-    if b == "running" and idle > STALL_MS:
-        meta.append(f"STALL {int(idle / 1000)}s")
+    if b == "running" and idle > QUIET_MS:
+        meta.append(f"quiet {_fmt_elapsed(idle)}")
     if meta:
         t.append("  " + " · ".join(meta), "grey50")
     return t
 
 
 def _run_label(r: "wr.WFRun", now: float) -> Text:
-    err, retry, stall = _run_flags(r, now)
+    err, retry, quiet = _run_flags(r, now)
     c = r.counts
     t = Text()
-    if err or stall:
-        t.append("⚠ ", "bold red")
+    if err:
+        t.append("! ", "bold red")
+    elif quiet:
+        t.append("~ ", "bold yellow")
     elif retry:
         t.append("↻ ", "magenta")
     elif r.active:
@@ -230,7 +257,10 @@ def _run_label(r: "wr.WFRun", now: float) -> Text:
         t.append("· ", "grey50")
     t.append(r.name or r.wf_id, "bold" if r.active else "")
     t.append(f"  {r.wf_id}", "grey50")
-    t.append(f"  {c['done']}✓ {c['error']}✗ {c['running']}◔/{c['total']}", "cyan")
+    # ``orphaned`` (peer unit's key + `~` glyph, matching the CLI board) is hidden when
+    # zero and rides INSIDE the one cyan segment — width-1 ASCII, no extra coloured span.
+    orph = f" {c['orphaned']}~" if c.get("orphaned") else ""
+    t.append(f"  {c['done']}✓ {c['error']}✗ {c['running']}◔{orph}/{c['total']}", "cyan")
     t.append(f"  {r.status}", "grey58")
     if r.total_tokens:
         t.append(f"  {r.total_tokens:,}tok", "grey50")
@@ -282,16 +312,14 @@ def _fallback_render(entry: dict) -> list[Text]:
         t = b.get("type")
         if t == "thinking" and b.get("thinking"):
             out.append(
-                Text(
-                    "💭 " + " ".join(str(b["thinking"]).split())[:FEED_WIDTH], "grey62"
-                )
+                Text("* " + " ".join(str(b["thinking"]).split())[:FEED_WIDTH], "grey62")
             )
         elif t == "text" and b.get("text"):
             out.append(
-                Text("📝 " + " ".join(str(b["text"]).split())[:FEED_WIDTH], "green")
+                Text("> " + " ".join(str(b["text"]).split())[:FEED_WIDTH], "green")
             )
         elif t == "tool_use":
-            out.append(Text(f"🔧 {b.get('name', '?')}", "cyan"))
+            out.append(Text(f"+ {b.get('name', '?')}", "cyan"))
         elif t == "tool_result":
             rc = b.get("content")
             s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False)
@@ -581,8 +609,8 @@ class WorkflowMonitor(App):
 
         def keyf(item):
             r, _ = item
-            err, retry, stall = _run_flags(r, now)
-            pri = 0 if (err or stall) else 1 if retry else 2 if r.active else 3
+            err, retry, quiet = _run_flags(r, now)
+            pri = 0 if err else 1 if quiet else 2 if retry else 3 if r.active else 4
             return (pri, -r.mtime)
 
         picked.sort(key=keyf)
@@ -591,13 +619,13 @@ class WorkflowMonitor(App):
     def _sig(self, picked: list, now: float | None = None) -> tuple:
         if now is None:
             now = _now_ms()
-        # Fold a coarse per-run stall flag in so an agent crossing the STALL threshold
+        # Fold a coarse per-run quiet flag in so an agent crossing the quiet threshold
         # forces a rebuild + triage re-sort (not just a label refresh).
         return tuple(
             (
                 r.wf_id,
                 r.status,
-                any(a.running and a.idle_ms(now) > STALL_MS for a in vis),
+                any(a.running and a.idle_ms(now) > QUIET_MS for a in vis),
                 tuple((a.agent_id, _bucket(a)) for a in vis),
             )
             for r, vis in picked
@@ -628,7 +656,7 @@ class WorkflowMonitor(App):
                     groups[key] = []
                     order.append(key)
                 groups[key].append(a)
-            budget = MAX_AGENTS_PER_RUN  # bound leaves built per run
+            survivors = _triage_budget(vis, now)
             built = 0
             for key in order:
                 title = key[1] or f"phase {key[0]}"
@@ -640,14 +668,13 @@ class WorkflowMonitor(App):
                 )
                 # float error/stall/retry agents to the top within the phase
                 for a in sorted(full, key=lambda a: (_agent_priority(a, now), a.index)):
-                    if budget <= 0:
-                        break
+                    if id(a) not in survivors:
+                        continue
                     akey = f"{r.wf_id}/{a.agent_id}"
                     an = pn.add_leaf(
                         _agent_line(a, now), data=("agent", r.wf_id, a.agent_id)
                     )
                     self._agent_nodes[akey] = an
-                    budget -= 1
                     built += 1
             hidden = len(vis) - built
             if hidden > 0:

@@ -114,7 +114,13 @@ def test_run_scalar_fields(run: wr.WFRun):
 
 
 def test_run_counts(run: wr.WFRun):
-    assert run.counts == {"running": 0, "done": 4, "error": 0, "total": 4}
+    assert run.counts == {
+        "running": 0,
+        "done": 4,
+        "error": 0,
+        "orphaned": 0,
+        "total": 4,
+    }
 
 
 def test_fleet_rollup_single_run(run: wr.WFRun):
@@ -125,6 +131,7 @@ def test_fleet_rollup_single_run(run: wr.WFRun):
         "running": 0,
         "done": 4,
         "error": 0,
+        "orphaned": 0,
         "tokens": 428702,
     }
 

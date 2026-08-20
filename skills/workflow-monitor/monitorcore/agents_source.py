@@ -294,12 +294,35 @@ def _derive_state(rows: Iterable[AgentRow]) -> SourceState:
     return SourceState.IDLE
 
 
+def _root_label(root: str) -> str:
+    """The last two path components of the (already scrubbed) root, or ``not-measured``.
+
+    The headline must name WHICH population it counts: ``poll`` re-runs
+    :func:`~monitorcore.discovery.pick_active_dir` every frame, so with two live sessions
+    the picked root can flip between polls — and a board that prints only the tallies
+    switches populations silently (measured: ``8 running of 1335`` one frame, ``3 running
+    of 1523`` the next, both true, of DIFFERENT directories). The tail components are the
+    part worth the width: every auto-picked root shares the ``~/.claude/projects/...``
+    prefix and differs only in ``<session>/subagents``, so a clipped badge still shows the
+    distinguishing bytes where the full path would clip down to the constant prefix.
+    ``not-measured`` (never ``""``) when the payload carries no root at all.
+    """
+    norm = root.replace("\\", "/").rstrip("/")
+    if not norm:
+        return "not-measured"
+    return "/".join(norm.split("/")[-2:])
+
+
 def _headline(payload: AgentsPayload, state: SourceState) -> str:
-    """``agents [running] 3 running / 1 error of 9 in 2 workflows`` — already scrubbed."""
+    """``agents [running] 3 running / 1 error of 9 in 2 workflows · root=<sess>/subagents``.
+
+    Already scrubbed — and it NAMES the root (via :func:`_root_label`), because the counts
+    alone cannot show that the auto-picked population changed between frames.
+    """
     rows = payload.rows
     counts = _counts(rows)
     workflows = {workflow_key(r) for r in rows}
     return (
         f"agents [{state}] {counts['running']} running / {counts['error']} error "
-        f"of {len(rows)} in {len(workflows)} workflows"
+        f"of {len(rows)} in {len(workflows)} workflows · root={_root_label(payload.root)}"
     )

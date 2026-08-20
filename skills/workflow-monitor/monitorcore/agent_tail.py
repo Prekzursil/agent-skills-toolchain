@@ -128,15 +128,15 @@ def render(entry: dict, width: int) -> list[str]:
         if t == "thinking":
             txt = _one_line(b.get("thinking", ""), body)
             if txt:
-                out.append(f"{GREY}{ts}  💭 {txt}{R}")
+                out.append(f"{GREY}{ts}  * {txt}{R}")
         elif t == "text":
             txt = _one_line(b.get("text", ""), body)
             if txt:
-                out.append(f"{GREY}{ts}{R}  {GREEN}📝 {txt}{R}")
+                out.append(f"{GREY}{ts}{R}  {GREEN}> {txt}{R}")
         elif t == "tool_use":
             name = b.get("name", "?")
             out.append(
-                f"{GREY}{ts}{R}  {CYAN}🔧 {BOLD}{name}{R}{CYAN}  "
+                f"{GREY}{ts}{R}  {CYAN}+ {BOLD}{name}{R}{CYAN}  "
                 f"{_tool_summary(name, b.get('input', {}), body)}{R}"
             )
         elif t == "tool_result":

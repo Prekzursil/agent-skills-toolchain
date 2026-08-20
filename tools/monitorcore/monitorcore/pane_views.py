@@ -191,7 +191,7 @@ class AgentsPane:
 
 
 def _agent_line(row: AgentRow, glyphs: dict[str, str]) -> str:
-    """``▶ [RUNNING] scout · general-purpose · wf_bfc0 · 12s idle · 📝 reading the plan``.
+    """``▶ [RUNNING] scout · general-purpose · wf_bfc0 · 12s idle · > reading the plan``.
 
     Free-text fields are TRUNCATED, not padded: the last-mile :func:`monitorcore.codex_tail
     .clip` whitespace-collapses every row, so column padding would be silently discarded —

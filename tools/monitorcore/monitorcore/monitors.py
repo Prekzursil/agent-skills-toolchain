@@ -127,9 +127,20 @@ def build_wt_argv(
 def build_console_argv(
     name: str, entry: str, args=(), *, py: str | None = None
 ) -> list[str]:
-    """Plain-console fallback argv (``cmd /c start``) when Windows-Terminal is absent."""
+    """Plain-console fallback argv (``cmd /c start``) when Windows-Terminal is absent.
+
+    The title slot is deliberately an EMPTY string (``list2cmdline`` renders it ``""``):
+    ``start`` treats its first QUOTED token as the window title but a BARE token as the
+    COMMAND, so passing ``name`` here made the fallback rung spawn bare ``wfmon`` — a
+    ShellExecute PATH lookup that error-dialogs whenever ``~/.local/bin`` is absent from
+    the spawner's PATH — instead of ``python <entry>``. The empty quoted title also keeps
+    a space-containing interpreter path from being consumed as the title. The reusable
+    NAMED window lives in the primary wt rung; this fallback is untitled by design.
+    ``name`` stays in the signature so both rung builders share one call shape.
+    """
+    del name  # intentionally unused — a bare name here is the error-dialog root cause
     py = py or _py()
-    return ["cmd", "/c", "start", name, py, entry, *args]
+    return ["cmd", "/c", "start", "", py, entry, *args]
 
 
 def launch_argvs(

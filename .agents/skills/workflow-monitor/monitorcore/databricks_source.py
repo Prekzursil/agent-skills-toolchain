@@ -305,11 +305,18 @@ def _call_sibling(mod: ModuleType | None, attr: str, *args):
 
 # ───────────────────────── reading (streaming, bounded) ─────────────────────────
 def default_events_path() -> str:
-    """The default NDJSON event stream (``DBX_MONITOR_EVENTS`` or ``~/.dbxmon``)."""
-    env = os.environ.get("DBX_MONITOR_EVENTS")
-    if env:
-        return env
-    return os.path.join(os.path.expanduser("~"), ".dbxmon", "events.jsonl")
+    """The default NDJSON event stream.
+
+    Same file the databricks/workers pane already tails. A remote Scaleway /
+    Modal / RunPod / Databricks host is in scope once its stream has been
+    *mirrored locally* — this function never opens a socket. Precedence:
+    ``DBX_MONITOR_EVENTS`` or ``MONITORCORE_EVENTS_PATH``, then
+    ``~/.claude/remote-workers/current/events.ndjson`` (or the newest sibling),
+    then the historical ``~/.dbxmon/events.jsonl``.
+    """
+    from .remote_workers import resolve_events_path
+
+    return resolve_events_path()
 
 
 def _read_jsonl(path: str) -> Iterator[dict]:

@@ -765,7 +765,12 @@ def test_alert_matrix(tmp_path):
 
 
 # ───────────────────────── stream hygiene / full event vocabulary ─────────────────────────
-def test_default_events_path_honours_env_override(monkeypatch):
+def test_default_events_path_honours_env_override(monkeypatch, tmp_path):
+    # Hermetic home: a real mirrored ~/.claude/remote-workers stream on the measuring
+    # box must not leak into the no-env fallback assertion (measured 2026-08-18: it did —
+    # green on a fresh CI runner, red on the authoring box).
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))  # Windows expanduser / Path.home
+    monkeypatch.setenv("HOME", str(tmp_path))  # POSIX expanduser / Path.home
     monkeypatch.setenv("DBX_MONITOR_EVENTS", "/srv/dbx/events.jsonl")
     assert default_events_path() == "/srv/dbx/events.jsonl"
     monkeypatch.delenv("DBX_MONITOR_EVENTS", raising=False)
