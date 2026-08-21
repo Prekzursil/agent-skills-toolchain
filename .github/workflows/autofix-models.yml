@@ -1,11 +1,22 @@
 name: autofix-models
 
-# Tier 2 automation (free, in-Actions, PRIMARY auto-fix): when the `quality`
-# workflow fails on a push to `main`, ask GitHub Models (free inference via the
-# built-in GITHUB_TOKEN) to draft a fix as a unified diff, apply it, and open a
+# Tier 2 automation (in-Actions, PRIMARY auto-fix): when the `quality` workflow
+# fails on a push to `main`, draft a fix as a unified diff, apply it, and open a
 # PR labelled `autofix`. It NEVER auto-merges — the normal quality gate + a human
 # review it. Bounded: only fires on a failed main run, only opens a PR if the
 # model's patch applies cleanly.
+#
+# BACKEND HISTORY (why this is credential-gated). This bot was built on GitHub
+# Models free inference via the built-in GITHUB_TOKEN. GitHub Models was RETIRED
+# on 2026-07-30, and actions/ai-inference@v3 (2026-07-29) is Copilot-CLI-only:
+# the CLI is not pre-installed on hosted runners and authenticates with a PAT
+# carrying the "Copilot Requests" permission (COPILOT_GITHUB_TOKEN) — the
+# built-in GITHUB_TOKEN cannot serve it. Measured 2026-08-20 (run 32380376877):
+# with no credential the draft step hard-fails "Copilot CLI not found". Until an
+# owner adds a COPILOT_PAT repository secret this job therefore reports itself
+# DORMANT (loud warning, clean exit) instead of turning red on every quality
+# failure it exists to help with. Add COPILOT_PAT to reactivate; nothing else
+# needs to change.
 on:
   workflow_run:
     workflows: ["quality"]
@@ -14,7 +25,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  models: read
 
 jobs:
   draft-fix:
@@ -29,7 +39,24 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      # Fail-open is deliberate and scoped: this is a best-effort draft bot, not
+      # a gate. Its absence blocks nothing (the quality gate already failed and
+      # already blocks), so a missing credential must not manufacture a second
+      # red beside every real one.
+      - name: Check Copilot credential (GitHub Models retired 2026-07-30)
+        id: cred
+        env:
+          COPILOT_PAT: ${{ secrets.COPILOT_PAT }}
+        run: |
+          if [ -n "$COPILOT_PAT" ]; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::autofix-models is DORMANT: GitHub Models (its free backend) was retired 2026-07-30 and actions/ai-inference@v3 shells out to the Copilot CLI, which needs a PAT with the Copilot Requests permission. Add a COPILOT_PAT repository secret to reactivate the draft-fix bot."
+          fi
+
       - name: Collect failing-run log (bounded)
+        if: steps.cred.outputs.have == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -40,16 +67,25 @@ jobs:
           echo "----" >> prompt.txt
           echo "Output ONLY a unified git diff (git apply compatible) that fixes the failures above. No prose, no code fences." >> prompt.txt
 
-      - name: Draft fix with GitHub Models
+      - name: Install Copilot CLI (not pre-installed on hosted runners)
+        if: steps.cred.outputs.have == 'true'
+        run: npm install -g @github/copilot
+
+      - name: Draft fix with Copilot
+        if: steps.cred.outputs.have == 'true'
         id: ai
         uses: actions/ai-inference@v3
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
         with:
-          model: openai/gpt-4o-mini
+          # v3 forwards `model` to the Copilot CLI; GitHub Models identifiers
+          # (openai/gpt-4o-mini) and max-completion-tokens are not supported.
+          model: gpt-4.1
           system-prompt: "You are a CI repair assistant. You receive failing GitHub Actions logs and reply with ONLY a unified git diff that fixes the root cause. Make the smallest correct change. Never lower thresholds or disable checks."
           prompt-file: prompt.txt
-          max-completion-tokens: "2000"
 
       - name: Apply patch and open PR
+        if: steps.cred.outputs.have == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_ID: ${{ github.event.workflow_run.id }}
@@ -79,4 +115,4 @@ jobs:
           git push origin "$BR"
           gh pr create --base main --head "$BR" --label autofix \
             --title "autofix: draft fix for failed main CI (run ${RUN_ID})" \
-            --body "Automated draft from GitHub Models (openai/gpt-4o-mini) for failed \`quality\` run ${RUN_ID}. This PR is gated by the normal quality checks and requires human review — it is never auto-merged."
+            --body "Automated draft from the Copilot CLI (gpt-4.1 via actions/ai-inference@v3) for failed \`quality\` run ${RUN_ID}. This PR is gated by the normal quality checks and requires human review — it is never auto-merged."
