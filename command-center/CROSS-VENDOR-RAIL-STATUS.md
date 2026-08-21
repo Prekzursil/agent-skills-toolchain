@@ -1,4 +1,4 @@
-# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 65 of 72 satisfiable units are reviewed
+# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 72 of 72 satisfiable units are reviewed
 
 <!-- RAIL-COUNT
 basis: committed
@@ -7,7 +7,7 @@ rail_blocked: 9
 rail_blocked_unfulfilled: 9
 rail_blocked_fulfilled: 0
 satisfiable_now: 72
-reviewed_satisfiable: 65
+reviewed_satisfiable: 72
 catalog_units: 2007
 rail_state: up
 rail_probed: 2026-08-14
@@ -147,7 +147,7 @@ the field.
 | 42 of 52 units *[superseded 2026-08-20]* | here, committed basis, pre-curation | units, once each, from HEAD blobs — what receipts DEMANDED before the 2026-08-20 delivery-surface curation |
 | 39 of 52 units *[superseded 2026-08-20]* | here, committed basis, pre-curation | the same population minus those already reviewed |
 | **9 of 81 units** | here, committed basis | units, once each, from HEAD blobs — what receipts DEMAND after the 2026-08-20 curation returned 38 contract-unsupported SUCCESS claims to BLOCKED |
-| **9 of 81 units** | **here, committed basis** | **the cross-vendor population minus those already served — what is still OWED to the rail; the satisfiable population is 72, of which 65 are reviewed** |
+| **9 of 81 units** | **here, committed basis** | **the cross-vendor population minus those already served — what is still OWED to the rail; the satisfiable population is 72, of which 72 are reviewed** |
 
 Two mechanically independent instruments agree on the demand split, which is the only reason it is
 stated without a hedge: `vendor_satisfiability.py` resolves a seven-rule vendor ladder per receipt
@@ -199,7 +199,7 @@ gate and still cannot reach DELIVERED.
 10 were reviewed by a fresh-context reviewer that did not build them, with `reviewer.verdict=PASS`
 and `independent=true`. They are AUD-0006, AUD-0020, AUD-0021, AUD-0030, AUD-0041, AUD-0051,
 CC-0002, IMP-0440, TST-0334, TST-0350. After the 2026-08-20 curation the satisfiable population is
-72 of 81 blocked units, 65 of them reviewed — that is the `reviewed_satisfiable` field in the
+72 of 81 blocked units, 72 of them reviewed — that is the `reviewed_satisfiable` field in the
 block at the top, and CI re-checks it. The gap between the two is NEWLY REACHABLE review work the
 C5 content floor holds open until each unit carries a substantive independent PASS.
 
@@ -223,7 +223,7 @@ blobs — before the ten receipts were touched — and got the same ten ids.
    recovered, or was intermittent throughout. Settling experiment: correlate `~/.codex` session
    logs against the earlier probe timestamps. It does not change the verdict either way — the CLI
    leg was recorded as working in this program's own committed artifact on 08-11.
-3. **UNVERIFIED [uncertain, 20-55%]:** whether the 65 would PASS a Codex review. What is measured
+3. **UNVERIFIED [uncertain, 20-55%]:** whether the 72 would PASS a Codex review. What is measured
    is what receipts DEMAND and which have already been SERVED, never what a review would conclude.
 4. **The host sandbox policy blocked a real review dispatch once**, after auth succeeded. Not
    re-measured this round. That is the concrete next blocker to price, not the credential.
