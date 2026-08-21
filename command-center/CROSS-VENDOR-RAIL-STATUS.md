@@ -1,13 +1,13 @@
-# The cross-vendor review rail ANSWERS — and 39 blocked units are still owed a review
+# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 39 of 72 satisfiable units are reviewed
 
 <!-- RAIL-COUNT
 basis: committed
-blocked_units: 52
-rail_blocked: 42
-rail_blocked_unfulfilled: 39
-rail_blocked_fulfilled: 3
-satisfiable_now: 10
-reviewed_satisfiable: 10
+blocked_units: 81
+rail_blocked: 9
+rail_blocked_unfulfilled: 9
+rail_blocked_fulfilled: 0
+satisfiable_now: 72
+reviewed_satisfiable: 39
 catalog_units: 2007
 rail_state: up
 rail_probed: 2026-08-14
@@ -15,7 +15,7 @@ derived_by: command-center/p2-next/vendor_satisfiability.py --basis committed
 -->
 
 > ## REFUTED 2026-08-14 — the previous title of this page was
-> ## *"Cross-vendor review rail is DOWN — and it gates 42 blocked units"*
+> ## *"Cross-vendor review rail is DOWN — and it gates 42 blocked units"* *[superseded 2026-08-20: the 2026-08-20 delivery-surface curation re-derived the split]*
 >
 > It is kept here rather than deleted, because it is preserved verbatim in the permanent commit
 > message of `fd615ce7` and cannot be corrected there. The rail was pronounced down on **one
@@ -151,8 +151,10 @@ the field.
 | 43 of 47 units *[superseded]* | this page, first version | tag occurrences, not units |
 | 41 of 51 units *[worktree-observed 2026-08-13]* | `VENDOR-SATISFIABILITY.json`, round 1 | a **worktree** read, which silently absorbed a sibling lane's uncommitted edit to ADV-0041 |
 | 47 of 51 units *[superseded]* | re-running the producer, round 1 | a resolver bug: this lane's own receipt edits removed the word "Claude" from `failure.blocked_on`, and an ungated rule inverted six same-vendor requirements into cross-vendor demands |
-| **42 of 52 units** | here, committed basis | units, once each, from HEAD blobs — what receipts DEMAND |
-| **39 of 52 units** | **here, committed basis** | **the same population minus those already reviewed — what is still OWED** |
+| 42 of 52 units *[superseded 2026-08-20]* | here, committed basis, pre-curation | units, once each, from HEAD blobs — what receipts DEMANDED before the 2026-08-20 delivery-surface curation |
+| 39 of 52 units *[superseded 2026-08-20]* | here, committed basis, pre-curation | the same population minus those already reviewed |
+| **9 of 81 units** | here, committed basis | units, once each, from HEAD blobs — what receipts DEMAND after the 2026-08-20 curation returned 38 contract-unsupported SUCCESS claims to BLOCKED |
+| **9 of 81 units** | **here, committed basis** | **the cross-vendor population minus those already served — what is still OWED to the rail; the satisfiable population is 72, of which 39 are reviewed** |
 
 Two mechanically independent instruments agree on the demand split, which is the only reason it is
 stated without a hedge: `vendor_satisfiability.py` resolves a seven-rule vendor ladder per receipt
@@ -200,12 +202,13 @@ gate and still cannot reach DELIVERED.
 
 ## What was already done without the rail
 
-10 of the 52 blocked units demand only an *independent* reviewer, with no vendor constraint in the
-receipt, in `failure.blocked_on`, or in the catalog requirement. All 10 have been reviewed by a
-fresh-context reviewer that did not build them, and all 10 carry `reviewer.verdict=PASS` with
-`independent=true` — that is the `reviewed_satisfiable` field in the block at the top, and CI
-re-checks it. They are AUD-0006, AUD-0020, AUD-0021, AUD-0030, AUD-0041, AUD-0051, CC-0002,
-IMP-0440, TST-0334, TST-0350.
+10 of the 52 blocked units demanded only an *independent* reviewer *[superseded 2026-08-20: the delivery-surface curation re-derived the split]* — all
+10 were reviewed by a fresh-context reviewer that did not build them, with `reviewer.verdict=PASS`
+and `independent=true`. They are AUD-0006, AUD-0020, AUD-0021, AUD-0030, AUD-0041, AUD-0051,
+CC-0002, IMP-0440, TST-0334, TST-0350. After the 2026-08-20 curation the satisfiable population is
+72 of 81 blocked units, 39 of them reviewed — that is the `reviewed_satisfiable` field in the
+block at the top, and CI re-checks it. The gap between the two is NEWLY REACHABLE review work the
+C5 content floor holds open until each unit carries a substantive independent PASS.
 
 No same-vendor review was substituted anywhere a receipt demands cross-vendor. That substitution
 would satisfy the gate's letter and defeat its purpose, and the split above exists precisely to
