@@ -69,9 +69,7 @@ def run_sync_in_session(root: Path, dest: Path, skill_expr: str, timeout: int = 
     `-File` and `-Command` bind arguments differently, so the two styles are separate
     measurements and both are pinned.
     """
-    expr = (
-        f"& '{SCRIPT}' -Root '{root}' -Dest '{dest}' -Skill {skill_expr}"
-    )
+    expr = f"& '{SCRIPT}' -Root '{root}' -Dest '{dest}' -Skill {skill_expr}"
     cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", expr]
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 

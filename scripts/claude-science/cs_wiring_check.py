@@ -301,7 +301,9 @@ def _check_no_alias(root: Path) -> list[Violation]:
     out: list[Violation] = []
     for rel in RETIRED_ALIAS_COMMANDS:
         if (root / rel).exists():
-            out.append(Violation("W11-no-alias", f"retired alias command still exists: {rel}"))
+            out.append(
+                Violation("W11-no-alias", f"retired alias command still exists: {rel}")
+            )
     for rel in COMMAND_TWINS[0]:
         path = root / rel
         if not path.is_file():
@@ -318,7 +320,9 @@ def _check_no_alias(root: Path) -> list[Violation]:
                 continue
             scoped = (in_frontmatter and line.startswith("description:")) or in_fence
             if scoped and re.search(r"(?<![\w-])/cs(?=\s|$|[`,.])", line):
-                out.append(Violation("W11-no-alias", f"{rel}:{n} instructs use of retired /cs"))
+                out.append(
+                    Violation("W11-no-alias", f"{rel}:{n} instructs use of retired /cs")
+                )
     return out
 
 

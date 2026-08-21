@@ -49,7 +49,12 @@ CONTROL_GOOD = (
     "WFA-0001"  # exists, non-empty, parses, schema-VALID, no self-declared failure
 )
 CONTROL_BAD = (
-    "ADV-0031"  # exists, non-empty, parses, schema-VALID, but state == BLOCKED
+    # exists, non-empty, parses, schema-VALID, but state == BLOCKED. Repointed
+    # 2026-08-20: the previous control (ADV-0031) was legitimately delivered by the
+    # P2/adversarial wave (state BLOCKED -> SUCCESS in e760762c), which is the one
+    # state transition this live-artifact control cannot survive. When ADV-0026 is
+    # delivered in its turn, re-elect a new self-declared-BLOCKED unit here.
+    "ADV-0026"
 )
 
 #: A third control, added 2026-08-12 after an adversarial verifier REFUTED the round-1 claim that

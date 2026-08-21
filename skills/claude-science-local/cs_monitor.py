@@ -260,7 +260,9 @@ def main(argv: list[str] | None = None) -> int:
 
     while True:
         # A continuous refresh also has a total bound no larger than its interval.
-        total_deadline = args.deadline if args.once else min(args.deadline, args.interval)
+        total_deadline = (
+            args.deadline if args.once else min(args.deadline, args.interval)
+        )
         status, doctor, errors = collect_probes(
             cs, pwsh, min(args.timeout, total_deadline), total_deadline
         )

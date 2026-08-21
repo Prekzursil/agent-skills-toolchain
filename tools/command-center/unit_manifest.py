@@ -63,7 +63,9 @@ def _load_receipts(root: Path) -> list[tuple[Path, dict[str, Any]]]:
             try:
                 value = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-                raise ManifestError(f"unreadable/unparseable JSON {path}: {exc}") from exc
+                raise ManifestError(
+                    f"unreadable/unparseable JSON {path}: {exc}"
+                ) from exc
             if not isinstance(value, dict) or not _is_receipt_shape(value):
                 continue
             receipts.append((path, value))
@@ -171,7 +173,9 @@ def self_test() -> int:
                 and len(digest) == 64
                 and all(c in hexdigits for c in digest)
             ):
-                print("FAILED:unit-manifest-self-test clean write emitted non-hex sha256")
+                print(
+                    "FAILED:unit-manifest-self-test clean write emitted non-hex sha256"
+                )
                 return 1
         bad = written
         bad["artifacts"][0]["sha256"] = "0" * 64
@@ -206,19 +210,29 @@ def self_test() -> int:
         except ManifestError as exc:
             msg = str(exc)
             if absent_rel not in msg:
-                print("FAILED:unit-manifest-self-test missing-artifact error omitted path")
+                print(
+                    "FAILED:unit-manifest-self-test missing-artifact error omitted path"
+                )
                 return 1
             if receipt_name not in msg:
-                print("FAILED:unit-manifest-self-test missing-artifact error omitted receipt")
+                print(
+                    "FAILED:unit-manifest-self-test missing-artifact error omitted receipt"
+                )
                 return 1
         else:
-            print("FAILED:unit-manifest-self-test missing artifact derive() did not raise")
+            print(
+                "FAILED:unit-manifest-self-test missing artifact derive() did not raise"
+            )
             return 1
         if write(missing_root) != 1:
-            print("FAILED:unit-manifest-self-test missing artifact --write stayed green")
+            print(
+                "FAILED:unit-manifest-self-test missing artifact --write stayed green"
+            )
             return 1
         if check(missing_root) != 1:
-            print("FAILED:unit-manifest-self-test missing artifact --check stayed green")
+            print(
+                "FAILED:unit-manifest-self-test missing artifact --check stayed green"
+            )
             return 1
     with tempfile.TemporaryDirectory() as tmp:
         stray_root = Path(tmp)
@@ -227,15 +241,23 @@ def self_test() -> int:
         artifact = stray_root / "out.txt"
         artifact.write_bytes(b"known-good\n")
         receipt = {"unit_id": "TST-0001", "artifacts": [{"path": "out.txt"}]}
-        (receipts_dir / "TST-0001.json").write_text(json.dumps(receipt), encoding="utf-8")
+        (receipts_dir / "TST-0001.json").write_text(
+            json.dumps(receipt), encoding="utf-8"
+        )
         pointer = {"unit_id": "TST-POINTER", "output_path": "out.txt"}
-        (receipts_dir / "TST-POINTER.json").write_text(json.dumps(pointer), encoding="utf-8")
+        (receipts_dir / "TST-POINTER.json").write_text(
+            json.dumps(pointer), encoding="utf-8"
+        )
         empty_arts = {"unit_id": "TST-EMPTY", "artifacts": []}
-        (receipts_dir / "TST-EMPTY.json").write_text(json.dumps(empty_arts), encoding="utf-8")
+        (receipts_dir / "TST-EMPTY.json").write_text(
+            json.dumps(empty_arts), encoding="utf-8"
+        )
         probe_dir = stray_root / "command-center" / "p2-wave" / "probes" / "ADV-0008"
         probe_dir.mkdir(parents=True)
         probe = {"unit_id": "ADV-0008", "note": "handoff, not a receipt"}
-        (probe_dir / "handoff-measure.json").write_text(json.dumps(probe), encoding="utf-8")
+        (probe_dir / "handoff-measure.json").write_text(
+            json.dumps(probe), encoding="utf-8"
+        )
         other_dir = stray_root / "command-center" / "other"
         other_dir.mkdir(parents=True)
         other = {
@@ -246,11 +268,15 @@ def self_test() -> int:
         try:
             derived = derive(stray_root)
         except ManifestError:
-            print("FAILED:unit-manifest-self-test stray unit_id JSON was treated as a receipt")
+            print(
+                "FAILED:unit-manifest-self-test stray unit_id JSON was treated as a receipt"
+            )
             return 1
         rows = derived.get("artifacts") or []
         if len(rows) != 1 or rows[0].get("unit_id") != "TST-0001":
-            print("FAILED:unit-manifest-self-test stray unit_id JSON leaked into derive")
+            print(
+                "FAILED:unit-manifest-self-test stray unit_id JSON leaked into derive"
+            )
             return 1
         leaked = [
             row.get("receipt_path", "")

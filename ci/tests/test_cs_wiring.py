@@ -130,7 +130,9 @@ def _break_no_alias_files(root: Path) -> None:
     for rel in wiring.RETIRED_ALIAS_COMMANDS:
         path = root / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("---\ndescription: retired alias\n---\n", encoding="utf-8", newline="")
+        path.write_text(
+            "---\ndescription: retired alias\n---\n", encoding="utf-8", newline=""
+        )
 
 
 def _break_no_alias_usage(root: Path) -> None:
