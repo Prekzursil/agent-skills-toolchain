@@ -71,8 +71,9 @@ CONTROLS. The selftest exercises, in both directions: the v1 assigned-vs-produce
 rule-D over-generalization (must NOT invert); the D-gate firing when a cross-vendor clause IS
 present (must invert); and the BLD-0023 undirected-clause case (must resolve to the other vendor).
 main() additionally runs a STABILITY check -- every unit is classified from the PRE-EDIT blobs
-(899ff779^) and from HEAD, and any unit whose verdict differs between the two is a re-execution
-instability of exactly the kind that produced the v2 defect. The script exits non-zero on any of it.
+(the committed baseline before the current review wave) and from HEAD, and any unit whose verdict
+differs between the two is a re-execution instability of exactly the kind that produced the v2
+defect. The script exits non-zero on any of it.
 """
 
 from __future__ import annotations
@@ -88,7 +89,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 CATALOG_REL = "command-center/WORK-UNIT-CATALOG.json"
 OUT_REL = "command-center/p2-next/VENDOR-SATISFIABILITY.json"
-PRE_EDIT_REV = "899ff779^"  # the commit before this lane's first round-1 commit
+# The committed baseline before the current review wave began.
+PRE_EDIT_REV = "594ab1d6a259fcd177cdabd0da66619dcc6fafbc"
 
 OPENAI_TOKEN = re.compile(r"openai|codex|gpt-?5", re.I)
 ANTHROPIC_TOKEN = re.compile(r"anthropic|claude|opus", re.I)
