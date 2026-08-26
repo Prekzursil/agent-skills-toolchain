@@ -65,7 +65,29 @@ codex exec --profile cursor --skip-git-repo-check -s read-only "hello"
 Profile: `~/.codex/cursor.config.toml` (`base_url=http://127.0.0.1:8317/v1`,
 `wire_api="responses"`). Revert: delete that file.
 
-## Grok CLI (native model override)
+## Grok CLI — seamless native ⇄ Cursor switch
+
+Native stays 100% intact; Cursor is opt-in per session (no global config override).
+
+- **`grok`** → native grok.com — full agentic tool loop + web_search.
+- **`grok-cursor.ps1`** → Cursor catalog + quota via Grok's documented custom-models-endpoint
+  mode (`GROK_MODELS_BASE_URL=http://127.0.0.1:8317/v1`, `XAI_API_KEY=cursor-local-key`).
+  `grok-cursor models` lists the whole Cursor catalog; bare `cursor-grok-4.6` is auto-lifted
+  to `cursor-grok-4.6-high` (`-xhigh` with effort). Env is process-local.
+
+### Tool-calling through Cursor — attempted, gated OFF
+
+The full Cursor tool protocol was reverse-engineered and implemented (request: `MCPTool`
+field 34 + `supported_tools` 29 + per-message agentic markers; response: `ClientSideToolV2Call`
+decode → `tool_use`/`function_call`/`tool_calls`). **Finding:** declaring tools activates
+Cursor agent mode but only exposes the built-in `ask_question`; client-declared MCP tools are
+**not** honored for this account/client-version (the RE references flag Cursor MCP tool-calling
+as experimental). Because unusable tool declarations make the model *refuse* instead of answer,
+the path is gated behind **`CURSOR_EXPERIMENTAL_TOOLS=1` (default off)** — with it off, tool-
+sending clients degrade cleanly to a chat answer. The decode/emit path is ready if a future
+Cursor version honors client tools.
+
+## Grok CLI (legacy global override — superseded by the switch above)
 
 Grok CLI officially supports overriding **built-in** models
 (`~/.grok/README.md` → *Custom Models → Overriding Built-in Models*): only the specified
