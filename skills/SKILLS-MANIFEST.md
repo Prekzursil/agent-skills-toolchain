@@ -30,6 +30,7 @@
 | agentic-os | unclassified | Build persistent multi-agent operating systems on Claude Code. Covers kernel architecture, specialist agents, slash commands, file-based memory, scheduled automation, and state management without external databases. |
 | ai-regression-testing | unclassified | Regression testing strategies for AI-assisted development. Sandbox-mode API testing without database dependencies, automated bug-check workflows, and patterns to catch AI blind spots where the same model writes and reviews code. |
 | angr | built-in | Use when symbolic execution, path exploration, constraint solving, or programmatic reasoning about binary behavior is needed |
+| apa-citation-discipline | unclassified | Use when writing or repairing APA-style academic prose, references, in-text citations, and attribution discipline without citation laundering. |
 | apply-callee-type-ex | custom | Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx |
 | aspnet-core | built-in | Build, review, refactor, or architect ASP.NET Core web applications using current official guidance |
 | audio-extract-mix | unclassified | Use when you need to EXTRACT, MIX, REPLACE, DUCK, or LOUDNESS-NORMALIZE audio on a video/clip with ffmpeg — e.g. pull a wav out of a clip, lay a music bed or VO UNDER a speaker so it auto-dips when they talk (sidechain ducking)... |
@@ -96,6 +97,7 @@
 | crypto-ctf | unclassified | Use for cryptography CTF challenges, crypto homework, and education when you need to actually COMPUTE an attack rather than just describe one - RSA factoring and weak-key attacks (Fermat close-primes, Wiener small-d, common-modulus... |
 | cv-studio | unclassified | Generate an ATS-clean PDF resume AND a visually-designed CV from ONE structured profile, plus tailored cover letters and an optimised LinkedIn profile. Use when the user wants to create, redesign, tailor, or ATS-optimise a resume/CV... |
 | cyberstrike | unclassified | Operate the separately installed CyberStrike offensive-security backend: install or verify its CLI, configure provider credentials or local Ollama and optional Bolt pairing, launch its TUI or password-gated localhost web UI, and support... |
+| data-extraction-matrix | unclassified | Use when extracting structured evidence from papers into a matrix for synthesis, comparison, or review writing. |
 | data-scraper-agent | unclassified | Use when building an automated public-data collector that scrapes on a schedule, enriches records with an LLM, stores results, and learns from feedback. |
 | ddi-admet-research | custom | Use as the front-end for biomedical research via the ToolUniverse MCP - drug-drug interactions, ADMET/CYP, target research, FDA labels, repurposing, pharmacovigilance |
 | deep-research | unclassified | Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Routes each sub-question to the best live provider, caches... |
@@ -120,8 +122,10 @@
 | dump-to-signature-workflow | custom | Use when converting dump or debugger evidence into durable signatures, AOB patterns, or diffable artifacts |
 | e2e-testing | unclassified | Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies. |
 | eval-harness | unclassified | Formal evaluation framework for Claude Code sessions implementing eval-driven development (EDD) principles |
+| evidence-ledger-synthesis | unclassified | Use when the user needs a claim-by-claim evidence ledger before writing a review, memo, paper section, or recommendation. |
 | executing-plans | marketplace:superpowers | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
 | execution-grounded-bon | unclassified | Use when you have SEVERAL candidate patches/solutions for the same task — typically from a cross-vendor Claude+Codex worktree fan-out — and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion... |
+| faculty-course-design-evidence | unclassified | Use when designing or revising a course, syllabus, or module with evidence-based learning structure and assessment alignment. |
 | fal-ai-media | unclassified | Unified media generation via fal.ai MCP — image, video, and audio. Covers text-to-image (Nano Banana), text/image-to-video (Seedance, Kling, Veo 3), text-to-speech (CSM-1B), and video-to-audio (ThinkSound). Use when the user wants to... |
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
 | figma-implement-design | built-in | Translate Figma nodes into production-ready code with 1:1 visual fidelity using the Figma MCP workflow |
@@ -145,6 +149,7 @@
 | ghidra-automation-recipes | custom | Use when automating Ghidra analysis with Script Manager scripts, ghidra_bridge, or repeatable Python-driven recipes |
 | ghidra-bridge | custom | Use when automating Ghidra from Python, driving analyses from an external REPL or script |
 | ghidra-mcp | custom | Use when installing or configuring GhidraMCP for a local Ghidra workflow |
+| grant-proposal-architecture | unclassified | Use when shaping a grant, fellowship, or project proposal into a coherent reviewer-facing argument with work packages, risk logic, and feasibility. |
 | grill-me | unclassified | Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree. Use when user wants to stress-test a plan, get grilled on their design, or mentions "grill me". |
 | grill-me-extensive | custom | Program-scale extensive grilling addon to the vendored grill-me skill: scout, brainstorm-fanout to surface directions beyond the ask, a categorized decision list walked one question at a time with a recommendation each, durable capture, then converge to a locked decision log; grill modes for expansion, modification, scope-change, modernization, better-ideas, red-team, simplification, prioritization |
 | grill-with-docs | unclassified | Use when stress-testing a plan against the workspace's accumulated domain knowledge and prior decisions — challenge terminology, sharpen fuzzy language, check the plan against what was already decided, and write resolved decisions back.... |
@@ -162,7 +167,9 @@
 | ida-pro-mcp | custom | Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro |
 | imagegen | built-in | Use when the user asks to generate or edit images via the OpenAI Image API |
 | imhex | custom | Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed |
+| institutional-literature-access | unclassified | Use when the user has lawful university or consortium access and needs a disciplined route through institutional library portals, ORCID identity, DOI/OA fallback, and secret-safe configuration. Includes the working E-nformation (Anelis... |
 | jina-reader | custom | Zero-RAM, server-less fetch of a single web page as clean LLM-ready markdown via a one-line HTTP GET to Jina Reader (r.jina.ai plus the target URL) — no MCP, no resident process. Cheapest first hop for a simple or mostly-static page; escalate to the Firecrawl MCP for JS-heavy/dynamic/crawl/extract, or exa web_fetch for batch URL reads |
+| journal-fit-and-submission | unclassified | Use when choosing target journals, matching manuscript fit, and preparing the submission package without misrepresenting novelty or scope. |
 | jupyter-notebook | built-in | Use when the user asks to create, scaffold, or edit Jupyter notebooks (.ipynb) |
 | knowledge-ops | unclassified | Knowledge base management, ingestion, sync, and retrieval across multiple storage layers (local files, MCP memory, vector stores, Git repos). Use when the user wants to save, organize, sync, deduplicate, or search across their knowledge... |
 | learned | unclassified | Container marker for learned pattern files created by /learn and /learn-eval. |
@@ -172,6 +179,7 @@
 | llm-security | built-in | Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025 |
 | lolbin-lookup | custom | Structured GTFOBins (Unix) + LOLBAS (Windows) living-off-the-land lookup over D:\knowledge — binary name to abuse technique/category to ready command |
 | long-copy-orchestrator | custom | Use when moving large trees between Windows, WSL, VMs, or mounted disks |
+| long-pdf-evidence-synthesizer | unclassified | Use when the user needs a professional synthesis of a long PDF, report, thesis, or policy document with section-accurate evidence tracking and clear separation between author claims and your synthesis. |
 | make-interfaces-feel-better | unclassified | Apply concrete design-engineering details that make interfaces feel polished. Use when reviewing or improving UI spacing, typography, borders, shadows, motion, hit areas, icons, text wrapping, and interaction states. |
 | malware-analysis-triage | unclassified | Use when triaging a suspicious PE, ELF, .NET binary, or shellcode for authorized malware analysis, defensive detection engineering, CTF, or reverse engineering. |
 | mcp-code-orchestrate | custom | Use when one task needs the SAME tool-call shape across MANY items (xref-walk over many functions, descriptor sweep over many SMILES, batch-resolve/screen a list of papers, multi-source aggregation) — write ONE script that calls provider CLIs/libs/MCP-stdio, filters+aggregates in-code, returns only the distilled result. Anthropic's code-execution-with-MCP 98.7% fan-out token-cut; decision rule >~5 same-shape calls |
@@ -180,6 +188,7 @@
 | mcp-server-patterns | unclassified | Build MCP servers with Node/TypeScript SDK — tools, resources, prompts, Zod validation, stdio vs Streamable HTTP. Use Context7 or official MCP docs for latest API. |
 | mechanistic-ddi-pipeline | custom | Use to produce a mechanistic drug-drug-interaction verdict by combining ToolUniverse CYP/DDI knowledge with Schrodinger structure and docking evidence |
 | media-dub | unclassified | Use when producing a local DUB of a video - re-voicing speech into another language (or restyling it same-language) while KEEPING the original speaker's voice, fully offline. Safe-ship engine is Chatterbox-Multilingual (Resemble AI... |
+| methods-results-discussion-calibrator | unclassified | Use when a draft paper has drift between methods, results, and discussion and needs section-to-section calibration. |
 | mise | custom | Use when managing dev tool or language runtime versions with mise (mise-en-place) — global vs per-project pins, per-directory env vars, the task runner, non-language CLI installs, or Windows PowerShell setup |
 | mle-workflow | unclassified | Production machine-learning engineering workflow for data contracts, reproducible training, model evaluation, deployment, monitoring, and rollback. Use when building, reviewing, or hardening ML systems beyond one-off notebooks. |
 | mol-filters | unclassified | Use when mol filters is needed. Synthetic-accessibility SA_Score plus PAINS/BRENK/NIH structural-alert filtering (RDKit FilterCatalog) for a SMILES or SDF. Use when triaging docking or virtual-screening hits, flagging... |
@@ -233,12 +242,15 @@
 | recursive-decision-ledger | unclassified | Use when the user asks for repeated rollouts, marked decision processes, high-dimensional search, stochastic optimization, local-optima exploration, ensemble comparison, or recursive reasoning with a visible evidence trail. |
 | refactor-equivalence | unclassified | Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an... |
 | reframe | unclassified | Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic subject tracking — for Shorts, Reels, and TikTok. Use when the user wants to convert, reframe, or crop a landscape video to vertical, follow a moving subject in... |
+| reframe-scrollshot-markdown | unclassified | Reconstruct a vertically scrolled screen recording into an aligned long screenshot, evidence-preserving OCR, and Markdown through the Reframe app. Use for scroll-capture videos, recorded long screenshots, chat/page/table scrolling... |
 | reframe-transcribe | unclassified | Use when transcribing speech from audio/video to text with WORD-LEVEL timing (for captions, karaoke subtitles, clip-boundary snapping, or diarization). The proven local pipeline is faster-whisper (large-v3-turbo on GPU / small on CPU)... |
 | reframe-video-cutting | unclassified | Use when selecting and cutting moments from a long talk, podcast, interview, stream, or vlog into shorts with scene-aware, sentence-safe boundaries. |
 | regex-vs-llm-structured-text | unclassified | Decision framework for choosing between regex and LLM when parsing structured text — start with regex, add LLM only for low-confidence edge cases. |
 | render-deploy | built-in | Deploy applications to Render by analyzing codebases, generating render.yaml Blueprints |
 | repomix | built-in | Use when packing a repository into an AI-friendly bundle with Repomix |
+| reporting-guideline-router | unclassified | Use when the manuscript or protocol needs the correct reporting guideline lane such as PRISMA, CONSORT, STROBE, ARRIVE, STARD, CARE, or COREQ. |
 | requesting-code-review | marketplace:superpowers | Use when completing tasks, implementing major features, or before merging to verify work meets requirements |
+| research-integrity-forensics | unclassified | Use when checking a paper, corpus, or draft for integrity risks such as citation abuse, duplication, image problems, implausible claims, or unsupported certainty. |
 | research-ops | unclassified | Thin operator entry for the research stack. Use when the user wants fresh facts, comparisons, enrichment, or an evidence-backed recommendation — it routes you to the right research skill rather than duplicating one. |
 | research-paper-craft | unclassified | Use when writing, structuring, or revising a state-of-the-art scientific research paper, review, preprint, or thesis chapter and you want it to read well and land. Covers the craft of paper architecture, the narrative spine, the title... |
 | ret-sync | custom | Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers |
@@ -249,6 +261,7 @@
 | run-taskwatch_monitor | unclassified | Use when running, launching, or smoke-testing taskwatch_monitor - the general-purpose long-task progress monitor - to watch a long-running job (build, download, CI run, FEP/BPMD driver, LLM generation, rclone transfer) with an honest... |
 | scholarly-literature-review | custom | Use when you have a DOI, PMID, arXiv id, or title (or a list) and want canonical metadata, a per-paper access-status table (oa_pdf vs free-to-read vs subscription vs unavailable), citation/reference expansion, or a metadata-and-abstract summary via the Scholarly Access MCP paper_* tools |
 | schrodinger-maestro-driver | custom | Use when driving the local Schrodinger MCP for structure-based drug discovery - SMILES to 3D, LigPrep, Protein Prep Wizard, Glide grid generation, Glide docking, Prime MM-GBSA, QikProp ADMET, conversion, run_schrodinger_python escape hatch |
+| scopus-wos-coverage-auditor | unclassified | Use when comparing Scopus, Web of Science, Dimensions, or related indexing outputs and the user needs a disciplined explanation of differences. |
 | screenshot | built-in | Use when the user explicitly asks for a desktop or system screenshot |
 | search-first | unclassified | Research-before-coding workflow. Search for existing tools, libraries, and patterns before writing custom code. Invokes the researcher agent. |
 | sec-corpora-update | custom | Refresh the local security corpora under D:\knowledge (PayloadsAllTheThings, GTFOBins, LOLBAS, OWASP WSTG/CheatSheets, Atomic Red Team) with a shallow, fail-open git pull each |
@@ -304,15 +317,18 @@
 | stdin-server | unclassified | Interactive-stdin MCP server (stdlib-only, zero-dependency) giving an agent a persistent write-to-stdin plus read-incremental-stdout channel to a child process — start_process / interact_with_process / read_process_output. Use when you... |
 | strategic-compact | unclassified | Suggests manual context compaction at logical intervals to preserve context through task phases rather than arbitrary auto-compaction. |
 | structure-based-screening | custom | Use when running a structure-based drug-discovery or molecular-docking campaign on the local schrodinger MCP - receptor PDB plus ligands to docked, MM-GBSA-rescored, ADMET-profiled poses. Covers the prepwizard to glide_grid to ligprep to glide_dock to prime_mmgbsa to qikprop chain, grid-box centering, license-token sequencing, and the path gotchas |
+| study-plan-psychology | unclassified | Use when building a study plan grounded in cognitive psychology, retrieval practice, spacing, interleaving, and realistic motivation management. |
 | subagent-driven-development | marketplace:superpowers | Use when executing implementation plans with independent tasks in the current session |
 | subtitle-translate | unclassified | Use when translating subtitles/captions to another language and/or generating + exporting SRT/VTT/ASS for a media-studio video — including bilingual (stacked) subs and the audio-dub (TTS) path. Covers the tiered local→hosted MT engine... |
 | swfoc-modding | custom | Research-backed workflow for Star Wars: Empire at War / Forces of Corruption modding, SDK/tooling, debugging |
 | swfoc-reverse-engineering | custom | Use when working on SWFOC editor runtime or native analysis |
 | swfoc-runtime-address-hunting | custom | Use when hunting SWFOC-specific runtime addresses, function anchors, structures, or memory regions |
 | systematic-debugging | marketplace:superpowers | Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes |
+| systematic-review-screening | unclassified | Use when screening studies for a review, thesis, or evidence map with explicit inclusion and exclusion criteria and borderline-case handling. |
 | tdd-workflow | unclassified | Use this skill when writing new features, fixing bugs, or refactoring code. Enforces test-driven development with 80%+ coverage including unit, integration, and E2E tests. |
 | team-builder | unclassified | Interactive agent picker for composing and dispatching parallel teams |
 | test-driven-development | marketplace:superpowers | Use when implementing any feature or bugfix, before writing implementation code |
+| thesis-defense-drill | unclassified | Use when preparing for a thesis or dissertation defense with adversarial questioning, concept checks, and evidence-based feedback. |
 | tiktok-public-research | custom | Use when the user wants to read public TikTok data - trending, a creator's public posts/likes, a hashtag feed, a video's metadata/comments/related, or user search - via the self-hosted tiktok MCP. Covers the read-only tool inventory, ms_token and residential-proxy reliability knobs, and hard limits (no own feed, no saved, no DMs, no posting; unofficial-API ban and IP-block risk) |
 | to-prd | unclassified | Use when the user wants a PRD synthesized from the current conversation and codebase context (not an interview) and fed into the build pipeline as tracked, agent-ready work. Triggers include "turn this into a PRD", "write the PRD"... |
 | tooluniverse | unclassified | Use when routing ToolUniverse life-science questions to the right specialized skill or verifying scientific facts against real databases. |
