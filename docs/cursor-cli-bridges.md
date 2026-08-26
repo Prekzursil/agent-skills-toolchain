@@ -96,8 +96,22 @@ Verified e2e: `grok -m grok-4.6 -p "…"` → correct reply, proxy stats show
 
 - **Revert:** delete the marked `cursor-bridge` block in `~/.grok/config.toml`
   (or restore `config.toml.bak-cursor-models-*`) → Grok CLI returns to grok.com.
-- **Caveat:** Grok's hosted `web_search` tool needs xAI's Responses endpoint; routed through
-  the proxy it may be degraded. Revert the block if you need it.
+
+### Feature-parity (tested 2026-08-26)
+
+| Feature | Through Cursor | |
+|---|---|---|
+| Chat / reasoning / code-as-text | ✅ | e2e verified; `xhigh` → `cursor-grok-4.6-xhigh` |
+| `grok models` picker (clean, native) | ✅ | only `grok-4.6`/`grok-4.5` |
+| `/model` switching, `/config`, TUI | ✅ | only `base_url`/`api_key` changed |
+| Agentic tools (`write_file`, bash, MCP) | ❌ | tested: *"Tool write_file not found … only `ask_question`"*; no file created |
+| `web_search` / `web_fetch` | ❌ | tool call the main model never emits through Cursor |
+
+**Root cause (code-confirmed):** the Cursor wire encoder omits client tool declarations and
+the decoder emits only text + reasoning (no `ClientSideToolV2Call` frames). This is the
+standing boundary for **all three** CLIs. Routing Grok's models through Cursor makes Grok a
+chat/reasoning client on Cursor quota; the agentic loop and web search require native
+grok.com. Same conclusion applies to Codex's tool loops and Claude Code MCP/tool use.
 
 ## Known limitations
 
