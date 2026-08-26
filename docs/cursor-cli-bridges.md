@@ -84,8 +84,15 @@ api_key = "cursor-local-key"
 
 `grok models` still lists exactly `grok-4.6` (default) and `grok-4.5`; `grok -m grok-4.6`
 and normal TUI sessions now bill the Cursor subscription instead of grok.com quota. The
-proxy maps `grok-4.6` + the CLI's `reasoning_effort` (e.g. the configured `xhigh`) →
+proxy maps `grok-4.6` + the CLI's `reasoning.effort` (e.g. the configured `xhigh`) →
 `cursor-grok-4.6-xhigh`. No foreign/unsupported models are injected into the Grok CLI.
+
+Grok's built-in models speak the **Responses API** and grok-shell's serde parser hard-fails
+on missing fields (`serialization error: missing field 'object'`), so the proxy's Responses
+SSE emitter was hardened to the spec-complete envelope (`object`/`status`/`error`/`usage` on
+every response snapshot, `sequence_number` on every event) — Codex remains compatible.
+Verified e2e: `grok -m grok-4.6 -p "…"` → correct reply, proxy stats show
+`grok-shell → POST /v1/responses → provider cursor`.
 
 - **Revert:** delete the marked `cursor-bridge` block in `~/.grok/config.toml`
   (or restore `config.toml.bak-cursor-models-*`) → Grok CLI returns to grok.com.
