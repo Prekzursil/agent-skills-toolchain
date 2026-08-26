@@ -77,15 +77,24 @@ Native stays 100% intact; Cursor is opt-in per session (no global config overrid
 
 ### Tool-calling through Cursor — attempted, gated OFF
 
-The full Cursor tool protocol was reverse-engineered and implemented (request: `MCPTool`
-field 34 + `supported_tools` 29 + per-message agentic markers; response: `ClientSideToolV2Call`
-decode → `tool_use`/`function_call`/`tool_calls`). **Finding:** declaring tools activates
-Cursor agent mode but only exposes the built-in `ask_question`; client-declared MCP tools are
-**not** honored for this account/client-version (the RE references flag Cursor MCP tool-calling
-as experimental). Because unusable tool declarations make the model *refuse* instead of answer,
-the path is gated behind **`CURSOR_EXPERIMENTAL_TOOLS=1` (default off)** — with it off, tool-
-sending clients degrade cleanly to a chat answer. The decode/emit path is ready if a future
-Cursor version honors client tools.
+Two independent techniques were built and tested to carry tool-calls over Cursor; **both are
+blocked**:
+1. **Native protobuf tools** — `MCPTool` (field 34) + `supported_tools` (29) + per-message
+   agentic markers; response `ClientSideToolV2Call` decode → `tool_use`/`function_call`. Cursor
+   activates agent mode but exposes only its built-in `ask_question`; external tools are ignored.
+   Gated behind `CURSOR_EXPERIMENTAL_TOOLS=1` (default off) so tool-sending clients degrade to a
+   clean chat answer instead of refusals.
+2. **ReAct text-shim** — inject tool schemas into the prompt, parse `TOOL_CALL {...}` back into
+   structured calls (needs nothing from Cursor). Cursor's server-injected agent prompt overrides
+   it and intercepts tool intents ("Tool <x> not found").
+
+**Root cause:** Cursor serves models **only inside its own IDE-agent frame** — its built-in
+tools need the editor's workspace context an API bridge lacks, so it exposes only `ask_question`
+and overrides any client tool protocol (native or prompt-based). Chat/reasoning works; the
+agentic loop + web_search are architecturally impossible from the bridge. For the Grok/Codex/
+Claude interface *with* tools, use a real tool-calling API (native grok.com / xAI `api.x.ai` /
+Anthropic / OpenAI). `cursor-agent` gives a Cursor-model agent with tools on the Cursor sub, via
+Cursor's own UI.
 
 ## Grok CLI (legacy global override — superseded by the switch above)
 
