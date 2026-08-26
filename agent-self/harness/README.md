@@ -23,6 +23,17 @@ normalize -> ordered modules -> core HookResult -> native adapter -> provider st
   subagent lifecycle.
 - Unexpected module errors fail open and are recorded as `FAILED:hook-<event>` without
   exposing exception text to either model.
+- `workspace_integrity` is the hard pre-write boundary when enabled first in the module chain:
+  it scans only relevant source and `docs/` candidates, ignores generated or cache trees, fails
+  closed on unreadable enumeration or file reads, and serializes fresh-scan plus reservation
+  updates under an OS-backed lock so colliding processes do not both pass.
+- Shell tools remain intentionally denied even with a fresh containment proof. The proof loader is
+  only a prerequisite receipt for a future external attestation rail; until that rail exists, the
+  workspace boundary must not self-authorize shell mutation from inside the same runtime.
+- The production `WorkspaceIntegrityModule` runs synchronously under the dispatcher's budgeted
+  deadline before the generic fan-out thread. That closes the only write gate that must not mutate
+  after terminal return; timed-out generic thread modules are still treated as non-cancelled
+  residual work and must remain fail-open by policy.
 - Only irreversible operations and literal-secret or credential access paths are blocked.
 - Recall reads a local lexical index only. Hooks never call vector, semantic, network,
   or model search.

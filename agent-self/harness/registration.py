@@ -4,20 +4,6 @@ from pathlib import Path
 from typing import Any
 
 
-# Native lifecycle events registered on both providers. The Agent-Teams and
-# failure-channel names (TaskCreated/TaskCompleted/TeammateIdle,
-# PostToolUseFailure/PermissionDenied), the config-drift name (ConfigChange) and
-# the instruction-activation name (InstructionsLoaded, whose LedgerModule handler
-# — modules.py `_append_instructions` — was reachable ONLY from a direct unit
-# call until it was registered here, so its RULES activation telemetry could
-# never actually be emitted in production)
-# are POST-CUTOFF Claude Code features: they are registered fail-open (an
-# unknown event name is simply never fired by a host that does not emit it) so
-# the shared harness observes them the moment the host starts emitting them,
-# with zero behaviour change on hosts that do not. Keeping every registered
-# name here (plus a matching _TIMEOUTS entry) is what lets desired_documents()
-# regenerate byte-identical hook blocks so `install.py --check` stays drift-free
-# for the harness-owned registration surface.
 EVENTS = (
     "SessionStart",
     "UserPromptSubmit",
@@ -40,59 +26,31 @@ EVENTS = (
 
 _TIMEOUTS = {
     "SessionStart": 5,
-    "UserPromptSubmit": 2,
-    "PreToolUse": 2,
-    "PermissionRequest": 2,
-    "PermissionDenied": 2,
-    "PostToolUse": 2,
-    "PostToolUseFailure": 2,
+    "UserPromptSubmit": 5,
+    "PreToolUse": 5,
+    "PermissionRequest": 5,
+    "PermissionDenied": 5,
+    "PostToolUse": 5,
+    "PostToolUseFailure": 5,
     "PreCompact": 5,
-    "PostCompact": 3,
-    "ConfigChange": 3,
-    "InstructionsLoaded": 3,
-    "SubagentStart": 3,
-    "SubagentStop": 3,
-    "TaskCreated": 3,
+    "PostCompact": 5,
+    "ConfigChange": 5,
+    "InstructionsLoaded": 5,
+    "SubagentStart": 5,
+    "SubagentStop": 5,
+    "TaskCreated": 5,
     "TaskCompleted": 5,
-    "TeammateIdle": 3,
+    "TeammateIdle": 5,
     "Stop": 5,
 }
 _NO_MATCHER = {"UserPromptSubmit", "Stop"}
 
-# --------------------------------------------------------------------------- #
-# Claude-only hand-edits (folded in so a regenerated CLAUDE hooks block matches
-# the live ~/.claude/settings.json).
-#
-# These five deltas exist ONLY in the live Claude settings and are NOT emitted
-# for codex. Folding them into build_hooks("claude") is what keeps
-# `install.py --check` drift-free for the harness-owned surface AND stops a bare
-# `python install.py` from silently WIPING them when it regenerates the block:
-#   (a) the PreToolUse dispatcher matcher is hand-narrowed to the gated tool set
-#       (codex keeps the broad ".*");
-#   (b) a 2nd SessionStart group runs the local-TUI reminder;
-#   (c) a 2nd PreToolUse group (matcher "Workflow") auto-launches wfmon;
-#   (d)/(e) WorktreeCreate/WorktreeRemove drive the PowerShell worktree scripts.
-# Paths resolve from Path.home() so the generated block matches the live literal
-# (C:/Users/<user>/...) without hard-coding a username.
-# --------------------------------------------------------------------------- #
-# `Agent` is the CURRENT name of the subagent-spawn tool; `Task` is its legacy name and is
-# kept for older hosts. The rename was never followed here, so every subagent spawn missed
-# the dispatcher entirely -- no goal re-anchor, no file-scope check, no lifecycle guard, no
-# ledger record -- while a subagent can do anything a session can. Verified 2026-07-26
-# against the live matcher: "Agent" did not match, "Task" did.
-# Deliberately NOT widened to ".*": read-only tools (Read/Grep/Glob) need no gate, and
-# gating them would cost a dispatcher run per call for no security gain.
 _CLAUDE_PRETOOLUSE_MATCHER = "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Agent|Task|WebFetch|mcp__.*"
 
 
 def _command_group(
     command: str, *, timeout: int, status: str, matcher: str | None
 ) -> dict[str, Any]:
-    """One hook group ({[matcher,] hooks:[{type,command,timeout,statusMessage}]}).
-
-    Mirrors the dispatcher group shape build_hooks emits; ``matcher=None`` omits
-    the key entirely (used for the no-matcher WorktreeCreate/WorktreeRemove
-    groups, matching UserPromptSubmit/Stop)."""
     group: dict[str, Any] = {
         "hooks": [
             {
@@ -109,12 +67,7 @@ def _command_group(
 
 
 def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
-    """Fold the four ADDED Claude-only groups into an already-built hook block.
-
-    The PreToolUse matcher narrowing (edit a) is applied inline in build_hooks;
-    this adds edits (b)-(e). Mutates ``result`` in place."""
     hooks_root = (Path.home() / ".claude" / "hooks").as_posix()
-    # (b) 2nd SessionStart group: the local-TUI reminder.
     result["SessionStart"].append(
         _command_group(
             f'python "{hooks_root}/local-tui-reminder/check.py"',
@@ -123,7 +76,6 @@ def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
             matcher=".*",
         )
     )
-    # (c) 2nd PreToolUse group: workflow-monitor auto-launch (matcher "Workflow").
     result["PreToolUse"].append(
         _command_group(
             f'python "{hooks_root}/workflow-monitor-autolaunch/check.py"',
@@ -132,8 +84,6 @@ def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
             matcher="Workflow",
         )
     )
-    # (d)/(e) WorktreeCreate + WorktreeRemove: the PowerShell worktree lifecycle
-    # (no matcher — a lifecycle event, like UserPromptSubmit/Stop).
     result["WorktreeCreate"] = [
         _command_group(
             "powershell -NoProfile -ExecutionPolicy Bypass -File "
@@ -156,14 +106,12 @@ def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
 
 def build_hooks(provider: str) -> dict[str, list[dict[str, Any]]]:
     provider_name = str(provider).lower()
-    if provider_name not in {"claude", "codex"}:
+    if provider_name not in {"claude", "codex", "grok"}:
         raise ValueError(f"unsupported provider: {provider_name}")
     dispatcher = (Path(__file__).resolve().parent / "dispatcher.py").as_posix()
     result: dict[str, list[dict[str, Any]]] = {}
     for event_name in EVENTS:
-        command = (
-            f'python "{dispatcher}" --provider {provider_name} --event {event_name}'
-        )
+        command = f'python -X utf8 "{dispatcher}" --provider {provider_name} --event {event_name}'
         group: dict[str, Any] = {
             "hooks": [
                 {
@@ -175,15 +123,11 @@ def build_hooks(provider: str) -> dict[str, list[dict[str, Any]]]:
             ]
         }
         if event_name not in _NO_MATCHER:
-            # (a) Claude hand-narrows the PreToolUse dispatcher matcher to the
-            # gated tool set; every other event (and all of codex) keeps ".*".
             if provider_name == "claude" and event_name == "PreToolUse":
                 group["matcher"] = _CLAUDE_PRETOOLUSE_MATCHER
             else:
                 group["matcher"] = ".*"
         result[event_name] = [group]
-    # Claude alone carries the live settings.json hand-edits; codex output is
-    # unchanged (byte-identical to the pre-fix block).
     if provider_name == "claude":
         _apply_claude_hand_edits(result)
     return result

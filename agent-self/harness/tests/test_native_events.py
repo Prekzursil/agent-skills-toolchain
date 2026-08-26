@@ -7,7 +7,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from harness.adapters import _CONTEXT_EVENTS, normalize_event, render_output
+from harness.adapters import (
+    _CONTEXT_EVENTS,
+    _NO_NATIVE_CONTEXT_EVENTS,
+    normalize_event,
+    render_output,
+)
 from harness.models import HookEvent, HookResult
 from harness.registration import EVENTS, _NO_MATCHER, _TIMEOUTS, build_hooks
 from harness import registration as _registration
@@ -32,15 +37,14 @@ NEW_EVENTS = (
     "TeammateIdle",
 )
 
-# The subset that renders inject as native additionalContext (ConfigChange is
-# deliberately excluded — a config-drift sentinel is a systemMessage).
-CONTEXT_NEW_EVENTS = (
+CONTEXT_NEW_EVENTS = ("PostToolUseFailure",)
+SYSTEM_MESSAGE_EVENTS = (
     "PostCompact",
     "TaskCompleted",
     "TaskCreated",
     "TeammateIdle",
-    "PostToolUseFailure",
     "PermissionDenied",
+    "ConfigChange",
 )
 
 
@@ -59,6 +63,20 @@ def test_every_event_has_a_timeout_so_build_hooks_never_keyerrors():
     for name in EVENTS:
         assert isinstance(_TIMEOUTS[name], int)
         assert 1 <= _TIMEOUTS[name] <= 10  # small timeouts only
+
+
+def test_hot_path_events_keep_the_measured_five_second_budget():
+    for name in (
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PermissionRequest",
+        "PermissionDenied",
+        "PostToolUse",
+        "PostToolUseFailure",
+        "SubagentStop",
+        "Stop",
+    ):
+        assert _TIMEOUTS[name] == 5
 
 
 def test_build_hooks_generates_matching_block_per_new_event():
@@ -242,11 +260,12 @@ def test_explicit_agent_id_still_beats_task_alias():
 # --------------------------------------------------------------------------
 
 
-def test_context_events_contains_the_six_inject_events():
+def test_context_events_and_system_message_events_match_the_live_split():
     for name in CONTEXT_NEW_EVENTS:
         assert name in _CONTEXT_EVENTS, name
-    # ConfigChange is deliberately NOT a context event.
-    assert "ConfigChange" not in _CONTEXT_EVENTS
+    for name in SYSTEM_MESSAGE_EVENTS:
+        assert name in _NO_NATIVE_CONTEXT_EVENTS, name
+        assert name not in _CONTEXT_EVENTS
 
 
 def test_inject_renders_additional_context_for_new_context_events():
@@ -265,12 +284,14 @@ def test_inject_renders_additional_context_for_new_context_events():
             assert "suppressOutput" not in json.dumps(rendered)
 
 
-def test_config_change_inject_renders_as_system_message():
+def test_system_message_only_events_never_emit_native_additional_context():
     injected = HookResult.success(
         action="inject", additional_context=["CONFIG DRIFT detected"]
     )
-    rendered = render_output(injected, provider="claude", event_name="ConfigChange")
-    assert rendered == {"systemMessage": "CONFIG DRIFT detected"}
+    for provider in ("claude", "codex", "grok"):
+        for event_name in SYSTEM_MESSAGE_EVENTS:
+            rendered = render_output(injected, provider=provider, event_name=event_name)
+            assert rendered == {"systemMessage": "CONFIG DRIFT detected"}
 
 
 # --------------------------------------------------------------------------

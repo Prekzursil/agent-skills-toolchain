@@ -21,6 +21,7 @@ try:
         read_json,
         read_json_status,
     )
+    from .workspace_integrity import WorkspaceIntegrityModule
 except ImportError:  # pragma: no cover
     from ledger import EventLedger, default_state_root, project_key
     from models import HookEvent, HookResult
@@ -32,6 +33,7 @@ except ImportError:  # pragma: no cover
         read_json,
         read_json_status,
     )
+    from workspace_integrity import WorkspaceIntegrityModule
 
 # --- SI-1 typed-receipt surface (defined in ledger.py by the ledger lane) ------
 # Imported DEFENSIVELY so this module composes whether or not the ledger lane has
@@ -392,6 +394,83 @@ def _session_hash(event: Any) -> str:
     ).hexdigest()[:16]
 
 
+# Basic-memory write tools whose invocation means the change rationale WAS
+# captured this session. Module-level so BOTH the LedgerModule PostToolUse stamp
+# and the ClaimWarningModule nudge read one list (they must not drift apart).
+_BM_WRITE_TOOL_NAMES = (
+    "basic-memory__write_note",
+    "basic-memory__edit_note",
+    "basic-memory__canvas",
+    "basic-memory__create_memory_project",
+)
+
+# Mirrors ledger.py _UNIDENTIFIED_SESSION_IDS. adapters.py defaults a MISSING
+# session_id to the literal "unknown", which is TRUTHY, so a guard that rejects
+# only "" folds every unidentified session onto the single constant digest
+# sha256("unknown")[:16] == b23a6a8439c0dde5 and leaks one session's flags into
+# the next (the goal-bleed failure class).
+_UNIDENTIFIED_SESSIONS = frozenset({"", "unknown"})
+
+
+def _session_carrier_dir(event: Any) -> Optional[Path]:
+    """Directory holding this session's sticky flags, or None when the session
+    cannot be isolated (unidentified -> a shared slot would be a leak, not
+    isolation)."""
+    if str(getattr(event, "session_id", "") or "") in _UNIDENTIFIED_SESSIONS:
+        return None
+    return default_state_root() / "session-flags" / _session_hash(event)
+
+
+def _session_carrier_live(event: Any) -> bool:
+    """Whether the sticky per-session carrier is usable AND has recorded anything
+    this session.
+
+    False means: unidentified session, an unwritable state root, or a session that
+    began before this code was deployed. Callers must then read EVERY fact they
+    need from the bounded ledger window instead - never one fact from each
+    carrier, because a session-scoped FIRE paired with a project-scoped
+    SUPPRESSION lets a sibling session silence this one."""
+    try:
+        directory = _session_carrier_dir(event)
+        return bool(
+            directory is not None
+            and directory.is_dir()
+            and any(directory.glob("*.json"))
+        )
+    except Exception:
+        return False
+
+
+def _session_flag(event: Any, name: str, *, set_it: bool = False) -> bool:
+    """Sticky per-SESSION boolean, persisted the moment the fact occurs.
+
+    WHY (measured 2026-08-07 over ~/.agents/state/harness/ledger - 336 shards,
+    271,720 rows): the bounded `ledger.replay(cwd, limit=120)` window is NOT a
+    session proxy. 147 of 173 canonical-tree mutations already carry >=120 later
+    events in their own project shard (85.0%), so by the time Stop fires the fact
+    has been evicted; and the trailing-120 window spans a median of 30.4 minutes
+    while a session runs for hours. A flag written at the instant the fact happens
+    survives the whole session regardless of traffic.
+
+    Fail-open to False (no flag -> no nag, the safe direction for an advisory)."""
+    directory = _session_carrier_dir(event)
+    if directory is None:
+        return False
+    path = directory / f"{name}.json"
+    if set_it:
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(path, {"set": True})
+        except OSError:
+            return False
+        return True
+    try:
+        payload = read_json(path, {})
+    except Exception:
+        return False
+    return bool(isinstance(payload, dict) and payload.get("set"))
+
+
 def _shadow_should_sample(event: Any) -> bool:
     """1-in-K sampling for the high-frequency Pre/PostToolUse events (K = env
     HARNESS_SHADOW_SAMPLE, default 5); every other event is always recorded."""
@@ -471,6 +550,7 @@ def stage(gate_name: str, tier: str, event: Any, raw: HookResult) -> HookResult:
 
 
 MODULE_ORDER = (
+    "workspace_integrity",
     "secret_guard",
     "sensitive_artifact",
     "event_ledger",
@@ -649,29 +729,42 @@ def _repo_root() -> Path:
     )
 
 
-def _under(target: str, root: Path) -> bool:
+def _under(target: str, root: Path, base: Optional[str] = None) -> bool:
     """True when normalized `target` is `root` or lives beneath it. Case/sep-insensitive
     (Windows). Never resolves symlinks (so ~/.claude/skills -> skills.daily still matches
-    the literal the agent typed). Fail-closed to False on any error."""
+    the literal the agent typed). Relative paths are resolved against `base` when
+    provided. Fail-closed to False on any error."""
     try:
-        t = os.path.normcase(os.path.normpath(os.path.abspath(str(target))))
+        t = str(target)
+        if not t:
+            return False
+        if not os.path.isabs(t):
+            if not base:
+                return False
+            t = os.path.join(str(base), t)
+        t = os.path.normcase(os.path.normpath(os.path.abspath(t)))
         r = os.path.normcase(os.path.normpath(str(root)))
         return bool(t) and (t == r or t.startswith(r + os.sep))
     except Exception:
         return False
 
 
-def _canonical_tree(path: str) -> Optional[str]:
+def _canonical_tree(path: str, base: Optional[str] = None) -> Optional[str]:
     """Classify an edit target. Returns 'harness'|'skills'|'hooks'|'codex_profiles'
     (a DEPLOYED copy), 'repo' (the git source-of-truth checkout), or None (neither).
     Deployed trees are checked FIRST; repo is the fallthrough (they are disjoint in
-    production, but the order makes the intent explicit)."""
+    production, but the order makes the intent explicit).
+
+    `base` is the SESSION cwd used to resolve a relative `path` (see _under); callers
+    holding a HookEvent MUST pass `event.cwd`. Without it a relative path is
+    unclassifiable and returns None rather than being resolved against the process
+    cwd."""
     if not path:
         return None
     for name, root in _live_trees().items():
-        if _under(path, root):
+        if _under(path, root, base):
             return name
-    if _under(path, _repo_root()):
+    if _under(path, _repo_root(), base):
         return "repo"
     return None
 
@@ -927,7 +1020,7 @@ class SecretGuardModule:
         target = _edit_target(event.tool.input)
         if not target:
             return HookResult.success()
-        tree = _canonical_tree(target)
+        tree = _canonical_tree(target, getattr(event, "cwd", "") or "")
         # Fire ONLY for the DEPLOYED trees. 'repo' edits are the CORRECT action
         # (never nag them); None = an ordinary file (e.g. ~/.claude/settings.json,
         # which is hand-maintained and NOT under ~/.claude/hooks/, or an unrelated
@@ -1110,21 +1203,10 @@ class SensitiveArtifactModule:
                 return event.transcript_path, "transcript", True
             return None
         if event.event == "SubagentStop":
-            # SubagentStop needs the SAME re-entrancy contract as Stop above. Without it
-            # this module re-fires on every subagent stop attempt and the subagent can
-            # never terminate. Measured 2026-08-08: two trivial probes ("reply with one
-            # token, use no tools") cost 62,155 and 63,222 tokens with 0 tool uses,
-            # looping on this one injection and returning garbage instead of an answer.
-            # modules.py:3079 already states the rule this branch was breaking -- gates
-            # "NEVER run on Stop/StopFailure/SubagentStop -- the A1 loop origin (a
-            # Stop-time inject re-triggers the host re-entrancy counter)".
-            # A test existed for exactly this, but only for the Stop branch
-            # (test_sensitive_artifact_ignores_a_reentrant_stop) -- which is how a
-            # two-branch router shipped with one working branch.
-            if str(event.trigger or "").lower() in cls._REENTRANT_STOP:
-                return None
-            path = event.transcript_path or event.agent.transcript_path
-            return (path, "transcript", True) if path else None
+            # SubagentStop is inert by contract. Scanning fresh subagent transcripts here
+            # re-enters the stop path and can strand the hook pipeline behind transcript
+            # inspection while the subagent is terminating.
+            return None
         if event.event != "PostToolUse" or event.tool.name not in cls._WRITE_TOOLS:
             return None
         path = _edit_target(event.tool.input)
@@ -1292,6 +1374,11 @@ class LedgerModule:
         except Exception:
             pass
         try:
+            if any(t in str(event.tool.name or "") for t in _BM_WRITE_TOOL_NAMES):
+                _session_flag(event, "bm_write", set_it=True)
+        except Exception:
+            pass
+        try:
             return self._injection_tripwire(event)
         except Exception:
             return HookResult.success()
@@ -1385,7 +1472,19 @@ class LedgerModule:
         # detection after the fact. A short alnum token ('harness'|'skills'|'hooks'|
         # 'repo') survives redaction unchanged. Absent when the edit is not canonical
         # (keeps non-canonical mutation events byte-identical, so existing tests hold).
-        canonical = _canonical_tree(path)
+        canonical = _canonical_tree(path, getattr(event, "cwd", "") or "")
+        if canonical:
+            # Same fact, second carrier: the ledger row below is project-scoped and
+            # gets evicted from the bounded replay window, so the Stop-time nudge
+            # also needs the session-scoped, sticky _session_flag copy of "a
+            # canonical edit happened", written at the instant it is classified.
+            # F3: its own try/except - the sole caller wraps _append_mutation in a
+            # bare `except Exception: pass`, so an unguarded raise here would
+            # silently DISCARD the ledger mutation row below.
+            try:
+                _session_flag(event, "canonical_edit", set_it=True)
+            except Exception:
+                pass
         self.ledger.append(
             event.cwd,
             "mutation",
@@ -2616,43 +2715,70 @@ class ClaimWarningModule:
 
     # Basic-memory write tools whose presence in the ledger means the change
     # rationale WAS captured this session. Substring match over the tool name.
-    _BM_WRITE_TOOLS = (
-        "basic-memory__write_note",
-        "basic-memory__edit_note",
-        "basic-memory__canvas",
-        "basic-memory__create_memory_project",
-    )
+    _BM_WRITE_TOOLS = _BM_WRITE_TOOL_NAMES
 
     def _basic_memory_nudge(self, event: HookEvent) -> HookResult:
         # Fires once per session when a canonical config file was edited but no
-        # basic-memory write happened. Derives both facts from the bounded, project-
-        # scoped ledger replay window (the only "session" proxy the ledger exposes;
-        # sessions share one cwd). If the ledger can't answer -> stay silent (fail-open
-        # toward NO nag, the safe direction for an advisory).
-        try:
-            events = self.ledger.replay(event.cwd, limit=120)
-        except Exception:
-            return HookResult.success()
-        edited_canonical = any(
-            e.get("kind") == "mutation" and e.get("canonical_tree") for e in events
-        )
+        # basic-memory write happened. PRIMARY carrier is the sticky per-session
+        # _session_flag stamped at PostToolUse; the bounded ledger replay window is
+        # a FALLBACK used only when that carrier is unavailable.
+        #
+        # MEASURED 2026-08-07 over ~/.agents/state/harness/ledger (336 shards,
+        # 271,720 rows): the bounded window is not a session proxy. 147 of 173
+        # canonical-tree mutations (85.0%) already carry >=120 later events in their
+        # own project shard, and the trailing-120 window spans a median of 30.4
+        # minutes against a multi-hour session. Worse, ZERO of the 271,720 rows
+        # carry a session_id, so the window is PROJECT-keyed and shared by every
+        # session with the same cwd: 36 of 173 canonical edits (20.8%) have a
+        # basic-memory write inside their next 120 events, and on an OR form that
+        # write silences the nudge even when it belongs to a DIFFERENT session.
+        #
+        # Hence the carriers are never MIXED. Reading the FIRE from the sticky flag
+        # while reading the SUPPRESSION from the project-scoped ledger is strictly
+        # worse than either alone: it makes the gate session-scoped in the firing
+        # direction and cross-session in the muting direction, so a sibling session
+        # can mute this one. Both facts come from the flags, or both from the
+        # ledger. If the ledger cannot answer on the fallback path -> stay silent
+        # (fail-open toward NO nag, the safe direction for an advisory).
+        sticky = _session_carrier_live(event)
+        if sticky:
+            edited_canonical = _session_flag(event, "canonical_edit")
+            wrote_bm = _session_flag(event, "bm_write")
+        else:
+            try:
+                events = self.ledger.replay(event.cwd, limit=120)
+            except Exception:
+                return HookResult.success()
+            edited_canonical = any(
+                e.get("kind") == "mutation" and e.get("canonical_tree") for e in events
+            )
+            wrote_bm = any(
+                e.get("kind") == "tool_result"
+                and any(t in str(e.get("tool") or "") for t in self._BM_WRITE_TOOLS)
+                for e in events
+            )
         if not edited_canonical:
             return HookResult.success()
-        wrote_bm = any(
-            e.get("kind") == "tool_result"
-            and any(t in str(e.get("tool") or "") for t in self._BM_WRITE_TOOLS)
-            for e in events
-        )
         if wrote_bm:
             return HookResult.success()
-        # Once-per-session cooldown (gentle): nag at most once. Reuses the module-level
-        # _session_hash + default_state_root + read_json/atomic_write_json.
+        # Once-per-session cooldown (gentle): nag at most once, on the SAME carrier
+        # the two facts above came from. The marker file is retained for the
+        # fallback path because an unidentified session cannot hold a flag and would
+        # otherwise lose its cooldown and nag at every Stop.
         marker = (
             default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
         )
-        if isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
+        already = isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
             "nudged"
-        ):
+        )
+        if sticky:
+            # F1: a session that fired on the FALLBACK carrier and only LATER made
+            # its own canonical edit flips to the sticky carrier mid-life. Reading
+            # only the flag would lose the cooldown and nag a second time, so the
+            # sticky read ORs in the marker. The two facts above still come from ONE
+            # carrier; only the once-per-session cap spans both.
+            already = _session_flag(event, "nudged") or already
+        if already:
             return HookResult.success()
         raw = HookResult.success(
             action="inject",
@@ -2668,13 +2794,16 @@ class ClaimWarningModule:
         # Only record the cooldown when the gate actually surfaced (advise/enforce);
         # in shadow it returns allow, so we don't burn the one-shot before it's promoted.
         if staged.action != "allow":
-            try:
-                (default_state_root() / "basic-memory-nudge").mkdir(
-                    parents=True, exist_ok=True
-                )
-                atomic_write_json(marker, {"nudged": True})
-            except OSError:
-                pass
+            if sticky:
+                _session_flag(event, "nudged", set_it=True)
+            else:
+                try:
+                    (default_state_root() / "basic-memory-nudge").mkdir(
+                        parents=True, exist_ok=True
+                    )
+                    atomic_write_json(marker, {"nudged": True})
+                except OSError:
+                    pass
         return staged
 
 
@@ -2992,7 +3121,7 @@ def _scaffold_gate_enabled(gate_name: str) -> bool:
     return not (env and os.environ.get(env, "").strip().lower() in _OFF_VALUES)
 
 
-def _scaffold_artifact_label(target: str) -> Optional[str]:
+def _scaffold_artifact_label(target: str, base: Optional[str] = None) -> Optional[str]:
     """Classify a write target as a canonical harness/skill/MCP/hook artifact (RFC
     §1.4.1) or None. Deployed trees (harness/skills/hooks/codex_profiles) via
     _canonical_tree; a 'repo' edit is narrowed to ci/harness, skills, the canonical MCP
@@ -3000,18 +3129,32 @@ def _scaffold_artifact_label(target: str) -> Optional[str]:
     if not target:
         return None
     try:
-        tree = _canonical_tree(target)
+        tree = _canonical_tree(target, base)
         if tree in {"harness", "skills", "hooks", "codex_profiles"}:
             return tree
         if tree == "repo":
-            norm = os.path.normpath(str(target)).replace("\\", "/").lower()
-            if "/ci/harness/" in norm:
+            raw = str(target)
+            root = Path(_repo_root()).resolve(strict=False)
+            candidate = Path(raw)
+            if not candidate.is_absolute():
+                if base:
+                    candidate = Path(base) / candidate
+                else:
+                    candidate = root / candidate
+            normalized = candidate.resolve(strict=False)
+            try:
+                relative = normalized.relative_to(root).as_posix().lower()
+            except ValueError:
+                relative = os.path.normpath(str(target)).replace("\\", "/").lower()
+            if relative.startswith("ci/harness/"):
                 return "harness"
-            if "/skills/" in norm:
+            if relative.startswith("skills/"):
                 return "skills"
-            if norm.endswith("canonical-mcp-servers.json") or "/tools/mcp/" in norm:
+            if relative.endswith("canonical-mcp-servers.json") or relative.startswith(
+                "tools/mcp/"
+            ):
                 return "mcp"
-            if "/hooks/" in norm:
+            if relative.startswith("hooks/"):
                 return "hooks"
     except Exception:
         return None
@@ -3213,7 +3356,7 @@ class EnforcementScaffoldModule:
         if self._is_doc_path(target):
             self._mark_doc_seen(event)
             return HookResult.success()
-        label = _scaffold_artifact_label(target)
+        label = _scaffold_artifact_label(target, getattr(event, "cwd", "") or "")
         if label is None:
             return HookResult.success()
         state = self._state(event)
@@ -3670,7 +3813,7 @@ class RegisterGateModule:
             return
 
 
-def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
+def build_advisory_modules(state_root: Path | str | None = None) -> list[Any]:
     root = Path(state_root or default_state_root())
     ledger = EventLedger(root)
     return [
@@ -3689,3 +3832,8 @@ def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
         EnforcementScaffoldModule(state_root=root),
         RegisterGateModule(state_root=root / "register-gate"),
     ]
+
+
+def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
+    root = Path(state_root or default_state_root())
+    return [WorkspaceIntegrityModule(state_root=root), *build_advisory_modules(root)]

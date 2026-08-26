@@ -32,6 +32,8 @@ from harness.modules import (
     SensitiveArtifactModule,
     SubagentLifecycleModule,
     _canonical_tree,
+    _scaffold_artifact_label,
+    _session_flag,
     resolve_mode,
     stage,
 )
@@ -51,6 +53,7 @@ def event(tmp_path: Path, name: str, **overrides):
 
 def test_fixed_module_order_is_security_then_continuity_then_quality():
     assert MODULE_ORDER == (
+        "workspace_integrity",
         "secret_guard",
         "sensitive_artifact",
         "event_ledger",
@@ -2642,6 +2645,51 @@ def test_ledger_stamps_canonical_tree_on_deployed_edit(iso, tmp_path, monkeypatc
     assert any("canonical_tree" not in e for e in muts)
 
 
+def test_canonical_tree_resolves_relative_path_from_event_cwd(
+    iso, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    assert _canonical_tree("agents/harness/x.py", str(tmp_path)) == "harness"
+    assert _canonical_tree("agents/harness/x.py") is None
+
+
+def test_scaffold_artifact_label_resolves_relative_target_from_event_cwd(
+    iso, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    assert _scaffold_artifact_label("agents/harness/x.py", str(tmp_path)) == "harness"
+    assert (
+        _scaffold_artifact_label(str(tmp_path / "agents" / "harness" / "x.py"))
+        == "harness"
+    )
+
+
+def test_scaffold_artifact_label_requires_base_for_relative_target(
+    iso, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    assert _scaffold_artifact_label("agents/harness/x.py") is None
+
+
+@pytest.mark.parametrize(
+    ("relative_target", "expected_label"),
+    [
+        ("ci/harness/check.py", "harness"),
+        ("skills/sample/SKILL.md", "skills"),
+        ("tools/mcp/canonical-mcp-servers.json", "mcp"),
+        ("hooks/pretooluse.py", "hooks"),
+    ],
+)
+def test_scaffold_artifact_label_matches_repo_relative_and_absolute_targets(
+    iso, tmp_path, monkeypatch, relative_target: str, expected_label: str
+):
+    repo = tmp_path / "repo"
+    monkeypatch.setenv("HARNESS_REPO_DIR", str(repo))
+
+    assert _scaffold_artifact_label(relative_target, str(repo)) == expected_label
+    assert _scaffold_artifact_label(str(repo / relative_target)) == expected_label
+
+
 def test_basic_memory_nudge_fires_when_canonical_edit_no_bm_write(
     iso, tmp_path, monkeypatch
 ):
@@ -2678,6 +2726,31 @@ def test_basic_memory_nudge_silent_without_canonical_edit(iso, tmp_path, monkeyp
     _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
     assert out.action == "allow"
+
+
+def test_basic_memory_nudge_prefers_sticky_session_flags_over_project_ledger(
+    iso, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    # A sibling session's basic-memory write would mute this event if the gate
+    # mixed sticky fire-state with project-scoped ledger suppression.
+    LedgerModule(ledger).run(
+        event(
+            tmp_path,
+            "PostToolUse",
+            session_id="session-other",
+            tool_name="mcp__basic-memory__write_note",
+            tool_use_id="bm-other",
+            tool_input={"title": "t"},
+            tool_response={"ok": True},
+        )
+    )
+    stop_event = event(tmp_path, "Stop")
+    assert _session_flag(stop_event, "canonical_edit", set_it=True) is True
+    out = ClaimWarningModule(ledger).run(stop_event)
+    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
 
 
 def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch):
@@ -2781,16 +2854,9 @@ def test_sensitive_artifact_ignores_a_reentrant_stop(tmp_path):
 
 
 def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
-    # REGRESSION (2026-08-08). _candidate() routes Stop and SubagentStop down two separate
-    # branches, and only the Stop branch honoured stop_hook_active. The sibling above existed
-    # and passed the whole time, which is precisely how a two-branch router shipped with one
-    # working branch: the untested branch re-fired on every subagent stop attempt, so the
-    # subagent could never terminate. Measured cost before the fix: two trivial probes ("reply
-    # with one token, use no tools") burned 62,155 and 63,222 tokens with 0 tool uses.
-    #
-    # Same sensitive file and same flag as the Stop case, so a failure here can only be a
-    # re-entrancy failure, never a detection failure. The pair is the point -- assert both
-    # events, or the next refactor silently reopens the gap.
+    # REGRESSION (2026-08-19). SubagentStop must be inert outright; the long-hook failures
+    # came from scanning fresh subagent transcripts during stop handling. Keep the
+    # re-entrant form covered too so neither path starts reading transcripts again.
     target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
     result = SensitiveArtifactModule().run(
         event(
@@ -2804,16 +2870,15 @@ def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
     assert not result.additional_context
 
 
-def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
-    # The negative control for the test above: without the re-entrancy flag SubagentStop must
-    # STILL report. A guard that silenced the branch outright would pass the re-entrancy test
-    # while destroying the detection it exists for -- silent in both states measures nothing.
+def test_sensitive_artifact_ignores_a_fresh_subagent_stop(tmp_path):
+    # The both-states partner for the test above: even without a re-entrancy marker the
+    # SubagentStop event stays inert. Detection is preserved on the write-target path below.
     target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
     result = SensitiveArtifactModule().run(
         event(tmp_path, "SubagentStop", transcript_path=str(target))
     )
-    assert result.action == "inject"
-    assert "POTENTIAL-CREDENTIAL" in " ".join(result.additional_context)
+    assert result.action == "allow"
+    assert not result.additional_context
 
 
 def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):

@@ -21,6 +21,15 @@ def _ledger(tmp_path):
     return EventLedger(tmp_path / "state", legacy_root=tmp_path / "no-legacy")
 
 
+def _write_raw_events(ledger, cwd, events):
+    target = ledger._events(cwd)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        "".join(json.dumps(event, separators=(",", ":")) + "\n" for event in events),
+        encoding="utf-8",
+    )
+
+
 # ---------------------------------------------------------------------------
 # canonical_project_path — file->parent normalization + .git OSError fail-open
 # ---------------------------------------------------------------------------
@@ -194,54 +203,78 @@ def test_timestamp_zero_on_empty_and_invalid():
 
 
 # ---------------------------------------------------------------------------
-# _FileLock — stale-lock reclaim, timeout, and fail-open teardown
+# _FileLock — OS-lock reuse, contention timeout, and idempotent teardown
 # ---------------------------------------------------------------------------
 
 
-def test_filelock_reclaims_stale_lock(tmp_path):
-    # A lock file older than 30s is treated as stale, unlinked, and reacquired
-    # (lines 447-449).
+def test_filelock_acquires_existing_persistent_lock_file(tmp_path):
+    # The file is a stable inode for the OS lock. Age and contents do not imply
+    # ownership, so an unlocked existing file remains reusable.
     lock_path = tmp_path / "stale.lock"
     lock_path.write_text("999999", encoding="utf-8")
     old = time.time() - 60
     os.utime(lock_path, (old, old))
     with L._FileLock(lock_path, timeout=5.0) as held:
-        assert held.fd is not None
-        assert lock_path.exists()  # our freshly-created lock
-    assert not lock_path.exists()  # released on exit
+        assert held.handle is not None
+        assert lock_path.exists()
+    assert lock_path.exists()
 
 
 def test_filelock_times_out_on_fresh_held_lock(tmp_path):
-    # A fresh (non-stale) lock plus a past deadline forces the timeout raise
-    # (452->453).
+    # Contention is represented by an actually held OS lock, not by presence of
+    # the stable lock file.
     lock_path = tmp_path / "held.lock"
-    lock_path.write_text("111", encoding="utf-8")
-    with pytest.raises(TimeoutError):
-        L._FileLock(lock_path, timeout=-1.0).__enter__()
-    lock_path.unlink(missing_ok=True)
+    held = L._FileLock(lock_path, timeout=1.0)
+    held.__enter__()
+    try:
+        with pytest.raises(TimeoutError):
+            L._FileLock(lock_path, timeout=0.01).__enter__()
+    finally:
+        held.__exit__(None, None, None)
 
 
-def test_filelock_exit_swallows_unlink_oserror(tmp_path):
-    # fd is None so the close branch is skipped (457->462); unlinking a directory
-    # raises OSError which is swallowed (464-465).
+def test_filelock_exit_with_no_handle_is_idempotent(tmp_path):
     lock = L._FileLock(tmp_path / "unused.lock")
-    lock.fd = None
-    target_dir = tmp_path / "dir.lock"
-    target_dir.mkdir()
-    lock.path = target_dir
-    lock.__exit__()  # must not raise
-    assert target_dir.exists()  # unlink failed and was swallowed
+    lock.__exit__()
+    assert lock.handle is None
 
 
 def test_filelock_exit_swallows_close_oserror(tmp_path):
-    # A second os.close on an already-closed fd raises OSError, swallowed (460-461).
+    # A forcibly closed handle raises ValueError during unlock. Teardown remains
+    # idempotent and clears the in-memory owner reference.
     lock_path = tmp_path / "closed.lock"
     lock = L._FileLock(lock_path)
     lock.__enter__()
-    assert lock.fd is not None
-    os.close(lock.fd)  # close it out from under __exit__
-    lock.__exit__()  # must not raise
-    assert not lock_path.exists()  # unlink still ran
+    assert lock.handle is not None
+    lock.handle.close()
+    lock.__exit__()
+    assert lock.handle is None
+    assert lock_path.exists()
+
+
+def test_filelock_closes_handle_when_lock_file_initialization_fails(
+    tmp_path, monkeypatch
+):
+    opened = []
+    real_open = Path.open
+
+    def tracked_open(path, *args, **kwargs):
+        handle = real_open(path, *args, **kwargs)
+        opened.append(handle)
+        return handle
+
+    def fail_initialization(_lock):
+        raise OSError("synthetic lock-file initialization failure")
+
+    monkeypatch.setattr(Path, "open", tracked_open)
+    monkeypatch.setattr(L._FileLock, "_ensure_lock_file", fail_initialization)
+    lock = L._FileLock(tmp_path / "broken.lock")
+    with pytest.raises(OSError, match="synthetic"):
+        lock.__enter__()
+
+    assert len(opened) == 1
+    assert opened[0].closed
+    assert lock.handle is None
 
 
 # ---------------------------------------------------------------------------
@@ -586,7 +619,20 @@ def test_has_verification_skips_other_turn_legacy_flag(tmp_path):
     ledger = _ledger(tmp_path)
     cwd = str(tmp_path)
     ledger.append(cwd, "decision", text="noise")  # non-tool_result -> 1170->1171
-    ledger.append(cwd, "tool_result", turn_id="turn-OTHER", tool="Bash", verified=True)
+    _write_raw_events(
+        ledger,
+        cwd,
+        [
+            {
+                "seq": 1,
+                "ts": "2026-08-19T00:00:00+00:00",
+                "kind": "tool_result",
+                "turn_id": "turn-OTHER",
+                "tool": "Bash",
+                "verified": True,
+            }
+        ],
+    )
     # Scoped to turn-1: the other turn's verified flag is skipped (1172->1173).
     assert ledger.has_verification(cwd, "turn-1") is False
     assert ledger.has_verification(cwd) is True  # unscoped still sees it

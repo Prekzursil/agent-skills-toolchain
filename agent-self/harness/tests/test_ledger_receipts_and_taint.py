@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from harness.ledger import (
@@ -198,6 +200,15 @@ def _ledger(tmp_path):
     return EventLedger(tmp_path / "state", legacy_root=tmp_path / "no-legacy")
 
 
+def _write_raw_events(ledger, cwd, events):
+    target = ledger._events(cwd)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        "".join(json.dumps(event, separators=(",", ":")) + "\n" for event in events),
+        encoding="utf-8",
+    )
+
+
 def test_last_mutation_seq_tracks_mutation_events(tmp_path):
     ledger = _ledger(tmp_path)
     cwd = str(tmp_path)
@@ -386,7 +397,20 @@ def test_has_verification_backcompat_legacy_verified(tmp_path):
     ledger = _ledger(tmp_path)
     cwd = str(tmp_path)
     # Legacy tool_result with verified==True and NO typed receipt fields.
-    ledger.append(cwd, "tool_result", turn_id="turn-1", tool="Bash", verified=True)
+    _write_raw_events(
+        ledger,
+        cwd,
+        [
+            {
+                "seq": 1,
+                "ts": "2026-08-19T00:00:00+00:00",
+                "kind": "tool_result",
+                "turn_id": "turn-1",
+                "tool": "Bash",
+                "verified": True,
+            }
+        ],
+    )
     assert ledger.has_verification(cwd, "turn-1") is True
     assert ledger.has_verification(cwd) is True
 
@@ -529,3 +553,210 @@ def test_receipt_fields_do_not_leak_raw_argv_or_secrets(tmp_path):
     assert secret not in serialized
     # The fingerprint is retrievable (hex survived the sanitizer intact).
     assert ledger.receipt_for_fingerprint(cwd, receipt.fingerprint) is not None
+
+
+# ---------------------------------------------------------------------------
+# Receipt authority: only an EXECUTING tool, running a real verifier, whose
+# LATEST result is green, may substantiate a claim (SI-1 proof-of-execution).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "tool_name,tool_input,tool_result",
+    [
+        # A search/doc/task tool never ran anything - its payload (or prose)
+        # must not mint an authoritative receipt.
+        ("WebSearch", "pytest status", "success"),
+        ("web__run", {"command": "pytest"}, {"exit_code": 0}),
+        ("Write", {"command": "pytest", "file_path": "x.py"}, {"exit_code": 0}),
+        ("Read", {"command": "pytest"}, {"exit_code": 0}),
+        ("mcp__search__run", {"command": "pytest"}, {"exit_code": 0}),
+        ("mcp__docs__search", {"command": "pytest"}, {"exit_code": 0}),
+        (
+            "mcp__tasks__create",
+            {"command": "pytest", "title": "doc"},
+            {"status": "success"},
+        ),
+    ],
+)
+def test_non_executing_tool_cannot_mint_a_receipt(tool_name, tool_input, tool_result):
+    assert classify_receipt(tool_name, tool_input, tool_result) is None
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "Bash",
+        "PowerShell",
+        "shell",
+        "local_shell",
+        "functions.exec_command",
+        "mcp__desktop__run_command",
+    ],
+)
+def test_executing_tools_still_mint_a_receipt(tool_name):
+    receipt = classify_receipt(
+        tool_name, {"command": "pytest -q"}, {"exit_code": 0, "output": "3 passed"}
+    )
+    assert receipt is not None
+    assert (receipt.receipt_class, receipt.status) == ("test", "pass")
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "echo test",  # an argument, not a verifier
+        "cat test.log",  # reading a log is not running the suite
+        "Get-Content test.log",  # PowerShell display command
+        "pytest --version",  # binary present, nothing verified
+        "pytest --collect-only",
+        "bash -lc 'pytest -q'",
+        "powershell -Command pytest -q",
+        "pytest -q | tee out.txt",
+        "pytest -q > out.txt",
+        "pytest -q; echo done",
+    ],
+)
+def test_non_verifying_commands_mint_no_receipt(command):
+    assert classify_receipt("Bash", {"command": command}, {"exit_code": 0}) is None
+
+
+@pytest.mark.parametrize(
+    "command,result",
+    [
+        ("pytest -q", {"exit_code": 0, "output": ""}),
+        ("go test ./...", {"exit_code": 0, "output": "?   pkg [no test files]"}),
+        ("pytest -q", {"exit_code": 0, "output": "Ran 0 tests in 0.01s"}),
+        ("npx playwright test", {"exit_code": 0, "output": "running 0 tests"}),
+        ("pytest --cov=src", {"exit_code": 0, "output": ""}),
+    ],
+)
+def test_unverified_zero_signal_runs_are_not_pass(command, result):
+    receipt = classify_receipt("Bash", {"command": command}, result)
+    assert receipt is not None
+    assert receipt.status == "unknown"
+
+
+def test_test_family_pass_can_use_positive_execution_count():
+    receipt = classify_receipt(
+        "Bash",
+        {"command": "python -m unittest"},
+        {"exit_code": 0, "output": "Ran 3 tests in 0.01s\nOK"},
+    )
+    assert receipt is not None
+    assert receipt.status == "pass"
+
+
+def test_prose_only_pass_is_limited_to_health_probes():
+    # No exit code, no counts: only a health probe may read a verdict off prose.
+    quiet = classify_receipt("Bash", {"command": "pytest -q"}, {"output": "success"})
+    assert quiet is not None
+    assert quiet.status == "unknown"
+    probe = classify_receipt(
+        "Bash", {"command": "curl http://x/healthz"}, {"output": "success"}
+    )
+    assert probe is not None
+    assert probe.status == "pass"
+
+
+def test_later_failing_rerun_revokes_the_earlier_green(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.append(cwd, "mutation", turn_id="T1", path="app.py")
+    _append_receipt(ledger, cwd, turn_id="T1", status="pass", key="p")
+    assert ledger.has_fresh_receipt(cwd, "T1", ("test",)) is True
+    _append_receipt(
+        ledger, cwd, turn_id="T1", status="fail", passed=0, failed=1, key="f"
+    )
+    assert ledger.has_fresh_receipt(cwd, "T1", ("test",)) is False
+
+
+def test_mutation_from_another_turn_invalidates_the_receipt(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    _append_receipt(ledger, cwd, turn_id="A", status="pass", key="p")
+    assert ledger.has_fresh_receipt(cwd, "A", ("test",)) is True
+    # A sibling turn/session wrote to the SAME tree: the green is now stale.
+    ledger.append(cwd, "mutation", turn_id="B", path="app.py")
+    assert ledger.has_fresh_receipt(cwd, "A", ("test",)) is False
+
+
+def test_unattributed_receipt_does_not_substantiate_another_turn(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.append(cwd, "mutation", turn_id="B", path="app.py")
+    _append_receipt(ledger, cwd, turn_id="", status="pass", key="p")
+    assert ledger.has_fresh_receipt(cwd, "B", ("test",)) is False
+    # An unscoped query still sees it (no turn to cross-attribute to).
+    assert ledger.has_fresh_receipt(cwd, "", ("test",)) is True
+
+
+def test_has_fresh_receipt_uses_a_single_snapshot(tmp_path, monkeypatch):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    events = [
+        {"schema_version": 1, "seq": 1, "kind": "mutation", "turn_id": "T1"},
+        {
+            "schema_version": 1,
+            "seq": 2,
+            "kind": "tool_result",
+            "turn_id": "T1",
+            "receipt_class": "test",
+            "receipt_status": "pass",
+            "receipt_passed": 3,
+            "receipt_failed": 0,
+            "receipt_fp": "fp",
+        },
+    ]
+    calls = {"count": 0}
+
+    def one_snapshot(_cwd, limit=40):
+        calls["count"] += 1
+        assert calls["count"] == 1
+        assert limit == 120
+        return events
+
+    monkeypatch.setattr(ledger, "replay", one_snapshot)
+    assert ledger.has_fresh_receipt(cwd, "T1", ("test",)) is True
+
+
+def test_modern_unclassified_tool_result_does_not_fallback_to_verified(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.append(cwd, "tool_result", turn_id="T1", tool="Bash", verified=True)
+    assert ledger.has_verification(cwd, "T1") is False
+
+
+def test_legacy_verified_flag_cannot_override_a_typed_receipt_or_mutation(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    _write_raw_events(
+        ledger,
+        cwd,
+        [
+            {
+                "seq": 1,
+                "ts": "2026-08-19T00:00:00+00:00",
+                "kind": "tool_result",
+                "turn_id": "T1",
+                "tool": "Bash",
+                "verified": True,
+            }
+        ],
+    )
+    _append_receipt(
+        ledger,
+        cwd,
+        turn_id="T1",
+        status="fail",
+        passed=0,
+        failed=3,
+        verified=True,
+        key="f",
+    )
+    assert ledger.has_fresh_receipt(cwd, "T1", RECEIPT_CLASSES) is False
+    # The coarse legacy flag must not resurrect a newer failing typed receipt.
+    assert ledger.has_verification(cwd, "T1") is False
+    ledger = _ledger(tmp_path)
+    ledger.append(cwd, "mutation", turn_id="OTHER", path="app.py")
+    assert ledger.has_verification(cwd, "T1") is False

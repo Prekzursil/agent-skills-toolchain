@@ -392,6 +392,37 @@ def test_main_inner_exception_returns_zero(monkeypatch, capsys, tmp_path):
     assert capsys.readouterr().out == ""
 
 
+def test_main_pretooluse_dispatcher_construction_failure_emits_native_deny(
+    monkeypatch, capsys, tmp_path
+):
+    monkeypatch.setattr(D, "HarnessDispatcher", _raise(RuntimeError("ctor blew up")))
+    monkeypatch.setattr(sys, "stdin", io.StringIO('{"session_id": "s"}'))
+    rc = D.main(
+        ["--provider", "codex", "--event", "PreToolUse", "--state-root", str(tmp_path)]
+    )
+    assert rc == 0
+    rendered = json.loads(capsys.readouterr().out)
+    assert rendered["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert "workspace integrity unavailable" in rendered["hookSpecificOutput"][
+        "permissionDecisionReason"
+    ].lower()
+
+
+def test_main_pretooluse_render_failure_emits_native_deny(monkeypatch, capsys, tmp_path):
+    monkeypatch.setattr(D, "HarnessDispatcher", _StubDispatcher)
+    monkeypatch.setattr(D, "render_output", _raise(RuntimeError("render blew up")))
+    monkeypatch.setattr(sys, "stdin", io.StringIO('{"session_id": "s"}'))
+    rc = D.main(
+        ["--provider", "codex", "--event", "PreToolUse", "--state-root", str(tmp_path)]
+    )
+    assert rc == 0
+    rendered = json.loads(capsys.readouterr().out)
+    assert rendered["hookSpecificOutput"]["permissionDecision"] == "deny"
+    assert "workspace integrity unavailable" in rendered["hookSpecificOutput"][
+        "permissionDecisionReason"
+    ].lower()
+
+
 def test_module_main_guard_executes_as_entrypoint(monkeypatch):
     # 559->560: run dispatcher.py as __main__ so the `if __name__ == "__main__"`
     # guard fires for real. With no CLI args, _parse_args (before any try) exits 2

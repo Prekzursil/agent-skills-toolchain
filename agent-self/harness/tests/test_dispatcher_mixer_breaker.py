@@ -12,6 +12,12 @@ later module).
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
 
 import harness.modules as harness_modules
 from harness.dispatcher import (
@@ -64,6 +70,67 @@ def _pre(tmp_path, command="echo safe"):
         "tool_input": {"command": command},
         "hook_event_name": "PreToolUse",
     }
+
+
+_BREAKER_CHILD = r"""
+import json
+import os
+import time
+from pathlib import Path
+
+from harness.dispatcher import HarnessDispatcher
+
+
+class _Boom:
+    name = os.environ["HARNESS_TEST_MODULE_NAME"]
+
+    def run(self, _event):
+        raise RuntimeError("boom")
+
+
+ready = Path(os.environ["HARNESS_TEST_READY_PATH"])
+release = Path(os.environ["HARNESS_TEST_RELEASE_PATH"])
+payload = json.loads(os.environ["HARNESS_TEST_EVENT"])
+ready.write_text("ready", encoding="ascii")
+deadline = time.monotonic() + 5.0
+while not release.exists():
+    if time.monotonic() >= deadline:
+        raise TimeoutError("parent did not release breaker race child")
+    time.sleep(0.01)
+HarnessDispatcher(modules=[_Boom()], state_root=Path(os.environ["HARNESS_TEST_STATE_ROOT"])).dispatch(
+    payload,
+    provider="codex",
+    event_name="PreToolUse",
+)
+"""
+
+
+def _child_env(tmp_path: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    agent_self = Path(__file__).resolve().parents[2]
+    prior_pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = os.pathsep.join(
+        part for part in (str(agent_self), prior_pythonpath) if part
+    )
+    env["HARNESS_TEST_STATE_ROOT"] = str(tmp_path / "state")
+    return env
+
+
+def _wait_for_ready(process: subprocess.Popen[str], ready_path: Path) -> None:
+    deadline = time.monotonic() + 5.0
+    while time.monotonic() < deadline:
+        if ready_path.is_file():
+            return
+        if process.poll() is not None:
+            break
+        time.sleep(0.01)
+    if process.poll() is None:
+        process.kill()
+    _stdout, stderr = process.communicate(timeout=5)
+    raise AssertionError(
+        "breaker child did not become ready "
+        f"(returncode={process.returncode}, stderr={stderr!r})"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -447,6 +514,50 @@ def test_raised_branch_does_not_suppress_later_module(tmp_path):
     assert result.status.startswith("FAILED:")
 
 
+def test_timeout_stops_before_later_modules_and_discards_late_worker_state(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_DISPATCH_BUDGET_MS", "25")
+
+    class _Slow:
+        name = "slow"
+
+        def __init__(self):
+            self.started = threading.Event()
+            self.release = threading.Event()
+
+        def run(self, _event):
+            self.started.set()
+            self.release.wait(timeout=1.0)
+            return _inject("goal_reinjection", "late slow context")
+
+    class _Later:
+        name = "later"
+
+        def __init__(self):
+            self.calls = 0
+
+        def run(self, _event):
+            self.calls += 1
+            return _inject("goal_reinjection", "late later context")
+
+    slow = _Slow()
+    later = _Later()
+
+    dispatcher = HarnessDispatcher(
+        modules=[slow, later],
+        state_root=tmp_path / "state",
+    )
+
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="codex", event_name="PreToolUse"
+    )
+    assert slow.started.is_set()
+    assert result.status.startswith("FAILED:")
+    assert "late later context" not in result.additional_context
+    assert later.calls == 0
+
+
 def test_shadow_default_no_shadow_log_is_safe(tmp_path, monkeypatch):
     # Simulate the modules lane not yet landing shadow_log: the fallback no-op must
     # keep the dispatcher fully working.
@@ -467,3 +578,98 @@ def test_shadow_default_no_shadow_log_is_safe(tmp_path, monkeypatch):
         _pre(tmp_path), provider="claude", event_name="PreToolUse"
     )
     assert result.additional_context == ["advisory chatter", "Blocked."]
+
+
+def test_malformed_hook_result_fields_fail_open_instead_of_false_success(tmp_path):
+    class _MalformedResult:
+        name = "malformed"
+
+        def run(self, _event):
+            return HookResult(
+                status="SUCCESS:hook-pretooluse",
+                action="bogus",
+                reason_code="ok",
+                additional_context=[],
+                continuation=None,
+            )
+
+    dispatcher = HarnessDispatcher(
+        modules=[_MalformedResult()], state_root=tmp_path / "state"
+    )
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="codex", event_name="PreToolUse"
+    )
+    assert result.action == "allow"
+    assert result.status.startswith("FAILED:")
+    assert result.reason_code == "internal_error"
+
+
+def test_module_name_error_still_marks_failed_and_honors_later_block(tmp_path):
+    class _BadName:
+        @property
+        def name(self):
+            raise RuntimeError("metadata broke")
+
+        def run(self, _event):
+            return _inject("goal_reinjection", "should not escape")
+
+    class _Blocker:
+        name = "blocker"
+
+        def run(self, _event):
+            return HookResult.success(
+                action="block",
+                reason_code="secret_literal",
+                additional_context=["blocked later"],
+            )
+
+    dispatcher = HarnessDispatcher(
+        modules=[_BadName(), _Blocker()], state_root=tmp_path / "state"
+    )
+    result = dispatcher.dispatch(
+        _pre(tmp_path), provider="codex", event_name="PreToolUse"
+    )
+    assert result.action == "block"
+    assert result.reason_code == "secret_literal"
+    assert result.status.startswith("FAILED:")
+    assert result.additional_context == ["blocked later"]
+
+
+def test_breaker_finalize_merges_parallel_process_updates(tmp_path):
+    release = tmp_path / "release"
+    env_base = _child_env(tmp_path)
+    payload = json.dumps(_pre(tmp_path))
+    children: list[tuple[subprocess.Popen[str], Path]] = []
+    try:
+        for index, module_name in enumerate(("alpha", "beta")):
+            ready = tmp_path / f"ready-{index}"
+            env = env_base.copy()
+            env["HARNESS_TEST_READY_PATH"] = str(ready)
+            env["HARNESS_TEST_RELEASE_PATH"] = str(release)
+            env["HARNESS_TEST_EVENT"] = payload
+            env["HARNESS_TEST_MODULE_NAME"] = module_name
+            process = subprocess.Popen(
+                [sys.executable, "-c", _BREAKER_CHILD],
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            children.append((process, ready))
+        for process, ready in children:
+            _wait_for_ready(process, ready)
+        release.write_text("go", encoding="ascii")
+        for process, _ready in children:
+            stdout, stderr = process.communicate(timeout=5)
+            assert process.returncode == 0, (stdout, stderr)
+    finally:
+        for process, _ready in children:
+            if process.poll() is None:
+                process.kill()
+                process.communicate(timeout=5)
+
+    breaker = json.loads(
+        (tmp_path / "state" / "breaker.json").read_text(encoding="utf-8")
+    )
+    assert breaker["modules"]["alpha"]["streak"] == 1
+    assert breaker["modules"]["beta"]["streak"] == 1
