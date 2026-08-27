@@ -135,10 +135,13 @@ Prompt cache: implicit on many providers; Anthropic `cache_control`; sticky rout
 | Aider | `aider --model openrouter/<provider>/<model>` | BUILD-optional later (git loops); not now |
 | Cline / Roo / Kilo / Continue | Native provider dropdown | SKIP (RAM / fourth IDE) |
 | Open WebUI | Self-hosted UI + OR inference; app rankings #34 | SKIP (RAM) |
-| OpenCode, OpenClaw, Hermes, Junie, Copilot, Xcode, SillyTavern | Cookbooks / works-with | SKIP |
+| OpenCode, OpenClaw, Junie, Copilot, Xcode, SillyTavern | Cookbooks / works-with | SKIP |
+| Hermes Agent (Nous Research) | **#1 app on OpenRouter's separate `/apps` App & Agent Rankings** — an app leaderboard this audit's `/rankings` scrape did not cover; not a model in the models ranking | SKIP (second agent runtime) |
 | LangChain, LlamaIndex, Vercel AI SDK, PydanticAI, Mastra, Effect, TanStack | Framework adapters | SKIP unless a project needs them |
 | Infisical key rotation | Management key | SKIP |
 | LiteLLM | Self-hosted proxy in front of OR | **SKIP** (RAM; OR *is* the router) |
+
+Apps-gap follow-up: [openrouter-apps-hermes-uncensored_2026-08-27.md](openrouter-apps-hermes-uncensored_2026-08-27.md) covers the `/apps` leaderboard and the Hermes disambiguation.
 
 ---
 

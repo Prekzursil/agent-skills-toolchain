@@ -123,6 +123,20 @@ Platform caps on IDs ending in `:free`: 20 requests/minute; 50 requests/day if l
 
 Free vs paid training toggles are separate in [privacy settings](https://openrouter.ai/settings/privacy). Poolside `:free` pages state they may train on free inputs/outputs. Not for secrets. Do not use `:online` (deprecated) or OpenRouter web search in place of Firecrawl/Exa/native Max.
 
+## Low-refusal research lane (allowlisted)
+
+`nousresearch/hermes-4-70b` — $0.13/$0.40 per M, 131K ctx, reasoning-capable, RefusalBench SOTA. Lane: low-refusal/steerable research **chat/extraction/synthesis only** — e.g. pharmacology/harm-reduction literature queries the default hosted lanes over-refuse. Allowlist before the call, as with every slug.
+
+HARD constraints:
+
+- **No tool calling** — the OpenRouter endpoint does not expose `tools`. Never route agentic T0/T1 (grunt-with-tools or T1 tool work) here.
+- **Single provider (Nebius)** — no fallback diversity; provider-sort suffixes are no-ops.
+- **Bare slug only** — no `:free` variant exists; do not append `:floor`/`:nitro`/`:exacto`.
+- **Paid** — 402s while the account is overdrawn; waits on the credit top-up like the other paid slugs.
+- `nousresearch/hermes-4-405b` ($1.00/$3.00) is **escalation-only** for correctness-critical steerable work, per the T0→T1 escalation rules.
+
+Evidence: [openrouter-apps-hermes-uncensored_2026-08-27.md](openrouter-apps-hermes-uncensored_2026-08-27.md).
+
 ## Probe commands
 
 Thin T0 script: reads `OPENROUTER_API_KEY` from the environment, sends one chat completion with app headers `HTTP-Referer` and `X-OpenRouter-Title` (`agents-openrouter-sidecar`), prints generation id plus usage, then reads spend from `GET /api/v1/generation?id=...` when an id is present. It never prints the secret. `GET /generation` can 404 for a few seconds; retry.
