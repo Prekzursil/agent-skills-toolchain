@@ -76,7 +76,9 @@ Minimal architecture is deliberate (mini-SWE-agent: a 100-line bash loop scores 
 SWE-bench — elaborate scaffolding *overfits* as models improve). A find only counts if it
 **(a) rides the existing hook/skill/MCP bus**, and **(b) does NOT reintroduce a rejected
 component** (2nd orchestration runtime, vector-DB/KG memory, durable-execution engine,
-trained critic, observability SaaS, guardrail framework). Prefer "enable a native feature"
+trained critic, observability SaaS, guardrail framework, OpenRouter MCP, LiteLLM,
+Cursor BYOK, LangGraph, duplicate Sentry). OpenRouter stays a spend-capped CLI/Codex
+sidecar (`openrouter-routing`); fold T0/T1 there, never as a new MCP. Prefer "enable a native feature"
 and "fold into the existing dispatcher" over "new hook file / new MCP."
 
 ## Hard-won lessons (do these, they cost real reruns to learn)

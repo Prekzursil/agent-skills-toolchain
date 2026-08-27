@@ -55,6 +55,12 @@ standing regression note. Both are hard-excluded by the router. No dark-web /
 onion provider is routed to; any `.onion` source that reaches grading is
 force-flagged UNVERIFIED regardless of corroboration.
 
+OpenRouter is **not** a research search provider and must not replace Firecrawl,
+Exa, or native Max. T0 summarization of sources **already fetched** by the
+harness MAY use the `openrouter-routing` sidecar (allowlisted free/cheap chat
+completion). `web` / `deep_read` stay on MCP providers. Do not use `:online`
+(deprecated) or `openrouter:web_search` as a search MCP substitute.
+
 ## Workflow
 
 ### Step 1: Understand the Goal
