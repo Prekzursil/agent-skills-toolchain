@@ -103,6 +103,29 @@ class TestBrokenLinks:
         r = _scan(tmp_path, {"docs/a.md", "docs/b.md"})
         assert r.broken_links == 0
 
+    def test_doc_skip_globs_suppress_fixture_and_mirror_trees(self, tmp_path):
+        """Fixture / dual-write mirrors are not living docs — a broken link there
+        must NOT raise the hygiene count (otherwise every incomplete stub fires)."""
+        _write_doc(
+            tmp_path,
+            "platform/routing/fixtures/home/.agents/skills/x/SKILL.md",
+            "See [gone](./gone.md).\n",
+        )
+        _write_doc(
+            tmp_path,
+            ".agents/skills/codex-invoke/SKILL.md",
+            "See [guides](../../guides/codex-invocation.md).\n",
+        )
+        _write_doc(tmp_path, "docs/real.md", "See [gone](./gone.md).\n")
+        tracked = {
+            "platform/routing/fixtures/home/.agents/skills/x/SKILL.md",
+            ".agents/skills/codex-invoke/SKILL.md",
+            "docs/real.md",
+        }
+        r = _scan(tmp_path, tracked)
+        assert r.broken_links == 1
+        assert r.link_examples == ("docs/real.md -> ./gone.md",)
+
     def test_a_link_to_a_tracked_directory_is_silent(self, tmp_path):
         _write_doc(tmp_path, "README.md", "See [guides](guides/).\n")
         r = _scan(tmp_path, {"README.md", "guides/x.md"})

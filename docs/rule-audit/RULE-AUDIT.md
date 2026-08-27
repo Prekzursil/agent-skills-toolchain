@@ -321,7 +321,7 @@ the finding list. **Correction applied** — §4.2.
 
 The README of the `agent-self` rules tree writes, of the rules `bootstrap.ps1` installs:
 
-> a rule that calls itself cross-tool (for example [`common/windows-shell.md`](common/windows-shell.md)) is NOT in Codex's instruction chain until you add a pointer yourself
+> a rule that calls itself cross-tool (for example [`common/windows-shell.md`](../../rules/common/windows-shell.md)) is NOT in Codex's instruction chain until you add a pointer yourself
 
 Both the backticked path and the link target are positional claims relative to that README's own
 directory, i.e. `agent-self/config/rules/common/windows-shell.md`. **That file does not exist.**

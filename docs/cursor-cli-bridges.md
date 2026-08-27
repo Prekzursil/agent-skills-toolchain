@@ -6,11 +6,23 @@ Run **Claude Code CLI**, **Codex CLI**, and **Grok CLI** on Windows against the
 **Cursor** model backend, authenticated with the existing Cursor desktop session
 token — no OAuth, no new credentials, no WSL, fully reversible.
 
+**Remember one command:** `ai-mode` (alias `grok-mode`) — on PATH via `~/.local/bin`.
+
+| Command | What it does |
+|---|---|
+| `ai-mode` / `ai-mode status` | which backend each CLI is on + whether auth2api `:8317` is up |
+| `ai-mode native` | strip Cursor overrides from global grok config + User env; `grok`→grok.com, `claude`→Anthropic, `codex`→OpenAI |
+| `ai-mode cursor` | does **not** rewrite globals; prints `grok-cursor` / `claude-cursor` / `codex-cursor` |
+| `grok-cursor` / `claude-cursor` / `codex-cursor` | opt-in Cursor quota (env-only wrappers) |
+
+Native binaries **always** talk to their real vendors unless you explicitly launch `*-cursor`.
+`ai-mode native` is the revert — not hand-editing `~/.grok/config.toml`.
+
 | Bridge | Status | How |
 |---|---|---|
-| **Claude Code CLI** | ✅ e2e | `claude-cursor.ps1` → `ANTHROPIC_BASE_URL=http://127.0.0.1:8317` → auth2api `/v1/messages` → Cursor |
-| **Codex CLI** | ✅ text/reasoning | `codex --profile cursor` (`~/.codex/cursor.config.toml`, `wire_api="responses"`) → `/v1/responses` |
-| **Grok CLI** | ✅ native override | Built-in `grok-4.6` / `grok-4.5` overridden in `~/.grok/config.toml` to `base_url=http://127.0.0.1:8317/v1` — same names, same picker, same effort knob, traffic billed to Cursor |
+| **Claude Code CLI** | ✅ e2e | `claude-cursor` → `ANTHROPIC_BASE_URL=http://127.0.0.1:8317` → auth2api `/v1/messages` → Cursor |
+| **Codex CLI** | ✅ text/reasoning | `codex-cursor` (`--profile cursor`, `~/.codex/cursor.config.toml`, `wire_api="responses"`) → `/v1/responses` |
+| **Grok CLI** | ✅ opt-in wrapper | `grok` = grok.com; `grok-cursor` sets `GROK_MODELS_BASE_URL=http://127.0.0.1:8317/v1` in-process only |
 
 ## The proxy
 
@@ -125,8 +137,11 @@ every response snapshot, `sequence_number` on every event) — Codex remains com
 Verified e2e: `grok -m grok-4.6 -p "…"` → correct reply, proxy stats show
 `grok-shell → POST /v1/responses → provider cursor`.
 
-- **Revert:** delete the marked `cursor-bridge` block in `~/.grok/config.toml`
-  (or restore `config.toml.bak-cursor-models-*`) → Grok CLI returns to grok.com.
+- **Revert:** `ai-mode native` (strips any leftover `cursor-bridge` / `:8317` model table
+  from `~/.grok/config.toml` and clears User-level Cursor env). Footnote: manual restore
+  from `config.toml.bak-cursor-models-*` is emergency-only, and only if that bak is
+  actually native — the 2026-08-26 file named `bak-cursor-models-*` was the *override*
+  snapshot, not the vendor default.
 
 ### Feature-parity (tested 2026-08-26)
 

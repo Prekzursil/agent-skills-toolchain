@@ -12,7 +12,7 @@ This skill is the GLUE between two servers. It fuses ToolUniverse knowledge (CYP
 Stacks used:
 
 - `tooluniverse` MCP (knowledge) - see the `ddi-admet-research` and `tooluniverse-drug-drug-interaction` skills for routing and tool details.
-- `schrodinger` MCP (structure) - see the `schrodinger-maestro-driver` skill for the 12 tools, the license-token split, and the full prep -> grid -> dock -> MM-GBSA pipeline (`glide_grid` builds the grid in-server).
+- `schrodinger` MCP (structure) - see the `schrodinger-maestro-driver` skill for the 67 tools, the license-token split, and the full prep -> grid -> dock -> MM-GBSA pipeline (`glide_grid` builds the grid in-server).
 
 ## When to Use
 

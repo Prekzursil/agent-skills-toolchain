@@ -171,10 +171,17 @@ $LooseFiles = @(
 # one-way mistake: git keeps the blob forever even after a later delete.
 $ExcludeDirs = @('.venv', 'venv', 'node_modules', '__pycache__', '.git', '.pytest_cache',
                  'site-packages', 'dist', 'build', '.mypy_cache', '.ruff_cache', '.tox',
-                 '.next', 'target', '.gradle')
+                 '.next', 'target', '.gradle',
+                 # Hook runtime state dirs (recall-gate indices, per-session caches). These
+                 # churn every session and must never enter version control or raise DRIFT.
+                 'state')
 $ExcludeFilePatterns = @('*.pyc', '*.pyo', '*.so', '*.dll', '*.exe', '*.egg-info',
                          '*.log', '*.tmp', '.DS_Store', 'Thumbs.db',
                          '*.sqlite', '*.sqlite3', '*.db',
+                         # Packaging / export blobs dropped next to skills (not skill content).
+                         '*.zip',
+                         # Hook throttle / UI-reminder runtime markers (live-only; rewrite often).
+                         '.last-run', '.shown-*',
                          # Agent-generated backups. '*.bak' alone is NOT enough: the live tree
                          # carries suffixed forms like '.bak-fleet-20260713',
                          # '.bak-gembuild-agent-definitions-batch', and stacked ones such as
