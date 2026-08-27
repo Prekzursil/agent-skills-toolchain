@@ -202,15 +202,14 @@ $ExcludeFilePatterns = @('*.pyc', '*.pyo', '*.so', '*.dll', '*.exe', '*.egg-info
 #                                     so this is staleness in live, NOT bidirectional divergence.
 #                                     Resolution is repo -> live via sync-skills.ps1; the hold
 #                                     stays only until that deploy happens.
-#   audit_quality_zero_platform.py    GENUINELY bidirectional: repo holds a find_python_with_yaml()
-#                                     interpreter-discovery fallback, live holds a different
-#                                     `pwsh ConvertFrom-Yaml` fallback. Merged copy that keeps
-#                                     both, ordered by reliability, is in scripts/merges/.
+#   audit_quality_zero_platform.py    WAS held (bidirectional yaml-fallback divergence). The
+#                                     scripts/merges/ reconciliation (yaml -> find_python_with_yaml
+#                                     -> pwsh ConvertFrom-Yaml) was deployed to BOTH trees
+#                                     2026-08-27, so per the rule below the entry was removed.
 # Remove an entry from this list once its merge has been deployed to live.
 $RepoOwnedFiles = @(
     'hooks/README.md',
-    '.agents/skills/multi-agent-quickstart/SKILL.md',
-    '.agents/skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py'
+    '.agents/skills/multi-agent-quickstart/SKILL.md'
 )
 
 function Test-RepoOwned {
