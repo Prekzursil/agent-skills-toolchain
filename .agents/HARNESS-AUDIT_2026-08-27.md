@@ -92,3 +92,42 @@ Plugins UI showed `boltable` + `common` (Bolt Technology OÜ team) while enable-
 2. `C:\Users\Prekzursil\.config\fabric\contexts\shared-harness.md`
 
 **Sync-pipeline gap (for the fix column above):** `sync_shared_state.ps1` has merge scripts only for codex/claude/cursor; Grok's MCP mirror and Goose/Agy/Fabric have no materialization path. Next concrete step: a `merge_generated_grok_mcp.py` twin of the Cursor merger, driven by per-server `targets` in `agents.json`.
+
+---
+
+## Adjudicated live-harness regressions (appended 27.08.2026, third pass)
+
+Two regressions flagged by today's toolchain-repo capture ("Excluded and why"), adjudicated and repaired. Backups of both pre-repair live files: `C:\Users\Prekzursil\.agents\backups\skill-regression-repair-20260827-065804\`.
+
+**1. `multi-ai-mingle\SKILL.md` — port clobber. Canon (8812) won.** The live copy stated agent-mail on port 8765 with no collision warning. Measured: live SKILL.md was byte-identical to the repo capture (single commit `e1c9fd56`, the original pre-8812 text) — i.e. a blind revert to the stale capture, which erased the 8812 upgrade; there were no other live improvements to preserve. Canon is unambiguous (`~\CLAUDE.md` multi-ai-mingle block, `~\AGENTS.md` AgentBridge block, and live reality: agent-mail serves 8812 under `MCPAgentMailSupervisor`, basic-memory serves 8765 under `BasicMemory-HTTP-MCP`). Repaired step 2 (serve on **8812**, `/api/health`, supervisor task) and added a "Port discipline" guardrail (8765 = basic-memory, never collide) in the live copy and both repo trees (`skills/` deploy source + `.agents/skills/` capture). Residual: `MCP_AGENT_MAIL.md` and `agent_mail_probe.py` (AM_URL default) in the same skill still reference 8765 upstream defaults — out of this repair's scope, flagged here.
+
+**2. `quality-zero-platform-control-plane\scripts\audit_quality_zero_platform.py` — hold-list clobber. The adjudicated merge won.** The live copy (and, measured today, BOTH repo trees — the hold leaked at some point) carried only the `pwsh ConvertFrom-Yaml` fallback; the 66-line `find_python_with_yaml()` interpreter-discovery fallback survived only in `scripts/merges/`. That deletion breaks the script on machines without a yaml-capable python on PATH AND without the `powershell-yaml` module (not installed on this box — the pwsh path always raises here). The repo's own reconciliation (`scripts/merges/README.md` §3: yaml → find_python_with_yaml → pwsh → actionable RuntimeError, both sides' changes kept) was deployed to live and both repo trees; diff confirmed it differs from live only in imports + the yaml_load region, so all other live changes were preserved. `python -m py_compile` → exit 0. Per the documented lifecycle, the file's entry was removed from `$RepoOwnedFiles` in `scripts/sync-from-live.ps1` (merge now deployed to both trees).
+
+---
+
+## First numeric scorecard (appended 27.08.2026, wave B item 5)
+
+The scorer the earlier pass proved absent now exists: `C:\Users\Prekzursil\.agents\scripts\harness-audit.js`
+(Node, no deps, rubric `2026-05-19`, the 12 fixed categories from `~\.claude\commands\harness-audit.md`,
+deterministic file/rule checks only — exists/parses/counts/sizes/freshness). The 12-category score is no
+longer `NOT-CHECKED`. First run (post-Wave-A/B state, 2026-08-27):
+
+```
+Harness Audit (repo): 107/120
+- Tool Coverage: 10/10          - Cost Efficiency: 10/10
+- Context Efficiency: 7/10      - GitHub Integration: 10/10
+- Quality Gates: 10/10          - Vercel Integration: 10/10
+- Memory Persistence: 10/10     - Netlify Integration: 10/10
+- Eval Coverage: 10/10          - Cloudflare Integration: 10/10
+- Security Guardrails: 10/10    - Fly Integration: 0/10
+```
+
+Failed checks (honest, expected): `fly-deploy` vault skill absent (known LATER item from the gem
+queue — the only genuine deploy-target gap) and `AGENTS.md` > 16 KB (always-injected rules weight).
+Re-run: `node C:\Users\Prekzursil\.agents\scripts\harness-audit.js repo --format text|json`.
+
+---
+
+## Sync coverage (appended 27.08.2026)
+
+Root-level `~\.agents\*.md` docs (this file included) are now captured automatically by the `agents-root` mapping in the toolchain repo's `scripts/sync-from-live.ps1` (top-level only, `*.md` only — skills/logs/backups/secrets untouched); `session-catalog.md` is intentionally git-excluded (script exclusion + `.gitignore`), with `session-catalog.POINTER.md` tracked in its place.
