@@ -68,3 +68,27 @@ Plugins UI showed `boltable` + `common` (Bolt Technology OÜ team) while enable-
 - `harness-audit-runner` — wraps the future `harness-audit.js`, emits the 12-category scorecard + NOT-CHECKED discipline.
 - `deep-research-triage` — instrument the 42 %-success deep-research skill: capture failure modes per run, feed `continuous-learning-v2`.
 - `fly-deploy` — only genuine deploy-target gap in the vault (Vercel/Netlify/Cloudflare/Render covered).
+
+---
+
+## All-runtime compatibility scorecard (appended 27.08.2026, second pass)
+
+**Contract under test:** `~\AGENTS.md` §"Universal harness share (HARD)" — every runtime loads skills from `.agents\skills` and rules from `~\AGENTS.md` (or a ≤10-line pointer file). `sync_shared_state.ps1` (read this pass) materializes exactly three targets: Claude (skills junction chain + `.claude.json` MCP merge), Codex (`config.toml` MCP merge), Cursor (`.cursor\mcp.json` MCP merge). Grok/Goose/Agy/Fabric are NOT in the sync pipeline.
+
+| Runtime | Skills source | Rules source | MCP source | Status | Fix |
+|---|---|---|---|---|---|
+| Claude CLI | `.claude\skills` → symlink → `.claude\skills.daily` → junction → `.agents\skills` (enforced by sync script, HARD-STOP on real dir) | `~\CLAUDE.md` + `~\AGENTS.md` | `.claude.json`, merged from `agents.json` (40/40 servers) | CONNECTED | — |
+| Codex CLI | `.codex\skills` deliberately Codex-local (2 built-ins); shared skills via `~\AGENTS.md` harness-share instruction (sanctioned by contract) | `~\AGENTS.md` (native) | `.codex\config.toml`, merged (4/40 — per-server `targets`, by design) | CONNECTED | — |
+| Cursor | `.claude\skills` (vault via junction) + `.cursor\skills-cursor` — verified loaded this session | workspace rules load `~\CLAUDE.md` + `~\AGENTS.md` — verified this session | `.cursor\mcp.json`, merged (6 live + 31 parked) | CONNECTED | — (scope-duplicate issue is Finding A above) |
+| Grok CLI | `.grok\config.toml` `[paths] extra_skill_dirs = ['C:\Users\Prekzursil\.agents\skills']` | `extra_rule_dirs = ['C:\Users\Prekzursil\.agents\rules']` (dir verified: common + 13 language trees) + `[claude_compat] imported` | own `[mcp_servers.*]` blocks in `.grok\config.toml` — a MANUAL mirror of the Claude surface (agent-mail 8812, basic-memory 8765, etc.), not sync-managed | CONNECTED (MCP manual-mirror) | add a `merge_generated_grok_mcp.py` target to `sync_shared_state.ps1`, or accept manual mirror and re-audit quarterly |
+| Goose 🪿 | none before this pass (skills platform extension enabled in `config.yaml`, but no skills dir, no hints) | none before this pass | own `extensions:` block in `%APPDATA%\Block\goose\config\config.yaml` (platform/builtin only; no shared MCP) | was DRIFTED → **POINTED this pass** | **DONE:** created `%APPDATA%\Block\goose\config\.goosehints` (≤10-line pointer to `~\AGENTS.md` + `.agents\skills`; auto-loaded globally by Goose). Optional deeper fix (not done — beyond pointer scope): junction `config\skills` → `.agents\skills` |
+| Agy 1.1.20 | unknown — binary at `%LOCALAPPDATA%\agy\bin\agy.EXE` runs, `--help` shows skills + slash-command expansion, but NO config dir exists (`.agy`, `.agy.yaml`, `.config\agy` all absent; only `bin\` under `%LOCALAPPDATA%\agy`) | unknown | unknown | NOT-CHECKED | run `agy install` (its own "Configure environment paths" subcommand), find the config home it creates, then drop the standard ≤10-line pointer |
+| Fabric | own patterns corpus `.config\fabric\patterns` (292 files) — no skills concept | none (Fabric never reads AGENTS.md) | n/a (no MCP client) | DRIFTED (paradigm mismatch) → pointer staged | **DONE:** created `.config\fabric\contexts\shared-harness.md` pointer. CAVEAT: Fabric contexts are opt-in (`fabric --context shared-harness`), NOT auto-loaded — this is the closest a ≤10-line pointer can get without restructuring Fabric. `.config\fabric\.env` holds secrets — never commit/copy it |
+
+**Verdicts:** 4 CONNECTED (Claude, Codex, Cursor, Grok) · 1 DRIFTED→POINTED (Goose) · 1 DRIFTED with opt-in pointer (Fabric) · 1 NOT-CHECKED (Agy — no config home exists yet to point).
+
+**Pointer files created this pass (both brand-new; nothing replaced, no backups needed):**
+1. `%APPDATA%\Block\goose\config\.goosehints`
+2. `C:\Users\Prekzursil\.config\fabric\contexts\shared-harness.md`
+
+**Sync-pipeline gap (for the fix column above):** `sync_shared_state.ps1` has merge scripts only for codex/claude/cursor; Grok's MCP mirror and Goose/Agy/Fabric have no materialization path. Next concrete step: a `merge_generated_grok_mcp.py` twin of the Cursor merger, driven by per-server `targets` in `agents.json`.
