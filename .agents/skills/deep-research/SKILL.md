@@ -11,6 +11,17 @@ description: Multi-source deep research with a routing + caching + grading harne
 > `references/research_harness/routing.py` is the single choke-point to update,
 > and the preflight step catches name/availability drift at runtime.
 
+## Instrumentation (Wave B passenger, 2026-08-27 — no logic changes)
+
+This skill measures **42% success over 90 uses** (worst popular skill). Hypothesis: long
+multi-hop runs outlive their context/tool budget on this RAM-starved box, so partial runs log
+as failures. To make that measurable instead of guessed: **each run should append phase
+timestamps** (plan / search / deep-read / synthesize / deliver, plus abort point if any) as
+one JSONL line per phase to `C:\Users\Prekzursil\.agents\logs\cursor-subagent-lifecycle.jsonl`
+— the same log Cursor's `subagentStart`/`subagentStop` hooks write to — e.g.
+`{"ts":"<ISO8601>","source":"deep-research","phase":"search","note":"..."}`. Do NOT change
+the research logic based on the hypothesis until this log disproves or confirms it.
+
 Produce thorough, cited research reports from multiple sources. The base
 workflow (understand to plan to search to deep-read to synthesize to deliver)
 is unchanged; the **Research Harness (M-16)** below slots routing, caching,
@@ -54,6 +65,12 @@ around them. Never call `mcp__sci-hub__*`; avoid `paper_find_oa_pdf` per the
 standing regression note. Both are hard-excluded by the router. No dark-web /
 onion provider is routed to; any `.onion` source that reaches grading is
 force-flagged UNVERIFIED regardless of corroboration.
+
+OpenRouter is **not** a research search provider and must not replace Firecrawl,
+Exa, or native Max. T0 summarization of sources **already fetched** by the
+harness MAY use the `openrouter-routing` sidecar (allowlisted free/cheap chat
+completion). `web` / `deep_read` stay on MCP providers. Do not use `:online`
+(deprecated) or `openrouter:web_search` as a search MCP substitute.
 
 ## Workflow
 

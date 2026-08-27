@@ -37,6 +37,11 @@ Provider-strength split (the Perplexity correlation, M-16b):
     firecrawl as primary, with Perplexity inserted as the high-priority #2
     corroborator (a cited second opinion) ahead of exa/tavily.
 
+OpenRouter is not in this table. T0 summarization of already-fetched sources
+MAY use the ``openrouter-routing`` sidecar (free/cheap chat). Search and
+``deep_read`` stay on the MCP providers below. Do not route via ``:online``
+(deprecated) or OpenRouter ``openrouter:web_search``.
+
 Hard guardrails baked in:
   * Sci-Hub is never routed to (``mcp__sci-hub__*``).
   * ``scholarly-access.paper_find_oa_pdf`` is excluded pending the standing
