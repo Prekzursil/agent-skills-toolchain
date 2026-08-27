@@ -1,0 +1,84 @@
+# monitors.toml — the monitor registry for the generalized `mon <name>` launcher and the
+# monitor-autolaunch hook. READ-ONLY: parsed with the stdlib `tomllib` in
+# `monitorcore.monitors.load_monitors` (never tomlkit — nothing here rewrites TOML). Deployed to
+# ~/.agents/skills/monitor-launcher/monitors.toml by scripts/sync-skills.ps1 (a plain file copy,
+# mirroring hooks/mcp-userscope-sync/heal.py's skills mirror — never a round-trip rewrite).
+#
+# One [table] per monitor:
+#   dir          = the deployed skill dir under ~/.agents/skills/ that holds the entry script
+#   entry        = the launchable entry script within that dir
+#   trigger_tool = the Claude tool whose invocation auto-opens this monitor (via the hook);
+#                  omit it for a monitor that is launchable by hand but never auto-opened.
+#   autolaunch   = what the hook does when trigger_tool fires: "open" (default) auto-opens the
+#                  monitor window — correct for a PERSISTENT poller (the cockpit) that keeps
+#                  picking up agents as they appear; "remind" emits a one-time `mon <name>` nudge
+#                  instead — correct for a ONE-SHOT spawner (agentmon) that would otherwise race
+#                  the not-yet-created subagent transcript at PreToolUse and find nothing.
+
+[wfmon]
+dir = "workflow-monitor"
+entry = "workflow_monitor.py"
+# NO trigger_tool any more: T0-3 (executed 2026-08-20) repointed `Workflow` at [cockpit]
+# below, retiring this predecessor board from auto-open. Still launchable by hand: `mon wfmon`.
+
+[agentmon]
+dir = "run-agent-monitor"
+entry = "agentmon.py"
+trigger_tool = "Task"
+# One-shot snapshot spawner: at a Task's PreToolUse the subagent transcript doesn't exist yet,
+# so auto-opening would flash an empty window and the per-session lock would never retry.
+# Remind the user to run `mon agentmon` once the agents are live instead.
+autolaunch = "remind"
+
+[codexmon]
+dir = "workflow-monitor"
+entry = "codex_monitor.py"
+trigger_tool = "mcp__codex__codex"
+# autolaunch defaults to "open" — the codex board is a PERSISTENT poller (it keeps
+# discovering relay stream files + ~/.codex rollouts as they appear), so auto-opening at
+# the first mcp__codex__codex call is safe: nothing races a not-yet-created file.
+
+# CRCP multi-rail health (auth, agent-mail, ChatGPT bridge, Databricks).
+# Manual: mon crcp
+[crcp]
+dir = "crcp-health"
+entry = "crcp_health_monitor.py"
+
+# Claude Science (local WSL2 daemon on 127.0.0.1:8000) health.
+# Manual: mon csmon
+#
+# NO trigger_tool, deliberately, exactly like [crcp] above: this is a manual HEALTH monitor, not
+# a workflow poller, and there is no Claude tool whose invocation implies "show me the science
+# daemon". Additive stanza -- it changes nothing for the monitors above.
+#
+# The entry is a read-only shim over `cs doctor -Json` / `cs status -Json`. It renders
+# NOT-CHECKED as its own column instead of folding it into PASS, so the board cannot read green
+# over rows that were never measured.
+[csmon]
+dir = "claude-science-local"
+entry = "cs_monitor.py"
+
+# The unified 6-pane cockpit (codex · agents · workflows · databricks/remote-workers · mcp · health).
+# Pane 4 tails a LOCAL NDJSON mirror of any remote worker (Scaleway, Databricks, Modal, RunPod).
+# Mirror with: python tools/monitorcore/scripts/remote_pull.py --source user@host
+# Default stream: ~/.claude/remote-workers/current/events.ndjson
+# Manual: mon cockpit
+#
+# OWNS the `Workflow` trigger (MASTER-QUEUE T0-3, executed 2026-08-20): the trigger moved here
+# from [wfmon], so a Workflow call now auto-opens the cockpit — exactly ONE window, replacing
+# (not doubling) the predecessor board, which stays manual-only above. autolaunch defaults to
+# "open": the cockpit is a persistent poller, safe to auto-open.
+#
+# `entry` is a script path, not a module: the launch ladder builds `python <dir>/<entry>`, so
+# `monitorcore.unified` needs the `unified_board.py` shim that sits beside it.
+[cockpit]
+dir = "workflow-monitor"
+entry = "unified_board.py"
+trigger_tool = "Workflow"
+
+# Live Prompt Two board (Scaleway mirror + local p2-deliver-all harvest).
+# Manual: mon p2r2e
+# Also: python %USERPROFILE%\source\ast-integrate\command-center\p2-wave\p2_status.py --watch
+[p2r2e]
+dir = "workflow-monitor"
+entry = "p2r2e_board.py"

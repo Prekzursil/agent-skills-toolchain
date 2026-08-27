@@ -1,0 +1,126 @@
+[CmdletBinding()]
+param(
+    [string]$ProjectRoot = 'C:\Users\Prekzursil',
+    [string]$PythonExe = ''
+)
+
+$ErrorActionPreference = 'Stop'
+
+function Resolve-PythonExecutable {
+    param([string]$ExplicitPath)
+
+    if ($ExplicitPath) {
+        if (-not (Test-Path -LiteralPath $ExplicitPath -PathType Leaf)) {
+            throw "Requested Python executable does not exist: $ExplicitPath"
+        }
+        return (Resolve-Path -LiteralPath $ExplicitPath).Path
+    }
+
+    $command = Get-Command python.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($command -and $command.Source) {
+        return $command.Source
+    }
+
+    # Clean non-interactive PowerShell sessions on this workstation do not
+    # inherit the interactive Python shim. Prefer the machine-local CPython,
+    # then the Reframe venv that already satisfies these stdlib-only scripts.
+    $candidates = @(
+        (Join-Path $env:SystemDrive 'Python314\python.exe'),
+        (Join-Path $ProjectRoot 'Documents\GitHub\Reframe\sidecar\.venv\Scripts\python.exe')
+    )
+    foreach ($candidate in $candidates) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $candidate).Path
+        }
+    }
+
+    throw 'Python 3 is required for shared-state sync. Pass -PythonExe with an absolute python.exe path.'
+}
+
+function Invoke-CheckedPython {
+    param(
+        [Parameter(Mandatory = $true)][string]$Executable,
+        [Parameter(Mandatory = $true)][string]$ScriptPath,
+        [string[]]$Arguments = @()
+    )
+
+    # PowerShell 5 leaves LASTEXITCODE unset when a native child never started.
+    # Seed it, retain the child output, and require the scripts' exact terminal
+    # sentinel so a severed stream can never be laundered into success.
+    $global:LASTEXITCODE = 0
+    $stepOutput = @(& $Executable $ScriptPath @Arguments 2>&1)
+    $exitCode = $LASTEXITCODE
+    $stepOutput | ForEach-Object { Write-Output $_ }
+    if ($exitCode -ne 0) {
+        throw "Python step failed (exit $exitCode): $ScriptPath"
+    }
+    if (-not ($stepOutput | Where-Object { $_.ToString().StartsWith('SUCCESS:') })) {
+        throw "Python step produced no SUCCESS sentinel: $ScriptPath"
+    }
+}
+
+$agentsDir = Join-Path $ProjectRoot '.agents'
+$codexMergeScript = Join-Path $agentsDir 'scripts\merge_generated_codex_mcp.py'
+$claudeMergeScript = Join-Path $agentsDir 'scripts\merge_generated_claude_mcp.py'
+$localBridgeSyncScript = Join-Path $agentsDir 'scripts\sync_local_bridge_mcp.py'
+$validatorScript = Join-Path $agentsDir 'scripts\validate_mcp_control_plane.py'
+$referenceViewsScript = Join-Path $agentsDir 'scripts\publish_reference_views.py'
+$agentsConfig = Join-Path $agentsDir 'agents.json'
+$liveCodex = Join-Path $ProjectRoot '.codex\config.toml'
+$liveClaude = Join-Path $ProjectRoot '.claude.json'
+# Claude Code loads a CURATED subset (2%-context skills budget); the full 254-skill
+# vault stays at .agents\skills for the other tools (OpenCode/Cursor/Codex) + name-invocation.
+$sharedSkillsTarget = Join-Path $ProjectRoot '.claude\skills.daily'
+$resolvedPython = Resolve-PythonExecutable -ExplicitPath $PythonExe
+Write-Host "  Python OK -> $resolvedPython"
+
+# Guard/repair: ensure .claude/skills is still a symlink to the shared skills target
+$skillsLink = Join-Path $ProjectRoot '.claude\skills'
+if (-not (Test-Path $sharedSkillsTarget)) {
+    Write-Error "STOP: shared skills target is missing: $sharedSkillsTarget"
+    exit 1
+}
+
+if (-not (Test-Path $skillsLink)) {
+    Write-Host "  .claude\skills missing -> recreating shared link"
+    try {
+        New-Item -ItemType SymbolicLink -Path $skillsLink -Target $sharedSkillsTarget -Force | Out-Null
+        Write-Host "  .claude\skills symlink restored -> $sharedSkillsTarget"
+    } catch {
+        try {
+            New-Item -ItemType Junction -Path $skillsLink -Target $sharedSkillsTarget -Force | Out-Null
+            Write-Host "  .claude\skills junction restored -> $sharedSkillsTarget"
+        } catch {
+            Write-Error "STOP: failed to restore .claude\skills link: $($_.Exception.Message)"
+            exit 1
+        }
+    }
+} else {
+    $item = Get-Item $skillsLink -Force
+    if (-not $item.LinkType) {
+        Write-Error "STOP: .claude\skills exists but is not a symlink/junction. Investigate before syncing."
+        exit 1
+    }
+    Write-Host "  .claude\skills link OK -> $($item.Target)"
+}
+
+Write-Host '==> validate shared MCP registry and reference-only credentials'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $validatorScript -Arguments @('--agents-config', $agentsConfig)
+
+Write-Host '==> publish reference-only provider views'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $referenceViewsScript -Arguments @('--agents-config', $agentsConfig)
+
+# integrations.enabled is intentionally empty. Native agents sync would emit a
+# second generated MCP surface and can interpolate local credential overrides.
+Write-Host '==> native agents MCP materialization disabled; using atomic provider mergers'
+
+Write-Host '==> merge agents-managed Codex MCP blocks into live .codex/config.toml'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $codexMergeScript -Arguments @('--live', $liveCodex, '--agents-config', $agentsConfig, '--write')
+
+Write-Host '==> merge agents-managed Claude MCP into .claude.json'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $claudeMergeScript -Arguments @('--live', $liveClaude, '--agents-config', $agentsConfig, '--write')
+
+Write-Host '==> sync local Claude bridge MCP from agents definitions'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $localBridgeSyncScript
+
+Write-Host 'SUCCESS:shared-state-sync'

@@ -1,0 +1,48 @@
+[CmdletBinding()]
+param(
+    [string]$ProjectRoot = 'C:\Users\Prekzursil'
+)
+
+$ErrorActionPreference = 'Stop'
+
+$agentsDir = Join-Path $ProjectRoot '.agents'
+$codexMergeScript = Join-Path $agentsDir 'scripts\merge_generated_codex_mcp.py'
+$claudeMergeScript = Join-Path $agentsDir 'scripts\merge_generated_claude_mcp.py'
+$agentsConfig = Join-Path $agentsDir 'agents.json'
+$liveCodex = Join-Path $ProjectRoot '.codex\config.toml'
+$liveClaude = Join-Path $ProjectRoot '.claude.json'
+
+$doToken = [Environment]::GetEnvironmentVariable('DIGITALOCEAN_API_TOKEN', 'User')
+if (-not $doToken) {
+    $doToken = [Environment]::GetEnvironmentVariable('DIGITALOCEAN_TOKEN', 'User')
+}
+if (-not $doToken) {
+    $doToken = [Environment]::GetEnvironmentVariable('DIGITALOCEAN_TOKEN', 'Machine')
+}
+if ($doToken) {
+    $trimmedDoToken = $doToken.Trim()
+    $env:DIGITALOCEAN_TOKEN = $trimmedDoToken
+    $env:DIGITALOCEAN_API_TOKEN = $trimmedDoToken
+}
+
+# Guard: verify .claude/skills is still a symlink
+$skillsLink = Join-Path $ProjectRoot '.claude\skills'
+if (Test-Path $skillsLink) {
+    $item = Get-Item $skillsLink -Force
+    if (-not $item.LinkType) {
+        Write-Error "STOP: .claude\skills is no longer a symlink. Investigate before syncing."
+        exit 1
+    }
+    Write-Host "  .claude\skills symlink OK -> $($item.Target)"
+}
+
+Write-Host '==> agents sync'
+agents sync --path $ProjectRoot
+
+Write-Host '==> merge agents-managed Codex MCP blocks into live .codex/config.toml'
+python $codexMergeScript --live $liveCodex --agents-config $agentsConfig --write
+
+Write-Host '==> merge agents-managed Claude MCP into .claude.json'
+python $claudeMergeScript --live $liveClaude --agents-config $agentsConfig --write
+
+Write-Host '==> done'

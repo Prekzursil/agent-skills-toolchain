@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Merge agents-managed MCP servers into Cursor's ~/.cursor/mcp.json.
+
+Reads .agents/agents.json (source of truth) and merges the registry servers
+into the live .cursor/mcp.json — using clean names (no agents__ prefix),
+preserving manually-configured non-registry servers, and skipping servers
+already provided by installed Cursor plugins.
+
+Cursor is not a first-class target in mcp_control_plane (VALID_TARGETS is
+{claude, codex}), so this merge mirrors the *claude* target selection: Cursor
+should expose the same custom/local MCP surface as Claude Code.
+
+Cursor-specific rendering differences vs the Claude merge:
+- Credential references use Cursor's interpolation syntax ``${env:NAME}``
+  (plain ``${NAME}`` is passed through literally by Cursor and would clobber
+  inherited environment values).
+- A timestamped backup of mcp.json is taken by default before writing
+  (disable with --no-backup).
+- G-6=6B allowlist (``CURSOR_ENABLED_SERVERS``): merge emits **only** these
+  names. Parked catalog is ``.agents/mcp-cursor-parked-31.json``, not mcp.json.
+  ``sync_shared_state.ps1`` must not re-insert the 31 even as ``disabled``.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import platform
+import re
+import shutil
+from collections.abc import Mapping
+from datetime import datetime
+from typing import Any
+
+import mcp_control_plane as control
+
+
+DEFAULT_PROJECT_ROOT = pathlib.Path(r"C:\Users\Prekzursil")
+DEFAULT_LIVE_CONFIG = DEFAULT_PROJECT_ROOT / ".cursor" / "mcp.json"
+DEFAULT_AGENTS_CONFIG = DEFAULT_PROJECT_ROOT / ".agents" / "agents.json"
+
+# Servers intentionally left plugin-managed in Cursor. The tavily marketplace
+# plugin is explicitly enabled in ~/.cursor/settings.json and mounts the same
+# server; rendering it here would double-mount it.
+CURSOR_PLUGIN_PROVIDED_SERVERS = frozenset({"tavily"})
+
+# Registry servers deliberately NOT exposed to Cursor. These are present in
+# .claude.json but explicitly denied in Claude's settings.json permissions;
+# Cursor has no deny mechanism, so parity means not mounting them at all.
+CURSOR_DENIED_SERVERS = frozenset({"markitdown", "meta-tool"})
+
+# G-6=6B (2026-08-27): Cursor mcp.json emits only this keep-list.
+# The 31 parked servers live in ``.agents/mcp-cursor-parked-31.json`` (4D MOVE
+# imports from there; do not Enable in Cursor). Mixpanel stays absent.
+# A later ``sync_shared_state.ps1`` Cursor merge must not re-insert the 31
+# even as ``disabled: true``.
+CURSOR_ENABLED_SERVERS = frozenset(
+    {
+        "agent-mail",
+        "basic-memory",
+        "chrome-devtools",
+        "context7",
+        "firecrawl",
+        "playwright",
+    }
+)
+
+ENV_REF_RE = re.compile(r"\$\{([A-Z][A-Z0-9_]*)\}")
+
+IS_WINDOWS = platform.system() == "Windows"
+
+
+def load_json(path: pathlib.Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def to_cursor_reference(value: Any) -> Any:
+    """Rewrite ``${NAME}`` env references to Cursor's ``${env:NAME}`` syntax."""
+    if not isinstance(value, str):
+        return value
+    return ENV_REF_RE.sub(lambda m: f"${{env:{m.group(1)}}}", value)
+
+
+def needs_cmd_wrapper(command: str) -> bool:
+    """Check if a command needs cmd /c wrapper on Windows."""
+    if not IS_WINDOWS:
+        return False
+    bare = command.strip().lower()
+    return bare in ("npx", "npm", "node") or bare.startswith("npx ")
+
+
+def wrap_for_windows(command: str, args: list[str]) -> tuple[str, list[str]]:
+    """Wrap npx/npm commands with cmd /c on Windows."""
+    if needs_cmd_wrapper(command):
+        return "cmd", ["/c", command] + args
+    return command, args
+
+
+def build_cursor_server(name: str, server: dict[str, Any]) -> dict[str, Any] | None:
+    """Convert an agents.json server definition to a .cursor/mcp.json entry."""
+    transport = server.get("transport", "stdio")
+
+    if transport == "http":
+        entry: dict[str, Any] = {
+            "url": server["url"],
+        }
+        headers = dict(server.get("headers", {}))
+        x_codex = server.get("x_codex", {})
+        bearer_env = x_codex.get("bearer_token_env_var") if isinstance(x_codex, dict) else None
+        if bearer_env and "Authorization" not in headers:
+            headers["Authorization"] = f"Bearer ${{{bearer_env}}}"
+        if headers:
+            entry["headers"] = {
+                key: to_cursor_reference(value) for key, value in headers.items()
+            }
+        return entry
+
+    # stdio transport
+    command = server.get("command", "")
+    args = [str(a) for a in server.get("args", [])]
+
+    command, args = wrap_for_windows(command, args)
+
+    entry = {
+        "command": command,
+        "args": args,
+    }
+
+    env = server.get("env", {})
+    if env:
+        entry["env"] = {key: to_cursor_reference(value) for key, value in env.items()}
+
+    if server.get("cwd"):
+        entry["cwd"] = server["cwd"]
+
+    return entry
+
+
+def cursor_excluded_servers() -> frozenset[str]:
+    return CURSOR_PLUGIN_PROVIDED_SERVERS | CURSOR_DENIED_SERVERS
+
+
+def stamp_cursor_g3d(entry: Mapping[str, Any], name: str) -> dict[str, Any]:
+    """Emit a keep-list block enabled. Non-keepers are filtered before this."""
+    stamped = dict(entry)
+    if name in CURSOR_ENABLED_SERVERS:
+        stamped.pop("disabled", None)
+    return stamped
+
+
+def merge_cursor_mcp_servers(
+    live_servers: Mapping[str, Any],
+    generated: Mapping[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Merge registry-rendered servers into live mcpServers with G-6=6B allowlist.
+
+    Only ``CURSOR_ENABLED_SERVERS`` are emitted. Parked servers stay in
+    ``.agents/mcp-cursor-parked-31.json``. A later sync cannot re-insert the
+    31 even as ``disabled: true``. Mixpanel stays absent.
+    """
+    merged: dict[str, Any] = {}
+    for name, entry in live_servers.items():
+        if name not in CURSOR_ENABLED_SERVERS:
+            continue
+        if not isinstance(entry, dict):
+            merged[name] = entry
+            continue
+        source = generated.get(name, entry)
+        merged[name] = stamp_cursor_g3d(source, name)
+    for name, entry in generated.items():
+        if name not in CURSOR_ENABLED_SERVERS:
+            continue
+        if name not in merged:
+            merged[name] = stamp_cursor_g3d(entry, name)
+    return merged
+
+
+def build_managed_servers_from_agents(agents_config: dict) -> dict[str, dict[str, Any]]:
+    selected = control.select_target_servers(
+        agents_config,
+        "claude",
+        plugin_provided=cursor_excluded_servers(),
+    )
+    rendered = {
+        name: build_cursor_server(name, server)
+        for name, server in selected.items()
+    }
+    result = {name: entry for name, entry in rendered.items() if entry is not None}
+    control.assert_exact_target_parity(
+        agents_config,
+        "claude",
+        result,
+        plugin_provided=cursor_excluded_servers(),
+    )
+    return result
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Merge agents-managed MCP servers into Cursor's .cursor/mcp.json"
+    )
+    parser.add_argument("--live", default=str(DEFAULT_LIVE_CONFIG),
+                        help="Path to live .cursor/mcp.json")
+    parser.add_argument("--agents-config", default=str(DEFAULT_AGENTS_CONFIG),
+                        help="Path to .agents/agents.json")
+    parser.add_argument("--write", action="store_true",
+                        help="Write merged config back to .cursor/mcp.json")
+    parser.add_argument("--no-backup", action="store_true",
+                        help="Skip the timestamped backup before writing")
+    args = parser.parse_args()
+
+    live_path = pathlib.Path(args.live)
+    agents_config_path = pathlib.Path(args.agents_config)
+
+    agents_config = load_json(agents_config_path)
+    live_config = load_json(live_path) if live_path.exists() else {}
+    control.validate_registry(agents_config)
+
+    servers = agents_config.get("mcp", {}).get("servers", {})
+    mcp_servers = live_config.get("mcpServers", {})
+    if not isinstance(mcp_servers, dict):
+        mcp_servers = {}
+    generated = build_managed_servers_from_agents(agents_config)
+
+    added = []
+    updated = []
+    skipped_plugin = []
+    skipped_denied = []
+    skipped_disabled = []
+    skipped_no_target = []
+    skipped_parked = []
+
+    for name, server in sorted(servers.items()):
+        if name not in generated:
+            if name in CURSOR_PLUGIN_PROVIDED_SERVERS:
+                skipped_plugin.append(name)
+            elif name in CURSOR_DENIED_SERVERS:
+                skipped_denied.append(name)
+            elif not server.get("enabled", True):
+                skipped_disabled.append(name)
+            else:
+                skipped_no_target.append(name)
+            continue
+
+        if name not in CURSOR_ENABLED_SERVERS:
+            skipped_parked.append(name)
+            continue
+
+        if name in mcp_servers:
+            updated.append(name)
+        else:
+            added.append(name)
+
+    merged = merge_cursor_mcp_servers(mcp_servers, generated)
+    live_config["mcpServers"] = merged
+    enabled = [
+        name
+        for name, entry in merged.items()
+        if not (isinstance(entry, dict) and entry.get("disabled") is True)
+    ]
+    disabled = [
+        name
+        for name, entry in merged.items()
+        if isinstance(entry, dict) and entry.get("disabled") is True
+    ]
+
+    if args.write:
+        if live_path.exists() and not args.no_backup:
+            ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+            backup_path = live_path.with_suffix(f".json.bak-{ts}")
+            shutil.copy2(live_path, backup_path)
+
+        control.atomic_write_json(live_path, live_config)
+
+    print(
+        "SUCCESS:mcp-cursor-merge "
+        f"managed={len(generated)} added={len(added)} updated={len(updated)} "
+        f"enabled={len(enabled)} disabled={len(disabled)} "
+        f"plugin_skips={len(skipped_plugin)} denied_skips={len(skipped_denied)} "
+        f"parked_skips={len(skipped_parked)} "
+        f"write={str(args.write).lower()}"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
