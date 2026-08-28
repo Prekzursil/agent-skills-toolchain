@@ -192,7 +192,7 @@ def main() -> int:
     args = parser.parse_args()
 
     env_names: set[str] = set()
-    if args.rotation_manifest:
+    if args.rotation_manifest and args.rotation_manifest.is_file():
         manifest = json.loads(args.rotation_manifest.read_text(encoding="utf-8"))
         for provider in manifest.get("providers", []):
             env_names.update(provider.get("environmentVariables", []))

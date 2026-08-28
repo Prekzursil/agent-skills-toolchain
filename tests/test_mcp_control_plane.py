@@ -340,20 +340,30 @@ def test_live_registry_has_shared_basic_memory_and_no_retired_sidecar() -> None:
     assert "codex_consult" not in rendered
 
 
-def test_rotation_manifest_contains_references_but_never_values() -> None:
-    control = load_script("mcp_control_plane")
+def test_rotation_manifest_file_is_absent_never_rotate() -> None:
     path = SCRIPTS_ROOT / "credential_rotation_manifest.json"
-    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert not path.exists(), "owner 2026-08-28: never rotate; manifest must stay deleted"
 
-    control.validate_rotation_manifest(manifest)
-    assert manifest["schemaVersion"] == 1
-    assert all(record.get("environmentVariables") for record in manifest["providers"])
-    assert all(record.get("affectedPaths") for record in manifest["providers"])
-    assert all("value" not in record for record in manifest["providers"])
-    providers = {record["provider"]: set(record["environmentVariables"]) for record in manifest["providers"]}
-    assert providers["Exa"] == {"EXA_API_KEY", "EXA_API_KEY_2"}
-    assert providers["Jina Reader"] == {"JINA_API_KEY"}
-    assert providers["OpusClip"] == {"OPUSCLIP_API_KEY"}
+
+def test_validate_control_plane_missing_rotation_manifest_is_never_rotate() -> None:
+    script = SCRIPTS_ROOT / "validate_mcp_control_plane.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--agents-config",
+            str(AGENTS_ROOT / "agents.json"),
+            "--rotation-manifest",
+            str(SCRIPTS_ROOT / "credential_rotation_manifest.json"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "SUCCESS:mcp-control-plane-validate" in result.stdout
+    assert "rotation_providers=0" in result.stdout
+    assert "rotation_policy=never" in result.stdout
 
 
 def test_codex_merge_removes_retired_promptbridge_sidecar(
