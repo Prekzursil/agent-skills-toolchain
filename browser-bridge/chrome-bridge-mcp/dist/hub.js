@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { randomUUID } from "node:crypto";
+import { assertCdpAllowed } from "./cdp-allowlist.js";
 export const DEFAULT_PORT = 8787;
 export const HOST = "127.0.0.1";
 /**
@@ -43,6 +44,9 @@ export class Hub {
         this.extensionOrigin = extensionId ? `chrome-extension://${extensionId}` : undefined;
     }
     async start() {
+        if (!this.token) {
+            throw new Error("CHROME_BRIDGE_TOKEN is required; refusing to start an unauthenticated hub");
+        }
         try {
             await this.listen();
             this.role = "host";
@@ -97,7 +101,9 @@ export class Hub {
      * driving their browser. The token is defence in depth against local processes.
      */
     authorize(pathname, origin, provided) {
-        if (this.token && provided !== this.token)
+        if (!this.token)
+            return "hub token not configured";
+        if (provided !== this.token)
             return "invalid token";
         if (pathname === "/extension") {
             if (!origin)
@@ -287,6 +293,9 @@ export class Hub {
         return promise;
     }
     async dispatchToExtension(command, timeoutMs = 45_000, clientId = this.clientId) {
+        if (command.type === "cdp") {
+            assertCdpAllowed(command.method, command.params ?? {});
+        }
         // MV3 service workers restart and reconnect, so tolerate a brief gap.
         const extension = await this.awaitSocket(() => this.extension, 3000);
         if (!extension) {

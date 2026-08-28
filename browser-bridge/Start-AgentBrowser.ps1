@@ -243,7 +243,9 @@ try {
     Write-Output "launcher_pid=$($proc.Id)"
     Write-Output "extension_id=$($ready.loaded.id)"
     Write-Output "extensions_listed=$($listed.Count)"
-    Write-Output "token_injected=$($ready.token_injected)"
+    if ($ready.PSObject.Properties.Name -contains 'token_injected') {
+        Write-Output "token_injected=$($ready.token_injected)"
+    }
     if ($listed.Count -lt 1) {
         Write-Terminal FAILED 'Extensions.getExtensions empty after pipe loadUnpacked'
         exit 1

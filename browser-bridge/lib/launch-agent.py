@@ -51,8 +51,9 @@ def assert_agent_profile(user_data: Path) -> None:
     try:
         resolved.relative_to(root)
     except ValueError:
-        print(f"FAILED:launch-agent user-data-dir is not under {root}", file=sys.stderr)
-        raise SystemExit(2)
+        if not str(resolved).lower().startswith(str(root).lower() + os.sep) and str(resolved).lower() != str(root).lower():
+            print(f"FAILED:launch-agent user-data-dir is not under {root}", file=sys.stderr)
+            raise SystemExit(2)
     resolved_s = str(resolved).lower()
     for forbidden in _forbidden_human_dirs():
         try:

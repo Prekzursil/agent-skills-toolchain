@@ -32,9 +32,13 @@ function probe(pathname, headers, token = TEST_TOKEN) {
   return new Promise((resolve) => {
     const qs = token ? `?token=${encodeURIComponent(token)}` : "";
     const socket = new WebSocket(`ws://127.0.0.1:${PORT}${pathname}${qs}`, { headers });
+    let settled = false;
     const done = (outcome) => {
+      if (settled) return;
+      settled = true;
       socket.removeAllListeners();
-      try { socket.close(); } catch {}
+      socket.on("error", () => {});
+      try { socket.terminate(); } catch {}
       resolve(outcome);
     };
     socket.on("open", () => done("open"));

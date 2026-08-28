@@ -11,4 +11,5 @@ pwsh -File ~\.agents\browser-bridge\Start-TorLane.ps1 -Profile agent-persistent 
 ```
 
 Persistent profiles (never wiped): `~\.agents\browser-profiles\{chrome,edge,firefox,tor}-agent`.
-Hub: `ws://127.0.0.1:8770` (agent) / `8790` (live). Do not use 8787.
+Hub: `ws://127.0.0.1:8770` (agent) / `8790` (live). Token required from `~\.agents\local.json` `chromeBridge` (gitignored). Do not use 8787.
+LIVE uses `extension-live` (8790 baked in). Agent uses `extension-agent` (8770, id `bdccimcedobipcmhcikcnakjdemiechj`). Never load the agent extension into the human profile.
