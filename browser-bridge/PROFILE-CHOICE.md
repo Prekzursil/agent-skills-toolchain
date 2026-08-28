@@ -40,9 +40,9 @@ Every launcher (`Start-AgentBrowser.ps1`, `Start-FirefoxAgent.ps1`, proof script
 ## LIVE caveats (Chrome 136+ / G-90)
 
 - Chrome 136+ **silently ignores** `--remote-debugging-port` on the default user-data-dir. LIVE cannot be "just attach CDP to the window that's already open" via that flag.
-- LIVE is therefore extension-bridge only: the audited MV3 extension must already be loaded in the real profile. Automation must **not** auto-install it into the human profile and must **not** restart Chrome/Edge to inject `--load-extension`.
-- First-time LIVE setup is an **owner action**: Load unpacked `~\.agents\browser-bridge\extension-agent` once, set the popup port to **8790**, then rerun with `-Profile live`.
-- LIVE hub binds `127.0.0.1:8790` (separate from the agent hub at `127.0.0.1:8770`) so a live extension and an agent-profile extension cannot steal each other's socket.
+- LIVE is therefore extension-bridge only: the owner loads **`extension-live`** (port **8790 baked in**, no popup footgun) into the real profile. Automation must **not** auto-install it and must **not** load `extension-agent` (port 8770) into the human profile.
+- First-time LIVE setup is an **owner action**: Load unpacked `~\.agents\browser-bridge\extension-live` once (token from `~\.agents\local.json` `chromeBridge.liveToken`, pasted in the popup — agents never print it). Then rerun with `-Profile live`.
+- LIVE hub binds `127.0.0.1:8790` with a **distinct token** and **pinned extension id**. Agent hub is `127.0.0.1:8770` + `extension-agent` id `bdccimcedobipcmhcikcnakjdemiechj`.
 
 ## Ports (loopback only; do not collide with 8765 / 8812 / 8317 / 24680 / 8787)
 
