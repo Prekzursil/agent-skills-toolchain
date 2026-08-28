@@ -10,7 +10,15 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BRIDGE_PORT = process.argv[2];
-const serverArgs = [path.join(root, "dist", "index.js"), ...(BRIDGE_PORT ? ["--port", BRIDGE_PORT] : [])];
+const TEST_TOKEN = "estate-security-test-token-not-production";
+const TEST_EXT_ID = "abcdefghijklmnopabcdefghijklmnop";
+const childEnv = { ...process.env, CHROME_BRIDGE_TOKEN: TEST_TOKEN, CHROME_BRIDGE_EXTENSION_ID: TEST_EXT_ID };
+const serverArgs = [
+  path.join(root, "dist", "index.js"),
+  ...(BRIDGE_PORT ? ["--port", BRIDGE_PORT] : []),
+  "--extension-id",
+  TEST_EXT_ID,
+];
 const PAGE = `<!doctype html><html><head><title>Bridge Test</title></head><body>
 <h1>Bridge Test</h1>
 <form id="f" onsubmit="event.preventDefault(); document.getElementById('out').textContent='submitted:'+q.value+'/'+pick.value;">
@@ -40,6 +48,7 @@ await client.connect(
     command: process.execPath,
     args: serverArgs,
     stderr: "inherit",
+    env: childEnv,
   }),
 );
 

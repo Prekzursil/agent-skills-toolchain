@@ -32,6 +32,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ProfileChoice.ps1')
+. (Join-Path $PSScriptRoot 'lib\BridgeAuth.ps1')
 
 function Write-Terminal {
     param([ValidateSet('SUCCESS', 'FAILED')][string]$State, [string]$Detail)
@@ -68,7 +69,6 @@ function Get-MatchingBrowserProcesses {
     Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object {
         if (-not $_.CommandLine) { return $false }
         $cl = $_.CommandLine
-        if ($CdpPort -and $cl.Contains("--remote-debugging-port=$CdpPort")) { return $true }
         return ($cl.IndexOf($needle, [StringComparison]::OrdinalIgnoreCase) -ge 0)
     }
 }
@@ -103,7 +103,9 @@ try {
     $choice = Resolve-BrowserProfileChoice -Profile $Profile -Purpose "$Browser-automation"
     if (-not $choice) { Write-Terminal FAILED 'profile choice missing or invalid'; exit 2 }
 
-    $extensionDir = Join-Path (Get-EstateRoot) 'extension-agent'
+    $agentExt = Join-Path (Get-EstateRoot) 'extension-agent'
+    $liveExt = Join-Path (Get-EstateRoot) 'extension-live'
+    $extensionDir = if ($choice -eq 'live') { $liveExt } else { $agentExt }
     if (-not (Test-Path -LiteralPath (Join-Path $extensionDir 'manifest.json'))) {
         Write-Terminal FAILED "extension not found at $extensionDir"
         exit 1
@@ -116,8 +118,10 @@ try {
     Write-Output "bind=127.0.0.1"
 
     if ($choice -eq 'live') {
-        Write-Output 'live_policy=no-relaunch no-kill no-load-extension-flag'
-        Write-Output "live_extension_port_in_popup_must_be=$LIVE_HUB_PORT"
+        Write-Output 'live_policy=no-relaunch no-kill no-load-extension-into-human-profile'
+        Write-Output "live_extension_dir=$liveExt"
+        Write-Output "live_extension_port_baked_in=$LIVE_HUB_PORT"
+        Write-Output 'live_do_not_load=extension-agent'
         if ($Stop) {
             Write-Terminal FAILED 'refusing -Stop on live profile (would risk the owner browser)'
             exit 1
@@ -129,7 +133,7 @@ try {
             exit 0
         }
         Write-Output 'action=attach-only'
-        Write-Terminal SUCCESS "live mode: start hub on 127.0.0.1:$hubPort separately; do not launch $Browser"
+        Write-Terminal SUCCESS "live mode: owner must already have loaded extension-live (port 8790 baked in); start hub on 127.0.0.1:$hubPort separately; do not launch $Browser"
         exit 0
     }
 
@@ -139,6 +143,7 @@ try {
         $profileDir = Get-PersistentProfileDir -Kind $Browser
         Ensure-PersistentProfileDir -Dir $profileDir
     }
+    Assert-AgentProfileDir -Dir $profileDir
     Write-Output "user_data_dir=$profileDir"
     Write-Output "wipe=$(if ($choice -eq 'agent-ephemeral') { 'after-stop' } else { 'never' })"
 
@@ -200,14 +205,25 @@ try {
     }
     $py = (Get-Command python -ErrorAction Stop).Source
     $launcher = Join-Path $PSScriptRoot 'lib\launch-agent.py'
-    $proc = Start-Process -FilePath $py -ArgumentList @(
-        $launcher,
-        '--browser', $Browser,
-        '--user-data-dir', $profileDir,
-        '--extension-dir', $extensionDir,
-        '--ready-file', $readyFile,
-        '--stop-file', $stopFile
-    ) -PassThru -WindowStyle Hidden -RedirectStandardOutput $launcherOut -RedirectStandardError $launcherErr
+    $null = Ensure-ChromeBridgeAuth -Mode 'agent'
+    $launchToken = Get-ChromeBridgeToken -Mode 'agent'
+    $expectedId = Get-ChromeBridgeExtensionId -Mode 'agent'
+    $prevToken = $env:CHROME_BRIDGE_TOKEN
+    $env:CHROME_BRIDGE_TOKEN = $launchToken
+    try {
+        $proc = Start-Process -FilePath $py -ArgumentList @(
+            $launcher,
+            '--browser', $Browser,
+            '--user-data-dir', $profileDir,
+            '--extension-dir', $extensionDir,
+            '--ready-file', $readyFile,
+            '--stop-file', $stopFile,
+            '--hub-port', "$hubPort",
+            '--expected-extension-id', $expectedId
+        ) -PassThru -WindowStyle Hidden -RedirectStandardOutput $launcherOut -RedirectStandardError $launcherErr
+    } finally {
+        if ($null -eq $prevToken) { Remove-Item Env:CHROME_BRIDGE_TOKEN -ErrorAction SilentlyContinue } else { $env:CHROME_BRIDGE_TOKEN = $prevToken }
+    }
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
@@ -227,8 +243,13 @@ try {
     Write-Output "launcher_pid=$($proc.Id)"
     Write-Output "extension_id=$($ready.loaded.id)"
     Write-Output "extensions_listed=$($listed.Count)"
+    Write-Output "token_injected=$($ready.token_injected)"
     if ($listed.Count -lt 1) {
         Write-Terminal FAILED 'Extensions.getExtensions empty after pipe loadUnpacked'
+        exit 1
+    }
+    if ($expectedId -and $ready.loaded.id -and ($ready.loaded.id -ne $expectedId)) {
+        Write-Terminal FAILED "extension id mismatch got=$($ready.loaded.id) expected=$expectedId"
         exit 1
     }
     Write-Terminal SUCCESS "launched $Browser profile=$choice dir=$profileDir hub=127.0.0.1:$hubPort extension=$($ready.loaded.id)"

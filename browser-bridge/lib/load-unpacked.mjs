@@ -15,6 +15,14 @@ if (!port || !extPath) {
   console.error("FAILED:load-unpacked need --port and --path");
   process.exit(2);
 }
+if (/User Data/i.test(extPath) || /extension-live/i.test(extPath)) {
+  console.error("FAILED:load-unpacked refusing human User Data path or extension-live auto-load");
+  process.exit(2);
+}
+if (!/extension-agent/i.test(extPath)) {
+  console.error("FAILED:load-unpacked path must be extension-agent");
+  process.exit(2);
+}
 
 const versionUrl = `http://127.0.0.1:${port}/json/version`;
 const version = await fetch(versionUrl).then(async (res) => {

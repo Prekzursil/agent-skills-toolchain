@@ -4,6 +4,7 @@
  * No OS keystroke injection. Window does not need to be foreground.
  */
 import { Hub } from "../chrome-bridge-mcp/dist/hub.js";
+import { loadBridgeAuth } from "../lib/load-bridge-auth.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +15,9 @@ const get = (name, fallback) => {
   return i >= 0 ? args[i + 1] : fallback;
 };
 
-const port = Number(get("port", "8770"));
+const hubPort = Number(get("port", "8770"));
+const auth = loadBridgeAuth(hubPort === 8790 ? "live" : "agent");
+const port = hubPort;
 const browser = get("browser", "chrome");
 const resultsDir = get("results", path.join(path.dirname(fileURLToPath(import.meta.url)), "results"));
 const foregroundFile = get("foreground-json", "");
@@ -47,7 +50,7 @@ async function evalJson(hub, expression) {
   return response?.result?.value;
 }
 
-const hub = new Hub(port, "");
+const hub = new Hub(port, auth.token, auth.extensionId);
 const role = await hub.start();
 const deadline = Date.now() + 40000;
 let tabs;

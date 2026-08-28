@@ -24,7 +24,13 @@ def main() -> int:
         print("FAILED:firefox-proof LIVE Firefox is not implemented (no chrome.debugger equivalent; do not attach to the owner's Firefox)", file=sys.stderr)
         return 2
 
-    user_data = Path(args.user_data_dir)
+    user_data = Path(args.user_data_dir).resolve()
+    profiles_root = (Path.home() / ".agents" / "browser-profiles").resolve()
+    try:
+        user_data.relative_to(profiles_root)
+    except ValueError:
+        print(f"FAILED:firefox-proof user-data-dir is not under {profiles_root}", file=sys.stderr)
+        return 2
     if args.profile == "agent-persistent":
         user_data.mkdir(parents=True, exist_ok=True)
 

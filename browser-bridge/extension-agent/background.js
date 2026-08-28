@@ -1,3 +1,5 @@
+import { assertCdpAllowed } from "./cdp-allowlist.js";
+
 /**
  * Chrome Bridge for MCP — background service worker.
  *
@@ -39,7 +41,7 @@ let ready = null;
 /* ------------------------------------------------------------------- state */
 
 async function settings() {
-  return chrome.storage.local.get({ port: DEFAULT_PORT, token: "", enabled: true });
+  return chrome.storage.local.get({ token: "", enabled: true });
 }
 
 function stateFor(tabId) {
@@ -105,12 +107,17 @@ async function connect() {
   clearTimeout(reconnectTimer);
   await ensureReady();
 
-  const { port, token, enabled } = await settings();
+  const { token, enabled } = await settings();
   if (!enabled) return;
+  if (!token) {
+    setBadge("off");
+    reconnectTimer = setTimeout(connect, RECONNECT_MS);
+    return;
+  }
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
 
-  const query = token ? `?token=${encodeURIComponent(token)}` : "";
-  const next = new WebSocket(`ws://127.0.0.1:${port}/extension${query}`);
+  const query = `?token=${encodeURIComponent(token)}`;
+  const next = new WebSocket(`ws://127.0.0.1:${DEFAULT_PORT}/extension${query}`);
   socket = next;
 
   next.onopen = () => {
@@ -392,6 +399,7 @@ async function handle(command, clientId) {
     }
 
     case "cdp":
+      assertCdpAllowed(command.method, command.params);
       return sendCommand(requireAttached(clientId), command.method, command.params);
 
     case "handleDialog": {

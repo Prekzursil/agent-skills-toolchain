@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ProfileChoice.ps1')
+. (Join-Path $PSScriptRoot 'lib\BridgeAuth.ps1')
 
 $choice = Resolve-BrowserProfileChoice -Profile $Profile -Purpose 'tor-automation'
 if (-not $choice) { Write-Output 'FAILED:tor-lane profile choice missing'; exit 2 }
@@ -28,6 +29,7 @@ $profileDir = if ($choice -eq 'agent-ephemeral') {
     Ensure-PersistentProfileDir -Dir $dir
     $dir
 }
+Assert-AgentProfileDir -Dir $profileDir
 
 $torRunning = [bool](Get-Process -Name tor -ErrorAction SilentlyContinue)
 Write-Output "tbb_path=$tbb"

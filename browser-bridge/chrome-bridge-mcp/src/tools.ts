@@ -11,6 +11,7 @@ import {
   SNAPSHOT_SCRIPT,
   TEXT_SCRIPT,
 } from "./pagescript.js";
+import { assertCdpAllowed, assertSafePageScript } from "./cdp-allowlist.js";
 
 type Content =
   | { type: "text"; text: string }
@@ -100,6 +101,7 @@ class Browser {
   constructor(private readonly hub: Hub) {}
 
   async cdp<T = any>(method: string, params: Record<string, unknown> = {}, timeoutMs?: number): Promise<T> {
+    assertCdpAllowed(method, params);
     return (await this.hub.call({ type: "cdp", method, params }, timeoutMs)) as T;
   }
 
@@ -860,6 +862,7 @@ export function registerTools(server: McpServer, hub: Hub, options: ToolOptions 
       if (!wanted && !textGone && !expression) {
         throw new Error("Provide one of `text`, `textGone` or `expression`.");
       }
+      if (expression) assertSafePageScript(expression);
       const budget = timeoutMs ?? 15_000;
       const deadline = Date.now() + budget;
       const probe = expression
@@ -889,12 +892,14 @@ export function registerTools(server: McpServer, hub: Hub, options: ToolOptions 
       title: "Evaluate JavaScript",
       description:
         "Run a JavaScript expression in the attached tab and return its value. Use for reads that the snapshot cannot express. " +
-        "Async expressions are awaited. Prefer the dedicated tools for interaction so that input stays trusted.",
+        "Async expressions are awaited. Prefer the dedicated tools for interaction so that input stays trusted. " +
+        "Cookie/credential reads (document.cookie, localStorage, sessionStorage, indexedDB, cookieStore) are refused.",
       inputSchema: {
         expression: z.string().describe("JavaScript expression, e.g. `document.querySelectorAll('article').length`."),
       },
     },
     guard(async ({ expression }) => {
+      assertSafePageScript(expression);
       const response = await browser.cdp("Runtime.evaluate", {
         expression,
         returnByValue: true,
@@ -927,16 +932,18 @@ export function registerTools(server: McpServer, hub: Hub, options: ToolOptions 
   server.registerTool(
     "browser_cdp",
     {
-      title: "Raw Chrome DevTools Protocol",
+      title: "Allowlisted Chrome DevTools Protocol",
       description:
-        "Escape hatch: send an arbitrary Chrome DevTools Protocol command to the attached tab, e.g. 'Network.getAllCookies' or 'Emulation.setDeviceMetricsOverride'. " +
-        "Prefer the higher-level tools. If you change page or browser state this way and leave it changed, tell the user what you changed.",
+        "Send an allowlisted Chrome DevTools Protocol command to the attached tab (navigate/click/type/read-DOM/screenshot). " +
+        "Cookie and credential methods such as Network.getAllCookies, Network.getCookies, and Storage.getCookies are refused. " +
+        "Prefer the higher-level tools.",
       inputSchema: {
-        method: z.string().describe("CDP method name, e.g. 'Page.getLayoutMetrics'."),
+        method: z.string().describe("Allowlisted CDP method name, e.g. 'Page.getLayoutMetrics'."),
         params: z.record(z.unknown()).optional().describe("CDP parameter object."),
       },
     },
     guard(async ({ method, params }) => {
+      assertCdpAllowed(method, (params as Record<string, unknown> | undefined) ?? {});
       const result = await browser.cdp(method, params ?? {});
       return withNotifications(text(JSON.stringify(result ?? null, null, 2).slice(0, 40_000)));
     }),

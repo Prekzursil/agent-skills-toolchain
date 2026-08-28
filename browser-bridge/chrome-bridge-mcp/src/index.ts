@@ -53,8 +53,8 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
       "",
       "Options:",
       `  --port <n>     WebSocket bridge port (default ${DEFAULT_PORT}, env CHROME_BRIDGE_PORT)`,
-      "  --token <s>    Shared secret the extension must present (env CHROME_BRIDGE_TOKEN)",
-      "  --extension-id <id>  Pin the bridge to one extension id (env CHROME_BRIDGE_EXTENSION_ID)",
+      "  --token <s>    REQUIRED shared secret (env CHROME_BRIDGE_TOKEN)",
+      "  --extension-id <id>  REQUIRED for --hub-only; pin the extension (env CHROME_BRIDGE_EXTENSION_ID)",
       "  --no-page-badge      Do not badge the page favicon while a tab is attached",
       "  --hub-only     Run only the bridge, without the MCP stdio server",
       "  --version      Print the version",
@@ -74,6 +74,15 @@ const port = Number(readOption("port", process.env.CHROME_BRIDGE_PORT ?? String(
 const token = readOption("token", process.env.CHROME_BRIDGE_TOKEN ?? "") ?? "";
 const extensionId = readOption("extension-id", process.env.CHROME_BRIDGE_EXTENSION_ID ?? "") ?? "";
 const pageBadge = !process.argv.includes("--no-page-badge");
+
+if (!token) {
+  console.error("[chrome-bridge] refusing to start: --token or CHROME_BRIDGE_TOKEN is required");
+  process.exit(1);
+}
+if (process.argv.includes("--hub-only") && !extensionId) {
+  console.error("[chrome-bridge] refusing --hub-only without --extension-id / CHROME_BRIDGE_EXTENSION_ID");
+  process.exit(1);
+}
 
 async function main() {
   const hub = new Hub(port, token, extensionId);

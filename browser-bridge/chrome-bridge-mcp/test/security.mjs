@@ -23,16 +23,22 @@ const check = (label, ok, detail = "") => {
   console.log(`${ok ? "ok   " : "FAIL "} ${label}${detail ? ` — ${detail}` : ""}`);
 };
 
+const TEST_TOKEN = "estate-security-test-token-not-production";
+const TEST_EXT_ID = "abcdefghijklmnopabcdefghijklmnop";
+const childEnv = { ...process.env, CHROME_BRIDGE_TOKEN: TEST_TOKEN, CHROME_BRIDGE_EXTENSION_ID: TEST_EXT_ID };
+
 /** Resolves to "open" or "rejected:<code>". */
-function probe(pathname, headers) {
+function probe(pathname, headers, token = TEST_TOKEN) {
   return new Promise((resolve) => {
-    const socket = new WebSocket(`ws://127.0.0.1:${PORT}${pathname}`, { headers });
+    const qs = token ? `?token=${encodeURIComponent(token)}` : "";
+    const socket = new WebSocket(`ws://127.0.0.1:${PORT}${pathname}${qs}`, { headers });
     const done = (outcome) => {
       socket.removeAllListeners();
       try { socket.close(); } catch {}
       resolve(outcome);
     };
     socket.on("open", () => done("open"));
+    socket.on("unexpected-response", (_req, res) => done(`rejected:${res.statusCode}`));
     socket.on("close", (code) => done(`rejected:${code}`));
     socket.on("error", () => done("rejected:error"));
     setTimeout(() => done("timeout"), 4000);
@@ -43,14 +49,23 @@ const client = new Client({ name: "security-test", version: "1.0.0" });
 await client.connect(
   new StdioClientTransport({
     command: process.execPath,
-    args: [path.join(root, "dist", "index.js"), "--port", String(PORT)],
+    args: [path.join(root, "dist", "index.js"), "--port", String(PORT), "--extension-id", TEST_EXT_ID],
     stderr: "inherit",
+    env: childEnv,
   }),
 );
 await new Promise((resolve) => setTimeout(resolve, 1200));
 
 console.log("\n--- Origin policy ---");
 
+check(
+  "unauthenticated /client is rejected",
+  (await probe("/client", {}, "")).startsWith("rejected"),
+);
+check(
+  "wrong token /client is rejected",
+  (await probe("/client", {}, "wrong-token")).startsWith("rejected"),
+);
 check(
   "web page origin cannot open /client",
   (await probe("/client", { Origin: "https://evil.example" })).startsWith("rejected"),
@@ -63,10 +78,14 @@ check(
   "http localhost origin cannot open /client",
   (await probe("/client", { Origin: "http://127.0.0.1:3000" })).startsWith("rejected"),
 );
-check("local MCP process (no Origin) may open /client", (await probe("/client", {})) === "open");
+check("local MCP process (no Origin, with token) may open /client", (await probe("/client", {})) === "open");
 check(
-  "extension origin may open /extension",
-  (await probe("/extension", { Origin: "chrome-extension://abcdefghijklmnopabcdefghijklmnop" })) === "open",
+  "pinned extension origin may open /extension",
+  (await probe("/extension", { Origin: `chrome-extension://${TEST_EXT_ID}` })) === "open",
+);
+check(
+  "other extension id cannot open /extension",
+  (await probe("/extension", { Origin: "chrome-extension://zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz" })).startsWith("rejected"),
 );
 
 console.log("\n--- ref injection ---");
@@ -100,7 +119,7 @@ console.log("\n--- protocol handshake ---");
 // A host from an older install must be refused rather than silently dropping
 // new envelope fields, which is how per-client tab isolation once regressed.
 const hello = await new Promise((resolve) => {
-  const probe = new WebSocket(`ws://127.0.0.1:${PORT}/client?cid=probe`);
+  const probe = new WebSocket(`ws://127.0.0.1:${PORT}/client?cid=probe&token=${encodeURIComponent(TEST_TOKEN)}`);
   const done = (v) => { probe.removeAllListeners(); try { probe.close(); } catch {} resolve(v); };
   probe.on("message", (d) => { try { done(JSON.parse(d.toString())); } catch { done(null); } });
   probe.on("error", () => done(null));
@@ -116,6 +135,22 @@ const body = tabs.content.map((p) => (p.type === "text" ? p.text : "")).join("")
 check("server still answers MCP calls after every rejection", /extension is not connected/i.test(body), body.slice(0, 140));
 const tools = await client.listTools();
 check("tool list is still served", tools.tools.length === 21, `got ${tools.tools.length}`);
+
+console.log("\n--- CDP cookie deny ---");
+const cookieDump = await client.callTool({ name: "browser_cdp", arguments: { method: "Network.getAllCookies" } });
+const cookieBody = cookieDump.content.map((p) => (p.type === "text" ? p.text : "")).join("");
+check(
+  "Network.getAllCookies is refused",
+  !!cookieDump.isError && /denied|allowlist/i.test(cookieBody),
+  cookieBody.slice(0, 160),
+);
+const evalCookie = await client.callTool({ name: "browser_evaluate", arguments: { expression: "document.cookie" } });
+const evalBody = evalCookie.content.map((p) => (p.type === "text" ? p.text : "")).join("");
+check(
+  "document.cookie evaluate is refused",
+  !!evalCookie.isError && /cookie|credential|storage/i.test(evalBody),
+  evalBody.slice(0, 160),
+);
 
 await client.close();
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nAll security checks passed.");

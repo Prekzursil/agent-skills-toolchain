@@ -11,7 +11,15 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const BRIDGE_PORT = process.argv[2];
-const serverArgs = [path.join(root, "dist", "index.js"), ...(BRIDGE_PORT ? ["--port", BRIDGE_PORT] : [])];
+const TEST_TOKEN = "estate-security-test-token-not-production";
+const TEST_EXT_ID = "abcdefghijklmnopabcdefghijklmnop";
+const childEnv = { ...process.env, CHROME_BRIDGE_TOKEN: TEST_TOKEN, CHROME_BRIDGE_EXTENSION_ID: TEST_EXT_ID };
+const serverArgs = [
+  path.join(root, "dist", "index.js"),
+  ...(BRIDGE_PORT ? ["--port", BRIDGE_PORT] : []),
+  "--extension-id",
+  TEST_EXT_ID,
+];
 
 const PAGES = {
   "/alpha": "<!doctype html><title>Alpha</title><h1>ALPHA PAGE</h1>",
@@ -32,7 +40,7 @@ const ok = (label, condition, detail = "") => {
 
 async function spawnClient(label) {
   const client = new Client({ name: label, version: "1.0.0" });
-  await client.connect(new StdioClientTransport({ command: process.execPath, args: serverArgs, stderr: "inherit" }));
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: serverArgs, stderr: "inherit", env: childEnv }));
   const call = async (name, args = {}) => {
     const result = await client.callTool({ name, arguments: args });
     return { isError: !!result.isError, text: result.content.filter((p) => p.type === "text").map((p) => p.text).join("\n") };

@@ -11,6 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'ProfileChoice.ps1')
+. (Join-Path $PSScriptRoot 'lib\BridgeAuth.ps1')
 
 $choice = Resolve-BrowserProfileChoice -Profile $Profile -Purpose 'firefox-automation'
 if (-not $choice) { Write-Output 'FAILED:firefox-agent profile choice missing'; exit 2 }
@@ -27,6 +28,7 @@ $profileDir = if ($choice -eq 'agent-ephemeral') {
     $dir
 }
 Write-Output "user_data_dir=$profileDir"
+Assert-AgentProfileDir -Dir $profileDir
 Write-Output "wipe=$(if ($choice -eq 'agent-ephemeral') { 'after-stop' } else { 'never' })"
 
 if ($Stop) {

@@ -1,14 +1,15 @@
 const $ = (id) => document.getElementById(id);
+const LOCKED_PORT = 8770;
 
 async function refresh() {
-  const { port, token } = await chrome.storage.local.get({ port: 8770, token: "" });
-  $("port").value = port;
+  const { token } = await chrome.storage.local.get({ token: "" });
+  $("port").textContent = String(LOCKED_PORT);
   $("token").value = token;
 
   chrome.runtime.sendMessage({ type: "getStatus" }, (status) => {
     const connected = !!status?.connected;
     $("dot").classList.toggle("on", connected);
-    $("state").textContent = connected ? "Connected to MCP server" : "Waiting for MCP server…";
+    $("state").textContent = connected ? "Connected to agent hub" : "Waiting for agent hub…";
     $("attached").textContent = status?.attachedTabId
       ? `Controlling tab ${status.attachedTabId}.`
       : "No tab is being controlled.";
@@ -17,7 +18,7 @@ async function refresh() {
 
 $("save").addEventListener("click", async () => {
   await chrome.storage.local.set({
-    port: Number($("port").value) || 8770,
+    port: LOCKED_PORT,
     token: $("token").value.trim(),
     enabled: true,
   });

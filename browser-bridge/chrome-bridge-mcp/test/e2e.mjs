@@ -200,8 +200,9 @@ const client = new Client({ name: "e2e", version: "1.0.0" });
 await client.connect(
   new StdioClientTransport({
     command: process.execPath,
-    args: [path.join(root, "dist", "index.js"), "--port", PORT],
+    args: [path.join(root, "dist", "index.js"), "--port", PORT, "--extension-id", "abcdefghijklmnopabcdefghijklmnop"],
     stderr: "inherit",
+    env: { ...process.env, CHROME_BRIDGE_TOKEN: "estate-security-test-token-not-production", CHROME_BRIDGE_EXTENSION_ID: "abcdefghijklmnopabcdefghijklmnop" },
   }),
 );
 

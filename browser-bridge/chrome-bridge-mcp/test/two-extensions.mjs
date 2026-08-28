@@ -34,8 +34,9 @@ async function connect(label, port) {
   await client.connect(
     new StdioClientTransport({
       command: process.execPath,
-      args: [path.join(root, "dist", "index.js"), "--port", String(port)],
+      args: [path.join(root, "dist", "index.js"), "--port", String(port), "--extension-id", "abcdefghijklmnopabcdefghijklmnop"],
       stderr: "inherit",
+      env: { ...process.env, CHROME_BRIDGE_TOKEN: "estate-security-test-token-not-production", CHROME_BRIDGE_EXTENSION_ID: "abcdefghijklmnopabcdefghijklmnop" },
     }),
   );
   const call = async (name, args = {}) => {

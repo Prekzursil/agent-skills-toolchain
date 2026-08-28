@@ -1,3 +1,5 @@
+import { assertCdpAllowed } from "./cdp-allowlist.js";
+
 /**
  * Chrome Bridge for MCP — background service worker.
  *
@@ -107,9 +109,14 @@ async function connect() {
 
   const { port, token, enabled } = await settings();
   if (!enabled) return;
+  if (!token) {
+    setBadge("off");
+    reconnectTimer = setTimeout(connect, RECONNECT_MS);
+    return;
+  }
   if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) return;
 
-  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  const query = `?token=${encodeURIComponent(token)}`;
   const next = new WebSocket(`ws://127.0.0.1:${port}/extension${query}`);
   socket = next;
 
@@ -392,6 +399,7 @@ async function handle(command, clientId) {
     }
 
     case "cdp":
+      assertCdpAllowed(command.method, command.params);
       return sendCommand(requireAttached(clientId), command.method, command.params);
 
     case "handleDialog": {
