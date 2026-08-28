@@ -80,28 +80,72 @@ def gh_contents_text(repo: str, path: str, ref: str) -> str:
 
 
 def yaml_load(text: str) -> Any:
+    """Parse YAML, degrading through every fallback either copy of this file ever had.
+
+    MERGED 2026-07-18 (unit B7). The repo copy and the live copy had DIFFERENT fallbacks for
+    "PyYAML is not importable in this interpreter", and each side was missing the other's.
+    Overwriting in either direction would have silently deleted a working escape hatch, which
+    is why the file sat on sync-from-live.ps1's repo-owned hold list. Both are kept here,
+    ordered by reliability measured on this box 2026-07-18:
+
+      1. `import yaml` in-process.        Works today: the default python carries PyYAML 6.0.3.
+      2. find_python_with_yaml()          REPO-side. Finds another interpreter that has PyYAML,
+                                          honouring $CODEX_PYTHON_WITH_YAML, then sys.executable,
+                                          python / py -3 / python3, then any %LOCALAPPDATA%
+                                          Python install. Real YAML semantics.
+      3. pwsh ConvertFrom-Yaml            LIVE-side. Kept LAST and deliberately so: it is NOT a
+                                          built-in cmdlet, it ships with the `powershell-yaml`
+                                          module, and that module is NOT installed on this
+                                          machine (measured -- Get-Module -ListAvailable returns
+                                          nothing), so here it always raises. It earns its place
+                                          only on a box that has powershell-yaml but exactly one
+                                          Python without PyYAML.
+
+    The live copy called the pwsh path with check=True and no guard, so a missing module
+    surfaced as a bare CalledProcessError. Here every fallback failure falls through to the
+    actionable RuntimeError instead.
+    """
     try:
         import yaml  # type: ignore
     except ModuleNotFoundError:
-        interpreter = find_python_with_yaml()
-        if interpreter:
-            stdout = run_command(
-                [
-                    *interpreter,
-                    "-c",
-                    (
-                        "import json, sys, yaml; "
-                        "print(json.dumps(yaml.safe_load(sys.stdin.read())))"
-                    ),
-                ],
-                input_text=text,
-            )
-            return json.loads(stdout)
-        raise RuntimeError(
-            "PyYAML is required to parse controller configuration. "
-            "Install PyYAML or set CODEX_PYTHON_WITH_YAML to an interpreter that has it."
+        yaml = None  # type: ignore[assignment]
+    if yaml is not None:
+        return yaml.safe_load(text)
+
+    interpreter = find_python_with_yaml()
+    if interpreter:
+        stdout = run_command(
+            [
+                *interpreter,
+                "-c",
+                (
+                    "import json, sys, yaml; "
+                    "print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+                ),
+            ],
+            input_text=text,
         )
-    return yaml.safe_load(text)
+        return json.loads(stdout)
+
+    try:
+        stdout = run_command(
+            [
+                "pwsh",
+                "-NoProfile",
+                "-Command",
+                "$input | ConvertFrom-Yaml | ConvertTo-Json -Depth 100",
+            ],
+            input_text=text,
+        )
+        return json.loads(stdout)
+    except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
+        pass
+
+    raise RuntimeError(
+        "PyYAML is required to parse controller configuration. Install PyYAML, or point "
+        "CODEX_PYTHON_WITH_YAML at an interpreter that has it, or install the powershell-yaml "
+        "module so the `pwsh ConvertFrom-Yaml` fallback can run."
+    )
 
 
 def find_python_with_yaml() -> list[str] | None:
