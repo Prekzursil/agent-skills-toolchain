@@ -1619,11 +1619,37 @@ jobs:
       # false-positives are suppressed inline with a greppable `# nosemgrep: <rule-id> -- reason`.
       # opengrep binary is pinned; the rules are opengrep/semgrep-compatible (verified locally
       # with semgrep CE 1.166.0). Excludes mirror the local verification command in the ruleset README.
-      - name: gate-sast opengrep (curated in-repo ruleset)
+      #
+      # INSTALL AND SCAN ARE TWO STEPS ON PURPOSE. Recorded in
+      # command-center/ci/orchestrator-flake-note.md: run 31632302523 @ 86dde6c1 reported
+      # `failure  gate-sast (opengrep)` from `curl: (56) Connection died, tried 5 times` in the
+      # INSTALL half. opengrep never ran and zero files were scanned, yet at job level that is
+      # INDISTINGUISHABLE from a real finding -- the orchestrator read the job verdict and was one
+      # sentence from concluding that a just-landed `# nosemgrep` waiver had not worked. The only
+      # tell was 40 lines down in the log. Split, the failing STEP NAME says which half broke.
+      #
+      # `--retry-all-errors` is the flag that matters: the `tried 5 times` text came from curl's
+      # OWN internal retry of a connection reset mid-transfer, which plain `--retry` does not cover.
+      #
+      # `test -s` catches the empty-file case (and `curl -f` already turns an HTTP error into no
+      # file at all). It does NOT catch a truncated-but-non-empty download; that would still
+      # surface in the scan half. Running the binary itself (`opengrep --version`) would close
+      # that gap and is the next increment -- not done here because this change is verified by
+      # forcing both failure states, and an unverified flag guess would undercut that.
+      #
+      # DELIBERATELY NOT ADDED: `continue-on-error`, `|| true`, or any masking of a failed
+      # install. A security gate that cannot run must fail -- loudly as infrastructure, never
+      # silently as success. Both step names keep the `gate-sast` marker, so the bidirectional
+      # charter check in .quality/charter_check.sh maps them to the same declared slug.
+      - name: gate-sast opengrep install (infrastructure failure, not a finding)
         run: |
-          curl -fsSL -o /usr/local/bin/opengrep \
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+            -o /usr/local/bin/opengrep \
             https://github.com/opengrep/opengrep/releases/download/v1.23.0/opengrep_manylinux_x86
           chmod +x /usr/local/bin/opengrep
+          test -s /usr/local/bin/opengrep
+      - name: gate-sast opengrep scan (curated in-repo ruleset)
+        run: |
           opengrep scan --config .quality/opengrep --error \
             --exclude node_modules --exclude .venv --exclude vendor \
             --exclude dist --exclude out --exclude build .
