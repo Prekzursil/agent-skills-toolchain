@@ -26,19 +26,38 @@ def blob(rev: str, path: str) -> bytes:
     ).stdout
 
 
+def _git(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
+    ).stdout
+
+
+def introduced_paths(rev: str) -> list[str]:
+    """Paths whose blobs ``rev`` introduced, i.e. changed against its FIRST parent.
+
+    This used to be ``git show --stat --name-only --format= <rev>``. On a merge commit
+    ``git show`` prints the COMBINED diff, which lists only paths that differ from
+    every parent -- empty for any clean merge -- so the first merge commit to land on
+    main (5a3e3a04, 2026-09-01) made this gate fail closed with "no paths", and it kept
+    failing on every merge after it. One merge (1f66517c) passed by accident because
+    both sides had touched .github/workflows/quality.yml. Diffing against the first
+    parent is what "the blobs this push introduced to main" means on both merge and
+    non-merge commits, and is identical to the old enumeration on the latter.
+
+    Deleted paths are excluded: there is no blob at ``<rev>:<path>`` to read, so the
+    old enumeration would have crashed on the first deletion it met.
+    """
+    has_parent = _git("rev-list", "--parents", "-n", "1", rev).split()[1:]
+    if has_parent:
+        listing = _git("diff", "--name-only", "--diff-filter=d", f"{rev}^1", rev)
+    else:
+        listing = _git("ls-tree", "-r", "--name-only", rev)
+    return [p for p in listing.splitlines() if p.strip()]
+
+
 def main(argv: list[str]) -> int:
     rev = argv[0] if argv else "HEAD"
-    paths = [
-        p
-        for p in subprocess.run(
-            ["git", "show", "--stat", "--name-only", "--format=", rev],
-            cwd=REPO,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.splitlines()
-        if p.strip()
-    ]
+    paths = introduced_paths(rev)
     if not paths:
         print(f"FAILED:r4-selfcheck no paths in {rev} (fail closed)")
         return 1
