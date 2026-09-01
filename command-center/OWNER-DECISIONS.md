@@ -2,7 +2,7 @@
 
 # OWNER-DECISIONS
 
-**22 open of 29.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).
+**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).
 
 An answered question is recorded here by flipping its `state` in `WORK-UNIT-CATALOG.json` and re-rendering; the items it gates then stop counting it as a live blocker and must show a next smallest action instead (validator check REACH-4).
 
@@ -37,6 +37,22 @@ An answered question is recorded here by flipping its `state` in `WORK-UNIT-CATA
 | OQ-8 | ANSWERED | — | **Enroll the monitor cockpit program into the unified contract, at what priority?** It was never in scope, so it stays invisible until you say so | Enrol the monitor cockpit at the same priority as the other MONITOR rows (delegated default). |
 | OQ-9 | ANSWERED | — | **REL-0003 - what substitutes for the canary under PR-ONLY?** Spec :11125 and promotion gate :11131 both name a canary that PR-ONLY does not have. THE largest gate in the program: 42 of the 43 Phase-1 | A green CI install/upgrade/rollback rehearsal stands in for the canary (delegated default). |
 | OQ-10 | ANSWERED | — | **What does a `B\d+` (bucket) dependency MEAN?** Undefined in the catalog contract, defaults and tool_policy, and twice in the 29,273-line spec, neither time as a definition (control: 'phase' appears  | A bucket dependency is satisfied by a bucket-level gate artifact (delegated default). |
+| OQ-11 | OPEN | — | **G-1 — What is this tranche FOR?** (a) pragmatic thin-slice build on the four surfaces; (b) formal Program-A resumption (authority packet first, then Phase 0); (c) BOTH — a minimal authority mini-pac | — |
+| OQ-12 | OPEN | — | **G-2 — What counts as "executable" and "e2e" for R-A08/R-A11?** (a) WfDSL definition + conformance = done; (b) Claude `.js` runtime under `workflows/` + a runtime-asserted run = done; (c) two-tier: d | — |
+| OQ-13 | OPEN | — | **G-3 — deep-research product surface:** `.js` workflow under `workflows/` (DR-1), the WfDSL `bp-res-01..06` cascade (DR-4), or both with one SSOT? Source recommends DR-1 first (invokable value now; t | — |
+| OQ-14 | OPEN | — | **G-4 — Include DR-5?** Export and wire the orphan `academic`/`claims`/`calibration` modules of `research_harness` into plan -> grade -> render (S-M). Source recommends YES — cheapest real product ste | — |
+| OQ-15 | OPEN | — | **G-5 — Include DR-3?** The contradiction + favourable/unfavourable quota gate in grading/report (spec `:11260-11278`, TST-0319; M). Source recommends YES after DR-5 — the spec's most distinctive dema | — |
+| OQ-16 | OPEN | — | **G-6 — e2e skill hygiene (EE-6):** retire, relabel, or leave the vendored Playwright `e2e-testing` skill? Source recommends relabel + author a harness-native `workflow-e2e` skill — keep the Playwrigh | — |
+| OQ-17 | OPEN | — | **G-7 — Which e2e floor ships first:** EE-1 (CI blueprint definition gate: wfdsl catalog/schema tests as the floor), EE-2 (skill smoke matrix over every skill with `scripts/`), or EE-3 (MCP server con | — |
+| OQ-18 | OPEN | — | **G-8 — Does the 6-gate CI charter GROW** (EE-1/EE-3 as gate 7+) **or stay closed** with opt-in extras like TG-2? Source recommends opt-in first, promote after 2 weeks green — the charter is deliberat | — |
+| OQ-19 | OPEN | — | **G-9 — Blueprint promotion (WF-1): how many flagships to `.js` under `workflows/`, and which?** Source recommends 2 — one research-family (pairs with DR-1) + one council/gate-family; enough to prove  | — |
+| OQ-20 | OPEN | — | **G-10 — Foundry: ship the thin verbs now (WF-2, discover + translate) or defer all foundry until OQ-5?** Source recommends defer WF-2, and do WF-3 (vendor the host-only 08/09/10 spec artifacts into ` | — |
+| OQ-21 | OPEN | — | **G-11 — Monitor lane: include WF-4 in this tranche?** Wire `WfmonSource` into the unified cockpit — fixes the R-M05 count skew and is the first live R-M06 gate (S). Source recommends YES — the named  | — |
+| OQ-22 | OPEN | — | **G-12 — Order of the build wave once gated?** Source recommends: SQ-2 (the R-M18 receipt `unit_id` fix) -> WF-3/WF-5/EE-6 (bookkeeping) -> EE-1/EE-2 (floor) -> DR-5 -> DR-1 -> WF-1 -> WF-4 -> DR-3, d | — |
+| OQ-23 | OPEN | — | **G-13 — Where do these answers get recorded?** (a) the source document only; (b) also as `owner_questions[]` entries in `WORK-UNIT-CATALOG.json` per the canonical shape. Source recommends (b) — the c | — |
+| OQ-24 | OPEN | — | **G-14 — Execution vehicle for the build wave:** ad-hoc PRs, or a governed ultracode run using `workflow-authoring/templates/governed-run-orchestrator.md` with DOD rows per slice? Source recommends th | — |
+| OQ-25 | OPEN | — | **G-15 — Effort ceiling for this tranche:** S/M only, or admit the L items (DR-2 `ResearchConfig` + JSON schema for a subset of the ~23 spec knobs; EE-4 fixture-backed agent-run replay)? Source recomm | — |
+| OQ-26 | OPEN | — | **G-16 — OQ-6 security quarantine (SQ-3): precondition for the whole tranche, or a parallel track?** Source recommends precondition — owner-cheap, and this register's critical path (§5 step 1) already | — |
 
 ## Answered — the decision of record
 
