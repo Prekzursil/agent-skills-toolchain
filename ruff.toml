@@ -16,9 +16,15 @@
 #     rationale as the ralph-orchestrator vendor tree: not our code, so not our lint.
 #   - the vendored Databricks notebook SOURCE (the codex-databricks-fanout skill's batch_runner.py,
 #     in both dual-write mirrors). It is a notebook export, not a module: `dbutils` is injected by the
-#     Databricks runtime and the cell structure puts `from __future__` after widget setup, both of
-#     which are valid there and invalid as standalone Python. It is committed so the fan-out chain is
-#     reproducible from the repo rather than existing only inside the workspace.
+#     Databricks runtime, so a standalone reader sees F821 on every use. It is committed so the
+#     fan-out chain is reproducible from the repo rather than existing only inside the workspace.
+#     UPDATED 2026-09-01: this note used to add "and the cell structure puts `from __future__` after
+#     widget setup ... valid there and invalid as standalone Python". The second half was load-bearing
+#     for the exclusion and is now fixed, not tolerated: PR #282 moved the import to the top, so the
+#     file compiles (measured: `py_compile` raised
+#     "from __future__ imports must occur at the beginning of the file" before, clean after). The
+#     exclusion survives on the FIRST reason alone -- measured after the fix, still 19 findings
+#     (F821 `dbutils`, E401 `import os, json`) and one reformat.
 extend-exclude = [
     # Salvaged snapshot of 21 files that existed ONLY in a no-remote, zero-commit directory
     # (`~/source/_advver_M14/scratch`) while nine lanes were writing into it. All 21 had content
