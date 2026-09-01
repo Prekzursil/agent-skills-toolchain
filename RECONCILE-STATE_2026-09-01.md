@@ -108,3 +108,51 @@ documents.
 5. Rebase **#283**; judge **#286** on its failing check.
 6. Delete the 15 contained branches; then retire 2026-07 lanes once their content
    is confirmed on `main`.
+
+## 6. Outcomes (executed 2026-09-01 22:0x–22:3x UTC, owner token)
+
+Every step of §5 was executed. `main` moved from `41bceea2` (rollback point) to
+`ab19ef5a` through six PRs, all landed via the protected-branch path (7 required
+checks each); no force push, no direct push, nothing amended.
+
+| step | result |
+|---|---|
+| 1. land this branch | **#293 merged** (68e2d13c). First `main` run of the full quality workflow to reach **success since 2026-08-26** — `gate-lint-format` and `gate-skill-dual-write` had been red since the fold, and `gate-secrets` (required) had been red on every `main` run since 745b2f77, which is why nothing could merge for five days. |
+| 2. close #282, #281 | both closed with the landing commit cited; content carried verbatim. |
+| 3. decide #288 | owner marked it **ready-for-review at 22:11 UTC** during this pass, i.e. took the decision this file reserved for them; **merged** (ab19ef5a). Its queue should still be intaken into `REGISTER.md` rows rather than left as a parallel list. |
+| 4. #290 | **#295 merged**: the 8 files `main` lacked. #290 closed with the five contested files enumerated for the owner (`.gitignore` PUBLIC wording + `session-catalog.md` tracking, `sync-from-live.ps1`, `_dispatch/manifest.json`, and the two 2026-08-28 adjudications). Branch kept. |
+| 5. #283, #286 | **#294 merged** (clean rebase of #283, both commits verbatim; the two red gates were stale-base content-hash drift). **#297 merged**: TypeScript 7.0.2 is adoptable — the #286 failure was TS 7 no longer auto-including `@types/*`; one `types: ["node"]` line fixes it, 71/71 tests at 100% coverage. Both originals closed. |
+| 6. branches | **14 deleted** (all fully contained in `main`; tip SHAs in §1 method). The 94 unmerged-commit branches are untouched: retiring one loses commit history even when its content reached `main`, so that stays an owner call. |
+
+### 6a. Two things that were not in §5 and mattered more
+
+**`gate-secrets` was the real blocker.** Required on `main`, red since the first fold
+commit, and every open PR inherited it. Measured with the pinned gitleaks 8.30.1 over
+the full history: 1638 findings, **1632 under `browser-profiles/`**, all the
+`generic-api-key` entropy rule, 1588 of them one Microsoft SmartScreen blob and the
+rest Chrome/Edge integrity HMACs. The tree is the one `SECURITY.md` already names as
+"the exception (cookies allowed)"; the scanner config had never been told. Fixed in
+3cb1a8dd: a path waiver for that tree (its sensitivity is governed by policy, and its
+actually-secret files are SQLite binaries the scanner never reads) plus six reviewed
+per-finding fingerprints. Full history now scans clean.
+
+**Four open Dependabot alerts (hono, all fixed in 4.12.34) had sat for five days with
+the patch published.** Two gaps, both closed in **#296**: `gate-deps` never scanned
+`browser-bridge/chrome-bridge-mcp/package-lock.json`, and `dependabot.yml` had no
+entry for that directory, so alerts were raised but no fix PR ever opened. Open
+alerts after merge: **0**. The remaining blind spot is deliberate and recorded:
+`tools/editor/ralph-orchestrator/vendor/package-lock.json` carries **17 npm-audit
+findings (1 critical, 10 high, 5 moderate, 1 low)** that GitHub's dependency graph
+never reports because it skips `vendor/`; gating it would block every merge on
+upstream code. The fix is re-vendoring a newer ralph-orchestrator — owner decision.
+
+### 6b. Still open for the owner
+
+1. The five #290 files listed under step 4.
+2. Re-vendor `ralph-orchestrator` (17 findings).
+3. Intake #288's questions into `REGISTER.md`.
+4. The two harness-lineage decisions in `reconcile-flags/harness-lineage-2026-09-01.md`.
+5. Retire the 2026-07 lanes (74 branches) after confirming each reached `main`.
+6. **Rotate the personal access token used for this pass** — it was pasted into a
+   chat transcript to grant the permissions, which is an exposure regardless of
+   duration. Not rotated here, per the §9 owner-only rule.
