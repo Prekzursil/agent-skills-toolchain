@@ -7,7 +7,11 @@ import sys
 import uuid
 
 
-SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "cleanup_stale_codex_threads.py"
+SCRIPT = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "scripts"
+    / "cleanup_stale_codex_threads.py"
+)
 SPEC = importlib.util.spec_from_file_location("cleanup_stale_codex_threads", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 cleanup = importlib.util.module_from_spec(SPEC)
