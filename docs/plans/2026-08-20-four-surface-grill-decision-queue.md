@@ -2,8 +2,8 @@
 
 **Modes:** expansion + red-team (scoping a next tranche on four named surfaces).
 **Method:** grill-me-extensive (scout -> diverge -> structure -> foundation-first -> one-at-a-time -> capture -> converge).
-**Status:** OPEN — questions unanswered. This doc is the decision queue and audit trail; answers land in
-"Resolved Decisions" at the bottom as the walk proceeds. A grill is not a build.
+**Status:** INTAKEN 2026-09-01 into the register, questions STILL UNANSWERED. G-1..G-16 are now rows
+`OQ-11`..`OQ-26` of `command-center/sources/REGISTER.md` §6 (the single intake ledger) — mapping in §6 below.
 
 ---
 
@@ -160,3 +160,45 @@
 | id | decision | answered on | provenance |
 |---|---|---|---|
 | — | — | — | — |
+
+## 6. Intake record (2026-09-01) — this queue is now register rows, not a queue of its own
+
+This document merged as `ab19ef5a` (PR #288) while still reading "Status: OPEN — questions unanswered",
+which made it a second queue of open work competing with `command-center/sources/REGISTER.md` instead of
+feeding it (`RECONCILE-STATE_2026-09-01.md` §4 and §6b item 3). It has been INTAKEN: each G-question in
+§4 is one row in the register's §6 "UNANSWERED OWNER QUESTIONS", and one `owner_questions[]` entry (state
+`OPEN`) in `command-center/WORK-UNIT-CATALOG.json`, rendered to `command-center/OWNER-DECISIONS.md`. The
+rows carry the question, its options, and the recommendation above as *source attribution* only — nothing
+was answered. The register's parser-derived row count and the register->catalog agreement are gated by
+`tools/command-center/tests/test_seed.py`.
+
+What this document still is: the audit trail of the grill — scout ground truth (§1), convergence (§2), the
+direction catalog (§3) and the recommendations (§4). What it no longer is: a place to add questions. New
+questions belong in the register as rows. Whether the decision of record for each answer is written here
+(§5), in the catalog, or both is itself G-13 / `OQ-23` and is still open; §5 stays as authored until that is
+decided.
+
+Line numbers cited by the register refer to this file at `ab19ef5a`. §§1-5 are unchanged since; the status
+block (lines 5-6) was rewritten in place with the same line count, so every cited range still resolves here.
+
+| G | register row | register ids the question bears on |
+|---|---|---|
+| G-1 | OQ-11 | R-A13, R-A07, R-A08, R-A11, R-M06 |
+| G-2 | OQ-12 | R-A08, R-A11 |
+| G-3 | OQ-13 | R-A13 |
+| G-4 | OQ-14 | R-A13 |
+| G-5 | OQ-15 | R-A13 |
+| G-6 | OQ-16 | R-A11, R-A08 (e2e clause) |
+| G-7 | OQ-17 | R-A11, R-A08 |
+| G-8 | OQ-18 | R-A11, R-A08 |
+| G-9 | OQ-19 | R-A08 |
+| G-10 | OQ-20 | R-A07, R-A26, R-A05 (OQ-5) |
+| G-11 | OQ-21 | R-M05, R-M06 |
+| G-12 | OQ-22 | R-A13, R-A07, R-A08, R-A11, R-M06, R-M18, R-A26 |
+| G-13 | OQ-23 | — (register process: §0 consistency contract; `WORK-UNIT-CATALOG.json` `owner_questions[]`) |
+| G-14 | OQ-24 | R-M06, R-A07 |
+| G-15 | OQ-25 | R-A13, R-A11 |
+| G-16 | OQ-26 | R-B08 (OQ-6) |
+
+None of the sixteen is wired as an `owner_gate` on a register item: this queue gates a *tranche*, not any
+existing row, and `command-center/sources/overlay.json` encodes only edges the register itself asserts.
