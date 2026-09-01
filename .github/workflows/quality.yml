@@ -1750,3 +1750,16 @@ jobs:
             --config=osv-scanner.toml
             --lockfile=package-lock.json
             --lockfile=tools/mcp/hacktricks-mcp-server/package-lock.json
+            --lockfile=browser-bridge/chrome-bridge-mcp/package-lock.json
+      # browser-bridge/chrome-bridge-mcp/package-lock.json landed 2026-08-28 (779df004) and was
+      # never added here, so this gate stayed green on 2026-09-01 while Dependabot held four
+      # open alerts against it (hono < 4.12.34, GHSA-8j4g-w8fx-2239 / -54fx-42gc-7vw4 /
+      # -f23p-vx2j-j53r / -79qm-7rj5-m7r9). A required check that does not read a lockfile
+      # cannot fail on it. The fourth tracked lockfile,
+      # tools/editor/ralph-orchestrator/vendor/package-lock.json, is DELIBERATELY not listed:
+      # it is a vendored upstream snapshot (ruff.toml: "not our code"), `npm audit` on it
+      # reports 17 findings (1 critical, 10 high, 5 moderate, 1 low), and GitHub's dependency
+      # graph skips vendor/ paths so Dependabot never surfaces them. Listing it would block
+      # every merge on code this repo cannot patch without diverging from upstream; the fix
+      # is to re-vendor a newer ralph-orchestrator, recorded as an owner decision in
+      # RECONCILE-STATE_2026-09-01.md.
