@@ -37,6 +37,10 @@ Auto transcribe before clip selection. API_KEY=sk-proj-abcdefghijklmnopqrstuvwxy
     assert "transcribe" in note["keywords"]
     assert "sk-proj" not in json.dumps(data)
     assert "[REDACTED]" in note["summary"]
+    digest = json.loads((tmp_path / "recall-digest.json").read_text(encoding="utf-8"))
+    assert "keywords" not in digest["notes"][0]
+    assert digest["notes"][0]["title"] == "Reframe transcript decision"
+    assert all(".hf" not in note.get("path", "") for note in digest["notes"])
 
 
 def test_builder_never_copies_metadata_secrets_into_keywords_or_paths(tmp_path):

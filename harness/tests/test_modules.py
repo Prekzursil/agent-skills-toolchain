@@ -807,25 +807,51 @@ def test_recall_uses_local_lexical_index_and_requires_high_precision(tmp_path):
 
 
 def test_recall_session_start_injects_vault_digest_once(tmp_path):
-    vault = tmp_path / "vault" / "projects" / "phenibut"
-    vault.mkdir(parents=True)
-    (vault / "copy-loss-mmffld.md").write_text("# copy loss\nInvalid mmffld_handle\n", encoding="utf-8")
-    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path, vault_root=tmp_path / "vault")
+    index = _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "copy-loss-mmffld",
+                "path": "projects/phenibut/copy-loss-mmffld.md",
+                "permalink": "projects/phenibut/copy-loss-mmffld",
+                "summary": "Invalid mmffld_handle",
+                "mtime": 1.0,
+                "importance": 0.9,
+            }
+        ],
+        name="recall-digest.json",
+    )
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=tmp_path / "vault",
+    )
     first = module.run(event(tmp_path, "SessionStart"))
     second = module.run(event(tmp_path, "SessionStart"))
     assert first.action == "inject"
     assert first.reason_code == "bm_vault_digest"
     assert "copy-loss-mmffld" in first.additional_context[0]
+    assert index.exists()
     assert second.action == "allow"
 
 
 def test_recall_first_prompt_injects_digest_even_after_session_start(tmp_path):
     """Grok may drop SessionStart stdout; the first UserPromptSubmit is the portable path."""
-    vault = tmp_path / "vault" / "projects" / "phenibut"
-    vault.mkdir(parents=True)
-    (vault / "copy-loss-mmffld.md").write_text("# copy loss\nInvalid mmffld_handle\n", encoding="utf-8")
+    index = _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "copy-loss-mmffld",
+                "path": "projects/phenibut/copy-loss-mmffld.md",
+                "permalink": "projects/phenibut/copy-loss-mmffld",
+                "summary": "Invalid mmffld_handle",
+                "mtime": 1.0,
+                "importance": 0.9,
+            }
+        ],
+    )
     module = RecallModule(
-        index_paths=[tmp_path / "missing.json"],
+        index_paths=[index],
         state_root=tmp_path,
         vault_root=tmp_path / "vault",
     )
@@ -849,6 +875,62 @@ def test_recall_vault_digest_failopen_when_vault_missing(tmp_path):
     assert module.run(
         event(tmp_path, "UserPromptSubmit", prompt="x" * 40)
     ).action == "allow"
+
+
+def test_recall_vault_digest_never_rglobs_vault_markdown(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "secret-from-rglob.md").write_text(
+        "# must not be scanned\n", encoding="utf-8"
+    )
+
+    def explode(self, *args, **kwargs):
+        raise AssertionError("vault rglob must not run on SessionStart")
+
+    monkeypatch.setattr(Path, "rglob", explode)
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=vault,
+    )
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+
+
+def test_recall_vault_digest_injects_from_sidecar_without_rglob(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "secret-from-rglob.md").write_text(
+        "# must not appear\n", encoding="utf-8"
+    )
+    _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "from-digest",
+                "path": "notes/from-digest.md",
+                "permalink": "notes/from-digest",
+                "summary": "slim sidecar note",
+                "mtime": 1.0,
+                "importance": 1.0,
+            }
+        ],
+        name="recall-digest.json",
+    )
+
+    def explode(self, *args, **kwargs):
+        raise AssertionError("vault rglob must not run on SessionStart")
+
+    monkeypatch.setattr(Path, "rglob", explode)
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=vault,
+    )
+    result = module.run(event(tmp_path, "SessionStart"))
+    assert result.action == "inject"
+    assert result.reason_code == "bm_vault_digest"
+    assert "from-digest" in result.additional_context[0]
+    assert "secret-from-rglob" not in result.additional_context[0]
 
 
 def test_anti_degen_warns_only_after_same_args_and_same_result_three_times(tmp_path):

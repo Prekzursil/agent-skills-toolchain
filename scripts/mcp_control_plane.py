@@ -17,6 +17,7 @@ VALID_HEALTH_PROBES = frozenset({"mcp-tools-list", "http", "command", "none"})
 MAX_STARTUP_TIMEOUT_MS = 30_000
 DEFAULT_SERVER_PRIVATE_BYTES = 512 * 1024 * 1024
 DEFAULT_TOTAL_PRIVATE_BYTES = 6 * 1024 * 1024 * 1024
+REMOTE_REQUIRED_SERVERS = frozenset({"context7", "firecrawl"})
 CLAUDE_PLUGIN_PROVIDED_SERVERS = frozenset(
     {
         "aws-serverless",
@@ -39,7 +40,7 @@ SECRET_NAME_RE = re.compile(
     re.IGNORECASE,
 )
 LITERAL_SECRET_RE = re.compile(
-    r"^(?:gh[pousr]_|github_pat_|hf_|sk-|apify_api_|do[op]_v1_)",
+    r"^(?:gh[pousr]_|github_pat_|hf_|sk-|ctx7sk-|fc-|apify_api_|do[op]_v1_)",
     re.IGNORECASE,
 )
 
@@ -199,6 +200,10 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             url = server.get("url")
             if not isinstance(url, str) or not url.startswith(("http://", "https://")):
                 raise RegistryError(f"{name}: http server requires an HTTP(S) URL")
+            if server.get("command") is not None or server.get("args") is not None:
+                raise RegistryError(
+                    f"{name}: http transport cannot declare command or args"
+                )
         else:
             raise RegistryError(f"{name}: transport must be stdio or http")
 
@@ -229,11 +234,25 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             raise RegistryError(
                 f"{name}: credentialNames must exactly name sensitive requiredEnv entries"
             )
+        if (
+            transport == "http"
+            and credential_names
+            and not str(server.get("url", "")).startswith("https://")
+        ):
+            raise RegistryError(
+                f"{name}: credential-bearing http server must use https"
+            )
         tags = server.get("tags")
         if not isinstance(tags, list) or not tags or any(
             not isinstance(tag, str) or not tag.strip() for tag in tags
         ):
             raise RegistryError(f"{name}: tags must be a nonempty string list")
+        if name in REMOTE_REQUIRED_SERVERS and (
+            transport != "http" or "remote-required" not in tags
+        ):
+            raise RegistryError(
+                f"{name}: remote-required server must use http transport"
+            )
         server_private_bytes = server.get("maxPrivateBytes", max_private_bytes)
         if not isinstance(server_private_bytes, int) or server_private_bytes < 1:
             raise RegistryError(f"{name}: maxPrivateBytes must be positive")

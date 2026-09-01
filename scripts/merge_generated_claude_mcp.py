@@ -63,6 +63,7 @@ def build_claude_server(name: str, server: dict[str, Any]) -> dict[str, Any] | N
     if transport == "http":
         # HTTP/SSE servers use url directly
         entry: dict[str, Any] = {
+            "type": "http",
             "url": server["url"],
         }
         headers = dict(server.get("headers", {}))

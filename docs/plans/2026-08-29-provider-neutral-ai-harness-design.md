@@ -1,7 +1,7 @@
 # Provider-neutral AI harness control plane
 
 **Date:** 29.08.2026  
-**Status:** Approved design; pending design-review gate  
+**Status:** Approved; five-role design-review gate passed after blocker reconciliation  
 **Canonical live root:** `C:\Users\Prekzursil\.agents`  
 **Scope:** Claude Code, Codex, Cursor, Goose, Grok, Gemini CLI, Antigravity,
 OpenCode, Fabric, Aider, and a later Hermes Agent canary
@@ -203,8 +203,13 @@ At Phase 0 exit:
 - every live-only unmatched asset is retained until explicitly adjudicated.
 
 The current destructive `sync-skills.ps1` is disabled as an activation path.
-Before any other work, it gains a source-equals-destination hard stop with a
-known-broken fixture and may run only in dry-run/audit mode until replaced.
+Before any other work, it gains a source-equals-destination, parent/child, and
+reparse-alias hard stop with a known-broken fixture. From Phase 0 until the
+transaction controller is verified, **all donor/repo→live skill deployment is
+temporarily frozen**: skills already live remain usable, but new/updated skills
+stay staged. Deployment resumes only through an approved transaction. This
+temporary capability impact is explicit and appears as `ACTION_REQUIRED`; no
+unscoped/default or `-Prune` execution is permitted.
 
 ### 4.4 Consumer capability manifest
 
@@ -267,6 +272,12 @@ forbidden; a privileged operation requires a separate owner approval bound to
 the exact staged artifact and transaction. Adapters cannot read auth/session
 material into model context.
 
+This is application-level mediation, not an OS sandbox. Concrete adapters may
+not call filesystem, subprocess, socket, or environment-value APIs directly.
+An AST/import/call-site lint plus mediator-negative tests enforce that rule.
+Any residual ambient-process privilege is labeled advisory and is not credited
+as containment.
+
 ### 5.1.1 Tier-1 default-deny grants
 
 All path grants are exact after environment/home expansion. Reads follow no
@@ -276,17 +287,17 @@ Environment grants are the **names** declared in
 
 | Consumer / operation | Read | Write | Executables | Network | Elevation |
 |---|---|---|---|---|---|
-| Claude `discover/inventory` | `.claude.json`, `.claude\settings.json`, `.claude\skills` and `.claude\skills.daily` link metadata, canonical registry | none | none | none | forbidden |
+| Claude `discover/inventory` | `.claude.json`, `.claude\settings.json`, `.claude\skills`, `.claude\skills.daily`, `.claude\rules`, `.agents\rules-canonical`, home `AGENTS.md`, canonical registry | none | none | none | forbidden |
 | Claude `render/validate` | canonical registry + captured structural inventory | transaction staging only | Python interpreter pinned by controller | none | forbidden |
-| Claude `apply/rollback` | staged output, live target hash/metadata, protected pre-image | `.claude.json` managed `mcpServers` subtree and expected skill-link objects only | transaction controller only | none | forbidden |
+| Claude `apply/rollback` | staged output, exact live target hashes/metadata, protected pre-images | `.claude.json` managed `mcpServers`; `.claude\settings.json` approved hooks subtree; exact `.claude\skills` and `.claude\skills.daily` links; approved `.claude\rules` projection | transaction controller only | none | forbidden |
 | Claude `verify` | generated receipt and native read-only status | receipt only | exact installed `claude` binary: version/doctor/MCP list commands allowlisted individually | only canonical MCP health destinations selected for the test | forbidden |
-| Codex `discover/inventory` | `.codex\config.toml`, `.codex\AGENTS.md`, `.codex\rules` metadata, canonical registry | none | none | none | forbidden |
+| Codex `discover/inventory` | `.codex\config.toml`, `.codex\AGENTS.md`, `.codex\rules`, `.agents\rules-canonical`, home `AGENTS.md`, canonical registry | none | none | none | forbidden |
 | Codex `render/validate` | canonical registry + captured structural inventory | transaction staging only | pinned Python/TOML parser | none | forbidden |
-| Codex `apply/rollback` | staged output, live target hash/metadata, protected pre-image | managed MCP marker blocks and owner-approved asserted settings in `.codex\config.toml` only | transaction controller only | none | forbidden |
+| Codex `apply/rollback` | staged output, exact live target hashes/metadata, protected pre-images | managed MCP/hooks/asserted-setting marker blocks in `.codex\config.toml`; approved `.codex\rules` projection | transaction controller only | none | forbidden |
 | Codex `verify` | generated receipt and native read-only status | receipt only | exact installed `codex` binary: version/MCP list/read-only doctor commands allowlisted individually | only canonical MCP health destinations selected for the test | forbidden |
-| Cursor `discover/inventory` | `.cursor\mcp.json`, `.cursor\hooks.json`, `.cursor\settings.json`, canonical registry | none | none | none | forbidden |
+| Cursor `discover/inventory` | `.cursor\mcp.json`, `.cursor\hooks.json`, `.cursor\settings.json`, home `AGENTS.md`, canonical registry | none | none | none | forbidden |
 | Cursor `render/validate` | canonical registry + captured structural inventory | transaction staging only | pinned Python/JSON parser | none | forbidden |
-| Cursor `apply/rollback` | staged output, live target hash/metadata, protected pre-image | exact managed files above, only for approved MCP/hook/settings changes | transaction controller only | none | forbidden |
+| Cursor `apply/rollback` | staged output, exact live target hashes/metadata, protected pre-images | exact managed `.cursor\mcp.json`, `.cursor\hooks.json`, `.cursor\settings.json` changes only | transaction controller only | none | forbidden |
 | Cursor `verify` | generated receipt and native read-only status | receipt only | exact installed Cursor CLI/binary read-only status command; never more than one `cursor-agent` | only canonical MCP health destinations selected for the test | forbidden |
 
 Every native command is stored as an argv allowlist, not shell text. A command
@@ -294,6 +305,59 @@ that can log in/out, refresh/revoke/create credentials or sessions, rotate keys,
 send messages, mutate repositories, install/update plugins, or change remote
 state is excluded from smoke verification. If a consumer lacks a session-neutral
 status command, verification is `NOT_TESTED`; the controller does not improvise.
+
+The transaction controller has one Windows-only privileged-metadata helper:
+the system `icacls.exe`, allowed only with exact argv templates that set or
+verify the current owner SID's access on the transaction's rollback/cache
+subdirectory. It may not recurse outside that content-addressed directory,
+change ownership, grant any principal other than the current owner SID and
+local SYSTEM (`S-1-5-18`), or run elevated. Missing or failed ACL verification
+produces `FAILED_TO_RUN`.
+
+For a newly created empty rollback/cache directory under an already protected
+parent, the only write template is one invocation, so no empty-DACL interval
+exists:
+
+```text
+icacls.exe <exact-directory> /inheritance:r /grant:r *<owner-SID>:(OI)(CI)F *S-1-5-18:(OI)(CI)F
+```
+
+Locale-invariant verification uses a pinned/hash-verified PowerShell script:
+
+```text
+pwsh.exe -NoProfile -NonInteractive -File <verify-acl.ps1> -Path <exact-directory> -OwnerSid <owner-SID>
+```
+
+It reads .NET `DirectorySecurity`/SDDL and requires only the owner SID and local
+SYSTEM (`S-1-5-18`) full-control allow ACEs, with no inherited or deny ACE.
+Files are created only after that check and inherit the directory ACL. Any
+extra principal, parse ambiguity, or command failure is `FAILED_TO_RUN`.
+
+Bootstrap base case: `.agents\deploy-backups` and the cache root are created
+empty, receive the same one-invocation ACL before any child/content is created,
+and pass SDDL verification before use. No credential/session/pre-image bytes
+exist during the inherited-ACL interval.
+
+### 5.1.2 Controller default-deny grant
+
+The controller is subject to the same mediator; it has no ambient-write
+exception.
+
+| Operation | Exact grants |
+|---|---|
+| Read | canonical `agents.json`; `rules-canonical`; transaction staging/journal; versioned release/provenance receipts; protected pre-images only during authorized rollback; exact native targets through adapter handles |
+| Write | `.agents\staging\<transaction>`; `.agents\state\control-plane`; `.agents\deploy-backups\<transaction>`; `.agents\releases\<release>`; `.agents\provenance`; transaction-managed `C:\Users\Prekzursil\.local\bin\agents-cp.cmd`; exact native targets only through adapter handles |
+| Execute | pinned Python; pinned `agents-cp.ps1`; exact `icacls.exe` and `verify-acl.ps1` templates; session-neutral consumer argv only through verify handles |
+| Network | none except exact read-only MCP health destinations through verify handles |
+| Elevation | forbidden |
+
+Any path outside the exact transaction/release ID, any direct native-target
+write, or any unexpected reparse point is refused.
+
+Cursor has no Tier-1 native rule-file write; it validates the canonical
+`AGENTS.md`/workspace pointer path and reports the behavior as emulated.
+`.agents\rules` remains the generated Grok projection and is not written in
+Tier 1.
 
 ### 5.2 Capability delta
 
@@ -383,7 +447,9 @@ automatic force-push. It must produce an impact diff before any change.
 - Mixed config/auth files use structural managed-region edits.
 - Byte-exact rollback pre-images are **not redacted**, because redaction would
   destroy the credentials/session state required for restoration. They remain
-  local-only and gitignored, use owner-only ACLs, are integrity-hashed, bounded,
+  local-only and gitignored, use owner-plus-local-SYSTEM-only ACLs enforced and
+  verified through exact-argv `icacls.exe` grants plus locale-invariant SDDL
+  verification, are integrity-hashed, bounded,
   retention-limited, excluded from model/tool/log/receipt content, and are read
   only by the transaction controller during rollback.
 - `C:\Users\Prekzursil\.agents\local.json` is the named local non-canonical
@@ -466,7 +532,8 @@ TTL, supersession pointer, poison status, and trust label. Expired,
 cross-project, poisoned, superseded, or provenance-missing cache entries are not
 injected. Offline mode cannot create durable semantic writes.
 
-Caches are local-only and never cloud-synchronized. They use owner-only ACLs,
+Caches are local-only and never cloud-synchronized. They use
+owner-plus-local-SYSTEM-only ACLs,
 project-specific directories, bounded size and retention, and encryption at
 rest only where an existing owner-managed facility is already available—this
 design does not create another credential/key system. Cache failure or missing
@@ -531,13 +598,22 @@ native passthrough. An alias that preserves only the name does not pass.
 
 ## 9.1 Operator surfaces
 
-The canonical command namespace is `agents control-plane`. Existing shorter
-commands remain tested compatibility aliases only.
+The canonical estate-owned command is `agents-cp`. The existing `agents` binary
+is a third-party control-plane utility whose `status`, `doctor`, `sync`, and
+`mcp` commands remain untouched. The harness never shadows or wraps the
+`agents` executable on `PATH`.
+
+Implementation lives at `.agents\scripts\agents-cp.ps1`. A transaction-managed
+shim at `C:\Users\Prekzursil\.local\bin\agents-cp.cmd` invokes that exact script
+and is included in pre-image/rollback handling. The design does not modify
+`PATH` or PowerShell profiles. Bare `agents-cp` is allowed only when the
+existing `.local\bin` path is already discoverable; otherwise the full shim path
+is the documented invocation and status reports the bare command unsupported.
 
 The primary command is:
 
 ```text
-agents control-plane status --all
+agents-cp status --all
 ```
 
 It shows, in one bounded view:
@@ -639,25 +715,25 @@ identifier; unapproved changes remain excluded from the transaction.
 Canonical review commands:
 
 ```text
-agents control-plane review list
-agents control-plane review show <artifact>
-agents control-plane review approve <artifact> --change <id>
-agents control-plane review reject <artifact> --change <id>
-agents control-plane review defer <artifact> --change <id>
-agents control-plane review quarantine <artifact> --change <id>
-agents control-plane review revoke <approval-id>
+agents-cp review list
+agents-cp review show <artifact>
+agents-cp review approve <artifact> --change <id>
+agents-cp review reject <artifact> --change <id>
+agents-cp review defer <artifact> --change <id>
+agents-cp review quarantine <artifact> --change <id>
+agents-cp review revoke <approval-id>
 ```
 
 ### Rollback and resume journey
 
 ```text
-agents control-plane release list
-agents control-plane release diff <release>
-agents control-plane rollback <release> --dry-run
-agents control-plane rollback <release> --apply
-agents control-plane transaction resume
-agents control-plane transaction rollback
-agents control-plane transaction abandon
+agents-cp release list
+agents-cp release diff <release>
+agents-cp rollback <release> --dry-run
+agents-cp rollback <release> --apply
+agents-cp transaction resume
+agents-cp transaction rollback
+agents-cp transaction abandon
 ```
 
 Rollback preview reports affected consumers, capability changes, native
@@ -687,7 +763,7 @@ live activation exist, rollback is mandatory. Risk override is not a generic
 force flag:
 
 ```text
-agents control-plane review approve-risk <artifact> --change <id> --reason <text>
+agents-cp review approve-risk <artifact> --change <id> --reason <text>
 ```
 
 It creates an owner approval bound to the exact hash/scope and cannot override
@@ -729,18 +805,10 @@ Minimum interaction contract:
 - CLI and dashboard render the same aggregate precedence and receipt IDs;
 - dashboard actions are copyable CLI commands, not hidden mutation buttons.
 
-Canonical namespace and aliases:
-
-| Canonical | Compatibility alias |
-|---|---|
-| `agents control-plane status` | `agents status` |
-| `agents control-plane inventory` | `agents inventory` |
-| `agents control-plane plan` | `agents plan` |
-| `agents control-plane verify` | `agents verify` |
-| `agents control-plane rollback` | `agents rollback` |
-
-Aliases must produce the same help intent, output envelope, exit code, and
-receipt as the canonical command.
+`agents-cp` may gain its own aliases, but no alias may collide with or alter the
+third-party `agents` command. Compatibility tests assert that native `agents
+status`, `agents doctor`, `agents sync --check`, and `agents mcp test --runtime`
+retain their existing resolution and behavior.
 
 ## 10. Hermes decision
 
@@ -862,14 +930,22 @@ Rules cannot be projected until Phase 0:
 
 1. compare `.claude\rules`, `.agents\rules`, Codex rules, and tracked repository
    rules by normalized content hash;
-2. preserve every unique rule and identify duplicates/conflicts;
-3. adjudicate conflicts against `AGENTS.md`;
-4. version the canonical result under `.agents\rules`;
-5. remove the stale gitignore/junction assumption;
-6. generate budgeted pointers/subsets per consumer;
-7. verify each consumer loads the intended behavior.
+2. capture link/reparse type, target, attributes, and file-set hash for
+   `.agents\rules`, `.agents\rules-canonical`, `.claude\rules`, and
+   `.codex\rules`;
+3. classify `*.bak*`, temporary, and known scratch artifacts as excluded
+   evidence rather than canonical rule candidates; the measured Grok projection
+   is two active files plus one classified backup;
+4. preserve every unique active rule and identify duplicates/conflicts;
+5. adjudicate conflicts against `AGENTS.md`;
+6. version the canonical result under `.agents\rules-canonical`;
+7. keep `.agents\rules` as Grok's generated budgeted projection;
+8. remove the stale gitignore/junction assumption;
+9. generate budgeted pointers/subsets per consumer;
+10. verify each consumer loads the intended behavior.
 
-No recursive copy from the current three-file `.agents\rules` tree is allowed.
+No recursive copy from the current three-file `.agents\rules` Grok projection
+is allowed.
 
 ## 11.3 Release, receipt, and rollback paths
 
@@ -913,7 +989,7 @@ best-effort partial restore is labeled successful.
 |---|---|
 | `sync_shared_state.ps1` | Keep as compatibility entry point; delegate to transaction controller |
 | Claude/Codex/Cursor MCP mergers | Refactor into non-writing adapter libraries |
-| `sync-skills.ps1` | Hard-stop source==destination; audit-only until replaced |
+| `sync-skills.ps1` | Hard-stop unsafe paths; all deploy frozen until transaction replacement |
 | `sync-rules.ps1` | Disable deploy direction until canonical rules bootstrap |
 | `sync-hooks.ps1` | Inventory-only until hook policy and transaction support pass |
 | `deploy-skills-*.py` | Classify; retain only if adapter contract needs them |
@@ -959,9 +1035,12 @@ Exit:
 - rules/skills/MCP/hook baseline counts and hashes captured;
 - every `unknown-base` asset retained and queued;
 - destructive source-equals-destination sync test passes;
-- `.agents\.gitignore` tracks canonical `rules/` and ignores local `staging/`;
+- `.agents\.gitignore` tracks canonical `rules-canonical/` and ignores the
+  generated Grok projection `rules/` plus local `staging/`;
 - expected `.claude\skills` junction/link types and targets are captured in the
   rollback baseline;
+- all four rule-root link/reparse/file-set topologies are captured and every
+  backup/scratch rule artifact is classified;
 - no credential values in the inventory artifact;
 - free RAM at least 8 GiB before any agent worker or runtime smoke.
 
@@ -1080,7 +1159,7 @@ Thin wrappers expose the same contract as:
 - a Cursor command;
 - a Codex orchestration prompt/command;
 - a later Hermes job;
-- manual `agents` CLI commands.
+- manual `agents-cp` CLI commands.
 
 Default operation is audit/plan. `APPLY` requires an approved staged release.
 Every phase writes a bounded resume artifact so interrupted runs continue from
@@ -1094,7 +1173,8 @@ the last disk-verified checkpoint.
 3. **Secret safety:** synthetic credentials never reach canonical/generated
    configs, logs, diffs, diagnostics, versioned receipts, or model context.
    The sole exception is the protected local byte-exact rollback pre-image
-   store, which is tested for owner-only ACLs, integrity, bounded retention,
+   store, which is tested for owner-plus-local-SYSTEM-only ACLs, integrity,
+   bounded retention,
    exclusion from all output, and exact restoration.
 4. **Schema and encoding:** native parser succeeds; UTF-8/BOM requirements hold.
 5. **Round trip:** canonical-to-native-to-inventory loses no required field.
@@ -1119,12 +1199,12 @@ The implementation plan must make these commands real and green; until then
 they are target interfaces, not evidence:
 
 ```text
-agents control-plane inventory --all --redacted --output <artifact>
-agents control-plane plan --all --output <artifact>
-agents control-plane validate --staging <transaction>
-agents control-plane apply --transaction <transaction>
-agents control-plane verify --release <release>
-agents control-plane rollback <release> --dry-run
+agents-cp inventory --all --redacted --output <artifact>
+agents-cp plan --all --output <artifact>
+agents-cp validate --staging <transaction>
+agents-cp apply --transaction <transaction>
+agents-cp verify --release <release>
+agents-cp rollback <release> --dry-run
 python -m pytest -q tests/control_plane harness/tests
 python scripts/validate_mcp_control_plane.py --agents-config agents.json
 ```
@@ -1182,7 +1262,7 @@ Runtime budgets:
 
 ## 14.4 Operator journey
 
-1. Run `agents status --all`.
+1. Run `agents-cp status --all`.
 2. If state is stale/failed, follow the named recovery before planning change.
 3. Run inventory and generate a proposed transaction.
 4. Review donor/config/capability deltas.

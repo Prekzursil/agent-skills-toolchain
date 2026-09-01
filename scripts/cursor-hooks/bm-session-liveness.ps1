@@ -1,6 +1,11 @@
 # Fail-open Cursor sessionStart hook: if 127.0.0.1:8765 is not serving,
 # kick the existing BasicMemory-HTTP-MCP task. Never binds 8765, never
-# blocks the session (always prints {} and exits 0), no secrets.
+# blocks the session. P0 fix 2026-08-28: emit {} FIRST (UTF-8 no BOM), then probe.
+$ErrorActionPreference = 'SilentlyContinue'
+$utf8 = New-Object System.Text.UTF8Encoding $false
+try { [Console]::OutputEncoding = $utf8 } catch {}
+[Console]::Out.Write('{}')
+[Console]::Out.Flush()
 try { [void][Console]::In.ReadToEnd() } catch {}
 $alive = $false
 try {
@@ -23,5 +28,4 @@ if (-not $alive) {
         Add-Content 'C:\Users\Prekzursil\.agents\logs\basic-memory-supervisor.log' $line
     } catch {}
 }
-Write-Output '{}'
 exit 0

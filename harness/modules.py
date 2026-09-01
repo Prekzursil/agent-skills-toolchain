@@ -2039,6 +2039,12 @@ def _clamp01(value: Any, default: float = 0.5) -> float:
 # rebuild loops); any unparseable value falls back to the default.
 _RECALL_INDEX_SCHEMA_VERSION = 2
 _RECALL_INDEX_MAX_AGE_DAYS = 30.0
+_DIGEST_FILENAME = "recall-digest.json"
+_SLIM_DIGEST_MAX_BYTES = 262144
+_DIGEST_INJECT_LIMIT = 8
+_DIGEST_EXCLUDED_PARTS = frozenset(
+    {".git", ".hf", ".models", "compaction-checkpoints", "node_modules"}
+)
 
 
 def _recall_index_age_limit_days() -> float:
@@ -2073,6 +2079,53 @@ def _recall_index_is_servable(data: dict[str, Any]) -> bool:
     return age_days <= limit
 
 
+def _digest_path_excluded(value: str) -> bool:
+    if not value:
+        return False
+    return any(part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/"))
+
+
+def _notes_are_keyword_free(notes: list[Any]) -> bool:
+    for item in notes[:16]:
+        if not isinstance(item, dict):
+            continue
+        keywords = item.get("keywords")
+        if isinstance(keywords, list) and keywords:
+            return False
+    return True
+
+
+def _filter_digest_notes(notes: list[Any], *, limit: int) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for item in notes:
+        if not isinstance(item, dict):
+            continue
+        if _digest_path_excluded(str(item.get("path") or "")):
+            continue
+        if _digest_path_excluded(str(item.get("permalink") or "")):
+            continue
+        out.append(item)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _read_slim_digest_file(path: Path, *, limit: int) -> list[dict[str, Any]]:
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return []
+    if size <= 0 or size > _SLIM_DIGEST_MAX_BYTES:
+        return []
+    data = read_json(path, {})
+    if not isinstance(data, dict) or not _recall_index_is_servable(cast(dict[str, Any], data)):
+        return []
+    notes = data.get("notes")
+    if not isinstance(notes, list) or not _notes_are_keyword_free(notes):
+        return []
+    return _filter_digest_notes(notes, limit=limit)
+
+
 class RecallModule:
     name = "bounded_recall"
 
@@ -2103,6 +2156,8 @@ class RecallModule:
         self.state_root = Path(state_root or default_state_root())
         vault = vault_root or os.environ.get("BASIC_MEMORY_VAULT") or "D:/basic-memory"
         self.vault_root = Path(vault)
+        digest_env = os.environ.get("AGENT_HARNESS_RECALL_DIGEST")
+        self.digest_path = Path(digest_env) if digest_env else (self.state_root / "recall-digest.json")
 
     def _notes(self) -> list[dict[str, Any]]:
         for path in self.index_paths:
@@ -2118,9 +2173,10 @@ class RecallModule:
         return []
 
     def run(self, event: HookEvent) -> HookResult:
-        # Hard READ gate (cross-AI): inject a vault digest on SessionStart AND on
+        # Hard READ gate (cross-AI): inject a slim digest on SessionStart AND on
         # the first UserPromptSubmit. Grok ignores SessionStart stdout, so the
-        # first prompt is the portable path. Fail-open if the vault is missing.
+        # first prompt is the portable path. Never rglob the vault. Fail-open
+        # (no inject) if recall-digest.json / slim index is missing.
         # SessionStart also retries an unflushed Stop spool (hook-owned WRITE).
         try:
             self._retry_spool_flush(event)
@@ -2166,6 +2222,20 @@ class RecallModule:
                 payload["flushed"] = True
                 atomic_write_json(path, payload)
 
+    def _session_digest_notes(self) -> list[dict[str, Any]]:
+        # SessionStart MUST NOT rglob the vault and MUST NOT load the huge
+        # keyword index. Prefer the slim sidecar; fall back to a size-capped
+        # keyword-free index document (test fixtures / already-slim indexes).
+        digest_path = Path(getattr(self, "digest_path", self.state_root / _DIGEST_FILENAME))
+        loaded = _read_slim_digest_file(digest_path, limit=16)
+        if loaded:
+            return loaded
+        for path in self.index_paths:
+            loaded = _read_slim_digest_file(path, limit=_DIGEST_INJECT_LIMIT)
+            if loaded:
+                return loaded
+        return []
+
     def _session_vault_digest(self, event: HookEvent) -> HookResult:
         if event.event not in {"SessionStart", "UserPromptSubmit"}:
             return HookResult.success()
@@ -2173,32 +2243,19 @@ class RecallModule:
         prior = read_json(marker, {})
         if isinstance(prior, dict) and prior.get("injected"):
             return HookResult.success()
-        vault = self.vault_root
-        if not vault.is_dir():
-            return HookResult.success()
-        notes: list[tuple[float, Path]] = []
-        try:
-            for path in vault.rglob("*.md"):
-                if any(part in {"compaction-checkpoints", ".git", "node_modules"} for part in path.parts):
-                    continue
-                try:
-                    notes.append((path.stat().st_mtime, path))
-                except OSError:
-                    continue
-        except OSError:
-            return HookResult.success()
+        notes = self._session_digest_notes()
         if not notes:
             return HookResult.success()
-        notes.sort(key=lambda item: item[0], reverse=True)
         lines = [
             "BASIC-MEMORY VAULT DIGEST (auto-injected; UNTRUSTED historical context; query live MCP to confirm):"
         ]
-        for _mtime, path in notes[:8]:
-            title = path.stem.replace("-", " ")
-            rel = path.as_posix()
+        for note in notes[:_DIGEST_INJECT_LIMIT]:
+            title = redact_text(str(note.get("title") or "Untitled"), max_chars=120)
+            rel = str(note.get("path") or note.get("permalink") or "")
+            rel = rel.replace("\\", "/")
             if "basic-memory/" in rel:
                 rel = rel.split("basic-memory/", 1)[-1]
-            lines.append(f"- {redact_text(title, max_chars=120)} | {redact_text(rel, max_chars=180)}")
+            lines.append(f"- {title} | {redact_text(rel, max_chars=180)}")
         try:
             marker.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_json(marker, {"injected": True})
