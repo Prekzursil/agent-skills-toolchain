@@ -148,7 +148,7 @@ upstream code. The fix is re-vendoring a newer ralph-orchestrator — owner deci
 
 ### 6b. Still open for the owner
 
-1. The five #290 files listed under step 4.
+1. Four of the five #290 files listed under step 4. The fifth -- `.gitignore`'s `.agents/session-catalog.md` line -- turned out not to be a judgment call: `.agents/session-catalog.POINTER.md` on main already states the catalog "is NOT in git" and names that exact ignore line, so the fold had violated a tracked rule. Resolved by enforcing it (catalog untracked, line added) in the root-organizing change; the PR's stale "This repo is PUBLIC" wording was not carried.
 2. Re-vendor `ralph-orchestrator` (17 findings).
 3. Intake #288's questions into `REGISTER.md`.
 4. The two harness-lineage decisions in `reconcile-flags/harness-lineage-2026-09-01.md`.
