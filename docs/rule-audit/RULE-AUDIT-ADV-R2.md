@@ -76,7 +76,7 @@ Both waivers still fire, so nothing was invalidated by widening — the delta is
 tree. Adjudicated at source, exactly as the BUILD adjudicates its own two:
 
 * **REAL, and novel — the tenth path-axis contradiction.** `agent-self/config/rules/README.md:74`
-  writes ``[`common/windows-shell.md`](common/windows-shell.md)`` while describing it as the
+  writes ``[`common/windows-shell.md`](../../rules/common/windows-shell.md)`` while describing it as the
   cross-tool rule. `ls agent-self/config/rules/common/` returns 10 files —
   `agents, code-review, coding-style, development-workflow, git-workflow, hooks, patterns,
   performance, security, testing` — and **no `windows-shell.md`**. Control: the same filename IS

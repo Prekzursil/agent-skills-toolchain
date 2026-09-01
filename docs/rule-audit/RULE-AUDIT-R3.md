@@ -47,7 +47,7 @@ $ git ls-files agent-self/config/rules/common | wc -l
 
 and read the citing line at source. `agent-self/config/rules/README.md:74`:
 
-> a rule that calls itself cross-tool (for example [`common/windows-shell.md`](common/windows-shell.md)) is NOT in Codex's instruction chain until you add a pointer yourself
+> a rule that calls itself cross-tool (for example [`common/windows-shell.md`](../../rules/common/windows-shell.md)) is NOT in Codex's instruction chain until you add a pointer yourself
 
 Both the backticked path and the link target resolve relative to that README's own directory, so
 both name `agent-self/config/rules/common/windows-shell.md`. It is not there. Positive control:

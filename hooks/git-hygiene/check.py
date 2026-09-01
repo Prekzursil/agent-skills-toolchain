@@ -197,6 +197,23 @@ class Config:
     # Measured on this repo: 3,103 tracked docs / 17.6 MB read+scanned in 590-742 ms.
     # The cap is ~30% headroom over that, so growth degrades to "truncated" not "slow".
     docs_cap: int = 4_000
+    # Prefixes skipped by the broken-link scan (fnmatch on the repo-relative path).
+    # These trees are NOT authoritative prose:
+    #   platform/routing/fixtures/  -- synthetic skill stubs for routing tests
+    #   **/vendor/                  -- third-party trees we do not own
+    #   agent-self/config/          -- incomplete harness mirror (paths resolve elsewhere)
+    #   .agents/skills/             -- deploy mirror of skills/; dual-write makes the same
+    #                                 relative link correct under skills/ and wrong here
+    #                                 (skills/X -> ../../guides vs .agents/skills/X ->
+    #                                 ../../../guides). Scanning both double-counts.
+    #   harness-sota-*-corpus/      -- dated audit dumps, not living docs
+    doc_skip_globs: tuple = (
+        "platform/routing/fixtures/*",
+        "*/vendor/*",
+        "agent-self/config/*",
+        ".agents/skills/*",
+        "harness-sota-*-corpus/*",
+    )
 
     # ---- coverage dimension (skills + MCP servers deployed-but-not-committed) -------------
     # LIVE skill roots (each top-level dir is one skill). ~/.claude/skills was the measured
@@ -885,6 +902,8 @@ def scan_docs_hygiene(repo_root, tracked, cfg: Config, deadline=None) -> DocsRep
         if any(fnmatch.fnmatch(low, p.lower()) for p in cfg.doc_cruft_patterns):
             cruft.append(rel)
         elif low.endswith(cfg.doc_exts):
+            if any(fnmatch.fnmatch(low, p.lower()) for p in cfg.doc_skip_globs):
+                continue
             docs.append(rel)
     docs.sort()  # deterministic truncation and deterministic examples
 
