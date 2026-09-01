@@ -157,6 +157,23 @@ From 24 failure memories:
 - Implications of success
 - ANY communication suggesting completion/correctness
 
+## Checkpoint Provenance: disk-verified vs agent-claimed (Wave C, 2026-08-27)
+
+Fail-closed completion doctrine (canonical text: `~\AGENTS.md` "Verification doctrine"):
+**a budget-aborted gate is never green; completion claims require disk artifacts.**
+
+- Every checkpoint / execution-state entry you write (`.beads\context\execution-state.md`,
+  wave execution logs, resume files) carries a provenance tag:
+  - **`disk-verified`** — you re-read the artifact/path the entry claims, in this message.
+  - **`agent-claimed`** — asserted by an agent (including yourself, earlier) and not yet re-read.
+- On resume, treat `agent-claimed` entries as UNVERIFIED: re-check the artifact before building
+  on them. An absent artifact downgrades the claim to false — but only after a **grace window**
+  (~60s re-check) because artifact writes lag under RAM pressure on this box (transcript-flush
+  lag); an honest completion must not be marked false by a slow flush.
+- A gate that was killed by budget (time/tokens/RAM) reports **FAILED-TO-RUN**, never PASS and
+  never silently green. Enforcement hooks for this are deliberately NOT built yet — gated on
+  Wave B's observe-mode evidence.
+
 ## The Bottom Line
 
 **No shortcuts for verification.**

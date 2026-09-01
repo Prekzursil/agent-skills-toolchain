@@ -139,9 +139,26 @@ two decimals are enough.
 - Do not recommend installing unreviewed hooks or plugins that execute arbitrary
   code.
 
+## OpenRouter generation ids (sidecar)
+
+Claude SQLite rows in `~/.claude-cost-tracker/usage.db` do **not** include OpenRouter sidecar calls. Label the source when mixing numbers.
+
+OpenRouter chat completions return a generation `id`. After the call, `GET https://openrouter.ai/api/v1/generation?id=<generation_id>` (same env credential, never log it) returns `total_cost`, token counts, model, and provider. Cost may lag a second or two; retry a few times on 404.
+
+Probe (prints generation id + usage, never the secret):
+
+```powershell
+C:\Python314\python.exe C:\Users\Prekzursil\.agents\scripts\openrouter-complete.py --show-limits --prompt "Reply with the single word: pong"
+```
+
+Do not hard-code OpenRouter unit prices in answers; prefer the generation endpoint's `total_cost`. Per-key remaining cap is `GET /api/v1/key` → `limit_remaining` (see skill `openrouter-routing`).
+
+Free-path Wave 0 smoke (2026-08-27): `liquid/lfm-2.5-2.6b:free` id `gen-1787793797-2WelxSMIM1z6ZjFYfWFv` and `openrouter/free` → `nvidia/nemotron-3.5-lightning:free` id `gen-1787793804-F2TQPdT2frdTAk6BC3FR` both settled at `total_cost=0` after an initial `GET /generation` 404 lag. Paid `deepseek/deepseek-v4-flash-0731` remains 402 until credits are added.
+
 ## Related
 
 - `/cost-report` - Command-form report using the same database.
 - `cost-aware-llm-pipeline` - Model-routing and budget-design patterns.
 - `token-budget-advisor` - Context and token-budget planning.
 - `strategic-compact` - Context compaction to reduce repeated token spend.
+- `openrouter-routing` - T0/T1/T2 sidecar, spend-cap checklist, generation-id probe.

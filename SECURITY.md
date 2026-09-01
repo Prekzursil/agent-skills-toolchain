@@ -1,61 +1,47 @@
-# Security Policy
+# SECURITY — PRIVATE ONLY
 
-## Supported Versions
+**This repository must never be made public.**
 
-Security fixes are applied to the `main` branch. This repository is a personal
-agent-harness toolchain (agent hooks, skills, and MCP tools); it is not versioned
-for downstream redistribution, so only `main` is supported.
+It is the owner's personal-harness SSOT (`Prekzursil/agent-skills-toolchain`).
+It contains:
 
-| Version | Supported |
-| --- | --- |
-| `main` | :white_check_mark: |
-| Other branches/tags | :x: |
+- the live agent control plane (skills, MCP inventory pointers, scripts)
+- `browser-profiles/` — **live browser login cookies / profile data** (owner decision 28.08.2026)
+- other machine-local harness state that is useless and harmful off this box
 
-## Reporting a Vulnerability
+## Do not flip visibility
 
-Please do **not** open public GitHub issues for undisclosed security findings.
+```text
+gh repo edit Prekzursil/agent-skills-toolchain --visibility public
+```
 
-Use GitHub Private Vulnerability Reporting for this repository:
-<https://github.com/Prekzursil/agent-skills-toolchain/security/advisories/new>
+is a **data-leak command** for this repo. GitHub does **not** warn that `browser-profiles/` holds session cookies. Making the repo public would publish live logins.
 
-If private advisory reporting is unavailable, contact the maintainer privately on GitHub
-(`@Prekzursil`).
+If visibility must change: delete `browser-profiles/` from git history first (filter-repo / BFG), rotate every session in those profiles, and get an explicit owner sign-off. A visibility flip without that is a security incident.
 
-When reporting, include:
+## What stays gitignored (real secrets)
 
-- the affected component, file, workflow, MCP tool, hook, or dependency
-- the exact commit, branch, or release if known
-- clear reproduction or proof-of-concept steps
-- impact details covering confidentiality, integrity, or availability
-- any suggested mitigation if known
+Even in a private repo, these must not be committed:
 
-## Scope
+- `local.json`
+- `secrets/`, `secure-evidence/`
+- `*.token`, `*.pem`, `*.key`
+- `.env`, `.env.*`
+- `__pycache__/`, `node_modules/`
+- hook capture queues and other PII dumps listed in `.gitignore`
 
-In scope:
+`browser-profiles/` is the exception (cookies allowed). Chrome Privacy Sandbox `TrustTokenKeyCommitments/` is ignored because the path looks like a token store and is not login data.
 
-- first-party code in `hooks/`, `skills/`, `tools/` (MCP servers, editor/CLI tooling),
-  and `agent-self/`
-- the CI/quality workflows under `.github/workflows/`
-- the committed dependency lockfiles
+## MCP / browser-bridge
 
-Out of scope (report upstream instead):
+`browser-bridge/` **code** is committed. Registering `chrome-bridge` as a callable MCP in `agents.json` is **deferred** until the hub on `127.0.0.1:8770` is hardened (hub token, extension-id pin, CDP allowlist). An unauthenticated local CDP socket must not be advertised to agents.
 
-- vendored third-party code (e.g. `tools/editor/ralph-orchestrator/vendor/**`, the vendored
-  `tools/editor/metaswarm/**` framework copy) — report to the upstream project
-- findings that require already-compromised local credentials or an already-root host
-- the intentionally committed private-env token store documented in `.gitleaks.toml`
-  (owner-intentional; tracked separately for rotation)
+## Pre-push guard (optional local hook)
 
-## Disclosure Expectations
+`scripts/git-hooks/pre-push-private-guard.ps1` refuses a push if `gh` reports the repo is public. Install:
 
-- Initial acknowledgment: best effort within 3 business days.
-- Triage update: best effort within 7 business days.
-- Coordinated disclosure is expected; please allow time to investigate and patch before
-  public disclosure.
+```powershell
+Copy-Item .\scripts\git-hooks\pre-push-private-guard.ps1 .git\hooks\pre-push
+```
 
-## Security Gates
-
-Every change to `main` passes the lean `quality` gate (see [`QUALITY-CHARTER.md`](QUALITY-CHARTER.md)),
-which includes SAST (opengrep, curated in-repo ruleset), secret scanning (gitleaks), and a
-known-CVE dependency scan (osv-scanner). Secrets must never be hardcoded; use environment
-variables and validate their presence at startup.
+The documentation in this file is the mandatory safeguard; the hook is defense in depth.

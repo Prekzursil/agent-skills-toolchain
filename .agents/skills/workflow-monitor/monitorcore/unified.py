@@ -285,8 +285,9 @@ def run_board(
 def _build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         description="Unified monitor cockpit — ONE board, switchable panes "
-        "(codex · agents · workflows · databricks · mcp · health). --once renders a single "
-        "read-only frame and degrades cleanly under Windows Terminal."
+        "(codex · agents · workflows · databricks/remote-workers · mcp · health). "
+        "Pane 4 tails a local NDJSON mirror of ANY remote worker (Scaleway, Databricks, "
+        "Modal, RunPod). --once renders a single read-only frame."
     )
     ap.add_argument(
         "--pane",
@@ -302,7 +303,9 @@ def _build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--sessions-dir", default=None, help="codex rollout sessions dir")
     ap.add_argument("--subagents-dir", default=None, help="claude subagents dir")
     ap.add_argument(
-        "--events-path", default=None, help="databricks NDJSON event stream"
+        "--events-path",
+        default=None,
+        help="remote-worker / databricks NDJSON (default: mirrored ~/.claude/remote-workers/*/events.ndjson)",
     )
     ap.add_argument(
         "--mcp-config",

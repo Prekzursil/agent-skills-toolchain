@@ -10,16 +10,16 @@
 #   trigger_tool = the Claude tool whose invocation auto-opens this monitor (via the hook);
 #                  omit it for a monitor that is launchable by hand but never auto-opened.
 #   autolaunch   = what the hook does when trigger_tool fires: "open" (default) auto-opens the
-#                  monitor window — correct for a PERSISTENT poller (wfmon) that keeps picking up
-#                  agents as they appear; "remind" emits a one-time `mon <name>` nudge instead —
-#                  correct for a ONE-SHOT spawner (agentmon) that would otherwise race the
-#                  not-yet-created subagent transcript at PreToolUse and find nothing.
+#                  monitor window — correct for a PERSISTENT poller (the cockpit) that keeps
+#                  picking up agents as they appear; "remind" emits a one-time `mon <name>` nudge
+#                  instead — correct for a ONE-SHOT spawner (agentmon) that would otherwise race
+#                  the not-yet-created subagent transcript at PreToolUse and find nothing.
 
 [wfmon]
 dir = "workflow-monitor"
 entry = "workflow_monitor.py"
-trigger_tool = "Workflow"
-# autolaunch defaults to "open" — the cockpit is a persistent poller, safe to auto-open.
+# NO trigger_tool any more: T0-3 (executed 2026-08-20) repointed `Workflow` at [cockpit]
+# below, retiring this predecessor board from auto-open. Still launchable by hand: `mon wfmon`.
 
 [agentmon]
 dir = "run-agent-monitor"
@@ -49,7 +49,7 @@ entry = "crcp_health_monitor.py"
 #
 # NO trigger_tool, deliberately, exactly like [crcp] above: this is a manual HEALTH monitor, not
 # a workflow poller, and there is no Claude tool whose invocation implies "show me the science
-# daemon". Additive stanza -- it changes nothing for the five monitors above.
+# daemon". Additive stanza -- it changes nothing for the monitors above.
 #
 # The entry is a read-only shim over `cs doctor -Json` / `cs status -Json`. It renders
 # NOT-CHECKED as its own column instead of folding it into PASS, so the board cannot read green
@@ -58,17 +58,27 @@ entry = "crcp_health_monitor.py"
 dir = "claude-science-local"
 entry = "cs_monitor.py"
 
-# The unified 6-pane cockpit (codex · agents · workflows · databricks · mcp · health) — the successor
-# board that `monitorcore.unified` implements. Manual: mon cockpit
+# The unified 6-pane cockpit (codex · agents · workflows · databricks/remote-workers · mcp · health).
+# Pane 4 tails a LOCAL NDJSON mirror of any remote worker (Scaleway, Databricks, Modal, RunPod).
+# Mirror with: python tools/monitorcore/scripts/remote_pull.py --source user@host
+# Default stream: ~/.claude/remote-workers/current/events.ndjson
+# Manual: mon cockpit
 #
-# NO trigger_tool, deliberately. `Workflow` already belongs to [wfmon] above; registering the
-# cockpit for the same tool would auto-open a SECOND window per Workflow call instead of
-# replacing the first. Repointing `Workflow` at the cockpit and retiring the predecessor is a
-# separate sequenced decision (MASTER-QUEUE T0-3, still open), not a side effect of making the
-# cockpit reachable. Until then this stanza is additive: `mon cockpit` works, nothing auto-opens.
+# OWNS the `Workflow` trigger (MASTER-QUEUE T0-3, executed 2026-08-20): the trigger moved here
+# from [wfmon], so a Workflow call now auto-opens the cockpit — exactly ONE window, replacing
+# (not doubling) the predecessor board, which stays manual-only above. autolaunch defaults to
+# "open": the cockpit is a persistent poller, safe to auto-open.
 #
 # `entry` is a script path, not a module: the launch ladder builds `python <dir>/<entry>`, so
 # `monitorcore.unified` needs the `unified_board.py` shim that sits beside it.
 [cockpit]
 dir = "workflow-monitor"
 entry = "unified_board.py"
+trigger_tool = "Workflow"
+
+# Live Prompt Two board (Scaleway mirror + local p2-deliver-all harvest).
+# Manual: mon p2r2e
+# Also: python %USERPROFILE%\source\ast-integrate\command-center\p2-wave\p2_status.py --watch
+[p2r2e]
+dir = "workflow-monitor"
+entry = "p2r2e_board.py"

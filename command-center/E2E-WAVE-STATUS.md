@@ -131,8 +131,8 @@ HEAD this document was written against.
    `codex exec --ignore-user-config --sandbox read-only -o <f> -` exits 0 and the output file
    carries the exact nonce its prompt demanded; `mcp__codex__codex` returns its nonce too; and the
    SAME CLI call with `CODEX_HOME` pointed at an empty directory fails `401`, so the probe can
-   demonstrably see an auth failure. **42 units still DEMAND a cross-vendor review and 39 are
-   still owed one** — 3 already hold an executed Codex PASS, so restoring credentials was never
+   demonstrably see an auth failure. **42 units still DEMAND a cross-vendor review** *[superseded 2026-08-20: split re-derived by the delivery-surface curation — see `command-center/CROSS-VENDOR-RAIL-STATUS.md`]* **and 39 are
+   still owed one** — 3 already held an executed Codex PASS, so restoring credentials was never
    the lever for those. The owning page is `command-center/CROSS-VENDOR-RAIL-STATUS.md`;
    `rail_count_gate.py` C6 now fails closed when this item and that page disagree, which is the
    check that was missing while this bullet stayed wrong for a whole round.
@@ -378,7 +378,7 @@ Each is an answerable question with my recommended default.
 | **D6b** | Deploy the **committed 75-skill description cap**? | **NO, not yet.** **[REVIEW — the locator was missing; the owner could not find the artifact from this document.]** It is the grounding lane's R1b: `command-center/grounding/SKILLS-FLEET-GROUNDING.md:241` — *"75 skills, −17,244 chars"* — carried forward as SKILLS R5. Reason to hold, and it is NOT the render bug: a description is the **entire lexical recall surface**, so every keyword shortened away is a query that no longer matches, and the before/after cannot be measured from inside a subagent (the startup truncation warning is not readable there). |
 | **D6c** | Rewrite the 26 description-less skills? | **NO.** They are a **render** bug, not a curation gap — their `SKILL.md` on disk carries a real description (workflow-foundry: 1,750 chars). Rewriting trades good text for nothing while the render path still hides it. Diagnose the render path first. |
 | **D7** | Merge or retire any of the 328 skills? | **KEEP everything.** The overlap lens never got adversarial clearance and token-level evidence cannot see functional redundancy. Default hard to KEEP. |
-| **D8** | Fix the cross-vendor review rail before dispatching another build wave? | **YES.** 42 units and 449 READY units all name an independent cross-vendor reviewer. Building more units into a dead rail manufactures more un-reviewable work. |
+| **D8** | Fix the cross-vendor review rail before dispatching another build wave? | **YES.** 42 units and 449 READY units all name an independent cross-vendor reviewer *[superseded 2026-08-20: split re-derived by the delivery-surface curation]*. Building more units into a dead rail manufactures more un-reviewable work. |
 | **D9** | One worktree per lane (or a single-writer rule on `quality.yml`) for the next wave? | **Worktree per lane.** Two commit-sweep incidents in one night, one of which red-blocked every PR on main. |
 | **D10** | Register a `measure-guard` suite floor (C8)? | **Defer.** Total collapse is already caught by pytest exit 5; the fix requires editing the twice-burned shared `quality.yml`; siblings are still extending that directory. Revisit when the estate is quiet. |
 
@@ -393,7 +393,7 @@ Each is an answerable question with my recommended default.
    shared by five of six lanes. Zero build cost, and until it happens every "wired into CI" claim
    in this wave is *likely (55-80%)*, not measured.
 2. **Fix the cross-vendor review rail** (`mcp__codex__codex` → agent-identity registration
-   failure). It gates 42 BLOCKED units and every one of the 449 READY units. Note the trap it
+   failure). It gates 42 BLOCKED units and every one of the 449 READY units *[superseded 2026-08-20: counts re-derived by the delivery-surface curation]*. Note the trap it
    already sprang: three green signals (`codex --version`, `Get-Command`, `mcp list ✔ Connected`)
    and the rail is unusable — probe with a real call, never a health check.
 3. **Decide D2 (receipt id shape)**, then emit R-M18's receipt with
@@ -669,8 +669,8 @@ test_the_real_repository_is_green` calls `wiring.check(REPO_ROOT)`, so a wiring 
 repo turns it red; only its *trigger* is narrower than §1 implied. `$defs.unit_id` re-derived
 independently: `^[A-Z][A-Z0-9]*-[0-9]{4}$`, `BLD-0023`→True, `ADV-0021`→True, `R-M18`→False.
 **449/449** READY units carry a `reviewer_requirement` — my own join of `READY-UNITS.json`
-(`ready_units`, len 449) against `WORK-UNIT-CATALOG.json` (2,007 entries, 0 unmatched). The
-"42 blocked units" is anchored at `command-center/CROSS-VENDOR-RAIL-STATUS.md:1`, which is now
+(`ready_units`, len 449 *[superseded 2026-08-20]*) against `WORK-UNIT-CATALOG.json` (2,007 entries, 0 unmatched). The
+"42 blocked units" *[superseded 2026-08-20]* is anchored at `command-center/CROSS-VENDOR-RAIL-STATUS.md:1`, which is now
 re-derived on every push by `command-center/p2-next/rail_count_gate.py`; it read 43 when this
 section was written. *[superseded 2026-08-13]* The two casualty
 receipts are 176,468 B and 114,103 B in `command-center/casualty/`, against 2,100 B and 1,818 B

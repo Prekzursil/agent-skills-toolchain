@@ -8,9 +8,12 @@ class this repo keeps re-shipping. This module is the invocation.
 
 WHAT IT LINTS. The saved workflows themselves live at ``~/.claude/workflows`` and are
 machine-local, so CI cannot see them. What CI *can* see is every fenced ``js`` block
-inside ``skills/workflow-*/templates/*.md`` -- the code the skill tells authors to
-paste. Those are linted here. Use ``--live`` on a workstation to additionally lint
-the real saved workflows.
+inside ``skills/workflow-*/templates/*.md`` AND each ``skills/workflow-*/SKILL.md`` --
+the code the skill tells authors to paste. Both are linted here: discovery originally
+stopped at ``templates/*.md``, and the authoring SKILL.md's own quick-start examples
+modelled the exact barrier-without-timeout footgun the skill warns about with no gate
+ever seeing them (audit finding WS-3). Use ``--live`` on a workstation to additionally
+lint the real saved workflows.
 
 FAIL-CLOSED (rules/common/ci-hygiene.md 1). Discovering zero blocks is a FAILURE, not
 a pass: an empty walk is how a gate silently stops checking anything.
@@ -56,13 +59,23 @@ class Block:
     source: str
 
 
+# The doc surfaces authors actually paste from. ``templates/*.md`` are the
+# fragment files; ``SKILL.md`` carries each skill's quick-start examples. The
+# latter was a discovery blind spot (WS-3): the authoring skill's own examples
+# fired barrier-without-timeout under its own linter and no gate ever saw them.
+_DOC_GLOBS = ("workflow-*/templates/*.md", "workflow-*/SKILL.md")
+
+
 def discover_blocks(root: Path) -> list[Block]:
-    """Every fenced ``js`` block under ``skills/workflow-*/templates/*.md``."""
+    """Every fenced ``js`` block in the workflow skills' authored doc surfaces."""
+    docs: set[Path] = set()
+    for pattern in _DOC_GLOBS:
+        docs.update((root / "skills").glob(pattern))
     blocks: list[Block] = []
-    for template in sorted((root / "skills").glob("workflow-*/templates/*.md")):
-        text = template.read_text(encoding="utf-8")
+    for doc in sorted(docs):
+        text = doc.read_text(encoding="utf-8")
         for i, body in enumerate(_JS_BLOCK.findall(text)):
-            blocks.append(Block(template, i, body))
+            blocks.append(Block(doc, i, body))
     return blocks
 
 
@@ -112,18 +125,21 @@ def self_test() -> int:
     """Both-states control: the gate MUST go red on a deliberately bad block.
 
     A gate that has never gone red is indistinguishable from a no-op, so this runs
-    the real discovery+lint path over a synthetic tree containing one known-bad
-    block and one known-good block, and requires red then green.
+    the real discovery+lint path over a synthetic tree containing known-bad blocks
+    on BOTH discovery surfaces (a templates/*.md and a SKILL.md -- the surface
+    WS-3 found unlinted), then known-good blocks, and requires red then green.
     """
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         tdir = root / "skills" / "workflow-broken" / "templates"
         tdir.mkdir(parents=True)
+        skill_md = tdir.parent / "SKILL.md"
         (tdir / "bad.md").write_text(f"prose{_BAD_BLOCK}", encoding="utf-8")
+        skill_md.write_text(f"prose{_BAD_BLOCK}", encoding="utf-8")
 
         bad = discover_blocks(root)
-        if len(bad) != 1:
-            print(f"FAILED:wf-gate-self-test discovery found {len(bad)} blocks, want 1")
+        if len(bad) != 2:
+            print(f"FAILED:wf-gate-self-test discovery found {len(bad)} blocks, want 2")
             return 1
         checks = {f.check for f in lint_blocks(bad, root)}
         want = {"sandbox-forbidden", "no-date-now"}
@@ -133,9 +149,9 @@ def self_test() -> int:
             )
             return 1
 
-        (tdir / "bad.md").write_text(
-            "prose\n```js\nconst t = ts\n```\n", encoding="utf-8"
-        )
+        clean_doc = "prose\n```js\nconst t = ts\n```\n"
+        (tdir / "bad.md").write_text(clean_doc, encoding="utf-8")
+        skill_md.write_text(clean_doc, encoding="utf-8")
         clean = lint_blocks(discover_blocks(root), root)
         if clean:
             print(f"FAILED:wf-gate-self-test clean block produced {clean}")

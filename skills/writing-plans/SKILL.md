@@ -94,6 +94,25 @@ git commit -m "feat: add specific feature"
 - Reference relevant skills with @ syntax
 - DRY, YAGNI, TDD, frequent commits
 
+## Observational Method (Wave D, 2026-08-27 — airworthiness trio 3/3)
+
+Every plan for risky/long-running work adds one short section before execution:
+
+```markdown
+**Monitored metrics:** [1-3 observable signals this plan bets on — e.g. "suite runtime",
+"subagentStop status counts in cursor-subagent-lifecycle.jsonl", "sync exit code"]
+
+**Trigger-action responses (pre-committed):**
+| Trigger (metric crosses...) | Action (decided NOW, not then) |
+|---|---|
+| e.g. 2 consecutive subagent aborts | stop fan-out; run remaining units in-session |
+| e.g. sync red after an edit | restore file from backup; halt further control-plane edits (MEL row 9) |
+```
+
+The point is pre-commitment: decide before the metric moves what its movement forces. During
+execution the response table is binding — deviating from it requires writing down why. (Origin:
+the observational method in geotechnical engineering; see `.agents\mel.md` for the harness MEL.)
+
 ## Execution Handoff
 
 After saving the plan, offer execution choice:

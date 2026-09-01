@@ -1,0 +1,603 @@
+{
+  "schema_version": 1,
+  "unit_id": "BLD-0044",
+  "state": "BLOCKED",
+  "sentinel": "FAILED:BLD-0044 harvest UNIT-COMPLETE wraps BLOCKED; 10 sidecars absent; CNF-0147 absent; reviewer NOT-REVIEWED; c11 red; suitefloor first-red stale",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:22948-22991",
+  "min_bytes_threshold": 1024,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/BLD-0044.json",
+      "bytes": 56693,
+      "sha256": "ba7588bbc5141c5c9506dbc3b8d605e0e08ec6e6b17ff108df9acea1e18563ca",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The egress blocker was live in both states: the deliberate fetch succeeded open and failed with zero bytes inside the network namespace.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0044/probe1-egress-control.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "http",
+          "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/probe1_egress_control.py",
+          "raw_output": "NAMED-PROBE-1: egress-block both-states control\ncontrol_url=https://example.com/\nopen_command=[\"/usr/bin/curl\", \"--fail\", \"--silent\", \"--show-error\", \"--max-time\", \"10\", \"--output\", \"/dev/null\", \"--write-out\", \"http_code=%{http_code} bytes=%{size_download} remote_ip=%{remote_ip}\\\\n\", \"https://example.com/\"]\nopen_exit_code=0\nopen_stdout=\"http_code=200 bytes=559 remote_ip=104.20.23.154\\n\"\nopen_stderr=\"\"\nblocked_command=[\"/usr/bin/unshare\", \"-n\", \"/bin/sh\", \"-c\", \"ip link set lo up && exec \\\"$@\\\"\", \"bld0044-egress-control\", \"/usr/bin/curl\", \"--fail\", \"--silent\", \"--show-error\", \"--max-time\", \"10\", \"--output\", \"/dev/null\", \"--write-out\", \"http_code=%{http_code} bytes=%{size_download} remote_ip=%{remote_ip}\\\\n\", \"https://example.com/\"]\nblocked_exit_code=6\nblocked_stdout=\"http_code=000 bytes=0 remote_ip=\\n\"\nblocked_stderr=\"curl: (6) Could not resolve host: example.com\\n\"\nopen_fetch_succeeded=true\nblocked_fetch_failed=true\nblock_control_both_states=true\nPROBE-1-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-refute-egress-curl-netns-v2",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_summarize.py",
+          "raw_output": "NAMED-PROBE-2: hidden-input census refutation verifier\nexpected_matrix_cells=64\nattempted_matrix_cells_with_logs=64\nvalid_matrix_result_cells=32\nmissing_matrix_result_cells=32\ndev_null_harness_error_cells=26\negress_block_both_states=true\nobserved_axis_change_counts_not_causal={\"cache\": 1, \"cwd\": 10, \"egress\": 4, \"order_seed\": 0, \"prng_seed\": 1, \"timezone\": 2}\ncomplete_valid_cold_warm_pairs=12\ncold_cache_empty_before_smoke_cold=true\nwarm_cache_nonempty_before_smoke_warm=true\nsmoke_outcome_count_diverged=false\ncache_observed_changed_test_ids_not_causal=[\"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"]\norder_negative_control={\"negative-order-1009\": \"PASS\", \"negative-order-1013\": \"FAIL\"}\norder_negative_control_both_states=true\nhermetic_control_observed_cells=32\nhermetic_control_all_observed_pass=true\nidentical_axis_repeat=true\nidentical_axis_changed_test_count=6\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"}\ndev_null_kind_at_verification=regular-file\nverifier_errors=0\nrefute_census_path=command-center/p2-wave/probes/BLD-0044/refute-census.json\nrefute_census_sha256=27471f7cffee959e4c962ec30b2a09b9457f18c9cac67e261221a5f91bfdb560\nREFUTED:BLD-0044 identical-axis outcomes diverged and the matrix lost controlled cells\nPROBE-2-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-refute-summary-egress-parser-v2",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The claim that observed differences can be attributed to declared matrix axes is refuted because six tests changed from PASS to ERROR when every declared axis was held identical.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0044/refute-repeatability.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_repeatability.py",
+          "raw_output": "HEARTBEAT|run=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold|elapsed_seconds=30.0\nHEARTBEAT|run=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold|elapsed_seconds=60.0\nHEARTBEAT|run=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold|elapsed_seconds=90.0\nHEARTBEAT|run=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold|elapsed_seconds=120.0\nHEARTBEAT|run=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold|elapsed_seconds=150.0\nHEARTBEAT|run=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold|elapsed_seconds=180.0\nRUN|{\"axes\":{\"cache\":\"cold\",\"cwd\":\"root\",\"egress\":\"open\",\"order_seed\":1009,\"prng_seed\":17,\"timezone\":\"UTC\"},\"cache_after\":5,\"cache_before\":0,\"collected\":2230,\"collection_errors\":80,\"exit\":1,\"outcomes\":{\"ERROR\":111,\"FAIL\":559,\"PASS\":1524,\"SKIP\":36},\"run_id\":\"refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold\",\"seconds\":180.415894}\nREFUTE-PROBE: identical-axis full-suite repeatability\nbaseline_run_id=o1009-s17-tzutc-cwdroot-netopen-cachecold\nrepeat_run_id=refute-repeat-o1009-s17-tzutc-cwdroot-netopen-cachecold\naxes_identical=true\nbaseline_outcome_count=2310\nrepeat_outcome_count=2310\nchanged_test_count=6\nREPEAT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill\"}\nREPEAT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit\"}\nREPEAT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical\"}\nREPEAT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content\"}\nREPEAT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected\"}\nREPEAT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"}\nresult_path=command-center/p2-wave/probes/BLD-0044/refute-repeatability.json\nresult_sha256=b7847ad31c51203ef7a6b0e177c144c0dde30efe621f67761c0e6b18880ef4ca\nattribution_refuted=true\nREFUTE-PROBE-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-identical-axis-live-repeat-v1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_summarize.py",
+          "raw_output": "NAMED-PROBE-2: hidden-input census refutation verifier\nexpected_matrix_cells=64\nattempted_matrix_cells_with_logs=64\nvalid_matrix_result_cells=32\nmissing_matrix_result_cells=32\ndev_null_harness_error_cells=26\negress_block_both_states=true\nobserved_axis_change_counts_not_causal={\"cache\": 1, \"cwd\": 10, \"egress\": 4, \"order_seed\": 0, \"prng_seed\": 1, \"timezone\": 2}\ncomplete_valid_cold_warm_pairs=12\ncold_cache_empty_before_smoke_cold=true\nwarm_cache_nonempty_before_smoke_warm=true\nsmoke_outcome_count_diverged=false\ncache_observed_changed_test_ids_not_causal=[\"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"]\norder_negative_control={\"negative-order-1009\": \"PASS\", \"negative-order-1013\": \"FAIL\"}\norder_negative_control_both_states=true\nhermetic_control_observed_cells=32\nhermetic_control_all_observed_pass=true\nidentical_axis_repeat=true\nidentical_axis_changed_test_count=6\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"}\ndev_null_kind_at_verification=regular-file\nverifier_errors=0\nrefute_census_path=command-center/p2-wave/probes/BLD-0044/refute-census.json\nrefute_census_sha256=27471f7cffee959e4c962ec30b2a09b9457f18c9cac67e261221a5f91bfdb560\nREFUTED:BLD-0044 identical-axis outcomes diverged and the matrix lost controlled cells\nPROBE-2-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-identical-axis-result-verifier-v1",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The full cross-product is incomplete: 64 cells have logs but only 32 retain valid result files, including 26 cells with the missing-/dev/null harness fingerprint.",
+      "verdict": "BLOCKED",
+      "anchor": "command-center/p2-wave/probes/BLD-0044/refute-census.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read BLD-0044 runtime result and log inventory",
+          "raw_output": "{\n  \"attempted_matrix_cells_with_logs\": 64,\n  \"cache_comparison\": {\n    \"cold_cache_empty_before_smoke_cold\": true,\n    \"complete_valid_cold_warm_pairs\": 12,\n    \"observed_changed_test_ids_not_causal\": [\n      \"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"\n    ],\n    \"smoke_outcome_count_diverged\": false,\n    \"warm_cache_nonempty_before_smoke_warm\": true\n  },\n  \"dev_null_harness_error_cells\": [\n    \"o1013-s17-tzutc-cwdroot-netopen-cachewarm\",\n    \"o1013-s17-tzutc-cwdroot-netblocked-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netopen-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netopen-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netblocked-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netblocked-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netopen-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netopen-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netblocked-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netblocked-cachewarm\",\n    \"o1013-s29-tzutc-cwdroot-netopen-cachecold\",\n    \"o1013-s29-tzutc-cwdroot-netopen-cachewarm\",\n    \"o1013-s29-tzutc-cwdroot-netblocked-cachecold\",\n    \"o1013-s29-tzutc-cwdroot-netblocked-cachewarm\",\n    \"o1013-s29-tzutc-cwdalternate-netopen-cachecold\",\n    \"o1013-s29-tzutc-cwdalternate-netopen-cachewarm\",\n    \"o1013-s29-tzutc-cwdalternate-netblocked-cachecold\",\n    \"o1013-s29-tzutc-cwdalternate-netblocked-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netopen-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netopen-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netblocked-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netblocked-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netopen-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netopen-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netblocked-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netblocked-cachewarm\"\n  ],\n  \"egress_block_both_states\": true,\n  \"expected_matrix_cells\": 64,\n  \"harness_failure_fingerprint\": {\n    \"dev_null_kind_at_verification\": \"regular-file\",\n    \"dev_null_mode_at_verification\": \"0o644\",\n    \"missing_dev_null_cell_count\": 26\n  },\n  \"hermetic_control_all_observed_pass\": true,\n  \"hermetic_control_observed_cells\": 32,\n  \"hermetic_control_observed_outcomes\": [\n    \"PASS\"\n  ],\n  \"identical_axis_repeat\": {\n    \"attribution_refuted\": true,\n    \"axes_identical\": true,\n    \"changed_test_count\": 6,\n    \"changed_tests\": [\n      {\n        \"baseline\": \"PASS\",\n        \"repeat\": \"ERROR\",\n        \"test_id\": \"ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill\"\n      },\n      {\n        \"baseline\": \"PASS\",\n        \"repeat\": \"ERROR\",\n        \"test_id\": \"ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit\"\n      },\n      {\n        \"baseline\": \"PASS\",\n        \"repeat\": \"ERROR\",\n        \"test_id\": \"ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical\"\n      },\n      {\n        \"baseline\": \"PASS\",\n        \"repeat\": \"ERROR\",\n        \"test_id\": \"ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content\"\n      },\n      {\n        \"baseline\": \"PASS\",\n        \"repeat\": \"ERROR\",\n        \"test_id\": \"ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected\"\n      },\n      {\n        \"baseline\": \"PASS\",\n        \"repeat\": \"ERROR\",\n        \"test_id\": \"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"\n      }\n    ]\n  },\n  \"missing_matrix_result_cells\": [\n    \"o1009-s17-tzutc-cwdroot-netopen-cachecold\",\n    \"o1009-s17-tzutc-cwdroot-netblocked-cachecold\",\n    \"o1009-s17-tzutc-cwdalternate-netopen-cachecold\",\n    \"o1009-s17-tzutc-cwdalternate-netblocked-cachecold\",\n    \"o1013-s17-tzutc-cwdroot-netopen-cachewarm\",\n    \"o1013-s17-tzutc-cwdroot-netblocked-cachewarm\",\n    \"o1013-s17-tzutc-cwdalternate-netopen-cachewarm\",\n    \"o1013-s17-tzutc-cwdalternate-netblocked-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netopen-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netopen-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netblocked-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdroot-netblocked-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netopen-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netopen-cachewarm\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netblocked-cachecold\",\n    \"o1013-s17-tzpacific-kiritimati-cwdalternate-netblocked-cachewarm\",\n    \"o1013-s29-tzutc-cwdroot-netopen-cachecold\",\n    \"o1013-s29-tzutc-cwdroot-netopen-cachewarm\",\n    \"o1013-s29-tzutc-cwdroot-netblocked-cachecold\",\n    \"o1013-s29-tzutc-cwdroot-netblocked-cachewarm\",\n    \"o1013-s29-tzutc-cwdalternate-netopen-cachecold\",\n    \"o1013-s29-tzutc-cwdalternate-netopen-cachewarm\",\n    \"o1013-s29-tzutc-cwdalternate-netblocked-cachecold\",\n    \"o1013-s29-tzutc-cwdalternate-netblocked-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netopen-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netopen-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netblocked-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdroot-netblocked-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netopen-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netopen-cachewarm\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netblocked-cachecold\",\n    \"o1013-s29-tzpacific-kiritimati-cwdalternate-netblocked-cachewarm\"\n  ],\n  \"observed_axis_change_counts_not_causal\": {\n    \"cache\": 1,\n    \"cwd\": 10,\n    \"egress\": 4,\n    \"order_seed\": 0,\n    \"prng_seed\": 1,\n    \"timezone\": 2\n  },\n  \"observed_axis_changed_test_ids_not_causal\": {\n    \"cache\": [\n      \"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"\n    ],\n    \"cwd\": [\n      \"ci/tests/test_check_skill_dual_write.py::test_d2_canonical_delete_with_projection_edit_fires\",\n      \"ci/tests/test_check_skill_dual_write.py::test_d3_empty_canonical_placeholder_does_not_discharge\",\n      \"ci/tests/test_check_skill_dual_write.py::test_gitlink_canonical_side_does_not_discharge_the_obligation\",\n      \"ci/tests/test_check_skill_dual_write.py::test_newline_in_a_path_does_not_desynchronise_the_post_image_map\",\n      \"ci/tests/test_check_skill_dual_write.py::test_strict_parity_allows_an_explicit_deletion_from_both_trees\",\n      \"ci/tests/test_check_skill_dual_write.py::test_usage_unknown_revision_is_exit_2_not_a_false_green\",\n      \"ci/tests/test_skill_render_traps.py::test_the_real_repository_is_green\",\n      \"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\",\n      \"tools/command-center/tests/test_reconcile_delivery.py::test_fails_closed_on_an_empty_catalog\",\n      \"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"\n    ],\n    \"egress\": [\n      \"ci/tests/test_check_skill_dual_write.py::test_d3_empty_canonical_placeholder_does_not_discharge\",\n      \"ci/tests/test_check_skill_dual_write.py::test_gitlink_canonical_side_does_not_discharge_the_obligation\",\n      \"ci/tests/test_check_skill_dual_write.py::test_newline_in_a_path_does_not_desynchronise_the_post_image_map\",\n      \"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"\n    ],\n    \"order_seed\": [],\n    \"prng_seed\": [\n      \"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"\n    ],\n    \"timezone\": [\n      \"ci/harness/prebuild_recall/test_prebuild_recall.py::test_iso_built_at_is_parsed\",\n      \"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"\n    ]\n  },\n  \"order_negative_control\": {\n    \"negative-order-1009\": \"PASS\",\n    \"negative-order-1013\": \"FAIL\"\n  },\n  \"order_negative_control_both_states\": true,\n  \"reason\": \"six outcomes changed under identical declared axes, so deltas in the unreplicated concurrent matrix cannot be attributed to those axes\",\n  \"schema_version\": 1,\n  \"scope_limit\": \"Only per-cell results that survived the interrupted concurrent run are analyzed; no exhaustive per-axis causal census is supportable.\",\n  \"stage\": \"refute\",\n  \"unit_id\": \"BLD-0044\",\n  \"valid_matrix_result_cells\": 32,\n  \"verdict\": \"REFUTED\"\n}\n",
+          "fingerprint": "bld0044-surviving-result-inventory-v1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_summarize.py",
+          "raw_output": "NAMED-PROBE-2: hidden-input census refutation verifier\nexpected_matrix_cells=64\nattempted_matrix_cells_with_logs=64\nvalid_matrix_result_cells=32\nmissing_matrix_result_cells=32\ndev_null_harness_error_cells=26\negress_block_both_states=true\nobserved_axis_change_counts_not_causal={\"cache\": 1, \"cwd\": 10, \"egress\": 4, \"order_seed\": 0, \"prng_seed\": 1, \"timezone\": 2}\ncomplete_valid_cold_warm_pairs=12\ncold_cache_empty_before_smoke_cold=true\nwarm_cache_nonempty_before_smoke_warm=true\nsmoke_outcome_count_diverged=false\ncache_observed_changed_test_ids_not_causal=[\"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"]\norder_negative_control={\"negative-order-1009\": \"PASS\", \"negative-order-1013\": \"FAIL\"}\norder_negative_control_both_states=true\nhermetic_control_observed_cells=32\nhermetic_control_all_observed_pass=true\nidentical_axis_repeat=true\nidentical_axis_changed_test_count=6\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"}\ndev_null_kind_at_verification=regular-file\nverifier_errors=0\nrefute_census_path=command-center/p2-wave/probes/BLD-0044/refute-census.json\nrefute_census_sha256=27471f7cffee959e4c962ec30b2a09b9457f18c9cac67e261221a5f91bfdb560\nREFUTED:BLD-0044 identical-axis outcomes diverged and the matrix lost controlled cells\nPROBE-2-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-result-log-join-verifier-v1",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The worker's /dev/null substrate was unstable during measurement: cell logs saw it absent and verification saw it as a regular file.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0044/runtime/logs/o1013-s29-tzutc-cwdalternate-netblocked-cachewarm.log",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read command-center/p2-wave/probes/BLD-0044/runtime/logs/o1013-s29-tzutc-cwdalternate-netblocked-cachewarm.log",
+          "raw_output": "Traceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pytest/__main__.py\", line 9, in <module>\n    raise SystemExit(pytest.console_main())\n                     ^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/config/__init__.py\", line 201, in console_main\n    code = main()\n           ^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/config/__init__.py\", line 156, in main\n    config = _prepareconfig(args, plugins)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/config/__init__.py\", line 342, in _prepareconfig\n    config = pluginmanager.hook.pytest_cmdline_parse(\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_hooks.py\", line 512, in __call__\n    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_manager.py\", line 120, in _hookexec\n    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_callers.py\", line 167, in _multicall\n    raise exception\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_callers.py\", line 139, in _multicall\n    teardown.throw(exception)\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/helpconfig.py\", line 112, in pytest_cmdline_parse\n    config = yield\n             ^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_callers.py\", line 121, in _multicall\n    res = hook_impl.function(*args)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/config/__init__.py\", line 1146, in pytest_cmdline_parse\n    self.parse(args)\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/config/__init__.py\", line 1527, in parse\n    self._preparse(args, addopts=addopts)\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/config/__init__.py\", line 1431, in _preparse\n    self.hook.pytest_load_initial_conftests(\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_hooks.py\", line 512, in __call__\n    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_manager.py\", line 120, in _hookexec\n    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_callers.py\", line 167, in _multicall\n    raise exception\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_callers.py\", line 139, in _multicall\n    teardown.throw(exception)\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/warnings.py\", line 129, in pytest_load_initial_conftests\n    return (yield)\n            ^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/pluggy/_callers.py\", line 116, in _multicall\n    next(function_gen)  # first yield\n    ^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/capture.py\", line 170, in pytest_load_initial_conftests\n    capman.start_global_capturing()\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/capture.py\", line 773, in start_global_capturing\n    self._global_capturing = _get_multicapture(self._method)\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/capture.py\", line 714, in _get_multicapture\n    return MultiCapture(in_=FDCapture(0), out=FDCapture(1), err=FDCapture(2))\n                            ^^^^^^^^^^^^\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0044/deps/_pytest/capture.py\", line 489, in __init__\n    self.tmpfile = open(os.devnull, encoding=\"utf-8\")\n                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/dev/null'\n",
+          "fingerprint": "bld0044-dev-null-missing-pytest-log-v1",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "stat -c 'DEV_NULL=%F MODE=%a' /dev/null",
+          "raw_output": "DEV_NULL=regular file MODE=0o644\n",
+          "fingerprint": "bld0044-dev-null-live-stat-v1",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The required CNF-0147 confirmation-suite receipt is absent and therefore was not consumed.",
+      "verdict": "BLOCKED",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json:22948-22991",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "test -f command-center/receipts/CNF-0147.json",
+          "raw_output": "path=command-center/receipts/CNF-0147.json\nexists=false\nconsumed=false\n",
+          "fingerprint": "bld0044-cnf0147-existence-refute-v1",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "claim": "Completion condition 11 is live-red. Cloud-era first-red TST-0350/suitefloor.py is stale because tools/measure-guard/suitefloor.py now exists. After dropping absent sidecar rows, live --check first-red is a sibling receipt.",
+      "verdict": "BLOCKED",
+      "anchor": "tools/command-center/unit_manifest.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B tools/command-center/unit_manifest.py --check",
+          "raw_output": "CONDITION-11-LIVE-CHECK: read-only unit artifact manifest validation\nCOMMAND=python -B tools/command-center/unit_manifest.py --check\nEXIT=1\nRAW-BEGIN\nFAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md\nRAW-END\nWRITE_MODE_INVOKED=false\nstale_cloud_first_red=FAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nsuitefloor_now_exists=True\nsuitefloor_bytes=11309\nCONDITION_11=BLOCKED\nUNIT-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-c11-live-after-strike1-v1",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "claim": "Harvest sidecar exists=true rows are false on this checkout: 10/10 named probe paths are absent, CNF-0147 is absent, and suitefloor.py is present so the embedded TST-0350 first-red is stale.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/receipts/BLD-0044.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/_bld0044_cloud_ok_measure.py",
+          "raw_output": "NAMED-PROBE: live sidecar and first-red remesasure\nsignal=python-Path\nsidecar_claimed=10\nsidecar_present=0\nsidecar_absent=10\ncnf0147_exists=False\nsuitefloor_exists=True\nsuitefloor_bytes=11309\nprobe_dir_exists=False\nschema_error_count=0\nready_units_delivered=False\nready_units_why=self-declared:BLOCKED\nstale_cloud_first_red=FAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nlive_first_red=FAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md\nlive_check_exit=1\nWRITE_MODE_INVOKED=false\nCONDITION_11=BLOCKED\nUNIT-COMPLETE:BLD-0044\n",
+          "fingerprint": "bld0044-sidecar-python-path-v1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "powershell Test-Path on ten claimed sidecars plus CNF-0147 and suitefloor.py",
+          "raw_output": "signal=PowerShell-Test-Path\nGROUND.md=N\nrefute-census.json=N\nrefute-repeatability.json=N\nprobe1-egress-control.raw.txt=N\nprobe2-refute-summary.raw.txt=N\nrefute-repeatability.raw.txt=N\ncondition11-check.raw.txt=N\nmatrix-smoke.json=N\nruntime-log=N\nschema-validation.raw.txt=N\nCNF-0147.json=N\nsuitefloor.py=Y\nBLD-0044.json=Y\nprobe-dir=N\nresult=SECOND-SIGNAL-AGREES-SIDECARS-ABSENT-SUITEFLOOR-PRESENT-CNF0147-ABSENT\n",
+          "fingerprint": "bld0044-sidecar-test-path-v1",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-EGRESS-BLOCK-BOTH-STATES",
+      "name": "Deliberate fetch succeeds open and fails blocked",
+      "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/probe1_egress_control.py",
+      "result": "NOT-RUN",
+      "assertions": 2,
+      "output_tail": "named probe script and hashed raw logs absent on this checkout; cannot re-run; harvest PASS/FAIL/ERROR is not live evidence"
+    },
+    {
+      "id": "T-ORDER-CAN-GO-RED",
+      "name": "Order-sensitive consumer differs under two order seeds",
+      "command": "pytest controls/test_order_negative.py under seeds 1009 and 1013",
+      "result": "NOT-RUN",
+      "assertions": 2,
+      "output_tail": "named probe script and hashed raw logs absent on this checkout; cannot re-run; harvest PASS/FAIL/ERROR is not live evidence"
+    },
+    {
+      "id": "T-CACHE-COLD-WARM",
+      "name": "Compare cold and warm cache states and report divergence",
+      "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_summarize.py",
+      "result": "NOT-RUN",
+      "assertions": 12,
+      "output_tail": "named probe script and hashed raw logs absent on this checkout; cannot re-run; harvest PASS/FAIL/ERROR is not live evidence"
+    },
+    {
+      "id": "T-HERMETIC-NO-FALSE-POSITIVE",
+      "name": "Hermetic control passes in every valid observed cell",
+      "command": "pytest controls/test_hermetic_control.py in each matrix cell",
+      "result": "NOT-RUN",
+      "assertions": 32,
+      "output_tail": "named probe script and hashed raw logs absent on this checkout; cannot re-run; harvest PASS/FAIL/ERROR is not live evidence"
+    },
+    {
+      "id": "T-IDENTICAL-AXIS-REPEAT",
+      "name": "Repeat an identical cell to test causal attribution",
+      "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_repeatability.py",
+      "result": "NOT-RUN",
+      "assertions": 1,
+      "output_tail": "named probe script and hashed raw logs absent on this checkout; cannot re-run; harvest PASS/FAIL/ERROR is not live evidence"
+    },
+    {
+      "id": "T-FULL-CROSS-PRODUCT",
+      "name": "Retain a valid result for every factorial cell",
+      "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/probe2_matrix.py --jobs 4",
+      "result": "NOT-RUN",
+      "assertions": 64,
+      "output_tail": "named probe script and hashed raw logs absent on this checkout; cannot re-run; harvest PASS/FAIL/ERROR is not live evidence"
+    },
+    {
+      "id": "T-CNF-0147-CONSUMPTION",
+      "name": "Consume the CNF-0147 receipt without re-deriving it",
+      "command": "test -f command-center/receipts/CNF-0147.json",
+      "result": "NOT-RUN",
+      "assertions": 1,
+      "output_tail": "path=command-center/receipts/CNF-0147.json exists=false consumed=false python=N Test-Path=N"
+    },
+    {
+      "id": "T-POWERSHELL-SURFACE",
+      "name": "Execute the discovered PowerShell test programs",
+      "command": "pwsh -File <test-program>",
+      "result": "NOT-RUN",
+      "assertions": 2,
+      "output_tail": "suite-dir *.ps1 search in ci/tests tools/command-center/tests platform/routing command-center/casualty = 0; harvest programs not on disk"
+    },
+    {
+      "id": "T-CONDITION-11",
+      "name": "Live unit artifact manifest check",
+      "command": "python -B tools/command-center/unit_manifest.py --check",
+      "result": "FAIL",
+      "assertions": 1,
+      "output_tail": "CONDITION-11-LIVE-CHECK: read-only unit artifact manifest validation\nCOMMAND=python -B tools/command-center/unit_manifest.py --check\nEXIT=1\nRAW-BEGIN\nFAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md\nRAW-END\nWRITE_MODE_INVOKED=false\nstale_cloud_first_red=FAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nsuitefloor_now_exists=True\nsuitefloor_bytes=11309\nCONDITION_11=BLOCKED\nUNIT-COMPLETE:BLD-0044\n"
+    },
+    {
+      "id": "T-RECEIPT-SCHEMA",
+      "name": "Receipt parses against the declared schema",
+      "command": "python -B command-center/p2-wave/_bld0044_cloud_ok_measure.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "SCHEMA-VALID:BLD-0044 live schema_error_count=0 garbage=[12, 12, 11] contract_discriminates=true"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-EGRESS-BLOCK",
+      "kind": "absent-input",
+      "description": "The identical HTTP fetch must succeed with egress open and fail inside the network namespace.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "blocked: curl exit 6, HTTP 000, zero bytes",
+      "good_state_output": "open: curl exit 0, HTTP 200, 559 bytes"
+    },
+    {
+      "id": "NC-ORDER-DEPENDENCY",
+      "kind": "known-broken-fixture",
+      "description": "A consumer with an undeclared predecessor fails when shuffled before its producer and passes when shuffled after it.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "order seed 1013: consumer FAIL",
+      "good_state_output": "order seed 1009: consumer PASS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "notes": "Fresh-context independent review (C5 wave, 2026-08-21). Falsification attempt: I tried to find a counter-example by validating the delivered artifact against its DECLARED output schema from the work-unit catalog, rather than trusting narrative text. Unit BLD-0044 at command-center/receipts/BLD-0044.json declares output_schema='command-center/schema/test-quality-census.schema.json'; schema_errors=0. I also cross-checked the catalog reviewer requirement for vendor eligibility (required reviewer_vendor=any). Catalog reviewer_requirement (verbatim, normalized whitespace): One independent reviewer who repeats the egress-blocked run and confirms both the block control and the failure list.",
+    "reviewed_at": "2026-08-21T01:10:17Z"
+  },
+  "defects": [
+    {
+      "id": "BLD-0044-F001",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Identical-axis repeat changed six outcomes, invalidating causal attribution in the unreplicated matrix."
+    },
+    {
+      "id": "BLD-0044-F002",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Only 32/64 cells retain valid results; host /dev/null instability caused 26 harness failures."
+    },
+    {
+      "id": "BLD-0044-F003",
+      "severity": "P1",
+      "status": "open",
+      "summary": "The required CNF-0147 receipt is absent and unconsumed."
+    },
+    {
+      "id": "BLD-0044-F004",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Two discovered PowerShell test programs were not executed."
+    },
+    {
+      "id": "BLD-0044-F005",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Ten sidecar paths were claimed exists=true and are absent on this checkout (python Path.is_file 0/10 and PowerShell Test-Path 0/10). artifact.exists is const true so absent rows were dropped rather than flipped."
+    },
+    {
+      "id": "BLD-0044-F006",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Embedded condition-11 first-red TST-0350/suitefloor.py is stale. suitefloor.py exists (11309 B). Live --check first-red=FAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md"
+    }
+  ],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "BLD-0044"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "refute_summarize.py identical-axis and cell-inventory verifier",
+      "artifact_path": "command-center/p2-wave/probes/BLD-0044/refute-repeatability.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "static-analysis",
+        "command": "/root/.local/bin/python3.12 command-center/p2-wave/probes/BLD-0044/refute_summarize.py",
+        "raw_output": "NAMED-PROBE-2: hidden-input census refutation verifier\nexpected_matrix_cells=64\nattempted_matrix_cells_with_logs=64\nvalid_matrix_result_cells=32\nmissing_matrix_result_cells=32\ndev_null_harness_error_cells=26\negress_block_both_states=true\nobserved_axis_change_counts_not_causal={\"cache\": 1, \"cwd\": 10, \"egress\": 4, \"order_seed\": 0, \"prng_seed\": 1, \"timezone\": 2}\ncomplete_valid_cold_warm_pairs=12\ncold_cache_empty_before_smoke_cold=true\nwarm_cache_nonempty_before_smoke_warm=true\nsmoke_outcome_count_diverged=false\ncache_observed_changed_test_ids_not_causal=[\"platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder\"]\norder_negative_control={\"negative-order-1009\": \"PASS\", \"negative-order-1013\": \"FAIL\"}\norder_negative_control_both_states=true\nhermetic_control_observed_cells=32\nhermetic_control_all_observed_pass=true\nidentical_axis_repeat=true\nidentical_axis_changed_test_count=6\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected\"}\nUNDECLARED-INPUT-CHANGED|{\"baseline\":\"PASS\",\"repeat\":\"ERROR\",\"test_id\":\"tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery\"}\ndev_null_kind_at_verification=regular-file\nverifier_errors=0\nrefute_census_path=command-center/p2-wave/probes/BLD-0044/refute-census.json\nrefute_census_sha256=27471f7cffee959e4c962ec30b2a09b9457f18c9cac67e261221a5f91bfdb560\nREFUTED:BLD-0044 identical-axis outcomes diverged and the matrix lost controlled cells\nPROBE-2-COMPLETE:BLD-0044\n",
+        "fingerprint": "bld0044-refute-downstream-consumer-v1",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T21:04:12Z",
+    "ended_at": "2026-08-16T21:57:47Z",
+    "duration_seconds": 3215
+  },
+  "retry": {
+    "count": 1,
+    "policy": "The implementation timed out once. A second identical blocker failure must pivot to an isolated container or equivalent stable worktree substrate.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "implement-rc-124-cross-product-incomplete",
+        "outcome": "TIMEOUT"
+      }
+    ]
+  },
+  "failure": {
+    "classification": [
+      "detector-failure",
+      "green-not-live",
+      "non-portable",
+      "uncontrolled-input",
+      "dependency-blocked",
+      "stale-premise"
+    ],
+    "reason": "Harvest UNIT-COMPLETE wraps state=BLOCKED. Ten named sidecars are absent so the 64-cell matrix, identical-axis repeat, and egress control cannot be re-run. CNF-0147 is absent. Reviewer is NOT-REVIEWED. Condition 11 is red. Cloud first-red TST-0350/suitefloor.py is stale. SUCCESS was not hand-flipped.",
+    "diagnostic_tail": "sidecar_absent=10/10; cnf0147=False; suitefloor=True 11309B; c11_after_strike1=FAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md; registered=false; reviewer=NOT-REVIEWED; schema_errors=0",
+    "blocked_on": "Restore named BLD-0044 probes from the Scaleway worker or re-run the 64-cell cross-product in a stable isolated worktree; consume CNF-0147; run the PowerShell surface; dispatch the independent reviewer; then an orchestrator runs unit_manifest.py --write then --check. File-only edits cannot close P2.",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "python -B command-center/p2-wave/_bld0044_cloud_ok_measure.py",
+        "raw_output": "NAMED-PROBE: live sidecar and first-red remesasure\nsignal=python-Path\nsidecar_claimed=10\nsidecar_present=0\nsidecar_absent=10\ncnf0147_exists=False\nsuitefloor_exists=True\nsuitefloor_bytes=11309\nprobe_dir_exists=False\nschema_error_count=0\nready_units_delivered=False\nready_units_why=self-declared:BLOCKED\nstale_cloud_first_red=FAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nlive_first_red=FAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md\nlive_check_exit=1\nWRITE_MODE_INVOKED=false\nCONDITION_11=BLOCKED\nUNIT-COMPLETE:BLD-0044\n",
+        "fingerprint": "bld0044-failure-python-path-v1",
+        "exit_code": 0
+      },
+      {
+        "role": "verifier",
+        "method": "command",
+        "command": "powershell Test-Path on claimed BLD-0044 sidecars",
+        "raw_output": "signal=PowerShell-Test-Path\nGROUND.md=N\nrefute-census.json=N\nrefute-repeatability.json=N\nprobe1-egress-control.raw.txt=N\nprobe2-refute-summary.raw.txt=N\nrefute-repeatability.raw.txt=N\ncondition11-check.raw.txt=N\nmatrix-smoke.json=N\nruntime-log=N\nschema-validation.raw.txt=N\nCNF-0147.json=N\nsuitefloor.py=Y\nBLD-0044.json=Y\nprobe-dir=N\nresult=SECOND-SIGNAL-AGREES-SIDECARS-ABSENT-SUITEFLOOR-PRESENT-CNF0147-ABSENT\n",
+        "fingerprint": "bld0044-failure-test-path-v1",
+        "exit_code": 0
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "A complete causal per-axis change list is not available from this run.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run all 64 cells with replicated identical controls in a stable worktree-isolated substrate, then require zero within-cell variance."
+    },
+    {
+      "claim": "CNF-0147 confirmation-suite egress findings were not consumed.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Produce CNF-0147 and consume its receipt without re-deriving it."
+    },
+    {
+      "claim": "The two PowerShell test programs may expose further hidden inputs.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run both programs under the same controlled axes on a PowerShell-capable worker."
+    },
+    {
+      "claim": "Catalog question remains unanswered because the 64-cell matrix cannot be re-run here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Restore or re-run probe2_matrix.py plus refute_repeatability.py on a worktree-isolated substrate with a real /dev/null character device."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5.6-sol",
+    "role": "reliability-engineer",
+    "execution_substrate": "headless-linux-r2e-shared-host"
+  },
+  "report": {
+    "kind": "test-quality-census",
+    "observations": [
+      {
+        "name": "identical-axis changed tests",
+        "measured": 6,
+        "method": "same-cell full-suite repeat",
+        "anchor": "command-center/p2-wave/probes/BLD-0044/refute-repeatability.json"
+      },
+      {
+        "name": "valid matrix result cells",
+        "measured": 32,
+        "method": "expected-cell to result-file join",
+        "anchor": "command-center/p2-wave/probes/BLD-0044/refute-census.json"
+      },
+      {
+        "name": "missing-/dev/null harness cells",
+        "measured": 26,
+        "method": "per-cell log fingerprint scan",
+        "anchor": "command-center/p2-wave/probes/BLD-0044/refute-census.json"
+      },
+      {
+        "name": "complete surviving cold-warm pairs",
+        "measured": 12,
+        "method": "paired result comparison",
+        "anchor": "command-center/p2-wave/probes/BLD-0044/refute-census.json"
+      },
+      {
+        "name": "hermetic observed PASS cells",
+        "measured": 32,
+        "method": "per-cell outcome extraction",
+        "anchor": "command-center/p2-wave/probes/BLD-0044/refute-census.json"
+      },
+      {
+        "name": "live_sidecar_census",
+        "measured": 0,
+        "method": "python Path.is_file plus PowerShell Test-Path",
+        "anchor": "command-center/receipts/BLD-0044.json"
+      },
+      {
+        "name": "live_condition11_first_red",
+        "measured": "FAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md",
+        "method": "python -B tools/command-center/unit_manifest.py --check",
+        "anchor": "command-center/UNIT-ARTIFACT-MANIFEST.json"
+      }
+    ],
+    "control_ids": [
+      "NC-EGRESS-BLOCK",
+      "NC-ORDER-DEPENDENCY"
+    ],
+    "stage": "cloud-ok-refute",
+    "verdict": "REFUTED",
+    "question_answer": "Six listed tests changed under identical declared axes because host /dev/null availability was undeclared; therefore cross-axis attribution is invalid on this run.",
+    "identical_axis_changed_tests": [
+      {
+        "baseline": "PASS",
+        "repeat": "ERROR",
+        "test_id": "ci/tests/test_check_skill_dual_write.py::test_allowlist_suppresses_a_named_skill"
+      },
+      {
+        "baseline": "PASS",
+        "repeat": "ERROR",
+        "test_id": "ci/tests/test_check_skill_dual_write.py::test_staged_strict_parity_fires_on_a_canonical_only_edit"
+      },
+      {
+        "baseline": "PASS",
+        "repeat": "ERROR",
+        "test_id": "ci/tests/test_check_skill_dual_write.py::test_strict_parity_accepts_a_projection_repair_to_unchanged_canonical"
+      },
+      {
+        "baseline": "PASS",
+        "repeat": "ERROR",
+        "test_id": "ci/tests/test_check_skill_dual_write.py::test_strict_parity_fires_on_divergent_content"
+      },
+      {
+        "baseline": "PASS",
+        "repeat": "ERROR",
+        "test_id": "ci/tests/test_check_skill_dual_write.py::test_usage_staged_with_base_is_rejected"
+      },
+      {
+        "baseline": "PASS",
+        "repeat": "ERROR",
+        "test_id": "tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery"
+      }
+    ],
+    "expected_matrix_cells": 64,
+    "attempted_matrix_cells_with_logs": 64,
+    "valid_matrix_result_cells": 32,
+    "dev_null_harness_error_cells": 26,
+    "observed_axis_change_counts_not_causal": {
+      "cache": 1,
+      "cwd": 10,
+      "egress": 4,
+      "order_seed": 0,
+      "prng_seed": 1,
+      "timezone": 2
+    },
+    "observed_axis_changed_test_ids_not_causal": {
+      "cache": [
+        "platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder"
+      ],
+      "cwd": [
+        "ci/tests/test_check_skill_dual_write.py::test_d2_canonical_delete_with_projection_edit_fires",
+        "ci/tests/test_check_skill_dual_write.py::test_d3_empty_canonical_placeholder_does_not_discharge",
+        "ci/tests/test_check_skill_dual_write.py::test_gitlink_canonical_side_does_not_discharge_the_obligation",
+        "ci/tests/test_check_skill_dual_write.py::test_newline_in_a_path_does_not_desynchronise_the_post_image_map",
+        "ci/tests/test_check_skill_dual_write.py::test_strict_parity_allows_an_explicit_deletion_from_both_trees",
+        "ci/tests/test_check_skill_dual_write.py::test_usage_unknown_revision_is_exit_2_not_a_false_green",
+        "ci/tests/test_skill_render_traps.py::test_the_real_repository_is_green",
+        "platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder",
+        "tools/command-center/tests/test_reconcile_delivery.py::test_fails_closed_on_an_empty_catalog",
+        "tools/command-center/tests/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery"
+      ],
+      "egress": [
+        "ci/tests/test_check_skill_dual_write.py::test_d3_empty_canonical_placeholder_does_not_discharge",
+        "ci/tests/test_check_skill_dual_write.py::test_gitlink_canonical_side_does_not_discharge_the_obligation",
+        "ci/tests/test_check_skill_dual_write.py::test_newline_in_a_path_does_not_desynchronise_the_post_image_map",
+        "platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder"
+      ],
+      "order_seed": [],
+      "prng_seed": [
+        "platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder"
+      ],
+      "timezone": [
+        "ci/harness/prebuild_recall/test_prebuild_recall.py::test_iso_built_at_is_parsed",
+        "platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder"
+      ]
+    },
+    "cache_comparison": {
+      "cold_cache_empty_before_smoke_cold": true,
+      "complete_valid_cold_warm_pairs": 12,
+      "observed_changed_test_ids_not_causal": [
+        "platform/routing/test_regression_no_flood.py::test_injected_bytes_are_bounded_at_every_k_in_the_ladder"
+      ],
+      "smoke_outcome_count_diverged": false,
+      "warm_cache_nonempty_before_smoke_warm": true
+    },
+    "order_negative_control": {
+      "negative-order-1009": "PASS",
+      "negative-order-1013": "FAIL"
+    },
+    "hermetic_control": {
+      "observed_cells": 32,
+      "observed_outcomes": [
+        "PASS"
+      ],
+      "all_observed_pass": true,
+      "full_64_cell_requirement_met": false
+    },
+    "cnf_0147_present": false,
+    "cnf_0147_consumed": false,
+    "powershell_runtime_present": false,
+    "condition_11_green": false
+  },
+  "extensions": {
+    "named_probe_raw_output_paths": [
+      "command-center/p2-wave/probes/BLD-0044/probe1-egress-control.raw.txt",
+      "command-center/p2-wave/probes/BLD-0044/probe2-refute-summary.raw.txt"
+    ],
+    "named_probe_raw_output_sha256": [
+      "6ae0e40538f7ec2eacc1778bc2defdb18f7bd76d408c18904c9eed0ae9646e06",
+      "ad129285749679286c49581db6efa8757070a9b750c8b451ca438de1e68e6d27"
+    ],
+    "named_probe_raw_outputs_embedded_verbatim": true,
+    "refute_repeat_raw_output_path": "command-center/p2-wave/probes/BLD-0044/refute-repeatability.raw.txt",
+    "primary_artifact_terminal_line": "UNIT-COMPLETE:BLD-0044",
+    "completion_line": "UNIT-COMPLETE:BLD-0044",
+    "completion_marker": "UNIT-COMPLETE:BLD-0044",
+    "schema_validation_green": true,
+    "condition_11_green": false,
+    "prohibited_commands_observed": [],
+    "honesty_strike1": "Dropped 10 absent exists=true rows. Kept live output_path as primary. Did not hand-flip SUCCESS.",
+    "named_sidecar_files_on_disk": false,
+    "strike1_dropped_absent_rows": 10,
+    "required_fix": "Do not hand-flip state=SUCCESS or registered=true. Restore named BLD-0044 probes, consume CNF-0147, run the PowerShell surface, dispatch the independent reviewer, then an orchestrator runs unit_manifest.py --write then --check.",
+    "condition_11_live_check": {
+      "command": "python -B tools/command-center/unit_manifest.py --check",
+      "exit_code": 1,
+      "green": false,
+      "registered": false,
+      "success_hand_flipped": false,
+      "unit_manifest_write_invoked": false,
+      "first_red": "FAILED:unit-manifest receipt command-center/receipts/BLD-0027.json names absent artifact command-center/p2-wave/probes/BLD-0027/AUDIT-REPORT.md",
+      "stale_cloud_first_red": "FAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py",
+      "suitefloor_now_exists_bytes": 11309
+    },
+    "honesty_strike2": "Rewrote stale TST-0350/suitefloor.py first-red to live BLD-0024 first-red. Marked un-rerunnable harvest tests NOT-RUN. Kept T-RECEIPT-SCHEMA PASS from live validation. Did not hand-flip SUCCESS."
+  }
+}

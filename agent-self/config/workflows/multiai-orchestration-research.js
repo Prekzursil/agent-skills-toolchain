@@ -7,6 +7,121 @@ export const meta = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// H6 — per-agent timeout + stall heartbeat. Paste at the top of the workflow.
+// Sandbox-safe: uses only injected globals (setTimeout/clearTimeout/log/parallel).
+// No Date.now / Math.random / new Date() -> stays workflow_lint clean.
+// SCOPE: unblocks the BARRIER. Does NOT kill the agent -- the dropped agent keeps
+// running and keeps its concurrency slot until it dies on its own.
+// ---------------------------------------------------------------------------
+const H6_TIMEOUT_MS = 1800000; // 30 min; blueprint dispatch_timeout_seconds default
+const H6_STALL_MS = 90000; // 90 s; B3 falsifier #22
+
+// A typed drop-receipt (design item H3). NEVER return a bare null from a barrier:
+// null is produced for at least three different causes -- user skipped the agent,
+// the subagent died on a terminal error, and (here) our own timeout -- and
+// .filter(Boolean) throws that distinction away, making "12 of 15 returned"
+// unauditable.
+function h6Receipt(endReason, label, ms, detail) {
+  return {
+    __h6: true,
+    __endReason: endReason, // 'timeout' | 'threw' | 'null'
+    label: label,
+    ms: ms,
+    detail: detail === undefined ? null : detail,
+  };
+}
+
+function h6IsDrop(r) {
+  return !!r && r.__h6 === true;
+}
+function h6Survivors(results) {
+  return results.filter(function (r) {
+    return !h6IsDrop(r);
+  });
+}
+function h6Drops(results) {
+  return results.filter(h6IsDrop);
+}
+
+// Emit one heartbeat line if the unit is still outstanding at H6_STALL_MS.
+// Returns a canceller. This is an OBSERVATION ("still waiting"), not a verdict
+// that the agent is hung -- the sandbox cannot see orchestrator state.
+function h6Heartbeat(label, stallMs) {
+  if (typeof setTimeout !== 'function') return function () {};
+  const t = setTimeout(function () {
+    if (typeof log === 'function') {
+      log('H6 heartbeat: still waiting on ' + label + ' after ' + stallMs + 'ms');
+    }
+  }, stallMs);
+  return function () {
+    if (typeof clearTimeout === 'function') clearTimeout(t);
+  };
+}
+
+// Bound ONE thunk. Always resolves -- never rejects, never returns undefined --
+// so a barrier over wrapped thunks can no longer be poisoned by one unit.
+async function withTimeout(thunk, ms, label, stallMs) {
+  const lbl = label === undefined ? 'unit' : label;
+  const budgetMs = ms === undefined ? H6_TIMEOUT_MS : ms;
+  // Runtime-drift guard: if a future build stops injecting timers, degrade to a
+  // plain await instead of dying with a ReferenceError at fan-out time.
+  if (typeof setTimeout !== 'function') {
+    try {
+      return await thunk();
+    } catch (err) {
+      return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+    }
+  }
+  const stopBeat = h6Heartbeat(lbl, stallMs === undefined ? H6_STALL_MS : stallMs);
+  let timer = null;
+  const expiry = new Promise(function (resolve) {
+    timer = setTimeout(function () {
+      resolve(h6Receipt('timeout', lbl, budgetMs, null));
+    }, budgetMs);
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(thunk), expiry]);
+  } catch (err) {
+    return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+  } finally {
+    // ALWAYS clear on the winning path too: an un-cleared timer stays in the
+    // runtime's abort set and can hold the workflow open past its last agent.
+    if (timer !== null && typeof clearTimeout === 'function') clearTimeout(timer);
+    stopBeat();
+  }
+}
+
+// A SETTLED barrier: same shape as parallel(), but one hung unit costs you that
+// unit instead of the phase. Output is index-aligned with `thunks` and every
+// slot is either a real result or a typed drop-receipt -- no nulls, no holes.
+async function settle(thunks, ms, labels) {
+  const nameOf = function (i) {
+    return labels && labels[i] !== undefined ? labels[i] : 'unit-' + i;
+  };
+  const raw = await parallel(
+    thunks.map(function (t, i) {
+      return function () {
+        return withTimeout(t, ms, nameOf(i));
+      };
+    }),
+  );
+  return raw.map(function (r, i) {
+    // The runtime still yields null for a cause we never saw (a user skip).
+    // Type it rather than filtering it away.
+    return r === null || r === undefined ? h6Receipt('null', nameOf(i), ms, null) : r;
+  });
+}
+
+const obj = (properties, required = []) => ({
+  type: 'object', additionalProperties: false, required, properties,
+})
+const WORK_RESULT = obj(
+  { digest: { type: 'string', description: 'The prompt-specific report or requested final status message.' } },
+  ['digest'],
+)
+const runAgent = (prompt, options) => agent(prompt, { ...options, schema: WORK_RESULT }).then((result) => (result == null ? null : result.digest))
+
 const GROUND = `
 # SHARED GROUNDING — the question + the incumbent + the bar
 
@@ -37,14 +152,18 @@ const LENSES = [
 
 phase('Search');
 log(`Fanning out ${LENSES.length} Fable search lenses on seamless Claude+Codex multi-agent tooling...`);
-const findings = await parallel(
+const findings = await settle(
   LENSES.map((l) => () =>
-    agent(GROUND + '\n\n---\n\n' + l.prompt, { label: `search:${l.key}`, phase: 'Search', model: 'fable' })
+    runAgent(GROUND + '\n\n---\n\n' + l.prompt, { label: `search:${l.key}`, phase: 'Search', model: 'fable' })
   )
-);
+, H6_TIMEOUT_MS);
 
 phase('Synthesize');
-const bundle = LENSES.map((l, i) => `## LENS: ${l.key}\n\n${findings[i] || '(no output — agent died)'}`).join('\n\n---\n\n');
+const bundle = LENSES.map((l, i) => {
+  const slot = findings[i];
+  const body = h6IsDrop(slot) || !slot ? '(no output — agent died)' : slot;
+  return `## LENS: ${l.key}\n\n${body}`;
+}).join('\n\n---\n\n');
 const SYNTH = `
 You are the SYNTHESIS agent (deep). Above are ${LENSES.length} Fable search lenses on the best tool for SEAMLESS multi-agent Claude-Code + Codex collaboration in one workspace (the owner's ultracode-but-cross-AI ask). The incumbent AgentBridge is fragile/asymmetric/not-seamless. Consolidate into a decision the owner will STEER (this is discovery+decide, NOT a build).
 
@@ -57,9 +176,9 @@ Produce authoritative markdown:
 6. **A recommended decision + 4-6 steering questions** for the owner (each with your recommended default), to feed a follow-up grill-me-extensive.
 Be decisive, cite the lens per claim, and converge — do not survey-dump.`;
 
-const synthesis = await agent(GROUND + '\n\n=== SEARCH FINDINGS ===\n\n' + bundle + '\n\n=== END ===\n\n' + SYNTH, {
+const synthesis = await runAgent(GROUND + '\n\n=== SEARCH FINDINGS ===\n\n' + bundle + '\n\n=== END ===\n\n' + SYNTH, {
   label: 'synthesize:multiai-decision',
   phase: 'Synthesize',
 });
 
-return { synthesis, lensCount: LENSES.length, ok: findings.filter(Boolean).length };
+return { synthesis, lensCount: LENSES.length, ok: findings.filter(function (r) { return r && !h6IsDrop(r); }).length };

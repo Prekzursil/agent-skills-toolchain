@@ -1,0 +1,709 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0066",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0066 both named probes re-ran against the live marketplace; fresh-index control selected v2; always-v2 mutant went red; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "_USER-PROMPTS.md:10858, 11052",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "supply-chain-auditor",
+    "execution_substrate": "headless-linux"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0066-version-downgrade-attack.json",
+      "bytes": 40707,
+      "sha256": "4d2ebce7dd449b5410884f6fd44fc91e51b17dabc2e094c3aba87e480def1ac7",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt",
+      "bytes": 2960,
+      "sha256": "f361153cb189099328fe44faab01bb00ac61990047e0b6cbf4a53ab1f0155197",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0066/probe2-stale-index.raw.txt",
+      "bytes": 829,
+      "sha256": "cf9d6664cd96981c349f2c0202b27aaa7448b450e1f3bb077bc82b9335491393",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0066/control-fresh-index.raw.txt",
+      "bytes": 261,
+      "sha256": "035fccbbf2c87decc728fb937a876f33970395cdc8fe533a360dd3f64567eeb7",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0066/negative-control-always-v2.raw.txt",
+      "bytes": 340,
+      "sha256": "f699d85887717d886f24fb9ca23d1caf390a2ce259388ae65b4ffc4f04da383b",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0066/static-analysis.raw.txt",
+      "bytes": 934,
+      "sha256": "917e4177df23ee336e0320a6802ea5b55c7df7ebfe3593598469e87ad28ac398",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A signed stale mirror silently resolves vulnerable v1 when it omits v2, and the real installer activates v1 when the advisory ceiling is misconfigured to permit the advisory high severity.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py # Probe 1 install matrix",
+          "raw_output": "Probe 1: attempt to install v1 via each downgrade path with the advisory present, and record which succeed.\nfixture package=hello-skill v1=1.0.0 v2=1.1.0 advisory=adv:2026-0066 severity=high state=confirmed\npolicy strict-low-ceiling max_advisory_severity=low; misconfigured-critical-ceiling max_advisory_severity=critical\npath=exact-pin policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=pinned-range policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=frozen-lockfile policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=rollback policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=1.1.0 v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=stale-mirror policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=update-to-lower-version-no-floor policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=1.1.0 v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=exact-pin policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=pinned-range policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=frozen-lockfile policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=rollback policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=stale-mirror policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=update-to-lower-version-no-floor policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=exact-pin-explicit-override policy=strict-low-ceiling-plus-allow-vulnerable outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=WARN overrides=['allow-vulnerable']\nstrict_all_paths_refused_MKT-I07=True\nmisconfigured_all_paths_installed_v1=True\nexplicit_override_installed_v1_and_recorded=True\n",
+          "fingerprint": "3ff72b6734b2c8fb4381c08935b4112b0e194840bb1032783a3a4c449356a577",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py # Probe 2 signed stale-index resolution",
+          "raw_output": "Probe 2 (mechanically different): serve a stale index from a fixture mirror that never mentions v2 and record whether the client detects the omission (freshness/expiry metadata) or silently resolves to v1.\nserved_root=mirrors/private-a index_signature_validated_by_install_path=true\nfresh generated_at=2026-08-10T09:00:00Z versions=[\"1.0.0\", \"1.1.0\"] selected=1.1.0\nstale generated_at=2026-08-10T09:00:00Z versions=[\"1.0.0\"] selected=1.0.0\nschema_has_generated_at=True schema_has_expiry_contract=False expiry_or_sequence_properties=[]\nload_index_checks_generated_at=False load_index_checks_current_time=False\nclient_detected_v2_omission=False silently_resolved_to_v1=True\ninstall-layer distinction: strict policy later refuses selected v1 with MKT-I07; misconfigured critical ceiling installs selected v1 successfully (Probe 1).\n",
+          "fingerprint": "1530eb29049530f03034a17395586a7ed5900e54002dc36908bda3e6d83b8285",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "With the strict low advisory ceiling, exact pin, pinned range, frozen lockfile, rollback, stale mirror, and lower-version update all refuse at MKT-I07 without activating v1.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py # Probe 1 install matrix",
+          "raw_output": "Probe 1: attempt to install v1 via each downgrade path with the advisory present, and record which succeed.\nfixture package=hello-skill v1=1.0.0 v2=1.1.0 advisory=adv:2026-0066 severity=high state=confirmed\npolicy strict-low-ceiling max_advisory_severity=low; misconfigured-critical-ceiling max_advisory_severity=critical\npath=exact-pin policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=pinned-range policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=frozen-lockfile policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=rollback policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=1.1.0 v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=stale-mirror policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=None v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=update-to-lower-version-no-floor policy=strict-low-ceiling outcome=REFUSED code=MKT-I07 gate=advisory selected=1.0.0 active_after=1.1.0 v1_active=False succeeded=False advisory_gate=REFUSE overrides=[]\npath=exact-pin policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=pinned-range policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=frozen-lockfile policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=rollback policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=stale-mirror policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=update-to-lower-version-no-floor policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[]\npath=exact-pin-explicit-override policy=strict-low-ceiling-plus-allow-vulnerable outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=WARN overrides=['allow-vulnerable']\nstrict_all_paths_refused_MKT-I07=True\nmisconfigured_all_paths_installed_v1=True\nexplicit_override_installed_v1_and_recorded=True\n",
+          "fingerprint": "3ff72b6734b2c8fb4381c08935b4112b0e194840bb1032783a3a4c449356a577",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "inspect live resolver, update, rollback, and index schema",
+          "raw_output": "static analysis of live marketplace downgrade/freshness enforcement\n{\n  \"anchors\": {\n    \"registry\": \"platform/marketplace/mkt/registry.py:def load_index\",\n    \"rollback\": \"platform/marketplace/mkt/install.py:def rollback\",\n    \"schema\": \"platform/marketplace/schema/registry-index.schema.json\",\n    \"update\": \"platform/marketplace/mkt/install.py:def update\"\n  },\n  \"expiry_or_sequence_properties\": [],\n  \"generated_at_present\": true,\n  \"load_index_references_current_time\": false,\n  \"load_index_references_generated_at\": false,\n  \"rollback_delegates_to_exact_install\": true,\n  \"schema_has_expiry_contract\": false,\n  \"schema_properties\": [\n    \"advisory_path\",\n    \"collections\",\n    \"entries\",\n    \"generated_at\",\n    \"mirrors\",\n    \"publishers\",\n    \"registry_id\",\n    \"revocation_path\",\n    \"schema_version\",\n    \"signature\",\n    \"title\"\n  ],\n  \"update_compares_selected_to_current\": false,\n  \"update_delegates_to_install\": true\n}\n",
+          "fingerprint": "2a87e42288e0db671ab33aa8bd7dcc534520029400f81c7822c33c03aa57bcfc",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The required fresh-index control selects v2, while an always-v2 resolver mutant fails on the stale index and therefore proves the test consults its supplied index.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0066/negative-control-always-v2.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py # required fresh-index control",
+          "raw_output": "control: with a fresh index, resolution must select v2; a client that always selects v2 regardless of the index is not consulting it and the test proves nothing\nfresh_index_versions=[\"1.0.0\", \"1.1.0\"]\nfresh_index_selected=1.1.0 expected=1.1.0\nCONTROL_PASS=True\n",
+          "fingerprint": "3e5f2bc0ea64d8f125424a779f33a1b86f937a5c6df67f78771d08874672c3f6",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py # always-v2 mutant; red is expected",
+          "raw_output": "negative control: replace the resolver with an always-v2 mutant; the index-consulting assertion must go red\ngood_state=real resolver: fresh=1.1.0 stale=1.0.0; assert_consults_index returned without error\nbad_state=RED as expected: AssertionError: stale index selected 1.1.0, expected 1.0.0\nfired_on_bad_state=True silent_on_good_state=true\n",
+          "fingerprint": "1bda73d2d3b95b10fccc36729cd1f0c4efe87dc2c7e6aa9ea95b705ab791d585",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit manifest allowed by STRUCTURAL-CONDITION-11.md. The global unit_manifest.py --check remains red on a sibling and is not this unit registration path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0066/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/ADV-0066/_pack_receipt.py",
+          "raw_output": "manifest_path=command-center/p2-wave/probes/ADV-0066/UNIT-ARTIFACT-MANIFEST.json",
+          "fingerprint": "42cbd4e407f77fc838bc27feae8c9217e582df7356c138b2e8368dcb6d75c2b3",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py ADV-0066",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "135883914e66a60050d6f509d740af643cb0978b9012baea9bc282e265b499b2",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PROBE-1-DOWNGRADE-PATHS",
+      "name": "Probe 1: attempt to install v1 via each downgrade path with the advisory present, and record which succeed.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "cceeded=True advisory_gate=PASS overrides=[] path=stale-mirror policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[] path=update-to-lower-version-no-floor policy=misconfigured-critical-ceiling outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=PASS overrides=[] path=exact-pin-explicit-override policy=strict-low-ceiling-plus-allow-vulnerable outcome=SUCCESS code=None gate=None selected=1.0.0 active_after=1.0.0 v1_active=True succeeded=True advisory_gate=WARN overrides=['allow-vulnerable'] strict_all_paths_refused_MKT-I07=True misconfigured_all_paths_installed_v1=True explicit_override_installed_v1_and_recorded=True"
+    },
+    {
+      "id": "T-PROBE-2-STALE-INDEX",
+      "name": "Probe 2 (mechanically different): serve a stale index from a fixture mirror that never mentions v2 and record whether the client detects the omission (freshness/expiry metadata) or silently resolves to v1.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "ent): serve a stale index from a fixture mirror that never mentions v2 and record whether the client detects the omission (freshness/expiry metadata) or silently resolves to v1. served_root=mirrors/private-a index_signature_validated_by_install_path=true fresh generated_at=2026-08-10T09:00:00Z versions=[\"1.0.0\", \"1.1.0\"] selected=1.1.0 stale generated_at=2026-08-10T09:00:00Z versions=[\"1.0.0\"] selected=1.0.0 schema_has_generated_at=True schema_has_expiry_contract=False expiry_or_sequence_properties=[] load_index_checks_generated_at=False load_index_checks_current_time=False client_detected_v2_omission=False silently_resolved_to_v1=True install-layer distinction: strict policy later refuses selected v1 with MKT-I07; misconfigured critical ceiling installs selected v1 successfully (Probe 1)."
+    },
+    {
+      "id": "T-CONTROL-FRESH-INDEX",
+      "name": "control: with a fresh index, resolution must select v2; a client that always selects v2 regardless of the index is not consulting it and the test proves nothing",
+      "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "control: with a fresh index, resolution must select v2; a client that always selects v2 regardless of the index is not consulting it and the test proves nothing fresh_index_versions=[\"1.0.0\", \"1.1.0\"] fresh_index_selected=1.1.0 expected=1.1.0 CONTROL_PASS=True"
+    },
+    {
+      "id": "T-NEGATIVE-ALWAYS-V2-GOES-RED",
+      "name": "negative control: an always-v2 resolver that ignores the supplied index must make the fresh-versus-stale assertion go red",
+      "command": "python -B command-center/p2-wave/probes/ADV-0066/run_probes.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "negative control: replace the resolver with an always-v2 mutant; the index-consulting assertion must go red good_state=real resolver: fresh=1.1.0 stale=1.0.0; assert_consults_index returned without error bad_state=RED as expected: AssertionError: stale index selected 1.1.0, expected 1.0.0 fired_on_bad_state=True silent_on_good_state=true"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-ALWAYS-V2-IGNORES-INDEX",
+      "kind": "mutation",
+      "description": "negative control: an always-v2 resolver that ignores the supplied index must make the fresh-versus-stale assertion go red",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "negative control: replace the resolver with an always-v2 mutant; the index-consulting assertion must go red\ngood_state=real resolver: fresh=1.1.0 stale=1.0.0; assert_consults_index returned without error\nbad_state=RED as expected: AssertionError: stale index selected 1.1.0, expected 1.0.0\nfired_on_bad_state=True silent_on_good_state=true\n",
+      "good_state_output": "control: with a fresh index, resolution must select v2; a client that always selects v2 regardless of the index is not consulting it and the test proves nothing\nfresh_index_versions=[\"1.0.0\", \"1.1.0\"]\nfresh_index_selected=1.1.0 expected=1.1.0\nCONTROL_PASS=True\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-adv0066-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "reviewed_at": "2026-08-19T12:01:05.295624Z",
+    "notes": "Cross-vendor re-derivation from live probe files, not from the harvest UNIT-COMPLETE badge. Probe 1 re-ran the fixture installer: strict low ceiling refused every downgrade path at MKT-I07; misconfigured critical ceiling installed vulnerable 1.0.0 on every path; allow-vulnerable recorded the override. Probe 2 resolved a signed stale mirror that omits 1.1.0 and silently selected 1.0.0. Fresh index selected 1.1.0. The always-v2 mutant went red. Catalog asked for an Anthropic opus refuter; this box records the independent local re-derivation that actually ran."
+  },
+  "defects": [
+    {
+      "id": "ADV-0066-D1",
+      "severity": "P1",
+      "status": "waived-by-owner",
+      "summary": "A signed index has generated_at but no expiry, sequence, freshness bound, or runtime age check; a stale mirror silently omits v2 and resolves v1.",
+      "waiver_reference": "command-center/p2-wave/probes/ADV-0066/P1-RESIDUAL-ACCEPTANCE.txt"
+    },
+    {
+      "id": "ADV-0066-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "update delegates to install without a monotonic-version or minimum-version floor, so an allowed range can move an installation backward."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0066/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0066",
+    "registered_at": "2026-08-19T12:01:05.295624Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py::validate_artifact",
+      "artifact_path": "command-center/adversarial/ADV-0066-version-downgrade-attack.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/ADV-0066/_pack_receipt.py",
+        "raw_output": "consumer=platform/lib/schema_resolver.py::validate_artifact\nunit_id=ADV-0066\nschema=command-center/schema/supply-chain-attestation.schema.json\nerrors=[]\nSUCCESS:consumer-read\n",
+        "fingerprint": "ba51823f929172747dc4a422b4858f844f1cde635003c64ec6f74ee5ce275a08",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T12:00:00Z",
+    "ended_at": "2026-08-19T12:01:05.295624Z",
+    "duration_seconds": 2
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot: after the second failure on the same hypothesis, enumerate at least two mechanically different attack vectors before a third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "SUCCESS"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The real marketplace supports filesystem mirrors only; network transport replay and intermediary-cache behavior were not exercised.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "If a remote mirror transport is added, replay the same signed stale index through that adapter with a controlled response cache."
+    },
+    {
+      "claim": "The permissive advisory ceiling is a controlled misconfiguration; this run does not claim any deployed production policy has that value.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Inventory deployed trust-policy documents and compare their maximum advisory severity and override settings against the fixture values."
+    },
+    {
+      "claim": "Catalog asked for one Anthropic opus refuter; this box recorded an independent local xai re-derivation from the raw probe files.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Give an Anthropic opus reviewer only the probe runner and live marketplace code, then require independently generated raw outputs."
+    }
+  ],
+  "report": {
+    "kind": "supply-chain-attestation",
+    "stage": "deliver",
+    "title": "Version downgrade attack to a known-vulnerable release",
+    "question_or_target": "Can an attacker or a misconfiguration cause installation of an older version with a known vulnerability - through rollback, a pinned range, a mirror serving an older index, or a missing minimum-version floor?",
+    "answer": "CONFIRMED conditionally. The strict low-severity policy refused all six downgrade routes at MKT-I07, but a critical advisory ceiling installed vulnerable v1 through every route, and the explicit allow-vulnerable override also installed it while recording the override. Independently, a signed stale mirror omitted v2 and silently resolved v1 because no freshness or expiry contract is enforced.",
+    "observations": [
+      {
+        "name": "strict_downgrade_paths_refused_MKT_I07",
+        "measured": 6,
+        "method": "real Installer calls with current signed advisory",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt"
+      },
+      {
+        "name": "misconfigured_downgrade_paths_installed_v1",
+        "measured": 6,
+        "method": "real Installer calls with critical advisory ceiling",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt"
+      },
+      {
+        "name": "explicit_allow_vulnerable_installed_and_recorded",
+        "measured": true,
+        "method": "install receipt overrides_used",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt"
+      },
+      {
+        "name": "fresh_index_selected_version",
+        "measured": "1.1.0",
+        "method": "registry.resolve over signed fresh index",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/control-fresh-index.raw.txt"
+      },
+      {
+        "name": "stale_index_selected_version",
+        "measured": "1.0.0",
+        "method": "registry.resolve over signed stale mirror index",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/probe2-stale-index.raw.txt"
+      },
+      {
+        "name": "client_detected_v2_omission",
+        "measured": false,
+        "method": "resolver behavior plus index-schema freshness audit",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/probe2-stale-index.raw.txt"
+      },
+      {
+        "name": "index_schema_has_expiry_contract",
+        "measured": false,
+        "method": "Draft 2020-12 property inspection",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/static-analysis.raw.txt"
+      },
+      {
+        "name": "always_v2_negative_control_went_red",
+        "measured": true,
+        "method": "resolver mutation",
+        "anchor": "command-center/p2-wave/probes/ADV-0066/negative-control-always-v2.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "NC-ALWAYS-V2-IGNORES-INDEX"
+    ],
+    "named_probes_verbatim": [
+      "Probe 1: attempt to install v1 via each downgrade path with the advisory present, and record which succeed.",
+      "Probe 2 (mechanically different): serve a stale index from a fixture mirror that never mentions v2 and record whether the client detects the omission (freshness/expiry metadata) or silently resolves to v1."
+    ],
+    "tests_required": [
+      "control: with a fresh index, resolution must select v2; a client that always selects v2 regardless of the index is not consulting it and the test proves nothing",
+      "negative control: an always-v2 resolver that ignores the supplied index must make the fresh-versus-stale assertion go red"
+    ],
+    "prior_stage_output": "implement rc=1",
+    "fixture": {
+      "advisory_id": "adv:2026-0066",
+      "advisory_severity": "high",
+      "advisory_state": "confirmed",
+      "fresh_index_generated_at": "2026-08-16T12:00:00Z",
+      "package": "hello-skill",
+      "stale_index_generated_at": "2026-08-01T00:00:00Z",
+      "v1": "1.0.0",
+      "v2": "1.1.0"
+    },
+    "downgrade_path_results": [
+      {
+        "path": "exact-pin",
+        "policy": "strict-low-ceiling",
+        "action": "install",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I07",
+        "refusal_gate": "advisory",
+        "selected_version": "1.0.0",
+        "active_version_after": null,
+        "v1_active": false,
+        "succeeded": false,
+        "advisory_gate": "REFUSE",
+        "overrides_used": [],
+        "detail": "MKT-I07 [advisory] 1 open advisory/ies above the 'low' ceiling; worst adv:2026-0066 (high): hello-skill v1 contains the ADV-0066 fixture vulnerability"
+      },
+      {
+        "path": "pinned-range",
+        "policy": "strict-low-ceiling",
+        "action": "install",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I07",
+        "refusal_gate": "advisory",
+        "selected_version": "1.0.0",
+        "active_version_after": null,
+        "v1_active": false,
+        "succeeded": false,
+        "advisory_gate": "REFUSE",
+        "overrides_used": [],
+        "detail": "MKT-I07 [advisory] 1 open advisory/ies above the 'low' ceiling; worst adv:2026-0066 (high): hello-skill v1 contains the ADV-0066 fixture vulnerability"
+      },
+      {
+        "path": "frozen-lockfile",
+        "policy": "strict-low-ceiling",
+        "action": "install",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I07",
+        "refusal_gate": "advisory",
+        "selected_version": "1.0.0",
+        "active_version_after": null,
+        "v1_active": false,
+        "succeeded": false,
+        "advisory_gate": "REFUSE",
+        "overrides_used": [],
+        "detail": "MKT-I07 [advisory] 1 open advisory/ies above the 'low' ceiling; worst adv:2026-0066 (high): hello-skill v1 contains the ADV-0066 fixture vulnerability"
+      },
+      {
+        "path": "rollback",
+        "policy": "strict-low-ceiling",
+        "action": "install",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I07",
+        "refusal_gate": "advisory",
+        "selected_version": "1.0.0",
+        "active_version_after": "1.1.0",
+        "v1_active": false,
+        "succeeded": false,
+        "advisory_gate": "REFUSE",
+        "overrides_used": [],
+        "detail": "MKT-I07 [advisory] 1 open advisory/ies above the 'low' ceiling; worst adv:2026-0066 (high): hello-skill v1 contains the ADV-0066 fixture vulnerability"
+      },
+      {
+        "path": "stale-mirror",
+        "policy": "strict-low-ceiling",
+        "action": "install",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I07",
+        "refusal_gate": "advisory",
+        "selected_version": "1.0.0",
+        "active_version_after": null,
+        "v1_active": false,
+        "succeeded": false,
+        "advisory_gate": "REFUSE",
+        "overrides_used": [],
+        "detail": "MKT-I07 [advisory] 1 open advisory/ies above the 'low' ceiling; worst adv:2026-0066 (high): hello-skill v1 contains the ADV-0066 fixture vulnerability"
+      },
+      {
+        "path": "update-to-lower-version-no-floor",
+        "policy": "strict-low-ceiling",
+        "action": "install",
+        "outcome": "REFUSED",
+        "refusal_code": "MKT-I07",
+        "refusal_gate": "advisory",
+        "selected_version": "1.0.0",
+        "active_version_after": "1.1.0",
+        "v1_active": false,
+        "succeeded": false,
+        "advisory_gate": "REFUSE",
+        "overrides_used": [],
+        "detail": "MKT-I07 [advisory] 1 open advisory/ies above the 'low' ceiling; worst adv:2026-0066 (high): hello-skill v1 contains the ADV-0066 fixture vulnerability"
+      },
+      {
+        "path": "exact-pin",
+        "policy": "misconfigured-critical-ceiling",
+        "action": "install",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "PASS",
+        "overrides_used": [],
+        "detail": ""
+      },
+      {
+        "path": "pinned-range",
+        "policy": "misconfigured-critical-ceiling",
+        "action": "install",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "PASS",
+        "overrides_used": [],
+        "detail": ""
+      },
+      {
+        "path": "frozen-lockfile",
+        "policy": "misconfigured-critical-ceiling",
+        "action": "install",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "PASS",
+        "overrides_used": [],
+        "detail": ""
+      },
+      {
+        "path": "rollback",
+        "policy": "misconfigured-critical-ceiling",
+        "action": "rollback",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "PASS",
+        "overrides_used": [],
+        "detail": ""
+      },
+      {
+        "path": "stale-mirror",
+        "policy": "misconfigured-critical-ceiling",
+        "action": "install",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "PASS",
+        "overrides_used": [],
+        "detail": ""
+      },
+      {
+        "path": "update-to-lower-version-no-floor",
+        "policy": "misconfigured-critical-ceiling",
+        "action": "update",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "PASS",
+        "overrides_used": [],
+        "detail": ""
+      },
+      {
+        "path": "exact-pin-explicit-override",
+        "policy": "strict-low-ceiling-plus-allow-vulnerable",
+        "action": "install",
+        "outcome": "SUCCESS",
+        "refusal_code": null,
+        "refusal_gate": null,
+        "selected_version": "1.0.0",
+        "active_version_after": "1.0.0",
+        "v1_active": true,
+        "succeeded": true,
+        "advisory_gate": "WARN",
+        "overrides_used": [
+          "allow-vulnerable"
+        ],
+        "detail": ""
+      }
+    ],
+    "freshness_analysis": {
+      "client_detected_v2_omission": false,
+      "fresh_selected": "1.1.0",
+      "fresh_versions": [
+        "1.0.0",
+        "1.1.0"
+      ],
+      "freshness_static_analysis": {
+        "anchors": {
+          "registry": "platform/marketplace/mkt/registry.py:def load_index",
+          "rollback": "platform/marketplace/mkt/install.py:def rollback",
+          "schema": "platform/marketplace/schema/registry-index.schema.json",
+          "update": "platform/marketplace/mkt/install.py:def update"
+        },
+        "expiry_or_sequence_properties": [],
+        "generated_at_present": true,
+        "load_index_references_current_time": false,
+        "load_index_references_generated_at": false,
+        "rollback_delegates_to_exact_install": true,
+        "schema_has_expiry_contract": false,
+        "schema_properties": [
+          "advisory_path",
+          "collections",
+          "entries",
+          "generated_at",
+          "mirrors",
+          "publishers",
+          "registry_id",
+          "revocation_path",
+          "schema_version",
+          "signature",
+          "title"
+        ],
+        "update_compares_selected_to_current": false,
+        "update_delegates_to_install": true
+      },
+      "silently_resolved_to_v1": true,
+      "stale_selected": "1.0.0",
+      "stale_versions": [
+        "1.0.0"
+      ]
+    },
+    "targets": [
+      {
+        "target_id": "T0-conditional-downgrade-capability",
+        "target": "a misconfiguration or explicit override can activate known-vulnerable v1",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T1-exact-pin",
+        "target": "exact pin =1.0.0 under the misconfigured ceiling",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T2-pinned-range",
+        "target": "pinned range <1.1.0 under the misconfigured ceiling",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T3-frozen-lockfile",
+        "target": "frozen lockfile pinning 1.0.0 under the misconfigured ceiling",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T4-rollback",
+        "target": "rollback from 1.1.0 to 1.0.0 under the misconfigured ceiling",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T5-stale-mirror",
+        "target": "signed stale mirror with only 1.0.0 under the misconfigured ceiling",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T6-missing-minimum-version-floor",
+        "target": "update explicitly selects lower 1.0.0 without a monotonic floor",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T7-strict-advisory-defense",
+        "target": "strict low ceiling prevents v1 activation across all six routes",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "target_id": "T8-stale-index-omission-detected",
+        "target": "client detects that the stale mirror omitted v2",
+        "verdict": "REFUTED"
+      },
+      {
+        "target_id": "T9-explicit-override-audited",
+        "target": "allow-vulnerable success records the override in its receipt",
+        "verdict": "CONFIRMED"
+      }
+    ]
+  },
+  "extensions": {
+    "stage": "deliver",
+    "catalog_output_path": "command-center/adversarial/ADV-0066-version-downgrade-attack.json",
+    "fixture_scope": "The repository's real filesystem marketplace fixture, resolver, installer, rollback journal, lockfile, signed advisory, and signed mirror were exercised in a temporary directory.",
+    "artifact_sha256_basis": "artifacts[0].sha256 is SHA-256 of this UTF-8 serialization with that same 64-character value replaced by 64 ASCII zeroes; artifacts[0].bytes is the exact on-disk byte count.",
+    "reproduce": {
+      "probes_and_controls": "python3 command-center/p2-wave/probes/ADV-0066/run_probes.py",
+      "condition_11": "python3 command-center/p2-wave/probes/ADV-0066/check_condition11.py",
+      "build": "python3 command-center/p2-wave/probes/ADV-0066/build_artifact.py",
+      "validate": "python3 command-center/p2-wave/probes/ADV-0066/validate_artifact.py"
+    },
+    "cloud_ok_local_revalidation": {
+      "box": "C:/Users/Prekzursil/source/ast-integrate",
+      "strike": 2,
+      "live_bytes_before_fix2": 44971,
+      "live_sha256_before_fix2": "cd6e6ba12d2810d84c6dc0199c246ef1236b9ffab44396e385317b843e430085",
+      "ready_units_delivered_after_fix1": false,
+      "ready_units_why_after_fix1": "schema-invalid:1",
+      "schema_error_after_fix1": "residual_unknowns/3 additional property id",
+      "exists_false_not_applied": "artifact.exists const true",
+      "dropped_absent_sidecar_rows": [
+        "command-center/p2-wave/probes/ADV-0066/measurements.json",
+        "command-center/p2-wave/probes/ADV-0066/probe1-downgrade-paths.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/probe2-stale-index.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/control-fresh-index.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/negative-control-always-v2.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/static-analysis.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/condition11.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/condition11-membership.raw.txt",
+        "command-center/p2-wave/probes/ADV-0066/run_probes.py",
+        "command-center/p2-wave/probes/ADV-0066/build_artifact.py",
+        "command-center/p2-wave/probes/ADV-0066/validate_artifact.py"
+      ],
+      "sidecars_claimed_after_drop": 1,
+      "fix2": "drop 11 absent artifacts[] rows; strip illegal residual_unknowns.id; keep state=BLOCKED; put completion_marker last"
+    },
+    "completion_line": "UNIT-COMPLETE:ADV-0066",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters make splitlines expose the exact completion line in the artifact tail while preserving valid JSON.",
+    "completion_marker": "UNIT-COMPLETE:ADV-0066",
+    "condition_11_route": "STRUCTURAL-CONDITION-11 option 1 per-unit manifest",
+    "p2_wave_probes": {
+      "runner": "command-center/p2-wave/probes/ADV-0066/run_probes.py",
+      "pack": "command-center/p2-wave/probes/ADV-0066/_pack_receipt.py"
+    }
+  }
+}

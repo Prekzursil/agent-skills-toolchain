@@ -1,0 +1,368 @@
+﻿# Skills vault name index (G-93)
+
+Generated 27.08.2026 from C:\Users\Prekzursil\.agents\skills\ — one line per skill, no bodies.
+Purpose: name index for runtimes that do not lazy-load the vault.
+Regenerate after vault changes: powershell -NoProfile -File C:\Users\Prekzursil\.agents\scripts\gen_skills_index.ps1
+
+- **010-editor** — Use when applying binary templates (.bt), running 010 Editor scripts (.1sc), or performing hex editing with SweetScape 010 Editor.
+- **acceptance-review** — Use at the "done" boundary of an app change, before a PR or a "fixed / it works now" claim.
+- **accurate-grok-imagine** — Precision prompting for Grok Imagine xAI image generation and editing - photorealistic composites, identity-preserving edits, reference-based compositing, anatomy and lighting repairs, iterative refinement.
+- **agent-architecture-audit** — Use when agent architecture audit is needed.
+- **agent-as-judge** — Advisory, evidence-citing Agent-as-a-Judge.
+- **agent-harness-construction** — Design and optimize AI agent action spaces, tool definitions, and observation formatting for higher completion rates.
+- **agentic-humanizer** — Use when the user invokes /agentic-humanizer or asks to humanize AI-generated text via a 5-pass rewrite with optional voice-matching and (when Slop or Not Pro is available) detector scoring and readability checks ; do NOT use for mere AI-detection without rewriting (use slop-check) ; returns humanized text with optional readability stats.
+- **agentic-os** — Build persistent multi-agent operating systems on Claude Code.
+- **agent-introspection-debugging** — Structured self-debugging workflow for AI agent failures using capture, diagnosis, contained recovery, and introspection reports.
+- **agent-sort** — Build an evidence-backed ECC install plan for a specific repo by sorting skills, commands, rules, hooks, and extras into DAILY vs LIBRARY buckets using parallel repo-aware review passes.
+- **ai-regression-testing** — Regression testing strategies for AI-assisted development.
+- **angr** — Use when symbolic execution, path exploration, constraint solving, or programmatic reasoning about binary behavior is needed beyond manual reversing.
+- **apa-citation-discipline** — Use when writing or repairing APA-style academic prose, references, in-text citations, and attribution discipline without citation laundering.
+- **apply-callee-type-ex** — Use when IDA Pro decompiler output suffers from missing or bad indirect-call types and you need ApplyCalleeTypeEx to improve call prototypes and downstream analysis quality.
+- **aspnet-core** — Build, review, refactor, or architect ASP.NET Core web applications using current official guidance for .NET web development.
+- **audio-extract-mix** — Use when you need to EXTRACT, MIX, REPLACE, DUCK, or LOUDNESS-NORMALIZE audio
+- **autofix-bot-api** — Use when scanning a repository or code change for security vulnerabilities, leaked secrets, or dependency issues via the Autofix Bot API (api.autofix.bot) and auto-applying detected fixes; requires AUTOFIX_BOT_API_KEY ; do NOT use for general code review without an Autofix Bot account ; returns findings report and applied-fix summary.
+- **autonomous-loops** — Patterns and architectures for autonomous Claude Code loops â€” from simple sequential pipelines to RFC-driven multi-agent DAG systems.
+- **autoresearch** — Use when the user wants to push a measurable metric PAST its baseline through many small autonomous variants - raise coverage, a pass rate, or a benchmark score, tune a config, or iterate until a number hits a target.
+- **battlecats-event-unlock** — Use when working on Battle Cats (EN 15.4.1, rooted BlueStacks) special/event/tower stage visibility or on-demand unlock RE - gives the proven dual-dependency model (tree-admission + valid schedule row), the decisive 15.4.1 offsets, the Event Summoner tool, the full event atlas cross-links, and the approaches already proven DEAD.
+- **bc-drive** — Deterministic ON-DEMAND driver for a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) on rooted BlueStacks.
+- **bc-drive-plus** — Use when driving a LIVE Battle Cats (jp.co.ponos.battlecatsen, EN 15.4.1) on rooted BlueStacks beyond bc-drive.
+- **bcsfe-save-roundtrip** — Use when pulling, editing, or pushing a Battle Cats (EN, rooted BlueStacks) SAVE_DATA file - the byte-exact PowerShell + HOME-key flush pull, the headless BCSFE-Python library edit, and the in-place cat-redirect push that preserves uid 10065 and the SELinux app_data_file context.
+- **bc-update-survival** — Use when a Battle Cats (EN, jp.co.ponos.battlecatsen) update relinks lib/x86_64/libnative-lib.so and your pinned RVAs go stale â€” the toolpack that RETIRES hardcoded offsets.
+- **benchmark-optimization-loop** — Use when the user asks to make something faster, try many variants, run recursive optimization, benchmark latency/throughput/cost, or choose the best implementation by repeated measured tests.
+- **binary-ninja** — Use when Binary Ninja UI workflows, intermediate-language reasoning, or Binary Ninja Python API automation are needed for reverse engineering tasks.
+- **binary-ninja-diff-signatures** — Use when working in Binary Ninja to compare versions, analyze changed functions, or generate stable signatures for runtime hooks, trainer features, or address portability across builds.
+- **binary-ninja-mcp** — Use when installing or configuring Binary Ninja MCP, especially when a Binary Ninja plugin or npm-based MCP bridge must be wired into Codex, Claude Code, or Gemini CLI.
+- **bindiff** — Use when comparing two related binaries or database exports to identify changed functions, patch deltas, or version-to-version differences in native reverse-engineering workflows.
+- **binexport** — Use when exporting IDA Pro, Binary Ninja, or Ghidra analysis into BinExport artifacts for BinDiff or portable cross-tool comparison workflows.
+- **binja-sigmaker** — Use when generating byte signatures or AOB patterns from Binary Ninja for runtime hooks, trainer work, or version-resilient function identification.
+- **biomedical-paper-triage** — Use when turning a raw list of biomedical papers into a ranked, access-tagged shortlist graded T1-T4 by human/animal/in-vitro evidence strength via Scholarly Access MCP ; do NOT use for generic literature metadata or citation graphs (use scholarly-literature-review) ; returns defensible ranked shortlist with evidence grades.
+- **blueprint** — Use when blueprint is needed.
+- **brainstorming** — You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior.
+- **browser-rail** — Use as the DEFAULT for any multi-step browser work on a site the owner is signed into - reading, filling, clicking, uploading, or posting across several turns on grok.com, chatgpt.com, a dashboard, a webmail, an admin panel, or any logged-in app.
+- **c2patool-provenance** — Use when c2patool provenance is needed.
+- **c4-architecture** — Use when asked to create architecture diagrams, document system architecture, visualize software structure, or generate context/container/component/deployment diagrams â€” produces C4 model Mermaid diagrams written to docs/architecture/.
+- **capa-triage** — Use when identifying capabilities in a PE, ELF, .NET binary, or shellcode with Mandiant capa before deeper authorized analysis.
+- **caption-burn** — Use when BURNING captions / subtitles / karaoke INTO a video as hardcoded pixels (hardsub) via libass through ffmpeg, OR soft-muxing them as a selectable, removable subtitle track.
+- **caveman** — Ultra-compressed communication mode.
+- **chatgpt5-web** — Direct browser-automation ChatGPT 5 web lane - one skill, three modes via a `mode:` arg.
+- **chatgpt-apps** — Build, scaffold, refactor, and troubleshoot ChatGPT Apps SDK applications that combine an MCP server and widget UI.
+- **cheat-engine-workflow** — Use when performing Cheat Engine-driven runtime analysis, including value scanning, pointer sanity checks, AOB validation, structure inspection, and trainer-oriented confirmation during reverse-engineering or game runtime workflows.
+- **cheat-engine-x64dbg-ida-handoff** — Use when moving runtime findings between Cheat Engine, x64dbg, and IDA Pro, especially for converting value scans or breakpoints into typed static analysis and durable module-relative anchors.
+- **cheminformatics-rdkit** — Use to drive the standalone rdkit MCP server (tandemai-inc/rdkit-mcp-server, 74 tools, MIT) for license-free chemistry - molecular descriptors, fingerprints, similarity, substructure search, and scaffold analysis on SMILES/structures.
+- **ci-silent-pass-lint** — Use before any PR creation or "gates green / ready to merge" claim to detect CI/gate workflows that report GREEN while masking real findings - the recurring "qlty green yet 61 issues + 809 on Codacy" / stale-SHA-gate pattern.
+- **citation-mapping** — Use when you need to build a citation or reference map for a paper, tracing backward references and forward cited-by works from metadata APIs like Semantic Scholar and OpenAlex
+- **clarify-requirements** — Resolve genuine pre-execution ambiguity by scanning repo context, generating 1-6 grounded options, and asking 1-3 focused questions via AskUserQuestion.
+- **claude-api** — Anthropic Claude API patterns for Python and TypeScript.
+- **claude-devfleet** — Orchestrate multi-agent coding tasks via Claude DevFleet â€” plan projects, dispatch parallel agents in isolated worktrees, monitor progress, and read structured reports.
+- **claude-prompt-forge** — Prompt-forging skill for Claude Code and long autonomous Claude sessions â€” the prompt analogue of grill-me-extensive.
+- **claude-science-local** — Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000.
+- **cli-anything** — Use when you want to make a command-line tool reliably callable and parseable by an AI agent â€” introspect its --help, define a structured-output (--json) contract and a stable error contract, then generate a SKILL.md wrapper with verified examples.
+- **clone-website** — Use when the user wants to clone, replicate, reverse-engineer, or create a pixel-perfect copy of a website or web app as a single self-contained HTML prototype â€” extracts design tokens, assets, computed CSS, interaction patterns, and content via Playwright, then rebuilds one dependency-free HTML file.
+- **cloudflare-deploy** — Use when deploying an application or infrastructure to Cloudflare Workers, Pages, or related platform services ; do NOT use for Vercel (use vercel-deploy), Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Cloudflare deployment URL or configuration.
+- **cloud-infra-toolchain** — Use when working with the user's cloud-infrastructure MCP stack fronted by the cloud-hub multiplexer - RunPod, Azure, Google Cloud, Kaggle, rclone, Modal, Lightning AI, and OVHcloud behind one lazy MCP slot.
+- **code-security** — Security guidelines for writing secure code.
+- **codex-consult** — RETIRED 2026-08-09 - redirect tombstone.
+- **codex-databricks-fanout** — Use when fanning out Codex CLI agents onto Databricks - running many parallel Codex/LLM work units on job clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out.
+- **codex-fleet-github** — Use when dispatching, sweeping, monitoring, or planning autonomous Codex-on-GitHub runs across the private fleet via the codex-fleet-github MCP server.
+- **codex-invoke** — The ONE canonical entry point for invoking OpenAI Codex with per-call scoping.
+- **codex-mixed-workflow-doctrine** — How to put OpenAI Codex to work from Claude on this Windows box, and how to run mixed
+- **codex-orchestrate** — Route a task to Codex on the MCP rail by intent - one skill, all modes.
+- **codex-runtime-recovery** — Use when Codex state is split across Windows, WSL, or VS Code, sessions disappear, state_5.sqlite files churn, or CODEX_HOME and launch routing drift need diagnosis before destructive repair.
+- **codex-session-reunion** — Use when Codex sessions or rollout JSONL files are spread across Windows, WSL, backups, or VS Code mirrors and need to be inventoried, deduped, and promoted into one canonical store safely.
+- **codex-vscode-host-routing** — Use when VS Code launches Codex from the wrong host, WSL becomes the default unexpectedly, or you need Windows to remain the canonical Codex host while still allowing explicit Linux-side tools.
+- **compchem-validators** — Use when a docking / MD / free-energy campaign needs an OUTPUT quality gate - post-dock pose validity (PoseBusters), a cheap-tier prefilter before the token-gated tiers (Uni-Dock GPU-Vina before Glide, Boltz-2 affinity before FEP+/QDX credits), or a "docking done / Î”G=â€¦ / MD converged" claim that should be backed by a validity artifact before it is treated as done.
+- **competitive-programming-solver** — Solves algorithmic / competitive-programming problems with fast, correct solutions in C, C++, and Python.
+- **comp-pharm-cascade** — Use when ranking/prioritizing a congeneric small-molecule series against a protein target (binding-affinity SAR, hit triage, mechanism-of-action), or scoping such a campaign.
+- **consensus-tooluniverse-research** — Use when downloading or systematically harvesting research from Consensus.app - extract each shared search browser-free from the page __NEXT_DATA__ payload, resolve every cited paper to a DOI and open-access PDF with ToolUniverse (Crossref, OpenAlex, Unpaywall, EuropePMC), organize by topic with a DOI-linked bibliography, and verify headline claims against primary sources.
+- **content-hash-cache-pattern** — Cache expensive file processing results using SHA-256 content hashes â€” path-independent, auto-invalidating, with service layer separation.
+- **context-sandbox** — Use when a command, file read, web fetch, or MCP tool call is about to return a large or noisy payload (logs, JSON dumps, build output, page snapshots, search results) that would otherwise be echoed verbatim and rot the context window.
+- **continuous-learning-v2** — Instinct-based learning system that observes sessions via hooks, creates atomic instincts with confidence scoring, and evolves them into skills/commands/agents.
+- **cookie-bridge** — Estate-local browser cookie/session bridge.
+- **cost-aware-llm-pipeline** — Cost optimization patterns for LLM API usage â€” model routing by task complexity, budget tracking, retry logic, and prompt caching.
+- **cost-tracking** — Track and report Claude Code token usage, spending, and budgets from a local cost-tracking database.
+- **council** — Convene a four-voice council for ambiguous decisions, tradeoffs, and go/no-go calls.
+- **create-tooluniverse-skill** — Create high-quality ToolUniverse skills following test-driven, implementation-agnostic methodology.
+- **critique-panel** — Use to run the G3 CRITIQUE gate of the TCR design-review loop - a four named-persona panel (user-advocate / systems-consistency / a11y / brand-aesthetic) that each REASON over ui-audit's Track-A numbers plus the screenshot, run the NN/g "I Like / I Wish / What If" ritual, score the nine DESIGN-EVAL v1 dimensions 0-4, then synthesize a severity-ranked findings list.
+- **crypto-ctf** — Use for cryptography CTF challenges, crypto homework, and education when you need to actually COMPUTE an attack rather than just describe one - RSA factoring and weak-key attacks (Fermat close-primes, Wiener small-d, common-modulus, Hastad broadcast, ROCA, lattice/Coppersmith), symmetric mode.
+- **cv-studio** — Generate an ATS-clean PDF resume AND a visually-designed CV from ONE structured profile, plus tailored cover letters and an optimised LinkedIn profile.
+- **cyberstrike** — Operate the separately installed CyberStrike offensive-security backend: install or verify its CLI, configure provider credentials or local Ollama and optional Bolt pairing, launch its TUI or password-gated localhost web UI, and support reconnaissance-through-reporting on authorized targets.
+- **data-extraction-matrix** — Use when extracting structured evidence from papers into a matrix for synthesis, comparison, or review writing.
+- **data-scraper-agent** — Use when building an automated public-data collector that scrapes on a schedule, enriches records with an LLM, stores results, and learns from feedback.
+- **ddi-admet-research** — Use as the front-end/router for biomedical research via the tooluniverse MCP server (Harvard Zitnik lab, 2206 tools) - drug-drug interactions, ADMET/physchem prediction, CYP450 enzyme roles, target research, FDA drug labels, drug repurposing, and pharmacovigilance.
+- **deep-research** — Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs.
+- **deepsource** — Use when asked to retrieve DeepSource code review results â€” issues, vulnerabilities, report cards, coverage metrics, or analysis status ; do NOT use for running new scans outside DeepSource ; returns DeepSource findings and analysis run data.
+- **delegated-build-verify** — Use when delegating a large build to a generator (Codex fan-out, subagents, or a Workflow) and you must independently verify the result - the \"agent builds X, then you evaluate\" pattern.
+- **design-review-loop** — MOVED - renamed to design-studio.
+- **design-studio** — ONE entry to the whole design pipeline over a running app (Reframe/momentstudio/WebCoder/bilbo), the mode-routed successor to design-review-loop.
+- **design-studio-session** — The interactive-modify capability behind `design-studio session` mode.
+- **design-sync** — Use when design sync is needed.
+- **design-system** — Use this skill to generate or audit design systems, check visual consistency, and review PRs that touch styling.
+- **design-tokens-pipeline** — Use for the W3C DTCG design-token round-trip the TCR design-review loop relies on at G5/G6 - extract tokens out of code (CSS custom properties + Tailwind theme dumps) into a DTCG JSON tree, validate against the DTCG v1.0 rules that break the Tokens-Studio to Style-Dictionary round-trip, and diff two token trees to emit the forward change set AND the inverse revert patch.
+- **develop-web-game** — Use when Codex is building or iterating on a web game (HTML/JS) and needs a reliable development + testing loop: implement small changes, run a Playwright-based test script with short input bursts and intentional pauses, inspect screenshots/text, and review console errors with render_game_to_text.
+- **devtu** — ToolUniverse (mims-harvard/ToolUniverse) development toolkit - one skill, eight sub-command modes.
+- **diff-blind-test-synth** — Use when you want an INDEPENDENT external check that a patch/PR actually satisfies the spec - synthesize executable tests from ONLY the spec + public API (never the diff), then run them against the pre-patch tree (expect FAIL) and the patched tree (expect PASS).
+- **digitalocean-app-platform-ops** — Use when operating DigitalOcean App Platform through the archived DigitalOcean MCP server, especially for listing apps, deployments, logs, restarts, deletes, or spec validation.
+- **digitalocean-mcp-setup** — Use when installing, validating, or troubleshooting the archived DigitalOcean MCP server for Codex, Claude, or Gemini, especially when App Platform tools or env-only token wiring need to be set up safely.
+- **dispatching-parallel-agents** — Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+- **dmux-workflows** — Multi-agent orchestration using dmux (tmux pane manager for AI agents).
+- **doc** — Use when the task involves reading, creating, or editing `.docx` documents, especially when formatting or layout fidelity matters; prefer `python-docx` plus the bundled `scripts/render_docx.py` for visual checks.
+- **drive-biomni-lab** — Use when the user wants to run a biomedical/clinical-genomics analysis on the hosted Biomni Lab (biomni.phylo.bio, Phylo Inc.) from Claude Code - starting or continuing a Biomni agent task, controlling effort/model, attaching skills or @-resources, polling a run, switching/rotating accounts, or checking usage/billing.
+- **dr-plan** — Use when someone asks to "create a DR plan", "disaster recovery", "business continuity", or "RTO RPO" â€” generates a product/service-scoped Disaster Recovery plan with numeric RTO/RPO targets, ranked disaster scenarios, recovery procedures, manual workarounds, and a testing schedule.
+- **drug-discovery-literature-bridge** — Use when extracting molecules, targets, assays, and clinical context from a paper (via the Scholarly Access MCP paper_* tools) to seed the drug-discovery stack â€” ToolUniverse DDI/ADMET/target-validation/mechanism tools and the RDKit MCP â€” keeping DOI provenance on every extracted entity.
+- **dump-to-signature-workflow** — Use when converting dump or debugger evidence into durable signatures, AOB patterns, or diffable artifacts, especially when findings must survive across builds or runtime sessions.
+- **e2e-testing** — Playwright E2E patterns -- Page Object Model, config, CI/CD, artifacts, flaky tests.
+- **eval-harness** — Formal evaluation framework for Claude Code sessions implementing eval-driven development (EDD) principles
+- **evidence-ledger-synthesis** — Use when the user needs a claim-by-claim evidence ledger before writing a review, memo, paper section, or recommendation.
+- **executing-plans** — Use when loading a written implementation plan and executing tasks in batches with user review checkpoints between batches, typically in a separate session ; do NOT use when all tasks are independent and can be dispatched in parallel within the current session (use subagent-driven-development) ; returns batch-by-batch progress with review pauses.
+- **execution-grounded-bon** — Use when you have SEVERAL candidate patches/solutions for the same task â€” typically from a cross-vendor Claude+Codex worktree fan-out â€” and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion rerank â‰ˆ chance).
+- **faculty-course-design-evidence** — Use when designing or revising a course, syllabus, or module with evidence-based learning structure and assessment alignment.
+- **fal-ai-media** — Unified media generation via fal.ai MCP â€” image, video, and audio.
+- **figma** — Use when fetching Figma design context, screenshots, variables, or assets via the Figma MCP server, or when setting up and troubleshooting the Figma MCP connection ; do NOT use for pixel-perfect full-component implementation from Figma nodes (use figma-implement-design) ; returns Figma design data and MCP setup guidance.
+- **figma-implement-design** — Use when the user provides Figma URLs or node IDs and needs production-ready code with pixel-perfect 1:1 fidelity to the design, translating Figma components into project-convention code via the Figma MCP ; do NOT use for generic Figma data fetching or MCP setup (use figma) ; returns implemented component code matching Figma specs.
+- **finishing-a-development-branch** — Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+- **firecrawl** — Web scraping, crawling, structured extraction, site mapping, and change monitoring via the Firecrawl MCP.
+- **forge-discipline** — Use when turning a named behavioral pattern (gem, fresh arXiv finding, matured instinct) into an INSTALLED, self-tested Claude Code hook in one pass.
+- **format-codex-sessions** — Use when Codex rollout JSONL files need to be turned into readable Markdown conversations, transcripts, or chat logs without dumping raw event noise, prompt bulk, or secrets.
+- **fresh-context-verify** — Use when a value, address, offset, or assumption has become load-bearing and you have relied on it for many steps without an independent check - especially in long reverse-engineering or autonomous-loop work that keeps hitting inconsistencies.
+- **frida** — Use when runtime hooking, device instrumentation, API tracing matters more than static disassembly.
+- **frida-mcp** — Use when installing or configuring frida-mcp as an MCP server for live Frida instrumentation in Codex, Claude Code, or Gemini CLI.
+- **frontend-a11y** — Accessibility patterns for React and Next.js â€” semantic HTML, ARIA attributes,
+- **frontend-design-direction** — Set an ECC-specific frontend design direction for production UI work.
+- **game-find-anticheat** — Use when asked to identify, map, locate, or analyze anti-cheat components in a game process or binary.
+- **game-frida-trace** — Use when asked to trace, intercept, hook, or monitor function calls in a live process using Frida dynamic instrumentation.
+- **game-re-binary** — Use when asked to analyze, reverse engineer, or understand an unknown binary, game executable, or DLL.
+- **game-unpack-pe** — Use when asked to unpack, unprotect, or extract real code from a protected or obfuscated Windows executable.
+- **gateguard** — Fact-forcing gate that blocks Edit/Write/Bash (including MultiEdit) and demands concrete investigation (importers, data schemas, user instruction) before allowing the action.
+- **gem-hunt** — Use when the user wants to DISCOVER high-value improvements to their OWN agentic workspace/toolkit - new hooks, behaviors, gems, skills, MCPs, or frontier-harness patterns - via a wide multi-lens agent fan-out, then a consolidated adopt/prune decision.
+- **gh-address-comments** — Help address review/issue comments on the open GitHub PR for the current branch using gh CLI; verify gh auth first and prompt the user to authenticate if not logged in.
+- **gh-fix-ci** — Use when a user asks to debug or fix failing GitHub PR checks that run in GitHub Actions; use `gh` to inspect checks and logs, summarize failure context, draft a fix plan, and implement only after explicit approval.
+- **ghidra-automation-recipes** — Use when automating Ghidra analysis with Script Manager scripts, ghidra_bridge, or repeatable Python-driven recipes, especially for batch queries, symbol harvesting, structure extraction, or cross-tool analysis handoffs.
+- **ghidra-bridge** — Use when automating Ghidra from Python, driving analyses from a REPL or script, or exchanging program state with other reverse-engineering workflows.
+- **ghidra-mcp** — Use when installing or configuring GhidraMCP for a local Ghidra workflow, or when bridging its MCP client into Codex, Claude Code, or Gemini CLI after the Ghidra extension is installed.
+- **grant-proposal-architecture** — Use when shaping a grant, fellowship, or project proposal into a coherent reviewer-facing argument with work packages, risk logic, and feasibility.
+- **grill-me** — Interview the user about a plan or design, resolving each branch of the decision tree.
+- **grill-me-extensive** — Program-scale extensive grilling for wide or under-specified decision spaces.
+- **grill-with-docs** — Use when stress-testing a plan against the workspace's domain knowledge and prior decisions - challenge terminology, sharpen fuzzy language, and write resolved decisions back.
+- **gtfobins-lookup** — Use when looking up authorized Unix living-off-the-land techniques, commands, and paired defensive detections in the local GTFOBins corpus.
+- **hacktricks** — Retrieve and synthesize HackTricks and HackTricks Cloud guidance for authorized security research, pentests, CTFs, hardening, incident response, reverse engineering, and web, network, Active Directory, mobile, cloud, OS, and protocol techniques.
+- **hacktricks-api** — Query the HackTricks AI for a synthesized, curated answer when the local hacktricks corpus search is not enough.
+- **handoff** — Compact the current conversation into a handoff document for another agent to pick up.
+- **harness-module-authoring** — Author, register, test, or review lifecycle harness modules and hook checks in agent-skills-toolchain.
+- **hexstrike-ai-authorized-engagement** — Use when routing an authorized security assessment, bug bounty, red-team exercise, or CTF task through the local HexStrike AI runtime ; do NOT use for installation or MCP wiring (use hexstrike-ai-setup or hexstrike-ai-mcp) ; returns HexStrike AI engagement results for authorized targets only.
+- **hexstrike-ai-mcp** — Use when registering, repairing, or configuring HexStrike AI as an MCP server with a framed stdio bridge for Codex, Claude Code, or Gemini CLI ; do NOT use for runtime installation (use hexstrike-ai-setup) or running engagements (use hexstrike-ai-authorized-engagement) ; returns working MCP server registration for HexStrike.
+- **hexstrike-ai-setup** — Use when installing, wiring, validating, or troubleshooting the local HexStrike AI binary and runtime environment for Codex, Claude, or Gemini ; do NOT use for MCP server registration wiring (use hexstrike-ai-mcp) or running an active authorized engagement (use hexstrike-ai-authorized-engagement) ; returns a validated running HexStrike runtime.
+- **humanizer** — Use when editing or reviewing text to remove AI-writing patterns (em dashes, filler phrases, passive voice, inflated symbolism) and make it sound more natural and human-written ; do NOT use for full 5-pass rewrite workflows or voice-matching (use agentic-humanizer) ; returns edited text with AI patterns removed.
+- **ida-decompiler-cleanup** — Use when Hex-Rays decompiler output in IDA Pro is noisy, poorly typed, or hard to reason about, especially for indirect-call typing, prototype cleanup, structure naming, variable cleanup, and preparing functions for durable analysis or signature work.
+- **ida-multi-mcp** — Use when you need to analyze SEVERAL binaries in IDA at once through one MCP endpoint, or when you must re-find a function whose address SHIFTED after a rebuild/game-update.
+- **ida-pro-mcp** — Use when installing or configuring mrexodia/ida-pro-mcp for IDA Pro, or when wiring its client config into Codex, Claude Code, or Gemini CLI after the IDA plugin is available.
+- **imagegen** — Use when asked to generate or edit images via the OpenAI Image API (generate, edit/inpaint/mask, background removal/replacement, transparent background, product shots, concept art, covers, batch variants); run `scripts/image_gen.py`, needs `OPENAI_API_KEY`.
+- **imhex** — Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed.
+- **institutional-literature-access** — Use when the user has lawful university or consortium access and needs a disciplined route through institutional library portals, ORCID identity, DOI/OA fallback, and secret-safe configuration.
+- **jina-reader** — Zero-RAM, server-less way to fetch a single web page as clean, LLM-ready markdown via a one-line HTTP GET to Jina Reader (r.jina.ai plus the target URL) - no MCP, no resident process.
+- **journal-fit-and-submission** — Use when choosing target journals, matching manuscript fit, and preparing the submission package without misrepresenting novelty or scope.
+- **jupyter-notebook** — Use when the user asks to create, scaffold, or edit Jupyter notebooks (`.ipynb`) for experiments, explorations, or tutorials; prefer the bundled templates and run the helper script `new_notebook.py` to generate a clean starting notebook.
+- **knowledge-ops** — Knowledge base management, ingestion, sync, and retrieval across multiple storage layers (local files, MCP memory, vector stores, Git repos).
+- **learned** — Container marker for learned pattern files created by /learn and /learn-eval.
+- **lightning-studio-driver** — Use when driving Lightning.ai Studios via the lightning_sdk (auth, account switching, org-aware teamspace/studio discovery, create/start/stop/ switch-machine, upload, run commands) or when installing a big licensed suite (e.g.
+- **linear** — Manage issues, projects & team workflows in Linear.
+- **llm-decompile-verify** — Use when recovering readable, COMPILABLE C from a stripped binary or a decompiler's pseudo-C and you refuse to trust the model's own claim that the decompilation is correct.
+- **llm-security** — Security guidelines for LLM applications based on OWASP Top 10 for LLM 2025.
+- **lolbin-lookup** — Structured living-off-the-land binary lookup against the local GTFOBins (Unix) and LOLBAS (Windows) corpora under D:\knowledge.
+- **long-copy-orchestrator** — Use when moving large trees between Windows, WSL, VMs, or mounted disks and you need to choose rsync, tar, robocopy, or offline copy, track progress, detect stalls, and resume safely.
+- **long-pdf-evidence-synthesizer** — Use when the user needs a professional synthesis of a long PDF, report, thesis, or policy document with section-accurate evidence tracking and clear separation between author claims and your synthesis.
+- **make-interfaces-feel-better** — Apply concrete design-engineering details that make interfaces feel polished.
+- **malware-analysis-triage** — Use when triaging a suspicious PE, ELF, .NET binary, or shellcode for authorized malware analysis, defensive detection engineering, CTF, or reverse engineering.
+- **mcp-code-orchestrate** — Use when one task needs the SAME tool-call shape repeated across MANY items - an xref-walk over many functions, a descriptor sweep over many SMILES, or one query across several MCP servers.
+- **mcp-fleet-curation** — Use when plugins, skills, or MCP servers keep REAPPEARING after you disable them, when de-bloating the Claude Code catalogue, or when the per-turn tool/token count creeps back up.
+- **mcp-graphql** — Use when installing or configuring blurrah/mcp-graphql for Codex, Claude Code, or Gemini CLI, or when an MCP client needs GraphQL schema introspection and query execution against a known endpoint.
+- **mcp-server-patterns** — Build MCP servers with Node/TypeScript SDK â€” tools, resources, prompts, Zod validation, stdio vs Streamable HTTP.
+- **mechanistic-ddi-pipeline** — Use to orchestrate a full mechanistic drug-drug interaction verdict by combining two MCP stacks - ToolUniverse CYP/UGT/transporter and DDI knowledge plus FDA-label evidence with Schrodinger structure tools (SMILES to 3D, descriptors, ADMET, docking) - fusing knowledge-base and structure-level evidence into one perpetrator-victim verdict with severity and management.
+- **media-dub** — Use when producing a local DUB of a video - re-voicing speech into another language (or restyling it same-language) while KEEPING the original speaker's voice, fully offline.
+- **methods-results-discussion-calibrator** — Use when a draft paper has drift between methods, results, and discussion and needs section-to-section calibration.
+- **microsoft-foundry** — Deploy, evaluate, fine-tune, and manage Foundry agents end-to-end with azd: hosted agent scaffold/run/deploy, prompt agent create, batch eval, continuous eval, prompt optimizer, Agent Optimizer scaffold, agent.yaml, dataset curation from traces, model fine-tuning (SFT/DPO/RFT).
+- **mise** — Use when managing dev tool and language runtime versions with mise (mise-en-place) â€” the asdf/nvm/pyenv/rbenv replacement: pinning global vs per-project versions via mise.toml or .tool-versions, per-directory environment variables, the task runner, installing non-language CLIs (npm/cargo/pipx/ubi/aqua/go backends), or setting up mise on Windows PowerShell (shims vs activate, mise trust).
+- **mle-workflow** — Production machine-learning engineering workflow for data contracts, reproducible training, model evaluation, deployment, monitoring, and rollback.
+- **mol-filters** — Use when mol filters is needed.
+- **monitor-launcher** — The generalized `mon <name>` launcher for the unified monitoring platform - opens any registered monitor (wfmon fleet cockpit, agentmon per-agent tails) from monitors.toml.
+- **multi-agent-quickstart** — Use when learning how to reach Codex from this Windows-first setup - the beginner mental model for the codex mcp-server rail (mcp__codex__codex / mcp__codex__codex-reply), how the retired per-mode codex_* tools map onto prompt framings, when to fan out parallel calls instead, and how to choose an execution path after planning.
+- **multi-ai-mingle** — Use when the user wants seamless local collaboration between Claude Code and OpenAI Codex on the same machine - fanning out parallel Codex coding threads from Claude as native MCP tool calls via the official codex mcp-server, and running a live symmetric two-way chat and file-lease channel between the two agents through mcp_agent_mail.
+- **multilingual-search** — Reach non-English sources deliberately - query in the target language against a native-index engine (Yandex for RU, Quark/360search for CN, Naver for KR, Seznam for CZ), fuse several engines with Reciprocal Rank Fusion, and cite the original while translating only on output.
+- **mutation-check** — Use at the verify boundary to empirically test test-STRENGTH, not just coverage - given a changed Python source file and the command that runs its tests, it applies a small mutation set to the function(s) under test and asserts each mutation makes at least one test go RED.
+- **nanoclaw-repl** — Operate and extend NanoClaw v2, ECC's zero-dependency session-aware REPL built on claude -p.
+- **netlify-deploy** — Use when deploying a web project to Netlify via npx netlify, linking a repo, or creating preview or production Netlify deploys ; do NOT use for Vercel (use vercel-deploy), Render (use render-deploy), or Cloudflare (use cloudflare-deploy) ; returns Netlify deploy URL.
+- **notion-knowledge-capture** — Capture conversations and decisions into structured Notion pages; use when turning chats/notes into wiki entries, how-tos, decisions, or FAQs with proper linking.
+- **notion-meeting-intelligence** — Prepare meeting materials with Notion context and Codex research; use when gathering context, drafting agendas/pre-reads, and tailoring materials to attendees.
+- **notion-research-documentation** — Research across Notion and synthesize into structured documentation; use when gathering info from multiple Notion sources to produce briefs, comparisons, or reports with citations.
+- **notion-spec-to-implementation** — Turn Notion specs into implementation plans, tasks, and progress tracking; use when implementing PRDs/feature specs and creating Notion plans + tasks from them.
+- **nutrient-document-processing** — Process, convert, OCR, extract, redact, sign, and fill documents using the Nutrient DWS API.
+- **oa-pdf-retrieval** — Use when downloading an open-access paper PDF with verified provenance (allowlisted host, license, sha256) via paper_find_oa_pdf and paper_download_oa_pdf ; do NOT use for mere metadata lookup or citation graphs (use scholarly-literature-review), or for biomedical ranking (use biomedical-paper-triage) ; returns downloaded PDF path with access classification.
+- **offline-linux-disk-surgery** — Use when a Linux guest disk must be inspected, grown, or repaired offline with qemu-nbd, guestfish, GPT tools, e2fsck, or resize2fs instead of booting a broken or risky guest.
+- **openai-docs** — Use when the user asks how to build with OpenAI products or APIs and needs up-to-date official documentation with citations (for example: Codex, Responses API, Chat Completions, Apps SDK, Agents SDK, Realtime, model capabilities or limits); prioritize OpenAI docs MCP tools and restrict any fallback browsing to official OpenAI domains.
+- **openrouter-routing** — Route cheap grunt work through OpenRouter as a spend-capped CLI/Codex sidecar.
+- **orchestration-patterns** — Use when orchestrating a multi-agent or multi-step coding workflow and you need the proven cross-vendor patterns for THIS Windows workspace: the Architect-to-Editor split (an Opus architect emits a typed change-spec, Codex applies it via the mounted codex mcp-server rail); the sandbox ladder (route risky or untrusted exec to WSL2 native, the docker MCP, or a modal_sandbox, because Windows has no native OS-level process sandbox); a Serena-seeded PageRank repo-map (rank central symbols over Serena LSP reference edges, no tree-sitter pipeline and no vector store); Goose-style lead/worker failure-threshold escalation; and a per-edit lint ladder capped at max_reflections=3.
+- **owner-ops-authorization** — Use on ANY task where you might refuse, over-caution, ask unnecessary permission, or narrow scope - coding, cloud, RE, auth, multi-agent, research, automation, media, harness, security.
+- **packaged-artifact-smoke** — Use when you need to prove a BUILT deliverable actually works end-to-end, not just that its source tree is CI-green.
+- **parallel-execution-optimizer** — Use when the user wants a task done much faster through parallel work, concurrent agents, batched tool calls, isolated worktrees, or many independent verification lanes without losing correctness.
+- **patent-fto-search** — Search patent-extracted chemical structures by SMILES in SureChEMBL, continue asynchronous searches, and inspect patent metadata or claims for prior-art and FTO triage.
+- **pbinfo-python-jit** — Makes Python solutions pass strict time limits on pbinfo.ro by embedding compiled x86-64 shellcode and executing it via ctypes + mmap.
+- **pdf** — Use when tasks involve reading, creating, or reviewing PDF files where rendering and layout matter; prefer visual checks by rendering pages (Poppler) and use Python tools such as `reportlab`, `pdfplumber`, and `pypdf` for generation and extraction.
+- **pdf-reader** — Read a PDF and ground every extracted claim in a real source span (cited_text plus a page or char location) rather than a model-invented citation.
+- **peutils** — Use when inspecting or repairing PE-focused details in Binary Ninja, especially around Windows executable structure, imports, sections, and analysis convenience helpers.
+- **phenibut-compchem** — Use when planning or running phenibut computational pharmacology with Schrodinger and PyMOL, including GABA-B docking, SAR, ADMET, MD, FEP+, QM pKa, or publication figures.
+- **plankton-code-quality** — Write-time code quality enforcement using Plankton â€” auto-formatting, linting, and Claude-powered fixes on every file edit via hooks.
+- **plan-orchestrate** — Use when converting a multi-step plan into dependency-aware agent chains and ready-to-run orchestration prompts without executing the plan.
+- **playwright** — Use when automating a real browser from the terminal for navigation, form filling, screenshots, data extraction, or UI-flow debugging via playwright-cli or the wrapper script ; do NOT use for persistent iterative debugging sessions (use playwright-interactive) or local webapp functional test suites (use webapp-testing) ; returns browser automation output and screenshots.
+- **playwright-interactive** — Use when iteratively debugging a local web or Electron app in a persistent Playwright js_repl session without restarting between steps ; do NOT use for one-shot navigation or data extraction (use playwright) ; returns live browser state, screenshots, and console output across iterations.
+- **prompt-optimizer** — Use when prompt optimizer is needed.
+- **protein-interaction-network-analysis** — Use when analyzing protein interaction networks, confidence scores, functional enrichment, or structural context with STRING, BioGRID, and SASBDB.
+- **prototype** — Use when the user wants to prototype, sanity-check a data model or state machine, mock up a UI, explore design options before committing, or says "prototype this", "let me play with it", "try a few designs".
+- **python-patterns** — Pythonic idioms, PEP 8 standards, type hints, and best practices for building robust, efficient, and maintainable Python applications.
+- **python-testing** — pytest strategies -- fixtures, mocking, parametrization, coverage.
+- **qdx-rush** — Use when qdx rush is needed.
+- **qiling-emulation** — Use to emulate or sandbox a native ARM/ARM64 shared object off-device - the Battle Cats Android .so or any Android/Linux ELF native library inside the Qiling framework, not on a rooted phone.
+- **quality-gate-automation-architect** — Use when designing, comparing, or reviewing autonomous repo-quality automation for pull-request repair, coverage ratchets, analyzer debt burn-down, or merge-governance decisions.
+- **quality-zero-platform-control-plane** — Use when working with `Prekzursil/quality-zero-platform`, enrolling or auditing governed repos, checking strict-zero wrapper workflows, ruleset drift, trusted-runner Codex remediation, or provider/bootstrap state for the personal-account control plane.
+- **radare2** — Use when command-line disassembly, debugging, hex editing, or scriptable low-level binary triage is needed without relying on a heavyweight GUI first.
+- **ralph-hats** — Create, inspect, validate, explain, and improve Ralph hat collections.
+- **ralphinho-rfc-pipeline** — RFC-driven multi-agent DAG execution pattern with quality gates, merge queues, and work unit orchestration.
+- **ralph-loop** — Run, monitor, resume, merge, and debug Ralph loops.
+- **ralph-orchestrator-setup** — Use when installing, updating, validating, or troubleshooting the local Ralph Orchestrator CLI, its MCP server registration, or the mirrored Ralph skills for Codex, Claude, and Gemini.
+- **reboot-safe-ops-continuation** — Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture, staged-artifact inventory, and a resumable checklist for the next session.
+- **recall-workflow-agent** — Use when you need the exact input PROMPT or final OUTPUT of a specific subagent from a past Workflow / ultracode fan-out run - reviewing or recovering what one fanned-out agent (a lens, a verifier, the synthesizer) actually received or returned after the run scrolled off screen or the session compacted.
+- **receiving-code-review** — Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+- **recursive-decision-ledger** — Use when the user asks for repeated rollouts, marked decision processes, high-dimensional search, stochastic optimization, local-optima exploration, ensemble comparison, or recursive reasoning with a visible evidence trail.
+- **re-ensure** — Bring up the reverse-engineering MCP backends (IDA / Ghidra) on demand so mcp__ida-pro-mcp / mcp__ghidra-mcp calls "just work" without manually opening the GUI apps.
+- **refactor-equivalence** — Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent.
+- **reframe** — Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic subject tracking - Shorts, Reels, TikTok.
+- **reframe-scrollshot-markdown** — Reconstruct a vertically scrolled screen recording into an aligned long screenshot, evidence-preserving OCR, and Markdown through the Reframe app.
+- **reframe-transcribe** — Use when transcribing speech from audio/video to text with WORD-LEVEL timing (for captions, karaoke subtitles, clip-boundary snapping, or diarization).
+- **reframe-video-cutting** — Use when selecting and cutting moments from a long talk, podcast, interview, stream, or vlog into shorts with scene-aware, sentence-safe boundaries.
+- **regex-vs-llm-structured-text** — Decision framework for choosing between regex and LLM when parsing structured text â€” start with regex, add LLM only for low-confidence edge cases.
+- **render-deploy** — Use when deploying an application to Render.com, generating render.yaml Blueprints, or getting Render Dashboard deeplinks ; do NOT use for Vercel (use vercel-deploy), Netlify (use netlify-deploy), or Cloudflare (use cloudflare-deploy) ; returns Render Blueprint and deployment status.
+- **repomix** — Use when packing a repository into an AI-friendly bundle with Repomix, or when exposing Repomix as an MCP server to Codex, Claude Code, or Gemini CLI.
+- **reporting-guideline-router** — Use when the manuscript or protocol needs the correct reporting guideline lane such as PRISMA, CONSORT, STROBE, ARRIVE, STARD, CARE, or COREQ.
+- **requesting-code-review** — Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+- **research-integrity-forensics** — Use when checking a paper, corpus, or draft for integrity risks such as citation abuse, duplication, image problems, implausible claims, or unsupported certainty.
+- **research-ops** — Thin router for the research stack.
+- **research-paper-craft** — Use when writing, structuring, or revising a state-of-the-art scientific research paper, review, preprint, or thesis chapter and you want it to read well and land.
+- **re-triage-preflight** — Run a fast, hash-cached reverse-engineering TRIAGE preflight on an unknown binary BEFORE deep analysis â€” folds file-format detection, Shannon-entropy packer triage (works with zero external tools), Detect-It-Easy (diec), FLOSS auto string-deobfuscation, and capa capabilities into ONE structured TRIAGE block, cached by SHA-256 so re-runs are instant.
+- **ret-sync** — Use when synchronizing a live debugger with IDA Pro, Binary Ninja, or compatible disassemblers so stepping and addresses stay aligned during native reverse-engineering.
+- **reverse-engineering-toolkit** — Use when selecting or sequencing reverse-engineering tools for Windows native analysis, dump triage, live debugging, binary diffing, signature generation, import repair, or MCP disassembler workflows.
+- **rtv-pdr** — Use when a hard coding work-unit has failed once, is contentious, or scores HIGH on the ESE (Ensemble Semantic Entropy) gate â€” spawns N parallel Opus rollouts, runs a recursive tournament where fresh judge agents (never contestants) pick the winner, then optionally runs a PDR refine pass.
+- **rubric-verifier** — Use AFTER N candidate patches exist (from codex council / /multi-execute / external-tools Codex+Gemini fan-out) and BEFORE running tests, to select the best candidate execution-free.
+- **run-agent-monitor** — Run and smoke-test the monitorcore agent tail + discovery - the read-only per-agent tailer and flat/workflow subagent discovery for Claude Code Task subagents.
+- **run-taskwatch_monitor** — Use when running, launching, or smoke-testing taskwatch_monitor - the general-purpose long-task progress monitor - to watch a long-running job (build, download, CI run, FEP/BPMD driver, LLM generation, rclone transfer) with an honest, BLIND-aware status, p50/p90 ETA, and no fabricated percentages.
+- **scholarly-literature-review** — Use when given DOIs, PMIDs, arXiv ids, or paper titles and needing canonical metadata, access-status tables, citation/reference expansion, or structured summaries from legally available abstracts via Scholarly Access MCP ; do NOT use for biomedical evidence ranking (use biomedical-paper-triage) or PDF downloading (use oa-pdf-retrieval) ; returns metadata, access classification, and citation graph.
+- **schrodinger-maestro-driver** — Use when driving the local schrodinger MCP server for structure-based drug discovery on a Schrodinger Suite install - SMILES to 3D, LigPrep, Protein Preparation Wizard, Glide grid generation, Glide docking, Prime MM-GBSA binding free energy, QikProp ADMET, structure format conversion, RDKit descriptors, or the run_schrodinger_python escape hatch.
+- **scopus-wos-coverage-auditor** — Use when comparing Scopus, Web of Science, Dimensions, or related indexing outputs and the user needs a disciplined explanation of differences.
+- **screenshot** — Use when the user asks for a desktop, system or OS-level screenshot (full screen, a window, or a pixel region), or when tool-specific capture is unavailable.
+- **search-first** — Research-before-coding workflow.
+- **sec-corpora-update** — Refresh the local security-knowledge corpora under D:\knowledge (PayloadsAllTheThings, GTFOBins, LOLBAS, OWASP WSTG, OWASP CheatSheets, Atomic Red Team) with a shallow git pull each.
+- **secsearch** — Unified offline search across ALL local security-knowledge corpora under D:\knowledge (HackTricks + PayloadsAllTheThings + OWASP WSTG + OWASP CheatSheets + Atomic Red Team, plus GTFOBins/LOLBAS prose).
+- **security-best-practices** — Perform language and framework specific security best-practice reviews and suggest improvements.
+- **security-bounty-hunter** — Hunt for exploitable, bounty-worthy security issues in repositories.
+- **security-kb-lookup** — Use when security kb lookup is needed.
+- **security-ownership-map** — Analyze git repositories to build a security ownership topology (people-to-file), compute bus factor and sensitive-code ownership, and export CSV/JSON for graph databases and visualization.
+- **security-review** — Use when adding authentication, handling user input, secrets, API endpoints, or payment/sensitive features -- gives a security checklist and patterns.
+- **security-scan** — Scan your Claude Code configuration (.claude/ directory) for security vulnerabilities, misconfigurations, and injection risks using AgentShield.
+- **security-threat-model** — Repository-grounded threat modeling that enumerates trust boundaries, assets, attacker capabilities, abuse paths, and mitigations, and writes a concise Markdown threat model.
+- **seed-golden-journey** — Use when an app needs a keystone acceptance test that proves the real product works end to end, not just that units pass or coverage is high.
+- **semgrep** — Run Semgrep static analysis scans and create custom detection rules.
+- **sentry** — Use when the user asks to inspect Sentry issues or events, summarize recent production errors, or pull basic Sentry health data via the Sentry API; perform read-only queries with the bundled script and require `SENTRY_AUTH_TOKEN`.
+- **silence-trim** — Use when removing long silences / dead air / filler-pauses from a TALKING
+- **simplest-probe-first** — Use BEFORE committing to any expensive or multi-step approach (vision/OCR pipeline, multi-agent fan-out, live RE, big rewrite, long orchestration).
+- **skill-scout** — Search local, marketplace, GitHub and web sources before creating a new skill.
+- **skill-stocktake** — Use when auditing Claude skills and commands for quality.
+- **skill-tree-reconcile** — Use when asked to sync skills, reconcile skill trees, deploy skills to live, choose which tree wins, compare live vs vault vs repo, run sync-from-live, or repair drift - classifies differences and applies a human-reviewed direction.
+- **slides** — Create and edit presentation slide decks (`.pptx`) with PptxGenJS, layout helpers, and render/validation utilities.
+- **slop-check** — Use when the user asks if text or an image is AI-generated, to clean AI artifacts or invisible characters, or to score readability (Flesch-Kincaid) via Slop or Not Pro on-device tools (macOS only) ; do NOT use for rewriting or humanizing text (use agentic-humanizer or humanizer) ; returns AI-detection verdict, cleaned text, or readability grade.
+- **smallest-check-ladder** — Use when you need to run "the smallest test that could still catch this change" instead of blindly running the whole suite (or nothing).
+- **social-corpus-extraction** — Use when building a personal writing/style corpus from a user's OWN messages and posts across Discord, Facebook posts + comments, Facebook Messenger, and WhatsApp â€” isolating only the owner's authored text, then folding every source into one deduplicated jsonl corpus.
+- **social-dm-search** — Use when the user wants to search, read, or recall direct messages and chats across Instagram DMs, Facebook Messenger group/room/page threads, or WhatsApp chats (proof-of-concept, off by default).
+- **social-find-post** — Use when the user wants to find, recall, or locate a specific social-media post, reel, or saved/bookmarked item across Instagram (saved collections, feed, search) or Facebook (feed/profile).
+- **social-media-toolchain** — Use when working with the user's personal social-media MCP servers (Instagram live, Facebook Messenger groups/pages, WhatsApp proof-of-concept, TikTok public read-only) - which server does what, their auth and setup, the per-platform tool inventory, residential-proxy and account-state guidance, and the hard limits (E2EE, client-version gotchas, ToS and ban risk).
+- **sora** — Use when the user asks to generate, remix, poll, list, download, or delete Sora videos via OpenAI\u2019s video API using the bundled CLI (`scripts/sora.py`), including requests like \u201cgenerate AI video,\u201d \u201cSora,\u201d \u201cvideo remix,\u201d \u201cdownload video/thumbnail/spritesheet,\u201d and batch video generation; requires `OPENAI_API_KEY` and Sora API access.
+- **source-command-aside** — Answer a quick side question without interrupting or losing context from the current task.
+- **source-command-claw** — Start NanoClaw v2 â€” ECC's persistent, zero-dependency REPL with model routing, skill hot-load, branching, compaction, export, and metrics.
+- **source-command-devfleet** — Orchestrate parallel Codex agents via Codex DevFleet â€” plan projects from natural language, dispatch agents in isolated worktrees, monitor progress, and read structured reports.
+- **source-command-docs** — Look up current documentation for a library or topic via Context7.
+- **source-command-e2e** — Generate and run end-to-end tests with Playwright.
+- **source-command-evolve** — Analyze instincts and suggest or generate evolved structures
+- **source-command-instinct-export** — Export instincts from project/global scope to a file
+- **source-command-instinct-import** — Import instincts from file or URL into project/global scope
+- **source-command-instinct-status** — Show learned instincts (project + global) with confidence
+- **source-command-learn-eval** — Extract reusable patterns from the session, self-evaluate quality before saving, and determine the right save location (Global vs Project).
+- **source-command-plan** — Restate requirements, assess risks, and create step-by-step implementation plan.
+- **source-command-prime** — Load relevant knowledge base facts into context before starting work
+- **source-command-projects** — List known projects and their instinct statistics
+- **source-command-promote** — Promote project-scoped instincts to global scope
+- **source-command-pr-shepherd** — Monitor a PR through to merge - handles CI failures, reviews, and thread resolution
+- **source-command-python-review** — Comprehensive Python code review for PEP 8 compliance, type hints, security, and Pythonic idioms.
+- **source-command-resume-session** — Load the most recent session file from ~/.claude/sessions/ and resume work with full context from where the last session ended.
+- **source-command-rules-distill** — Scan skills to extract cross-cutting principles and distill them into rules
+- **source-command-save-session** — Save current session state to a dated file in ~/.claude/sessions/ so work can be resumed in a future session with full context.
+- **source-command-self-reflect** — Extract learnings from recent PR reviews, conversations, and session patterns to update the knowledge base
+- **source-command-setup-pm** — Configure your preferred package manager (npm/pnpm/yarn/bun)
+- **source-command-skill-create** — Analyze local git history to extract coding patterns and generate SKILL.md files.
+- **source-command-skill-health** — Show skill portfolio health dashboard with charts and analytics
+- **speech** — Use when the user asks for text-to-speech narration or voiceover, accessibility reads, audio prompts, or batch speech generation via the OpenAI Audio API; run the bundled CLI (`scripts/text_to_speech.py`) with built-in voices and require `OPENAI_API_KEY` for live calls.
+- **spreadsheet** — Use when tasks involve creating, editing, analyzing, or formatting spreadsheets (`.xlsx`, `.csv`, `.tsv`) using Python (`openpyxl`, `pandas`), especially when formulas, references, and formatting need to be preserved and verified.
+- **stdin-server** — Interactive-stdin MCP server (stdlib-only, zero-dependency) giving an agent a persistent write-to-stdin plus read-incremental-stdout channel to a child process â€” start_process / interact_with_process / read_process_output.
+- **strategic-compact** — Suggests manual context compaction at logical intervals to preserve context through task phases rather than arbitrary auto-compaction.
+- **structure-based-screening** — Use when running a structure-based drug-discovery / molecular-docking campaign on the local schrodinger MCP - taking a receptor (PDB) and one or more ligands (SMILES or files) all the way to docked, MM-GBSA-rescored, ADMET-profiled poses.
+- **study-plan-psychology** — Use when building a study plan grounded in cognitive psychology, retrieval practice, spacing, interleaving, and realistic motivation management.
+- **subagent-driven-development** — Use when executing an implementation plan by dispatching a fresh subagent per independent task with two-stage spec-then-quality review in the current session ; do NOT use when tasks have sequential dependencies or need a separate session with batch checkpoints (use executing-plans) ; returns per-task subagent outputs reviewed for spec compliance and code quality.
+- **subtitle-translate** — Use when translating subtitles/captions to another language and/or generating + exporting SRT/VTT/ASS for a media-studio video â€” including bilingual (stacked) subs and the audio-dub (TTS) path.
+- **swfoc-modding** — Research-backed workflow for Star Wars: Empire at War / Forces of Corruption modding, SDK/tooling, debugging, and submod integration.
+- **swfoc-reverse-engineering** — Use when working on SWFOC editor runtime or native analysis, or on the swfoc_memory dump bundle, especially for dump triage, debugger attach flows, signature generation, binary comparison, import repair, or moving evidence between WinDbg Preview, x64dbg, Cheat Engine, IDA Pro, Binary Ninja, and Ghidra.
+- **swfoc-runtime-address-hunting** — Use when hunting SWFOC-specific runtime addresses, function anchors, structures, or memory regions in the SWFOC editor or swfoc_memory workspaces, especially when correlating dump evidence, debugger traces, and static analysis.
+- **systematic-debugging** — Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+- **systematic-review-screening** — Use when screening studies for a review, thesis, or evidence map with explicit inclusion and exclusion criteria and borderline-case handling.
+- **tdd-workflow** — Use when writing features, fixing bugs or refactoring -- enforces TDD at 80%+ coverage (unit, integration, E2E).
+- **team-builder** — Interactive agent picker for composing and dispatching parallel teams
+- **test-driven-development** — Use when implementing any feature or bugfix, before writing implementation code
+- **thesis-defense-drill** — Use when preparing for a thesis or dissertation defense with adversarial questioning, concept checks, and evidence-based feedback.
+- **tiktok-public-research** — Use when the user wants to read PUBLIC TikTok data - trending videos, a creator's public posts or likes, a hashtag feed, a single video's metadata or comments, related videos, or a user search - through the self-hosted tiktok MCP server.
+- **tooluniverse** — Use when routing ToolUniverse life-science questions to the right specialized skill or verifying scientific facts against real databases.
+- **to-prd** — Use when the user wants a PRD synthesized from the current conversation and codebase context (not an interview) and fed into the build pipeline as tracked, agent-ready work.
+- **trail-of-bits-re** — Use when you want the Trail of Bits security/RE skill packs â€” differential-review (security-focused review of a code CHANGE, folding in git history to catch vulnerabilities a diff introduced), variant-analysis (find the SAME bug class across a codebase / other repos by pattern), and yara-authoring (write high-quality YARA-X detection rules with linting and atom analysis).
+- **transcribe** — Use when asked to transcribe speech to text from audio/video, with diarization to label speakers in recordings, interviews or meetings.
+- **transpose-to-figma** — Use when lifting a running or built UI back onto the Figma canvas (the G2 TRANSPOSE / Code-to-Canvas edge of the design-review loop) and you must pick the right code-to-Figma path - story.to.design for the component-system loop, the Figma MCP generate_figma_design for live/localhost screens, or html.to.design for an audit-only DOM record.
+- **triage-dispatch** — Use when repairing an app with MULTIPLE bugs or broken user-journeys at once (not a single fix) - instead of edit-one-file / rerun-the-whole-suite / hope, first map the broken journeys with evidence, capture each REAL error, build a defect graph, then dispatch parallel bounded-scope fix agents and verify only impacted regions before an outer full+e2e+mutation gate.
+- **two-tier-verify** — Use when repeated code edits are triggering a full test-suite rerun each iteration and burning tokens/time, or before any commit.
+- **ui-audit** — Drive a running web or Electron app and emit a deterministic UI/UX + functional audit - a11y, contrast, spacing, tap targets, dead buttons, motion, visual regression (Track-A) - then a design-quality VERDICT (Track-B) where Claude reasons over the numbers + screenshot on the DESIGN-EVAL v1 rubric (0-4, critical-error override, weighted composite) against Refactoring-UI/HIG/Nielsen/WCAG.
+- **ui-drive** — Thin rail-router driver for a LIVE running web or Electron app â€” attach to it, resolve any target through three fallback rails (a11y-ref then CDP css then vision xy), point at an element with a screenshot-visible highlight, discuss it with full context, and actuate it (click/fill/hover/press/select).
+- **ui-invariant-walk** — Use when you want a property-based random-walk oracle that DRIVES a running web/Electron app and asserts UI invariants over a randomized command sequence â€” "no enabled button is a dead click" (an enabled, visible control must produce an observable state change) and "no route errors" (no navigation may reach an error route, throw an uncaught exception, or log a console error).
+- **ui-ux-pro-max** — Use when designing UI/UX for web or mobile apps and needing opinionated style, color palette, font pairing, or chart-type recommendations from a searchable database of 67 styles, 96 palettes, 57 font pairings, and 99 UX guidelines across 13 stacks ; do NOT use for code implementation or pixel-perfect Figma work ; returns ranked design recommendations.
+- **use-image-clipboard** — Use when needing to read an image from the Windows clipboard and save it to a temporary PNG file on disk, returning its path for downstream use in scripts or pipelines.
+- **using-git-worktrees** — Use when feature work needs isolation from the current workspace, or before executing a plan - creates isolated worktrees with safety checks.
+- **using-superpowers** — Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+- **vercel-deploy** — Use when deploying an application or website to Vercel, creating preview deployments, or getting a Vercel deployment link ; do NOT use for Cloudflare Workers/Pages (use cloudflare-deploy), Netlify (use netlify-deploy), or Render (use render-deploy) ; returns Vercel deployment URL.
+- **verification-before-completion** — Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+- **verification-loop** — A comprehensive verification system for Claude Code sessions.
+- **video-convert** — Use when converting a video/audio file's FORMAT, CODEC, or CONTAINER in media-studio (mp4/mkv/mov/webm/gif, h264/h265/vp9/av1, or audio-only extraction to mp3/m4a/wav/flac/opus) â€” single file or batch, or normalizing a non-Chromium-playable source for playback (remux vs h264-720p proxy).
+- **video-join-concat** — Use when joining/concatenating multiple clips into ONE output, or assembling approved clips into an editable NLE timeline (CMX3600 EDL / CSV for Premiere/Resolve).
+- **video-resize-aspect** — Use when changing a video ASPECT RATIO or RESOLUTION for social delivery (9:16 / 1:1 / 4:5 / 16:9) - horizontal into a vertical Reel/Short, squaring, or scaling to a canvas, with scale + crop and SAR/DAR math.
+- **video-stabilize** — Use when stabilizing a shaky / handheld / camera-shake video so it looks steadied (locked-down or smooth-pan).
+- **video-watermark-removal** — Use when removing a static logo, watermark, or TV bug from a video seamlessly.
+- **visual-explainer** — Use when a visual explanation beats prose â€” diagrams, architecture overviews, diff or plan reviews, project recaps, comparison tables, dashboards, timelines, or HTML slide decks.
+- **voice-analyze** — Reverse-engineer voice profiles from samples by analyzing writing patterns.
+- **voice-apply** — Applies a voice profile to transform content.
+- **voice-blend** — Combine multiple voice profiles with weighted mixing to create hybrid voices.
+- **voice-create** — Generate custom voice profiles from natural language descriptions.
+- **volatility-3** — Use when a memory image must be analyzed to recover processes, modules, or unpacked binaries that only exist in RAM.
+- **webapp-testing** — Use when verifying frontend functionality, debugging UI behavior, capturing screenshots, or viewing browser logs for a local web application using the Playwright toolkit ; do NOT use for one-shot browser automation or data scraping (use playwright) or persistent iterative REPL sessions (use playwright-interactive) ; returns frontend test results, screenshots, and browser logs.
+- **windbg-command-cookbook** — Use when you need concrete WinDbg Preview command sequences for crash dumps, exception context, thread triage, stack inspection, module inventory, or address extraction before moving to static analysis.
+- **windbg-preview** — Use when triaging Windows crash dumps, inspecting threads, exceptions, modules, memory, or debugger commands against dump files such as .dmp artifacts before deeper disassembler work.
+- **windows-virtualization-conflict-triage** — Use when Hyper-V, VBS, VMware Workstation, vmware-vmx, vmrun, Docker, or WSL conflict on a Windows host and you need a safe diagnosis before changing host virtualization settings.
+- **winui-app** — Bootstrap, develop, and design modern WinUI 3 desktop applications with C# and the Windows App SDK using official Microsoft guidance, WinUI Gallery patterns, Windows App SDK samples, and CommunityToolkit components.
+- **workflow-authoring** — Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs script under ~/.claude/workflows using the injected agent/parallel/phase globals to fan out subagents).
+- **workflow-foundry** — Use when RUNNING a multi-agent fan-out on this estate â€” dispatching N parallel work units, deciding barrier-vs-pipeline, gating fan-in, or judging whether a unit is actually done.
+- **workflow-monitor** — Use when you want to LIVE-monitor a Claude Code Workflow ("ultracode") fan-out â€” watch every parallel agent's status, lens/task, model, tokens, tool activity, and final result across the WHOLE FLEET (all sessions/projects) in a read-only terminal cockpit, instead of the sparse native /workflows view or opening a terminal-tail per agent.
+- **writing-plans** — Use when you have a spec or requirements for a multi-step task, before touching code
+- **writing-skills** — Use when creating new skills, editing existing skills, or verifying skills work before deployment
+- **wsl-vmware-cutover** — Use when moving Linux workloads from WSL into VMware and you need D-first staging, cold backups, rollback checkpoints, and a clear rule that Codex runtime ownership stays on Windows unless explicitly changed.
+- **x64dbg** — Use when live-debugging a Windows process, tracing code paths, setting breakpoints, or pairing with ret-sync and a disassembler.
+- **x-api** — X/Twitter API integration for posting tweets, threads, reading timelines, search, and analytics.
+- **yeet** — Use only when the user explicitly asks to stage, commit, push, and open a GitHub pull request in one flow using the GitHub CLI (`gh`).
+- **zero-issue-coding** — Use when writing ANY new code in ANY language â€” enforces patterns that pass Codacy, SonarCloud, DeepSource, QLTY, Semgrep, and Codecov gates on first push without suppressions or exclusions

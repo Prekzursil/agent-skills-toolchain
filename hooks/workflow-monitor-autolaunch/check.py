@@ -51,9 +51,13 @@ _DETACHED = 0x00000008  # DETACHED_PROCESS — don't tie the launched window to 
 def _launch() -> bool:
     """Open the cockpit in a reusable named Windows-Terminal window; fall back to a plain console."""
     py = sys.executable or "python"
+    # The console rung's title slot is an EMPTY string ("" once list2cmdline quotes it):
+    # `start` treats a BARE first token as the COMMAND, so the previous "wfmon" literal made
+    # this rung ShellExecute bare `wfmon` (error dialog when ~/.local/bin is off PATH)
+    # instead of `python <MONITOR>`. The named window lives in the wt rung.
     for cmd in (
         ["wt", "-w", "wfmon", "new-tab", "--title", "wfmon", py, str(MONITOR)],
-        ["cmd", "/c", "start", "wfmon", py, str(MONITOR)],
+        ["cmd", "/c", "start", "", py, str(MONITOR)],
     ):
         try:
             subprocess.Popen(cmd, creationflags=_DETACHED, close_fds=True)

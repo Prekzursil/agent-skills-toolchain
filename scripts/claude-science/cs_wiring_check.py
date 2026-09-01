@@ -20,6 +20,9 @@ points at a tree which is stale, disposable, or simply not there.
     It works on this box only because it was hand-copied; a fresh install leaves the documented
     falsification recipe pointing at nothing.
 
+On 2026-08-17 the owner retired the `/cs` slash-command alias, superseding the earlier decision
+to keep it working on purpose. `/claude-science` is now the only slash-command route.
+
 Every one of those is decidable from the repository alone -- no daemon, no WSL, no scheduled task,
 no Windows. So they belong in a check that CI can run on every pull request, which is what this is.
 `cs doctor`'s "Slash-command route" row is the RUNTIME half of the same idea; it can only speak
@@ -64,8 +67,8 @@ MONITOR_TOMLS = (
 )
 COMMAND_TWINS = (
     ("commands/claude-science.md", "agent-self/config/commands/claude-science.md"),
-    ("commands/cs.md", "agent-self/config/commands/cs.md"),
 )
+RETIRED_ALIAS_COMMANDS = ("commands/cs.md", "agent-self/config/commands/cs.md")
 # The config seam. These three files are ALLOWED to carry the literals; everything else in
 # scripts/claude-science must read them through the seam. cs.conf is the SSOT and the two libs
 # carry matching fallbacks so a missing cs.conf degrades to the shipped values, not to empty
@@ -286,6 +289,39 @@ def _check_description(root: Path) -> list[Violation]:
                         f"{candidate} frontmatter has no non-empty description "
                         "(a command with no description cannot be picked from the listing)",
                     )
+                )
+    return out
+
+
+# W11 only reads the two live command files named below, so platform/routing/fixtures is outside
+# its traversal by construction: that tree is a deliberately frozen historical routing corpus.
+# On the old tree, the existence half fired on commands/cs.md and its twin; the content half fired
+# on the frontmatter description and fenced `/cs` usage line in each claude-science command file.
+def _check_no_alias(root: Path) -> list[Violation]:
+    out: list[Violation] = []
+    for rel in RETIRED_ALIAS_COMMANDS:
+        if (root / rel).exists():
+            out.append(
+                Violation("W11-no-alias", f"retired alias command still exists: {rel}")
+            )
+    for rel in COMMAND_TWINS[0]:
+        path = root / rel
+        if not path.is_file():
+            continue  # W1 reports the missing canonical command.
+        lines = _read(path).splitlines()
+        in_frontmatter = bool(lines and lines[0].strip() == "---")
+        in_fence = False
+        for n, line in enumerate(lines, start=1):
+            if n > 1 and in_frontmatter and line.strip() == "---":
+                in_frontmatter = False
+                continue
+            if FENCE.match(line):
+                in_fence = not in_fence
+                continue
+            scoped = (in_frontmatter and line.startswith("description:")) or in_fence
+            if scoped and re.search(r"(?<![\w-])/cs(?=\s|$|[`,.])", line):
+                out.append(
+                    Violation("W11-no-alias", f"{rel}:{n} instructs use of retired /cs")
                 )
     return out
 
@@ -520,6 +556,7 @@ CHECKS = (
     "W8-monitor",
     "W9-config-bypass",
     "W10-sh-eol",
+    "W11-no-alias",
 )
 
 
@@ -544,6 +581,7 @@ def check(root: Path) -> list[Violation]:
     violations += _check_monitor(root)
     violations += _check_config_bypass(root)
     violations += _check_shell_eol(root)
+    violations += _check_no_alias(root)
     return violations
 
 

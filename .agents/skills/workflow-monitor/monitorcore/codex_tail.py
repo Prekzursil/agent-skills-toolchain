@@ -833,6 +833,13 @@ def run_live(  # pragma: no cover -- interactive ANSI full-screen loop (VT enabl
         sys.stdout.flush()
 
 
+def _stdout_tty() -> bool:  # pragma: no cover -- reads the real process stdout
+    try:
+        return sys.stdout.isatty()
+    except Exception:
+        return False
+
+
 def main(
     argv: list[str] | None = None,
     *,
@@ -840,11 +847,15 @@ def main(
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.time,
     live: Callable[..., int] = run_live,
+    tty_fn: Callable[[], bool] = _stdout_tty,
 ) -> int:
-    """CLI: ``--once`` renders one frame through ``out``; otherwise hands off to ``live``.
+    """CLI: ``--once`` (or non-interactive stdout) renders one frame via ``out``;
+    otherwise hands off to ``live``.
 
-    ``out`` / ``sleep`` / ``clock`` / ``live`` are injected seams so tests cover the
-    argparse surface and both modes without a real terminal loop.
+    ``out`` / ``sleep`` / ``clock`` / ``live`` / ``tty_fn`` are injected seams so tests
+    cover both modes without a real terminal loop. The tty-only seam preserves the live
+    board under WT_SESSION, codexmon's normal launch surface; it is not
+    ``cockpit.interactive_supported``.
     """
     ap = argparse.ArgumentParser(
         description="Live board for OpenAI Codex threads (relay stream files + rollouts)."
@@ -879,7 +890,9 @@ def main(
     )
     ap.add_argument("--width", type=int, default=120, help="board width in columns")
     ap.add_argument(
-        "--once", action="store_true", help="render a single frame and exit"
+        "--once",
+        action="store_true",
+        help="render a single frame and exit (automatic when stdout is not a tty)",
     )
     args = ap.parse_args(argv)
     poller = Poller(
@@ -889,7 +902,7 @@ def main(
         max_threads=args.max_threads,
         clock=clock,
     )
-    if args.once:
+    if args.once or not tty_fn():
         for line in _live_step(poller, clock(), args.width, idle_s=args.idle):
             out(line)
         return 0

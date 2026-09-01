@@ -1062,6 +1062,15 @@ jobs:
       - name: gate-tests-coverage hook manifest conformance
         run: python -m pytest hooks/_dispatch/test_wiring.py -q -k hook_manifest_conformance
 
+      # WF-2: the DEPLOY hop for the hook wiring. test_wiring.py's live-settings assertions
+      # skip in every checkout and on every runner (SETTINGS is machine-local), so the tool
+      # that actually carries the manifest's settings_matcher onto a box -- and drops the
+      # superseded standalone group in the SAME write -- needs its own gate. Fully hermetic:
+      # every case builds a sandbox ~/.claude under tmp_path and passes --claude-root, so
+      # nothing here reads or writes a real deployment. Includes the three red-proof mutants.
+      - name: gate-tests-coverage dispatch wiring deploy (WF-2)
+        run: python -m pytest agent-self/test_deploy_dispatch_wiring.py -q
+
       # browser-rail helper -- PURE-logic unit tests only: no browser, no
       # playwright install, no network (browser_rail.py imports playwright lazily).
       # Deliberately NOT a `gate-<slug>` step name so charter_check.sh's reverse
@@ -1709,7 +1718,7 @@ jobs:
       # (node workspaces) above. Scanning it here is what makes the auto-merge path safe for it —
       # Dependabot opens SECURITY PRs against it regardless of dependabot.yml, so before this
       # line such a PR could auto-merge with no CVE gate on that tree.
-      - uses: google/osv-scanner-action/osv-scanner-action@8deb546fdb875b9996d27d4950be7312dac076a1 # v2.5.0
+      - uses: google/osv-scanner-action/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67 # v2.5.1
         with:
           scan-args: |-
             --config=osv-scanner.toml

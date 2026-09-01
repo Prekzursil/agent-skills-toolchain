@@ -11,11 +11,10 @@ This shim is the adapter. It stays deliberately trivial (resolve the vendored pa
 off to ``main``) so that everything worth testing lives in the 100%-covered
 ``monitorcore.unified``.
 
-Deliberately registered with NO ``trigger_tool``: the ``Workflow`` trigger is already taken by
-the ``wfmon`` predecessor, and adding a second auto-opening stanza for the same tool would
-open two windows per Workflow call rather than replace one. Retiring the predecessor is a
-separate, sequenced decision (MASTER-QUEUE T0-3); until it is made, the cockpit is launchable
-by hand and auto-opens nothing.
+Owns the ``Workflow`` trigger (MASTER-QUEUE T0-3, executed 2026-08-20): ``trigger_tool =
+"Workflow"`` moved to this stanza from the ``wfmon`` predecessor, so a Workflow call now
+auto-opens this cockpit — exactly one window, replacing rather than doubling the predecessor
+board, which stays launchable by hand only (``mon wfmon``).
 """
 
 from __future__ import annotations

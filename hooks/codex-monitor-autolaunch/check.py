@@ -185,7 +185,10 @@ def _launch() -> bool:
             "cmd",
             "/c",
             "start",
-            "codexmon-cli",
+            # EMPTY title ("" after list2cmdline): `start` runs a BARE first token as the
+            # COMMAND, so the previous "codexmon-cli" literal made this rung ShellExecute a
+            # nonexistent program (error dialog) instead of powershell. wt carries the title.
+            "",
             "powershell",
             "-NoProfile",
             "-File",

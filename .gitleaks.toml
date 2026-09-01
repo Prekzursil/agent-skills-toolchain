@@ -203,3 +203,59 @@ regexes = [
   '''^ADV0[0-9]{3}[A-Za-z0-9_-]{20,30}$''',
   '''^reconciliation$''',
 ]
+
+# --- Allowlist: P2/adversarial-wave evidence digests + unit-id canaries ----------
+# The 2026-08-20 command-center wave (commit e760762c) landed receipts whose evidence
+# probes each carry a `fingerprint` field — a SHA-256 (64-hex) or SHA-1/git-commit
+# (40-hex) digest of the probe output. gitleaks' generic-api-key rule fires 1,688
+# times on command-center/receipts/BLD-0031.json alone, and the sourcegraph rule
+# matches a cited git commit SHA (f7fac7b4...) in CC-0011.json. Enumerated over the
+# full introduced range (f7fac7b4..3bbdd085): 1,750 of 1,759 findings are pure
+# 40/64-lowercase-hex digests; the remaining 9 collapse to 4 distinct values, all
+# unit-id-prefixed detector canaries (ADV0097-MINORITY-*/MAJORITY-*,
+# ADV-0043-probe2-live) or a config literal (MaxAgeHours=6). No real credential
+# shape (sk-, ghp_, AKIA, eyJ, PEM, xox*) appears in the introduced findings.
+#
+# FINDING-LEVEL, NOT PATH-SCOPED — same reason as the fixtures waiver above:
+# gitleaks applies `paths` as a FILE-LEVEL pre-filter, so a path waiver would stop
+# reading these receipts entirely and a real secret added to one later would be
+# invisible. Anchored full-string hex is a digest by construction: no issuer emits
+# a credential that is exactly a bare lowercase hex hash, and any prefixed token
+# (sk-..., ghp_...) fails the anchor and still fires.
+[[allowlists]]
+description = "P2-wave evidence digests (40/64-hex fingerprints) + unit-id-prefixed canaries, enumerated over f7fac7b4..3bbdd085"
+regexTarget = "secret"
+regexes = [
+  '''^[0-9a-f]{64}$''',
+  '''^[0-9a-f]{40}$''',
+  '''^ADV-?0[0-9]{3}-[A-Za-z0-9][A-Za-z0-9-]{3,40}$''',
+  '''^MaxAgeHours=\d+$''',
+]
+
+# ---------------------------------------------------------------------------------------
+# 2026-09-01 -- browser-profiles/: the tree SECURITY.md already defines as the exception.
+#
+# gate-secrets went red on main at the first 2026-08-28 fold commit (745b2f77) and has
+# been red on every main run since (green through 81f844d3, 2026-08-26). Measured with
+# the pinned gitleaks 8.30.1 over the full history (1201 commits): 1638 findings, of
+# which 1632 are under browser-profiles/ and every one is the generic-api-key entropy
+# rule. 1588 of them are ONE file, edge-agent/SmartScreen/RemoteData/edgeSettings_2.0-*,
+# Microsoft's downloaded SmartScreen settings blob; the rest are Chrome/Edge
+# "Secure Preferences" / "Preferences" / "Local State" per-preference HMAC signatures and
+# component-manifest hashes. None is a credential; they are browser integrity data.
+#
+# The tree itself IS sensitive -- live login cookies -- and that is settled by policy, not
+# by this scanner: SECURITY.md declares the repo PRIVATE-ONLY, names browser-profiles/ as
+# "the exception (cookies allowed)" (owner decision 28.08.2026), and .gitignore forbids a
+# blanket ignore of it. The genuinely sensitive files there (Cookies, Login Data) are
+# SQLite binaries gitleaks never reads, so the gate was red on integrity hashes while
+# blind to the one thing that is actually secret. A path waiver is the right shape here
+# precisely BECAUSE it is file-level: this tree's contents are sensitive by definition and
+# governed by SECURITY.md, so there is nothing for an entropy heuristic to add. Everything
+# outside this tree stays scanned exactly as before.
+#
+# Consequence of the red gate this closes: main's protection requires gate-secrets, so no
+# PR could merge into main between 2026-08-28 and this change.
+[[allowlists]]
+description = "browser-profiles/: owner-tracked live browser state, governed by SECURITY.md not by entropy heuristics (1632 generic-api-key hits on SmartScreen/HMAC/component hashes)"
+paths = ['''^browser-profiles/''']

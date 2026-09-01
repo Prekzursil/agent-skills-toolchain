@@ -145,12 +145,12 @@ def last_event_summary(jsonl: str, width: int) -> str:
             t = b.get("type")
             if t == "tool_use":
                 return _one_line(
-                    f"🔧 {b.get('name')} "
+                    f"+ {b.get('name')} "
                     + json.dumps(b.get("input", {}), ensure_ascii=False),
                     width,
                 )
             if t == "text" and b.get("text", "").strip():
-                return _one_line("📝 " + b["text"], width)
+                return _one_line("> " + b["text"], width)
             if t == "tool_result":
                 rc = b.get("content")
                 s = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False)
@@ -158,7 +158,7 @@ def last_event_summary(jsonl: str, width: int) -> str:
                     (f"{ERROR_GLYPH} " if b.get("is_error") else "↳ ") + s, width
                 )
             if t == "thinking":
-                return _one_line("💭 " + b.get("thinking", ""), width)
+                return _one_line("* " + b.get("thinking", ""), width)
     return ""
 
 

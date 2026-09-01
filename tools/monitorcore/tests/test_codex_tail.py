@@ -1200,7 +1200,58 @@ def test_main_live_mode_delegates_to_injected_loop(tmp_path):
         ],
         live=fake_live,
         clock=lambda: NOW,
+        tty_fn=lambda: True,
     )
     assert rc == 7
     assert isinstance(seen["poller"], ct.Poller)
     assert (seen["idle_s"], seen["interval"], seen["width"]) == (3.0, 0.5, 120)
+
+
+def test_main_non_tty_renders_once_without_live_loop(tmp_path):
+    out: list[str] = []
+    live_calls: list[object] = []
+
+    def fake_live(poller, **kw) -> int:
+        live_calls.append((poller, kw))
+        return 99
+
+    rc = ct.main(
+        [
+            "--stream-dir",
+            str(tmp_path / "s"),
+            "--sessions-dir",
+            str(tmp_path / "r"),
+        ],
+        out=out.append,
+        live=fake_live,
+        clock=lambda: NOW,
+        tty_fn=lambda: False,
+    )
+    assert rc == 0
+    assert not live_calls
+    assert out
+    assert out[0].startswith("CODEX THREADS")
+
+
+def test_main_once_wins_over_tty_live_loop(tmp_path):
+    live_calls: list[object] = []
+
+    def fake_live(poller, **kw) -> int:
+        live_calls.append((poller, kw))
+        return 99
+
+    rc = ct.main(
+        [
+            "--once",
+            "--stream-dir",
+            str(tmp_path / "s"),
+            "--sessions-dir",
+            str(tmp_path / "r"),
+        ],
+        out=lambda line: None,
+        live=fake_live,
+        clock=lambda: NOW,
+        tty_fn=lambda: True,
+    )
+    assert rc == 0
+    assert not live_calls

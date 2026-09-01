@@ -1,0 +1,488 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0110",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0110 both named probes re-ran to exit 0; positive causal control CONFIRMED on both; decorative label REFUTED on both; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "_USER-PROMPTS.md:11086",
+  "min_bytes_threshold": 8192,
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0110-root-cause-hierarchy-falsifiability.json",
+      "bytes": 48268,
+      "sha256": "b6fd414f2d968efb70767edc2f43011e4162827c67053804e4ca19ab3d4374de",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Live tokenize use-vs-mention control is genuinely causal: raw-text matching creates a false-safe child, and dropping COMMENT/STRING tokens prevents it.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0110/probe1-refutability.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0110/probe1_refutability.py",
+          "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 1: for each parent-child link, state the observation that would REFUTE the causal claim and check whether the evidence base could produce it; a link with no refuting observation is a label, not a cause.\",\n  \"method\": \"live tokenize use-vs-mention detector plus filesystem inventory of the declared hierarchy input, plus a file-read of ADV-0032 C1 as historical corroboration\",\n  \"control_links\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent\": \"defense-keyword matching over raw source includes comments and string literals\",\n      \"child\": \"a known-vulnerable fetch is falsely classified as defended\",\n      \"refuting_observation\": \"On the same vulnerable fixture, dropping COMMENT and STRING tokens leaves keyword_hit=true so the false-safe child persists without the proposed parent.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"stdlib tokenize can drop COMMENT and STRING tokens; ADV-0032 C1 records the same use-vs-mention class if that receipt is on disk.\",\n      \"historical_corroboration\": {\n        \"exists\": true,\n        \"bytes\": 63701,\n        \"mentions_use_vs_mention\": true,\n        \"mentions_c1\": true,\n        \"mentions_token\": true\n      },\n      \"observed\": \"Before token filter: vuln false-safe=true. After token filter: vuln false-safe=false.\",\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent\": \"the decorative B10-synthesis-distortion category label exists\",\n      \"child\": \"the declared root-cause hierarchy file is absent\",\n      \"refuting_observation\": \"Remove the category label while leaving filesystem state unchanged; if the hierarchy remains absent, the label did not cause the absence.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"The label is an in-memory value and the child is measured by an independent filesystem stat before and after label removal.\",\n      \"observed\": \"hierarchy_absent_before_label_removal=true; hierarchy_absent_after_label_removal=true\",\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_links\": [],\n  \"target_inventory\": {\n    \"candidates\": {\n      \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\": false,\n      \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\": false,\n      \"command-center/ROOT-CAUSE-HIERARCHY.json\": false\n    },\n    \"candidate_rows\": [\n      {\n        \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      }\n    ],\n    \"existing_hierarchy_files\": [],\n    \"supporting_inputs\": {\n      \"command-center/CLAIM-REGISTRY.json\": true,\n      \"command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json\": true,\n      \"command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json\": true\n    },\n    \"enumerated_parent_child_links\": 0,\n    \"empty_domain_treatment\": \"BLOCKED, never vacuous PASS\",\n    \"verdict\": \"BLOCKED\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0,\n    \"target_links_blocked\": 1\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-1\"\n}\n",
+          "fingerprint": "279e0c2e16cac290cec11146a9ed1d530806b253a9b0b47291ee294ae5c1564a",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0110/probe2_counterfactual.py",
+          "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 2 (mechanically different): structural test - if removing the parent cause would not have prevented the child findings, the link fails a counterfactual check independent of the stated evidence.\",\n  \"method\": \"executable intervention: replace raw-source matching with a token-filtered implementation, and separately delete a decorative label without consulting any stated link evidence\",\n  \"interventions\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent_removal\": \"replace raw-text scanning with Python tokenization that drops COMMENT and STRING tokens\",\n      \"child_before\": {\n        \"known_vulnerable_fixture_falsely_safe\": true,\n        \"raw_text_allowlist_match\": true\n      },\n      \"child_after\": {\n        \"code_only_allowlist_match\": false,\n        \"known_vulnerable_fixture_falsely_safe\": false\n      },\n      \"removing_parent_prevented_child\": true,\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent_removal\": \"delete the in-memory decorative category label\",\n      \"child_before\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"child_after\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"removing_parent_prevented_child\": false,\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_interventions\": [],\n  \"target_inventory\": {\n    \"enumerated_parent_child_links\": 0,\n    \"exists\": false,\n    \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\",\n    \"verdict\": \"BLOCKED\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-2\"\n}\n",
+          "fingerprint": "e1171b6f2fca999dab8f534eee8bd117259a4713364a140c11d5fd6d28a8576f",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The decorative B10 bucket label is not causal: removing it leaves the hierarchy file absent, so both probes go red on that planted link.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0110/probe2-counterfactual.raw.txt",
+      "probes": [
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0110/probe2_counterfactual.py",
+          "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 2 (mechanically different): structural test - if removing the parent cause would not have prevented the child findings, the link fails a counterfactual check independent of the stated evidence.\",\n  \"method\": \"executable intervention: replace raw-source matching with a token-filtered implementation, and separately delete a decorative label without consulting any stated link evidence\",\n  \"interventions\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent_removal\": \"replace raw-text scanning with Python tokenization that drops COMMENT and STRING tokens\",\n      \"child_before\": {\n        \"known_vulnerable_fixture_falsely_safe\": true,\n        \"raw_text_allowlist_match\": true\n      },\n      \"child_after\": {\n        \"code_only_allowlist_match\": false,\n        \"known_vulnerable_fixture_falsely_safe\": false\n      },\n      \"removing_parent_prevented_child\": true,\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent_removal\": \"delete the in-memory decorative category label\",\n      \"child_before\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"child_after\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"removing_parent_prevented_child\": false,\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_interventions\": [],\n  \"target_inventory\": {\n    \"enumerated_parent_child_links\": 0,\n    \"exists\": false,\n    \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\",\n    \"verdict\": \"BLOCKED\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-2\"\n}\n",
+          "fingerprint": "e1171b6f2fca999dab8f534eee8bd117259a4713364a140c11d5fd6d28a8576f",
+          "exit_code": 0
+        },
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0110/probe_common.py",
+          "raw_output": "SUCCESS:ADV-0110-probe-common\n",
+          "fingerprint": "0890474a4e8082a146236ad5620364db24be68c2a195d01697b0042446974a21",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Declared SYN-0001 hierarchy and both compatibility paths are absent, so the catalog causal-versus-flat question stays BLOCKED rather than a vacuous PASS.",
+      "verdict": "BLOCKED",
+      "anchor": "command-center/p2-wave/probes/ADV-0110/probe1-refutability.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0110/probe1_refutability.py",
+          "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 1: for each parent-child link, state the observation that would REFUTE the causal claim and check whether the evidence base could produce it; a link with no refuting observation is a label, not a cause.\",\n  \"method\": \"live tokenize use-vs-mention detector plus filesystem inventory of the declared hierarchy input, plus a file-read of ADV-0032 C1 as historical corroboration\",\n  \"control_links\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent\": \"defense-keyword matching over raw source includes comments and string literals\",\n      \"child\": \"a known-vulnerable fetch is falsely classified as defended\",\n      \"refuting_observation\": \"On the same vulnerable fixture, dropping COMMENT and STRING tokens leaves keyword_hit=true so the false-safe child persists without the proposed parent.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"stdlib tokenize can drop COMMENT and STRING tokens; ADV-0032 C1 records the same use-vs-mention class if that receipt is on disk.\",\n      \"historical_corroboration\": {\n        \"exists\": true,\n        \"bytes\": 63701,\n        \"mentions_use_vs_mention\": true,\n        \"mentions_c1\": true,\n        \"mentions_token\": true\n      },\n      \"observed\": \"Before token filter: vuln false-safe=true. After token filter: vuln false-safe=false.\",\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent\": \"the decorative B10-synthesis-distortion category label exists\",\n      \"child\": \"the declared root-cause hierarchy file is absent\",\n      \"refuting_observation\": \"Remove the category label while leaving filesystem state unchanged; if the hierarchy remains absent, the label did not cause the absence.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"The label is an in-memory value and the child is measured by an independent filesystem stat before and after label removal.\",\n      \"observed\": \"hierarchy_absent_before_label_removal=true; hierarchy_absent_after_label_removal=true\",\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_links\": [],\n  \"target_inventory\": {\n    \"candidates\": {\n      \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\": false,\n      \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\": false,\n      \"command-center/ROOT-CAUSE-HIERARCHY.json\": false\n    },\n    \"candidate_rows\": [\n      {\n        \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      }\n    ],\n    \"existing_hierarchy_files\": [],\n    \"supporting_inputs\": {\n      \"command-center/CLAIM-REGISTRY.json\": true,\n      \"command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json\": true,\n      \"command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json\": true\n    },\n    \"enumerated_parent_child_links\": 0,\n    \"empty_domain_treatment\": \"BLOCKED, never vacuous PASS\",\n    \"verdict\": \"BLOCKED\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0,\n    \"target_links_blocked\": 1\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-1\"\n}\n",
+          "fingerprint": "279e0c2e16cac290cec11146a9ed1d530806b253a9b0b47291ee294ae5c1564a",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit manifest allowed by STRUCTURAL-CONDITION-11.md. The global unit_manifest.py --check remains red on a sibling and is not this unit registration path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0110/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/ADV-0110/_pack_apply.py",
+          "raw_output": "STRUCTURAL-CONDITION-11 per-unit registration\nmanifest_path=command-center/p2-wave/probes/ADV-0110/UNIT-ARTIFACT-MANIFEST.json\nregistered=true after live probe rerun\nglobal_unit_manifest_write_invoked=false\nprobe1_exit=0\nprobe2_exit=0\nprobe_common_exit=0\nSUCCESS:ADV-0110-condition11-per-unit\n",
+          "fingerprint": "1fe9d9387be0085b661c5cdba26a7885330b810a5359e32339bc6a7ed468fe10",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py ADV-0110",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "413b47665754ce70c67ea9f8cf05f601873c3878bd57f7ed6826dffff0437813",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-PROBE-1-REFUTABILITY",
+      "name": "Run the per-link refuting-observation and evidence-capability probe",
+      "command": "python -B command-center/p2-wave/probes/ADV-0110/probe1_refutability.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "e, \"bytes\": 0 } ], \"existing_hierarchy_files\": [], \"supporting_inputs\": { \"command-center/CLAIM-REGISTRY.json\": true, \"command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json\": true, \"command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json\": true }, \"enumerated_parent_child_links\": 0, \"empty_domain_treatment\": \"BLOCKED, never vacuous PASS\", \"verdict\": \"BLOCKED\", \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\" }, \"summary\": { \"positive_control_passed\": true, \"negative_control_went_red\": true, \"probe_discriminates\": true, \"target_links_tested\": 0, \"target_links_blocked\": 1 }, \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-1\" }"
+    },
+    {
+      "id": "T2-PROBE-2-COUNTERFACTUAL",
+      "name": "Run the structural parent-removal counterfactual probe",
+      "command": "python -B command-center/p2-wave/probes/ADV-0110/probe2_counterfactual.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "rol\", \"parent_removal\": \"delete the in-memory decorative category label\", \"child_before\": { \"hierarchy_file_absent\": true }, \"child_after\": { \"hierarchy_file_absent\": true }, \"removing_parent_prevented_child\": false, \"verdict\": \"REFUTED\" } ], \"target_interventions\": [], \"target_inventory\": { \"enumerated_parent_child_links\": 0, \"exists\": false, \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\", \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\", \"verdict\": \"BLOCKED\" }, \"summary\": { \"positive_control_passed\": true, \"negative_control_went_red\": true, \"probe_discriminates\": true, \"target_links_tested\": 0 }, \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-2\" }"
+    },
+    {
+      "id": "T3-REQUIRED-GENUINE-CAUSAL-CONTROL",
+      "name": "Known causal fix must pass both probes",
+      "command": "compare POS-CTL-RAW-TEXT-USE-VS-MENTION in both named raw outputs",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "Probe 1=CONFIRMED with a producible refuter; Probe 2=CONFIRMED because token filtering prevents the false-safe child"
+    },
+    {
+      "id": "T4-NEGATIVE-CONTROL-CAN-GO-RED",
+      "name": "A decorative parent label must fail both causal probes",
+      "command": "compare NEG-CTL-DECORATIVE-BUCKET-LABEL in both named raw outputs",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "Probe 1=REFUTED after label removal; Probe 2=REFUTED because the absent child persists; expected red observed"
+    },
+    {
+      "id": "T5-NO-VACUOUS-PASS",
+      "name": "An absent hierarchy yields BLOCKED, not an empty universal PASS",
+      "command": "inspect target_inventory.verdict and enumerated_parent_child_links in both raw outputs",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "hierarchy candidates present=0; target links=0; Probe 1 target=BLOCKED; Probe 2 target=BLOCKED"
+    },
+    {
+      "id": "T6-DECLARED-SCHEMA",
+      "name": "Primary artifact parses against refutation-record.schema.json",
+      "command": "python -B platform/lib/schema_resolver.py command-center/adversarial/ADV-0110-root-cause-hierarchy-falsifiability.json command-center/schema/refutation-record.schema.json",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "SUCCESS:schema-valid after live pack"
+    },
+    {
+      "id": "T7-CONDITION-11-PER-UNIT",
+      "name": "Condition 11 via STRUCTURAL-CONDITION-11 per-unit manifest, not global unit_manifest --write",
+      "command": "python -B command-center/p2-wave/probes/ADV-0110/_pack_apply.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "manifest_path=command-center/p2-wave/probes/ADV-0110/UNIT-ARTIFACT-MANIFEST.json registered=true"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-LINK-DISCRIMINATION-BOTH-STATES",
+      "kind": "known-broken-fixture",
+      "description": "The detector must reject a decorative parent whose removal leaves the child unchanged, while accepting the documented use-vs-mention fix whose intervention eliminates the child false-safe finding.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "NEG-CTL-DECORATIVE-BUCKET-LABEL: Probe 1 REFUTED; Probe 2 REFUTED; removing_parent_prevented_child=false; expected red observed.",
+      "good_state_output": "POS-CTL-RAW-TEXT-USE-VS-MENTION: Probe 1 CONFIRMED; Probe 2 CONFIRMED; removing_parent_prevented_child=true."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-adv0110-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "reviewed_at": "2026-08-19T11:49:12Z",
+    "notes": "Cross-vendor re-derivation from live fixtures and sibling ADV-0032 C1 plus filesystem stats of SYN-0001 and both compatibility paths, not from the harvest UNIT-COMPLETE badge. Probe 1 states a refuter per control link and shows the evidence base can produce it. Probe 2 removes the parent by changing the detector implementation. Token filter prevents the false-safe child; deleting the decorative B10 label leaves the hierarchy absence unchanged. Target SYN-0001 remains BLOCKED because the hierarchy file is absent."
+  },
+  "defects": [
+    {
+      "id": "ADV-0110-D1-MISSING-HIERARCHY",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "SYN-0001 remains absent; recorded as TARGET verdict BLOCKED after live inventory, not as an open defect of this audit receipt."
+    },
+    {
+      "id": "ADV-0110-D2-CONDITION-11-RED",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Condition 11 registered through the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by STRUCTURAL-CONDITION-11. Global unit_manifest.py --write was not run."
+    },
+    {
+      "id": "ADV-0110-D3-ABSENT-SIDECARS",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probe scripts and hashed raw logs now exist under command-center/p2-wave/probes/ADV-0110/."
+    },
+    {
+      "id": "ADV-0110-D4-STALE-C11-FIRST-RED",
+      "severity": "P1",
+      "status": "superseded",
+      "summary": "T7 now checks the per-unit manifest path, not the stale global first-red."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0110/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0110",
+    "registered_at": "2026-08-19T11:49:12Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + refutation-record schema resolver",
+      "artifact_path": "command-center/adversarial/ADV-0110-root-cause-hierarchy-falsifiability.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/ADV-0110/_pack_apply.py",
+        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=ADV-0110\nstate=SUCCESS\nSUCCESS:consumer-read\n",
+        "fingerprint": "9b24f2e27c969e6f5ffe5a91e8e0a69788448ff94971badf64a8e1314902d2c8",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T18:15:00Z",
+    "ended_at": "2026-08-19T11:49:12Z",
+    "duration_seconds": 236052.0
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot; after the second identical failure enumerate at least two mechanically different alternatives before a third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "SUCCESS"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether the intended synthesis is a falsifiable causal DAG or a flat list with parent labels is NOT-CHECKED because no hierarchy bytes exist.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "After SYN-0001 exists, rerun both ADV-0110 probes over every edge and require one verdict per edge."
+    },
+    {
+      "claim": "command-center/CLAIM-REGISTRY.json exists but is the command-center CC-n register, not a SYN-0001 findings dump.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "When SYN-0001 exists, compare every hierarchy symptom node against the registry id set."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "prompt-two-r2e-refute-worker",
+    "execution_substrate": "headless-linux"
+  },
+  "report": {
+    "kind": "refutation-record",
+    "observations": [
+      {
+        "name": "hierarchy_candidate_files_present",
+        "measured": 0,
+        "method": "filesystem stat of the declared path and two compatibility paths",
+        "anchor": "command-center/p2-wave/probes/ADV-0110/probe1-refutability.raw.txt"
+      },
+      {
+        "name": "positive_control_probe_pair",
+        "measured": "CONFIRMED / CONFIRMED",
+        "method": "live tokenize intervention",
+        "anchor": "POS-CTL-RAW-TEXT-USE-VS-MENTION"
+      },
+      {
+        "name": "negative_control_probe_pair",
+        "measured": "REFUTED / REFUTED",
+        "method": "decorative label removal",
+        "anchor": "NEG-CTL-DECORATIVE-BUCKET-LABEL"
+      }
+    ],
+    "control_ids": [
+      "POS-CTL-RAW-TEXT-USE-VS-MENTION",
+      "NEG-CTL-DECORATIVE-BUCKET-LABEL",
+      "NC-LINK-DISCRIMINATION-BOTH-STATES"
+    ],
+    "stage": "p2-deliver",
+    "title": "Falsifiability audit of the root-cause hierarchy",
+    "question_or_target": "Is the synthesis's root-cause hierarchy a causal structure whose links are individually falsifiable, or a flat finding list relabelled with parent nodes?",
+    "answer": "BLOCKED on the declared target: SYN-0001 and both compatibility hierarchy paths are absent. Controls discriminate: POS-CTL CONFIRMED/CONFIRMED and NEG-CTL REFUTED/REFUTED under live Probe 1 and Probe 2.",
+    "evidence_requirement": {
+      "probe_1": "Probe 1: for each parent-child link, state the observation that would REFUTE the causal claim and check whether the evidence base could produce it; a link with no refuting observation is a label, not a cause.",
+      "probe_2": "Probe 2 (mechanically different): structural test - if removing the parent cause would not have prevented the child findings, the link fails a counterfactual check independent of the stated evidence."
+    },
+    "input_inventory": [
+      {
+        "path": "command-center/synthesis/SYN-0001.root-cause-hierarchy.json",
+        "role": "declared hierarchy",
+        "exists": false
+      },
+      {
+        "path": "command-center/synthesis/ROOT-CAUSE-HIERARCHY.json",
+        "role": "compatibility hierarchy path",
+        "exists": false
+      },
+      {
+        "path": "command-center/ROOT-CAUSE-HIERARCHY.json",
+        "role": "compatibility hierarchy path",
+        "exists": false
+      },
+      {
+        "path": "command-center/CLAIM-REGISTRY.json",
+        "role": "underlying findings registry",
+        "exists": true
+      },
+      {
+        "path": "command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json",
+        "role": "known-causal before-after control source",
+        "exists": true
+      }
+    ],
+    "enumerated_targets": [
+      {
+        "target_id": "TARGET-SYN-0001-HIERARCHY",
+        "kind": "requested-target",
+        "probe_results": {
+          "probe_1": "BLOCKED",
+          "probe_2": "BLOCKED"
+        },
+        "verdict": "BLOCKED",
+        "basis": "The declared hierarchy is absent; zero links are treated as a blocker, not a universal pass."
+      },
+      {
+        "target_id": "POS-CTL-RAW-TEXT-USE-VS-MENTION",
+        "kind": "known-genuinely-causal-control",
+        "probe_results": {
+          "probe_1": "CONFIRMED",
+          "probe_2": "CONFIRMED"
+        },
+        "verdict": "CONFIRMED",
+        "basis": "Token filter prevents the false-safe child on the same fixture."
+      },
+      {
+        "target_id": "NEG-CTL-DECORATIVE-BUCKET-LABEL",
+        "kind": "known-noncausal-red-control",
+        "probe_results": {
+          "probe_1": "REFUTED",
+          "probe_2": "REFUTED"
+        },
+        "verdict": "REFUTED",
+        "basis": "Removing the decorative label leaves the child filesystem finding unchanged."
+      }
+    ],
+    "link_accounting": {
+      "target_links_available": 0,
+      "target_links_confirmed": 0,
+      "target_links_refuted": 0,
+      "target_links_partial": 0,
+      "target_links_not_checked": 0,
+      "target_blockers": 1,
+      "control_links": 2,
+      "every_enumerated_target_has_exactly_one_verdict": true
+    },
+    "tests_required": [
+      "control: include one link known to be genuinely causal (a fix that demonstrably eliminated a class of findings) and require it to pass both probes",
+      "negative control: include one deliberately decorative parent link whose removal leaves the child unchanged; require the link to go red under both probes"
+    ],
+    "named_probes": [
+      {
+        "id": "PROBE-1-REFUTABILITY",
+        "raw_output_path": "command-center/p2-wave/probes/ADV-0110/probe1-refutability.raw.txt",
+        "raw_output_sha256": "a0525cd0cfb4b10ff0e0b2a81019fc38f986dd81c0601b10fa8183dc0bd03d28",
+        "raw_output_embedded_verbatim": true,
+        "exit_code": 0
+      },
+      {
+        "id": "PROBE-2-COUNTERFACTUAL",
+        "raw_output_path": "command-center/p2-wave/probes/ADV-0110/probe2-counterfactual.raw.txt",
+        "raw_output_sha256": "330ee95275175729fe8ba3bd8d2e9374d244381798d0debba57264de5499642c",
+        "raw_output_embedded_verbatim": true,
+        "exit_code": 0
+      }
+    ],
+    "conclusion": {
+      "target_verdict": "BLOCKED",
+      "causal_structure_established": false,
+      "flat_list_relabelling_established": false,
+      "reason": "The object to distinguish is absent. The controls show that both probes can accept a genuinely causal link and reject a decorative one."
+    },
+    "named_probe_records": [
+      {
+        "requirement": "Probe 1 per-link refutability",
+        "command": "python -B command-center/p2-wave/probes/ADV-0110/probe1_refutability.py",
+        "mechanism": "evidence-capability plus live tokenize",
+        "exit_code": 0,
+        "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 1: for each parent-child link, state the observation that would REFUTE the causal claim and check whether the evidence base could produce it; a link with no refuting observation is a label, not a cause.\",\n  \"method\": \"live tokenize use-vs-mention detector plus filesystem inventory of the declared hierarchy input, plus a file-read of ADV-0032 C1 as historical corroboration\",\n  \"control_links\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent\": \"defense-keyword matching over raw source includes comments and string literals\",\n      \"child\": \"a known-vulnerable fetch is falsely classified as defended\",\n      \"refuting_observation\": \"On the same vulnerable fixture, dropping COMMENT and STRING tokens leaves keyword_hit=true so the false-safe child persists without the proposed parent.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"stdlib tokenize can drop COMMENT and STRING tokens; ADV-0032 C1 records the same use-vs-mention class if that receipt is on disk.\",\n      \"historical_corroboration\": {\n        \"exists\": true,\n        \"bytes\": 63701,\n        \"mentions_use_vs_mention\": true,\n        \"mentions_c1\": true,\n        \"mentions_token\": true\n      },\n      \"observed\": \"Before token filter: vuln false-safe=true. After token filter: vuln false-safe=false.\",\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent\": \"the decorative B10-synthesis-distortion category label exists\",\n      \"child\": \"the declared root-cause hierarchy file is absent\",\n      \"refuting_observation\": \"Remove the category label while leaving filesystem state unchanged; if the hierarchy remains absent, the label did not cause the absence.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"The label is an in-memory value and the child is measured by an independent filesystem stat before and after label removal.\",\n      \"observed\": \"hierarchy_absent_before_label_removal=true; hierarchy_absent_after_label_removal=true\",\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_links\": [],\n  \"target_inventory\": {\n    \"candidates\": {\n      \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\": false,\n      \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\": false,\n      \"command-center/ROOT-CAUSE-HIERARCHY.json\": false\n    },\n    \"candidate_rows\": [\n      {\n        \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      }\n    ],\n    \"existing_hierarchy_files\": [],\n    \"supporting_inputs\": {\n      \"command-center/CLAIM-REGISTRY.json\": true,\n      \"command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json\": true,\n      \"command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json\": true\n    },\n    \"enumerated_parent_child_links\": 0,\n    \"empty_domain_treatment\": \"BLOCKED, never vacuous PASS\",\n    \"verdict\": \"BLOCKED\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0,\n    \"target_links_blocked\": 1\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-1\"\n}\n"
+      },
+      {
+        "requirement": "Probe 2 parent-removal counterfactual",
+        "command": "python -B command-center/p2-wave/probes/ADV-0110/probe2_counterfactual.py",
+        "mechanism": "executable intervention",
+        "exit_code": 0,
+        "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 2 (mechanically different): structural test - if removing the parent cause would not have prevented the child findings, the link fails a counterfactual check independent of the stated evidence.\",\n  \"method\": \"executable intervention: replace raw-source matching with a token-filtered implementation, and separately delete a decorative label without consulting any stated link evidence\",\n  \"interventions\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent_removal\": \"replace raw-text scanning with Python tokenization that drops COMMENT and STRING tokens\",\n      \"child_before\": {\n        \"known_vulnerable_fixture_falsely_safe\": true,\n        \"raw_text_allowlist_match\": true\n      },\n      \"child_after\": {\n        \"code_only_allowlist_match\": false,\n        \"known_vulnerable_fixture_falsely_safe\": false\n      },\n      \"removing_parent_prevented_child\": true,\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent_removal\": \"delete the in-memory decorative category label\",\n      \"child_before\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"child_after\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"removing_parent_prevented_child\": false,\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_interventions\": [],\n  \"target_inventory\": {\n    \"enumerated_parent_child_links\": 0,\n    \"exists\": false,\n    \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\",\n    \"verdict\": \"BLOCKED\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-2\"\n}\n"
+      }
+    ]
+  },
+  "extensions": {
+    "catalog_output_path": "command-center/adversarial/ADV-0110-root-cause-hierarchy-falsifiability.json",
+    "delivery_contract_complete": true,
+    "prior_stage_output": "implement rc=0",
+    "refute_stage": {
+      "named_probes_rerun": true,
+      "rerun_at": "2026-08-16T18:31:28Z",
+      "probe_1_exit_code": 0,
+      "probe_2_exit_code": 0,
+      "default_without_rerun": "REFUTED",
+      "adjudication_after_rerun": "BLOCKED",
+      "reason": "The probes discriminate on both controls, but the requested synthesis hierarchy has no emitted artifact and therefore no target parent-child links to adjudicate."
+    },
+    "condition_11": {
+      "manifest_path": "command-center/p2-wave/probes/ADV-0110/UNIT-ARTIFACT-MANIFEST.json",
+      "registered": true,
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "global_unit_manifest_write_invoked": false
+    },
+    "artifact_sha256_basis": "artifacts[0].sha256 is SHA-256 of the final UTF-8 serialization with that 64-character field replaced by 64 ASCII zeroes; artifacts[0].bytes is exact.",
+    "reproduce": {
+      "probe_1": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0110/probe1_refutability.py",
+      "probe_2": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0110/probe2_counterfactual.py",
+      "condition_11": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check",
+      "validate": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=command-center/p2-wave/probes/CC-0002/_deps python3 -B platform/lib/schema_resolver.py command-center/adversarial/ADV-0110-root-cause-hierarchy-falsifiability.json command-center/schema/refutation-record.schema.json"
+    },
+    "completion_line": "UNIT-COMPLETE:ADV-0110",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters make splitlines expose the exact required completion line while preserving valid JSON.",
+    "completion_marker": "UNIT-COMPLETE:ADV-0110",
+    "cloud_ok_strike1": {
+      "at": "2026-08-17T12:12:56Z",
+      "dropped_sidecar_paths": [
+        "command-center/p2-wave/probes/ADV-0110/probe1-refutability.raw.txt",
+        "command-center/p2-wave/probes/ADV-0110/probe2-counterfactual.raw.txt",
+        "command-center/p2-wave/probes/ADV-0110/condition11.raw.txt"
+      ],
+      "reason": "exists=true on absent probe sidecars; cannot set exists=false"
+    },
+    "cloud_ok_strike2": {
+      "at": "2026-08-17T12:14:36Z",
+      "rewrote_stale_first_red": "BLD-0023",
+      "live_first_red": "BLD-0001",
+      "t1_t2": "NOT-RUN because probe scripts absent",
+      "exists_false_mutant_errors": 1,
+      "success_mutant_errors": 7,
+      "registered_true_mutant_errors": 0,
+      "registered_true_applied": false
+    },
+    "named_probes": [
+      {
+        "name": "Probe 1",
+        "command": "python -B command-center/p2-wave/probes/ADV-0110/probe1_refutability.py",
+        "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 1: for each parent-child link, state the observation that would REFUTE the causal claim and check whether the evidence base could produce it; a link with no refuting observation is a label, not a cause.\",\n  \"method\": \"live tokenize use-vs-mention detector plus filesystem inventory of the declared hierarchy input, plus a file-read of ADV-0032 C1 as historical corroboration\",\n  \"control_links\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent\": \"defense-keyword matching over raw source includes comments and string literals\",\n      \"child\": \"a known-vulnerable fetch is falsely classified as defended\",\n      \"refuting_observation\": \"On the same vulnerable fixture, dropping COMMENT and STRING tokens leaves keyword_hit=true so the false-safe child persists without the proposed parent.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"stdlib tokenize can drop COMMENT and STRING tokens; ADV-0032 C1 records the same use-vs-mention class if that receipt is on disk.\",\n      \"historical_corroboration\": {\n        \"exists\": true,\n        \"bytes\": 63701,\n        \"mentions_use_vs_mention\": true,\n        \"mentions_c1\": true,\n        \"mentions_token\": true\n      },\n      \"observed\": \"Before token filter: vuln false-safe=true. After token filter: vuln false-safe=false.\",\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent\": \"the decorative B10-synthesis-distortion category label exists\",\n      \"child\": \"the declared root-cause hierarchy file is absent\",\n      \"refuting_observation\": \"Remove the category label while leaving filesystem state unchanged; if the hierarchy remains absent, the label did not cause the absence.\",\n      \"evidence_base_could_produce_refuter\": true,\n      \"evidence_capability_basis\": \"The label is an in-memory value and the child is measured by an independent filesystem stat before and after label removal.\",\n      \"observed\": \"hierarchy_absent_before_label_removal=true; hierarchy_absent_after_label_removal=true\",\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_links\": [],\n  \"target_inventory\": {\n    \"candidates\": {\n      \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\": false,\n      \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\": false,\n      \"command-center/ROOT-CAUSE-HIERARCHY.json\": false\n    },\n    \"candidate_rows\": [\n      {\n        \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/synthesis/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      },\n      {\n        \"path\": \"command-center/ROOT-CAUSE-HIERARCHY.json\",\n        \"exists\": false,\n        \"bytes\": 0\n      }\n    ],\n    \"existing_hierarchy_files\": [],\n    \"supporting_inputs\": {\n      \"command-center/CLAIM-REGISTRY.json\": true,\n      \"command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json\": true,\n      \"command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json\": true\n    },\n    \"enumerated_parent_child_links\": 0,\n    \"empty_domain_treatment\": \"BLOCKED, never vacuous PASS\",\n    \"verdict\": \"BLOCKED\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0,\n    \"target_links_blocked\": 1\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-1\"\n}\n"
+      },
+      {
+        "name": "Probe 2",
+        "command": "python -B command-center/p2-wave/probes/ADV-0110/probe2_counterfactual.py",
+        "raw_output": "{\n  \"unit_id\": \"ADV-0110\",\n  \"probe_name\": \"Probe 2 (mechanically different): structural test - if removing the parent cause would not have prevented the child findings, the link fails a counterfactual check independent of the stated evidence.\",\n  \"method\": \"executable intervention: replace raw-source matching with a token-filtered implementation, and separately delete a decorative label without consulting any stated link evidence\",\n  \"interventions\": [\n    {\n      \"link_id\": \"POS-CTL-RAW-TEXT-USE-VS-MENTION\",\n      \"control_type\": \"known-genuinely-causal\",\n      \"parent_removal\": \"replace raw-text scanning with Python tokenization that drops COMMENT and STRING tokens\",\n      \"child_before\": {\n        \"known_vulnerable_fixture_falsely_safe\": true,\n        \"raw_text_allowlist_match\": true\n      },\n      \"child_after\": {\n        \"code_only_allowlist_match\": false,\n        \"known_vulnerable_fixture_falsely_safe\": false\n      },\n      \"removing_parent_prevented_child\": true,\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"link_id\": \"NEG-CTL-DECORATIVE-BUCKET-LABEL\",\n      \"control_type\": \"known-noncausal-red-control\",\n      \"parent_removal\": \"delete the in-memory decorative category label\",\n      \"child_before\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"child_after\": {\n        \"hierarchy_file_absent\": true\n      },\n      \"removing_parent_prevented_child\": false,\n      \"verdict\": \"REFUTED\"\n    }\n  ],\n  \"target_interventions\": [],\n  \"target_inventory\": {\n    \"enumerated_parent_child_links\": 0,\n    \"exists\": false,\n    \"path\": \"command-center/synthesis/SYN-0001.root-cause-hierarchy.json\",\n    \"reason\": \"No root-cause hierarchy exists at the declared path or either compatibility path; there are no target links whose refuting observations can be stated or tested.\",\n    \"verdict\": \"BLOCKED\"\n  },\n  \"summary\": {\n    \"positive_control_passed\": true,\n    \"negative_control_went_red\": true,\n    \"probe_discriminates\": true,\n    \"target_links_tested\": 0\n  },\n  \"terminal\": \"PROBE-COMPLETE:ADV-0110:PROBE-2\"\n}\n"
+      }
+    ],
+    "p2_remeasure": {
+      "probes_reran": true,
+      "probe1_exit": 0,
+      "probe2_exit": 0,
+      "probe_common_exit": 0,
+      "state_set_after_live_rerun": true
+    }
+  }
+}

@@ -1,6 +1,9 @@
 ---
 name: battlecats-event-unlock
 description: Use when working on Battle Cats (EN 15.4.1, rooted BlueStacks) special/event/tower stage visibility or on-demand unlock RE - gives the proven dual-dependency model (tree-admission + valid schedule row), the decisive 15.4.1 offsets, the Event Summoner tool, the full event atlas cross-links, and the approaches already proven DEAD. Earlier-version offsets in a changelog.
+metadata:
+  status: active
+  valid_as_of: 2026-08-27  # tbcml pointer re-verified (Codeberg canonical; GitHub archived, PyPI stale)
 ---
 
 # Battle Cats — Special / Event Stage Unlock
@@ -116,6 +119,8 @@ or when unlock should persist as part of an APK build rather than a data file):
     `sub_8A3520` @ **`0x8AD7D0`** → 1 (in-window predicate).
 - **HARD BOUNDARY:** if a mapid has no local StageData / assets on-device, **no hook makes
   it playable**. It needs a content bake (tbcml route, out of scope for the hook approach).
+  tbcml canonical home is **Codeberg** (`codeberg.org/fieryhenry/tbcml`, source install) — the
+  GitHub repo is ARCHIVED and PyPI 1.1.0 is stale (2023); do not fetch from either.
   Forcing a tile for a mapid with absent content crashes on tile-build. For **collabs**,
   `local_assets=Y` is metadata only — retired (旧) collab art can be GC'd → **crash on icon
   draw if forced**; gate on EN-named + non-旧 + all-on-covered.

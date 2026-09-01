@@ -7,6 +7,112 @@ export const meta = {
   ],
 }
 
+// ---------------------------------------------------------------------------
+// H6 — per-agent timeout + stall heartbeat. Paste at the top of the workflow.
+// Sandbox-safe: uses only injected globals (setTimeout/clearTimeout/log/parallel).
+// No Date.now / Math.random / new Date() -> stays workflow_lint clean.
+// SCOPE: unblocks the BARRIER. Does NOT kill the agent -- the dropped agent keeps
+// running and keeps its concurrency slot until it dies on its own.
+// ---------------------------------------------------------------------------
+const H6_TIMEOUT_MS = 1800000; // 30 min; blueprint dispatch_timeout_seconds default
+const H6_STALL_MS = 90000; // 90 s; B3 falsifier #22
+
+// A typed drop-receipt (design item H3). NEVER return a bare null from a barrier:
+// null is produced for at least three different causes -- user skipped the agent,
+// the subagent died on a terminal error, and (here) our own timeout -- and
+// .filter(Boolean) throws that distinction away, making "12 of 15 returned"
+// unauditable.
+function h6Receipt(endReason, label, ms, detail) {
+  return {
+    __h6: true,
+    __endReason: endReason, // 'timeout' | 'threw' | 'null'
+    label: label,
+    ms: ms,
+    detail: detail === undefined ? null : detail,
+  };
+}
+
+function h6IsDrop(r) {
+  return !!r && r.__h6 === true;
+}
+function h6Survivors(results) {
+  return results.filter(function (r) {
+    return !h6IsDrop(r);
+  });
+}
+function h6Drops(results) {
+  return results.filter(h6IsDrop);
+}
+
+// Emit one heartbeat line if the unit is still outstanding at H6_STALL_MS.
+// Returns a canceller. This is an OBSERVATION ("still waiting"), not a verdict
+// that the agent is hung -- the sandbox cannot see orchestrator state.
+function h6Heartbeat(label, stallMs) {
+  if (typeof setTimeout !== 'function') return function () {};
+  const t = setTimeout(function () {
+    if (typeof log === 'function') {
+      log('H6 heartbeat: still waiting on ' + label + ' after ' + stallMs + 'ms');
+    }
+  }, stallMs);
+  return function () {
+    if (typeof clearTimeout === 'function') clearTimeout(t);
+  };
+}
+
+// Bound ONE thunk. Always resolves -- never rejects, never returns undefined --
+// so a barrier over wrapped thunks can no longer be poisoned by one unit.
+async function withTimeout(thunk, ms, label, stallMs) {
+  const lbl = label === undefined ? 'unit' : label;
+  const budgetMs = ms === undefined ? H6_TIMEOUT_MS : ms;
+  // Runtime-drift guard: if a future build stops injecting timers, degrade to a
+  // plain await instead of dying with a ReferenceError at fan-out time.
+  if (typeof setTimeout !== 'function') {
+    try {
+      return await thunk();
+    } catch (err) {
+      return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+    }
+  }
+  const stopBeat = h6Heartbeat(lbl, stallMs === undefined ? H6_STALL_MS : stallMs);
+  let timer = null;
+  const expiry = new Promise(function (resolve) {
+    timer = setTimeout(function () {
+      resolve(h6Receipt('timeout', lbl, budgetMs, null));
+    }, budgetMs);
+  });
+  try {
+    return await Promise.race([Promise.resolve().then(thunk), expiry]);
+  } catch (err) {
+    return h6Receipt('threw', lbl, budgetMs, String((err && err.message) || err));
+  } finally {
+    // ALWAYS clear on the winning path too: an un-cleared timer stays in the
+    // runtime's abort set and can hold the workflow open past its last agent.
+    if (timer !== null && typeof clearTimeout === 'function') clearTimeout(timer);
+    stopBeat();
+  }
+}
+
+// A SETTLED barrier: same shape as parallel(), but one hung unit costs you that
+// unit instead of the phase. Output is index-aligned with `thunks` and every
+// slot is either a real result or a typed drop-receipt -- no nulls, no holes.
+async function settle(thunks, ms, labels) {
+  const nameOf = function (i) {
+    return labels && labels[i] !== undefined ? labels[i] : 'unit-' + i;
+  };
+  const raw = await parallel(
+    thunks.map(function (t, i) {
+      return function () {
+        return withTimeout(t, ms, nameOf(i));
+      };
+    }),
+  );
+  return raw.map(function (r, i) {
+    // The runtime still yields null for a cause we never saw (a user skip).
+    // Type it rather than filtering it away.
+    return r === null || r === undefined ? h6Receipt('null', nameOf(i), ms, null) : r;
+  });
+}
+
 const OUT = 'C:/Users/Prekzursil/.claude/reconcile-2026-07-18'
 const M = 'fable'
 const TC = 'C:/Users/Prekzursil/source/agent-skills-toolchain'
@@ -29,9 +135,9 @@ const fams = [
   { key:'harness', title:'harness/skills family (#88 #91) + the parallel-work reconcile', prompt:'Analyze #88 (harness-module-authoring-skill, DRAFT) and #91 (ci-hygiene-mcp-drift, ready = CI-hygiene rules + rules-sync repo->live rail + Codex fan-out doc + MCP doc-drift detector). CRUCIAL: #91 is the parallel harness-upgrade work that OVERLAPS our BW1 -- map EXACTLY what #91 already delivers vs each BW1 item (does its mcp_doc_drift detector already do ④CFG-GUARD? does rules-sync do part of the deploy? does the Codex-doc relate to anything?). So BW1 builds only the NON-overlapping remainder. Also: is #88 (harness module authoring) related to the RFC ci/harness module system? Disposition for both.' },
   { key:'branches', title:'stale + merged branch landscape (salvage vs prune, EVIDENCE-FIRST)', prompt:'Enumerate the LOCAL + origin branches (git -C ' + TC + ' for-each-ref). For the 9 merged-into-main (ahead=0) -> confirm safe-to-prune. For the ~19 stale (ahead of main, >5d old): for EACH, determine EVIDENCE-FIRST whether its work is (a) ALREADY ON MAIN via a squash-merge (diff is empty/tiny vs main -> prune), (b) SUPERSEDED by a newer branch/PR (prune, note successor), (c) GENUINELY-UNFINISHED salvageable work (RECONCILE -> fold into the plan, do NOT drop), or (d) DEAD/abandoned (prune). Cite the ahead-count + a one-line what-it-was per branch. Output a PRUNE list + a SALVAGE list. Do NOT delete anything.' },
 ]
-const analyses = (await parallel(fams.map(f => () =>
+const analyses = h6Survivors(await settle(fams.map(f => () =>
   agent(FREEZE + '\n\n' + CONTEXT + '\n\n=== ' + f.title + ' ===\n' + f.prompt + '\n\nWrite ' + OUT + '/analyze-' + f.key + '.md and return {findings_markdown} (per-PR/branch: what · state · deps/order · disposition · evidence).',
-    { label:'analyze:'+f.key, phase:'Analyze', model:M, schema:{ type:'object', additionalProperties:true, required:['findings_markdown'], properties:{ findings_markdown:{type:'string'} } } })))).filter(Boolean)
+    { label:'analyze:'+f.key, phase:'Analyze', model:M, schema:{ type:'object', additionalProperties:true, required:['findings_markdown'], properties:{ findings_markdown:{type:'string'} } } })), H6_TIMEOUT_MS))
 
 const digest = analyses.map((a,i) => '### ' + fams[i].title + '\n' + (a.findings_markdown||JSON.stringify(a))).join('\n\n')
 

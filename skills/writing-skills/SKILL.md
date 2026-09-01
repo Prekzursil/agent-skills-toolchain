@@ -29,6 +29,25 @@ A **skill** is a reference guide for proven techniques, patterns, or tools. Skil
 
 **Skills are NOT:** Narratives about how you solved a problem once
 
+## Lifecycle Metadata (Wave D convention, 2026-08-27)
+
+Skills in the vault (`~/.agents/skills`) carry lifecycle state in their frontmatter `metadata`:
+
+```yaml
+metadata:
+  status: active        # active | deprecated | tombstoned
+  valid_as_of: 2026-08-27   # date the skill's load-bearing facts were last verified on disk/web
+```
+
+- **active** — maintained; facts verified as of `valid_as_of`.
+- **deprecated** — superseded (name the successor in the body); do not use for new work.
+- **tombstoned** — proven dead (dead upstream, retired tool, false claims); body is replaced by a
+  short tombstone note saying what killed it and where the replacement lives. Keep the file — a
+  tombstone that vanishes gets rebuilt from stale memory (the AgentBridge lesson).
+- Absence of the block means the skill predates this convention (treat `valid_as_of` as unknown,
+  not as fresh). Audits (e.g. `scripts/harness-audit.js`, gem-hunts) may bump `valid_as_of` only
+  after actually re-verifying the skill's external pointers.
+
 ## TDD Mapping for Skills
 
 | TDD Concept | Skill Creation |

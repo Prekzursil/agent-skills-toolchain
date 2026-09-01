@@ -1,6 +1,6 @@
 ---
 name: claude-science-local
-description: Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem or life-science workbench, :8000 down or unreachable, /claude-science, /cs, cs open, start claude science, open the science UI, science daemon wedged or off. Teaches the cs verbs (open, ensure, status, fix, doctor, backup, restore), why HTTP 401 means alive, the host-RAM SQLite wedge and that cs fix recovers it, and that NOT-CHECKED is not PASS. NOT for hosted or cloud compchem - scope is LOCAL only.
+description: Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem or life-science workbench, :8000 down or unreachable, /claude-science, cs open, start claude science, open the science UI, science daemon wedged or off. Teaches the cs verbs (open, ensure, status, fix, doctor, backup, restore), why HTTP 401 means alive, the host-RAM SQLite wedge and that cs fix recovers it, and that NOT-CHECKED is not PASS. NOT for hosted or cloud compchem - scope is LOCAL only.
 license: MIT
 ---
 
@@ -36,8 +36,7 @@ cs <verb>                                  # the shim on PATH
 pwsh -File ~/.local/bin/cs.ps1 <verb>      # the same installed dispatcher, explicitly
 ```
 
-Slash command: **`/claude-science <verb>`** (canonical) or **`/cs <verb>`** (short alias — the
-rename kept it working; see `commands/claude-science.md` and `commands/cs.md`).
+Slash command: **`/claude-science <verb>`** (see `commands/claude-science.md`).
 
 **Always the INSTALLED copy, never a source checkout.** Both slash commands used to name
 `~/source/agent-skills-toolchain/scripts/claude-science/cs.ps1`, and that tree had drifted to a
@@ -77,7 +76,7 @@ launching out of a disposable git worktree) · **Watchdog re-launch trigger**
 dead for 3.3 days) · **Watchdog instances** (catches the duplicate-watchdog race) ·
 **Watchdog heartbeat** · **Backup freshness** · **Backup restorable** (copies the newest
 snapshot to a temp dir and integrity-checks the **copy**, so the backup root is never written) ·
-**Slash-command route** (do `/claude-science` and `/cs` actually run this code?) ·
+**Slash-command route** (does `/claude-science` actually run this code?) ·
 **PowerShell host** · **Tab-death regfix**. Ends with a `N FAIL, N WARN, N NOT-CHECKED, N PASS` summary and
 **exits non-zero on FAIL or NOT-CHECKED**, so other tooling can gate on it.
 

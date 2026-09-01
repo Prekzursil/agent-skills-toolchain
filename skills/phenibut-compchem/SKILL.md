@@ -60,7 +60,7 @@ Map each phenibut question to its tools:
 |---|---|---|
 | Bioactivity / Ki / IC50 / targets (SAR table) | A,B,D | `ChEMBL` (29), `bindingdb`, `gtopdb` (IUPHAR — has GABA-B), `drugcentral`, `pubchem_bioassay` |
 | GPCR target data (GABA-B = class-C GPCR) | A,B | `gpcrdb`, `gtopdb`, `uniprot` |
-| ADMET / BBB / CNS | D | `ADMETAI_predict_BBB_penetrance`, `SwissADME_calculate_adme` (49 props), `admetai` (9) |
+| ADMET / BBB / CNS | D | `ADMETAI_predict_BBB_penetrance`, `SwissADME_calculate_adme` (49 props), `admetai` (9) — ADMET-AI v1 vs v2 predictions differ (v2 = Chemprop-v2, retrained): re-run or version-label any existing phenibut ADMET number; pin the exact version in every receipt |
 | Off-target panel (dopamine puzzle) | B | `swiss_target` (SwissTargetPrediction), `stitch`, `dgidb`, `pharos` |
 | Pathway / network (GABA-B→VTA, neuroadaptation) | B,E | `reactome`, `kegg`, `wikipathways`, `string_network`, `omnipath` (ligand-receptor) |
 | Drug-drug interactions (phenibut + amphetamine/alcohol/benzo) | C | `DailyMed_parse_drug_interactions` (CYP/P-gp), `sider`, `DrugSynergy_calculate_loewe`, `synergxdb`, `dose_response` |

@@ -43,12 +43,12 @@ def _entry(*blocks):
 # ───────────────────────── render — exact coloured output ─────────────────────────
 def test_render_text_block_exact():
     (line,) = at.render(_entry({"type": "text", "text": "hello"}), 140)
-    assert line == f"{GREY}{TS0}{R}  {GREEN}📝 hello{R}"
+    assert line == f"{GREY}{TS0}{R}  {GREEN}> hello{R}"
 
 
 def test_render_thinking_block_exact():
     (line,) = at.render(_entry({"type": "thinking", "thinking": "pondering"}), 140)
-    assert line == f"{GREY}{TS0}  💭 pondering{R}"
+    assert line == f"{GREY}{TS0}  * pondering{R}"
 
 
 def test_render_tool_use_block_exact():
@@ -57,7 +57,7 @@ def test_render_tool_use_block_exact():
         140,
     )
     assert line == (
-        f"{GREY}{TS0}{R}  {CYAN}🔧 {BOLD}Bash{R}{CYAN}  {DIM}command={R}echo hi{R}"
+        f"{GREY}{TS0}{R}  {CYAN}+ {BOLD}Bash{R}{CYAN}  {DIM}command={R}echo hi{R}"
     )
 
 
@@ -85,7 +85,7 @@ def test_render_non_dict_block_bare_line():
 
 def test_render_content_string_wrapped_as_text():
     (line,) = at.render({"message": {"content": "plain string"}}, 140)
-    assert line == f"{GREY}{TS0}{R}  {GREEN}📝 plain string{R}"
+    assert line == f"{GREY}{TS0}{R}  {GREEN}> plain string{R}"
 
 
 def test_render_message_not_dict_yields_nothing():
@@ -108,7 +108,7 @@ def test_render_unknown_type_is_ignored():
 
 def test_render_tool_use_missing_name_defaults_to_question_mark():
     (line,) = at.render(_entry({"type": "tool_use", "input": {"foo": "bar"}}), 140)
-    assert f"🔧 {BOLD}?{R}" in line
+    assert f"+ {BOLD}?{R}" in line
     # no _KEY_ARGS present -> json.dumps fallback in _tool_summary
     assert '{"foo": "bar"}' in line
 
@@ -201,8 +201,8 @@ def test_fixture_feed_renders_expected_glyphs():
     # and glyphs land (timestamp portion is timezone-dependent, so is not asserted).
     rows = at.read_tail_entries(str(_FIXTURE_JSONL), 8)
     lines = [ln for e in rows for ln in at.render(e, 160)]
-    assert any("📝 Starting the fixture task" in ln for ln in lines)
-    assert any(f"🔧 {BOLD}Bash{R}" in ln for ln in lines)
+    assert any("> Starting the fixture task" in ln for ln in lines)
+    assert any(f"+ {BOLD}Bash{R}" in ln for ln in lines)
     assert any("↳" in ln and "hello" in ln for ln in lines)
 
 
@@ -399,7 +399,7 @@ def test_follow_step_emits_new_entries(tmp_path):
     pos, buf, last, announced = at._follow_step(
         str(p), (0, b"", 0.0, False), 160, 20.0, now=lambda: 100.0, out=out.append
     )
-    assert any("📝 hello" in ln for ln in out)
+    assert any("> hello" in ln for ln in out)
     assert (
         pos == p.stat().st_size and buf == b"" and last == 100.0 and announced is False
     )
@@ -421,7 +421,7 @@ def test_follow_step_truncation_resets(tmp_path):
         now=lambda: 5.0,
         out=out.append,
     )
-    assert any("📝 again" in ln for ln in out)
+    assert any("> again" in ln for ln in out)
 
 
 def test_follow_step_idle_notice_once(tmp_path):

@@ -63,7 +63,9 @@ const ground = await agent('prompt string', {
 
 phase('Fan-out')
 const results = (await parallel(
-  items.map((it) => () => agent(promptFor(it), { label: `lens:${it.key}`, phase: 'Fan-out', schema: SCHEMA }))
+  items.map((it) => () => withTimeout(   // <-- paste-in helper, NOT a global; rule 5b
+    () => agent(promptFor(it), { label: `lens:${it.key}`, phase: 'Fan-out', schema: SCHEMA }),
+    600000, `lens:${it.key}`))
 )).filter(Boolean)          // <-- the null-tolerant barrier; see rule 5
 
 return { ...ground, results }   // top-level return is the workflow's result
@@ -165,7 +167,8 @@ target the same file.
 
 ```js
 const reviews = (await parallel(reviewers.map((r) => () =>
-  agent(r.prompt, { label: `review:${r.role}`, schema: REVIEW_SCHEMA })
+  withTimeout(() => agent(r.prompt, { label: `review:${r.role}`, schema: REVIEW_SCHEMA }),
+              600000, `review:${r.role}`)   // rule 5b: bound each thunk (H6 paste-in)
 ))).filter(Boolean)   // a throwing reviewer becomes null -> dropped, phase completes
 ```
 

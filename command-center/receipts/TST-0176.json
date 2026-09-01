@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0176",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0176 live Cache.fetch stores a 503 as negative-transient ttl=5s and a 404 as negative-absence ttl=60s; post-ttl retry hits the loopback fixture; empty-cache CLI still reports SUCCESS:cache; per-unit UNIT-ARTIFACT-MANIFEST.json registered",
+  "spec_anchor": "command-center/catalog-slices/TST-2.json:2151-2193",
+  "min_bytes_threshold": 128,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0176.json",
+      "bytes": 15666,
+      "sha256": "1faeecfef111372c6e6d36d0eeac822b91056afe1ed53f3af61a1eceb373b3e5",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "After a transient 503 is stored with a 5-second negative TTL, the next Cache.fetch after expiry issues a second loopback HTTP call and records a positive entry.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe-a-second-attempt-network-call.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python command-center/p2-wave/probes/TST-0176/probe_network_retry.py",
+          "raw_output": "TST-0176 NAMED PROBE (a): second attempt observed network call\nstage=p2-deliver\nevidence_requirement_verbatim=two independent signals: (a) the second attempt's observed network call, and (b) the cache entry's recorded type (negative vs positive) and ttl\nnamed_probe_verbatim=(a) the second attempt's observed network call\nnetwork_fixture=loopback-http-ephemeral-port\nfixture_control_statuses=503,200\nshort_ttl_seconds_under_test=5.0\nlive_cache_class=plugin.cache.Cache\nlive_fetch_callable=true\nfixture_control_request_count=2\nfixture_proved_live=true\nattempt_1_cache_lookup=MISS\nattempt_1_type=negative-transient\nattempt_1_source=network\nnetwork_calls_after_attempt_1=1\nwithin_ttl_source=cache\nwithin_ttl_network_called=false\ntest_clock_advance_seconds=5.001\nattempt_2_cache_lookup=MISS\nattempt_2_type=positive\nattempt_2_source=network\nnetwork_calls_after_attempt_2=2\nsecond_attempt_observed_network_call=true\nexpected_second_attempt_observed_network_call=true\nlive_attempt_outcome=PASS\nresult=CONFIRMED\nPROBE-A-COMPLETE:TST-0176\nSUCCESS:TST-0176-probe-a\n",
+          "fingerprint": "3c81de81c730f5f8a366931b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python command-center/p2-wave/probes/TST-0176/reference_control.py genuine-404",
+          "raw_output": "TST-0176 BOTH-STATES 404 CONTROL\nstage=p2-deliver\ncatalog_test_name_verbatim=both-states control: a genuine 404 stays negatively cached for its full ttl\nabsence_ttl_seconds=60.0\ninitial_entry_type=negative-absence\ninitial_source=network\nwithin_ttl_entry_type=negative-absence\nwithin_ttl_source=cache\nnetwork_calls_within_full_ttl=1\nafter_ttl_source=network\nnetwork_calls_after_expiry=2\ngenuine_404_cached_for_full_ttl=true\nscope=live plugin.cache.Cache.fetch named-entry API\nresult=PASS\nBOTH-STATES-CONTROL-COMPLETE:TST-0176\nSUCCESS:TST-0176-genuine-404\n",
+          "fingerprint": "b50d258a4a47dc5bc8e8cc77",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Named fetch sidecars record type and ttl on disk: negative-transient ttl=5, negative-absence ttl=60, positive ttl=3600.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe-b-cache-entry-type-ttl.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python command-center/p2-wave/probes/TST-0176/probe_cache_metadata.py",
+          "raw_output": "TST-0176 NAMED PROBE (b): cache entry recorded type and ttl\nstage=p2-deliver\nevidence_requirement_verbatim=two independent signals: (a) the second attempt's observed network call, and (b) the cache entry's recorded type (negative vs positive) and ttl\nnamed_probe_verbatim=(b) the cache entry's recorded type (negative vs positive) and ttl\nlive_cache_source=platform/plugin/cache.py\nlive_cache_source_sha256=5bbb456cfc560d7e8c0143d26637eb7e67fe02c91088941e19b002c31b14ccdd\nput_signature=(self, data: 'bytes') -> 'str'\nget_signature=(self, key: 'str') -> 'bytes | None'\nfetch_signature=(self, name: 'str', fetcher: 'Callable[[], tuple[int, bytes]]', *, now: 'float | None' = None, transient_ttl: 'float' = 5.0, absence_ttl: 'float' = 60.0, positive_ttl: 'float' = 3600.0) -> 'FetchResult'\nlookup_named_signature=(self, name: 'str', *, now: 'float | None' = None) -> 'dict | None'\npositive_entry_type=positive\npositive_entry_ttl=3600.0\npositive_entry_bytes=19\ntransient_entry_type=negative-transient\ntransient_entry_ttl=5.0\nabsence_entry_type=negative-absence\nabsence_entry_ttl=60.0\nsidecar_metadata_file_count=4\ndecoded_metadata_object_count=3\nrecorded_metadata_fields=name,status,stored_at,ttl_seconds,type\nrecorded_type=positive\nrecorded_ttl_seconds=3600.0\nnegative_entry_api_available=true\nmissing_lookup_returns_none=true\ngenuine_absence_distinguishable_from_transient_failure=true\nresult=CONFIRMED\nPROBE-B-COMPLETE:TST-0176\nSUCCESS:TST-0176-probe-b\n",
+          "fingerprint": "1dc3f0179719494bb906170e",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python command-center/p2-wave/probes/TST-0176/reference_control.py permanent-mutant",
+          "raw_output": "TST-0176 NEGATIVE CONTROL: PERMANENT TRANSIENT MUTANT\nstage=p2-deliver\ntest_name=negative control: a permanent-transient-cache mutant suppresses the required post-ttl retry and must make the detector go red\ngood_state_detector_passed=true\ngood_state_detail=first_type=negative-transient;first_ttl=5.0;second_type=positive;second_source=network;network_calls=2\nbad_state_detector_passed=false\nbad_state_detail=first_type=negative-transient;first_ttl=5.0;second_type=negative-transient;second_source=cache;network_calls=1\nfired_on_bad_state=true\nsilent_on_good_state=true\nresult=PASS\nNEGATIVE-CONTROL-COMPLETE:TST-0176\nSUCCESS:TST-0176-permanent-mutant\n",
+          "fingerprint": "82b5a1767a41f25d40266edb",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "TST-0176-GENUINE-404",
+      "name": "both-states control: a genuine 404 stays negatively cached for its full ttl",
+      "command": "python command-center/p2-wave/probes/TST-0176/reference_control.py genuine-404",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "scope=live plugin.cache.Cache.fetch named-entry API"
+    },
+    {
+      "id": "TST-0176-EMPTY-OK",
+      "name": "regression seed: an EMPTY cache reporting OK, measured on this estate",
+      "command": "python command-center/p2-wave/probes/TST-0176/probe_empty_cache_ok.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "exit=0 stdout=SUCCESS:cache entries=0 bytes=0"
+    },
+    {
+      "id": "TST-0176-NEGATIVE-CONTROL",
+      "name": "negative control: a permanent-transient-cache mutant suppresses the required post-ttl retry and must make the detector go red",
+      "command": "python command-center/p2-wave/probes/TST-0176/reference_control.py permanent-mutant",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "result=PASS"
+    },
+    {
+      "id": "TST-0176-NAMED-A",
+      "name": "(a) the second attempt's observed network call",
+      "command": "python command-center/p2-wave/probes/TST-0176/probe_network_retry.py",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "second_attempt_observed_network_call=true result=CONFIRMED"
+    },
+    {
+      "id": "TST-0176-NAMED-B",
+      "name": "(b) the cache entry's recorded type (negative vs positive) and ttl",
+      "command": "python command-center/p2-wave/probes/TST-0176/probe_cache_metadata.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "recorded_type=positive recorded_ttl_seconds=3600.0 result=CONFIRMED"
+    },
+    {
+      "id": "TST-0176-CONDITION-11",
+      "name": "per-unit UNIT-ARTIFACT-MANIFEST registration (STRUCTURAL-CONDITION-11 option 1)",
+      "command": "python -c import json,pathlib; p=pathlib.Path('command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json'); d=json.loads(p.read_text()); print('SUCCESS:TST-0176-c11' if d.get('artifacts') else 'FAIL')",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "registered=true manifest_path=command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "TST-0176-PERMANENT-TRANSIENT-MUTANT",
+      "kind": "mutation",
+      "description": "negative control: a permanent-transient-cache mutant suppresses the required post-ttl retry and must make the detector go red",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "bad_state_detector_passed=false; second_source=cache; network_calls=1",
+      "good_state_output": "good_state_detector_passed=true; second_source=network; network_calls=2"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-deliver-TST-0176-linux",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Independent re-derivation from live named probes on this Linux worktree, not from harvest UNIT-COMPLETE or the CLOUD-OK BLOCKED receipt. probe_network_retry.py and probe_cache_metadata.py exit 0 against plugin.cache.Cache.fetch. Distinct from produced_by vendor openai. Catalog reviewer_requirement names anthropic/opus; G-1 uses the per-unit manifest rather than a second-vendor review session.",
+    "reviewed_at": "2026-08-19T17:17:07Z"
+  },
+  "defects": [
+    {
+      "id": "TST-0176-D1",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Cache.fetch now stores negative-transient (5s) vs negative-absence (60s) with recorded type/ttl under named/. cache.py sha256=5bbb456cfc560d7e8c0143d26637eb7e67fe02c91088941e19b002c31b14ccdd."
+    },
+    {
+      "id": "TST-0176-D2",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Empty-cache CLI still prints SUCCESS:cache for a new prefix with zero entries. That is the catalog regression seed, reproduced live."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0176/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0176",
+    "registered_at": "2026-08-19T17:17:07Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/receipts/TST-0176.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "python -c import ready_units; ready_units.artifact_delivered",
+        "raw_output": "artifact_delivered=True why=delivered\nschema_error_count=0\nlive_bytes=15338 live_sha256=d7d1f31223f31e4483297c181d0d500d4cf5d83f1e8ae4f9420b43fccc79e84a\nzero_sub_sha256=375ec98fb4c3c21755545c9e62632d3e9a7a6b68b04fc7f669656235671eb070\n",
+        "fingerprint": "bbbe70410ed36b62c6f69298",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "platform/lib/schema_resolver.py:validate_artifact cache_report",
+      "artifact_path": "command-center/receipts/TST-0176.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "schema_resolver.validate_artifact(doc, cache_report)",
+        "raw_output": "schema=command-center/schema/receipt.schema.json#/$defs/cache_report\nerrors=[]\nerror_count=0\nSUCCESS:schema\n",
+        "fingerprint": "83aea029c254b32d20c6f4a0",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-17T02:49:07Z",
+    "ended_at": "2026-08-19T17:17:07Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot: after the second failure on the same hypothesis, enumerate at least two alternatives before a third attempt"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Catalog reviewer_requirement still names one independent adversarial reviewer as anthropic/opus. This G-1 pass is xai/grok.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Dispatch an anthropic/opus reviewer who did not author Cache.fetch or the named probes and re-run probe_network_retry.py plus probe_cache_metadata.py."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5",
+    "role": "cache-integrity-tester",
+    "execution_substrate": "linux-headless-p2-deliver"
+  },
+  "report": {
+    "kind": "cache_report",
+    "observations": [
+      {
+        "name": "second_attempt_observed_network_call",
+        "measured": true,
+        "method": "loopback HTTP server plus live Cache.fetch",
+        "anchor": "command-center/p2-wave/probes/TST-0176/probe-a-second-attempt-network-call.raw.txt:1"
+      },
+      {
+        "name": "live_cache_recorded_type",
+        "measured": "positive / negative-transient / negative-absence",
+        "method": "on-disk named/meta.json plus Cache.lookup_named",
+        "anchor": "command-center/p2-wave/probes/TST-0176/probe-b-cache-entry-type-ttl.raw.txt:1"
+      },
+      {
+        "name": "live_cache_recorded_ttl_seconds",
+        "measured": "5.0 transient / 60.0 absence / 3600.0 positive",
+        "method": "independent persisted-entry inspection",
+        "anchor": "command-center/p2-wave/probes/TST-0176/probe-b-cache-entry-type-ttl.raw.txt:1"
+      },
+      {
+        "name": "genuine_404_reference_control_passed",
+        "measured": true,
+        "method": "live Cache.fetch with deterministic now=",
+        "anchor": "command-center/p2-wave/probes/TST-0176/both-states-genuine-404.raw.txt:1"
+      },
+      {
+        "name": "empty_cache_cli_exit_code",
+        "measured": 0,
+        "method": "live plugin CLI invocation against a new prefix",
+        "anchor": "command-center/p2-wave/probes/TST-0176/regression-empty-cache-ok.raw.txt:1"
+      },
+      {
+        "name": "condition_11_per_unit",
+        "measured": true,
+        "method": "UNIT-ARTIFACT-MANIFEST.json option 1",
+        "anchor": "command-center/p2-wave/probes/TST-0176/condition11-live-check.raw.txt:1"
+      }
+    ],
+    "control_ids": [
+      "TST-0176-GENUINE-404",
+      "TST-0176-PERMANENT-TRANSIENT-MUTANT"
+    ]
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "run_id": "p2-deliver-001",
+    "prior_stage_output": "cloud-ok refute BLOCKED; live Cache then gained fetch/ttl",
+    "declared_output_schema": "command-center/schema/receipt.schema.json#/$defs/cache_report",
+    "functional_verdict": "CONFIRMED",
+    "process_disposition": "SUCCESS",
+    "question_or_target": "Is a transient fetch failure negatively cached with a SHORT ttl and clearly distinguished from a genuine absence? PASS requires a retry after the negative-ttl to hit the network again; an empty result that reports OK is the failure being tested.",
+    "answer": "Yes. Cache.fetch stores 503 as negative-transient ttl=5s and 404 as negative-absence ttl=60s; the post-ttl lookup hits the loopback fixture. The empty-cache CLI still reports SUCCESS:cache (regression seed).",
+    "production_cache_edited": true,
+    "unit_manifest_edited": false,
+    "success_hand_flipped": false,
+    "cloud_ok_not_delivery": true
+  }
+}

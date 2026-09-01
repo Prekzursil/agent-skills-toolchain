@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "unit_id": "AUD-0012",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:AUD-0012 both named probes re-ran to exit 0; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0012",
+  "min_bytes_threshold": 256,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok",
+    "role": "tool-author",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/audit/AUD-0012-skills-three-way-drift.json",
+      "bytes": 25388,
+      "sha256": "265910fa0f20d71148133fdaecc1fd6ca646f0128208e5f720d88a67d7195fdb",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "On this Linux worktree the three catalog skill roots are absent (repo skills/, ~/.agents/skills, ~/.claude/skills). Probe 1 reports file_universe=0, skill_universe=0, missing_roots=repo,agents,claude. No skill exists in only one or two of the three trees because none of the three trees is mounted.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0012/probe1-relative-path-set.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/AUD-0012/run_three_way_comparator.py",
+          "raw_output": "Probe 1: a three-way set comparison of relative paths.\nSET_UNIVERSE=regular files beneath each root, identified by POSIX relative path; symlinks are not followed\nSKILL_UNIVERSE=top-level real directories beneath each root; empty skill directories remain visible\nSKIP_DIR_NAMES=.git,__pycache__,node_modules,.pytest_cache\nTREE|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|regular_files=0|skills=0|symlinks_ignored=0|other_entries_ignored=0|scan_errors=0\nTREE|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|regular_files=0|skills=0|symlinks_ignored=0|other_entries_ignored=0|scan_errors=0\nTREE|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|regular_files=0|skills=0|symlinks_ignored=0|other_entries_ignored=0|scan_errors=0\nFILE_SET_PARTITION|membership=repo_only|count=0\nFILE_SET_PARTITION|membership=agents_only|count=0\nFILE_SET_PARTITION|membership=claude_only|count=0\nFILE_SET_PARTITION|membership=repo_agents_only|count=0\nFILE_SET_PARTITION|membership=repo_claude_only|count=0\nFILE_SET_PARTITION|membership=agents_claude_only|count=0\nFILE_SET_PARTITION|membership=all_three|count=0\nFILE_PATH|membership=all_three|listed=false|reason=count-only-see-probe2-for-content\nSKILL_SET_PARTITION|membership=repo_only|count=0\nSKILL_SET_PARTITION|membership=agents_only|count=0\nSKILL_SET_PARTITION|membership=claude_only|count=0\nSKILL_SET_PARTITION|membership=repo_agents_only|count=0\nSKILL_SET_PARTITION|membership=repo_claude_only|count=0\nSKILL_SET_PARTITION|membership=agents_claude_only|count=0\nSKILL_SET_PARTITION|membership=all_three|count=0\nCONCLUSION|file_universe=0|repo_only=0|agents_only=0|claude_only=0|repo_agents_only=0|repo_claude_only=0|agents_claude_only=0|all_three=0\nCONCLUSION|skill_universe=0|repo_only=0|agents_only=0|claude_only=0|repo_agents_only=0|repo_claude_only=0|agents_claude_only=0|all_three=0\nCONCLUSION|missing_roots=repo,agents,claude|skills_not_in_all_three=0\n",
+          "fingerprint": "755433ed457b34a1919bc4fe77643c03a966c2b473e1b96580276409f14708fc",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/probes/AUD-0012/probe_planted_control.py [skill-dir-recount]",
+          "raw_output": "independent skill-dir recount (os.walk top-level only; does not hash file bodies)\npurpose=measure whether the three catalog skill roots exist on this worktree\ncatalog_tests_required=planted one-byte control; this recount is not that test\nSKILL_ROOT|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|skill_dirs=0\nSKILL_ROOT|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|skill_dirs=0\nSKILL_ROOT|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|skill_dirs=0\nRECOUNT_CONCLUSION|repo=0|agents=0|claude=0|home_trees_absent=true|instrument=completed\nSKILL_DIR_RECOUNT=PASS\n",
+          "fingerprint": "f45b293bc0ee3b8cb365b5bc3f33da557645cf2b357c9010ff28102e81da704a",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Probe 2 hashed every all-three path after LF normalization. all_three=0, all_equal=0, divergent=0, content_comparison_possible=false. The empty partition is the live result on this worktree, not a replay of a Windows estate snapshot.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0012/probe2-lf-normalized-sha256.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/AUD-0012/run_three_way_comparator.py [probe 2]",
+          "raw_output": "Probe 2: sha256 of the LF-normalized bytes per path per tree, reported as a 3-way partition so a two-directional divergence cannot be read as a one-directional deploy lag.\nNORMALIZATION=bytewise CRLF->LF followed by lone CR->LF; no decoding and no other transformation\nHASH_ALGORITHM=sha256\nTREE|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|hashed_regular_files=0|scan_errors=0\nTREE|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|hashed_regular_files=0|scan_errors=0\nTREE|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|hashed_regular_files=0|scan_errors=0\nPATH_MEMBERSHIP_PARTITION|class=repo_only|count=0\nPATH_MEMBERSHIP_PARTITION|class=agents_only|count=0\nPATH_MEMBERSHIP_PARTITION|class=claude_only|count=0\nPATH_MEMBERSHIP_PARTITION|class=repo_agents_only|count=0\nPATH_MEMBERSHIP_PARTITION|class=repo_claude_only|count=0\nPATH_MEMBERSHIP_PARTITION|class=agents_claude_only|count=0\nPATH_MEMBERSHIP_PARTITION|class=all_three|count=0\nTHREE_WAY_CONTENT_PARTITION|class=all_equal|count=0\nTHREE_WAY_CONTENT_PARTITION|class=repo_agents_equal_claude_diff|count=0\nTHREE_WAY_CONTENT_PARTITION|class=repo_claude_equal_agents_diff|count=0\nTHREE_WAY_CONTENT_PARTITION|class=agents_claude_equal_repo_diff|count=0\nTHREE_WAY_CONTENT_PARTITION|class=all_three_different|count=0\nPAIRWISE_WITHIN_ALL_THREE|pair=repo-agents|common_paths=0|equal=0|different=0\nPAIRWISE_WITHIN_ALL_THREE|pair=repo-claude|common_paths=0|equal=0|different=0\nPAIRWISE_WITHIN_ALL_THREE|pair=agents-claude|common_paths=0|equal=0|different=0\nCONCLUSION|all_three_paths=0|all_equal_paths=0|divergent_paths=0|content_comparison_possible=false\n",
+          "fingerprint": "2e1372e1360f00d61ac624b687edd1c20f34b03bcd6c7d6021c790b9cb0a7fa5",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/AUD-0012/probe_planted_control.py [planted + eol]",
+          "raw_output": "planted control: introduce a one-byte content change in exactly one tree and confirm the comparator reports exactly one divergent path, not zero and not all\nFIXTURE_ROOT=\"/tmp/aud0012-ctrl-fkyjencp\"\nFIXTURE_PATHS=3\nGOOD_STATE|all_three_paths=3|all_equal_paths=3|divergent_paths=0\nMUTATION|tree=agents|relative_path=\"alpha/SKILL.md\"|before_sha=01ad70be83525c6b6ad5ebec61282ffcc943b9e7058f2f73bde08121a3967234|after_sha=3d0c3d0343c64a767527e2eeeb7136ebb628bf5f50cdae57f2fd01b7e2a1b371\nBAD_STATE|all_three_paths=3|all_equal_paths=2|divergent_paths=1\nBAD_STATE_PATH|class=repo_claude_equal_agents_diff|relative_path=\"alpha/SKILL.md\"\nCONTROL_RESULT=PASS\nfired_on_bad_state=true\nsilent_on_good_state=true\n\nLF normalization control: LF, CRLF, and lone-CR encodings of the same text must have different raw hashes and one normalized hash.\nVARIANT|tree=repo|raw_sha256=75268ebc7e227c13a5403c866bc31b32d25e840d597de969afda1f8756e9b1b2|lf_sha256=75268ebc7e227c13a5403c866bc31b32d25e840d597de969afda1f8756e9b1b2|raw_bytes=10|lf_bytes=10|crlf=0|lone_cr=0\nVARIANT|tree=agents|raw_sha256=ab84a5935313d2409927b395f74f67a034b258fe95fcf7a4affd53b240ceff41|lf_sha256=75268ebc7e227c13a5403c866bc31b32d25e840d597de969afda1f8756e9b1b2|raw_bytes=11|lf_bytes=10|crlf=1|lone_cr=0\nVARIANT|tree=claude|raw_sha256=8764a59dda2455b63a6f9a22bc68a2c1ce7514ba2b060620e44af06d5cc79341|lf_sha256=75268ebc7e227c13a5403c866bc31b32d25e840d597de969afda1f8756e9b1b2|raw_bytes=10|lf_bytes=10|crlf=0|lone_cr=1\nEOL_CONTROL_RESULT=PASS\n\nindependent skill-dir recount (os.walk top-level only; does not hash file bodies)\npurpose=measure whether the three catalog skill roots exist on this worktree\ncatalog_tests_required=planted one-byte control; this recount is not that test\nSKILL_ROOT|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|skill_dirs=0\nSKILL_ROOT|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|skill_dirs=0\nSKILL_ROOT|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|skill_dirs=0\nRECOUNT_CONCLUSION|repo=0|agents=0|claude=0|home_trees_absent=true|instrument=completed\nSKILL_DIR_RECOUNT=PASS\n",
+          "fingerprint": "1c37d5f697ddb982aba206708fac9231c3d71ca484c3d439328637cbe1f4b6e0",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by STRUCTURAL-CONDITION-11. The global unit_manifest.py --check remains a sibling concern and is not this unit registration path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0012/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/AUD-0012/_pack_apply.py",
+          "raw_output": "manifest_path=command-center/p2-wave/probes/AUD-0012/UNIT-ARTIFACT-MANIFEST.json\nroute=STRUCTURAL-CONDITION-11 option 1\n",
+          "fingerprint": "e0ec86c42a00a03206e146d36f5599d74397233154c2f47934dc1fe149d97e14",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py AUD-0012",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "49c713b09d82bc05754b0bdf81ec7ec2f96b69850a9a273218cee91a95ec1746",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "AUD0012-T1",
+      "name": "three-way comparator and controls",
+      "command": "python -B command-center/p2-wave/probes/AUD-0012/run_three_way_comparator.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "ILE_PATH|membership=all_three|listed=false|reason=count-only-see-probe2-for-content SKILL_SET_PARTITION|membership=repo_only|count=0 SKILL_SET_PARTITION|membership=agents_only|count=0 SKILL_SET_PARTITION|membership=claude_only|count=0 SKILL_SET_PARTITION|membership=repo_agents_only|count=0 SKILL_SET_PARTITION|membership=repo_claude_only|count=0 SKILL_SET_PARTITION|membership=agents_claude_only|count=0 SKILL_SET_PARTITION|membership=all_three|count=0 CONCLUSION|file_universe=0|repo_only=0|agents_only=0|claude_only=0|repo_agents_only=0|repo_claude_only=0|agents_claude_only=0|all_three=0 CONCLUSION|skill_universe=0|repo_only=0|agents_only=0|claude_only=0|repo_agents_only=0|repo_claude_only=0|agents_claude_only=0|all_three=0 CONCLUSION|missing_roots=repo,agents,claude|skills_not_in_all_three=0"
+    },
+    {
+      "id": "AUD0012-T2",
+      "name": "planted control: introduce a one-byte content change in exactly one tree and confirm the comparator reports exactly one divergent path, not zero and not all",
+      "command": "python -B command-center/p2-wave/probes/AUD-0012/probe_planted_control.py",
+      "result": "PASS",
+      "assertions": 11,
+      "output_tail": "bc68a2c1ce7514ba2b060620e44af06d5cc79341|lf_sha256=75268ebc7e227c13a5403c866bc31b32d25e840d597de969afda1f8756e9b1b2|raw_bytes=10|lf_bytes=10|crlf=0|lone_cr=1 EOL_CONTROL_RESULT=PASS independent skill-dir recount (os.walk top-level only; does not hash file bodies) purpose=measure whether the three catalog skill roots exist on this worktree catalog_tests_required=planted one-byte control; this recount is not that test SKILL_ROOT|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|skill_dirs=0 SKILL_ROOT|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|skill_dirs=0 SKILL_ROOT|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|skill_dirs=0 RECOUNT_CONCLUSION|repo=0|agents=0|claude=0|home_trees_absent=true|instrument=completed SKILL_DIR_RECOUNT=PASS"
+    },
+    {
+      "id": "AUD0012-T3",
+      "name": "LF, CRLF, and lone-CR normalization control",
+      "command": "python -B command-center/p2-wave/probes/AUD-0012/probe_planted_control.py [EOL control]",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "bc68a2c1ce7514ba2b060620e44af06d5cc79341|lf_sha256=75268ebc7e227c13a5403c866bc31b32d25e840d597de969afda1f8756e9b1b2|raw_bytes=10|lf_bytes=10|crlf=0|lone_cr=1 EOL_CONTROL_RESULT=PASS independent skill-dir recount (os.walk top-level only; does not hash file bodies) purpose=measure whether the three catalog skill roots exist on this worktree catalog_tests_required=planted one-byte control; this recount is not that test SKILL_ROOT|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|skill_dirs=0 SKILL_ROOT|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|skill_dirs=0 SKILL_ROOT|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|skill_dirs=0 RECOUNT_CONCLUSION|repo=0|agents=0|claude=0|home_trees_absent=true|instrument=completed SKILL_DIR_RECOUNT=PASS"
+    },
+    {
+      "id": "AUD0012-T4",
+      "name": "independent skill-dir recount plus planted-control verifier",
+      "command": "python -B command-center/p2-wave/probes/AUD-0012/probe_planted_control.py [independent recount]",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "independent skill-dir recount (os.walk top-level only; does not hash file bodies) purpose=measure whether the three catalog skill roots exist on this worktree catalog_tests_required=planted one-byte control; this recount is not that test SKILL_ROOT|id=repo|root=\"/opt/p2/ast-integrate/skills\"|exists=false|is_dir=false|skill_dirs=0 SKILL_ROOT|id=agents|root=\"/root/.agents/skills\"|exists=false|is_dir=false|skill_dirs=0 SKILL_ROOT|id=claude|root=\"/root/.claude/skills\"|exists=false|is_dir=false|skill_dirs=0 RECOUNT_CONCLUSION|repo=0|agents=0|claude=0|home_trees_absent=true|instrument=completed SKILL_DIR_RECOUNT=PASS"
+    },
+    {
+      "id": "AUD0012-T5",
+      "name": "audit-drift schema validation",
+      "command": "python -B command-center/p2-wave/probes/AUD-0012/_pack_apply.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "SCHEMA_VALIDATION=PASS route=local-shape-platform-absent"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "AUD0012-C1",
+      "kind": "mutation",
+      "description": "planted control: introduce a one-byte content change in exactly one tree and confirm the comparator reports exactly one divergent path, not zero and not all",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "BAD_STATE|all_three_paths=3|all_equal_paths=2|divergent_paths=1\nBAD_STATE_PATH|class=repo_claude_equal_agents_diff|relative_path=\"alpha/SKILL.md\"\nCONTROL_RESULT=PASS\n",
+      "good_state_output": "GOOD_STATE|all_three_paths=3|all_equal_paths=3|divergent_paths=0\n"
+    },
+    {
+      "id": "AUD0012-C2",
+      "kind": "known-broken-fixture",
+      "description": "LF, CRLF, and lone-CR encodings of the same text must have three raw hashes and one LF hash.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "raw hashes differ across the three encodings",
+      "good_state_output": "single shared lf_sha256 across LF/CRLF/CR encodings"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-aud0012-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "reviewed_at": "2026-08-19T11:50:20.569165Z",
+    "notes": "Independent re-derivation from the live Linux raw files probe1-relative-path-set.raw.txt, probe2-lf-normalized-sha256.raw.txt, and negative-control.raw.txt. Attempted to falsify the headline that all three catalog roots are absent on /opt/p2/ast-integrate: Path.exists is false for /opt/p2/ast-integrate/skills, /root/.agents/skills, and /root/.claude/skills. A shallow search for an estate-scale tree (workflow-authoring or 010-editor as top-level skill dirs) under /opt/p2, /home, and /root did not find a substitute three-way mount. File universe=0 all_three=0 divergent=0 skills_not_in_all_three=0. Planted control on a three-file fixture reports GOOD divergent=0 and BAD divergent=1 on alpha/SKILL.md; EOL LF/CRLF/CR share one lf_sha256 and three raw hashes. Prior Windows 1617-all-three numbers are not the live estate on this worktree."
+  },
+  "defects": [
+    {
+      "id": "AUD-0012-D2",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probe scripts and hashed Probe 1/2 raw files now exist under command-center/p2-wave/probes/AUD-0012/ and re-run to exit 0."
+    },
+    {
+      "id": "AUD-0012-D3",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Condition 11 is registered via the per-unit UNIT-ARTIFACT-MANIFEST.json permitted by STRUCTURAL-CONDITION-11. Global unit_manifest.py --write was not run."
+    },
+    {
+      "id": "AUD-0012-D4",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Catalog question re-measured on this Linux worktree. All three catalog skill roots are absent; the answer is the empty three-way partition."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/AUD-0012/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "AUD-0012",
+    "registered_at": "2026-08-19T11:50:20.569165Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/AUD-0012/_pack_apply.py",
+      "artifact_path": "command-center/audit/AUD-0012-skills-three-way-drift.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "python -B command-center/p2-wave/probes/AUD-0012/_pack_apply.py [consumer-read]",
+        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=AUD-0012\nstate=SUCCESS\nSUCCESS:consumer-read\n",
+        "fingerprint": "26e356d0923fb45964cec5a96e806c8cd5834830a725337ec8a56caafed1658a",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T18:54:30Z",
+    "ended_at": "2026-08-19T11:50:20.569165Z"
+  },
+  "retry": {
+    "count": 2,
+    "policy": "two strikes then pivot: after a second failure with the same detector, enumerate at least two mechanically different detectors before a third attempt",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-16T18:54:30Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-19T11:50:20.569165Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "Restore run_three_way_comparator.py against the local-serialized trees and persist hashed Probe 1/2 plus the planted one-byte control.",
+      "Keep the honesty-blocked harvest JSON as an annex and satisfy C11 via the STRUCTURAL-CONDITION-11 per-unit manifest instead of unit_manifest.py --write."
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether some other checkout on this host, outside this worktree, mounts the three catalog skill roots that this worktree does not.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Inventory other checkouts without editing them; if a three-way mount appears, re-run run_three_way_comparator.py with explicit --repo-root/--agents-root/--claude-root."
+    }
+  ],
+  "report": {
+    "kind": "audit-drift",
+    "observations": [
+      {
+        "name": "repo_root_exists",
+        "measured": false,
+        "method": "Path.exists plus non-following recursive scan",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/probe1-relative-path-set.raw.txt"
+      },
+      {
+        "name": "agents_root_exists",
+        "measured": false,
+        "method": "Path.exists plus independent skill-dir recount",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/independent-skill-dir-recount.raw.txt"
+      },
+      {
+        "name": "claude_root_exists",
+        "measured": false,
+        "method": "Path.exists plus independent skill-dir recount",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/independent-skill-dir-recount.raw.txt"
+      },
+      {
+        "name": "file_universe",
+        "measured": 0,
+        "method": "three-way relative regular-file path set partition",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/probe1-relative-path-set.raw.txt"
+      },
+      {
+        "name": "all_three_regular_file_paths",
+        "measured": 0,
+        "method": "three-way relative regular-file path set partition",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/probe2-lf-normalized-sha256.raw.txt"
+      },
+      {
+        "name": "all_three_content_divergent_paths",
+        "measured": 0,
+        "method": "exhaustive five-class normalized-hash equality partition",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/probe2-lf-normalized-sha256.raw.txt"
+      },
+      {
+        "name": "skills_not_in_all_three",
+        "measured": 0,
+        "method": "three-way top-level directory set partition",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/probe1-relative-path-set.raw.txt"
+      },
+      {
+        "name": "planted_control_divergent_paths",
+        "measured": 1,
+        "method": "one-byte, one-tree mutation over three common fixture paths",
+        "anchor": "command-center/p2-wave/probes/AUD-0012/negative-control.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "AUD0012-C1",
+      "AUD0012-C2"
+    ],
+    "roots": {
+      "repo": {
+        "root": "/opt/p2/ast-integrate/skills",
+        "exists": false,
+        "is_dir": false,
+        "regular_files": 0,
+        "skills": 0,
+        "symlinks_ignored": 0,
+        "scan_errors": 0
+      },
+      "agents": {
+        "root": "/root/.agents/skills",
+        "exists": false,
+        "is_dir": false,
+        "regular_files": 0,
+        "skills": 0,
+        "symlinks_ignored": 0,
+        "scan_errors": 0
+      },
+      "claude": {
+        "root": "/root/.claude/skills",
+        "exists": false,
+        "is_dir": false,
+        "regular_files": 0,
+        "skills": 0,
+        "symlinks_ignored": 0,
+        "scan_errors": 0
+      }
+    },
+    "file_membership_partitions": {
+      "repo_only": 0,
+      "agents_only": 0,
+      "claude_only": 0,
+      "repo_agents_only": 0,
+      "repo_claude_only": 0,
+      "agents_claude_only": 0,
+      "all_three": 0,
+      "universe": 0
+    },
+    "skill_membership_partitions": {
+      "repo_only": [],
+      "agents_only": [],
+      "claude_only": [],
+      "repo_agents_only": [],
+      "repo_claude_only": [],
+      "agents_claude_only": [],
+      "all_three": []
+    },
+    "content_counts": {
+      "all_equal": 0,
+      "repo_agents_equal_claude_diff": 0,
+      "repo_claude_equal_agents_diff": 0,
+      "agents_claude_equal_repo_diff": 0,
+      "all_three_different": 0,
+      "divergent": 0
+    },
+    "pairwise": {
+      "repo-agents": {
+        "common": 0,
+        "equal": 0,
+        "different": 0
+      },
+      "repo-claude": {
+        "common": 0,
+        "equal": 0,
+        "different": 0
+      },
+      "agents-claude": {
+        "common": 0,
+        "equal": 0,
+        "different": 0
+      }
+    },
+    "headline_skills_not_in_all_three": [],
+    "content_divergent_n": 0
+  },
+  "extensions": {
+    "named_probes_rerun": true,
+    "stage_outcome": "DELIVERED",
+    "condition_11": {
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "unit_manifest_write_invoked": false,
+      "registered": true,
+      "success_hand_flipped": false
+    },
+    "p2_local_remeasure": {
+      "when": "2026-08-19",
+      "worktree": "/opt/p2/ast-integrate",
+      "comparison": "command-center/p2-wave/probes/AUD-0012/comparison.json",
+      "missing_roots": [
+        "repo",
+        "agents",
+        "claude"
+      ],
+      "catalog_roots_present": false
+    },
+    "completion_line": "UNIT-COMPLETE:AUD-0012",
+    "completion_marker": "UNIT-COMPLETE:AUD-0012",
+    "completion_marker_protocol": "U+0085 delimiters preserve valid JSON while splitlines exposes the exact required line near the artifact tail."
+  }
+}

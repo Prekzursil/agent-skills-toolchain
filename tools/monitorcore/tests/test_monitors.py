@@ -65,12 +65,13 @@ def test_default_monitors_path_default(monkeypatch):
 def test_load_monitors_parses_tables_and_skips_scalar():
     specs = m.load_monitors(str(FIX))
     # the stray top-level `schema = 1` scalar is skipped (non-table)
-    assert set(specs) == {"wfmon", "agentmon", "nolaunch"}
+    assert set(specs) == {"wfmon", "agentmon", "cockpit", "nolaunch"}
+    # post-T0-3: wfmon carries NO trigger (missing trigger_tool defaults to "")
     assert specs["wfmon"] == m.MonitorSpec(
         name="wfmon",
         dir="workflow-monitor",
         entry="workflow_monitor.py",
-        trigger_tool="Workflow",
+        trigger_tool="",
     )
     # missing trigger_tool defaults to ""
     assert specs["nolaunch"].trigger_tool == ""
@@ -88,7 +89,8 @@ def test_load_monitors_parses_autolaunch_default_and_explicit():
 def test_match_triggers_maps_task_and_workflow():
     specs = m.load_monitors(str(FIX))
     assert [s.name for s in m.match_triggers(specs, "Task")] == ["agentmon"]
-    assert [s.name for s in m.match_triggers(specs, "Workflow")] == ["wfmon"]
+    # T0-3 (executed): `Workflow` opens the cockpit, and ONLY the cockpit
+    assert [s.name for s in m.match_triggers(specs, "Workflow")] == ["cockpit"]
 
 
 def test_match_triggers_empty_trigger_never_matches():
@@ -100,7 +102,7 @@ def test_match_triggers_empty_trigger_never_matches():
 
 # ───────────────────────── resolve_entry ─────────────────────────
 def test_resolve_entry_joins_path():
-    spec = m.MonitorSpec("wfmon", "workflow-monitor", "workflow_monitor.py", "Workflow")
+    spec = m.MonitorSpec("wfmon", "workflow-monitor", "workflow_monitor.py", "")
     assert m.resolve_entry(spec, "/root") == os.path.join(
         "/root", "workflow-monitor", "workflow_monitor.py"
     )
@@ -130,14 +132,25 @@ def test_build_wt_argv_default_py(monkeypatch):
 
 
 def test_build_console_argv_explicit_py():
+    # The title slot is an EMPTY string (rendered `""`): `start` treats a BARE first
+    # token as the COMMAND, so passing the monitor name here spawned bare `wfmon` via
+    # ShellExecute (error dialog when ~/.local/bin is off PATH) instead of python <entry>.
     assert m.build_console_argv("wfmon", "/s/w.py", py="py") == [
         "cmd",
         "/c",
         "start",
-        "wfmon",
+        "",
         "py",
         "/s/w.py",
     ]
+
+
+def test_build_console_argv_never_spawns_the_bare_monitor_name():
+    # Regression gate for the wfmon error-dialog root cause: no console rung may place
+    # the monitor NAME where `start` would resolve it as a command.
+    argv = m.build_console_argv("wfmon", "/s/w.py", py="py")
+    assert argv[3] == ""
+    assert "wfmon" not in argv
 
 
 def test_build_console_argv_default_py(monkeypatch):

@@ -1,19 +1,17 @@
-"""Copy the changed monitorcore modules into every committed vendored copy, byte-exactly.
+"""Propagate every top-level monitorcore module to each vendored copy, byte-exactly.
 
-monitorcore is VENDORED: consuming skills carry a committed copy because sync-skills.ps1
-deploys committed skill dirs wholesale. CI diffs tools/monitorcore/monitorcore against
-skills/workflow-monitor/monitorcore, and tools/measure-guard/vendordrift.py additionally
-covers .agents/skills/workflow-monitor/monitorcore. Editing the source without propagating
-turns BOTH gates red for every lane sharing this worktree.
-
-Copies raw bytes (never text mode) so no line ending is silently rewritten, then re-reads
-each destination and asserts byte-equality with the source.
+Discovery replaces the defective hardcoded six-module tuple, which printed a green
+SUCCESS while 32 modules stayed drifted and only reddened CI after the fact. Empty
+source discovery, missing copy roots, and orphaned destination modules fail closed.
+New destination modules are created; orphans require deliberate operator deletion.
 """
 
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Sequence
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO / "tools" / "monitorcore" / "monitorcore"
@@ -21,33 +19,86 @@ COPIES = (
     REPO / "skills" / "workflow-monitor" / "monitorcore",
     REPO / ".agents" / "skills" / "workflow-monitor" / "monitorcore",
 )
-MODULES = ("health_source.py", "pane.py", "pane_views.py", "unified.py")
+
+
+@dataclass(frozen=True)
+class PropagationResult:
+    """Outcome and operator-facing lines from one propagation attempt."""
+
+    exit_code: int
+    copied: int
+    created: int
+    lines: tuple[str, ...]
+
+
+def _display(path: Path) -> str:
+    try:
+        return path.relative_to(REPO).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def propagate(
+    source: Path = SOURCE, copies: Sequence[Path] = COPIES
+) -> PropagationResult:
+    """Copy all discovered source modules, returning a printable result."""
+    missing = [copy for copy in copies if not copy.is_dir()]
+    if missing:
+        paths = ", ".join(path.as_posix() for path in missing)
+        line = f"FAILED:propagate vendored copy missing: {paths}"
+        return PropagationResult(1, 0, 0, (line,))
+
+    modules = sorted(source.glob("*.py"), key=lambda path: path.name)
+    if not modules:
+        line = f"FAILED:propagate no top-level Python modules discovered in {source}"
+        return PropagationResult(1, 0, 0, (line,))
+
+    source_names = {module.name for module in modules}
+    orphans = sorted(
+        (
+            path
+            for copy in copies
+            for path in copy.glob("*.py")
+            if path.name not in source_names
+        ),
+        key=lambda path: path.as_posix(),
+    )
+    if orphans:
+        lines = tuple(f"  orphan: {_display(path)}" for path in orphans)
+        failure = (
+            "FAILED:propagate orphan module(s) found; operator must delete "
+            "them deliberately"
+        )
+        return PropagationResult(1, 0, 0, (*lines, failure))
+
+    copied = 0
+    created = 0
+    lines: list[str] = []
+    for src in modules:
+        blob = src.read_bytes()
+        for copy in copies:
+            dest = copy / src.name
+            is_new = not dest.exists()
+            dest.write_bytes(blob)
+            if dest.read_bytes() != blob:
+                failure = f"FAILED:propagate readback mismatch: {dest}"
+                return PropagationResult(1, copied, created, (*lines, failure))
+            copied += 1
+            created += int(is_new)
+            marker = "+" if is_new else "<-"
+            lines.append(f"  {_display(dest)}  {marker} {len(blob)} B")
+
+    lines.append(
+        f"SUCCESS:propagate {copied} file(s) into {len(copies)} vendored copy/copies"
+    )
+    return PropagationResult(0, copied, created, tuple(lines))
 
 
 def main() -> int:
-    missing = [c for c in COPIES if not c.is_dir()]
-    if missing:
-        print(f"FAILED:propagate vendored copy missing: {missing}")
-        return 1
-
-    copied = 0
-    for name in MODULES:
-        src = SOURCE / name
-        blob = src.read_bytes()
-        for copy in COPIES:
-            dest = copy / name
-            if not dest.exists():
-                print(f"FAILED:propagate destination absent: {dest}")
-                return 1
-            dest.write_bytes(blob)
-            if dest.read_bytes() != blob:
-                print(f"FAILED:propagate readback mismatch: {dest}")
-                return 1
-            copied += 1
-            print(f"  {dest.relative_to(REPO).as_posix()}  <- {len(blob)} B")
-
-    print(f"SUCCESS:propagate {copied} file(s) into {len(COPIES)} vendored copy/copies")
-    return 0
+    result = propagate()
+    for line in result.lines:
+        print(line)
+    return result.exit_code
 
 
 if __name__ == "__main__":

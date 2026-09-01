@@ -1,0 +1,571 @@
+{
+  "schema_version": 1,
+  "unit_id": "AUD-0066",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:AUD-0066 Probe 1 OS service state checked on Linux; Probe 2 measured 8812/8765/8000 live; wrong-port control discriminated; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0066",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok",
+    "role": "auditor",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/audit/AUD-0066-scheduled-service-dependency.json",
+      "bytes": 37153,
+      "sha256": "07f4d9f58e37de19b276ed394e9c008ddd1f4eb7db6bc20c808d96ffa872dbb2",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "On this Linux host p2-grok-c Probe 1 queried OS service state live: systemd/pid1, /proc cmdline, bind+tcp+/proc/net/tcp+ss listeners on 8000/8765/8812. Windows Task Scheduler was NOT-CHECKED. linux_service_state_checked=true os_state_checked=true linux_process_hits=1.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0066/probe1-os-state.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/AUD-0066/probe1_os_state.py",
+          "raw_output": "AUD-0066 PROBE 1 - scheduled-task and service state as reported by the OS\nobserved_at_utc=2026-08-19T11:58:51Z\nhostname=p2-grok-c\nos_system=Linux\nos_release=5.15.0-173-generic\nos_machine=x86_64\npid1_comm=systemd\nwindows_mount_mnt_c=False\ncommand_available|name=pwsh|path=ABSENT\ncommand_available|name=powershell.exe|path=ABSENT\ncommand_available|name=schtasks.exe|path=ABSENT\ncommand_available|name=systemctl|path=/usr/bin/systemctl\ncommand_available|name=codex|path=ABSENT\ncommand_available|name=ss|path=/usr/bin/ss\nwindows_task_service_query=NOT-CHECKED\nwindows_task_service_reason=non-Windows host; Task Scheduler APIs are not the OS reporter here\ntask_query_exit=127\ntask_stderr=pwsh-or-script-absent\nlinux_service_query=CHECKED\nlinux_service_reason=/proc cmdline + systemd list-units + bind/tcp//proc/net/tcp + ss -lnt\nlinux_process_hits=1\nlinux_proc|pid=38498|names=MCPAgentMailSupervisor|cmd=/opt/p2/ast-integrate/command-center/p2-wave/probes/ADV-0043/_runtime/mcp_agent_mail/.venv/bin/python -m mcp_agent_mail serve-http --host 127.0.0.1 --port 8812 --path /mcp\nlinux_service|BasicMemory-HTTP-MCP|ABSENT-ON-THIS-HOST|no matching /proc cmdline port=8765 tcp=false\nlinux_service|BasicMemory-Watchdog|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|ClaudeScienceMaintain|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|ClaudeScienceWatchdog|ABSENT-ON-THIS-HOST|no matching /proc cmdline port=8000 tcp=false\nlinux_service|MCP-Orphan-Reaper|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|MCPAgentMailSupervisor|Running-linux-process|pids=38498 port=8812 tcp=True\nlinux_service|MemGuardCommitWatchdog|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|RAM-Keeper|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|RecallIndexRebuild|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|Resource-Guard|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nlinux_service|World-Watch|ABSENT-ON-THIS-HOST|no matching /proc cmdline\nsystemd_query_exit=0\nsystemd_keyword_match_count=0\ncron_file|/etc/crontab|PRESENT\ncron_dir|/etc/cron.d|.placeholder,e2scrub_all\ncron_dir|/etc/cron.daily|.placeholder,apport,apt-compat,dpkg,logrotate,man-db\ncron_dir|/etc/cron.hourly|.placeholder\nnet_query_exit=127\nss_query_exit=0\nkernel_listener_count|port=8000|pwsh=-1|bind_probe=0|tcp_connect=False|proc_net=0|ss=0\nkernel_listener_count|port=8765|pwsh=-1|bind_probe=0|tcp_connect=False|proc_net=0|ss=0\nkernel_listener_count|port=8812|pwsh=-1|bind_probe=1|tcp_connect=True|proc_net=1|ss=1\nnet_stderr=pwsh-or-script-absent\nss_stdout_begin\nState  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\nLISTEN 0      2048       127.0.0.1:8812      0.0.0.0:*          \nss_stdout_end\nwindows_task_state_checked=false\nlinux_service_state_checked=true\nos_state_checked=true\nprobe1_verdict=LINUX-STATE-CHECKED\nPROBE-1-COMPLETE:AUD-0066\nSUCCESS:AUD-0066-probe1\n",
+          "fingerprint": "85010c9bf6de8a255783eba1a070963f8e3faf8d9bb799702d7a64c4499a9cea",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B -c file-read probe1-result.json os_state_checked",
+          "raw_output": "{\"linux_service_count\": 11, \"linux_service_state_checked\": true, \"listen_bind\": {\"8000\": 0, \"8765\": 0, \"8812\": 1}, \"os_state_checked\": true, \"os_system\": \"Linux\", \"tcp\": {\"8000\": false, \"8765\": false, \"8812\": true}, \"windows_task_count\": 0, \"windows_task_state_checked\": false}",
+          "fingerprint": "c76e49c390abfab84a09c2c2614e0fb110362a4746df110e09b68319e0df97df",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Probe 2 measured four declared HTTP rails. healthy_count=2 unhealthy_count=2 core_up=False running_but_refusing_findings=[]. A refused endpoint is the catalog finding, not a harness crash.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0066/probe2-endpoint-health.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "http",
+          "command": "python -B command-center/p2-wave/probes/AUD-0066/probe2_endpoint_health.py",
+          "raw_output": "AUD-0066 PROBE 2 - endpoint health check for every identified HTTP service\nobserved_at_utc=2026-08-19T11:58:51Z\nhealth_rule=TCP connect plus method-appropriate HTTP response; POST for MCP, GET for web UI; route-level 4xx except 404 proves liveness, connection refusal/404/5xx is unhealthy\nendpoint={\"detail\":\"HTTP 400 Bad Request\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":400,\"name\":\"mcp_agent_mail\",\"path\":\"/mcp\",\"port\":8812,\"running_but_refusing\":false,\"source\":\"AGENTS.md live peer rail\",\"task\":\"MCPAgentMailSupervisor\",\"task_state\":\"Running-linux-process\",\"tcp_connected\":true}\nendpoint={\"body_prefix\":\"{\\\"status\\\":\\\"ok\\\",\\\"timestamp\\\":\\\"2026-08-19T11:58:51.544100+00:00\\\"}\",\"detail\":\"HTTP 200\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":200,\"name\":\"mcp_agent_mail_health\",\"path\":\"/api/health\",\"port\":8812,\"running_but_refusing\":false,\"source\":\"AGENTS.md /api/health\",\"task\":\"MCPAgentMailSupervisor\",\"task_state\":\"Running-linux-process\",\"tcp_connected\":true}\nendpoint={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"basic-memory\",\"path\":\"/mcp\",\"port\":8765,\"running_but_refusing\":false,\"source\":\"scripts/agentic-perfection/bm-http-server.ps1\",\"task\":\"BasicMemory-HTTP-MCP\",\"task_state\":\"ABSENT-ON-THIS-HOST\",\"tcp_connected\":false}\nendpoint={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":null,\"name\":\"claude-science\",\"path\":\"/\",\"port\":8000,\"running_but_refusing\":false,\"source\":\"scripts/claude-science/cs.conf\",\"task\":\"ClaudeScienceWatchdog\",\"task_state\":\"ABSENT-ON-THIS-HOST\",\"tcp_connected\":false}\nendpoint_count=4\nhealthy_count=2\nunhealthy_count=2\nunhealthy_services=[\"basic-memory\", \"claude-science\"]\ntask_state_source=probe1-result.json\ntask_states={\"BasicMemory-HTTP-MCP\": \"ABSENT-ON-THIS-HOST\", \"BasicMemory-Watchdog\": \"ABSENT-ON-THIS-HOST\", \"ClaudeScienceMaintain\": \"ABSENT-ON-THIS-HOST\", \"ClaudeScienceWatchdog\": \"ABSENT-ON-THIS-HOST\", \"MCP-Orphan-Reaper\": \"ABSENT-ON-THIS-HOST\", \"MCPAgentMailSupervisor\": \"Running-linux-process\", \"MemGuardCommitWatchdog\": \"ABSENT-ON-THIS-HOST\", \"RAM-Keeper\": \"ABSENT-ON-THIS-HOST\", \"RecallIndexRebuild\": \"ABSENT-ON-THIS-HOST\", \"Resource-Guard\": \"ABSENT-ON-THIS-HOST\", \"World-Watch\": \"ABSENT-ON-THIS-HOST\"}\nrunning_but_refusing_findings=[]\nrunning_but_refusing_correlation=NONE\nprobe2_verdict=ENDPOINTS-MEASURED-CORE-PARTIAL\nPROBE-2-COMPLETE:AUD-0066\nSUCCESS:AUD-0066-probe2\n",
+          "fingerprint": "dda3fdabf72d9443d14b510db4134a52359a5e449b7791fe61352f2fef2ff620",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python -B -c file-read probe2-result.json healthy_count core_up findings",
+          "raw_output": "{\"core_up\": false, \"findings\": [], \"healthy_count\": 2, \"unhealthy_count\": 2}",
+          "fingerprint": "f74de006c7a9c49d5d3158be8869e04a0e4b228129f2d3f70f92ec92b81f3ef9",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The required wrong-port control rejects 127.0.0.1:1 and accepts only a POST fixture. The --mutant-ignore-failure arm goes red. Both states were recorded.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0066/control-wrong-port.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python -B command-center/p2-wave/probes/AUD-0066/control_wrong_port.py",
+          "raw_output": "AUD-0066 CONTROL - deliberately wrong port before trusting endpoint success\ngood_state={\"detail\":\"HTTP 204\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":204,\"name\":\"fixture-good\",\"path\":\"/mcp\",\"port\":43055,\"tcp_connected\":true}\nmisleading_get_state={\"detail\":\"HTTP 404 Not Found\",\"endpoint_responded\":true,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":404,\"name\":\"fixture-get-404\",\"path\":\"/mcp\",\"port\":43055,\"tcp_connected\":true}\nbad_state={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"fixture-wrong\",\"path\":\"/mcp\",\"port\":1,\"tcp_connected\":false}\nwrong_port_rejected=true\nmutant_ignore_failure=false\nevaluated_wrong_healthy=false\ndetector_accepts=true\nCONTROL-PASS:AUD-0066 wrong port failed and POST-only fixture succeeded\n",
+          "fingerprint": "cfd7e1c1bd0f6f646e254cd50757ba6d1ed74cd099d2e5f763152181cbaeb9e8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/AUD-0066/control_wrong_port.py --mutant-ignore-failure",
+          "raw_output": "AUD-0066 CONTROL - deliberately wrong port before trusting endpoint success\ngood_state={\"detail\":\"HTTP 204\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":204,\"name\":\"fixture-good\",\"path\":\"/mcp\",\"port\":39213,\"tcp_connected\":true}\nmisleading_get_state={\"detail\":\"HTTP 404 Not Found\",\"endpoint_responded\":true,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":404,\"name\":\"fixture-get-404\",\"path\":\"/mcp\",\"port\":39213,\"tcp_connected\":true}\nbad_state={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"fixture-wrong\",\"path\":\"/mcp\",\"port\":1,\"tcp_connected\":false}\nwrong_port_rejected=true\nmutant_ignore_failure=true\nevaluated_wrong_healthy=true\ndetector_accepts=false\nCONTROL-RED:AUD-0066 wrong-port failure was ignored\n",
+          "fingerprint": "e8a1d308f2647d5f2951538a52f8b607b4f9962635d83249f3125d3edc4cb968",
+          "exit_code": 1
+        }
+      ]
+    },
+    {
+      "claim": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by STRUCTURAL-CONDITION-11. Global unit_manifest.py --check remains a sibling concern.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0066/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python -B command-center/p2-wave/probes/AUD-0066/_pack_receipt.py",
+          "raw_output": "manifest_path=command-center/p2-wave/probes/AUD-0066/UNIT-ARTIFACT-MANIFEST.json",
+          "fingerprint": "3b55cff45ff717858262c9a768c735566f9ffe71564aaec6ed9cc6bf86454ae0",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "python -B command-center/p2-wave/_measure_one_delivered.py AUD-0066",
+          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
+          "fingerprint": "c60110fb4544e655152a3f75fa0c70eee00fd8163027b4b17fbb89184d9dffbe",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "AUD0066-T1-static-source-inventory",
+      "name": "bounded source inventory was scanned; each path classified present or absent",
+      "command": "python -B command-center/p2-wave/probes/AUD-0066/static_inventory.py",
+      "result": "PASS",
+      "assertions": 11,
+      "output_tail": "renced by CI; no daemon/task registration found\",\"must_be_continuously_running\":false,\"name\":\"memory-guard\"} inventory_count=11 sources_declared=11 sources_present=1 sources_absent=10 inventory_errors=[\"anchors-missing:AGENTS.md\", \"absent:scripts/apply-mcp-health-fixes.ps1\", \"absent:scripts/agentic-perfection/README.md\", \"absent:scripts/agentic-perfection/bm-http-server.ps1\", \"absent:scripts/agentic-perfection/bm-watchdog.ps1\", \"absent:scripts/claude-science/register-tasks.ps1\", \"absent:scripts/claude-science/README.md\", \"absent:scripts/claude-science/cs.conf\", \"absent:scripts/claude-science/cs-supervisor.sh\", \"absent:scripts/claude-science/install.ps1\", \"absent:ci/tests/test_deployed_hook_twin_parity.py\", \"hex-mismatch\"] STATIC-INVENTORY-COMPLETE:AUD-0066 SUCCESS:AUD-0066-static-inventory"
+    },
+    {
+      "id": "AUD0066-T2-os-scope-detection",
+      "name": "Probe 1 reports scheduled-task or service state as reported by this OS",
+      "command": "python -B command-center/p2-wave/probes/AUD-0066/probe1_os_state.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "ENT cron_dir|/etc/cron.d|.placeholder,e2scrub_all cron_dir|/etc/cron.daily|.placeholder,apport,apt-compat,dpkg,logrotate,man-db cron_dir|/etc/cron.hourly|.placeholder net_query_exit=127 ss_query_exit=0 kernel_listener_count|port=8000|pwsh=-1|bind_probe=0|tcp_connect=False|proc_net=0|ss=0 kernel_listener_count|port=8765|pwsh=-1|bind_probe=0|tcp_connect=False|proc_net=0|ss=0 kernel_listener_count|port=8812|pwsh=-1|bind_probe=1|tcp_connect=True|proc_net=1|ss=1 net_stderr=pwsh-or-script-absent ss_stdout_begin State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess LISTEN 0 2048 127.0.0.1:8812 0.0.0.0:* ss_stdout_end windows_task_state_checked=false linux_service_state_checked=true os_state_checked=true probe1_verdict=LINUX-STATE-CHECKED PROBE-1-COMPLETE:AUD-0066 SUCCESS:AUD-0066-probe1"
+    },
+    {
+      "id": "AUD0066-T3-live-endpoints",
+      "name": "Probe 2 measures the declared HTTP service endpoints",
+      "command": "python -B command-center/p2-wave/probes/AUD-0066/probe2_endpoint_health.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "healthy_count=2 unhealthy_count=2 unhealthy_services=[\"basic-memory\", \"claude-science\"] task_state_source=probe1-result.json task_states={\"BasicMemory-HTTP-MCP\": \"ABSENT-ON-THIS-HOST\", \"BasicMemory-Watchdog\": \"ABSENT-ON-THIS-HOST\", \"ClaudeScienceMaintain\": \"ABSENT-ON-THIS-HOST\", \"ClaudeScienceWatchdog\": \"ABSENT-ON-THIS-HOST\", \"MCP-Orphan-Reaper\": \"ABSENT-ON-THIS-HOST\", \"MCPAgentMailSupervisor\": \"Running-linux-process\", \"MemGuardCommitWatchdog\": \"ABSENT-ON-THIS-HOST\", \"RAM-Keeper\": \"ABSENT-ON-THIS-HOST\", \"RecallIndexRebuild\": \"ABSENT-ON-THIS-HOST\", \"Resource-Guard\": \"ABSENT-ON-THIS-HOST\", \"World-Watch\": \"ABSENT-ON-THIS-HOST\"} running_but_refusing_findings=[] running_but_refusing_correlation=NONE probe2_verdict=ENDPOINTS-MEASURED-CORE-PARTIAL PROBE-2-COMPLETE:AUD-0066 SUCCESS:AUD-0066-probe2"
+    },
+    {
+      "id": "AUD0066-T4-required-wrong-port-control",
+      "name": "control: health probe fails a deliberately wrong port before trusting success",
+      "command": "python -B command-center/p2-wave/probes/AUD-0066/control_wrong_port.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":204,\"name\":\"fixture-good\",\"path\":\"/mcp\",\"port\":43055,\"tcp_connected\":true} misleading_get_state={\"detail\":\"HTTP 404 Not Found\",\"endpoint_responded\":true,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":404,\"name\":\"fixture-get-404\",\"path\":\"/mcp\",\"port\":43055,\"tcp_connected\":true} bad_state={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"fixture-wrong\",\"path\":\"/mcp\",\"port\":1,\"tcp_connected\":false} wrong_port_rejected=true mutant_ignore_failure=false evaluated_wrong_healthy=false detector_accepts=true CONTROL-PASS:AUD-0066 wrong port failed and POST-only fixture succeeded"
+    },
+    {
+      "id": "AUD0066-T5-negative-control-can-go-red",
+      "name": "wrong-port detector goes red when connection failure is ignored",
+      "command": "python -B command-center/p2-wave/probes/AUD-0066/control_wrong_port.py --mutant-ignore-failure",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":204,\"name\":\"fixture-good\",\"path\":\"/mcp\",\"port\":39213,\"tcp_connected\":true} misleading_get_state={\"detail\":\"HTTP 404 Not Found\",\"endpoint_responded\":true,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":404,\"name\":\"fixture-get-404\",\"path\":\"/mcp\",\"port\":39213,\"tcp_connected\":true} bad_state={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"fixture-wrong\",\"path\":\"/mcp\",\"port\":1,\"tcp_connected\":false} wrong_port_rejected=true mutant_ignore_failure=true evaluated_wrong_healthy=true detector_accepts=false CONTROL-RED:AUD-0066 wrong-port failure was ignored"
+    },
+    {
+      "id": "AUD0066-T6-task-result-code-consistency",
+      "name": "documented decimal and hexadecimal scheduler result disagree (finding recorded)",
+      "command": "python -B command-center/p2-wave/probes/AUD-0066/static_inventory.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "documented_result_encoding_consistent=false computed=0x800710e0 written=0x80070420"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "AUD0066-NC1-wrong-port",
+      "kind": "known-broken-fixture",
+      "description": "control: confirm the health probe returns a failure for a deliberately wrong port before trusting any success it reports",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "AUD-0066 CONTROL - deliberately wrong port before trusting endpoint success\ngood_state={\"detail\":\"HTTP 204\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":204,\"name\":\"fixture-good\",\"path\":\"/mcp\",\"port\":39213,\"tcp_connected\":true}\nmisleading_get_state={\"detail\":\"HTTP 404 Not Found\",\"endpoint_responded\":true,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":404,\"name\":\"fixture-get-404\",\"path\":\"/mcp\",\"port\":39213,\"tcp_connected\":true}\nbad_state={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"fixture-wrong\",\"path\":\"/mcp\",\"port\":1,\"tcp_connected\":false}\nwrong_port_rejected=true\nmutant_ignore_failure=true\nevaluated_wrong_healthy=true\ndetector_accepts=false\nCONTROL-RED:AUD-0066 wrong-port failure was ignored\n",
+      "good_state_output": "AUD-0066 CONTROL - deliberately wrong port before trusting endpoint success\ngood_state={\"detail\":\"HTTP 204\",\"endpoint_responded\":true,\"healthy\":true,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":204,\"name\":\"fixture-good\",\"path\":\"/mcp\",\"port\":43055,\"tcp_connected\":true}\nmisleading_get_state={\"detail\":\"HTTP 404 Not Found\",\"endpoint_responded\":true,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"GET\",\"http_status\":404,\"name\":\"fixture-get-404\",\"path\":\"/mcp\",\"port\":43055,\"tcp_connected\":true}\nbad_state={\"detail\":\"ConnectionRefusedError: [Errno 111] Connection refused\",\"endpoint_responded\":false,\"healthy\":false,\"host\":\"127.0.0.1\",\"http_method\":\"POST\",\"http_status\":null,\"name\":\"fixture-wrong\",\"path\":\"/mcp\",\"port\":1,\"tcp_connected\":false}\nwrong_port_rejected=true\nmutant_ignore_failure=false\nevaluated_wrong_healthy=false\ndetector_accepts=true\nCONTROL-PASS:AUD-0066 wrong port failed and POST-only fixture succeeded\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-deliver-aud0066-linux-os-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "reviewed_at": "2026-08-19T11:58:55Z",
+    "notes": "Independent remasure of Probe 1/2 from live raw transcripts plus probe JSON. os_system=Linux windows_task_state_checked=False linux_service_state_checked=True healthy_count=2 core_up=False findings=[]. Catalog asked for a fresh-context Claude falsifier of the headline count; this remasure is a file-read of the live transcripts. Recovery-after-death remains a residual. Condition 11 uses the per-unit manifest."
+  },
+  "defects": [
+    {
+      "id": "AUD0066-D1-agent-mail-endpoint",
+      "severity": "P2",
+      "status": "resolved",
+      "summary": "127.0.0.1:8812 Probe 2 result recorded in probe2-result.json (mcp_agent_mail)."
+    },
+    {
+      "id": "AUD0066-D2-basic-memory-endpoint",
+      "severity": "P2",
+      "status": "open",
+      "summary": "127.0.0.1:8765 Probe 2 result recorded in probe2-result.json (basic-memory)."
+    },
+    {
+      "id": "AUD0066-D3-task-result-code-mismatch",
+      "severity": "P2",
+      "status": "open",
+      "summary": "static_inventory.py still computes decimal 2147946720 = 0x800710e0 against written 0x80070420. register-tasks.ps1 is absent on this checkout so the mismatch is a constant-level finding."
+    },
+    {
+      "id": "AUD0066-D5-claude-science-endpoint",
+      "severity": "P3",
+      "status": "open",
+      "summary": "127.0.0.1:8000 Probe 2 result recorded in probe2-result.json (claude-science)."
+    },
+    {
+      "id": "AUD0066-D6-windows-task-scheduler-not-this-os",
+      "severity": "P2",
+      "status": "open",
+      "summary": "This worktree is Linux; Get-ScheduledTask was not the OS reporter. Probe 1 reported Linux process/listener state instead. Windows current-state remains a residual."
+    },
+    {
+      "id": "AUD0066-D7-harvest-sidecars-absent",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named sidecars exist: probe1_os_state.py, probe2_endpoint_health.py, control_wrong_port.py, static_inventory.py and hashed raw logs."
+    },
+    {
+      "id": "AUD0066-D10-official-probes-absent",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Official named probes re-ran to exit 0 on this checkout."
+    },
+    {
+      "id": "AUD0066-D11-c11-per-unit-manifest",
+      "severity": "P2",
+      "status": "resolved",
+      "summary": "This unit registers via command-center/p2-wave/probes/AUD-0066/UNIT-ARTIFACT-MANIFEST.json. Global --check remains a sibling BLD-0001 issue."
+    },
+    {
+      "id": "AUD0066-D13-windows-source-scripts-absent",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Bounded Windows-side source scripts (claude-science/, agentic-perfection/, apply-mcp-health-fixes.ps1) are absent from this Linux checkout; static_inventory.py recorded the absences."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/AUD-0066/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "AUD-0066",
+    "registered_at": "2026-08-19T11:58:55Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + audit-inventory schema resolver",
+      "artifact_path": "command-center/audit/AUD-0066-scheduled-service-dependency.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/probes/AUD-0066/_pack_receipt.py",
+        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=AUD-0066\nstate=SUCCESS\nSUCCESS:consumer-read\n",
+        "fingerprint": "622d06f1ce13c794d81b299525854af536467fb88428a3e19e99f63629880218",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T19:28:24Z",
+    "ended_at": "2026-08-19T11:58:55Z"
+  },
+  "retry": {
+    "count": 3,
+    "policy": "catalog: at most 3 attempts each in a different shell (pwsh7, git-bash, wsl bash). This attempt is native Linux bash on the p2 worktree.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "named-probe-scripts-absent",
+        "outcome": "BLOCKED",
+        "started_at": "2026-08-17T13:55:29Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "windows-only-probe1-exit-2-on-linux",
+        "outcome": "FAILED",
+        "started_at": "2026-08-19T10:47:20Z"
+      },
+      {
+        "attempt": 3,
+        "error_fingerprint": "linux-os-state-plus-live-endpoints",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-19T11:58:55Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "Probe 1 reports THIS OS (systemd//proc/ss) rather than requiring Get-ScheduledTask.",
+      "Register via STRUCTURAL-CONDITION-11 per-unit manifest instead of the red global unit_manifest.py --check."
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Recovery-after-death of MCPAgentMailSupervisor, BasicMemory-HTTP-MCP, or ClaudeScienceWatchdog was observed in this session.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "With owner authorisation, hard-kill one child at a time, poll the matching endpoint monotonically, and correlate recovery to supervisor history."
+    },
+    {
+      "claim": "Windows Task Scheduler current state for the named program tasks was queried on this host.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run probe1_os_state.py on a Windows host where Get-ScheduledTask is the OS reporter, or expose a read-only schtasks endpoint to this Linux worktree."
+    },
+    {
+      "claim": "The complete Task Scheduler population whose actions point into the program roots is enumerated.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Enumerate every task by action executable and match actions to deployed roots rather than the named inventory list."
+    }
+  ],
+  "report": {
+    "kind": "audit-inventory",
+    "stage": "implement",
+    "overall_verdict": "PARTIAL",
+    "question_or_target": "Which Windows scheduled tasks and background services must be running for this programs rails to work, what is each ones current state, and what is the observed recovery behaviour when one dies?",
+    "evidence_requirement_verbatim": "Probe 1: the scheduled-task and service state as reported by the OS. Probe 2: an endpoint health check for each service that exposes one - a task reported as Running whose endpoint refuses connections is the finding, and the task state alone cannot show it.",
+    "headline": "Live Linux remasure on p2-grok-c: OS service state checked; HTTP 8812/8765/8000 measured; wrong-port control discriminated; Windows Task Scheduler NOT-CHECKED; recovery-after-death remains NOT-CHECKED.",
+    "answer": {
+      "core_continuous_windows_tasks": [
+        "MCPAgentMailSupervisor"
+      ],
+      "feature_continuous_windows_tasks": [
+        "BasicMemory-HTTP-MCP",
+        "ClaudeScienceWatchdog (only when the Claude Science subsystem is required)"
+      ],
+      "periodic_not_normally_running": [
+        "BasicMemory-Watchdog",
+        "ClaudeScienceMaintain",
+        "World-Watch",
+        "Resource-Guard",
+        "RAM-Keeper",
+        "MCP-Orphan-Reaper"
+      ],
+      "current_windows_state": "NOT-CHECKED on this Linux host",
+      "current_linux_state": {
+        "MCPAgentMailSupervisor": {
+          "state": "Running-linux-process",
+          "extra": "pids=38498 port=8812 tcp=True",
+          "process_hits": 1
+        },
+        "BasicMemory-HTTP-MCP": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline port=8765 tcp=false",
+          "process_hits": 0
+        },
+        "BasicMemory-Watchdog": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "ClaudeScienceWatchdog": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline port=8000 tcp=false",
+          "process_hits": 0
+        },
+        "ClaudeScienceMaintain": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "World-Watch": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "Resource-Guard": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "RAM-Keeper": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "RecallIndexRebuild": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "MCP-Orphan-Reaper": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        },
+        "MemGuardCommitWatchdog": {
+          "state": "ABSENT-ON-THIS-HOST",
+          "extra": "no matching /proc cmdline",
+          "process_hits": 0
+        }
+      },
+      "current_endpoint_state": {
+        "mcp_agent_mail": {
+          "port": 8812,
+          "healthy": true,
+          "tcp_connected": true,
+          "http_status": 400,
+          "detail": "HTTP 400 Bad Request",
+          "task_state": "Running-linux-process",
+          "running_but_refusing": false
+        },
+        "mcp_agent_mail_health": {
+          "port": 8812,
+          "healthy": true,
+          "tcp_connected": true,
+          "http_status": 200,
+          "detail": "HTTP 200",
+          "task_state": "Running-linux-process",
+          "running_but_refusing": false
+        },
+        "basic-memory": {
+          "port": 8765,
+          "healthy": false,
+          "tcp_connected": false,
+          "http_status": null,
+          "detail": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "task_state": "ABSENT-ON-THIS-HOST",
+          "running_but_refusing": false
+        },
+        "claude-science": {
+          "port": 8000,
+          "healthy": false,
+          "tcp_connected": false,
+          "http_status": null,
+          "detail": "ConnectionRefusedError: [Errno 111] Connection refused",
+          "task_state": "ABSENT-ON-THIS-HOST",
+          "running_but_refusing": false
+        }
+      },
+      "running_task_endpoint_refusal_finding": "NONE on this remasure (findings empty).",
+      "fresh_recovery_observation": "NONE (hard-kill not authorised in this session)"
+    },
+    "inventory": [
+      {
+        "name": "BasicMemory-HTTP-MCP",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline port=8765 tcp=false"
+      },
+      {
+        "name": "BasicMemory-Watchdog",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "ClaudeScienceMaintain",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "ClaudeScienceWatchdog",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline port=8000 tcp=false"
+      },
+      {
+        "name": "MCP-Orphan-Reaper",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "MCPAgentMailSupervisor",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "Running-linux-process",
+        "linux_extra": "pids=38498 port=8812 tcp=True"
+      },
+      {
+        "name": "MemGuardCommitWatchdog",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "RAM-Keeper",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "RecallIndexRebuild",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "Resource-Guard",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      },
+      {
+        "name": "World-Watch",
+        "windows_task_state": null,
+        "windows_extra": null,
+        "linux_state": "ABSENT-ON-THIS-HOST",
+        "linux_extra": "no matching /proc cmdline"
+      }
+    ],
+    "observations": [
+      {
+        "name": "os_state_checked",
+        "measured": true,
+        "method": "probe1_os_state.py Windows Get-ScheduledTask or Linux systemd//proc/ss",
+        "anchor": "command-center/p2-wave/probes/AUD-0066/probe1-os-state.raw.txt"
+      },
+      {
+        "name": "windows_task_state_checked",
+        "measured": false,
+        "method": "pwsh Get-ScheduledTask via probe1_os_state.py",
+        "anchor": "command-center/p2-wave/probes/AUD-0066/probe1-os-state.raw.txt"
+      },
+      {
+        "name": "healthy_http_service_endpoints",
+        "measured": 2,
+        "method": "TCP plus HTTP route probe",
+        "anchor": "command-center/p2-wave/probes/AUD-0066/probe2-endpoint-health.raw.txt"
+      },
+      {
+        "name": "wrong_port_control_rejected",
+        "measured": true,
+        "method": "fixture server plus loopback port 1",
+        "anchor": "command-center/p2-wave/probes/AUD-0066/control-wrong-port.raw.txt"
+      },
+      {
+        "name": "running_but_refusing_count",
+        "measured": 0,
+        "method": "join of Probe 1 OS state to Probe 2 health",
+        "anchor": "command-center/p2-wave/probes/AUD-0066/probe2-endpoint-health.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "AUD0066-NC1-wrong-port",
+      "AUD0066-T5-negative-control-can-go-red"
+    ]
+  },
+  "extensions": {
+    "completion_line": "UNIT-COMPLETE:AUD-0066",
+    "completion_marker": "UNIT-COMPLETE:AUD-0066",
+    "condition_11": {
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "manifest_path": "command-center/p2-wave/probes/AUD-0066/UNIT-ARTIFACT-MANIFEST.json",
+      "unit_manifest_write_invoked": false
+    },
+    "harvest_unit_complete_not_proof": true,
+    "success_hand_flipped": false,
+    "probes_reran_live": true,
+    "cloud_ok_is_not_delivery": true
+  }
+}

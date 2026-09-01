@@ -254,12 +254,12 @@ def test_last_event_tool_use(tmp_path):
             }
         },
     )
-    assert dc.last_event_summary(p, 80).startswith("🔧 Bash")
+    assert dc.last_event_summary(p, 80).startswith("+ Bash")
 
 
 def test_last_event_text_from_content_string(tmp_path):
     p = _agent(tmp_path, "a", {"message": {"content": "just text"}})
-    assert dc.last_event_summary(p, 80) == "📝 just text"
+    assert dc.last_event_summary(p, 80) == "> just text"
 
 
 def test_last_event_tool_result_ok_and_error(tmp_path):
@@ -306,7 +306,7 @@ def test_last_event_thinking_after_empty_text(tmp_path):
             }
         },
     )
-    assert dc.last_event_summary(p, 80) == "💭 deep"
+    assert dc.last_event_summary(p, 80) == "* deep"
 
 
 def test_last_event_skips_non_dict_block_and_bad_lines(tmp_path):
@@ -319,7 +319,7 @@ def test_last_event_skips_non_dict_block_and_bad_lines(tmp_path):
         encoding="utf-8",
     )
     # reversed blocks: "bare" (non-dict, skipped) then the text block
-    assert dc.last_event_summary(str(p), 80) == "📝 hi"
+    assert dc.last_event_summary(str(p), 80) == "> hi"
 
 
 def test_last_event_no_meaningful_block_returns_empty(tmp_path):
@@ -342,7 +342,7 @@ def test_last_event_skips_trailing_blank_and_malformed_lines(tmp_path):
         "{bad json\n",  # unparseable -> skipped
         encoding="utf-8",
     )
-    assert dc.last_event_summary(str(p), 80) == "📝 hi"
+    assert dc.last_event_summary(str(p), 80) == "> hi"
 
 
 # ───────────────────────── scan ─────────────────────────

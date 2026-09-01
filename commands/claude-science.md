@@ -1,5 +1,5 @@
 ---
-description: One-command control for the local Claude Science WSL2 workbench (127.0.0.1:8000). Shells to the cs dispatcher - open, status, fix, doctor, ensure, stop, backup, restore. Alias - /cs.
+description: One-command control for the local Claude Science WSL2 workbench (127.0.0.1:8000). Shells to the cs dispatcher - open, status, fix, doctor, ensure, stop, backup, restore.
 ---
 
 # claude-science — Claude Science (local) control
@@ -11,7 +11,6 @@ workbench — a WSL2 daemon serving `http://127.0.0.1:8000/`. **LOCAL only.**
 
 ```
 /claude-science [open|status|fix|doctor|ensure|stop|backup|restore <ts|latest>]
-/cs             ...same thing (short alias, kept working on purpose)
 ```
 
 - `open` — ensure up (start-if-down / recover-if-wedged, wait for readiness) then open the UI. The one-click.
@@ -60,4 +59,3 @@ Then relay the dispatcher's output to the user:
 
 - Skill: `skills/claude-science-local/SKILL.md` — the verbs, the wedge gotcha, backup/restore.
 - Docs: `scripts/claude-science/README.md` — install, NVIDIA NIM connector, reliability hardening.
-- Alias: `commands/cs.md` — the short form, forwards here.

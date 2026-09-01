@@ -1,0 +1,277 @@
+version: 1
+generated: "2026-04-01"
+
+servers:
+  codacy:
+    display_name: Codacy
+    description: "Code quality metrics, issues, repositories, and organizations"
+    transport: stdio
+    command: npx
+    args: ["-y", "@codacy/codacy-mcp@latest"]
+    env:
+      CODACY_ACCOUNT_TOKEN: "${CODACY_ACCOUNT_TOKEN}"
+      CODACY_API_TOKEN: "${CODACY_API_TOKEN}"
+    categories: [code_quality, repositories, organizations, metrics]
+    tools:
+      - id: get_repository_quality
+        name: "Get repository quality"
+        keywords: [quality, grade, metrics, score]
+        category: code_quality
+        description: "Get quality metrics and grade for a repository"
+        params:
+          - { name: provider, type: string, required: true }
+          - { name: owner, type: string, required: true }
+          - { name: repository, type: string, required: true }
+        result_size: medium
+      - id: list_repositories
+        name: "List repositories"
+        keywords: [repositories, repos, list]
+        category: repositories
+        description: "List repositories for an organization"
+        params:
+          - { name: provider, type: string, required: true }
+          - { name: owner, type: string, required: true }
+        result_size: large
+      - id: get_repository_issues
+        name: "Get repository issues"
+        keywords: [issues, problems, findings, lint]
+        category: code_quality
+        description: "Get code quality issues for a repository"
+        params:
+          - { name: provider, type: string, required: true }
+          - { name: owner, type: string, required: true }
+          - { name: repository, type: string, required: true }
+        result_size: large
+      - id: list_organizations
+        name: "List organizations"
+        keywords: [organizations, orgs, accounts]
+        category: organizations
+        description: "List organizations accessible to the authenticated user"
+        params: []
+        result_size: medium
+
+  sonarqube:
+    display_name: SonarQube
+    description: "Static analysis, security hotspots, code smells, and coverage"
+    transport: stdio
+    command: docker
+    args: ["run", "-i", "--rm", "-e", "SONARQUBE_TOKEN", "-e", "SONARQUBE_ORG", "-e", "SONARQUBE_URL", "-e", "SONARQUBE_IDE_PORT", "docker.io/mcp/sonarqube:latest"]
+    categories: [static_analysis, security, code_quality, coverage]
+    tools:
+      - id: analyze_project
+        name: "Analyze project"
+        keywords: [scan, analyze, quality, issues]
+        category: static_analysis
+        description: "Run static analysis on a project"
+        params:
+          - { name: project_key, type: string, required: true }
+        result_size: large
+      - id: get_security_hotspots
+        name: "Get security hotspots"
+        keywords: [security, hotspots, vulnerabilities]
+        category: security
+        description: "Get security hotspots for a project"
+        params:
+          - { name: project_key, type: string, required: true }
+        result_size: large
+      - id: get_code_smells
+        name: "Get code smells"
+        keywords: [smells, maintainability, debt, refactor]
+        category: code_quality
+        description: "Get code smell issues for a project"
+        params:
+          - { name: project_key, type: string, required: true }
+        result_size: large
+      - id: get_coverage
+        name: "Get coverage"
+        keywords: [coverage, tests, lines, branches]
+        category: coverage
+        description: "Get test coverage metrics for a project"
+        params:
+          - { name: project_key, type: string, required: true }
+        result_size: medium
+
+  github:
+    display_name: GitHub
+    description: "Issues, PRs, repos, branches, releases, reviews, code search"
+    transport: plugin
+    plugin_id: "plugin:github:github"
+    categories: [issues, pull_requests, repositories, code_search, releases, reviews]
+    tools:
+      - id: search_code
+        name: Search code
+        keywords: [code, search, grep, find]
+        category: code_search
+        description: "Search code across GitHub repositories"
+        params:
+          - { name: q, type: string, required: true, description: "GitHub code search query" }
+          - { name: per_page, type: integer, required: false }
+        result_size: large
+      - id: list_issues
+        name: List issues
+        keywords: [issues, bugs, tickets]
+        category: issues
+        description: "List issues in a repository"
+        params:
+          - { name: owner, type: string, required: true }
+          - { name: repo, type: string, required: true }
+          - { name: state, type: string, required: false }
+        result_size: large
+      - id: search_issues
+        name: Search issues
+        keywords: [search, issues, find]
+        category: issues
+        description: "Search issues across repositories"
+        params:
+          - { name: q, type: string, required: true }
+        result_size: large
+      - id: list_pull_requests
+        name: List pull requests
+        keywords: [pr, pull request, merge]
+        category: pull_requests
+        description: "List pull requests in a repository"
+        params:
+          - { name: owner, type: string, required: true }
+          - { name: repo, type: string, required: true }
+          - { name: state, type: string, required: false }
+        result_size: large
+      - id: create_pull_request
+        name: Create pull request
+        keywords: [pr, create, open]
+        category: pull_requests
+        description: "Create a new pull request"
+        params:
+          - { name: owner, type: string, required: true }
+          - { name: repo, type: string, required: true }
+          - { name: title, type: string, required: true }
+          - { name: body, type: string, required: false }
+          - { name: head, type: string, required: true }
+          - { name: base, type: string, required: true }
+        result_size: small
+
+  linear:
+    display_name: Linear
+    description: "Issues, projects, cycles, milestones, labels, and teams"
+    transport: plugin
+    plugin_id: "plugin:linear:linear"
+    categories: [issues, projects, cycles, milestones, teams]
+    tools:
+      - id: list_issues
+        name: List issues
+        keywords: [issues, tasks, tickets]
+        category: issues
+        description: "List issues with filters"
+        params:
+          - { name: team_id, type: string, required: false }
+          - { name: status, type: string, required: false }
+        result_size: large
+      - id: get_issue
+        name: Get issue
+        keywords: [issue, detail, view]
+        category: issues
+        description: "Get details of a specific issue"
+        params:
+          - { name: issue_id, type: string, required: true }
+        result_size: medium
+      - id: save_issue
+        name: Save issue
+        keywords: [create, update, issue]
+        category: issues
+        description: "Create or update an issue"
+        params:
+          - { name: title, type: string, required: true }
+          - { name: team_id, type: string, required: true }
+          - { name: description, type: string, required: false }
+        result_size: small
+      - id: list_projects
+        name: List projects
+        keywords: [projects, list, roadmap]
+        category: projects
+        description: "List projects with optional filters"
+        params:
+          - { name: team_id, type: string, required: false }
+        result_size: large
+
+  sentry:
+    display_name: Sentry
+    description: "Error tracking, issues, events, projects, and releases"
+    transport: plugin
+    plugin_id: "plugin:sentry:sentry"
+    categories: [issues, events, projects, releases]
+    tools:
+      - id: search_issues
+        name: Search issues
+        keywords: [errors, issues, bugs, search]
+        category: issues
+        description: "Search Sentry issues"
+        params:
+          - { name: query, type: string, required: true }
+          - { name: project, type: string, required: false }
+        result_size: large
+      - id: search_events
+        name: Search events
+        keywords: [events, traces, errors]
+        category: events
+        description: "Search error events"
+        params:
+          - { name: query, type: string, required: true }
+        result_size: large
+      - id: find_projects
+        name: Find projects
+        keywords: [projects, list, find]
+        category: projects
+        description: "Find Sentry projects"
+        params:
+          - { name: organization, type: string, required: false }
+        result_size: medium
+      - id: find_releases
+        name: Find releases
+        keywords: [releases, versions, deploys]
+        category: releases
+        description: "Find releases for a project"
+        params:
+          - { name: organization, type: string, required: true }
+          - { name: project, type: string, required: false }
+        result_size: medium
+
+  notion:
+    display_name: Notion
+    description: "Pages, databases, comments, views, and search"
+    transport: plugin
+    plugin_id: "plugin:Notion:notion"
+    categories: [pages, databases, search, comments]
+    tools:
+      - id: search
+        name: Search
+        keywords: [search, find, query]
+        category: search
+        description: "Search Notion workspace"
+        params:
+          - { name: query, type: string, required: true }
+        result_size: large
+      - id: get_page
+        name: Get page
+        keywords: [page, read, fetch]
+        category: pages
+        description: "Fetch a Notion page"
+        params:
+          - { name: page_id, type: string, required: true }
+        result_size: medium
+      - id: create_page
+        name: Create page
+        keywords: [create, new, page]
+        category: pages
+        description: "Create a new page"
+        params:
+          - { name: parent_id, type: string, required: true }
+          - { name: title, type: string, required: true }
+          - { name: content, type: string, required: false }
+        result_size: small
+      - id: get_comments
+        name: Get comments
+        keywords: [comments, discussion, feedback]
+        category: comments
+        description: "Get comments on a page or block"
+        params:
+          - { name: block_id, type: string, required: true }
+        result_size: medium

@@ -28,12 +28,12 @@ Always run `Skill(skill="simplify")` after writing or modifying code.
 
 | Category | Signal | Reference |
 |---|---|---|
-| Silent param ignored | API accepts but drops filter | [code-patterns.md](code-patterns.md) — Client-Side Filter |
-| Wrong API field/endpoint | 0 results or 404 | [api-fixes.md](api-fixes.md) — Quick Lookup Table |
-| Schema invalid | null type, missing oneOf | [code-patterns.md](code-patterns.md) — Schema Patterns |
-| Undisclosed normalization | Auto-transform hidden from user | [code-patterns.md](code-patterns.md) — Normalization Disclosure |
-| try/except indent | SyntaxError at runtime | [code-patterns.md](code-patterns.md) — try/except section |
-| Truncation buried | Data count hidden in notes | [code-patterns.md](code-patterns.md) — Truncation |
+| Silent param ignored | API accepts but drops filter | [code-patterns.md](references/code-patterns.md) — Client-Side Filter |
+| Wrong API field/endpoint | 0 results or 404 | [api-fixes.md](references/api-fixes.md) — Quick Lookup Table |
+| Schema invalid | null type, missing oneOf | [code-patterns.md](references/code-patterns.md) — Schema Patterns |
+| Undisclosed normalization | Auto-transform hidden from user | [code-patterns.md](references/code-patterns.md) — Normalization Disclosure |
+| try/except indent | SyntaxError at runtime | [code-patterns.md](references/code-patterns.md) — try/except section |
+| Truncation buried | Data count hidden in notes | [code-patterns.md](references/code-patterns.md) — Truncation |
 
 ## References
 

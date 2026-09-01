@@ -261,8 +261,9 @@ Measured: a fresh clone of the same commit had **31 collection errors** while th
 **Exact edit — one row in the existing evidence table:**
 `| Tests pass | Suite run from a FRESH CLONE of the commit, exit 0 | Working-tree green |`
 Pair it with the Windows CRLF corollary (L5): a local formatter green is not CI green — verify against the
-**stored blob** via `git ls-files -s` + `git cat-file -p`, never `git archive` or `git show <rev>:<path>`,
-both of which return CRLF worktree bytes on this box.
+**stored blob** via `git ls-files -s` + `git cat-file -p` or `git show <rev>:<path>`. Only `git archive`
+is the CRLF trap on this box (returns worktree bytes); `git show <rev>:<path>` and `git cat-file -p`
+both return the LF blob.
 Do this **after** §1.1, so the row lands in a file whose Red Flags already read correctly.
 
 ### 2.3 `systematic-debugging` <- L3 (detector controls / both-states)
@@ -391,8 +392,8 @@ must not re-derive wrong:
 - **Never let a mass-vendored tree ride along.** `crypto-ctf` is 12,816 files live vs **2** tracked, is
   **not** gitignored (`git check-ignore` returns nothing) and is **not** staged. A naive sync-from-live
   sweeps ~12,800 files into one commit and buries the 8 real fixes.
-- **CRLF discipline:** verify against the stored blob (`git ls-files -s` + `git cat-file -p`); `git archive`
-  and `git show <rev>:<path>` return CRLF worktree bytes on this box.
+- **CRLF discipline:** verify against the stored blob (`git ls-files -s` + `git cat-file -p` or `git show <rev>:<path>`). Only `git archive`
+  is the CRLF trap on this box (returns worktree bytes). `git show <rev>:<path>` and `git cat-file -p` both return the LF blob. Measured: three tracked files with 127/32/72 worktree CRLF pairs returned 0 CRLF from both blob routes.
 - **Cross-reference** `writing-skills` (the four-tree model) rather than restating it.
 
 *Likely (55-80%)* that a standalone skill is right rather than a `writing-skills` section — it is
