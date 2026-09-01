@@ -73,7 +73,34 @@ extend-exclude = [
     # leave a gate that can no longer be shown to fire. Same reasoning as the provenance-locked
     # probes above: the bytes ARE the measurement.
     "command-center/p2-wave/probes/*/control",
+    # Frozen third-party skill import, landed by the 2026-08-28 live-harness fold
+    # into a lint gate that had no rule for it. The repo's own audit classifies the
+    # whole tree as one unit: "frozen import (uniform mtime 2026-04-05)", "dormant
+    # SWE-pattern pack; 159/186 not deployed", "promote-select / archive / drop --
+    # owner scope call" (docs/audit-design-2026-07-13/A4-skills-dup-matrix.md rows
+    # 60/97, C-skills-reconcile.md row 57). Nothing in the repo loads it: the
+    # canonical skill root is `.agents/skills`, and a search for a `.agents/library`
+    # consumer outside docs/ and command-center/ returns nothing.
+    # Measured 2026-09-01: 99 .py files, 457 findings (287 F541 + 93 F401 + 27 F841
+    # + 50 others) and 99/99 would be reformatted -- i.e. the entire Python surface
+    # is untouched upstream content. Reformatting it would make every future
+    # upstream refresh a merge conflict for a pack that may yet be dropped. Same
+    # rationale as the ralph-orchestrator vendor tree and the three adopted packs
+    # below: not our code, so not our lint. If a pack is ever PROMOTED into
+    # `.agents/skills`, it leaves this tree and is linted there like everything else.
+    ".agents/library",
     "tools/editor/ralph-orchestrator/vendor",
+    # Mirror of the already-excluded `.agents/skills/microsoft-foundry` (author:
+    # Microsoft). The dual-write doctrine keeps `skills/` and `.agents/skills/`
+    # byte-identical, so excluding only one side was an oversight -- the same pair
+    # is already excluded on BOTH sides for codex-databricks-fanout just below.
+    # Measured 2026-09-01: 15 .py files, 6 E701 findings, 15/15 would be reformatted.
+    # The other two adopted packs (continuous-learning-v2,
+    # protein-interaction-network-analysis) are deliberately NOT mirrored here: their
+    # `skills/` copies measure clean (0 findings, 5/5 formatted), and excluding a
+    # clean path would silently license future drift -- the same trade already
+    # settled for `platform/lib/_p12_refute_predicate.py` in [lint.per-file-ignores].
+    "skills/microsoft-foundry",
     "skills/codex-databricks-fanout/scripts/batch_runner.py",
     ".agents/skills/codex-databricks-fanout/scripts/batch_runner.py",
     "**/*.ipynb",
@@ -105,6 +132,19 @@ exclude = [
     "platform/architecture/_probe_dr_catalog.py",
     "platform/architecture/_probe_dr_scheduling.py",
     "platform/lib/workflows/_gen_bp5.py",
+    # Same trade, same shape: two one-shot OpenRouter `/models` probes that the
+    # committed report beside them cites BY FILENAME as its evidence
+    # ("live OpenRouter API via two Python probes in this folder
+    # (`_tmp_hermes_probe.py`, `_tmp_hermes_endpoints.py` -- 417 models confirmed)",
+    # skills/openrouter-routing/openrouter-apps-hermes-uncensored_2026-08-27.md L159).
+    # Listed in both dual-write mirrors. Measured 2026-09-01: all four are
+    # `ruff check` clean and all four would be rewritten by `ruff format`, so the
+    # format-only exclusion keeps a real defect catchable while the cited bytes stay
+    # reproducible. Delete these lines if they ever become maintained source.
+    "skills/openrouter-routing/_tmp_hermes_probe.py",
+    "skills/openrouter-routing/_tmp_hermes_endpoints.py",
+    ".agents/skills/openrouter-routing/_tmp_hermes_probe.py",
+    ".agents/skills/openrouter-routing/_tmp_hermes_endpoints.py",
 ]
 
 [lint.per-file-ignores]

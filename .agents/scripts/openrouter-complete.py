@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """T0 OpenRouter chat completion. Prints generation id + usage. Never logs the secret."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,7 +24,9 @@ def redact(text: str, secret: str) -> str:
     return text.replace(secret, "[REDACTED]")
 
 
-def request(method: str, url: str, secret: str, body: dict | None = None, timeout: int = 90) -> tuple[int, object]:
+def request(
+    method: str, url: str, secret: str, body: dict | None = None, timeout: int = 90
+) -> tuple[int, object]:
     raw_bytes = None if body is None else json.dumps(body).encode("utf-8")
     headers = {
         "Authorization": "Bearer " + secret,
@@ -55,7 +58,9 @@ def snippet(text: str, n: int = 120) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="T0 OpenRouter completion (never logs the secret)")
+    parser = argparse.ArgumentParser(
+        description="T0 OpenRouter completion (never logs the secret)"
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--prompt", default="Reply with the single word: pong")
     parser.add_argument("--max-tokens", type=int, default=32)
@@ -65,7 +70,9 @@ def main(argv: list[str] | None = None) -> int:
 
     secret = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not secret:
-        print("ERROR: environment variable OPENROUTER_API_KEY is missing", file=sys.stderr)
+        print(
+            "ERROR: environment variable OPENROUTER_API_KEY is missing", file=sys.stderr
+        )
         return 2
 
     if args.show_limits:
@@ -135,13 +142,26 @@ def main(argv: list[str] | None = None) -> int:
         for attempt in range(4):
             if attempt:
                 time.sleep(1.5)
-            gen_status, gen_payload = request("GET", BASE + "/generation?id=" + encoded, secret)
-            if gen_status == 200 and isinstance(gen_payload, dict) and gen_payload.get("data"):
+            gen_status, gen_payload = request(
+                "GET", BASE + "/generation?id=" + encoded, secret
+            )
+            if (
+                gen_status == 200
+                and isinstance(gen_payload, dict)
+                and gen_payload.get("data")
+            ):
                 break
         print(f"generation_http_status={gen_status}")
         data = gen_payload.get("data") if isinstance(gen_payload, dict) else {}
         if isinstance(data, dict):
-            for field in ("total_cost", "usage", "tokens_prompt", "tokens_completion", "model", "provider_name"):
+            for field in (
+                "total_cost",
+                "usage",
+                "tokens_prompt",
+                "tokens_completion",
+                "model",
+                "provider_name",
+            ):
                 if field in data:
                     print(f"generation_{field}={data[field]}")
     return 0

@@ -17,7 +17,9 @@ import mcp_control_plane as control
 DEFAULT_PROJECT_ROOT = pathlib.Path(r"C:\Users\Prekzursil")
 DEFAULT_CODEX_CONFIG = DEFAULT_PROJECT_ROOT / ".codex" / "config.toml"
 DEFAULT_AGENTS_CONFIG = DEFAULT_PROJECT_ROOT / ".agents" / "agents.json"
-DEFAULT_REPORT = DEFAULT_PROJECT_ROOT / ".agents" / "generated" / "mcp-import-report-2026-04-01.json"
+DEFAULT_REPORT = (
+    DEFAULT_PROJECT_ROOT / ".agents" / "generated" / "mcp-import-report-2026-04-01.json"
+)
 DEFAULT_SHARED_TARGETS = ["codex", "claude"]
 DEFAULT_CODEX_ONLY: set[str] = set()
 RETIRED_SERVERS = {"memory"}
@@ -67,7 +69,9 @@ def convert_server(name: str, raw: dict[str, Any]) -> dict[str, Any]:
     if "command" in raw:
         server["transport"] = "stdio"
         server["command"] = normalize_windows_path(str(raw["command"]))
-        server["args"] = [normalize_windows_path(str(arg)) for arg in raw.get("args", [])]
+        server["args"] = [
+            normalize_windows_path(str(arg)) for arg in raw.get("args", [])
+        ]
         if raw.get("cwd"):
             server["cwd"] = normalize_windows_path(str(raw["cwd"]))
     elif "url" in raw:
@@ -123,7 +127,19 @@ def convert_server(name: str, raw: dict[str, Any]) -> dict[str, Any]:
         server["requiredEnv"] = sorted(required_env)
 
     if name == "hexstrike-ai":
-        launcher = normalize_windows_path(str(raw.get("args", [""])[0])) if raw.get("args") else normalize_windows_path(str(DEFAULT_PROJECT_ROOT / ".local" / "opt" / "hexstrike-ai" / "hexstrike_mcp_launcher.py"))
+        launcher = (
+            normalize_windows_path(str(raw.get("args", [""])[0]))
+            if raw.get("args")
+            else normalize_windows_path(
+                str(
+                    DEFAULT_PROJECT_ROOT
+                    / ".local"
+                    / "opt"
+                    / "hexstrike-ai"
+                    / "hexstrike_mcp_launcher.py"
+                )
+            )
+        )
         server["command"] = "py"
         server["args"] = ["-3", launcher]
 
@@ -141,7 +157,9 @@ def convert_server(name: str, raw: dict[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Import MCP servers from Codex config into .agents/agents.json")
+    parser = argparse.ArgumentParser(
+        description="Import MCP servers from Codex config into .agents/agents.json"
+    )
     parser.add_argument("--codex-config", default=str(DEFAULT_CODEX_CONFIG))
     parser.add_argument("--agents-config", default=str(DEFAULT_AGENTS_CONFIG))
     parser.add_argument("--report", default=str(DEFAULT_REPORT))

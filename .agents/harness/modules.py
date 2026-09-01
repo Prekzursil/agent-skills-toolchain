@@ -462,9 +462,10 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
     """
     if not isinstance(payload, dict):
         return False
-    if os.environ.get("PYTEST_CURRENT_TEST") and os.environ.get(
-        "HARNESS_BM_FLUSH_IN_TEST", ""
-    ).strip() != "1":
+    if (
+        os.environ.get("PYTEST_CURRENT_TEST")
+        and os.environ.get("HARNESS_BM_FLUSH_IN_TEST", "").strip() != "1"
+    ):
         return False
     title = str(payload.get("title") or "").strip()
     body = str(payload.get("body") or "").strip()
@@ -481,7 +482,15 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
         if not resolved:
             return False
         proc = subprocess.run(
-            [resolved, "tool", "write-note", "--title", title[:200], "--content", body[:4000]],
+            [
+                resolved,
+                "tool",
+                "write-note",
+                "--title",
+                title[:200],
+                "--content",
+                body[:4000],
+            ],
             capture_output=True,
             text=True,
             timeout=20,
@@ -2142,7 +2151,11 @@ class RecallModule:
             prior = self._stigmergic_prior(event, prompt_tokens)
         except Exception:
             prior = HookResult.success()
-        if recall.action == "inject" or digest.action == "inject" or prior.action == "inject":
+        if (
+            recall.action == "inject"
+            or digest.action == "inject"
+            or prior.action == "inject"
+        ):
             return _merge_results([digest, recall, prior])
         return prior
 
@@ -2150,7 +2163,9 @@ class RecallModule:
         # Separate markers: SessionStart stdout may be dropped (Grok) while the
         # hook still runs and would otherwise mute the portable first-prompt path.
         kind = "ss" if event.event == "SessionStart" else "up"
-        return self.state_root / "bm-vault-digest" / f"{_session_hash(event)}-{kind}.json"
+        return (
+            self.state_root / "bm-vault-digest" / f"{_session_hash(event)}-{kind}.json"
+        )
 
     def _retry_spool_flush(self, event: HookEvent) -> None:
         if event.event != "SessionStart":
@@ -2179,7 +2194,10 @@ class RecallModule:
         notes: list[tuple[float, Path]] = []
         try:
             for path in vault.rglob("*.md"):
-                if any(part in {"compaction-checkpoints", ".git", "node_modules"} for part in path.parts):
+                if any(
+                    part in {"compaction-checkpoints", ".git", "node_modules"}
+                    for part in path.parts
+                ):
                     continue
                 try:
                     notes.append((path.stat().st_mtime, path))
@@ -2198,7 +2216,9 @@ class RecallModule:
             rel = path.as_posix()
             if "basic-memory/" in rel:
                 rel = rel.split("basic-memory/", 1)[-1]
-            lines.append(f"- {redact_text(title, max_chars=120)} | {redact_text(rel, max_chars=180)}")
+            lines.append(
+                f"- {redact_text(title, max_chars=120)} | {redact_text(rel, max_chars=180)}"
+            )
         try:
             marker.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_json(marker, {"injected": True})

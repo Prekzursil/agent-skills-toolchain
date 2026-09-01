@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Headed, focus-independent Firefox proof via Playwright persistent context (WebDriver BiDi)."""
+
 from __future__ import annotations
 
 import argparse
@@ -14,14 +15,21 @@ from playwright.sync_api import sync_playwright
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--profile", required=True, choices=("live", "agent-persistent", "agent-ephemeral"))
+    parser.add_argument(
+        "--profile",
+        required=True,
+        choices=("live", "agent-persistent", "agent-ephemeral"),
+    )
     parser.add_argument("--user-data-dir", required=True)
     parser.add_argument("--results", required=True)
     parser.add_argument("--foreground-json", default="")
     args = parser.parse_args()
 
     if args.profile == "live":
-        print("FAILED:firefox-proof LIVE Firefox is not implemented (no chrome.debugger equivalent; do not attach to the owner's Firefox)", file=sys.stderr)
+        print(
+            "FAILED:firefox-proof LIVE Firefox is not implemented (no chrome.debugger equivalent; do not attach to the owner's Firefox)",
+            file=sys.stderr,
+        )
         return 2
 
     user_data = Path(args.user_data_dir).resolve()
@@ -29,7 +37,10 @@ def main() -> int:
     try:
         user_data.relative_to(profiles_root)
     except ValueError:
-        print(f"FAILED:firefox-proof user-data-dir is not under {profiles_root}", file=sys.stderr)
+        print(
+            f"FAILED:firefox-proof user-data-dir is not under {profiles_root}",
+            file=sys.stderr,
+        )
         return 2
     if args.profile == "agent-persistent":
         user_data.mkdir(parents=True, exist_ok=True)
@@ -51,7 +62,13 @@ def main() -> int:
     }
 
     raw_ff = os.environ.get("PLAYWRIGHT_FIREFOX_EXE")
-    firefox_exe = Path(raw_ff) if raw_ff else (Path.home() / "AppData/Local/ms-playwright/firefox-1539/firefox/firefox.exe")
+    firefox_exe = (
+        Path(raw_ff)
+        if raw_ff
+        else (
+            Path.home() / "AppData/Local/ms-playwright/firefox-1539/firefox/firefox.exe"
+        )
+    )
     kwargs = {
         "user_data_dir": str(user_data),
         "headless": False,
@@ -80,7 +97,10 @@ def main() -> int:
         evidence["clickError"] = click_error
         evidence["navigated"] = evidence["urlBefore"].startswith("https://example.com")
         evidence["readOk"] = bool(evidence["titleBefore"])
-        evidence["ok"] = bool(evidence["readOk"] and evidence["urlBefore"].startswith("https://example.com"))
+        evidence["ok"] = bool(
+            evidence["readOk"]
+            and evidence["urlBefore"].startswith("https://example.com")
+        )
         evidence["executable"] = kwargs.get("executable_path")
         # Close the browser; do NOT delete the persistent profile directory.
         context.close()

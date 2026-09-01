@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate the shared MCP registry without exposing credential values."""
+
 from __future__ import annotations
 
 import argparse

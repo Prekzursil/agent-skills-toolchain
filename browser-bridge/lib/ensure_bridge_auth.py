@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Ensure chromeBridge tokens exist in ~/.agents/local.json. Never prints secrets."""
+
 from __future__ import annotations
 
 import argparse
@@ -11,7 +12,9 @@ from pathlib import Path
 
 AGENT_EXTENSION_ID = "bdccimcedobipcmhcikcnakjdemiechj"
 LOCAL_JSON = Path.home() / ".agents" / "local.json"
-LIVE_ID_FILE = Path.home() / ".agents" / "browser-bridge" / "extension-live" / "EXTENSION_ID"
+LIVE_ID_FILE = (
+    Path.home() / ".agents" / "browser-bridge" / "extension-live" / "EXTENSION_ID"
+)
 
 
 def _atomic_write(path: Path, payload: dict) -> None:
@@ -59,7 +62,9 @@ def main() -> int:
         live_id = LIVE_ID_FILE.read_text(encoding="utf-8").strip()
     if live_id:
         bridge["liveExtensionId"] = live_id
-    elif not isinstance(bridge.get("liveExtensionId"), str) or not bridge.get("liveExtensionId"):
+    elif not isinstance(bridge.get("liveExtensionId"), str) or not bridge.get(
+        "liveExtensionId"
+    ):
         bridge["liveExtensionId"] = ""
 
     data["chromeBridge"] = bridge
@@ -68,14 +73,20 @@ def main() -> int:
         LOCAL_JSON.parent.mkdir(parents=True, exist_ok=True)
         _atomic_write(LOCAL_JSON, data)
 
-    extension_id = bridge["agentExtensionId"] if args.mode == "agent" else bridge.get("liveExtensionId", "")
+    extension_id = (
+        bridge["agentExtensionId"]
+        if args.mode == "agent"
+        else bridge.get("liveExtensionId", "")
+    )
     port = 8770 if args.mode == "agent" else 8790
     meta = {
         "ok": True,
         "mode": args.mode,
         "port": port,
         "extensionId": extension_id,
-        "tokenPresent": _nonempty_str(bridge.get("agentToken" if args.mode == "agent" else "liveToken")),
+        "tokenPresent": _nonempty_str(
+            bridge.get("agentToken" if args.mode == "agent" else "liveToken")
+        ),
         "createdFields": created,
         "localJson": str(LOCAL_JSON),
         "gitignored": True,

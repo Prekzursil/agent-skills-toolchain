@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validation and publication primitives for the shared MCP control plane."""
+
 from __future__ import annotations
 
 import json
@@ -148,17 +149,28 @@ def validate_registry(config: Mapping[str, Any]) -> None:
     max_private_bytes = policy.get("maxPrivateBytes")
     if not isinstance(required, bool):
         raise RegistryError("mcp.policy.required must be boolean")
-    if not isinstance(startup_timeout, int) or not 1 <= startup_timeout <= MAX_STARTUP_TIMEOUT_MS:
+    if (
+        not isinstance(startup_timeout, int)
+        or not 1 <= startup_timeout <= MAX_STARTUP_TIMEOUT_MS
+    ):
         raise RegistryError("mcp.policy.startupTimeoutMs must be within 1..30000")
     if not isinstance(tool_timeout, int) or tool_timeout < 1:
         raise RegistryError("mcp.policy.toolTimeoutMs must be positive")
-    if not isinstance(health_probe, Mapping) or health_probe.get("kind") not in VALID_HEALTH_PROBES:
+    if (
+        not isinstance(health_probe, Mapping)
+        or health_probe.get("kind") not in VALID_HEALTH_PROBES
+    ):
         raise RegistryError("mcp.policy.healthProbe.kind is unsupported")
     probe_timeout = health_probe.get("timeoutMs")
-    if not isinstance(probe_timeout, int) or not 1 <= probe_timeout <= MAX_STARTUP_TIMEOUT_MS:
+    if (
+        not isinstance(probe_timeout, int)
+        or not 1 <= probe_timeout <= MAX_STARTUP_TIMEOUT_MS
+    ):
         raise RegistryError("mcp.policy.healthProbe.timeoutMs must be within 1..30000")
-    if not isinstance(tool_allowlist, list) or not tool_allowlist or any(
-        not isinstance(tool, str) or not tool for tool in tool_allowlist
+    if (
+        not isinstance(tool_allowlist, list)
+        or not tool_allowlist
+        or any(not isinstance(tool, str) or not tool for tool in tool_allowlist)
     ):
         raise RegistryError("mcp.policy.toolAllowlist must be a nonempty string list")
     if approval_mode not in VALID_APPROVAL_MODES:
@@ -193,7 +205,10 @@ def validate_registry(config: Mapping[str, Any]) -> None:
 
         transport = server.get("transport")
         if transport == "stdio":
-            if not isinstance(server.get("command"), str) or not server["command"].strip():
+            if (
+                not isinstance(server.get("command"), str)
+                or not server["command"].strip()
+            ):
                 raise RegistryError(f"{name}: stdio server requires command")
         elif transport == "http":
             url = server.get("url")
@@ -219,19 +234,25 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             raise RegistryError(f"{name}: requiredEnv must contain environment names")
         required_env = set(required_env_raw)
         credential_names = server.get("credentialNames")
-        expected_credentials = {item for item in required_env if is_credential_name(item)}
+        expected_credentials = {
+            item for item in required_env if is_credential_name(item)
+        }
         if not isinstance(credential_names, list) or any(
             not isinstance(item, str) or not ENV_NAME_RE.fullmatch(item)
             for item in credential_names
         ):
-            raise RegistryError(f"{name}: credentialNames must contain environment names")
+            raise RegistryError(
+                f"{name}: credentialNames must contain environment names"
+            )
         if set(credential_names) != expected_credentials:
             raise RegistryError(
                 f"{name}: credentialNames must exactly name sensitive requiredEnv entries"
             )
         tags = server.get("tags")
-        if not isinstance(tags, list) or not tags or any(
-            not isinstance(tag, str) or not tag.strip() for tag in tags
+        if (
+            not isinstance(tags, list)
+            or not tags
+            or any(not isinstance(tag, str) or not tag.strip() for tag in tags)
         ):
             raise RegistryError(f"{name}: tags must be a nonempty string list")
         server_private_bytes = server.get("maxPrivateBytes", max_private_bytes)
@@ -265,14 +286,10 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             if startup_seconds is not None and (
                 not isinstance(startup_seconds, int) or not 1 <= startup_seconds <= 30
             ):
-                raise RegistryError(
-                    f"{name}: startup_timeout_sec must be within 1..30"
-                )
+                raise RegistryError(f"{name}: startup_timeout_sec must be within 1..30")
 
 
-def effective_server_contract(
-    config: Mapping[str, Any], name: str
-) -> dict[str, Any]:
+def effective_server_contract(config: Mapping[str, Any], name: str) -> dict[str, Any]:
     """Return the decision-complete public contract for a registry entry."""
     validate_registry(config)
     server = _servers(config)[name]
@@ -389,7 +406,9 @@ def validate_rotation_manifest(manifest: Mapping[str, Any]) -> None:
         if isinstance(value, Mapping):
             for key, child in value.items():
                 if str(key).lower() in {"value", "secret", "credential"}:
-                    raise RegistryError(f"rotation manifest contains forbidden key at {path}")
+                    raise RegistryError(
+                        f"rotation manifest contains forbidden key at {path}"
+                    )
                 reject_value_keys(child, f"{path}.{key}")
         elif isinstance(value, list):
             for index, child in enumerate(value):
@@ -401,12 +420,18 @@ def validate_rotation_manifest(manifest: Mapping[str, Any]) -> None:
             raise RegistryError("rotation manifest provider record is invalid")
         env_names = record.get("environmentVariables")
         paths = record.get("affectedPaths")
-        if not isinstance(env_names, list) or not env_names or any(
-            not isinstance(name, str) or not ENV_NAME_RE.fullmatch(name)
-            for name in env_names
+        if (
+            not isinstance(env_names, list)
+            or not env_names
+            or any(
+                not isinstance(name, str) or not ENV_NAME_RE.fullmatch(name)
+                for name in env_names
+            )
         ):
             raise RegistryError("rotation manifest environmentVariables are invalid")
-        if not isinstance(paths, list) or not paths or any(
-            not isinstance(path, str) or not path for path in paths
+        if (
+            not isinstance(paths, list)
+            or not paths
+            or any(not isinstance(path, str) or not path for path in paths)
         ):
             raise RegistryError("rotation manifest affectedPaths are invalid")

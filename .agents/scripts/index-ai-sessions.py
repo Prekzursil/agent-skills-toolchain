@@ -57,7 +57,9 @@ SECRET_PATTERNS = [
     re.compile(r"xox[baprs]-[A-Za-z0-9\-]{10,}"),
     re.compile(r"Bearer\s+[A-Za-z0-9_\-\.=]{16,}", re.IGNORECASE),
     re.compile(r"(api[_-]?key|token|password|secret)\s*[=:]\s*\S{8,}", re.IGNORECASE),
-    re.compile(r"eyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"),  # JWT
+    re.compile(
+        r"eyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"
+    ),  # JWT
 ]
 
 
@@ -178,6 +180,7 @@ def rec(runtime: str, path: Path, title: str, first: str, last: str) -> dict:
 # Per-runtime walkers. Each yields (unit_path, make_record_callable) lazily.
 # --------------------------------------------------------------------------
 
+
 def walk_cursor():
     """Cursor: agent-transcripts/<session-uuid>/ dirs, each holding jsonl
     fragments. The largest jsonl is the representative transcript."""
@@ -193,8 +196,9 @@ def walk_cursor():
                 if sess.suffix == ".jsonl":  # tolerate flat layouts too
                     yield sess, lambda f=sess: _jsonl_record("cursor", f)
                 continue
-            files = sorted(sess.rglob("*.jsonl"),
-                           key=lambda p: p.stat().st_size, reverse=True)
+            files = sorted(
+                sess.rglob("*.jsonl"), key=lambda p: p.stat().st_size, reverse=True
+            )
             if files:
                 f = files[0]
                 yield f, lambda f=f: _jsonl_record("cursor", f)
@@ -239,9 +243,15 @@ def walk_agy():
     for proj in root.iterdir():
         if not proj.is_dir():
             continue
-        yield proj, lambda proj=proj: rec(
-            "agy", proj, f"workspace history: {proj.name}",
-            "[shadow-git workspace state — no transcript content]", "",
+        yield (
+            proj,
+            lambda proj=proj: rec(
+                "agy",
+                proj,
+                f"workspace history: {proj.name}",
+                "[shadow-git workspace state — no transcript content]",
+                "",
+            ),
         )
 
 
@@ -252,6 +262,7 @@ def walk_grok():
     if not root.is_dir():
         return
     from urllib.parse import unquote
+
     for proj in root.iterdir():
         if not proj.is_dir():
             continue
@@ -259,9 +270,15 @@ def walk_grok():
         for sess in proj.iterdir():
             if not sess.is_dir():
                 continue
-            yield sess, lambda sess=sess, cwd=cwd: rec(
-                "grok", sess, f"{sess.name} @ {cwd}",
-                "[content not indexed — metadata-only by policy]", "",
+            yield (
+                sess,
+                lambda sess=sess, cwd=cwd: rec(
+                    "grok",
+                    sess,
+                    f"{sess.name} @ {cwd}",
+                    "[content not indexed — metadata-only by policy]",
+                    "",
+                ),
             )
 
 
@@ -283,13 +300,16 @@ WALKERS = {
 
 # --------------------------------------------------------------------------
 
+
 def load_state() -> dict:
     if STATE_PATH.is_file():
         try:
             with open(STATE_PATH, encoding="utf-8") as fh:
                 return json.load(fh)
         except (json.JSONDecodeError, OSError):
-            print(f"WARN: state file unreadable, re-indexing from scratch: {STATE_PATH}")
+            print(
+                f"WARN: state file unreadable, re-indexing from scratch: {STATE_PATH}"
+            )
     return {}
 
 
@@ -327,11 +347,13 @@ def write_catalog(state: dict, catalog_path: Path) -> None:
         if frontmatter:
             out.write(frontmatter + "\n")
         out.write("# AI Session Catalog\n\n")
-        out.write(f"Generated {datetime.now().strftime('%Y-%m-%d %H:%M')} by "
-                  f"`~/.agents/scripts/index-ai-sessions.py` (idempotent; re-run any time).\n"
-                  "Pointers only — open the path with the runtime's own tooling "
-                  "(format-codex-sessions, recall-workflow-agent, etc.). "
-                  "Snippets are redacted and truncated; Grok entries are metadata-only.\n\n")
+        out.write(
+            f"Generated {datetime.now().strftime('%Y-%m-%d %H:%M')} by "
+            f"`~/.agents/scripts/index-ai-sessions.py` (idempotent; re-run any time).\n"
+            "Pointers only — open the path with the runtime's own tooling "
+            "(format-codex-sessions, recall-workflow-agent, etc.). "
+            "Snippets are redacted and truncated; Grok entries are metadata-only.\n\n"
+        )
         counts = {rt: len(v) for rt, v in sorted(by_runtime.items())}
         out.write("| runtime | sessions |\n|---|---|\n")
         for rt, n in counts.items():
@@ -341,7 +363,9 @@ def write_catalog(state: dict, catalog_path: Path) -> None:
             entries = sorted(by_runtime[rt], key=lambda r: r["date"], reverse=True)
             out.write(f"\n## {rt} ({len(entries)})\n\n")
             for r in entries:
-                line = f"- **{r['date']}** — {r['title'] or '(untitled)'} — `{r['path']}`"
+                line = (
+                    f"- **{r['date']}** — {r['title'] or '(untitled)'} — `{r['path']}`"
+                )
                 if r["last"] and r["last"] != r["first"]:
                     line += f"\n  - last: {r['last']}"
                 out.write(line + "\n")
@@ -354,8 +378,14 @@ def main() -> int:
     ap.add_argument("--catalog", default=None, help="override catalog output path")
     args = ap.parse_args()
 
-    catalog_path = Path(args.catalog) if args.catalog else (
-        DEFAULT_CATALOG if DEFAULT_CATALOG.parent.parent.is_dir() else FALLBACK_CATALOG
+    catalog_path = (
+        Path(args.catalog)
+        if args.catalog
+        else (
+            DEFAULT_CATALOG
+            if DEFAULT_CATALOG.parent.parent.is_dir()
+            else FALLBACK_CATALOG
+        )
     )
 
     state = load_state()
@@ -396,9 +426,12 @@ def main() -> int:
     # sessions, or walker-strategy changes). Never prune a runtime whose walk
     # crashed — that would turn a transient error into catalog data loss.
     if not args.dry_run:
-        stale = [k for k, v in state.items()
-                 if walker_completed.get(v["record"]["runtime"], False)
-                 and k not in seen_keys[v["record"]["runtime"]]]
+        stale = [
+            k
+            for k, v in state.items()
+            if walker_completed.get(v["record"]["runtime"], False)
+            and k not in seen_keys[v["record"]["runtime"]]
+        ]
         for k in stale:
             del state[k]
         if stale:
