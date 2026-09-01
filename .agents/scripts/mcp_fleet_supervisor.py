@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Inspect MCP singleton/resource health and maintain session quarantine state."""
+
 from __future__ import annotations
 
 import argparse
@@ -9,7 +10,7 @@ import pathlib
 import re
 import subprocess
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any
 
 import mcp_control_plane as control
@@ -47,13 +48,15 @@ class ProcessRecord:
 
 
 def _normalize_token(value: str) -> str:
-    return value.replace("\\", "/").strip('"\'').lower()
+    return value.replace("\\", "/").strip("\"'").lower()
 
 
 def identity_tokens(name: str, server: dict[str, Any]) -> list[str]:
     explicit = server.get("processMatch")
     if isinstance(explicit, list) and explicit:
-        return [_normalize_token(str(token)) for token in explicit if str(token).strip()]
+        return [
+            _normalize_token(str(token)) for token in explicit if str(token).strip()
+        ]
 
     tokens: list[str] = []
     for argument in server.get("args", []):
@@ -70,9 +73,7 @@ def identity_tokens(name: str, server: dict[str, Any]) -> list[str]:
         elif "@" in candidate and "/" not in candidate:
             candidate = candidate.split("@", 1)[0]
         if (
-            "/" in candidate
-            or "mcp" in candidate
-            or candidate == name.lower()
+            "/" in candidate or "mcp" in candidate or candidate == name.lower()
         ) and len(candidate) >= 5:
             tokens.append(candidate)
 
@@ -98,9 +99,7 @@ def assign_processes(
     ambiguous: set[int] = set()
     secret_argument_processes = 0
     for process in processes:
-        haystack = _normalize_token(
-            f"{process.executable_path} {process.command_line}"
-        )
+        haystack = _normalize_token(f"{process.executable_path} {process.command_line}")
         if SECRET_ARGUMENT_RE.search(process.command_line):
             secret_argument_processes += 1
         candidates: list[tuple[int, str]] = []
@@ -169,12 +168,16 @@ def evaluate_fleet(
 ) -> dict[str, Any]:
     control.validate_registry(config)
     servers = config["mcp"]["servers"]
-    assigned, ambiguous, secret_argument_processes = assign_processes(servers, processes)
+    assigned, ambiguous, secret_argument_processes = assign_processes(
+        servers, processes
+    )
     process_by_id = {process.pid: process for process in processes}
     parent = {process.pid: process.parent_pid for process in processes}
     unique_assigned = set().union(*assigned.values()) if assigned else set()
     total_private = sum(
-        process_by_id[pid].private_bytes for pid in unique_assigned if pid in process_by_id
+        process_by_id[pid].private_bytes
+        for pid in unique_assigned
+        if pid in process_by_id
     )
     session_limit = config["mcp"]["supervision"]["totalIdlePrivateBytes"]
     session_private: dict[str, int] = {}
@@ -206,8 +209,10 @@ def evaluate_fleet(
             duplicate_servers.append(name)
         if over_budget:
             over_budget_servers.append(name)
-        state = "quarantined" if name in quarantine else (
-            "degraded" if duplicate or over_budget else "healthy"
+        state = (
+            "quarantined"
+            if name in quarantine
+            else ("degraded" if duplicate or over_budget else "healthy")
         )
         server_status[name] = {
             "state": state,
@@ -224,10 +229,18 @@ def evaluate_fleet(
     sessions_over_budget = sorted(
         owner for owner, private in session_private.items() if private > session_limit
     )
+    # `totalIdlePrivateBytes` is a FLEET ceiling, so the fleet sum is compared to it
+    # as well as each session. Checking only per-session let the estate run 13.6 GiB
+    # across 7 sessions against a 6 GiB budget and still report `healthy` (captured
+    # in reconcile-flags/import-2026-08-28/live-only-flagged/reports/mcp-fleet-status.json):
+    # per-session stdio duplication never breaches any single session's budget, which
+    # is precisely how it exhausts commit unnoticed.
+    total_over_budget = total_private > session_limit
     degraded = bool(
         duplicate_servers
         or over_budget_servers
         or sessions_over_budget
+        or total_over_budget
         or ambiguous
         or secret_argument_processes
         or quarantine
@@ -240,7 +253,7 @@ def evaluate_fleet(
         "maxSessionPrivateBytes": max(session_private.values(), default=0),
         "sessionCount": len(session_private),
         "sessionsOverBudget": len(sessions_over_budget),
-        "totalOverBudget": bool(sessions_over_budget),
+        "totalOverBudget": total_over_budget,
         "ambiguousProcessCount": len(ambiguous),
         "secretArgumentProcessCount": secret_argument_processes,
         "duplicateServers": sorted(duplicate_servers),
@@ -260,15 +273,24 @@ def update_quarantine_state(
     window_seconds: int,
 ) -> tuple[dict[str, Any], set[str]]:
     if state.get("sessionId") != session_id:
-        state = {"schemaVersion": 1, "sessionId": session_id, "failures": {}, "quarantined": []}
+        state = {
+            "schemaVersion": 1,
+            "sessionId": session_id,
+            "failures": {},
+            "quarantined": [],
+        }
     failure_map = state.setdefault("failures", {})
     cutoff = now - window_seconds
     for server, timestamps in list(failure_map.items()):
-        failure_map[server] = [float(value) for value in timestamps if float(value) >= cutoff]
+        failure_map[server] = [
+            float(value) for value in timestamps if float(value) >= cutoff
+        ]
     for server in failures:
         failure_map.setdefault(server, []).append(now)
     quarantined = {
-        server for server, timestamps in failure_map.items() if len(timestamps) >= threshold
+        server
+        for server, timestamps in failure_map.items()
+        if len(timestamps) >= threshold
     }
     state["quarantined"] = sorted(quarantined)
     state["updatedAt"] = now
@@ -315,13 +337,19 @@ def main() -> int:
     parser.add_argument("--state", type=pathlib.Path, default=DEFAULT_STATE)
     parser.add_argument("--report", type=pathlib.Path, default=DEFAULT_REPORT)
     parser.add_argument("--snapshot", type=pathlib.Path)
-    parser.add_argument("--session-id", default=os.environ.get("CODEX_THREAD_ID", "local-session"))
+    parser.add_argument(
+        "--session-id", default=os.environ.get("CODEX_THREAD_ID", "local-session")
+    )
     parser.add_argument("--record-failure", action="append", default=[])
     args = parser.parse_args()
 
     config = json.loads(args.registry.read_text(encoding="utf-8"))
     control.validate_registry(config)
-    state = json.loads(args.state.read_text(encoding="utf-8")) if args.state.exists() else {}
+    state = (
+        json.loads(args.state.read_text(encoding="utf-8"))
+        if args.state.exists()
+        else {}
+    )
     supervision = config["mcp"]["supervision"]
     state, quarantine = update_quarantine_state(
         state,
@@ -337,15 +365,17 @@ def main() -> int:
     else:
         processes = live_process_snapshot()
     report = evaluate_fleet(config, processes, quarantine)
-    report["sessionIdHash"] = __import__("hashlib").sha256(
-        args.session_id.encode("utf-8")
-    ).hexdigest()[:16]
+    report["sessionIdHash"] = (
+        __import__("hashlib").sha256(args.session_id.encode("utf-8")).hexdigest()[:16]
+    )
     report["generatedAt"] = time.time()
     atomic_json(args.state, state)
     atomic_json(args.report, report)
     print(
         "SUCCESS:mcp-fleet-status "
         f"status={report['status']} total_private_bytes={report['totalPrivateBytes']} "
+        f"fleet_over_budget={str(report['totalOverBudget']).lower()} "
+        f"sessions_over_budget={report['sessionsOverBudget']} "
         f"duplicates={len(report['duplicateServers'])} "
         f"over_budget={len(report['overBudgetServers'])} "
         f"quarantined={len(report['quarantinedServers'])}"
