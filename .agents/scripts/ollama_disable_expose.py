@@ -1,4 +1,5 @@
 """Set Ollama app 'expose' setting to 0 (loopback-only). Backup-first, read then write."""
+
 import sqlite3
 
 DB = r"C:/Users/Prekzursil/AppData/Local/Ollama/db.sqlite"

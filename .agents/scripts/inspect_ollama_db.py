@@ -1,4 +1,5 @@
 """Read-only inspection of the Ollama app settings DB (db.sqlite)."""
+
 import sqlite3
 
 DB = r"C:/Users/Prekzursil/AppData/Local/Ollama/db.sqlite"

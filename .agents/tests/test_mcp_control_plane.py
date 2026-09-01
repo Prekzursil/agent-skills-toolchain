@@ -32,7 +32,11 @@ def registry(servers: dict[str, dict[str, Any]]) -> dict[str, Any]:
         required = set(server.get("requiredEnv", []))
         server.setdefault(
             "credentialNames",
-            sorted(item for item in required if "TOKEN" in item or "KEY" in item or "SECRET" in item),
+            sorted(
+                item
+                for item in required
+                if "TOKEN" in item or "KEY" in item or "SECRET" in item
+            ),
         )
         server.setdefault("tags", ["test"])
     return {
@@ -343,6 +347,12 @@ def test_live_registry_has_shared_basic_memory_and_no_retired_sidecar() -> None:
 def test_rotation_manifest_contains_references_but_never_values() -> None:
     control = load_script("mcp_control_plane")
     path = SCRIPTS_ROOT / "credential_rotation_manifest.json"
+    if not path.is_file():
+        # The manifest is a live-estate artifact that the 2026-08-28 harness fold
+        # never captured: `.agents/.gitignore`'s `*credential*` rule matched its
+        # name. That rule now carries an explicit negation for this one file, so a
+        # future capture can commit it; until then there is nothing to validate.
+        pytest.skip(f"estate-only artifact not captured in this checkout: {path}")
     manifest = json.loads(path.read_text(encoding="utf-8"))
 
     control.validate_rotation_manifest(manifest)
@@ -350,7 +360,10 @@ def test_rotation_manifest_contains_references_but_never_values() -> None:
     assert all(record.get("environmentVariables") for record in manifest["providers"])
     assert all(record.get("affectedPaths") for record in manifest["providers"])
     assert all("value" not in record for record in manifest["providers"])
-    providers = {record["provider"]: set(record["environmentVariables"]) for record in manifest["providers"]}
+    providers = {
+        record["provider"]: set(record["environmentVariables"])
+        for record in manifest["providers"]
+    }
     assert providers["Exa"] == {"EXA_API_KEY", "EXA_API_KEY_2"}
     assert providers["Jina Reader"] == {"JINA_API_KEY"}
     assert providers["OpusClip"] == {"OPUSCLIP_API_KEY"}
@@ -380,13 +393,7 @@ def test_codex_merge_removes_retired_promptbridge_sidecar(
     )
     config_path = tmp_path / "agents.json"
     config_path.write_text(
-        json.dumps(
-            registry(
-                {
-                    "active": stdio_server("codex")
-                }
-            )
-        ),
+        json.dumps(registry({"active": stdio_server("codex")})),
         encoding="utf-8",
     )
 
@@ -439,9 +446,16 @@ def test_cursor_g6b_merge_emits_only_keep_list() -> None:
     live = {
         "agent-mail": {"url": "http://127.0.0.1:8812/mcp/"},
         "firecrawl": {"command": "npx", "args": ["-y", "firecrawl-mcp@latest"]},
-        "hexstrike-ai": {"command": "python", "args": ["hexstrike.py"], "disabled": True},
+        "hexstrike-ai": {
+            "command": "python",
+            "args": ["hexstrike.py"],
+            "disabled": True,
+        },
         "mixpanel-mcp": {"command": "npx", "args": ["mixpanel-mcp"]},
-        "sonarqube": {"command": "docker", "args": ["run", "-i", "--rm", "mcp/sonarqube"]},
+        "sonarqube": {
+            "command": "docker",
+            "args": ["run", "-i", "--rm", "mcp/sonarqube"],
+        },
     }
     generated = {
         "agent-mail": {"url": "http://127.0.0.1:8812/mcp/"},
@@ -454,7 +468,10 @@ def test_cursor_g6b_merge_emits_only_keep_list() -> None:
             "command": "cmd",
             "args": ["/c", "npx", "-y", "@playwright/mcp@latest"],
         },
-        "sonarqube": {"command": "docker", "args": ["run", "-i", "--rm", "mcp/sonarqube"]},
+        "sonarqube": {
+            "command": "docker",
+            "args": ["run", "-i", "--rm", "mcp/sonarqube"],
+        },
     }
 
     merged = cursor.merge_cursor_mcp_servers(live, generated)
@@ -496,7 +513,11 @@ def test_cursor_g6b_write_emits_only_keep_list(tmp_path: pathlib.Path) -> None:
             {
                 "mcpServers": {
                     "agent-mail": {"url": "http://127.0.0.1:8812/mcp/"},
-                    "docker": {"command": "uvx", "args": ["docker-mcp"], "disabled": True},
+                    "docker": {
+                        "command": "uvx",
+                        "args": ["docker-mcp"],
+                        "disabled": True,
+                    },
                     "mixpanel-mcp": {"command": "npx", "args": ["mixpanel-mcp"]},
                 }
             }
@@ -514,7 +535,9 @@ def test_cursor_g6b_write_emits_only_keep_list(tmp_path: pathlib.Path) -> None:
                         "transport": "http",
                         "url": "http://127.0.0.1:8812/mcp/",
                     },
-                    "docker": stdio_server("claude", command="uvx", args=["docker-mcp"]),
+                    "docker": stdio_server(
+                        "claude", command="uvx", args=["docker-mcp"]
+                    ),
                     "playwright": stdio_server(
                         "claude", command="npx", args=["-y", "@playwright/mcp@latest"]
                     ),
@@ -554,3 +577,167 @@ def test_cursor_g6b_write_emits_only_keep_list(tmp_path: pathlib.Path) -> None:
     assert "added=1" in completed.stdout
     assert "updated=1" in completed.stdout
     assert "parked_skips=" in completed.stdout
+
+
+# The exact off-registry shape found in the live ~/.cursor/mcp.json on 2026-09-01:
+# a per-session stdio wrapper standing in front of the ONE shared HTTP daemon the
+# registry declares. It exists nowhere in this repo and no script here emits it.
+CURSOR_STDIO_BRIDGE = {
+    "command": r"C:\Python314\python.exe",
+    "args": [
+        r"C:\Users\Prekzursil\.agents\scripts\bm_cursor_http_session.py",
+        "--stdio",
+    ],
+}
+
+
+def test_cursor_renders_live_basic_memory_as_the_shared_http_singleton() -> None:
+    cursor = load_script("merge_generated_cursor_mcp")
+    config = json.loads((AGENTS_ROOT / "agents.json").read_text(encoding="utf-8"))
+
+    generated = cursor.build_managed_servers_from_agents(config)
+
+    assert generated["basic-memory"] == {"url": "http://127.0.0.1:8765/mcp"}
+    assert "command" not in generated["basic-memory"]
+    assert "args" not in generated["basic-memory"]
+
+
+def test_cursor_merge_replaces_a_hand_edited_stdio_bridge_with_the_registry_entry() -> (
+    None
+):
+    cursor = load_script("merge_generated_cursor_mcp")
+    live = {"basic-memory": dict(CURSOR_STDIO_BRIDGE)}
+    generated = {"basic-memory": {"url": "http://127.0.0.1:8765/mcp"}}
+
+    merged = cursor.merge_cursor_mcp_servers(live, generated)
+
+    assert merged["basic-memory"] == {"url": "http://127.0.0.1:8765/mcp"}
+    assert "command" not in merged["basic-memory"]
+
+
+def test_cursor_merge_drops_a_keep_list_server_the_registry_no_longer_generates() -> (
+    None
+):
+    """A keep-list name the registry stopped emitting must not survive from live.
+
+    ``.cursor/mcp.json`` is registry-rendered. Adopting the live entry as a fallback
+    source blessed whatever a hand edit left behind — and ``stamp_cursor_g3d`` then
+    stripped ``disabled``, force-enabling it.
+    """
+    cursor = load_script("merge_generated_cursor_mcp")
+    live = {
+        "basic-memory": dict(CURSOR_STDIO_BRIDGE, disabled=True),
+        "playwright": {"command": "npx", "args": ["-y", "@playwright/mcp@latest"]},
+    }
+    generated = {
+        "playwright": {"command": "npx", "args": ["-y", "@playwright/mcp@latest"]}
+    }
+
+    merged = cursor.merge_cursor_mcp_servers(live, generated)
+
+    assert "basic-memory" not in merged
+    assert set(merged) == {"playwright"}
+
+
+def _cursor_drift_fixture(
+    tmp_path: pathlib.Path, live_servers: dict[str, Any]
+) -> tuple[pathlib.Path, pathlib.Path]:
+    live = tmp_path / "mcp.json"
+    live.write_text(json.dumps({"mcpServers": live_servers}), encoding="utf-8")
+    config_path = tmp_path / "agents.json"
+    config_path.write_text(
+        json.dumps(
+            registry(
+                {
+                    "basic-memory": {
+                        "enabled": True,
+                        "targets": ["claude", "codex"],
+                        "transport": "http",
+                        "url": "http://127.0.0.1:8765/mcp",
+                        "singletonKey": "basic-memory/http",
+                    }
+                }
+            )
+        ),
+        encoding="utf-8",
+    )
+    return live, config_path
+
+
+def _run_cursor_check(
+    live: pathlib.Path, config_path: pathlib.Path
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_ROOT / "merge_generated_cursor_mcp.py"),
+            "--live",
+            str(live),
+            "--agents-config",
+            str(config_path),
+            "--check",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def test_cursor_check_reports_live_drift_and_writes_nothing(
+    tmp_path: pathlib.Path,
+) -> None:
+    live, config_path = _cursor_drift_fixture(
+        tmp_path, {"basic-memory": dict(CURSOR_STDIO_BRIDGE)}
+    )
+    before = live.read_bytes()
+
+    completed = _run_cursor_check(live, config_path)
+
+    assert completed.returncode == 1, completed.stdout + completed.stderr
+    assert "FAILED:mcp-cursor-check" in completed.stdout
+    assert "basic-memory" in completed.stdout
+    assert live.read_bytes() == before
+    assert not list(tmp_path.glob("mcp.json.bak-*"))
+
+
+def test_cursor_check_is_green_when_the_live_file_matches_the_registry(
+    tmp_path: pathlib.Path,
+) -> None:
+    live, config_path = _cursor_drift_fixture(
+        tmp_path, {"basic-memory": {"url": "http://127.0.0.1:8765/mcp"}}
+    )
+
+    completed = _run_cursor_check(live, config_path)
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "SUCCESS:mcp-cursor-check" in completed.stdout
+    assert "drift=0" in completed.stdout
+
+
+def test_cursor_check_refuses_to_run_together_with_write(
+    tmp_path: pathlib.Path,
+) -> None:
+    live, config_path = _cursor_drift_fixture(
+        tmp_path, {"basic-memory": dict(CURSOR_STDIO_BRIDGE)}
+    )
+    before = live.read_bytes()
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_ROOT / "merge_generated_cursor_mcp.py"),
+            "--live",
+            str(live),
+            "--agents-config",
+            str(config_path),
+            "--check",
+            "--write",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode != 0
+    assert "SUCCESS:" not in completed.stdout
+    assert live.read_bytes() == before

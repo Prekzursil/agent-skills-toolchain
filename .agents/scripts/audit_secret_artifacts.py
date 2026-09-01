@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Bounded, value-free secret audit for live and historical text artifacts."""
+
 from __future__ import annotations
 
 import argparse
@@ -51,7 +52,9 @@ ASSIGNMENT_RE = re.compile(
     re.I | re.M,
 )
 STRONG_TOKEN_PATTERNS = {
-    "github": re.compile(r"(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,})"),
+    "github": re.compile(
+        r"(?:github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,})"
+    ),
     "huggingface": re.compile(r"hf_[A-Za-z0-9]{20,}"),
     "apify": re.compile(r"apify_api_[A-Za-z0-9]{20,}"),
     "digitalocean": re.compile(r"do[op]_v1_[A-Fa-f0-9]{32,}"),
@@ -104,7 +107,9 @@ def _line(text: str, position: int) -> int:
 def _entropy(value: str) -> float:
     counts = {character: value.count(character) for character in set(value)}
     length = len(value)
-    return -sum((count / length) * math.log2(count / length) for count in counts.values())
+    return -sum(
+        (count / length) * math.log2(count / length) for count in counts.values()
+    )
 
 
 def looks_like_credential_literal(value: str) -> bool:
@@ -119,7 +124,9 @@ def looks_like_credential_literal(value: str) -> bool:
         return False
     if re.search(r"\.(?:json|toml|md|txt|py|js|ts|safetensors)$", normalized, re.I):
         return False
-    credential_characters = sum(character.isalnum() or character in "_-" for character in normalized)
+    credential_characters = sum(
+        character.isalnum() or character in "_-" for character in normalized
+    )
     if credential_characters / len(normalized) < 0.85:
         return False
     return _entropy(normalized) >= 3.5
@@ -138,7 +145,11 @@ def scan_file(path: pathlib.Path, environment_values: dict[str, str]) -> list[Fi
             continue
         start = 0
         while (index := text.find(value, start)) >= 0:
-            findings.append(Finding(str(path), digest, _line(text, index), "environment-value", name))
+            findings.append(
+                Finding(
+                    str(path), digest, _line(text, index), "environment-value", name
+                )
+            )
             start = index + len(value)
 
     for name, pattern in STRONG_TOKEN_PATTERNS.items():
@@ -146,7 +157,11 @@ def scan_file(path: pathlib.Path, environment_values: dict[str, str]) -> list[Fi
             value = match.group(0)
             if PLACEHOLDER_RE.search(value):
                 continue
-            findings.append(Finding(str(path), digest, _line(text, match.start()), "token-pattern", name))
+            findings.append(
+                Finding(
+                    str(path), digest, _line(text, match.start()), "token-pattern", name
+                )
+            )
 
     for match in ASSIGNMENT_RE.finditer(text):
         key, value = match.groups()
@@ -155,7 +170,11 @@ def scan_file(path: pathlib.Path, environment_values: dict[str, str]) -> list[Fi
         normalized = value.strip()
         if not looks_like_credential_literal(normalized):
             continue
-        findings.append(Finding(str(path), digest, _line(text, match.start()), "credential-literal", key))
+        findings.append(
+            Finding(
+                str(path), digest, _line(text, match.start()), "credential-literal", key
+            )
+        )
 
     unique = {(f.path, f.line, f.detector, f.name): f for f in findings}
     return list(unique.values())

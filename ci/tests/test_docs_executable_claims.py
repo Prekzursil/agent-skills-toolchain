@@ -771,32 +771,44 @@ def test_control_roadmap_arm_distinguishes_parity_from_divergence(
 ) -> None:
     """The discriminating case: is the arm reading the CLAIM or just a number?
 
-    H1 (arm compares doc to tree): a doc asserting parity must FIRE while the
-    tree diverges, and a doc stating the true counts must stay SILENT.
+    H1 (arm compares doc to tree): the doc stating the measured counts must stay
+    SILENT while a doc stating the WRONG counts must FIRE.
     H2 (arm merely notices digits): both look identical.
     Only H1 can produce the asymmetry asserted below.
+
+    The wrong claim is chosen from the measured state so the control discriminates
+    in BOTH states and cannot rot when the tree changes (the previous revision
+    hard-coded the diverged state and told its maintainer to rewrite it at parity,
+    which the 2026-08-28 fold made necessary):
+
+    * roots diverge  -> a claim of perfect parity (0 and 0) is the wrong one;
+    * roots at parity -> the pre-fold counts (3 and 12) are the wrong one.
     """
-    assert divergence["only_projection"] or divergence["only_canonical"], (
-        "precondition: the roots no longer diverge, so this control cannot "
-        "discriminate. Upgrade docs/roadmap.md to claim a true projection and "
-        "rewrite this control against the new claim."
-    )
-
-    claims_parity = (
-        "- `skills/` — 0 skill names live only in `skills/` and 0 only in "
-        "`.agents/skills/`, so it is a true generated projection.\n"
-    )
-    assert roadmap_violations(claims_parity, divergence), (
-        "control: a doc claiming perfect parity did not fire while the measured "
-        "tree diverges -- the arm is not comparing the claim to reality"
-    )
-
     truthful = (
         f"- `skills/` — {divergence['only_projection']} skill names live only in "
         f"`skills/` and {divergence['only_canonical']} only in "
-        "`.agents/skills/`, so the projection is not complete.\n"
+        "`.agents/skills/`.\n"
     )
     assert roadmap_violations(truthful, divergence) == [], (
         "control: the arm fired on a doc that states the measured truth, so it "
         "flags the presence of numbers rather than their correctness"
     )
+
+    at_parity = not (divergence["only_projection"] or divergence["only_canonical"])
+    wrong_projection, wrong_canonical = (3, 12) if at_parity else (0, 0)
+    assert (wrong_projection, wrong_canonical) != (
+        divergence["only_projection"],
+        divergence["only_canonical"],
+    ), "control precondition: the chosen wrong claim coincides with the measured tree"
+    wrong = (
+        f"- `skills/` — {wrong_projection} skill names live only in `skills/` and "
+        f"{wrong_canonical} only in `.agents/skills/`.\n"
+    )
+    found = roadmap_violations(wrong, divergence)
+    assert found, (
+        "control: a doc stating counts the tree contradicts did not fire -- the "
+        "arm is not comparing the claim to reality"
+    )
+    assert any("projection-divergence" in v for v in found) or any(
+        "canonical-divergence" in v for v in found
+    ), f"control: fired, but not on the count mismatch; violations were {found!r}"

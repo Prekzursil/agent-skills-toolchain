@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Publish secret-free provider views from the canonical MCP registry."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,10 +23,13 @@ def render_views(config: dict) -> tuple[str, str]:
         "mcpServers": claude.build_managed_servers_from_agents(config),
     }
     claude_text = json.dumps(claude_payload, indent=2, ensure_ascii=False) + "\n"
-    codex_text = "\n".join(
-        block.text.rstrip("\n")
-        for block in codex.build_managed_blocks_from_agents(config)
-    ) + "\n"
+    codex_text = (
+        "\n".join(
+            block.text.rstrip("\n")
+            for block in codex.build_managed_blocks_from_agents(config)
+        )
+        + "\n"
+    )
     return claude_text, codex_text
 
 

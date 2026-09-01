@@ -5,6 +5,7 @@ and load the audited unpacked extension with Extensions.loadUnpacked.
 Never pointed at the human/default User Data directory. Token is read from
 CHROME_BRIDGE_TOKEN (never argv, never written to the ready JSON).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -51,8 +52,14 @@ def assert_agent_profile(user_data: Path) -> None:
     try:
         resolved.relative_to(root)
     except ValueError:
-        if not str(resolved).lower().startswith(str(root).lower() + os.sep) and str(resolved).lower() != str(root).lower():
-            print(f"FAILED:launch-agent user-data-dir is not under {root}", file=sys.stderr)
+        if (
+            not str(resolved).lower().startswith(str(root).lower() + os.sep)
+            and str(resolved).lower() != str(root).lower()
+        ):
+            print(
+                f"FAILED:launch-agent user-data-dir is not under {root}",
+                file=sys.stderr,
+            )
             raise SystemExit(2)
     resolved_s = str(resolved).lower()
     for forbidden in _forbidden_human_dirs():
@@ -61,11 +68,16 @@ def assert_agent_profile(user_data: Path) -> None:
         except OSError:
             f = forbidden
         if resolved_s.startswith(str(f).lower()):
-            print("FAILED:launch-agent refusing human/default Chrome or Edge User Data", file=sys.stderr)
+            print(
+                "FAILED:launch-agent refusing human/default Chrome or Edge User Data",
+                file=sys.stderr,
+            )
             raise SystemExit(2)
 
 
-def inject_extension_token(context, session, extension_id: str, port: int, token: str) -> str:
+def inject_extension_token(
+    context, session, extension_id: str, port: int, token: str
+) -> str:
     """Write the hub token into chrome.storage.local. Never logs the token."""
     payload = {"token": token, "port": port, "enabled": True}
 
@@ -91,7 +103,10 @@ def inject_extension_token(context, session, extension_id: str, port: int, token
     try:
         targets = session.send("Target.getTargets")
     except Exception as exc:
-        print(f"FAILED:launch-agent token inject: no service worker ({exc})", file=sys.stderr)
+        print(
+            f"FAILED:launch-agent token inject: no service worker ({exc})",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
     infos = targets.get("targetInfos") if isinstance(targets, dict) else []
     sw = None
@@ -102,12 +117,20 @@ def inject_extension_token(context, session, extension_id: str, port: int, token
             sw = info
             break
     if not sw:
-        print("FAILED:launch-agent token inject: extension service worker not found", file=sys.stderr)
+        print(
+            "FAILED:launch-agent token inject: extension service worker not found",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
-    attached = session.send("Target.attachToTarget", {"targetId": sw["targetId"], "flatten": False})
+    attached = session.send(
+        "Target.attachToTarget", {"targetId": sw["targetId"], "flatten": False}
+    )
     session_id = attached.get("sessionId") if isinstance(attached, dict) else None
     if not session_id:
-        print("FAILED:launch-agent token inject: attachToTarget produced no session", file=sys.stderr)
+        print(
+            "FAILED:launch-agent token inject: attachToTarget produced no session",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
     expression = (
         "(async (cfg) => { await chrome.storage.local.set(cfg); "
@@ -117,9 +140,16 @@ def inject_extension_token(context, session, extension_id: str, port: int, token
     message = {
         "id": 1,
         "method": "Runtime.evaluate",
-        "params": {"expression": expression, "awaitPromise": True, "returnByValue": True},
+        "params": {
+            "expression": expression,
+            "awaitPromise": True,
+            "returnByValue": True,
+        },
     }
-    session.send("Target.sendMessageToTarget", {"sessionId": session_id, "message": json.dumps(message)})
+    session.send(
+        "Target.sendMessageToTarget",
+        {"sessionId": session_id, "message": json.dumps(message)},
+    )
     time.sleep(0.6)
     return "cdp-sendMessageToTarget"
 
@@ -137,7 +167,10 @@ def main() -> int:
 
     token = os.environ.get("CHROME_BRIDGE_TOKEN", "").strip()
     if len(token) < 16:
-        print("FAILED:launch-agent CHROME_BRIDGE_TOKEN missing or too short", file=sys.stderr)
+        print(
+            "FAILED:launch-agent CHROME_BRIDGE_TOKEN missing or too short",
+            file=sys.stderr,
+        )
         return 2
 
     user_data = Path(args.user_data_dir)
@@ -153,7 +186,10 @@ def main() -> int:
         )
         return 2
     if "extension-live" in extension_dir.lower():
-        print("FAILED:launch-agent refusing to auto-load extension-live into an agent profile", file=sys.stderr)
+        print(
+            "FAILED:launch-agent refusing to auto-load extension-live into an agent profile",
+            file=sys.stderr,
+        )
         return 2
 
     ready = Path(args.ready_file)
@@ -181,7 +217,10 @@ def main() -> int:
             )
             browser = context.browser
             if browser is None:
-                print("FAILED:launch-agent persistent context has no browser object", file=sys.stderr)
+                print(
+                    "FAILED:launch-agent persistent context has no browser object",
+                    file=sys.stderr,
+                )
                 context.close()
                 return 1
             session = browser.new_browser_cdp_session()
@@ -189,7 +228,11 @@ def main() -> int:
             loaded_id = ""
             if isinstance(loaded, dict):
                 loaded_id = str(loaded.get("id") or loaded.get("extensionId") or "")
-            if args.expected_extension_id and loaded_id and loaded_id != args.expected_extension_id:
+            if (
+                args.expected_extension_id
+                and loaded_id
+                and loaded_id != args.expected_extension_id
+            ):
                 print(
                     f"FAILED:launch-agent extension id mismatch got={loaded_id} expected={args.expected_extension_id}",
                     file=sys.stderr,
@@ -200,7 +243,13 @@ def main() -> int:
                 loaded_id = args.expected_extension_id
             time.sleep(1.0)
             listed = session.send("Extensions.getExtensions")
-            inject_how = inject_extension_token(context, session, loaded_id or args.expected_extension_id, args.hub_port, token)
+            inject_how = inject_extension_token(
+                context,
+                session,
+                loaded_id or args.expected_extension_id,
+                args.hub_port,
+                token,
+            )
             payload = {
                 "ok": True,
                 "browser": args.browser,

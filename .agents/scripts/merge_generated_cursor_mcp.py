@@ -19,7 +19,12 @@ Cursor-specific rendering differences vs the Claude merge:
 - G-6=6B allowlist (``CURSOR_ENABLED_SERVERS``): merge emits **only** these
   names. Parked catalog is ``.agents/mcp-cursor-parked-31.json``, not mcp.json.
   ``sync_shared_state.ps1`` must not re-insert the 31 even as ``disabled``.
+- The registry is the only source of an entry's body; the live file is never
+  read back as a fallback source (see ``merge_cursor_mcp_servers``).
+- ``--check`` reports drift between the live file and what this merge would
+  render, and writes nothing — the read-only probe for off-registry hand edits.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -107,7 +112,9 @@ def build_cursor_server(name: str, server: dict[str, Any]) -> dict[str, Any] | N
         }
         headers = dict(server.get("headers", {}))
         x_codex = server.get("x_codex", {})
-        bearer_env = x_codex.get("bearer_token_env_var") if isinstance(x_codex, dict) else None
+        bearer_env = (
+            x_codex.get("bearer_token_env_var") if isinstance(x_codex, dict) else None
+        )
         if bearer_env and "Authorization" not in headers:
             headers["Authorization"] = f"Bearer ${{{bearer_env}}}"
         if headers:
@@ -158,16 +165,19 @@ def merge_cursor_mcp_servers(
     Only ``CURSOR_ENABLED_SERVERS`` are emitted. Parked servers stay in
     ``.agents/mcp-cursor-parked-31.json``. A later sync cannot re-insert the
     31 even as ``disabled: true``. Mixpanel stays absent.
+
+    The registry is the ONLY source of an entry's body. The live file supplies
+    key order and nothing else: a keep-list name the registry does not generate
+    is dropped, never adopted. Adopting it was how an off-registry hand edit —
+    measured 2026-09-01 as a stdio wrapper in front of the shared
+    ``basic-memory`` HTTP daemon — could outlive a sync, with
+    ``stamp_cursor_g3d`` then stripping ``disabled`` and force-enabling it.
     """
     merged: dict[str, Any] = {}
-    for name, entry in live_servers.items():
-        if name not in CURSOR_ENABLED_SERVERS:
+    for name in live_servers:
+        if name not in CURSOR_ENABLED_SERVERS or name not in generated:
             continue
-        if not isinstance(entry, dict):
-            merged[name] = entry
-            continue
-        source = generated.get(name, entry)
-        merged[name] = stamp_cursor_g3d(source, name)
+        merged[name] = stamp_cursor_g3d(generated[name], name)
     for name, entry in generated.items():
         if name not in CURSOR_ENABLED_SERVERS:
             continue
@@ -183,8 +193,7 @@ def build_managed_servers_from_agents(agents_config: dict) -> dict[str, dict[str
         plugin_provided=cursor_excluded_servers(),
     )
     rendered = {
-        name: build_cursor_server(name, server)
-        for name, server in selected.items()
+        name: build_cursor_server(name, server) for name, server in selected.items()
     }
     result = {name: entry for name, entry in rendered.items() if entry is not None}
     control.assert_exact_target_parity(
@@ -200,15 +209,37 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Merge agents-managed MCP servers into Cursor's .cursor/mcp.json"
     )
-    parser.add_argument("--live", default=str(DEFAULT_LIVE_CONFIG),
-                        help="Path to live .cursor/mcp.json")
-    parser.add_argument("--agents-config", default=str(DEFAULT_AGENTS_CONFIG),
-                        help="Path to .agents/agents.json")
-    parser.add_argument("--write", action="store_true",
-                        help="Write merged config back to .cursor/mcp.json")
-    parser.add_argument("--no-backup", action="store_true",
-                        help="Skip the timestamped backup before writing")
+    parser.add_argument(
+        "--live", default=str(DEFAULT_LIVE_CONFIG), help="Path to live .cursor/mcp.json"
+    )
+    parser.add_argument(
+        "--agents-config",
+        default=str(DEFAULT_AGENTS_CONFIG),
+        help="Path to .agents/agents.json",
+    )
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Write merged config back to .cursor/mcp.json",
+    )
+    parser.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Skip the timestamped backup before writing",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help=(
+            "Report drift between the live file and the registry; write nothing. "
+            "Run this on the same OS that renders the file: the npx 'cmd /c' wrapper "
+            "is Windows-only, so a Linux run reports the npx servers as false drift"
+        ),
+    )
     args = parser.parse_args()
+
+    if args.check and args.write:
+        parser.error("--check is read-only and cannot be combined with --write")
 
     live_path = pathlib.Path(args.live)
     agents_config_path = pathlib.Path(args.agents_config)
@@ -253,6 +284,25 @@ def main() -> int:
             added.append(name)
 
     merged = merge_cursor_mcp_servers(mcp_servers, generated)
+
+    if args.check:
+        drifted = sorted(
+            name
+            for name in set(merged) | set(mcp_servers)
+            if merged.get(name) != mcp_servers.get(name)
+        )
+        if drifted:
+            # Names only: entries carry ${env:...} references, never values.
+            print(
+                "FAILED:mcp-cursor-check "
+                f"live={live_path} drift={len(drifted)} servers={','.join(drifted)}"
+            )
+            return 1
+        print(
+            f"SUCCESS:mcp-cursor-check live={live_path} drift=0 managed={len(merged)}"
+        )
+        return 0
+
     live_config["mcpServers"] = merged
     enabled = [
         name

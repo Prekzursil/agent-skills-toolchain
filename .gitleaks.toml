@@ -231,3 +231,31 @@ regexes = [
   '''^ADV-?0[0-9]{3}-[A-Za-z0-9][A-Za-z0-9-]{3,40}$''',
   '''^MaxAgeHours=\d+$''',
 ]
+
+# ---------------------------------------------------------------------------------------
+# 2026-09-01 -- browser-profiles/: the tree SECURITY.md already defines as the exception.
+#
+# gate-secrets went red on main at the first 2026-08-28 fold commit (745b2f77) and has
+# been red on every main run since (green through 81f844d3, 2026-08-26). Measured with
+# the pinned gitleaks 8.30.1 over the full history (1201 commits): 1638 findings, of
+# which 1632 are under browser-profiles/ and every one is the generic-api-key entropy
+# rule. 1588 of them are ONE file, edge-agent/SmartScreen/RemoteData/edgeSettings_2.0-*,
+# Microsoft's downloaded SmartScreen settings blob; the rest are Chrome/Edge
+# "Secure Preferences" / "Preferences" / "Local State" per-preference HMAC signatures and
+# component-manifest hashes. None is a credential; they are browser integrity data.
+#
+# The tree itself IS sensitive -- live login cookies -- and that is settled by policy, not
+# by this scanner: SECURITY.md declares the repo PRIVATE-ONLY, names browser-profiles/ as
+# "the exception (cookies allowed)" (owner decision 28.08.2026), and .gitignore forbids a
+# blanket ignore of it. The genuinely sensitive files there (Cookies, Login Data) are
+# SQLite binaries gitleaks never reads, so the gate was red on integrity hashes while
+# blind to the one thing that is actually secret. A path waiver is the right shape here
+# precisely BECAUSE it is file-level: this tree's contents are sensitive by definition and
+# governed by SECURITY.md, so there is nothing for an entropy heuristic to add. Everything
+# outside this tree stays scanned exactly as before.
+#
+# Consequence of the red gate this closes: main's protection requires gate-secrets, so no
+# PR could merge into main between 2026-08-28 and this change.
+[[allowlists]]
+description = "browser-profiles/: owner-tracked live browser state, governed by SECURITY.md not by entropy heuristics (1632 generic-api-key hits on SmartScreen/HMAC/component hashes)"
+paths = ['''^browser-profiles/''']

@@ -184,7 +184,10 @@ def normalize_event(
             # command as toolName/toolInput normalized to an empty tool and was ALLOWED.
             # A safety guard must not fail open on a payload-casing difference.
             name=str(_first_present(data, ("tool_name", "toolName")) or ""),
-            id=str(_first_present(data, ("tool_use_id", "tool_id", "toolUseId", "toolId")) or ""),
+            id=str(
+                _first_present(data, ("tool_use_id", "tool_id", "toolUseId", "toolId"))
+                or ""
+            ),
             input=(
                 _first_present(data, ("tool_input", "toolInput"))
                 if _first_present(data, ("tool_input", "toolInput")) is not None

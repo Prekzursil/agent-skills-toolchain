@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Delete stale Codex thread rows through the vendor CLI, never raw SQL writes."""
+
 from __future__ import annotations
 
 import argparse
@@ -35,9 +36,13 @@ def _is_within(path: pathlib.Path, root: pathlib.Path) -> bool:
         return False
 
 
-def find_stale_threads(database: pathlib.Path, codex_home: pathlib.Path) -> list[StaleThread]:
+def find_stale_threads(
+    database: pathlib.Path, codex_home: pathlib.Path
+) -> list[StaleThread]:
     allowed_roots = [codex_home / "sessions", codex_home / "archived_sessions"]
-    connection = sqlite3.connect(f"file:{database.resolve().as_posix()}?mode=ro", uri=True)
+    connection = sqlite3.connect(
+        f"file:{database.resolve().as_posix()}?mode=ro", uri=True
+    )
     try:
         rows = connection.execute(
             "SELECT id, rollout_path FROM threads ORDER BY created_at, id"
@@ -87,7 +92,9 @@ def delete_stale_threads(
     failed_items: list[StaleThread] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, workers)) as executor:
         futures = {executor.submit(delete_one, item): item for item in selected}
-        for index, future in enumerate(concurrent.futures.as_completed(futures), start=1):
+        for index, future in enumerate(
+            concurrent.futures.as_completed(futures), start=1
+        ):
             if future.result():
                 deleted += 1
             else:
@@ -111,7 +118,9 @@ def delete_stale_threads(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--codex-home", type=pathlib.Path, default=pathlib.Path.home() / ".codex")
+    parser.add_argument(
+        "--codex-home", type=pathlib.Path, default=pathlib.Path.home() / ".codex"
+    )
     parser.add_argument("--database", type=pathlib.Path)
     parser.add_argument("--codex-command", default="codex")
     parser.add_argument("--limit", type=int)

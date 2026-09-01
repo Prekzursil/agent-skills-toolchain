@@ -6,6 +6,7 @@ Reads .agents/agents.json (source of truth), filters servers targeting
 (no agents__ prefix), preserving manually-configured standalone servers,
 and skipping servers already provided by Claude plugins.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -61,13 +62,18 @@ def build_claude_server(name: str, server: dict[str, Any]) -> dict[str, Any] | N
     transport = server.get("transport", "stdio")
 
     if transport == "http":
-        # HTTP/SSE servers use url directly
+        # ``type`` is mandatory for Claude: an entry carrying a ``url`` but no
+        # ``type`` is read as a stdio server and SKIPPED, so the server silently
+        # never mounts (see tools/mcp/mcp-http-host/README.md).
         entry: dict[str, Any] = {
+            "type": "http",
             "url": server["url"],
         }
         headers = dict(server.get("headers", {}))
         x_codex = server.get("x_codex", {})
-        bearer_env = x_codex.get("bearer_token_env_var") if isinstance(x_codex, dict) else None
+        bearer_env = (
+            x_codex.get("bearer_token_env_var") if isinstance(x_codex, dict) else None
+        )
         if bearer_env and "Authorization" not in headers:
             headers["Authorization"] = f"Bearer ${{{bearer_env}}}"
         if headers:
@@ -102,8 +108,7 @@ def build_managed_servers_from_agents(agents_config: dict) -> dict[str, dict[str
         plugin_provided=PLUGIN_PROVIDED_SERVERS,
     )
     rendered = {
-        name: build_claude_server(name, server)
-        for name, server in selected.items()
+        name: build_claude_server(name, server) for name, server in selected.items()
     }
     result = {name: entry for name, entry in rendered.items() if entry is not None}
     control.assert_exact_target_parity(
@@ -119,14 +124,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Merge agents-managed MCP servers into Claude Code's .claude.json"
     )
-    parser.add_argument("--live", default=str(DEFAULT_LIVE_CONFIG),
-                        help="Path to live .claude.json")
-    parser.add_argument("--agents-config", default=str(DEFAULT_AGENTS_CONFIG),
-                        help="Path to .agents/agents.json")
-    parser.add_argument("--write", action="store_true",
-                        help="Write merged config back to .claude.json")
-    parser.add_argument("--backup", action="store_true",
-                        help="Create a backup before writing (off by default)")
+    parser.add_argument(
+        "--live", default=str(DEFAULT_LIVE_CONFIG), help="Path to live .claude.json"
+    )
+    parser.add_argument(
+        "--agents-config",
+        default=str(DEFAULT_AGENTS_CONFIG),
+        help="Path to .agents/agents.json",
+    )
+    parser.add_argument(
+        "--write", action="store_true", help="Write merged config back to .claude.json"
+    )
+    parser.add_argument(
+        "--backup",
+        action="store_true",
+        help="Create a backup before writing (off by default)",
+    )
     args = parser.parse_args()
 
     live_path = pathlib.Path(args.live)

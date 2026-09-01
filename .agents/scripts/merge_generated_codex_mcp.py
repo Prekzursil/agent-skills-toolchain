@@ -73,22 +73,25 @@ def build_managed_blocks_from_agents(agents_config: dict) -> list[Block]:
     blocks: list[Block] = []
     servers = control.select_target_servers(agents_config, "codex")
     for name, server in servers.items():
-
-        x_codex = server.get("x_codex", {}) if isinstance(server.get("x_codex"), dict) else {}
-        header = f'mcp_servers.{render_toml_key(name)}'
-        lines = [f'[{header}]']
+        x_codex = (
+            server.get("x_codex", {}) if isinstance(server.get("x_codex"), dict) else {}
+        )
+        header = f"mcp_servers.{render_toml_key(name)}"
+        lines = [f"[{header}]"]
 
         transport = server.get("transport")
         if transport == "stdio":
-            lines.append(f'command = {render_toml_string(server["command"])}')
-            args = ", ".join(render_toml_string(str(arg)) for arg in server.get("args", []))
+            lines.append(f"command = {render_toml_string(server['command'])}")
+            args = ", ".join(
+                render_toml_string(str(arg)) for arg in server.get("args", [])
+            )
             lines.append(f"args = [{args}]")
             if server.get("cwd"):
-                lines.append(f'cwd = {render_toml_string(server["cwd"])}')
+                lines.append(f"cwd = {render_toml_string(server['cwd'])}")
         else:
-            lines.append(f'url = {render_toml_string(server["url"])}')
+            lines.append(f"url = {render_toml_string(server['url'])}")
 
-        lines.append(f'enabled = {"true" if server.get("enabled", True) else "false"}')
+        lines.append(f"enabled = {'true' if server.get('enabled', True) else 'false'}")
         if "startup_timeout_sec" in x_codex:
             lines.append(f"startup_timeout_sec = {int(x_codex['startup_timeout_sec'])}")
         if "tool_timeout_sec" in x_codex:
@@ -99,11 +102,7 @@ def build_managed_blocks_from_agents(agents_config: dict) -> list[Block]:
             dict.fromkeys(
                 list(x_codex.get("env_vars", []))
                 + list(server.get("requiredEnv", []))
-                + [
-                    key
-                    for key, value in env_map.items()
-                    if value == f"${{{key}}}"
-                ]
+                + [key for key, value in env_map.items() if value == f"${{{key}}}"]
             )
         )
         if env_vars and transport == "stdio":
@@ -111,20 +110,33 @@ def build_managed_blocks_from_agents(agents_config: dict) -> list[Block]:
             lines.append(f"env_vars = [{rendered}]")
 
         bearer_env = x_codex.get("bearer_token_env_var")
-        headers_map = server.get("headers", {}) if isinstance(server.get("headers"), dict) else {}
+        headers_map = (
+            server.get("headers", {}) if isinstance(server.get("headers"), dict) else {}
+        )
         static_headers: dict[str, str] = {}
         env_headers: dict[str, str] = {}
         for key, value in headers_map.items():
             if value == f"${{{key}}}":
                 env_headers[key] = key
-            elif isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+            elif (
+                isinstance(value, str)
+                and value.startswith("${")
+                and value.endswith("}")
+            ):
                 env_headers[key] = value[2:-1]
             else:
                 static_headers[key] = value
-        if bearer_env and static_headers.get("Authorization") == f"Bearer ${{{bearer_env}}}":
+        if (
+            bearer_env
+            and static_headers.get("Authorization") == f"Bearer ${{{bearer_env}}}"
+        ):
             static_headers.pop("Authorization", None)
         authorization = static_headers.get("Authorization")
-        if isinstance(authorization, str) and authorization.startswith("Bearer ${") and authorization.endswith("}"):
+        if (
+            isinstance(authorization, str)
+            and authorization.startswith("Bearer ${")
+            and authorization.endswith("}")
+        ):
             referenced_env = authorization[len("Bearer ${") : -1]
             if bearer_env and bearer_env != referenced_env:
                 raise control.RegistryError(
@@ -133,24 +145,30 @@ def build_managed_blocks_from_agents(agents_config: dict) -> list[Block]:
             bearer_env = referenced_env
             static_headers.pop("Authorization", None)
         if bearer_env:
-            lines.append(f'bearer_token_env_var = {render_toml_string(bearer_env)}')
+            lines.append(f"bearer_token_env_var = {render_toml_string(bearer_env)}")
 
         blocks.append(Block(header, "\n".join(lines) + "\n"))
 
         static_env = {k: v for k, v in env_map.items() if k not in env_vars}
         if static_env:
-            env_lines = [f'[{header}.env]']
+            env_lines = [f"[{header}.env]"]
             for key in sorted(static_env):
-                env_lines.append(f"{render_toml_key(key)} = {render_toml_string(str(static_env[key]))}")
+                env_lines.append(
+                    f"{render_toml_key(key)} = {render_toml_string(str(static_env[key]))}"
+                )
             blocks.append(Block(f"{header}.env", "\n".join(env_lines) + "\n"))
 
         if static_headers:
-            header_lines = [f'[{header}.http_headers]']
+            header_lines = [f"[{header}.http_headers]"]
             for key in sorted(static_headers):
-                header_lines.append(f"{render_toml_key(key)} = {render_toml_string(str(static_headers[key]))}")
-            blocks.append(Block(f"{header}.http_headers", "\n".join(header_lines) + "\n"))
+                header_lines.append(
+                    f"{render_toml_key(key)} = {render_toml_string(str(static_headers[key]))}"
+                )
+            blocks.append(
+                Block(f"{header}.http_headers", "\n".join(header_lines) + "\n")
+            )
         if env_headers:
-            header_lines = [f'[{header}.env_http_headers]']
+            header_lines = [f"[{header}.env_http_headers]"]
             for key in sorted(env_headers):
                 header_lines.append(
                     f"{render_toml_key(key)} = {render_toml_string(env_headers[key])}"
@@ -169,10 +187,16 @@ def build_managed_blocks_from_agents(agents_config: dict) -> list[Block]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Merge agents-managed Codex MCP blocks into a live Codex config while preserving non-MCP settings and local-only subblocks.")
+    parser = argparse.ArgumentParser(
+        description="Merge agents-managed Codex MCP blocks into a live Codex config while preserving non-MCP settings and local-only subblocks."
+    )
     parser.add_argument("--live", default=str(DEFAULT_LIVE_CONFIG))
     parser.add_argument("--agents-config", default=str(DEFAULT_AGENTS_CONFIG))
-    parser.add_argument("--write", action="store_true", help="Write the merged config back to the live file")
+    parser.add_argument(
+        "--write",
+        action="store_true",
+        help="Write the merged config back to the live file",
+    )
     args = parser.parse_args()
 
     live_path = pathlib.Path(args.live)

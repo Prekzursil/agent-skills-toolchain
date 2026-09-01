@@ -7,18 +7,20 @@
 - Keep the primary execution surfaces separated:
   - `.agents/skills/` — the canonical skill root
   - `skills/` — the shipping projection of `.agents/skills/`; `scripts/sync-skills.ps1` deploys
-    from it (`sync-skills.ps1:45`). The projection is **not complete**: measured 2026-08-13,
-    3 skill names live only in `skills/` and 12 only in `.agents/skills/`, so each root holds
-    content the other lacks. `ci/check_skill_dual_write.py` (including `--strict-parity`) is a
-    DIFF guard over changed paths, not a tree-parity guard — it stops the divergence growing but
-    does not close the backlog, which pre-dates it (those 3 landed 2026-07-18/19, the guard
-    2026-07-21). REFUTED 2026-08-13: an earlier revision of this bullet called `skills/` "the
-    generated projection" of `.agents/skills/`, said `--strict-parity` "holds the two in
-    lockstep", and concluded it is "a permanent surface, not a temporary compatibility layer".
-    All three are false while any name is one-sided; that wording came from counting one
-    direction only. Both one-sided counts are gated by
-    `ci/tests/test_docs_executable_claims.py`, so when they reach 0 this bullet must be upgraded
-    rather than left understated.
+    from it (`sync-skills.ps1:45`). The projection is **complete by name**: measured
+    2026-09-01, 0 skill names live only in `skills/` and 0 only in `.agents/skills/` — the
+    2026-08-28 SSOT fold (`15905d35`) closed the backlog, and `ci/skill-inventory-baseline.txt`
+    (shrink-only) now holds zero grandfathered pins. Two guards keep it there:
+    `ci/check_skill_dual_write.py --strict-parity` is a DIFF guard over changed paths (it stops a
+    divergence being introduced), and `ci/check_skill_inventory_parity.py` is the TREE-parity
+    guard (it reports any one-sided name at HEAD). Name-parity is not byte-parity: 2 files
+    still differ between the two roots (`reconcile-flags/import-2026-08-28/`), and `skills/`
+    remains the deploy source, so it is still a projection rather than a second canon.
+    HISTORY, kept because the gate below replays it: measured 2026-08-13 the counts were 3 and
+    12, and an earlier revision called `--strict-parity` a lockstep guard — false while any
+    name was one-sided, and the reason the tree-parity arm was built. Both one-sided counts
+    are gated by `ci/tests/test_docs_executable_claims.py`; this bullet was upgraded when they
+    reached 0, as its previous wording required.
   - `tools/mcp/`
   - `tools/web/` — reserved and currently empty; see [`tools/web/README.md`](../tools/web/README.md)
 - Retain `tools/editor/` as a bounded editor-local surface.
