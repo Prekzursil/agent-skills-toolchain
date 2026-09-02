@@ -281,7 +281,23 @@ would trip.
 - **[FACT] Port hazard:** the popular `gemini-cli-mcp-openai-bridge` defaults to `127.0.0.1:8765`
   ([Intelligent-Internet/gemini-cli-mcp-openai-bridge README](https://github.com/Intelligent-Internet/gemini-cli-mcp-openai-bridge)),
   which is `basic-memory`'s owned port (L4). Do not adopt it; if anyone ever does, it must be re-ported.
-- **Agy:** _(pending - next checkpoint)_
+- **[FACT] Agy (Antigravity CLI, Go binary, released 2026-05-19)** has two HTTP clients: an admin
+  CloudCode client that honours `CLOUD_CODE_URL`, and an **inference client hard-wired to a GCP
+  backend** that ignores env/proxy config; auth is keyring + Google sign-in. An open feature
+  request asks for base-URL + header override and notes that the Gemini CLI it replaces *did*
+  support `GOOGLE_GEMINI_BASE_URL`. ([google-antigravity/antigravity-cli#514](https://github.com/google-antigravity/antigravity-cli/issues/514),
+  [decolua/9router#1358](https://github.com/decolua/9router/issues/1358); Tier B issue text, 2026.)
+- **[FACT]** Since agy 1.1.13 (2026-08-14) a keyless CI path exists: `settings.json`
+  `modelProvider: "gemini"` + `GEMINI_API_KEY`, with a `GOOGLE_GEMINI_BASE_URL` override - still
+  Gemini protocol only. (Tier C, [aibuilderclub agy guide](https://www.aibuilderclub.com/blog/antigravity-cli-guide), UNVERIFIED against release notes.)
+- **[FACT]** BYOK for agy exists only as third-party local translating proxies (`agy-byok`
+  default `127.0.0.1:12345`; `free-antigravity-cli` with `~/.free-antigravity/models.json` holding
+  literal `apiKey` values). ([webbrain-one/agy-byok](https://github.com/webbrain-one/agy-byok),
+  [vahapogut/free-antigravity-cli](https://github.com/vahapogut/free-antigravity-cli); Tier C.)
+- **[INFER]** Agy is fallback-only (section 5). The proxies are a second gateway holding plaintext
+  keys - a tradeoff, listed not adopted (L2, L6 spirit). Whether agy mounts MCP servers from
+  `settings.json` like Gemini CLI is UNVERIFIED today; if not, agy simply has no path to
+  registry models and the registry should record `targets.agy = "unsupported"` honestly.
 
 ### 2.8 Runtimes that cannot take a provider at all: Claude Code, Cursor
 _(pending - next checkpoint)_
