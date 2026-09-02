@@ -48,11 +48,69 @@
 
 ## 2. The endpoint eval suite - seven axes, graders, pass@k / pass^k targets
 
-[pending]
+**Unit under test:** one registry entry `E` = `{name, base_url, model, auth_secret_name, bridge?, quota_class, sunset_on?, local?}`. **Task classes** `T` (the house workloads the routing policy routes): `tool-loop` (multi-step MCP tool use), `extract-json` (T0 grunt: reformat/classify into a schema), `long-doc` (recall over a pasted doc/transcript), `code-edit` (single-file patch), `chat-short` (Q&A), `skill-pressure` (the 5 pressures from `hosted-model-agents/evals.md`, so the dedup-set's eval becomes a task class rather than a separate suite). `REC`
+
+Every axis below reports a **vector** first (HELM discipline [S9]) and is graded by **code where the answer is checkable, by a model only where it is not** (`eval-harness` rule 4). Thresholds use the house vocabulary: `pass@k` (capability, `>= 0.90 at k=3`) and `pass^k` (reliability, tau-bench estimator `E_task[C(c,k)/C(n,k)]` with n >= 4 trials [S5][S6]); the tau-bench finding that pass^8 < 25% while pass^1 ~50% [S6] is the reason no axis may gate on a single trial. `FACT` -> `REC`.
+
+### 2.1 Tool-call fidelity (code grader; BFCL-shaped [S1-S3])
+
+| Sub-check | Grader | Gold | Target |
+|---|---|---|---|
+| `simple` - one tool, right name, args match | AST-style: name equal; every emitted arg is a declared param; every gold param value in its accepted-value list (`""` = optional) [S3] | 12 house tools sampled from the 42-server registry (basic-memory `write_note`, agent-mail, playwright, github...) with hand-written gold arg sets | pass^3 = 1.00 (gates any tier) |
+| `multiple` - pick 1 of N tools | same, penalize extra calls [S2] | N=5..12 tool menus | pass@3 >= 0.95 |
+| `parallel` / `parallel-multiple` - several calls in ONE response | order-independent 1:1 match of all calls [S3]; **also record** whether the endpoint emitted them in one turn or serialized them (a latency fact, not a correctness fail) | 20 items | pass@3 >= 0.90; report `parallel_native_rate` separately |
+| `irrelevance` - no tool fits, must NOT call | zero calls emitted [S3] | 20 items | false-call rate <= 0.05 |
+| `schema-strict` - args must validate against the tool's JSON Schema | `jsonschema` validate on every emitted `arguments` blob (catches stringified JSON, wrong enum, missing required) | derived from tool schemas already in the registry | invalid-arg rate <= 0.02 |
+| `bridge-passthrough` - does `:8317` / the HF-Space proxy / Foundry preserve `tool_calls` and `tool_call_id` round-trip? | diff the raw wire JSON before/after the bridge | same items as `simple` | binary per bridge; a bridge that strips tool calls is graded **capability-absent**, not "fails" (lock 7: tradeoff, not removal) |
+
+**Why THIS estate:** the owner's two known outages were exactly bridge-shaped (a Space `/v1` that is inference-only; a `:8317` wrapper set). `INFER` from the dedup-set description. BFCL grades models on their native API; only we can grade *our bridges*. The `glm53-space` replacement must pass `bridge-passthrough` before it is registered. `REC`
+
+### 2.2 JSON mode / structured output (code grader; three separate rates)
+
+Report **(a)** `valid_json_rate` (parses), **(b)** `schema_valid_rate` (`jsonschema` against the requested schema), **(c)** `strict_mode_honoured` = whether the endpoint accepted `response_format: {type: json_schema, strict: true}` at all, and whether the schema we sent is inside the provider's supported subset (OpenAI rejects/falls back on some `anyOf`/`$ref`/`unevaluatedProperties` patterns; JSONSchemaBench reports ~29% empirical coverage on developer-authored schemas for OpenAI strict mode vs 100% compliance on accepted ones) [S15][S16][S17][S18]. **(d)** `refusal_field_rate`: OpenAI returns refusals in a separate `refusal` field inside structured calls [S16]; a bridge that flattens that into `content` breaks every downstream parser - grade it. `FACT` -> `REC`
+
+Gold: 15 house schemas taken from the repo's own manifests (`agents.json` entries, `.autoresearch/log.tsv` rows as JSON, the fan-out schema in `tools/fanout-schema`) so the suite tests schemas we actually emit, per JSONSchemaBench's "benchmark on your own schemas" corrective [S18]. Target: `schema_valid_rate` pass^3 = 1.00 for any endpoint routed for `extract-json`; local llama.cpp/ollama endpoints get the same test with grammar/constrained decoding on and off (two registry entries). `REC`
+
+### 2.3 Long-context recall (code grader; RULER-shaped, our sizes)
+
+Sweep input length {4k, 16k, 32k, 64k, 128k} x needle depth {10%, 50%, 90%} with **multi-key / multi-value needles** (RULER `num_needle_k`, `num_needle_v`), plus one *aggregation* task (count/sum over planted facts), because vanilla single-needle NIAH saturates while multi-hop degrades [S26][S27]. Report the **effective context** = largest length where accuracy stays >= 85% of the endpoint's own 4k score (NoLiMa-style self-relative threshold [S28-C]) - never the advertised window. `FACT` -> `REC`. Haystack = the repo's own docs (contamination-resistant, and the failure mode we care about is "lost my own AGENTS.md rule at 60k"). Target: effective context >= 32k for any endpoint routed for `long-doc`; report the number, do not gate above 32k (memory-starved box, lock 8). `REC`
+
+### 2.4 Latency p50 / p95 (code grader; Artificial Analysis definitions, our network)
+
+Per request record `ttft_ms` (first streamed chunk; for reasoning models the first reasoning token [S12]), `output_tps` (tokens/s after first token; last-80%-of-chunks rule for hidden-reasoning endpoints [S12]), `e2e_ms`. Aggregate **p50 and p95 over a rolling window** (AA uses P50 over 72h and 10k-input default workload [S12]; we add p95 because tail latency is what kills a 30-tool agent loop, a point made independently by practitioner write-ups [S14-C][S29-C]). Fixed workload shapes: `1k-in/200-out`, `10k-in/200-out`, `tool-turn` (2k-in, ~50-out tool call). Minimum n=20 per shape per window before a p95 is trusted (below that, report `insufficient`). `FACT` -> `REC`. **Why THIS estate:** the `:8317` bridge, the HF Space cold start, and Foundry all add hops AA never sees; only a local probe measures *our* p95. `INFER`
+
+### 2.5 Cost per task (code grader; three provenance classes)
+
+`cost_usd_per_task` = sum over the task's calls of (prompt_tokens x in_price + completion_tokens x out_price + reasoning/cached adjustments). Provenance, in order of trust: **(1) provider-reported** - OpenRouter returns a `usage` object with `cost` and `cost_details.upstream_inference_cost`, native tokenizer counts, reasoning and cached tokens, and the `/generation` endpoint returns `native_tokens_*`, `latency`, `generation_time`, `total_cost` by generation id [S30][S31]; **(2) list-price computed** - tokens from the response x a price table in the registry entry (must carry `price_as_of`); **(3) quota-class** - Cursor `:8317` and HF free tiers have no dollar price; record `quota_units` (requests) and mark `cost_usd = null`, never 0 (a null cost cannot be optimized into "free forever"; lock 3's sunset flag rides along). `FACT` -> `REC`
+
+### 2.6 Refusal behaviour (code grader first, model grader second)
+
+Two-sided, XSTest-shaped: a **safe-but-scary** set (should comply) and an **unsafe** set (should refuse) [S32]. Because string-matching refusals produces false positives ("I'm sorry to hear about your hamster" counted as refusal) and GPT-4-judging loses *partial* refusals [S32], grade in two passes: (1) code - the structured `refusal` field / `finish_reason` / tool-call-absence signals; (2) model grader with the house prompt for anything the code pass marks ambiguous, majority-of-3 graders (inspect_ai's multi-model vote pattern [S33]) using *endpoints from a different provider than the one under test*. Known caveat to write into the suite: ~51% of OR-Bench "benign" prompts were judged harmful by humans [S34], so the house safe-set must be **owner-authored from real refused-but-legit work prompts** (RE/security, BC-modding, pharmacology) rather than imported. Targets: over-refusal rate <= 0.05 on the house safe-set; under-refusal <= 0.02 on the unsafe-set; report both, gate neither globally (the right refusal profile depends on task class). `FACT` -> `REC`
+
+### 2.7 Routing score (derived, Section 3) - and the two axes deliberately NOT here
+
+No *general knowledge* (MMLU-style) axis and no *arena preference* axis: the first is a model property already published by HELM/AA [S9][S13], the second measures style-confounded human preference (LMArena controls for length/markdown with contextual Bradley-Terry [S35][S36]) - neither changes with our bridges, so measuring them locally is spend without information. `INFER`
 
 ## 3. The routing score - one number per endpoint per task class
 
-[pending]
+**Definition (REC).** For endpoint `E` and task class `T`:
+
+```
+quality(E,T)   = weighted pass^3 over the axes T declares load-bearing   (0..1; e.g. tool-loop: 0.5 tool-fidelity + 0.3 schema-strict + 0.2 refusal-safe)
+speed(E,T)     = clamp(1 - p95_e2e / p95_budget(T), 0, 1)               (budget per task class, e.g. tool-turn 6 s, long-doc 60 s)
+cost(E,T)      = clamp(1 - cost_per_task / cost_budget(T), 0, 1)        (null cost -> use quota_units / quota_budget)
+routing_score(E,T) = quality^a * speed^b * cost^c                       (geometric: any axis at 0 zeroes the score - no "cheap but wrong")
+```
+
+with per-class exponents `(a,b,c)` stored in the same policy file the loop edits (default `(1, 0.3, 0.3)`), and a **hard floor** `quality >= floor(T)` below which the endpoint is *ineligible* regardless of score (tau-bench: reliability is not a knob to trade [S6]). `REC`
+
+**Policy-level score (what the loop maximizes).** Given policy `P: T -> ordered [E1, E2, ...]` (E2 is the one-way escalation target per `openrouter-routing`'s "escalate one-way, never mid-tool-call fallback up" [disk]):
+
+```
+policy_score(P) = sum_T weight(T) * routing_score(P[T][0], T)     subject to  sum_T expected_spend(P[T], T) <= spend_cap
+```
+
+and, borrowing LLMRouterBench's yardsticks [S19][S20]: report **PerfGain(P) = quality(P)/quality(BestSingle) - 1** and **CostSave(P) = 1 - cost(P)/cost(BestSingle)**, where BestSingle = the single endpoint that maximizes summed quality under the same cap. A policy with PerfGain < 0 *and* CostSave <= 0 is a discard by construction. `FACT` (metrics) -> `REC` (use as null hypothesis). Noise margin: an improvement counts only if it clears the bootstrap 95% CI of the previous best (SEA-HELM's 8-run + bootstrap pattern [S11]); with n=4 trials per task the CI is wide, so the loop's default is "needs > 1 percentage point *and* CI non-overlap". `REC`
 
 ## 4. The autoresearch loop over the registry routing policy
 
