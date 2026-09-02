@@ -180,7 +180,7 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
         "metric": "artifact_secret_true_positive",
         "owner": "prekzursil",
         "deadline": "2026-09-01",
-        "fire_rate": "fires only on a credential-classified transcript/write target or an incomplete bounded scan",
+        "fire_rate": "Grok only: at most once per transcript path_id on Stop/SubagentStop. Claude/Codex keep stop_hook_active re-entrancy and may still report every real Stop",
     },
     "injection_quarantine": {
         "metric": "injection_precision",
@@ -1241,6 +1241,12 @@ class SensitiveArtifactModule:
     This is deliberately a bounded, report-only sweep. It never rewrites, moves,
     deletes, or echoes target bytes; an unreadable, unstable, linked, or truncated
     target is UNKNOWN rather than clean.
+
+    Stop/SubagentStop notices are once-per-transcript **on Grok only**.
+    Claude sets stop_hook_active on re-entry; Grok instead appends the
+    inject as "Stop hook feedback, continuing" with no re-entrancy flag,
+    so without this cooldown the same path_id nags every turn. Codex and
+    Claude keep the original every-real-Stop report contract.
     """
 
     name = "sensitive_artifact"
@@ -1264,6 +1270,12 @@ class SensitiveArtifactModule:
                     "utf-8", "surrogatepass"
                 )
             ).hexdigest()[:12]
+            if (
+                kind == "transcript"
+                and event.provider == "grok"
+                and self._already_reported(event, path_id)
+            ):
+                return HookResult.success()
             if classification == "sensitive":
                 message = (
                     "SENSITIVE ARTIFACT REPORT: classification=POTENTIAL-CREDENTIAL "
@@ -1286,9 +1298,42 @@ class SensitiveArtifactModule:
                 reason_code="sensitive_artifact",
                 additional_context=[message],
             )
-            return stage("sensitive_artifact", TIER_ADVISORY, event, raw)
+            staged = stage("sensitive_artifact", TIER_ADVISORY, event, raw)
+            if (
+                kind == "transcript"
+                and event.provider == "grok"
+                and staged.action != "allow"
+            ):
+                self._mark_reported(event, path_id)
+            return staged
         except Exception:
             return HookResult.success()
+
+    @staticmethod
+    def _notice_flag(path_id: str) -> str:
+        return f"sa_{path_id}"
+
+    @classmethod
+    def _marker_path(cls, path_id: str) -> Path:
+        return default_state_root() / "sensitive-artifact" / f"{path_id}.json"
+
+    @classmethod
+    def _already_reported(cls, event: HookEvent, path_id: str) -> bool:
+        if _session_flag(event, cls._notice_flag(path_id)):
+            return True
+        payload = read_json(cls._marker_path(path_id), {})
+        return bool(isinstance(payload, dict) and payload.get("set"))
+
+    @classmethod
+    def _mark_reported(cls, event: HookEvent, path_id: str) -> None:
+        _session_flag(event, cls._notice_flag(path_id), set_it=True)
+        try:
+            marker = cls._marker_path(path_id)
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(marker, {"set": True})
+        except OSError:
+            pass
+
 
     @classmethod
     def _candidate(cls, event: HookEvent) -> tuple[str, str, bool] | None:
