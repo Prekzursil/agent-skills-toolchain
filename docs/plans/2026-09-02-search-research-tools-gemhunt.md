@@ -242,6 +242,22 @@ commit-starved box.
   parent run's own `claude-fable-5-1-thinking-max`; later launches pin the slug
   explicitly. (No separate "1M" slug is exposed to this run — the pinned slug is the
   max-reasoning variant that is available.)
+- **G-11 — `cve-mcp` must work and be wired into the estate MCP list.** Owner
+  (08:05 UTC) on the harness report's "stale cve-mcp names". Measured: the names the
+  harness now routes to are REAL — `npx -y cve-mcp@0.2.0` (npm, MIT, badchars/cve-mcp;
+  `serverInfo` self-reports 0.1.0) answered `tools/list` with **41 tools** including
+  `nvd_search`, `nvd_get`, `kev_search` (also `kev_check`, `epss_score`, `osv_query`,
+  `ghsa_search`, `cve_enrich`, `cve_prioritize`, `cve_report`, ...) with no API key
+  configured; the old SKILL.md names `cve_lookup`/`cve_search`/`cve_kev_list` never
+  existed upstream. The gap is registration: `cve-mcp` is in
+  `tools/mcp/canonical-mcp-servers.json` and `agent-self/config/mcp/mcp.portable.json`
+  but NOT in `.agents/agents.json` (the inventory SSOT; 42 servers, `hexstrike-ai`
+  present, `cve-mcp` and `osint-mcp-server` absent), so the `vuln` route pointed at an
+  unwired server. Action: add a stdio `cve-mcp` entry (npx, pinned 0.2.0, enabled,
+  optional keys passed by env-name reference, no required credentials) validated by
+  `.agents/scripts/validate_mcp_control_plane.py` + `.agents/tests`, provenance in
+  `.provenance/.agents/agents.json.md` — applied right after the academic builder
+  (which also edits `agents.json`) returns, to avoid two writers on one manifest.
 
 ---
 
