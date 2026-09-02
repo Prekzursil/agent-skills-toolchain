@@ -458,7 +458,59 @@ hardcoded pair (section 6).
 
 ## 4. Materializers (per runtime) and idempotent merge semantics
 
-_(pending)_
+### 4.1 Shared contract (mirrors `merge_generated_*_mcp.py`) **[REC]**
+One module `.agents/scripts/models_control_plane.py` + one script per runtime
+`merge_generated_<runtime>_models.py`. Every script:
+1. `validate_registry(models_json)` first; any `RegistryError` -> exit 1, nothing written.
+2. Loads the **live** config, never a template; computes `generated` from
+   `select_target_endpoints(registry, runtime)` (enabled, `targets.<runtime> == native`,
+   singletonKey-deduped, sorted for determinism).
+3. **Ownership rule:** only blocks/keys/files the registry *names* are touched. Codex precedent:
+   remove a live block only if its name is in `registry_names | RETIRED_NAMES` and its suffix is
+   replaceable; everything else is preserved byte-for-byte. Retired names (`glm53-space`,
+   `qwen-space`) live in a `RETIRED_MODEL_ENTRIES` frozenset so stale blocks are purged exactly
+   the way `RETIRED_MCP_SERVERS` purges `memory` / `codex_consult` today.
+4. `assert_exact_target_parity(...)` before write - the rendered set must equal the selected set.
+5. Writes only with `--write`, via `control.atomic_write_text` (tmp + fsync + `os.replace`);
+   default is a **dry-run diff** plus a **routing report**: for every (endpoint, runtime) pair
+   that was *not* materialized, the reason (`lock:L1`, `wire:responses=absent`, `targets:excluded`)
+   and the alternative route (`inference-mcp`, or another runtime). That is how L7 is honoured.
+6. Prints one machine line `SUCCESS:models-<runtime>-merge managed=N removed=N write=bool` so
+   `sync_shared_state.ps1` can gate on it like it gates the MCP merges.
+7. **Post-write smoke** (new vs the MCP scripts, forced by Codex #41816): run the runtime's
+   cheapest config-load command (`codex --version`/`codex login status`, `grok inspect`,
+   `goose info`, `fabric -L`, `opencode models`, `aider --list-models openai/`) and roll back via
+   the pre-write copy if it exits non-zero. Rollback is the one place a backup is mandatory.
+
+### 4.2 Per-runtime rendering
+| Runtime | Live file | Unit generated per endpoint | Merge strategy | Floor | Sharp edges honoured |
+|---|---|---|---|---|---|
+| **Codex** | `~/.codex/config.toml` | `[model_providers.<id>]` with `name, base_url, env_key, wire_api="responses", http_headers?, env_http_headers?, query_params?` + optional `[profiles.<id>]` (`model_provider`, `model`) - **never** touches top-level `model`/`model_provider` (OpenRouter stays non-default, L1) | block split/replace exactly as `merge_generated_codex_mcp.py`; header regex `^model_providers\.("[^"]+"\|[^.]+)(\..+)?$` and `^profiles\.<managed-id>$` | `wire.responses >= probed` | never emit `wire_api="chat"`; never shadow built-in ids `openai/ollama/lmstudio`; smoke after write |
+| **Grok** | `~/.grok/config.toml` | one `[model."<model-id>"]` per *model* (not endpoint): `model=remoteId, base_url, name, description, env_key=[auth.env, ...altEnv], api_backend` (from best available wire: `responses` > `chat_completions`), `context_window, max_completion_tokens`; `[models] default` untouched unless `aliases.grok-default` exists | same block splitter (`^model\."..."$`); `[models]`/`[endpoints]` preserved | `chat_completions >= declared` | never `api_key=`; never `extra_headers` containing a credential-named key; `cursor-grok-4.6` (dedup) is imported as a live-only block if not registry-named |
+| **Goose** | `%APPDATA%\Block\goose\config\custom_providers\<id>.json` | one file per endpoint: `name=id, engine="openai", display_name, description="managed-by:.agents/models.json", api_key_env, base_url, base_path="v1/chat/completions", models[{name, context_limit, input/output_token_cost}], supports_streaming, requires_auth, timeout_seconds (x_goose)` | **file-set** merge: write files we own (marker in `description`), delete owned files no longer generated, never touch unmarked files (`goose-cursor-proxy.json` stays if unmarked) | `chat_completions >= declared` | `requires_auth=false` when `auth.scheme=none`; skip + report endpoints whose headers would need a literal secret |
+| **Fabric** | `~/.config/fabric/.env` (+ `config.yaml`) | key/value lines inside a `# >>> models.json managed >>>` / `# <<< ... <<<` fence: `LM_STUDIO_API_URL`, `OLLAMA_API_URL`, and for the *one* selected generic endpoint `OPENAI_API_BASE_URL` (+`OPENAI_API_KEY=${...}` **reference only** - Fabric reads the process env, so the wrapper exports it) | fenced-region replace (the exact marker idiom the Codex script *strips* as legacy `promptbridge-codex managed` - here it is the live mechanism, since `.env` has no sections); outside the fence untouched | `chat_completions >= declared`; if `responses < probed` emit `disableResponsesAPI: true` into `config.yaml` **and** print the global-tradeoff warning | Fabric has ONE generic OpenAI base: the materializer picks `aliases.fabric-default`; other endpoints become `fabric-<id>` wrappers (see 4.3) |
+| **OpenCode** | `~/.config/opencode/opencode.json` | `provider.<id>` with `npm:"@ai-sdk/openai-compatible", name, options:{baseURL, apiKey:"{env:NAME}"}, models:{<slug>:{name, limit:{context,output}}}` | JSON key merge: replace `provider.<id>` for managed ids, delete managed ids no longer generated, preserve every other key (`$schema`, `model`, `mcp`, unmanaged providers) | `chat_completions >= declared` | dot-free ids; `{env:}` only; never `{file:}` (would name a plaintext file, L6 spirit) |
+| **Aider** | `~/.aider.model.metadata.json`, `~/.aider.model.settings.yml`, `~/.aider.conf.yml` `alias:` | metadata entry `openai/<remoteId>` = `{max_input_tokens, max_output_tokens, input_cost_per_token, output_cost_per_token, litellm_provider:"openai"}`; settings entry `{name:"openai/<remoteId>", edit_format: x_aider.edit_format \| "diff", use_repo_map: true}`; alias `"<alias>:openai/<remoteId>"` | JSON key merge / YAML list merge by `name` / alias list merge by prefix; a `# managed` comment on YAML entries | `chat_completions >= declared` | one base per process -> pairs with 4.3 wrappers; validate `litellm_provider == "openai"` prefix rule (#2928 lesson) |
+| **Gemini CLI, Agy, Claude, Cursor** | n/a | **no provider block** - they receive the inference MCP via the *existing* `agents.json` merges (+ a new `merge_generated_gemini_mcp.py` for `~/.gemini/settings.json` `mcpServers`, same family) | - | - | Codex #41816-style bricking cannot happen because nothing is written to their model config |
+
+### 4.3 Launch wrappers are part of the materializer (not an afterthought)
+- **[FACT]** The estate already materializes *processes*, not just files: `fabric-cursor`,
+  `claude-cursor`, `codex-cursor`, `ai-mode`, `grok-mode` in `~/.local/bin` export a base URL/key
+  for one process against auth2api (dedup item 3; G-32 "process-local, no persistent global env").
+- **[REC]** `merge_generated_wrappers_models.py` renders `~/.local/bin/<runtime>-<endpoint-id>`
+  (`.ps1` + `.cmd` shim on Windows) that: reads `auth.env`'s value from `local.json` via
+  `auth.localJsonPath` (read-only, never printed), exports it under `auth.env` (and Aider/Fabric's
+  `OPENAI_API_BASE(_URL)`), then `exec`s the runtime. Ownership by a header comment
+  `# managed-by: .agents/models.json <hash>`; unmarked wrappers untouched. This is the only
+  materializer that *needs* the resolver, and it is why `local.json` can stay nested (1.4).
+- Runtime-side keys never land in any config file; only NAMES do (L6, and the
+  `_validate_reference_map` rule from the MCP plane applied verbatim).
+
+### 4.4 Ordering + orchestration
+`sync_shared_state.ps1` gains one step after the three MCP merges:
+`models validate -> models probe --stale-only -> merge codex|grok|goose|fabric|opencode|aider|wrappers (each dry-run, then --write) -> smoke each`.
+No daemon, no gateway, no new port (L2, L4). Total new code: one control-plane module, seven
+small merge scripts sharing the Codex/Claude patterns, one probe script.
 
 ## 5. Fallback for runtimes that cannot take a provider: generic inference MCP
 
