@@ -237,9 +237,24 @@ Hugging Face and local-server consumption view, 18 the rubric, 19 the summary.
   LM Studio via their own vendors. Tradeoff: one `.env` = one active OpenAI base URL, so the
   existing `fabric-cursor` wrapper and an HF profile need separate `.env` files or wrapper scripts.
 
-## 8. Agy
+## 8. Agy (Google Antigravity CLI)
 
-_Pending (s.8 filled in the next commit; runtime identity to be verified before any claim)._
+- **[fact]** `agy` is the Google Antigravity CLI: a TUI on the same agent harness as Antigravity
+  2.0, sharing settings/permissions with it, authenticating via the system keyring with a
+  Google Sign-In fallback; it took components from Gemini CLI and Google positions it as the
+  Gemini-CLI successor. Headless use: `agy -p "..." --output-format json --mode plan|accept-edits`.
+  [A, corroborated, 2026-09] https://github.com/google-antigravity/antigravity-cli ,
+  https://antigravity.google/docs/cli/overview/ ,
+  https://antigravity.google/blog/introducing-google-antigravity-cli ,
+  https://www.antigravity.google/docs/cli/getting-started
+- **[fact]** No custom model-provider, base-URL or BYOK key is documented in the CLI docs or
+  README; models are Google-managed through the account. Slash commands expose plugins, MCP,
+  skills and hooks. [B, absence claim, 2026-09] (same sources; product page
+  https://antigravity.google/product/antigravity-cli/ mentions "proxy configuration" only as a
+  network proxy).
+- **[fact]** MCP sampling: not documented. [C, UNVERIFIED, 2026-09]
+- **[inference]** Zero-code HF / Ollama / LM Studio consumption is **IMPOSSIBLE**; door = MCP tool
+  only (it is an MCP client). Same shape as Cursor: inbound custom models only via the registry.
 
 ## 9. Gemini CLI
 
@@ -295,9 +310,24 @@ _Pending (s.8 filled in the next commit; runtime identity to be verified before 
   OPENAI_API_KEY=$HF_TOKEN aider --model openai/zai-org/GLM-5.3:novita` (model-id slashes and
   `:provider` suffix pass through as an opaque string after the `openai/` prefix - verify once).
 
-## 12. Ralph (cargo)
+## 12. Ralph (`ralph-cli`, cargo)
 
-_Pending (s.12 filled in the next commit)._
+- **[fact]** Ralph is a hat-based loop orchestrator that shells out to an installed coding CLI.
+  Config precedence: `~/.ralph/config.yml` (user) -> `ralph.yml` (or `$RALPH_CONFIG` / `-c`) ->
+  `-c core.field=value`. Backend is `cli.backend` (`claude`, `kiro`, `gemini`, `codex`, `forge`,
+  `amp`, `copilot`, `opencode`, `pi`, `custom`) with `cli.prompt_mode: arg|stdin`; each hat can set
+  its own `backend`; `ralph run --backend X -- <custom backend args>` passes flags through.
+  [A, corroborated, 2026-09] https://mikeyobrien.github.io/ralph-orchestrator/guide/configuration/ ,
+  https://mikeyobrien.github.io/ralph-orchestrator/guide/cli-reference/ ,
+  https://github.com/mikeyobrien/ralph-orchestrator
+- **[fact]** Ralph has no model-provider layer of its own; it inherits whatever the chosen CLI is
+  configured to use (Codex `[profiles.*]`, Claude env, OpenCode `opencode.json`, ...).
+  [A, 2026-09] (same sources)
+- **[inference]** Ralph therefore consumes HF / Ollama / LM Studio exactly when its backend does:
+  `backend: codex` + a Codex HF profile (`-- -p hf`) is zero code; `backend: claude` inherits the
+  Claude lock. **[recommendation]** Treat Ralph as a multiplier of the per-runtime findings, not a
+  runtime to configure; per-hat `backend` lets a cheap HF/local model take `research`/`review`
+  hats while `code-assist` stays on the primary model - a tradeoff surface, not a retirement.
 
 ## 13. LM Studio (`lms`)
 
@@ -348,4 +378,75 @@ _Pending (s.12 filled in the next commit)._
   own base URL and slot into the same config keys - already doctrine in the dedup-set skill, so
   not re-proposed here.
 
-_(Sections 8, 12, 16-19 land in the next commits.)_
+## 16. Matrix - runtime x mechanism (exact file and keys)
+
+Legend: **E** = ENABLE, native, zero code | **L** = native door exists but estate-LOCKED |
+**X** = IMPOSSIBLE natively (protocol or product) | **M** = MCP tool is the only door |
+**n/a** = the runtime has no MCP client. Grades are in the per-runtime sections above.
+
+| Runtime | OpenAI-compatible base URL + key env | Anthropic-compatible endpoint | Per-model config blocks | Provider registry | MCP sampling (server->client) | Config file |
+|---|---|---|---|---|---|---|
+| Claude Code | X (Messages only) | **L** `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`/`ANTHROPIC_API_KEY`/`apiKeyHelper`; allowed only toward auth2api via `claude-cursor` | E `model`, `fallbackModel`, `modelOverrides`, `availableModels`, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_*_MODEL` | X (Bedrock/Vertex/Foundry switches only) | no | `~/.claude/settings.json` `env` block; managed settings |
+| Codex CLI | E `[model_providers.<id>] base_url, env_key, wire_api="responses"` (Responses API required; ids `openai/ollama/lmstudio` reserved) | X | E `[profiles.<n>] model_provider, model`; `model_catalog_json` | X (built-ins only) | no (elicitation yes) | `~/.codex/config.toml` (user level only) |
+| Cursor IDE | **L** Settings->Models: OpenAI key + "Override OpenAI Base URL" + "Add Model" (chat/agent only) | **L** Anthropic key toggle (no base URL) | L custom model names | X | no | GUI settings (no file documented) |
+| Cursor agent CLI | X (`CURSOR_API_KEY` only; provider fixed by account) | X | X | X | no | none |
+| Grok CLI | E `[model."<id>"] base_url, env_key, api_backend="chat_completions"|"responses"` | E `api_backend="messages"` | E full per-model table (`context_window`, `extra_headers`, `reasoning_effort`, ...) | E `[endpoints] models_base_url` / `GROK_MODELS_BASE_URL` -> `{base}/models` | UNVERIFIED | `~/.grok/config.toml` (`$GROK_HOME`), managed + requirements.toml |
+| Goose 1.47 | E `OPENAI_HOST`, `OPENAI_BASE_PATH`, `OPENAI_API_KEY`; or `custom_providers/<id>.json` `engine:"openai"` | E `custom_providers/<id>.json` `engine:"anthropic"` | E `models[{name, context_limit}]` per provider file | X | no | `~/.config/goose/config.yaml` + `~/.config/goose/custom_providers/*.json` |
+| Fabric 1.4.470 | E `OPENAI_API_BASE_URL` + `OPENAI_API_KEY`; `LM_STUDIO_API_URL` (needs `/v1`) | X | E `DEFAULT_VENDOR`, `DEFAULT_MODEL`, `DEFAULT_MODEL_CONTEXT_LENGTH` | X | n/a | `~/.config/fabric/.env` via `fabric --setup` |
+| Agy (Antigravity CLI) | X | X | X | X | UNVERIFIED | keyring / shared Antigravity settings |
+| Gemini CLI | X (Gemini protocol only; `GOOGLE_GEMINI_BASE_URL` / `GEMINI_API_BASE_URL` need a Gemini-shaped target) | X | X | X | no | `~/.gemini/settings.json`, env |
+| OpenCode | E `provider.<id>.npm="@ai-sdk/openai-compatible"`, `options.baseURL`, `options.apiKey` | E `npm="@ai-sdk/anthropic"` + `options.baseURL` | E `provider.<id>.models.<id>` | E models.dev (75+), `opencode auth login` | no (discovery yes) | `opencode.json` / `~/.config/opencode/opencode.json(c)` |
+| Aider 0.86 | E `OPENAI_API_BASE` + `OPENAI_API_KEY` + `--model openai/<m>`; `LM_STUDIO_API_BASE` + `LM_STUDIO_API_KEY` + `lm_studio/<m>`; `OLLAMA_API_BASE` + `ollama_chat/<m>` | X (via embedded litellm lib only for Anthropic cloud) | E `.aider.model.settings.yml`, `.aider.model.metadata.json` | X | n/a | `.aider.conf.yml`, `.env`, env |
+| Ralph | inherits backend | inherits backend | E per-hat `backend`, `-- <args>` | X | n/a | `~/.ralph/config.yml`, `ralph.yml` |
+| LM Studio (server) | serves `/v1/chat/completions`, `/v1/responses`, `/v1/models` | serves `/v1/messages` (>= 0.4.1) | n/a (server) | n/a | n/a | `lms server start --port 1234`; API token optional |
+| Ollama (server) | serves `/v1/chat/completions`, `/v1/responses` (0.13.3+), `/v1/models` | serves `/v1/messages` (>= 0.14.0) | n/a (server) | `ollama launch claude|codex|opencode|droid --config` writes client configs | n/a | `OLLAMA_HOST`, `OLLAMA_CONTEXT_LENGTH` |
+
+**[fact]** No installed runtime supports MCP sampling; only VS Code Copilot does in the community
+matrix. [B, corroborated, 2026-09] https://github.com/apify/mcp-client-capabilities/ ,
+https://modelcontextprotocol.info/docs/clients/ . **[inference]** So "the MCP server asks the host
+model to think" is not an available door anywhere on this box; an MCP tool that needs a model
+must carry its own provider call (the glm53 pattern) or return data for the host to reason over.
+
+## 17. Who can consume what with zero code
+
+| Target -> Runtime | Claude Code | Codex | Cursor | Grok | Goose | Fabric | Agy | Gemini CLI | OpenCode | Aider | Ralph |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| HF router `router.huggingface.co/v1` (chat + responses) | X -> **M** | **E** (responses) | **L** -> **M** | **E** | **E** | **E** | **M** | X -> **M** | **E** | **E** | via backend |
+| HF Inference Endpoint / Space (OpenAI shape) | X -> **M** | E only if it serves `/v1/responses` (vLLM does, TGI check) | **L** -> **M** | **E** | **E** | **E** | **M** | X -> **M** | **E** | **E** | via backend |
+| Ollama `:11434` | **L** (native `/v1/messages`, `ollama launch claude`) -> **M** | **E** (`ollama launch codex`) | **L** -> **M** | **E** (any backend) | **E** (built-in provider) | **E** (Ollama vendor) | **M** | X -> **M** | **E** (`ollama launch opencode`) | **E** (`ollama_chat/`) | via backend |
+| LM Studio `:1234` | **L** (native `/v1/messages`) -> **M** | **E** (`codex --oss`, `/v1/responses`) | **L** -> **M** | **E** | **E** | **E** (`LM_STUDIO_API_URL`) | **M** | X -> **M** | **E** | **E** (`lm_studio/`) | via backend |
+
+**[inference]** Read across: six runtimes (Codex, Grok, Goose, Fabric, OpenCode, Aider) reach
+every target natively; three (Claude Code, Cursor, Agy) plus Gemini CLI need the MCP door. That
+split is the design input for the glm53 replacement: it must serve exactly those four hosts, and it
+does not need to exist for the other six.
+
+## 18. Rubric - per find
+
+| # | Name | What | Why THIS estate | How to build or adopt | Source | Value x effort | Novelty-for-us | NATIVE-vs-BUILD |
+|---|---|---|---|---|---|---|---|---|
+| 1 | Codex HF Responses profile | `[model_providers.hf]` -> `router.huggingface.co/v1`, `wire_api="responses"`, `env_key="HF_TOKEN"`, `[profiles.hf]` per model | Retires `openai_proxy.py` for the Codex consumer; HF router already speaks Responses; OpenRouter sidecar unaffected | 8 lines in `~/.codex/config.toml`; document in the hosted-model-agents skill | s.3, s.15 (A/B) | high x trivial | new (glm53 assumed a wrapper was needed) | NATIVE |
+| 2 | Grok `[endpoints] models_base_url` catalog | Point Grok's model list at the HF router `/v1/models`; per-model overrides inherit `base_url` | Router metadata (provider, price, `supports_tools`) lands in the picker; `[model."cursor-grok-4.6"]` shows the pattern is already trusted | `[endpoints] models_base_url="https://router.huggingface.co/v1"` + `XAI_API_KEY`-style key mapping check (Grok reads `XAI_API_KEY`; confirm `env_key` per model can point at `HF_TOKEN`) | s.5 (A) | high x low | new | NATIVE |
+| 3 | Grok `api_backend="messages"` | Grok can talk Anthropic Messages to Ollama / LM Studio | Gives a second Messages-speaking client besides Claude Code without touching the Claude lock | one `[model.*]` table per local model | s.5 (A) | medium x trivial | new | NATIVE |
+| 4 | `ollama launch <tool> --config` | Ollama writes correct Claude / Codex / OpenCode / Droid configs | Four installed runtimes configured by the vendor, tracked with Ollama releases | run once per tool; commit the emitted config to the skill's recipes | s.14 (A) | high x trivial | new | NATIVE |
+| 5 | Goose declarative provider files | `~/.config/goose/custom_providers/hf-router.json`, `lmstudio.json` | Same mechanism as the existing `goose-cursor-proxy`; SSOT prompts untouched | 2 JSON files; `GOOSE_PROVIDER` switch | s.6 (A) | medium x trivial | low (pattern in use) | NATIVE |
+| 6 | OpenCode `hf` provider block | `@ai-sdk/openai-compatible` at the router with `{env:HF_TOKEN}` | models.dev registry + custom block = broadest catalog on the box | 15 lines of `opencode.json` | s.10 (A) | medium x trivial | low | NATIVE |
+| 7 | Fabric HF vendor profile | `OPENAI_API_BASE_URL=router...` in a second `.env` | Fabric already consumes `.agents/skills`; cheap open models for patterns | wrapper `fabric-hf` alongside `fabric-cursor` selecting `.env` | s.7 (B) | medium x low | low | NATIVE |
+| 8 | Aider HF / local flags | `OPENAI_API_BASE`, `lm_studio/`, `ollama_chat/` prefixes | Zero-code pair-programming on open models; note embedded litellm *library* is not the locked proxy | shell aliases in `~/.local/bin` | s.11 (A) | medium x trivial | low | NATIVE |
+| 9 | Ralph per-hat backend routing | `hats.<h>.backend` -> a CLI already pointed at HF/local | Cheap hats (research/review) on open models, primary hat unchanged; no second orchestrator | edit `ralph.yml` | s.12 (A) | medium x low | new | NATIVE |
+| 10 | Documented-dormant Claude Messages path | Ollama >= 0.14 / LM Studio >= 0.4.1 speak `/v1/messages`; `ANTHROPIC_BASE_URL` would work zero-code | Lock says no; recording the tradeoff (subscription off, local on, no `tool_choice`/caching) keeps the decision reversible | write-up only, no config change | s.2, s.13, s.14 (A) | medium x zero | new | NATIVE but LOCKED |
+| 11 | MCP-door spec for the glm53 successor | One MCP server, tool args `provider`, `model`, `base_url` from `.agents/agents.json` + named secret; serves Claude Code, Cursor, Agy, Gemini CLI only | Those four hosts have no native door; the other six do not need the server; no host supports sampling so the tool must call the model itself | build (out of scope for this lens; input to the build lens) | s.4, s.8, s.9, s.16 (A/B) | high x medium | refines glm53 | BUILD (minimal) |
+| 12 | Cursor `/v1` GA watch item | Official Cursor OpenAI-compatible endpoint would retire auth2api within 7 days | Lock already binds the timing; no doc found yet for an official `/v1` | monitor Cursor changelog; no action | s.4 (B) | n/a | n/a | NATIVE (future) |
+
+## 19. Summary (10 lines)
+
+1. Six of the installed runtimes - Codex, Grok, Goose, Fabric, OpenCode, Aider - reach the HF router, HF Endpoints/Spaces, Ollama and LM Studio with **zero code** through documented config keys (s.16-17).
+2. Codex needs a Responses-API target and the HF router now serves `/v1/responses`, so an 8-line `[model_providers.hf]` block replaces `openai_proxy.py` for Codex (find 1).
+3. Grok CLI is the most flexible: `api_backend` = chat_completions | responses | messages, plus `[endpoints] models_base_url` auto-catalog from `/v1/models` (finds 2-3).
+4. `ollama launch <tool> --config` emits vendor-maintained configs for Claude Code, Codex, OpenCode and Droid (find 4).
+5. Claude Code's only door is `ANTHROPIC_BASE_URL` (Messages), which the estate locks; Ollama >= 0.14 and LM Studio >= 0.4.1 would satisfy it natively - recorded as a dormant tradeoff, not proposed (find 10).
+6. Cursor BYOK/base-URL override is locked and `cursor-agent` cannot route providers at all; Agy has no provider setting; Gemini CLI speaks only the Gemini protocol - all four are **MCP-only**.
+7. No installed runtime supports MCP sampling, so an MCP tool must carry its own model call (s.16).
+8. The glm53 successor therefore needs to serve exactly four hosts and should take provider/model/base URL as arguments (find 11); everything else is config, not code.
+9. Estate locks were honoured throughout: no OpenRouter anywhere new, no LiteLLM/LangGraph translator, auth2api untouched, ports untouched, prompts stay in `.agents/skills`.
+10. Weakest evidence: the official Codex config reference timed out (relied on three corroborating B sources + a maintainer issue), Grok/Agy MCP-sampling status is UNVERIFIED, and Cursor's Models UI is documented here from vendor guides rather than an official page.
