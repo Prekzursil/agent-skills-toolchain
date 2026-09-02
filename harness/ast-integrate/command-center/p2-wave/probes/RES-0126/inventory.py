@@ -1,7 +1,10 @@
 """Detect security-adjacent capabilities from THIS worktree (computed, not recalled)."""
 from __future__ import annotations
 
+import ast
+import functools
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -38,9 +41,55 @@ LIVE_PIN_FILES: dict[str, tuple[str, ...]] = {
 }
 
 
+@functools.lru_cache(maxsize=1)
+def _live_ast_edges() -> dict[str, list[str]]:
+    """Rebuild the tools/ import graph with AUD-0030's own instrument.
+
+    The persisted AUD-0030 probe output carries counts (module_count,
+    edge_count) but not the per-module edge map, so package membership has
+    to be recomputed from the live tree rather than recalled. Prefer the
+    AUD-0030 graph_core so the module naming is identical; fall back to a
+    parse-only walk with the same modname rule when it cannot be imported.
+    """
+    aud_dir = AUD_GRAPH.parent
+    if str(aud_dir) not in sys.path:
+        sys.path.insert(0, str(aud_dir))
+    tools = REPO / "tools"
+    try:
+        import graph_core  # type: ignore[import-not-found]
+
+        files = graph_core.iter_py_files(tools)
+        edges, _fanin, _unresolved = graph_core.build_graph(files, REPO)
+        return {str(k): list(v) for k, v in edges.items()}
+    except Exception:  # noqa: BLE001 - fall back to the parse-only walk below
+        pass
+    edges: dict[str, list[str]] = {}
+    if not tools.is_dir():
+        return edges
+    for path in sorted(tools.rglob("*.py")):
+        if any(part in {"node_modules", "__pycache__", ".venv", "venv"} for part in path.parts):
+            continue
+        try:
+            ast.parse(path.read_bytes(), filename=str(path))
+        except (SyntaxError, ValueError, OSError):
+            continue
+        parts = list(path.relative_to(REPO).with_suffix("").parts)
+        if parts and parts[-1] == "__init__":
+            parts = parts[:-1]
+        edges[".".join(parts)] = []
+    return edges
+
+
+def _graph_edges(graph: dict) -> dict[str, list[str]]:
+    edges = graph.get("edges")
+    if isinstance(edges, dict) and edges:
+        return {str(k): list(v or []) for k, v in edges.items()}
+    return _live_ast_edges()
+
+
 def _mcp_packages(graph: dict) -> set[str]:
     pkgs: set[str] = set()
-    for key in graph.get("edges") or {}:
+    for key in _graph_edges(graph):
         parts = str(key).split(".")
         if len(parts) >= 3 and parts[0] == "tools" and parts[1] == "mcp":
             pkgs.add(parts[2])
@@ -48,7 +97,7 @@ def _mcp_packages(graph: dict) -> set[str]:
 
 
 def _graph_modules(graph: dict, token: str) -> list[str]:
-    hits = [str(k) for k in (graph.get("edges") or {}) if token in str(k)]
+    hits = [str(k) for k in _graph_edges(graph) if token in str(k)]
     return sorted(hits)
 
 

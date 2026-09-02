@@ -8,10 +8,31 @@ from pathlib import Path
 from typing import Any, Callable
 
 CURRENT_RESOLVER_VERSION = "1"
+LOCKFILE_VERSION = 1
+DIGEST_ALGORITHM = "sha256"
 
 
 def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def pinned_digest_hex(pkg: dict[str, Any]) -> str:
+    """Return the pinned hex digest of a lockfile row.
+
+    Rows carry the digest as {"algorithm": "sha256", "hex": ...} (schema
+    $defs/package.digest); the flat "sha256" mirror is accepted for rows
+    written before the digest object existed.
+    """
+    digest = pkg.get("digest")
+    if isinstance(digest, dict) and digest.get("hex"):
+        algorithm = str(digest.get("algorithm") or DIGEST_ALGORITHM)
+        if algorithm != DIGEST_ALGORITHM:
+            raise ValueError(f"unsupported lockfile digest algorithm {algorithm}")
+        return str(digest["hex"])
+    flat = pkg.get("sha256")
+    if not flat:
+        raise KeyError("digest")
+    return str(flat)
 
 
 @dataclass
@@ -69,6 +90,7 @@ def generate_lockfile(
                 "name": p.name,
                 "version": p.version,
                 "source_url": p.source_url,
+                "digest": {"algorithm": DIGEST_ALGORITHM, "hex": sha256_hex(p.blob)},
                 "sha256": sha256_hex(p.blob),
                 "bytes": len(p.blob),
             }
@@ -77,6 +99,7 @@ def generate_lockfile(
         key=lambda r: (r["name"], r["version"]),
     )
     doc = {
+        "lockfile_version": LOCKFILE_VERSION,
         "resolver_version": resolver_version or CURRENT_RESOLVER_VERSION,
         "packages": rows,
     }
@@ -114,7 +137,7 @@ def install_verified(
     pkg = entries[0]
     blob = fetch(pkg["source_url"])
     actual = sha256_hex(blob)
-    expected = pkg["sha256"]
+    expected = pinned_digest_hex(pkg)
     if actual != expected:
         raise DigestMismatch(expected, actual, dest=Path(dest))
     dest = Path(dest)

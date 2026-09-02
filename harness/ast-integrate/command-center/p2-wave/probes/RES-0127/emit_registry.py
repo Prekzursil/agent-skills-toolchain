@@ -687,6 +687,10 @@ def main() -> int:
             "registry": registry,
             "three_way_partition_with_hashes": three_way,
         },
+        # Probes read the domain rows at the artifact root (receipt_core
+        # permits extra root keys); mirror them there as well as under report.
+        "registry": registry,
+        "three_way_partition_with_hashes": three_way,
         "extensions": {
             "notes": (
                 "G-1 for RES-0127. Live trees absent on this host are "
