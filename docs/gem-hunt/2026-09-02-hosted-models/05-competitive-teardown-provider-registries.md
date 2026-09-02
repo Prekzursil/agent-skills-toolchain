@@ -544,4 +544,134 @@ a HF Space or LM Studio model is often only good for `autocomplete`/`embed`.
   donors only**; BUILD nothing for them unless one is adopted. If Kilo is ever adopted, the
   OpenCode renderer covers it for free (6.3).
 
-<!-- sections 7..N appended below; rubric table last -->
+## 7. Pi (`pi-mono`) `~/.pi/agent/models.json` and Oh-my-pi `~/.omp/agent/models.yml`
+
+### 7.1 Pi - the deepest *wire-quirk* vocabulary (`compat`) and the cleanest secret resolution
+
+**[FACT, A (in-repo reference doc), 2026-09-02]** `packages/coding-agent/docs/models.md`
+(<https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/docs/models.md>):
+
+- Provider fields: `baseUrl`, **`api`** in `openai-completions | openai-responses |
+  anthropic-messages | google-generative-ai` (settable per provider *and* per model),
+  `apiKey`, `oauth` (`"radius"`), `headers`, `authHeader: true` (auto `Authorization: Bearer`),
+  `models[]`, `modelOverrides{}` (patch built-in models: `name, reasoning, thinkingLevelMap,
+  input, cost (partial), contextWindow, maxTokens, samplingParams, headers, compat`).
+- Model fields: `id` (req), `name`, `api`, `reasoning` (bool), `thinkingLevelMap` (pi level ->
+  provider value, `null` hides a level), `input: ["text"] | ["text","image"]`, `contextWindow`
+  (default 128000), `maxTokens` (16384), `samplingParams` (merged verbatim into body),
+  **`cost {input, output, cacheRead, cacheWrite, tiers[{inputTokensAbove, ...full rate set}]}`**
+  per-1M USD with request-wide tiering ("highest threshold wins"), `compat`.
+- **Value resolution** for `apiKey` and `headers` (verbatim rules): `"!command"` executes and
+  uses stdout; `$NAME` / `${NAME}` env interpolation (missing var => unresolved); escapes `$$`
+  and `$!`; plain strings are literals. "For `models.json`, shell commands are resolved at
+  request time. pi intentionally does not apply built-in TTL, stale reuse, or recovery logic for
+  arbitrary commands."
+- `compat` flags (OpenAI-side): `supportsStore`, `supportsDeveloperRole`,
+  `supportsReasoningEffort`, `supportsUsageInStreaming` (`stream_options.include_usage`),
+  `supportsFinishReason`, `maxTokensField` (`max_completion_tokens` vs `max_tokens`),
+  `requiresThinkingAsText`, `thinkingFormat` in `reasoning_effort | openrouter | deepseek |
+  together | baseten | zai | qwen | chat-template | qwen-chat-template`, `chatTemplateKwargs`,
+  `thinkingTokenBudgetField` (`thinking_token_budget` vLLM / `thinking_budget` Qwen-SGLang /
+  `thinking_budget_tokens` llama.cpp), `cacheControlFormat: anthropic`,
+  `sessionAffinityFormat` (`openai | openai-nosession | openrouter`), `supportsStrictMode`,
+  `supportsOpenAIGrammarTools`, `deferredToolsMode: kimi`, `supportsLongCacheRetention`,
+  `openRouterRouting` (passed through as OpenRouter `provider` object). Anthropic-side:
+  `supportsEagerToolInputStreaming`, `supportsCacheControlOnTools`, `forceAdaptiveThinking`,
+  `allowEmptySignature`, `supportsStrictTools`.
+
+**[INFERENCE]** Pi's `compat` block is what every "OpenAI-compatible" endpoint on this estate
+actually needs and no other schema has: `supportsDeveloperRole=false` for llama.cpp/Ollama,
+`maxTokensField`, `thinkingTokenBudgetField` per local server, `supportsUsageInStreaming`
+for proxies that drop usage chunks. It is the missing "quirks" half of the estate schema.
+
+### 7.2 Oh-my-pi (`can1357/oh-my-pi`, 28.9k stars, pushed 2026-09-02) - adds **discovery probes**
+
+**[FACT, A (in-repo reference doc), 2026-09-02]** `docs/models.md`
+(<https://raw.githubusercontent.com/can1357/oh-my-pi/main/docs/models.md>): config moved to
+`~/.omp/agent/models.yml` (auto-migrates `models.json`); root may contain only `providers`
+(unknown root keys fail validation). Provider adds over Pi: `auth: apiKey | none | oauth`,
+`disableStrictTools`, **`discovery { type: ollama | llama.cpp | lm-studio |
+openai-models-list | proxy | litellm, timeoutMs, injectV1 }`** ("optional per-provider HTTP
+probe timeout in milliseconds"; `injectV1:false` for gateways rooted at e.g. `/v3/compat`;
+`discovery.type: proxy` = "per-model wire auto-detected"), `transport: pi-native`
+(`POST /v1/pi/stream` to an `omp auth-gateway`), `imageInputDecoder: stb`, `tokenizer` (pick an
+embedded tokenizer: `claude-v3|claude-v47|claude-v5|claude-v5-sonnet|qwen3|deepseek-v3|kimi-k2|glm5`),
+`compactionModel` and `remoteCompaction {enabled, api, endpoint, model, v2StreamingEnabled,
+v2Endpoint, streamingEndpoint}`. `api` enum grows to `openai-completions | openai-responses |
+openai-codex-responses | azure-openai-responses | anthropic-messages | bedrock-converse-stream |
+google-generative-ai | google-gemini-cli | google-vertex`. Secrets: `apiKey`/`headers` may
+start with `!` to run a command ("10 s timeout, stdout is trimmed, and empty/failing commands
+are omitted"). Grade A for the doc; the repo also ships `docs/provider-compat-reference.md`,
+`docs/provider-endpoint-constraints.md`, `docs/provider-quirks.md` (listed in tree, **not read
+- UNVERIFIED content**).
+
+### 7.3 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM: Pi's `api` enum names (`openai-completions`, `openai-responses`,
+  `anthropic-messages`, `google-generative-ai`) as the estate's `api.shape` values - they are
+  precise, already used by two agents, and map 1:1 onto Codex (`responses`), Goose (`openai`/
+  `anthropic`), Crush (`openai-compat`/`anthropic`) with a trivial rename table.
+- COPY VERBATIM: Pi's value-resolution grammar for secrets (`$ENV`, `${ENV}`, `!cmd`, `$$`,
+  `$!`) - it subsumes Catwalk's `$ENV`, Goose/Codex `env_key`, and Codex/Goose `auth.command`
+  in one string form that lives comfortably in `.agents/local.json` *by name*.
+- COPY VERBATIM: OMP's `discovery {type, timeoutMs, injectV1}` as the estate **health-probe
+  descriptor** - it is the only surveyed schema that names the probe *kind* per local server
+  (Ollama `/api/tags`, llama.cpp `/props` or `/v1/models`, LM Studio `/api/v0/models`,
+  generic `/v1/models`) instead of assuming `/v1/models`.
+- COPY (as optional sub-object): Pi `compat` verbatim, namespaced `quirks.openai.*` /
+  `quirks.anthropic.*`.
+- NATIVE-vs-BUILD: neither `pi` nor `omp` is on the installed list (DEDUP 5). Schema donors
+  only; no renderer needed unless adopted.
+
+## 8. Hermes Agent - `~/.hermes/config.yaml` `model:` + `providers:` (YAML)
+
+### 8.1 The schema, from the shipped annotated example
+
+**[FACT, A (annotated example config in repo, pushed 2026-09-02), 2026-09-02]**
+`cli-config.yaml.example`
+(<https://raw.githubusercontent.com/NousResearch/hermes-agent/main/cli-config.yaml.example>,
+109 KB):
+
+- `model: { default, provider: auto | openrouter | nous | nous-api | anthropic | openai-codex |
+  copilot | gemini | zai | kimi-coding | minimax | minimax-cn | huggingface | nvidia | xiaomi |
+  arcee | ollama-cloud | deepinfra | kilocode | ai-gateway | azure-foundry | lmstudio | custom
+  (aliases ollama, vllm, llamacpp), base_url, api_key, auth_mode: entra_id, entra.scope,
+  context_length, max_tokens, reasoning_effort, reasoning_overrides }`. `huggingface` is a
+  first-class provider (`HF_TOKEN`); LM Studio is first-class (`http://127.0.0.1:1234/v1`).
+  Doc-comment on `context_length`: "Leave unset - Hermes auto-detects the correct value from
+  the provider. Set manually only when auto-detection is wrong (e.g. a local server with a
+  custom num_ctx, or a proxy that doesn't expose /v1/models)."
+- `providers: <name>: { base_url, key_env, key_cmd, api_key, api_mode: chat_completions |
+  codex_responses | anthropic_messages | (bedrock_converse), model, extra_headers,
+  request_timeout_seconds, stale_timeout_seconds, models{...per-model exceptions},
+  transport_fallback }`. `api_mode` is **auto-detected per host** ("auto-detected as
+  codex_responses for api.meta.ai"). Worked example: one Databricks gateway split into three
+  entries (`dbx` chat_completions, `dbx-gpt` codex_responses, `dbx-claude` anthropic_messages)
+  sharing one `key_cmd: "databricks auth token -p MY-PROFILE"`.
+- **`key_cmd` contract (verbatim):** "print ONLY the token on stdout, either bare or as JSON
+  with an `access_token` field (`expires_in` is honoured). Same shape as OAuth 2.0 token
+  endpoints, Claude Code's `apiKeyHelper`, `gcloud auth print-access-token`, and `aws ecr
+  get-login-password`." Precedence: `--api-key` > `key_cmd` > `api_key`/`key_env`. Distinct
+  from `secrets.command` (runs once at startup, returns a `KEY=VALUE` blob).
+- Header values "are treated as secrets and are never logged"; `extra_headers` supports
+  `${ENV}` interpolation.
+
+**[INFERENCE]** Hermes names the *third* API shape explicitly as `codex_responses` (not
+`responses`), acknowledging that the Responses dialect Codex emits differs from vanilla; and
+it is the only surveyed config that documents **both** a per-request refreshable `key_cmd`
+*and* a startup-time bulk `secrets.command`, and explains when to use which. The
+`request_timeout_seconds`/`stale_timeout_seconds` pair with "auto-disabled for local
+endpoints" is the right shape for a memory-starved box where local cold-starts are slow.
+
+### 8.2 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM: the `key_cmd` output contract (bare token *or* `{access_token, expires_in}`
+  JSON) as the estate's *one* token-helper contract - it is already compatible with Claude
+  Code's `apiKeyHelper`, Codex `auth.command`, Goose `auth.command`, Pi `!cmd`.
+- COPY VERBATIM: `request_timeout_seconds` + `stale_timeout_seconds` with the "local endpoints
+  get longer defaults" rule; and the pattern **one registry entry per (host, api_mode)**.
+- NATIVE-vs-BUILD: Hermes is not installed (DEDUP 5). Schema donor only.
+
+<!-- sections 9..N appended below; rubric table last -->
