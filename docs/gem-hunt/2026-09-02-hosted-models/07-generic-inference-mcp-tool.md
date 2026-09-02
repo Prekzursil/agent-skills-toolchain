@@ -5,7 +5,7 @@
 - **Mode:** discovery, design + eval plan only. No code was changed by this lens.
 - **Branch:** `gemhunt/hosted-models-07-generic-inference-mcp-tool` (cut from `origin/main` at `5fa34fda`)
 - **Author:** Cursor cloud agent, 2026-09-02
-- **Status:** IN PROGRESS - sections are pushed as they land; a section that is not listed as DONE
+- **Status:** COMPLETE - all nine sections landed and pushed; a section that is not listed as DONE
   in the checklist below was not finished when this run ended.
 
 ## Section checklist
@@ -20,8 +20,8 @@
 | 5 | Tool surface specification | DONE |
 | 6 | Error taxonomy with truthful degradation | DONE |
 | 7 | Eval-harness spec (capability, regression, pass@k, fake endpoints for CI) | DONE |
-| 8 | Per-find rubric table | pending |
-| 9 | Open questions and what this lens did NOT verify | pending |
+| 8 | Per-find rubric table | DONE |
+| 9 | Open questions and what this lens did NOT verify | DONE |
 
 ## Grading legend (applies to every claim below)
 
@@ -659,3 +659,60 @@ Model *quality* (is GLM-5.3 a good coder?) is out of scope: that is the caller's
 hosted-model-agents "pressure evals" already cover the doctrine. This harness measures **whether the hub
 told the truth** about capability, cost, and failure - which is the property that was missing from
 `glm53_chat` and from every upstream candidate in section 2.
+
+---
+
+## 8. Per-find rubric table
+
+Scale: value and effort 1-5 (5 = highest value / most effort); novelty-for-us = does the estate already have
+it (LOW) or not (HIGH); NATIVE = adopt something that exists, BUILD = write it here.
+
+| # | Name | What | Why THIS estate | How to build or adopt | Source | Value x Effort | Novelty-for-us | NATIVE-vs-BUILD |
+|---|------|------|-----------------|-----------------------|--------|----------------|----------------|-----------------|
+| F1 | `inference-hub` native Streamable-HTTP server | one shared process, `/mcp` + `/v1` faces, registry-driven, stdlib Python | the RAM problem is per-session stdio duplication; every upstream candidate is stdio-per-provider | new `tools/mcp/inference-hub/` (~800 lines incl. transport), supervised by `run_host.ps1` pattern on `:8901`; registry entry `transport: http` | mcp-http-host README/RESCOPE (Tier A); MCP 2025-11-25 transport (Tier A) | 5 x 3 | HIGH (nothing shared-HTTP + inference exists here) | **BUILD** (transport pattern NATIVE from `_fake_streamable_http_daemon.py`) |
+| F2 | Model registry `.agents/models.json` with capability manifest | data, not tools: base_url/auth-by-name/capabilities/limits/pricing/data_class per model | hosted-model-agents rule 2 forbids one MCP per GPU URL; `agents.json` already has `credentialNames`/`maxPrivateBytes` conventions to mirror | new file + JSON Schema + `.agents/tests` validator; capability rows seeded from Ollama docs (sourced) and `"unknown"` elsewhere | Ollama compat page (Tier A); agents.json (Tier A) | 5 x 2 | HIGH | **BUILD** |
+| F3 | Do NOT build on MCP sampling | sampling is deprecated in spec 2026-07-28 (SEP-2577) and unimplemented in Claude Code | saves a dead-end; the spec now says "integrate directly with LLM provider APIs", which is F1 | decision record only | spec 2026-07-28 (Tier A); claude-code #1785, #31893 (Tier A) | 4 x 0 | HIGH (was a live question in the brief) | NATIVE decision, no code |
+| F4 | Adopt the 40-line wire shape of `any-chat-completions-mcp`, not the project | MIT reference for how small the OpenAI->MCP relay is; its defects (one provider/process, SDK 0.6.0, `String(undefined)`) are the checklist of what not to copy | shows BUILD cost is low; avoids a stale dependency | read once, cite in the hub's README as prior art | github.com/pyroprompts/any-chat-completions-mcp (Tier A, code read) | 2 x 0 | LOW | NATIVE (as prior art) |
+| F5 | Refuse-by-default secret scanner + private-class gate | pre-send scan using `proxy-mcp/redaction.py` primitives; `content_class` x `data_class` matrix; post-receive echo masking | `glm53-space` only had a *description* saying "never send secrets"; the llm-security rule demands a control | lift `redact_obj`/`redact_text`/`_is_sensitive_key` into `tools/mcp/_shared/`, add token shapes, wire as a stage | proxy-mcp/redaction.py (Tier A); llm-security AGENTS.md (Tier A) | 4 x 2 | MEDIUM (primitives exist, gate does not) | **BUILD** on NATIVE primitives |
+| F6 | Cost ledger JSONL with `cost_basis` honesty field | one line per call, no text, daily rotation, `spent_today_usd` feeding `BUDGET_EXCEEDED` | HF passes provider prices through but documents no per-response cost; without `cost_basis` the ledger lies | mirror `_shared/hardening.py` confirm-gate sink (256 KiB rotate-once) with daily rotation | hardening.py (Tier A); HF pricing page (Tier A) | 4 x 1 | HIGH | **BUILD** on NATIVE pattern |
+| F7 | Truthful error taxonomy (17 classes) | tool-execution errors per SEP-1303; no auto-failover, no silent capability drop, `structured_mode` always reported | the "never remove a feature to buy reliability" lock needs trade-off tables, not fallbacks | section 6 table becomes `errors.py` + tests | MCP changelog SEP-1303 (Tier A) | 4 x 2 | HIGH | **BUILD** |
+| F8 | Stdlib `_fake_openai_v1.py` with provider profiles + fault flags | CI-only fake for openai / ollama / hf-router / auth2api behaviours and every failure trigger | house precedent is stdlib fakes; CI has no network, no money, no Node in the Python lane | ~250 lines next to the hub, 12+ contract tests like the daemon fixture | mcp-http-host fixtures (Tier A); Ollama matrix (Tier A) | 5 x 2 | MEDIUM (pattern exists, this fake does not) | **BUILD** |
+| F9 | Capability evals that write the registry | pass@3 probes flip `"unknown"` -> `true|false` with `as_of` | the registry must never claim a capability nobody measured | T2 against Ollama on the 4050 (free), T3 weekly capped | local-models-audit (Tier A); Chen et al. 2021 (Tier A) | 4 x 3 | HIGH | **BUILD** |
+| F10 | Lenient session ids in a stateless hub | unknown `Mcp-Session-Id` -> implicit re-init | Cursor already breaks on `:8765` restarts and needed a per-session shim; a stateless hub can avoid the shim | 15 lines + one test with `--restart-every` | mcp-http-host README Basic Memory section (Tier A) | 3 x 1 | MEDIUM | **BUILD** (trade-off vs strict spec noted) |
+| F11 | `/v1` face in-process replaces `openai_proxy.py` | fabric/goose/aider/opencode keep an OpenAI endpoint; registry ids as `model`; `cursor/*` + `openrouter/*` excluded from this face | the "general integration layer" the owner asked for is one process with two faces | same request pipeline, second route table | SecretiveShell/MCP-Bridge as the heavier alternative (Tier A metadata) | 4 x 2 | MEDIUM (a shim exists, unpushed) | **BUILD** (MCP-Bridge = NATIVE alternative, rejected as heavy) |
+| F12 | Push `tools/mcp/glm53-space` before deprecating it | the code is on no pushed branch; only the registry entry is | CLAUDE.md's unpushed-checkout warning, made concrete; the parity eval (7.5) has no oracle without it | `git -C ~/source/ast-integrate push` of the directory to a `archive/glm53-space` branch | measured this run (Tier A) | 3 x 1 | HIGH (nobody noticed) | NATIVE (git) |
+| F13 | Wire `mcp-http-host` and `inference-hub` suites into `quality.yml` | grep found no `mcp-http-host` step | 52 existing tests may be running only on the owner's box | add two pytest steps mirroring lines 295-334 | quality.yml (Tier A grep; INFERENCE on absence) | 3 x 1 | MEDIUM | NATIVE (CI edit) |
+| F14 | `sparfenyuk/mcp-proxy` as the Python no-Node bridge option | MIT, 2,734 stars, pushed 2026-07-20 | the house `-Bridge stdlib` exists because npx failed; this is the maintained Python equivalent | evaluate only if F1 is not built natively | GitHub API (Tier A metadata; features UNVERIFIED) | 2 x 1 | MEDIUM | NATIVE (watch) |
+| F15 | HF Hub MCP Space-as-tool mounting | official `huggingface/hf-mcp-server` (pushed 2026-09-01) can mount Gradio Spaces as tools | zero-code path for *one* Space's chat model; Gradio-shaped, not `/v1`-shaped | already registered as `huggingface`; verify the mount flow on-box | GitHub API (Tier A metadata; feature UNVERIFIED) | 2 x 0 | LOW (already in dedup-set) | NATIVE (already have) |
+
+---
+
+## 9. Open questions and what this lens did NOT verify
+
+1. **Where is `tools/mcp/glm53-space`?** Not on `origin/main` or any pushed branch. Everything said about
+   `openai_proxy.py` behaviour is from the brief (Tier C). F12 is the fix.
+2. **Does `router.huggingface.co/v1` return any cost or provider header per response?** The pricing page
+   documents `X-HF-Bill-To` (request side) and a usage dashboard, nothing per response. UNVERIFIED; one
+   `curl -i` on-box settles it and decides whether `cost_basis: provider_reported` is ever reachable for HF.
+3. **Does GLM-5.3 via the router honour `response_format: json_schema` and `tool_choice`?** Registry rows
+   are `"unknown"` until the T3 capability eval runs once.
+4. **Cursor's and Codex's MCP client capabilities** (sampling, tasks, progress) were not verified; only
+   Claude Code's were (issues #1785, #31893). Given sampling's deprecation this affects only the
+   `tasks` note in 5.6.
+5. **Port 8901 free-ness** and the exact `clientInfo.name` strings Claude Code / Cursor / Codex send on
+   `initialize` (needed for `deny_callers`) must be measured on-box.
+6. **`sparfenyuk/mcp-proxy` feature set** and **Prism's ability to mock the OpenAI OpenAPI** are Tier A on
+   metadata only; behaviour claims are UNVERIFIED.
+7. **Is the `mcp-http-host` test suite really absent from CI?** A grep miss is not proof; read the full
+   step list before acting on F13.
+8. **The 36 auth2api model ids** and Goose/fabric's exact provider configuration were taken from the
+   brief; not re-read this run.
+
+Sources read in full this run (all 2026-09-02): the MCP sampling pages for 2025-11-25 and 2026-07-28, the
+2025-11-25 changelog, Ollama's OpenAI-compatibility page, Hugging Face's Inference Providers pricing page,
+`pyroprompts/any-chat-completions-mcp` `src/index.ts` + `package.json`, anthropics/claude-code #1785 and
+#31893, and in-repo: `tools/mcp/mcp-http-host/{README,RESCOPE}.md`, `.agents/agents.json` (registry
+entries), `.provenance/.agents/agents.json.md`, `.agents/local-models-audit_2026-08-27.md`,
+`tools/mcp/_shared/hardening.py`, `tools/mcp/proxy-mcp/redaction.py`, `.github/workflows/quality.yml`
+(grep), and the `hosted-model-agents` skill files on `origin/live-capture/2026-09-02`. Repository metadata
+for 19 GitHub projects was pulled from the GitHub REST API.
