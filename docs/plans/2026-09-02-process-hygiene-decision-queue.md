@@ -27,7 +27,7 @@ outcome, both of which are worth more than a changelog line:
 
 ## 2. Queued for the owner — prevention, not reclaim
 
-Ordered by the ratio of measured relief to blast radius. Items 1–2 attack the
+Ordered by the ratio of measured relief to blast radius. Items Q1–Q2 attack the
 *cause* the supervisor can only mop up after.
 
 ### Q1. Job-object launch shim for agent CLIs (removes orphans structurally)
@@ -98,7 +98,31 @@ adding only if the absolute-headroom leg proves noisy on a variable pagefile.
 The RADAR **event trigger** half of this idea is already shipped as an opt-in
 (`install_task.ps1 -OnResourceExhaustion`, event 2004).
 
-### Q6. Per-runtime admission control (ceilings at launch)
+### Q6. A "supervisor is stale/disabled" surface
+
+**Evidence.** The worst failure mode of a watchdog is silence: if the task is
+disabled, erroring on every run, or stuck in report-only long after the owner
+meant to enable it, nothing says so — a quiet box and a dead supervisor look
+identical. The supervisor now writes `heartbeat.json` (ts, tier, apply mode,
+script hash) on every run, so the *signal* exists.
+
+**Why it is queued rather than wired.** The obvious consumer is
+`hooks/background-digest/reader.py`, but that is a **generic** digest reader
+shared by every producer; teaching it one specific tool's heartbeat path would
+couple a shared hook to this tool. The clean options are (a) a two-line check in
+whichever producer already runs on a schedule (Resource-Guard — so this folds
+into Q4), or (b) a tiny standalone producer that only compares
+`now − heartbeat.ts` against the task interval. Both are the owner's call about
+the hook budget.
+
+**Already proven, so the queued half is small:** the supervisor's digest line is
+contract-tested against the real `reader.py` (`_is_entry`, `_priority`,
+`build_message`) — the failure line carries `ACTION_REQUIRED` so the reader ranks
+it ahead of routine chatter, while a merely-critical tier is written lowercase so
+it does not. If either side's format drifts, the supervisor's test suite fails
+instead of the digest silently going unread.
+
+### Q7. Per-runtime admission control (ceilings at launch)
 
 **Evidence.** The council's Skeptic voice, and the arithmetic behind the
 report-only default: one 4 GiB kill returns ~6% of commit and the session comes
@@ -126,7 +150,7 @@ survived review:
   operation.
 - (a) is the only default that cannot destroy work. Its honest failure mode is
   the unattended 03:00 case: nobody reads the report and the box thrashes. That
-  is what the tier legs, the digest line and the heartbeat are for — and why Q1/Q6
+  is what the tier legs, the digest line and the heartbeat are for — and why Q1/Q7
   (prevention) rank above any reclaim tuning.
 
 **Consequence already applied:** the `critical` ratio leg moved to 2.5× and the

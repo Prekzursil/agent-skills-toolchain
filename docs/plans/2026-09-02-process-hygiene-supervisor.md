@@ -235,7 +235,7 @@ Every step is reversible and leaves no residue beyond the ledger:
 
 ## 5. Verification performed
 
-- `hygiene.py` + `hygiene_actuate.py` + `evals/run_evals.py`: **181 tests, 100%
+- `hygiene.py` + `hygiene_actuate.py` + `evals/run_evals.py`: **182 tests, 100%
   line+branch** (`pytest --cov --cov-branch --cov-fail-under=100`), pinned
   `ruff==0.15.17` clean, and `tests/mutation_probe.py` kills **26/26**
   reverted-safety mutations (each mutation names the invariant it breaks).

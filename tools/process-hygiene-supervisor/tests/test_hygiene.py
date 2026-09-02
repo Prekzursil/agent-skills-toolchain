@@ -20,8 +20,10 @@ at the final evaluation.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import pathlib
+import sys
 
 import pytest
 
@@ -2137,6 +2139,55 @@ def test_cli_run_writes_heartbeat_and_digest_only_on_new_kill_kinds(
         == 0
     )
     assert len(digest.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_digest_line_satisfies_the_estate_background_digest_contract():
+    """The digest line is useless if the SessionStart reader does not recognise it.
+
+    hooks/background-digest/reader.py surfaces only lines matching its entry regex
+    and ranks UPPERCASE urgency tokens first, so both are asserted against the
+    REAL reader rather than a copy of its patterns. Skipped (not failed) if the
+    hook tree is absent, so this can never break the gate on a partial checkout.
+    """
+    reader_path = (
+        pathlib.Path(__file__).resolve().parents[3]
+        / "hooks/background-digest/reader.py"
+    )
+    if not reader_path.exists():  # pragma: no cover - full checkout in CI
+        pytest.skip("background-digest hook not present in this checkout")
+    spec = importlib.util.spec_from_file_location("bg_digest_reader", reader_path)
+    reader = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = reader
+    spec.loader.exec_module(reader)
+
+    plan = observe(engine(), grok_with_bridge(), 1)
+    stamp = "2026-09-02 04:50:00"
+    ok = hygiene.digest_line(
+        plan,
+        {"stopped": 1, "failed": 0, "exit_code": 0, "run_id": "r1"},
+        {},
+        apply=True,
+        cooldown=100,
+        stamp=stamp,
+    )
+    failing = hygiene.digest_line(
+        plan,
+        {"stopped": 0, "failed": 1, "exit_code": 2, "run_id": "r2"},
+        {},
+        apply=True,
+        cooldown=100,
+        stamp=stamp,
+    )
+    assert reader._is_entry(ok), "reader would not surface the digest line at all"
+    assert reader._is_entry(failing)
+    # A failure must outrank routine chatter; a mere critical TIER reading must not
+    # (that is why the tier is written lowercase).
+    assert reader._priority(failing) == 0
+    assert reader._priority(ok) == 1
+    message, surfaced = reader.build_message(["# header", "", ok, failing])
+    assert surfaced == [ok, failing]
+    assert message.splitlines()[1] == failing  # urgent card first
+    assert "PROPOSE:" in message
 
 
 def test_digest_line_rules():
