@@ -256,11 +256,15 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
 | w2 | `tools/council/quota/__init__.py` + `quota/targets.py` (581 lines, CouncilSpec target evaluator); root twins deleted | ADV-0096 IMP-0301 ADV-0135 RES-0165 | 2/4 OK; ADV-0135 = probe-vs-own-generator conflict + `unique_ideas.py` captured degraded (IMP-0300 manifest 14829 B vs captured 8245 B); RES-0165 same family | 342a33a9e |
 | w5 | `tools/foundry/runtime.py` (349 lines: typed workflow runtime) | ADV-0031 IMP-0209 IMP-0154 IMP-0155 IMP-0164 IMP-0254 WFA-0134 IMP-0177 CNF-0082 IMP-0193 WFA-0132 IMP-0175 | 8/12 OK (7 FAIL→OK, IMP-0177 stays); 4 now fail on `tools/foundry/scout.py` / `tournament.py` drift | 55c904100 |
 | regen | `w0902-06-regen-nonph`: 640 non-placeholder fails, STRICT | — | 27 cleared by own `write_receipts.py`; 523/549 regens fail (they re-run the failing probes) | c2b23b9d5 |
+| w4b | `tools/council/topology/jury.py` (805 lines: jury topology on the RecordingKernel turn-log protocol) | ADV-0071 IMP-0285 | 2/2 FAIL→OK | 61755a565 |
+| w6 | `tools/marketplace/crypto.py` (236) + `tools/plugin/installer.py` (625); root twins deleted | ADV-0021 ADV-0025 IMP-0118 ADV-0061 IMP-0086 RES-0055 | 2/6 OK; IMP-0118 BLOCKED-BY `marketplace.features`; ADV-0061/IMP-0086 = `tools/marketplace/install.py` drift (batch s00); RES-0055 = env `referencing.exceptions` (also WFA-0140) | 1f88a794d |
+| fix | measurer sets `AST_INTEGRATE_ROOT` unconditionally: the user-site `.pth` hook set it to `~/p2-g1` inside the measure process, so a probe measured in another mirror imported from the main mirror (false-green F4, reproduced: ADV-0021 showed the main mirror's placeholder). Wave driver was immune (`-s` + explicit env); manual verifications re-run hermetically, all landed modules re-verified green | — | — | 3f4433ab4 |
 - Tooling this step: `_g1_rootkey.py` (re-key fails by file to touch: 712 fails → 11 shared keys / 615 per-unit
   probe-side exceptions or assertions + 3 `MISSING:pytest` + 3 TIMEOUT); `pytest` 9.1.1 installed (environment,
   like jsonschema: three units import it). Regen wave `w0902-06-regen-nonph` (640 non-placeholder fails, STRICT, 6
   workers) running: ~12 cleared of the first 314 (regeneration alone rarely helps here — the owner's regen wave had
   already run over these).
+- Running total after w2–w6: **7 modules, 20 units FAIL→OK under STRICT, 0 regressions.**
 - Writers in flight: w1 (marketplace.revocation_list ×3, ledger, bench.baseline_store), w2 (council.quota), w5
   (foundry.runtime, 11 dependents), w6 (marketplace.crypto, plugin.installer), w7 (council.protocol, 14 units, serial),
   w8 (council.stopping + expr), w9 (council.outcomes), w10 (sdk.py + guard.py union contract).
