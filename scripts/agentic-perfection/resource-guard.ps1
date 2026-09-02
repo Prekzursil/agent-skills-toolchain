@@ -1,6 +1,6 @@
 #requires -Version 5.1
 <#
-  Resource Guard  (hourly Scheduled Task: 'Resource-Guard')  -- ANTICIPATORY layer producer.
+  Resource Guard  (5-minute Scheduled Task: 'Resource-Guard')  -- ANTICIPATORY layer producer.
 
   Samples three EXTERNAL signals every hour and, ONLY when a threshold is crossed,
   appends ONE dated line to the BACKGROUND-DIGEST so the next session surfaces it:
@@ -10,8 +10,10 @@
     * duplicate MCP-server processes + semgrep-family resident MB
                                      -- targets per-session MCP duplication / osemgrep-pro RAM
 
-  LOG + SURFACE + PROPOSE ONLY. It NEVER reaps/kills/deletes anything; the digest line
-  carries a PROPOSED manual command (mirrors the mcp-drift-audit.ps1 doctrine). Anti-spam:
+  Resource alerts stay LOG + SURFACE + PROPOSE. The one exception is the dedicated
+  cursor-orphan-reaper micro-guard when -ReapOrphanCursorAgents is set: it can terminate
+  only an exact Cursor Agent process tree after dead-parent, age, whole-tree-idle, and
+  repeated-observation checks. It never kills by process name. Anti-spam:
   a digest line is appended only when the crossed-threshold signature CHANGES or a cooldown
   window elapses, so an unchanging condition does not enqueue a line every hour. Every run
   (alert or OK) is recorded to resource-guard.log (rotated). Fully fail-open: every path is
@@ -25,14 +27,18 @@
 [CmdletBinding()]
 param(
     [string]$DigestFile = 'C:\Users\Prekzursil\.claude\BACKGROUND-DIGEST.md',
-    [string]$StateFile  = 'C:\Users\Prekzursil\scripts\resource-guard.state.json',
-    [string]$LogFile    = 'C:\Users\Prekzursil\scripts\resource-guard.log',
+    [string]$StateFile  = 'C:\Users\Prekzursil\.agent-guard\resource-guard\state\resource-guard.state.json',
+    [string]$LogFile    = 'C:\Users\Prekzursil\.agent-guard\resource-guard\log\resource-guard.log',
 
     [double]$MinFreeRamGb = 4.0,     # alert when free RAM below this
     [int]   $MaxCUsedPct  = 90,      # alert when C: used% at/above this
     [int]   $MinDupProcs  = 8,       # alert when ONE MCP server has >= this many copies (leak)
     [int]   $MinSemgrepMb = 400,     # alert when semgrep-family resident MB at/above this
     [double]$CooldownHours = 12.0,   # re-enqueue an unchanged alert at most this often
+    [string]$OrphanReaper = 'C:\Users\Prekzursil\.agents\scripts\agentic-perfection\cursor-orphan-reaper.ps1',
+    [string]$OrphanStateFile = 'C:\Users\Prekzursil\.agent-guard\resource-guard\state\cursor-orphan-reaper.state.json',
+    [string]$OrphanEvidenceRoot = 'C:\Users\Prekzursil\.agent-guard\resource-guard\evidence',
+    [switch]$ReapOrphanCursorAgents,
 
     # --- test/simulation overrides (when set, skip live sampling for that metric) ---
     [Nullable[double]]$FreeRamGbOverride = $null,
@@ -196,6 +202,52 @@ function Write-State {
 # ---------------------------------------------------------------------------
 try {
     $stamp = Get-Stamp
+
+    # High-risk process mutation stays in a dedicated micro-guard. It only
+    # targets an exact cursor-agent root after parent-absent + age + whole-tree
+    # CPU-idle + repeated-observation checks. Never kill node.exe by name.
+    if (Test-Path -LiteralPath $OrphanReaper -PathType Leaf) {
+        try {
+            if ($ReapOrphanCursorAgents) {
+                $reaperOutput = @(
+                    & $OrphanReaper `
+                        -StateFile $OrphanStateFile `
+                        -EvidenceRoot $OrphanEvidenceRoot `
+                        -Apply 2>&1
+                )
+            }
+            else {
+                $reaperOutput = @(
+                    & $OrphanReaper `
+                        -StateFile $OrphanStateFile `
+                        -EvidenceRoot $OrphanEvidenceRoot 2>&1
+                )
+            }
+            $reaperExit = $LASTEXITCODE
+            $reaperLine = (($reaperOutput | Select-Object -Last 1) -replace '\r?\n', ' ')
+            if ($reaperLine.Length -gt 600) { $reaperLine = $reaperLine.Substring(0, 600) }
+            Write-RgLog "[$stamp] ORPHAN-GUARD exit=$reaperExit apply=$([int][bool]$ReapOrphanCursorAgents) $reaperLine"
+            $reaperResult = $null
+            try { $reaperResult = $reaperLine | ConvertFrom-Json } catch { }
+            if ($reaperExit -ne 0 -or ($reaperResult -and [int]$reaperResult.reaped -gt 0)) {
+                $surface = if ($reaperExit -ne 0) {
+                    "orphan reaper failed closed (exit $reaperExit)"
+                } else {
+                    "reaped $([int]$reaperResult.reaped) confirmed Cursor Agent orphan tree(s)"
+                }
+                Add-DigestLine -Source 'cursor-orphan-reaper' -Message $surface `
+                    -Propose 'review the resource-guard log and secure-evidence receipt' | Out-Null
+            }
+        }
+        catch {
+            $detail = ($_.Exception.Message -replace '\r?\n', ' ').Trim()
+            if ($detail.Length -gt 240) { $detail = $detail.Substring(0, 240) }
+            Write-RgLog "[$stamp] ORPHAN-GUARD failed closed; no broad process kill attempted; reason=$detail"
+        }
+    }
+    else {
+        Write-RgLog "[$stamp] ORPHAN-GUARD missing: $OrphanReaper"
+    }
 
     $ramGb  = Sample-FreeRamGb
     $disk   = Sample-CDisk
