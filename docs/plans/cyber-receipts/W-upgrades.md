@@ -34,10 +34,10 @@ Measured with `diff -rq .agents/skills/<name>/ skills/<name>/` before editing.
 
 ### 2. YARA rules-as-code CI (yara-forge / yaraQA) -> `malware-analysis-triage`
 
-- Additive section added (no existing text gutted): UNKNOWN - not yet measured
-- yara-forge + yaraQA + engine + expected-hit test corpora covered: UNKNOWN - not yet measured
-- License posture (wrap-don't-vendor; per-rule upstream licenses noted): UNKNOWN - not yet measured
-- Dual-write parity: UNKNOWN - not yet measured
+- Additive section added (no existing text gutted): YES — new `## YARA Rules-as-Code CI` section before `## Related`; prior content (capa/FLOSS/ghidriff, Defensive Pairing, Gotchas, Workflow) preserved; only added a `$capa-triage` bullet to Related
+- yara-forge + yaraQA + engine + expected-hit test corpora covered: YES — YARA-X engine, yaraQA linter, yara-forge tiers, expected-hit/expected-miss manifest, fail-closed CI pipeline
+- License posture (wrap-don't-vendor; per-rule upstream licenses noted): YES — dedicated License posture subsection: no vendored rule bodies, per-rule upstream licenses in yara-forge packages, confirm tool repo licenses
+- Dual-write parity: YES — `diff -rq` returns PARITY OK
 
 ### 3. Anthropic defending-code-reference-harness -> `security-threat-model`
 
