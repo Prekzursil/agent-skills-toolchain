@@ -1,0 +1,42 @@
+{
+  "policy_id": "TST-0235-freshness-stamp-v1",
+  "unit_id": "TST-0235",
+  "path": "tools/gates/freshness_policy.json",
+  "inclusive_bound": "age_seconds <= max_age_seconds is FRESH; age_seconds > max_age_seconds is STALE",
+  "stale_stored_green": "NOT-CHECKED",
+  "undated_green": "NOT-CHECKED",
+  "clock_skew": "NOT-CHECKED",
+  "unknown_source_class_max_age_seconds": 0,
+  "sources": {
+    "advisory-database": {
+      "endpoint": "https://api.osv.dev/v1/query",
+      "max_age_seconds": 86400,
+      "rationale": "A stored advisory-DB green is not a control for today."
+    },
+    "package-registry": {
+      "endpoint": "https://registry.npmjs.org/-/npm/v1/security/advisories/bulk",
+      "max_age_seconds": 86400,
+      "rationale": "Registry advisory corpora move independently of a local cache."
+    },
+    "marketplace-index": {
+      "endpoint": "marketplace-index",
+      "max_age_seconds": 86400,
+      "rationale": "Marketplace listings and trust scores are live."
+    },
+    "model-vendor-availability": {
+      "endpoint": "vendor-api",
+      "max_age_seconds": 3600,
+      "rationale": "Model and quota availability changes inside a day."
+    },
+    "quota-state": {
+      "endpoint": "vendor-quota",
+      "max_age_seconds": 300,
+      "rationale": "Quota headroom is not a stored green."
+    },
+    "network-reachability": {
+      "endpoint": "reachability-probe",
+      "max_age_seconds": 300,
+      "rationale": "A last-week ping is not evidence the endpoint is up now."
+    }
+  }
+}

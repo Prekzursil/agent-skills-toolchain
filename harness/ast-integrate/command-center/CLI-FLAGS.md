@@ -1,6 +1,7 @@
-# CLI flags
+# Command-center CLI flags
 
-Bidirectional parity between live argparse option strings and this document (TST-0251).
+Operator argparse flags for the CLIs scoped by TST-0251.
+Each heading is a repo-relative CLI path. List items are option strings.
 
 ## `tools/command-center/validate.py`
 

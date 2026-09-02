@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 import hashlib
 import json
+import os
 import uuid
 
 
@@ -73,16 +74,35 @@ class CandidateRegistry:
             rows.append(ev)
         return rows
 
-    def _append(self, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def _append(
+        self, kind: str | dict[str, Any], payload: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
+        """Append one hash-chained event and fsync it.
+
+        Accepts either ``_append(kind, payload)`` or a single record dict that
+        carries its own ``kind``. Each append writes exactly one line (O(1)
+        bytes per event); the whole ledger is never rewritten.
+        """
+        if isinstance(kind, dict):
+            record = dict(kind)
+            if payload:
+                record.update(payload)
+            kind_name = str(record.pop("kind", "event"))
+            payload = record
+        else:
+            kind_name = kind
+            payload = dict(payload or {})
         rows = self._load()
         prev = rows[-1]["event_hash"] if rows else None
-        body = {"kind": kind, "prev_hash": prev, **payload}
+        body = {"kind": kind_name, "prev_hash": prev, **payload}
         digest = hashlib.sha256(
             (json.dumps(body, sort_keys=True, separators=(",", ":")) + (prev or "")).encode()
         ).hexdigest()
         ev = {**body, "event_hash": digest}
         with self.ledger.open("a", encoding="utf-8", newline="\n") as fh:
             fh.write(json.dumps(ev, sort_keys=True) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
         return ev
 
     def events(self) -> list[dict[str, Any]]:

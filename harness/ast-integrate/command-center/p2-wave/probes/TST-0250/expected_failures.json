@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "id": "DOC-001",
+    "source_id": "README",
+    "path": "README.md",
+    "command": "git clone https://github.com/Prekzursil/agent-skills-toolchain.git\ncd agent-skills-toolchain\nclaude plugin marketplace add Prekzursil/agent-skills-toolchain --sparse .claude-plugin .agents/skills skills skills-claude-only\nclaude plugin install agent-skills-toolchain@agent-skills-toolchain\ngit-crypt unlock /path/to/agent-skills-toolchain.gitcrypt.key\nnpm install\nnpm test\nclaude mcp add --scope user codex -- codex mcp-server\nclaude mcp get codex          # expect: Connected",
+    "reason": "ENV: repo-level README install block needs network (git clone), the claude CLI, git-crypt, npm and the codex binary; none are present in the clean-room profile and the block is not part of the ast-examples wheel surface"
+  },
+  {
+    "id": "DOC-002",
+    "source_id": "README",
+    "path": "README.md",
+    "command": "cd tools/scholarly-access-mcp\npython -m venv .venv && .venv/Scripts/python -m pip install -e .\n.venv/Scripts/python -m pytest tests/test_policy.py -q   # 24 offline policy/gate tests\n.venv/Scripts/python tests/test_live.py                  # 10 live end-to-end checks\n.venv/Scripts/python list_tools.py                       # the 8-tool surface",
+    "reason": "ENV: README verification block cds into the source tree (absent from the wheel-only clean room) and uses the Windows .venv/Scripts layout; needs network for pip install -e"
+  },
+  {
+    "id": "DOC-003",
+    "source_id": "README",
+    "path": "README.md",
+    "command": "uvx ruff@0.15.17 check .\nuvx ruff@0.15.17 format --check .\nsemgrep scan --config .quality/opengrep --error --metrics off \\\n  --exclude node_modules --exclude .venv --exclude vendor \\\n  --exclude dist --exclude out --exclude build .\nbash .quality/charter_check.sh\n( cd tools/mcp-manager && pip install -e \".[dev]\" \\\n    && basedpyright core ui app.py \\\n    && pytest --cov=. --cov-branch --cov-fail-under=100 )\n( cd tools/scholarly-access-mcp && pip install -e . \\\n    && basedpyright scholarly_access \\\n    && pytest --cov=scholarly_access --cov-branch --cov-fail-under=100 )",
+    "reason": "ENV: repo quality-gate block needs uvx/ruff, semgrep, basedpyright, pip network access and the source tree; none exist in the wheel-only clean room"
+  },
+  {
+    "id": "DOC-004",
+    "source_id": "README",
+    "path": "README.md",
+    "command": "claude mcp add --scope user codex -- codex mcp-server",
+    "reason": "ENV: needs the claude CLI and codex binary, neither installed in the clean-room profile"
+  }
+]

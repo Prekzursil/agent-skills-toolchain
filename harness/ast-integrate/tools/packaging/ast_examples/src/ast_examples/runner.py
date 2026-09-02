@@ -7,6 +7,22 @@ from pathlib import Path
 from ast_examples import ORIGIN
 
 
+EXAMPLE_IDS: tuple[str, ...] = (
+    "quickstart-hello",
+    "quickstart-presets",
+    "advanced-resume",
+    "advanced-import-dag",
+)
+
+
+def catalog() -> list[dict]:
+    """Every example id this package can produce, with its artifact path."""
+    return [
+        {"id": example_id, "artifact": f"artifacts/{example_id}.json", "origin": ORIGIN}
+        for example_id in EXAMPLE_IDS
+    ]
+
+
 def _write(profile: str | Path, example_id: str, doc: dict) -> Path:
     root = Path(profile)
     dest = root / "artifacts" / f"{example_id}.json"

@@ -43,12 +43,34 @@ def seed(root: Path) -> dict[str, str]:
     for name in (CLEAN_PACKAGE, REVOKED_PACKAGE):
         pkg = home / "plugins" / name
         pkg.mkdir(parents=True, exist_ok=True)
-        (pkg / "manifest.json").write_text(
-            json.dumps({"name": name, "version": REVOKED_VERSION}) + "\n",
+        owned = {
+            "manifest.json": json.dumps({"name": name, "version": REVOKED_VERSION}) + "\n",
+            "README.md": f"# {name}\n\nInstalled by the marketplace; owned by the package.\n",
+            f"commands/{name}.md": f"# {name} command (package-owned)\n",
+            "scripts/run.py": f"print({name!r})\n",
+        }
+        for rel, body in owned.items():
+            path = pkg / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        # plugin.json is the package's owned-file set; removal is the set
+        # difference "files on disk minus this list", so anything the user
+        # dropped into the plugin folder afterwards is foreign and survives.
+        (pkg / "plugin.json").write_text(
+            json.dumps(
+                {
+                    "name": name,
+                    "version": REVOKED_VERSION,
+                    "owned_files": sorted(owned) + ["plugin.json"],
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
             encoding="utf-8",
         )
+        # User-created content inside the package folder: not in owned_files.
         cmd = pkg / "commands" / "user-created.md"
-        cmd.parent.mkdir(parents=True, exist_ok=True)
         cmd.write_text(f"# user command for {name}\n", encoding="utf-8")
     user = home / USER_DATA_REL
     user.mkdir(parents=True, exist_ok=True)
@@ -111,13 +133,92 @@ def health_check(home: Path, upstream: Path, mode: str) -> dict[str, Any]:
     }
 
 
-def remove_revoked(home: Path) -> None:
-    home = Path(home)
-    pkg = home / "plugins" / REVOKED_PACKAGE
-    if pkg.is_dir():
-        import shutil
+def owned_files(pkg: Path) -> list[str]:
+    """The package's declared owned-file set (plugin.json); empty when undeclared."""
+    meta = pkg / "plugin.json"
+    if not meta.is_file():
+        return []
+    try:
+        doc = json.loads(meta.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    files = doc.get("owned_files") if isinstance(doc, dict) else None
+    out = [str(f).replace("\\", "/") for f in (files or []) if str(f).strip()]
+    if "plugin.json" not in out:
+        out.append("plugin.json")
+    return sorted(set(out))
 
-        shutil.rmtree(pkg)
+
+def _prune_empty_dirs(root: Path) -> None:
+    for path in sorted((d for d in root.rglob("*") if d.is_dir()), key=lambda d: -len(d.parts)):
+        try:
+            path.rmdir()
+        except OSError:
+            pass
+    try:
+        root.rmdir()
+    except OSError:
+        pass
+
+
+def remove_set_difference(home: Path, package: str) -> dict[str, Any]:
+    """Remove exactly the package-owned files; every foreign file stays byte-identical."""
+    home = Path(home)
+    pkg = home / "plugins" / package
+    if not pkg.is_dir():
+        return {"ok": False, "error": f"package {package} not installed", "removed": None}
+    owned = owned_files(pkg)
+    if not owned:
+        return {"ok": False, "error": f"{package}/plugin.json declares no owned_files", "removed": None}
+    on_disk = sorted(
+        p.relative_to(pkg).as_posix() for p in pkg.rglob("*") if p.is_file()
+    )
+    owned_set = set(owned)
+    foreign = [rel for rel in on_disk if rel not in owned_set]
+    deleted: list[str] = []
+    for rel in owned:
+        path = pkg / rel
+        if path.is_file():
+            path.unlink()
+            deleted.append(rel)
+    _prune_empty_dirs(pkg)
+    remaining = sorted(p.relative_to(pkg).as_posix() for p in pkg.rglob("*") if p.is_file()) if pkg.is_dir() else []
+    return {
+        "ok": True,
+        "mode": "set-difference",
+        "removed": package,
+        "owned_files": owned,
+        "deleted": deleted,
+        "foreign_files": foreign,
+        "foreign_preserved": remaining == foreign,
+        "plugin_dir_retained": pkg.is_dir(),
+    }
+
+
+def remove_wholesale(home: Path, package: str) -> dict[str, Any]:
+    """The regression seed: 'restore' the home by deleting the plugin folder AND
+    user-data. Kept only as a negative control; it never reports delivery."""
+    import shutil
+
+    home = Path(home)
+    for victim in (home / "plugins" / package, home / USER_DATA_REL):
+        if victim.is_dir():
+            shutil.rmtree(victim)
+    return {
+        "ok": False,
+        "mode": "wholesale",
+        "removed": package,
+        "foreign_preserved": False,
+        "error": "wholesale restore destroyed user-data and foreign files; not a delivery",
+    }
+
+
+def remove_revoked(home: Path, package: str = REVOKED_PACKAGE, mode: str = "set-difference") -> dict[str, Any]:
+    if mode == "wholesale":
+        return remove_wholesale(home, package)
+    if mode != "set-difference":
+        return {"ok": False, "error": f"unknown remove mode {mode!r}", "removed": None, "mode": mode}
+    return remove_set_difference(home, package)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -149,16 +250,13 @@ def main(argv: list[str] | None = None) -> int:
         _dump(doc)
         return 0 if doc["ok"] else 2
     if args.cmd == "remove":
-        remove_revoked(Path(args.home))
-        _dump(
-            {
-                "ok": True,
-                "removed": getattr(args, "package", None) or REVOKED_PACKAGE,
-                "mode": getattr(args, "mode", None) or "set-difference",
-                "foreign_preserved": True,
-            }
+        doc = remove_revoked(
+            Path(args.home),
+            getattr(args, "package", None) or REVOKED_PACKAGE,
+            getattr(args, "mode", None) or "set-difference",
         )
-        return 0
+        _dump(doc)
+        return 0 if doc.get("ok") else 3
     return 2
 
 

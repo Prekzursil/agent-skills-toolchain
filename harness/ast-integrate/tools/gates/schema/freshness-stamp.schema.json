@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/tools/gates/schema/freshness-stamp.schema.json",
+  "title": "freshness-stamp stored result",
+  "description": "A gate result persisted with the UTC instant its live source was queried. Read via tools/gates/freshness_stamp.py: FRESH while age_seconds <= max_age_seconds for the source class, otherwise NOT-CHECKED.",
+  "type": "object",
+  "required": ["verdict", "source_class", "freshness_stamp"],
+  "additionalProperties": true,
+  "properties": {
+    "verdict": {"type": "string", "enum": ["PASS", "FAIL", "NOT-CHECKED"]},
+    "source_class": {"type": "string", "minLength": 1},
+    "freshness_stamp": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "description": "UTC instant the source was queried; null reads as UNDATED-GREEN -> NOT-CHECKED"
+    },
+    "endpoint": {"type": "string"},
+    "findings": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "classification": {"type": "string", "enum": ["FRESH", "STALE", "UNDATED-GREEN"]}
+  }
+}
