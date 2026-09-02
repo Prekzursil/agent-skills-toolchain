@@ -10,7 +10,10 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | unit | missing path (repo-relative) | evidence | likely rule | status |
 |---|---|---|---|---|
 | ADV-0011 | `command-center/p2-wave/probes/CNF-0153/known-clean/package-lock.json` (+ sibling fixture dirs `known-vulnerable/`, `exploratory-lodash-4.17.21/`) | `FileNotFoundError` in probe1; no generator in probes/CNF-0153 or ADV-0011 | package-lock fixtures: > 5 MB `MaxFileBytes`, or a lock file under an excluded dir name | open |
-| ADV-0016 | `.github/workflows/quality.yml` | `FAILED:ADV-0016-probe1 quality.yml absent`; the capture's `.github/` holds no `workflows/quality.yml` | not in the live `ast-integrate` tree at capture (lives in the toolchain repo root) or excluded | open |
+| ADV-0016 | `.github/workflows/quality.yml` | `FAILED:ADV-0016-probe1 quality.yml absent`; the capture's `.github/` holds no `workflows/` | same as TST-0016: candidate source `/workspace/.github/workflows/quality.yml` (toolchain root; owner to confirm revision) | open |
+| TST-0016 | `.github/workflows/quality.yml`, `.github/workflows/no-runtime-junk.yml` | `FAILED:TST-0016-probe1 target workflows missing from classification` (p42-TST) | the live `ast-integrate` tree is a toolchain checkout; the capture's `.github/` lacks `workflows/`. Candidate source: the toolchain root `/workspace/.github/workflows/` (owner to confirm same revision) | open |
+| TST-0022 | `.agents/skills/claim-verify-gate/scripts/claim_gate.py`, `.../test_claim_gate.py` | `ModuleNotFoundError: No module named 'test_claim_gate'` (p42-TST) | `.agents/` of the live checkout not captured. Candidate source: toolchain root `/workspace/.agents/skills/claim-verify-gate/scripts/` | open |
+| TST-0025 | `tools/router/shadow_catalog.json` | `emit_receipt` `pin_state` needs it; `load_catalog` only falls back (p42-TST). Also location-bound fingerprint (see OPEN-LOOPS) | > 5 MB `MaxFileBytes` or generated | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
