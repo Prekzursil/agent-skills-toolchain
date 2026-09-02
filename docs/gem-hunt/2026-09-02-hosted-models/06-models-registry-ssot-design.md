@@ -514,11 +514,70 @@ small merge scripts sharing the Codex/Claude patterns, one probe script.
 
 ## 5. Fallback for runtimes that cannot take a provider: generic inference MCP
 
-_(pending)_
+Lens 07 (`gemhunt/hosted-models-07-generic-inference-mcp-tool`) owns the server's internals.
+This section fixes only the **contract between the registry and that server**, so the two lenses
+compose without a second registry.
+
+### 5.1 One server, registry-driven, replaces glm53-space's single hardcoded tool **[REC]**
+- Registered **once** in `agents.json` as `inference` (stdio, `uv run --locked` like glm53-space,
+  targets `["claude","codex"]` + Cursor via the existing x_cursor path + Gemini/Agy via the new
+  settings merge), with `"x_models": {"registry": ".agents/models.json"}` as its only new key.
+  This is consistent with `hosted-model-agents` hard rule 2 (one MCP, not one per URL) and with
+  `huggingface`'s own description ("Do not register a raw inference URL as a second Hub MCP").
+- It reads `models.json` at startup and on `SIGHUP`/file-mtime change; it never has its own list.
+- Credentials: it receives only the env NAMES the registry declares (`requiredEnv` = union of
+  `auth.env` over enabled endpoints), resolved by the launcher exactly as glm53-space's
+  `HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}` is today. `credentialNames` must equal that set or
+  `validate_registry` fails (existing rule).
+
+### 5.2 Tool surface (small; the catalogue-explosion rule applies to tools too)
+| Tool | Input | Output | Notes |
+|---|---|---|---|
+| `models_list` | `{filter?: {tags?, features?: {tools: ">=probed"}, endpointKind?}}` | `[{modelId, endpoint, displayName, capabilities, cost, health: {status, checkedAt}}]` | the *only* place agents discover models; never guess ids |
+| `chat` | `{model: "<model-id>\|<alias>", messages, tools?, response_format?, stream?: false, max_tokens?, temperature?, budgetUsd?}` | `{content, tool_calls?, usage, capabilityReport: {tools: "native\|emulated", json: "..."}}` | the glm53 `glm53_chat(user_prompt, system_prompt)` shape is a strict subset: keep both params so old prompts keep working through the tombstone period |
+| `probe` | `{endpoint\|model, checks?: ["models-list","chat-ping","tools","json_schema","vision","streaming"]}` | `{results: {check: {status, latencyMs, evidence}}}` and **writes back** `probed{at,version}` into `models.json` via `atomic_write_json` | the lattice's `probed` values come from here and from the scheduled probe (7.3); nothing else may write them |
+| `budget_status` | `{endpoint}` | `{spentUsd, capUsd, quota: {...}}` | OpenRouter via `GET /api/v1/key` (Tier A repo skill); others from local usage ledger |
+- **Why "emulated" matters here:** when `features.tools` is `absent` on an endpoint but the caller
+  passed `tools`, the server may run a prompt-format tool loop (ReAct-style) and MUST return
+  `capabilityReport.tools = "emulated"`. The lattice value in the registry stays `emulated`, never
+  silently upgraded. This is the precise generalisation of `tool-loop.md` ("the hosted model
+  proposes; the harness executes") - the MCP returns `tool_calls`, the *calling* agent executes.
+- No shell, no filesystem, no network fetch tools inside this server (LLM06 least-agency; matches
+  the repo's own llm-security rules). It is a pure model proxy.
+
+### 5.3 Memory + supervision
+- Under `mcp.policy.maxPrivateBytes` 512 MiB with no exception needed (it holds no weights). The
+  RAM cost of *local* endpoints is accounted on the endpoint (`resource.ramBytes`), not on this
+  server, so the fleet supervisor's 6 GiB idle total stays meaningful.
+- `singletonKey: "inference"`; if a future lens wants a second inference MCP it must justify a new
+  singleton key in `.provenance`.
 
 ## 6. Migration plan: deprecate glm53-space and qwen-space with redirect tombstones
 
-_(pending)_
+Sequenced so that at no step does a live agent lose a capability it had the step before (L7).
+
+| Step | Action | Where | Reversible? | Gate |
+|---|---|---|---|---|
+| M0 | Land `models.json` + `models_control_plane.py` + validator tests; **no materializer writes yet** | `main` | trivially | `python -m pytest .agents/scripts/test_models_control_plane.py` green; `validate_registry` passes on the seed |
+| M1 | Land inference MCP (lens 07) registered as `inference` in `agents.json`, `enabled: false`; run existing three MCP merges in dry-run to prove parity assertions still hold with the new entry | `main` | flip `enabled` | `merge_generated_{codex,claude,cursor}_mcp.py` dry-run SUCCESS lines |
+| M2 | `probe hf-router` + `probe glm-5.3@hf-router` -> lattice gets `probed` for `chat_completions`, `tools`, `streaming`; responses wire recorded honestly (likely `absent`) | live box | n/a (read-only + registry write) | probe evidence in `models.json`; nothing else |
+| M3 | Enable `inference`; run Claude merge `--write`. **Both** `glm53-space` and `inference` are mounted for the overlap window | live box | disable `inference` | `claude mcp list` shows both; a `chat` call via `inference` to `glm-5.3@hf-router` returns the same answer shape as `glm53_chat` (7.2 fixture) |
+| M4 | **Tombstone glm53-space (code):** replace `tools/mcp/glm53-space/mcp_server.py` body with a stub whose single tool `glm53_chat` returns a fixed redirect text (`"RETIRED <date>: use inference.chat with model 'glm-5.3@hf-router'"`) and exits 0; keep `glm53_core.py`/`openai_proxy.py` deleted (their function is now the inference MCP; `openai_proxy.py` was a mini gateway - L2 spirit) | `main` | git revert | `uv run --locked ... mcp_server.py` still starts (the registry entry keeps resolving - "a missing server fails opaquely") |
+| M5 | **Tombstone glm53-space (registry):** `agents.json` entry stays for one release with `enabled: false`, `tags += ["retired","redirect-tombstone"]`, description prefixed `RETIRED 2026-09-xx - use inference`; `RETIRED_MCP_SERVERS += {"glm53-space"}` so the Codex/Claude merges purge stale blocks the way they purge `memory`/`codex_consult` | `main` + live merges | flip `enabled` | all three merges SUCCESS; `.claude.json` no longer has `glm53-space` |
+| M6 | **Tombstone qwen-space (skill):** `skills/qwen-space-tool-api/SKILL.md` on `live-capture/2026-09-02` is already `status: deprecated`; upgrade to the `codex-consult` tombstone form (frontmatter `description: RETIRED <date> - redirect tombstone ...`, "Do not follow the old procedure", a "Use instead" table pointing at `hosted-model-agents` + `inference.models_list`, "Why a tombstone and not a deletion"); the `~/.local/bin/qwen-space` wrapper (already a "deprecated pointer") prints the same table and exits 2 | `.agents/skills` (canonical) mirrored to `skills/` per AGENTS.md | git revert | `validate-all-skills` (on the Windows box; not runnable in cloud per AGENTS.md) + `sync_shared_state.ps1` |
+| M7 | Materializer waves, one runtime per wave, dry-run then `--write`, smoke each: Goose (file-set, safest) -> Grok -> OpenCode -> Aider -> Fabric -> Codex (last: highest bricking risk, #41816) -> wrappers | live box | per-runtime pre-write copy | each `SUCCESS:models-<runtime>-merge`; each smoke exit 0 |
+| M8 | Remove the `glm53-space` registry entry and the stub directory one release after M5; keep the name in `RETIRED_MCP_SERVERS` forever (cheap; prevents resurrection) | `main` | git revert | grep shows zero live references (`ssot_wiring_check.py`-style gate) |
+
+**Redirect-tombstone wording** (both artefacts; one template, per the `codex-consult` precedent):
+```
+RETIRED 2026-09-xx - redirect tombstone. <old name> hardcoded one endpoint + one checkpoint
+(<router/model>). The estate models registry (.agents/models.json) + the `inference` MCP replace
+it: call inference.models_list, then inference.chat with model "<alias or model-id>". Kept so
+in-flight invocations of the old name resolve; do not add new work here.
+```
+**Non-goals, stated:** no credential rotation at any step (L6; `HUGGINGFACE_TOKEN` keeps its name
+and value); auth2api untouched (L3); OpenRouter never gains a Cursor/Claude target (L1);
+no gateway process appears (L2).
 
 ## 7. Test plan
 
