@@ -2,7 +2,7 @@
 
 Lens id: `06-models-registry-ssot-design`
 Branch: `gemhunt/hosted-models-06-models-registry-ssot-design`
-Status: IN PROGRESS (sections land incrementally; each push is a checkpoint)
+Status: COMPLETE 2026-09-02 (all sections landed; each section was a pushed checkpoint)
 Mode: discovery + design only. No code changed. No PR.
 
 ## 0. Scope, dedup-set, estate locks
@@ -668,4 +668,16 @@ estate build it.
 
 ## 9. Summary (10 lines)
 
-_(pending)_
+1. Propose `.agents/models.json` as a **sibling SSOT** to `agents.json` (own `schemaVersion`, own validator cloned from `mcp_control_plane.py`), holding endpoints, models, aliases and the estate locks as data; provenance stays in `.provenance/`.
+2. Every endpoint carries a **capability lattice** (`native/probed/declared/emulated/absent`) for wire (`chat_completions/responses/messages/gradio`) and features (`tools/json/vision/streaming/reasoning/stateful`), with `probed` timestamped and written only by the probe tool.
+3. The lattice is not decoration: Codex **removed** `wire_api="chat"` and an inert bad block bricks every command (openai/codex#41816), Fabric 404s on `/v1/responses` against llama-server (Fabric#1625), Ollama >=0.13.3 and LM Studio >=0.3.29 do speak responses - so materializers floor per runtime instead of guessing.
+4. **Native materializers** exist for Codex (`[model_providers.*]`), Grok (`[model."*"]`, the most permissive: three wires + `env_key` arrays), Goose (`custom_providers/*.json`, file-set merge), Fabric (fenced `.env` region + global `disableResponsesAPI` tradeoff), OpenCode (`provider.<id>`, dot-free ids, `{env:}` only) and Aider (metadata/settings/alias + per-endpoint wrappers).
+5. All merges reuse the existing idioms verbatim: reference-only credentials, closed `x_<runtime>` blocks, block-preserving TOML splitter, `RETIRED_*` purge sets, `assert_exact_target_parity`, `atomic_write_text`, dry-run-by-default - plus one new step forced by #41816: **post-write smoke and rollback**.
+6. Claude, Cursor, Gemini CLI and Agy **cannot take a provider** without breaking L1/L2 (Gemini is Gemini-protocol only; Agy's inference client is hardcoded), so they reach models only through **one** registry-driven `inference` MCP (`models_list/chat/probe/budget_status`, capability-reporting, no shell/file tools); lens 07 builds it, this lens fixes the contract.
+7. Launch wrappers (`<runtime>-<endpoint>` in `~/.local/bin`) are a first-class materializer with a read-only JSON-pointer resolver into nested `local.json`; only NAMES ever land in config files (L6).
+8. Migration is eight reversible steps with an overlap window: glm53-space becomes a code stub that still starts + a disabled registry entry + a `RETIRED_MCP_SERVERS` purge; qwen-space upgrades to the `codex-consult` redirect-tombstone form; Codex is materialized last.
+9. Test plan: 13 red-proof validator cases (locks L1/L3/L4 as failing tests), golden idempotency/preservation/purge merges per runtime, an offline fake OpenAI server for probes, box-only smoke/rollback against copies, and one acceptance check per migration step.
+10. Two negative finds save effort: no provider materializer for Gemini/Agy (third-party proxies = second gateway with plaintext keys; the popular bridge squats owned port 8765), and `fabric-docs-3kh.pages.dev` documents a *different* Fabric - cite only danielmiessler/Fabric.
+
+---
+Checkpoints pushed after every section on `gemhunt/hosted-models-06-models-registry-ssot-design`. No code changed. No PR.
