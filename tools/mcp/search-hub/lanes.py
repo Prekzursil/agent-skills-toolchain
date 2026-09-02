@@ -27,6 +27,7 @@ from typing import Any
 #: not import is reported as degraded, on purpose.
 LANE_MODULES: tuple[str, ...] = (
     "lane_repo_health",  # bestofjs v2 + deps.dev + OpenSSF Scorecard (keyless, default ON)
+    "lane_wiki",  # Wikipedia + Wayback + Hacker News grounding (keyless, default ON)
 )
 
 
