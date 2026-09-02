@@ -247,3 +247,17 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
   were measured STRICT in a mirror; a regression that is not "lost the fake" reverts the module
   (ledger row first). `probe-file-missing` candidates (12 in census 01) are held for the steady-state
   mirror census before any CAPTURE-GAPS.md entry is written.
+
+### Step 4 (02.09 07:30– EEST): module repairs landing (one commit per module, STRICT-measured dependents)
+| wave/writer | module(s) | dependents (STRICT, my mirror) | result | commit |
+|---|---|---|---|---|
+| w4 | `tools/council/budget/__init__.py` real init (4 real dials); root twins deleted | ADV-0094 IMP-0298 IMP-0299 IMP-0325 IMP-0352 | 5/5 OK (4 FAIL→OK, 1 vacuous OK→real OK) | 706239c65 |
+| w3 | `tools/council/roles/__init__.py` + `roles/templates.py` (898 lines: template registry, custom-role authoring, escalation + drift detectors); root twins deleted | IMP-0360 IMP-0280 IMP-0281 ADV-0103 | 2/4 OK (IMP-0360 FAIL→OK; IMP-0280 vacuous→real OK); IMP-0281/ADV-0103 now fail on REAL-module drift: captured `tools/council/sdk.py` (6221 B) and `roles/guard.py` (2922 B) are later, smaller re-implementations than the originals both manifests pin (21107 B / 14048 B) — two units' deliverables overwrote the same files → union contract, writer w10 | 5998fbe0a |
+- Tooling this step: `_g1_rootkey.py` (re-key fails by file to touch: 712 fails → 11 shared keys / 615 per-unit
+  probe-side exceptions or assertions + 3 `MISSING:pytest` + 3 TIMEOUT); `pytest` 9.1.1 installed (environment,
+  like jsonschema: three units import it). Regen wave `w0902-06-regen-nonph` (640 non-placeholder fails, STRICT, 6
+  workers) running: ~12 cleared of the first 314 (regeneration alone rarely helps here — the owner's regen wave had
+  already run over these).
+- Writers in flight: w1 (marketplace.revocation_list ×3, ledger, bench.baseline_store), w2 (council.quota), w5
+  (foundry.runtime, 11 dependents), w6 (marketplace.crypto, plugin.installer), w7 (council.protocol, 14 units, serial),
+  w8 (council.stopping + expr), w9 (council.outcomes), w10 (sdk.py + guard.py union contract).
