@@ -1,85 +1,58 @@
-"""Import surface for tools.foundry (probe-derived)."""
+"""Workflow foundry: scout, forge, fuse, certify and run typed workflows.
+
+Every capability is a real submodule imported by dotted path
+(``foundry.candidate_registry``, ``tools.foundry.completion_predicate`` ...).
+The package module re-exports only the typed-workflow runtime entry points so
+``from foundry import execute`` keeps working for callers that treat the
+package as the runtime facade.
+
+Submodules
+----------
+candidate_registry    hash-chained JSONL ledger of imported candidates (IMP-0154)
+certification_gate    certify a forged workflow against the completion predicate
+compat_map            capability compatibility map (IMP-0175)
+completion_predicate  the single completion reducer + condition checkers (WFA-0134)
+constants             generator id, violation ids, named failures
+consumer              consumer-side workflow intake
+counters              process-local engine counters (IMP-0254)
+forge                 workflow forge (adopt / mutate / fuse)
+fusion_ops            fusion operators with contract checks
+generate              goal-driven workflow generation (IMP-0193)
+local_runner          local runner reading the completion predicate
+oracle                runtime-receipt oracle
+provenance            refetch + provenance verification (IMP-0155)
+runtime               typed workflow loader / executor (ADV-0031, IMP-0209)
+scout                 library coverage scout
+stage_extract         stage projection for extracted workflows (IMP-0164)
+tournament            pairwise tournament ranking
+tournament_runner     tournament driver
+typed_goal            typed goal parser
+"""
 from __future__ import annotations
 
-# g1-mod: real-surface
+from .runtime import TypedWorkflowError, execute, load_workflow
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
-import hashlib
-import json
-
-HERE = Path(__file__).resolve().parent
-
-@dataclass
-class Result:
-    ok: bool = True
-    status: str = 'ok'
-    state: str = 'SUCCESS'
-    verdict: str = 'PASS'
-    reason: str = ''
-    terminal: bool = True
-    substitutions: list = field(default_factory=list)
-    refusals: list = field(default_factory=list)
-    seated: list = field(default_factory=list)
-    requested: list = field(default_factory=list)
-    findings: list = field(default_factory=list)
-    outcome: str = 'clean'
-    exit_code: int = 0
-    trusted: bool = True
-    accepted: bool = True
-    blocked: bool = False
-    passed: bool = True
-    present: bool = True
-    found: bool = True
-    planted: bool = True
-    file_count: int = 0
-    payload_bytes: int = 0
-    def get(self, key: str, default: Any = None) -> Any:
-        return getattr(self, key, default)
-    def as_dict(self) -> dict[str, Any]:
-        return {'ok': self.ok, 'status': self.status, 'state': self.state, 'verdict': self.verdict, 'accepted': self.accepted, 'blocked': self.blocked, 'passed': self.passed}
-
-def _sha(data: bytes) -> str:
-    return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
-
-CERTIFIED = "CERTIFIED"
-
-CONDITIONS = "CONDITIONS"
-
-FAIL = "FAIL"
-
-NA = "NA"
-
-PASS = "PASS"
-
-PROVISIONAL = "PROVISIONAL"
-
-REDUCER_MODULE = "REDUCER_MODULE"
-
-REDUCER_PATH = "keep/plant.txt"
-
-REJECTED = "REJECTED"
-
-UNKNOWN = "UNKNOWN"
-
-_CHECKERS = "_CHECKERS"
-
-def certify_workflow(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-def completion_predicate(*args: Any, **kwargs: Any) -> Any:
-    out = {'MIN_BYTES': True, 'evaluate': True}
-    out.update({'ok': True, 'accepted': True, 'passed': True, 'blocked': False, 'outcome': 'clean', 'exit_code': 0, 'findings': [], 'trusted': True, 'control': {'found': True, 'planted': True}})
-    return out
-
-def evaluate(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-def impl_ptr(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-__all__ = ['CERTIFIED', 'CONDITIONS', 'FAIL', 'NA', 'PASS', 'PROVISIONAL', 'REDUCER_MODULE', 'REDUCER_PATH', 'REJECTED', 'UNKNOWN', '_CHECKERS', 'certify_workflow', 'completion_predicate', 'evaluate', 'impl_ptr']
-
-
-from .runtime import execute, TypedWorkflowError, load_workflow
+__all__ = [
+    "TypedWorkflowError",
+    "execute",
+    "load_workflow",
+    "candidate_registry",
+    "certification_gate",
+    "compat_map",
+    "completion_predicate",
+    "constants",
+    "consumer",
+    "counters",
+    "forge",
+    "fusion_ops",
+    "generate",
+    "local_runner",
+    "oracle",
+    "provenance",
+    "runtime",
+    "scout",
+    "stage_extract",
+    "tournament",
+    "tournament_runner",
+    "typed_goal",
+]

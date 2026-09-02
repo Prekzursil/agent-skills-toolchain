@@ -1,63 +1,27 @@
-"""Import surface for tools.freeze (probe-derived)."""
+"""Phase-0 freeze protocol (CC-0010).
+
+The single submodule ``protocol`` snapshots the nine estate classes, marks
+working-tree measurements SAMPLE, and emits BASELINE only when two independent
+quiescence signals agree inside an unwritten git worktree. Its public surface
+is re-exported here so ``tools.freeze`` and ``tools.freeze.protocol`` agree.
+"""
 from __future__ import annotations
 
-# g1-mod: real-surface
+from .protocol import (
+    NINE_CLASSES,
+    PROGRAM_ANCHOR_PREFIX,
+    freeze_live_worktree,
+    run_adversarial_control,
+    run_quiescent_baseline_control,
+    run_rollback_rehearsal,
+)
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
-import hashlib
-import json
-
-HERE = Path(__file__).resolve().parent
-
-@dataclass
-class Result:
-    ok: bool = True
-    status: str = 'ok'
-    state: str = 'SUCCESS'
-    verdict: str = 'PASS'
-    reason: str = ''
-    terminal: bool = True
-    substitutions: list = field(default_factory=list)
-    refusals: list = field(default_factory=list)
-    seated: list = field(default_factory=list)
-    requested: list = field(default_factory=list)
-    findings: list = field(default_factory=list)
-    outcome: str = 'clean'
-    exit_code: int = 0
-    trusted: bool = True
-    accepted: bool = True
-    blocked: bool = False
-    passed: bool = True
-    present: bool = True
-    found: bool = True
-    planted: bool = True
-    file_count: int = 0
-    payload_bytes: int = 0
-    def get(self, key: str, default: Any = None) -> Any:
-        return getattr(self, key, default)
-    def as_dict(self) -> dict[str, Any]:
-        return {'ok': self.ok, 'status': self.status, 'state': self.state, 'verdict': self.verdict, 'accepted': self.accepted, 'blocked': self.blocked, 'passed': self.passed}
-
-def _sha(data: bytes) -> str:
-    return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
-
-NINE_CLASSES = "NINE_CLASSES"
-
-PROGRAM_ANCHOR_PREFIX = "PROGRAM_ANCHOR_PREFIX"
-
-def freeze_live_worktree(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-def run_adversarial_control(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-def run_quiescent_baseline_control(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-def run_rollback_rehearsal(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-__all__ = ['NINE_CLASSES', 'PROGRAM_ANCHOR_PREFIX', 'freeze_live_worktree', 'run_adversarial_control', 'run_quiescent_baseline_control', 'run_rollback_rehearsal']
-
+__all__ = [
+    "NINE_CLASSES",
+    "PROGRAM_ANCHOR_PREFIX",
+    "freeze_live_worktree",
+    "run_adversarial_control",
+    "run_quiescent_baseline_control",
+    "run_rollback_rehearsal",
+    "protocol",
+]
