@@ -148,5 +148,13 @@ commit-starved box.
   is PERMITTED when the owner opts in, mitigated by on-demand spawn + eviction
   (`OLLAMA_KEEP_ALIVE=0`). Keyed APIs allowed with a hard spend cap + secrets by
   env-name only. Our own code still avoids LangGraph/LiteLLM/vector-DB/2nd
-  orchestrator; a vendored tool MAY use them internally (even on-box). Accepted
+  orchestrator; a vendored tool MAY use them internally (even on-box).   Accepted
   risk: a resident local model pressures the 1.2-1.8 GB-free box; opt-in per item.
+- **G-3 — Grill shape: Focus.** A+B are approved-to-build per the doc's per-item
+  recommendations (owner may veto any before build); remaining questions target the
+  C-tier gates, delivery, and the 4 pending-lens picks. Cloud agent cannot poll
+  running subagents; their questions get injected on completion.
+- **G-4 — OVH: defer + build endpoint-agnostic.** Heavy adapters take their base URL
+  from an env var (like `TRAILSEARCH_URL`): on-box on-demand now, one-line repoint to
+  OVH later, no rework. OVH standup = documented owner follow-up (cloud agent cannot
+  provision it).
