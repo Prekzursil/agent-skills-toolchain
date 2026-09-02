@@ -302,7 +302,11 @@ def classify_stage_argv(argv: Sequence[str]) -> ArgvClass:
             letters = _short_letters(flag)
             if any(ch in BROAD_ADD_SHORT for ch in letters):
                 broad_flags.append(flag)
-        path_broad = [p for p in paths if _posix(p) in BROAD_PATHS]
+        # `_posix` strips leading "./", so "." / "./" / "/" normalise to "";
+        # test the raw token and the normalised form so `git add .` is broad.
+        path_broad = [
+            p for p in paths if p in BROAD_PATHS or _posix(p) in BROAD_SCOPE_TOKENS
+        ]
         if broad_flags:
             reason = (
                 f"broad add flag {broad_flags} stages the whole tree / all tracked"

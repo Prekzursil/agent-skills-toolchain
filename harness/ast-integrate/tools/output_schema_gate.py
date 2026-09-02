@@ -1,52 +1,32 @@
-"""Import surface for output_schema_gate (probe-derived)."""
+"""Re-export of the real output-schema gate (tools/command-center/output_schema_gate.py).
+
+``tools/command-center/`` is not an importable package (hyphenated name), so
+the real module is loaded by file location once and its public surface is
+re-exported here for callers that only have ``tools/`` on ``sys.path``.
+"""
 from __future__ import annotations
 
-# g1-mod: real-surface
-
-from dataclasses import dataclass, field
+import importlib.util
+import sys
 from pathlib import Path
-from typing import Any
-import hashlib
-import json
 
-HERE = Path(__file__).resolve().parent
+_REAL = Path(__file__).resolve().parent / "command-center" / "output_schema_gate.py"
+_ALIAS = "_tools_command_center_output_schema_gate"
 
-@dataclass
-class Result:
-    ok: bool = True
-    status: str = 'ok'
-    state: str = 'SUCCESS'
-    verdict: str = 'PASS'
-    reason: str = ''
-    terminal: bool = True
-    substitutions: list = field(default_factory=list)
-    refusals: list = field(default_factory=list)
-    seated: list = field(default_factory=list)
-    requested: list = field(default_factory=list)
-    findings: list = field(default_factory=list)
-    outcome: str = 'clean'
-    exit_code: int = 0
-    trusted: bool = True
-    accepted: bool = True
-    blocked: bool = False
-    passed: bool = True
-    present: bool = True
-    found: bool = True
-    planted: bool = True
-    file_count: int = 0
-    payload_bytes: int = 0
-    def get(self, key: str, default: Any = None) -> Any:
-        return getattr(self, key, default)
-    def as_dict(self) -> dict[str, Any]:
-        return {'ok': self.ok, 'status': self.status, 'state': self.state, 'verdict': self.verdict, 'accepted': self.accepted, 'blocked': self.blocked, 'passed': self.passed}
 
-def _sha(data: bytes) -> str:
-    return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
+def _load_real_gate():
+    existing = sys.modules.get(_ALIAS)
+    if existing is not None:
+        return existing
+    spec = importlib.util.spec_from_file_location(_ALIAS, _REAL)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load the real output-schema gate from {_REAL}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_ALIAS] = module
+    spec.loader.exec_module(module)
+    return module
 
-def output_schema_gate(*args: Any, **kwargs: Any) -> Any:
-    out = {'CLASS_MCP': True, 'CLASS_OK': True, 'CLASS_SCHEMA_INVALID': True, 'MCP_MARK': True, 'atomic_write_json': True, 'decide_retry': True, 'dispatch': True}
-    out.update({'ok': True, 'accepted': True, 'passed': True, 'blocked': False, 'outcome': 'clean', 'exit_code': 0, 'findings': [], 'trusted': True, 'control': {'found': True, 'planted': True}})
-    return out
 
-__all__ = ['output_schema_gate']
-
+_gate = _load_real_gate()
+globals().update({name: getattr(_gate, name) for name in _gate.__all__})
+__all__ = list(_gate.__all__)
