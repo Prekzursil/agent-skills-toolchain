@@ -201,7 +201,54 @@ are both live on OpenRouter today (Tier A live `/models`), so GLM-5.3 reachabili
 
 ## 4. Sidecar policy design
 
-_(pending)_
+Everything here is `[REC]` unless marked; each rule names the lock it serves and the trade-off it carries (L7).
+
+### 4.1 Key scoping - one inference key per runtime family, never one shared secret under many names
+
+`[FACT]` OpenRouter caps are **per inference key** (`limit` + one `limit_reset`), and `GET /api/v1/key` reports usage
+per key (section 2.6). `[FACT]` Making more keys "will not affect your rate limits" (limits page, Tier A). `[INFER]`
+Therefore per-runtime keys are the only way to (a) attribute spend to Codex vs Aider vs Fabric without a proxy and
+(b) give each runtime its own hard brake - a LiteLLM-style budget proxy is forbidden (L2), so the **key is the proxy**.
+
+| Key (label on dashboard) | Runtime(s) | Binding | Cap suggestion | Why |
+| --- | --- | --- | --- | --- |
+| `or-codex-sidecar` | Codex `--profile openrouter` | `env_key = "OPENROUTER_API_KEY_CODEX"` in user-level `~/.codex/config.toml` (project-local is ignored by Codex - Tier A) | daily, small (single-digit USD) | agentic loops are the runaway risk |
+| `or-cli-grunt` | `openrouter-complete.py`, Aider, Fabric per-pattern pins | `OPENROUTER_API_KEY` (existing canonical name - Aider reads it natively) | daily, small | T0 bulk; shared because all three are human-invoked one-shots |
+| `or-ide-opencode` (only if OpenCode is ever used with OR) | OpenCode `/connect` credential store | OpenCode-owned store | daily, small | isolates the one runtime that copies the secret into its own store |
+
+Trade-off (L7): more keys = more dashboard clicks and three `.agents/local.json` name-only pointers instead of one;
+benefit = per-runtime 402 brakes and clean attribution. **Constraint L6**: the *owner* creates these in the browser;
+no agent mints keys (the 08-27 audit's "do not mint" rule and the OAuth/MCP-minted-key SKIP stand).
+
+### 4.2 Hard spend caps - what is enforceable today on PAYG
+
+`[FACT]` One key has exactly one `limit_reset` (daily XOR weekly XOR monthly); daily+monthly together is a
+**workspace budget** (Enterprise, returns 403) - in-repo 08-27 audit, Tier A then. `[REC]` Policy on PAYG:
+
+1. Every sidecar key gets `Limit` + `limit_reset = daily` (midnight UTC hard brake).
+2. Monthly is **observational**: the T0 script's `--show-limits` already prints `usage_monthly`; add a threshold
+   print (not a new daemon, L2/L4) so a human sees "monthly > X" on the next run.
+3. Account balance is the second brake: keep the prepaid balance small on purpose (the account was overdrawn by
+   ~$0.39 on 08-27 and paid slugs 402'd - that is the system working, not a bug).
+4. `include_byok_in_limit` is irrelevant (no BYOK, section 2.7).
+
+### 4.3 Exact lock boundaries (restated as testable assertions)
+
+- **Never Cursor BYOK**: no OpenRouter key in Cursor Settings > Models; no Override Base URL `https://openrouter.ai/api/v1/cursor`. Test: Cursor settings JSON contains no `openrouter.ai` string. (L1)
+- **Never Claude base URL**: `ANTHROPIC_BASE_URL` unset or non-OpenRouter; `ANTHROPIC_AUTH_TOKEN` never an `sk-or-` value. Test: `env | grep -i anthropic_base_url` empty in every shell profile. (L1)
+- **Never a new OpenRouter MCP**: `.agents/agents.json` `mcp.servers` (42 today) and `.cursor/mcp.json` contain no `mcp.openrouter.ai`. (L1)
+- **No new listener**: the sidecar is outbound HTTPS only; ports 8765/8812/8317 untouched. (L4)
+- **auth2api precedence**: for any model that Cursor Max already serves (Claude, Grok, GPT, Gemini frontier), runtimes go through `127.0.0.1:8317`, not OpenRouter; OpenRouter is for models Cursor does **not** serve (GLM, DeepSeek, Qwen, MiniMax, Gemma, Hermes) and for T0 bulk. (L3) `[INFER]` This is also the cheapest split: Cursor quota is sunk cost, OpenRouter is marginal cost.
+- **Prompt SSOT**: Fabric per-pattern pins and Aider `--model` choose the *model*; the *prompt* still comes from `.agents/skills`. (L5)
+
+### 4.4 Request hygiene the current T0 script lacks (gaps, not rewrites)
+
+`[REC]` (a) `provider.require_parameters: true` whenever `tools`/`response_format` are sent (section 2.2);
+(b) `provider.data_collection: "deny"` for any prompt that carries repo code (privacy toggle is account-wide
+otherwise); (c) refuse slugs whose `expiration_date` is < 30 days out (section 2.1); (d) keep `HTTP-Referer` /
+`X-OpenRouter-Title` (already sent) and add the same two headers to Codex via `model_providers.openrouter.http_headers`
+(section 3); (e) never hardcode prices - the allowlist file stores slugs only, prices come from the public
+`/models` GET at check time.
 
 ## 5. Model shortlists (T0 / T1) with price/perf evidence
 
