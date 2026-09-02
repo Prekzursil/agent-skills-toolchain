@@ -45,6 +45,14 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | RES-0132 | `probes/RES-0132/{control-red,frozen-green,historical/npm-braces-3.0.2,historical/npm-cross-spawn-7.0.3}/package-lock.json` | b4-p17-RES | lock files excluded | open |
 | RES-0146 | `probes/RES-0146/captures/m01-guru99-linux.body` + 10 more of 50 (mixed-EOL) | b4-p17-RES | eol normalisation | unrecoverable without re-fetch |
 | (restored) | RES-0058 debian-wiki-raw.bin, RES-0073 n8n-devto-visual-to-git.raw, RES-0122 copyright-gov-102.html, RES-0137 mo2-readme.bin, RES-0140 blog-codex.bin — pure-CRLF captures restored, sha256-verified against their index; `.gitattributes -text` now covers `probes/*/captures/**` and `snapshots/**` | b4-p15/16/17 | — | **repaired** |
+| RES-0148 | `probes/RES-0148/fixtures/snapshots/{dropbox-magic-pocket,dropbox-gen7}.html` (mixed-EOL, unreconstructible; python2-sunset.html reconstructible but unit needs all three) | b4-p18-RES | eol normalisation | unrecoverable without re-fetch |
+| RES-0153 | `tools/council/fixtures/stability/presets.json` (whole `tools/council/fixtures/` dir absent; IMP-0364 receipt records it 16852 B) | b4-p18-RES | fixtures dir excluded | open |
+| RES-0154 | `probes/RES-0147/_validate_out.json`, `probes/RES-0158/_measure_out.json`, `probes/RES-0159/_strike_out.json` | b4-p18-RES | `_*_out.json` run outputs excluded | open |
+| RES-0164 | `probes/RES-0164/build_artifact.py` (the artifact's own artifacts[] lists it 34288 B; no emitter in the probe dir) | b4-p18-RES | ? | open |
+| RES-0175 | `probes/RES-0175/fixtures/sources/owasp-llm01-genai.html` (354525 B vs LINEAGE 354574 B; not a CRLF twin) | b4-p19-RES | content drift at capture | open |
+| RES-0182 | `probes/RES-0182/snapshots/plos-hemming-2018-idea.pdf` (6.28 MB, over the 5 MB capture cap) | b4-p19-RES | MaxFileBytes cap | open — re-fetch would not reproduce the sha |
+| RES-0183 | `17-DECISION-LOG.md` (repo-root owner decision log) | b4-p19-RES | root docs excluded | open |
+| (kept) | `probes/RES-0161/captures/local-catalog.bin` (5.28 MB) rebuilt from the live catalog via the unit's `capture.py --local-only`; add to KeepOversized for the next capture | b4-p18-RES | MaxFileBytes cap | **repaired** |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
