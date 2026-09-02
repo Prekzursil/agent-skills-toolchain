@@ -86,6 +86,13 @@ function Get-HygieneSnapshot {
 
     $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
     $physical = [long]$os.TotalVisibleMemorySize * 1KB
+    # NOTE on `free_bytes`, because the name invites a wrong "fix":
+    # FreePhysicalMemory is Task Manager's AVAILABLE (free + zero + standby lists) -
+    # the same quantity as the perfmon counter \Memory\Available MBytes, i.e. memory
+    # immediately allocatable without writing anything to disk. It is NOT the free
+    # page list (that is \Memory\Free & Zero Page List Bytes, which is near zero by
+    # design on a healthy box). The policy's freeBytesBelow thresholds are calibrated
+    # against AVAILABLE, so do not "correct" this to a free-page-list counter.
     $free = [long]$os.FreePhysicalMemory * 1KB
     $commitTotal = ([long]$os.TotalVirtualMemorySize - [long]$os.FreeVirtualMemory) * 1KB
     $commitLimit = [long]$os.TotalVirtualMemorySize * 1KB

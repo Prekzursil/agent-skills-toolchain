@@ -1,0 +1,95 @@
+{
+  "name": "wrapper-chain-vs-direct-exec",
+  "kind": "capability",
+  "description": "Two functionally identical MCP servers under the SAME host: one launched via `cmd /c npx <pkg>` (real server is a grandchild) and one launched directly as `node.exe <entry.js>` (real server is the direct child). libuv hosts create their direct child in a job carrying KILL_ON_JOB_CLOSE *and* SILENT_BREAKAWAY_OK, which deliberately excludes grandchildren - so only the first shape survives the host's death and becomes an orphan. Expected: exactly ONE wrapper-chain advisory, naming the wrapper root (not the server, not the direct-exec twin), and NOTHING stopped - the whole box is healthy and every process is busy.",
+  "rounds": 4,
+  "host": {
+    "physical_bytes": 34359738368,
+    "free_bytes": 8589934592,
+    "commit_total_bytes": 21474836480,
+    "commit_limit_bytes": 68719476736
+  },
+  "wsl": {
+    "available": false,
+    "running_distros": []
+  },
+  "listeners": {},
+  "processes": [
+    {
+      "pid": 100,
+      "ppid": 1,
+      "name": "explorer.exe",
+      "executable": "C:\\Windows\\explorer.exe",
+      "command_line": "explorer.exe",
+      "age_seconds": 390000,
+      "private_mib": 150
+    },
+    {
+      "pid": 700,
+      "ppid": 100,
+      "name": "Cursor.exe",
+      "executable": "C:\\Users\\Prekzursil\\AppData\\Local\\Programs\\cursor\\Cursor.exe",
+      "command_line": "Cursor",
+      "age_seconds": 40000,
+      "private_mib": 900,
+      "active": true
+    },
+    {
+      "pid": 710,
+      "ppid": 700,
+      "name": "cmd.exe",
+      "executable": "C:\\Windows\\System32\\cmd.exe",
+      "command_line": "cmd /c npx -y @modelcontextprotocol/server-git",
+      "age_seconds": 30000,
+      "private_mib": 5,
+      "active": true
+    },
+    {
+      "pid": 711,
+      "ppid": 710,
+      "name": "node.exe",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command_line": "node C:\\x\\_npx\\def\\node_modules\\server-git\\dist\\index.js",
+      "age_seconds": 29999,
+      "private_mib": 120,
+      "active": true
+    },
+    {
+      "pid": 720,
+      "ppid": 700,
+      "name": "node.exe",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command_line": "node C:\\tools\\server-fs\\dist\\index.js",
+      "age_seconds": 29000,
+      "private_mib": 120,
+      "active": true
+    }
+  ],
+  "expect": {
+    "tier": "normal",
+    "stop_pids": [],
+    "never_touched": [
+      100,
+      700,
+      710,
+      711,
+      720
+    ],
+    "rules_present": [
+      "wrapper-chain"
+    ],
+    "rules_absent": [
+      "retired",
+      "orphan",
+      "daemon",
+      "session-age",
+      "rss-soft",
+      "rss-hard",
+      "cursor-orphan-reaper",
+      "wsl-idle",
+      "wsl-report"
+    ],
+    "delegate_reaper": false,
+    "wsl_shutdown": false
+  }
+}

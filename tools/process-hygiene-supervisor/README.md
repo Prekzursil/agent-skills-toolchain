@@ -30,8 +30,8 @@ process table and actuates the OS.
 | `policy.example.json` | the policy template — tiers, protected allowlist, runtimes, orphans, retired, MCP, WSL, ledger. |
 | `wslconfig.example` | `.wslconfig` with a `memory`/`swap` cap + `autoMemoryReclaim=dropCache` under `[experimental]` (under `[wsl2]` it is a silent no-op). |
 | `test-process-hygiene.ps1` | manual Windows smoke test of the launcher (not run in CI — CI has no `pwsh`). |
-| `evals/` | `run_evals.py` + 11 scenarios and `EVALS.md`: replays snapshots through the engine and grades the plan (pass@1 / pass^3). |
-| `tests/` | 182 Python tests + `mutation_probe.py` (26 reverted-safety mutations, all killed). |
+| `evals/` | `run_evals.py` + 12 scenarios and `EVALS.md`: replays snapshots through the engine and grades the plan (pass@1 / pass^3). |
+| `tests/` | 195 Python tests + `mutation_probe.py` (28 reverted-safety mutations, all killed). |
 
 ## What it does
 
@@ -102,8 +102,8 @@ pwsh -File install_task.ps1 -Uninstall # remove
 
 ```bash
 python -m pytest tests/ --cov=hygiene --cov=hygiene_actuate --cov=run_evals \
-  --cov-branch --cov-report=term-missing --cov-fail-under=100   # 182 passed, 100%
-python evals/run_evals.py                                       # 11/11, pass^3 100%
-python tests/mutation_probe.py                                  # 26/26 killed
+  --cov-branch --cov-report=term-missing --cov-fail-under=100   # 195 passed, 100%
+python evals/run_evals.py                                       # 12/12, pass^3 100%
+python tests/mutation_probe.py                                  # 28/28 killed
 uvx ruff@0.15.17 check . && uvx ruff@0.15.17 format --check .
 ```

@@ -65,7 +65,8 @@ Task Scheduler ─every 5 min + logon (+ optional RADAR event 2004)─▶ proces
       ▼
   hygiene.py run --snapshot … [--apply]   (PURE decision engine, 100% tested)
       │  tiers ← free RAM ∨ commit ratio ∨ COMMIT HEADROOM (+ hysteresis)
-      │  rules ← retired · orphan/daemon · session-age · rss · mcp-* · wsl · browser
+      │  rules ← retired · orphan/daemon · session-age · rss · mcp-* · wsl ·
+      │          wrapper-chain · browser
       │  gates ← protected allowlist · whole-tree idle · bounded network veto
       │  budget ← maxStopsPerRun · crash-loop breaker (per command_sha256)
       │  cursor-agent parentless ─────────────▶ DELEGATE
@@ -135,6 +136,22 @@ is a silent no-op) — `gradual` reclaims slowly and stops short of an empty gue
 a plausible cause of the measured 1.1 GB idle plateau. `sparseVhd` is left off on
 purpose: it is a *disk*-space feature and is gated behind a corruption warning.
 
+**One tier, but two named failure modes.** The legs answer different questions, so
+the ledger and digest carry `pressure_modes` beside the tier: the *available RAM*
+leg is **working-set** pressure (hard faults, a growing compression store — the
+freezes), while the *ratio* and *headroom* legs are **commit-exhaustion**
+(allocations fail — the mode that kills the Basic Memory daemon). The distinction is
+not cosmetic: a bigger pagefile relieves the second and does nothing for the first,
+so "critical" is never reported without saying critical *of what*.
+
+**`wrapper-chain` — prevention by reporting (never stops anything).** libuv hosts
+(Cursor, the VS Code extension host) create each direct child in a job carrying
+`KILL_ON_JOB_CLOSE` **and** `SILENT_BREAKAWAY_OK`; the breakaway flag deliberately
+excludes *grandchildren*, so a server launched as `cmd /c npx <pkg>` survives the
+host's death **by design** — it is the orphan the reaper cleans up later. The rule
+reports one row per wrapper root (with the parent chain and the `node.exe <entry.js>`
+remediation), turning a config fix into a worked list instead of advice.
+
 **Browsers keep every tab.** The supervisor never kills or trims a browser; it
 reports and names the only lever that actually returns commit — making the
 browser *discard* idle tabs: `TotalMemoryLimitMb` (Chrome and Edge, HKLM
@@ -153,7 +170,7 @@ check can tell "supervisor stale/disabled" from "quiet box", and appends **one**
 `BACKGROUND-DIGEST` line only when a NEW rule kind stopped something, a failure
 appears, or the tier first hits critical.
 
-**Safety invariants (all mutation-tested, `tests/mutation_probe.py`, 26/26
+**Safety invariants (all mutation-tested, `tests/mutation_probe.py`, 28/28
 killed).** Whole-tree idle before any reap; the protected allowlist; cursor-agent
 delegation; the singleton port owner is kept; the age gate; the apply-time tier
 gate; the network veto; the crash-loop breaker; the stop budget; the WSL
@@ -235,11 +252,11 @@ Every step is reversible and leaves no residue beyond the ledger:
 
 ## 5. Verification performed
 
-- `hygiene.py` + `hygiene_actuate.py` + `evals/run_evals.py`: **182 tests, 100%
+- `hygiene.py` + `hygiene_actuate.py` + `evals/run_evals.py`: **195 tests, 100%
   line+branch** (`pytest --cov --cov-branch --cov-fail-under=100`), pinned
-  `ruff==0.15.17` clean, and `tests/mutation_probe.py` kills **26/26**
+  `ruff==0.15.17` clean, and `tests/mutation_probe.py` kills **28/28**
   reverted-safety mutations (each mutation names the invariant it breaks).
-- `evals/run_evals.py`: **11/11 scenarios, pass@1 and pass^3 = 100%** — including
+- `evals/run_evals.py`: **12/12 scenarios, pass@1 and pass^3 = 100%** — including
   a replay of the 02.09.2026 measurement, which reads `elevated` under an 80 GB
   commit limit (12.3 GB headroom) and `critical` under 70 GB (2.3 GB headroom)
   with an identical kill set: the tier changes what may *execute*, not what is

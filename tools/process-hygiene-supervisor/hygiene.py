@@ -194,7 +194,27 @@ _TOP_KEYS = {
     "integration",
     "ledger",
     "notify",
+    "wrapperChains",
 }
+
+# Launcher shapes whose real server is a GRANDCHILD of the host. libuv hosts
+# (Cursor, the VS Code extension host) create their direct child inside a job with
+# KILL_ON_JOB_CLOSE *and* SILENT_BREAKAWAY_OK, which deliberately excludes
+# grandchildren from that job - so these chains outlive the host by design.
+# `npm exec` is the friendly form; on Windows the process table actually shows
+# `node <prefix>\node_modules\npm\bin\npm-cli.js exec ...`, and npx resolves to
+# `npx-cli.js`, so both real spellings are listed. Deliberately NOT plain
+# `npm-cli.js`: that would also flag `npm run`/`npm install` build trees, which
+# are not long-lived servers.
+_DEFAULT_WRAPPER_TOKENS = [
+    "cmd /c",
+    "cmd.exe /c",
+    "npm exec",
+    "npm-cli.js exec",
+    "npx",
+    "uv tool run",
+    "uvx",
+]
 _RUNTIME_KEYS = {
     "executablePattern",
     "commandLineTokens",
@@ -486,6 +506,17 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         ),
     }
 
+    wrappers = _section(policy, "wrapperChains", "wrapperChains", required=False)
+    _closed(wrappers, {"tokens"}, "wrapperChains")
+    wrapper_tokens = [
+        _norm(token)
+        for token in (
+            _string_list(wrappers, "tokens", "wrapperChains")
+            if "tokens" in wrappers
+            else _DEFAULT_WRAPPER_TOKENS
+        )
+    ]
+
     notify = _section(policy, "notify", "notify", required=False)
     _closed(notify, {"digestCooldownSeconds"}, "notify")
     notify_norm = {
@@ -511,6 +542,7 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         "integration": integration_norm,
         "ledger": ledger_norm,
         "notify": notify_norm,
+        "wrapperChains": {"tokens": wrapper_tokens},
     }
 
 
@@ -1002,19 +1034,41 @@ class Engine:
         )
         pressure = self.policy["pressure"]
 
-        def crossed(legs: dict[str, float]) -> bool:
-            return (
-                snapshot.free_bytes < legs["free"]
-                or ratio > legs["ratio"]
-                or (headroom is not None and headroom < legs["headroom"])
-            )
+        # Per-leg verdicts, so the ledger can name WHICH failure is live: the
+        # `available` leg is working-set pressure (hard faults, compression store,
+        # i.e. the freezes) and the `ratio`/`headroom` legs are commit-limit
+        # exhaustion (allocation failures, i.e. the daemon deaths). One tier scale
+        # gates the rules; two modes explain them, because a pagefile fixes the
+        # second and does nothing for the first.
+        legs = {
+            "available": snapshot.free_bytes,
+            "ratio": ratio,
+            "headroom": headroom,
+        }
 
+        def verdict(name: str) -> str:
+            value = legs[name]
+            if value is None:
+                return "unknown"
+            for level in ("critical", "elevated"):
+                bound = pressure[level]["free" if name == "available" else name]
+                if (value < bound) if name != "ratio" else (value > bound):
+                    return level
+            return "normal"
+
+        verdicts = {name: verdict(name) for name in legs}
         tier = "normal"
-        if crossed(pressure["elevated"]):
-            tier = "elevated"
-        if crossed(pressure["critical"]):
-            tier = "critical"
-        return tier, ratio, headroom
+        for level in ("elevated", "critical"):
+            if level in verdicts.values():
+                tier = level
+        modes = set()
+        if verdicts["available"] != "normal":
+            modes.add("working-set")
+        if "normal" != verdicts["ratio"] != "unknown" or (
+            "normal" != verdicts["headroom"] != "unknown"
+        ):
+            modes.add("commit-exhaustion")
+        return tier, ratio, headroom, verdicts, sorted(modes)
 
     def _effective_tier(self, raw_tier: str) -> str:
         state = self.state["tier"]
@@ -1037,7 +1091,7 @@ class Engine:
         if snapshot.taken_unix <= self.state.get("last_run_unix", 0):
             raise SnapshotError("snapshot taken_unix must be after the last run")
         self._update_observations(snapshot)
-        raw_tier, ratio, headroom = self._raw_tier(snapshot)
+        raw_tier, ratio, headroom, legs, modes = self._raw_tier(snapshot)
         tier = self._effective_tier(raw_tier)
 
         metrics: dict[str, Any] = {
@@ -1049,6 +1103,8 @@ class Engine:
             "commit_headroom_bytes": headroom,
             "compressed_bytes": snapshot.compressed_bytes,
             "process_count": len(snapshot.processes),
+            "pressure_legs": legs,
+            "pressure_modes": modes,
         }
         decisions: list[Decision] = []
         claimed: set[int] = set()
@@ -1069,6 +1125,7 @@ class Engine:
             snapshot, tier, decisions, claimed, singleton_members, delegate_pids
         )
         wsl_shutdown = self._rule_wsl(snapshot, tier, decisions)
+        self._rule_wrapper_chains(snapshot, tier, decisions)
         self._rule_browsers(snapshot, decisions)
         if reaper_root is not None:
             decisions.append(
@@ -1756,6 +1813,50 @@ class Engine:
         )
         return True
 
+    def _rule_wrapper_chains(self, snapshot, tier, decisions) -> None:
+        """Report launcher chains whose real server is a grandchild of the host.
+
+        Pure prevention-by-reporting: nothing is stopped. A `cmd /c npx ...`
+        server is excluded from the host's job object by SILENT_BREAKAWAY_OK and
+        so survives the host's death - it becomes the orphan the reaper cleans up
+        later. Rewritten as `node.exe <entry.js>` the server IS the direct child
+        and Windows tears it down with the host, removing the orphan class instead
+        of reaping it. One row per wrapper root, not per descendant.
+        """
+        tokens = self.policy["wrapperChains"]["tokens"]
+        if not tokens:
+            return
+        server_names = set(self.policy["orphans"]["names"])
+        for proc in snapshot.processes:
+            matched = next((token for token in tokens if token in proc.cmd_norm), None)
+            if matched is None:
+                continue
+            servers = sorted(
+                pid
+                for pid in self._descendants(proc.pid, snapshot)
+                if pid != proc.pid and snapshot.by_pid[pid].name.lower() in server_names
+            )
+            if not servers:
+                continue
+            self._add_report(
+                "wrapper-chain",
+                proc,
+                tier,
+                0,
+                {
+                    "matched": matched,
+                    "server_pids": servers,
+                    "parent_chain": self._parent_chain(proc, snapshot),
+                    "reason": "the real server is a GRANDCHILD of the host; libuv "
+                    "hosts set silent_breakaway on their child job, so this tree "
+                    "outlives the host and becomes an orphan",
+                    "remediation": "launch the server directly as "
+                    "`node.exe <path-to-entry.js>` (or `python -m ...`) so it is "
+                    "the host's DIRECT child and dies with it; decision queue Q2",
+                },
+                decisions,
+            )
+
     def _rule_browsers(self, snapshot, decisions) -> None:
         names = set(self.policy["browsers"]["names"])
         buckets: dict[str, list[ProcRow]] = {}
@@ -2261,9 +2362,11 @@ def digest_line(
         return None
     digest["signature"] = sorted(set(digest["signature"]) | set(signature))
     digest["last_unix"] = plan.taken_unix
+    modes = plan.metrics.get("pressure_modes") or []
+    tier_text = f"{plan.tier}({'+'.join(modes)})" if modes else plan.tier
     body = (
         f"stopped {summary['stopped']} tree(s) [{', '.join(stopped_rules) or 'none'}] "
-        f"failed={summary['failed']} tier={plan.tier}"
+        f"failed={summary['failed']} tier={tier_text}"
     )
     if "fail" in flags:
         body = "ACTION_REQUIRED: " + body

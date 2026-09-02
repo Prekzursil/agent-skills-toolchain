@@ -130,8 +130,8 @@ MUTATIONS = [
     (
         "commit-ratio leg dropped from the pressure tiers",
         "hygiene.py",
-        '                or ratio > legs["ratio"]',
-        "                or False",
+        '            "ratio": ratio,',
+        '            "ratio": 0,',
     ),
     (
         "ledger stops redacting credential flags",
@@ -142,8 +142,8 @@ MUTATIONS = [
     (
         "commit-headroom leg dropped (allocation-failure proximity ignored)",
         "hygiene.py",
-        '                or (headroom is not None and headroom < legs["headroom"])',
-        "                or False",
+        '            "headroom": headroom,',
+        '            "headroom": None,',
     ),
     (
         "network veto never applies (a session awaiting a model reply is reaped)",
@@ -168,6 +168,18 @@ MUTATIONS = [
         "hygiene.py",
         "        if snapshot.docker_desktop_running:",
         "        if False:",
+    ),
+    (
+        "wrapper-chain rule reports nothing (orphan-prone configs stay invisible)",
+        "hygiene.py",
+        "            if not servers:",
+        "            if True:",
+    ),
+    (
+        "failure modes collapsed (owner told 'critical' without which failure)",
+        "hygiene.py",
+        '            modes.add("working-set")',
+        "            pass",
     ),
     (
         "ownership carve-out dropped (an IDE-owned agent is a stale session)",

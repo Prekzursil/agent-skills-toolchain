@@ -10,7 +10,7 @@ python evals/run_evals.py            # EVAL REPORT + exit 1 on any failure
 pytest tests/test_evals.py           # the same evals as a CI gate (+ both-states proofs)
 ```
 
-## Capability evals (must pass@3 >= 0.90; currently 6/6, pass^3 = 100%)
+## Capability evals (must pass@3 >= 0.90; currently 7/7, pass^3 = 100%)
 
 | eval | asserts |
 |---|---|
@@ -19,13 +19,14 @@ pytest tests/test_evals.py           # the same evals as a CI gate (+ both-state
 | `stale-cli-sessions-under-terminal` | 30 h idle cursor-agent and 50 h idle Claude sessions under a terminal are stopped by `session-age`; an IDE-owned session of the same age is only reported |
 | `oversized-active-session-default` | an ACTIVE 4 GiB cursor session at critical is reported (`rss-hard`), not stopped |
 | `oversized-active-session-opt-in` | the same with `escalation.stopActiveAtCritical=true` is stopped |
+| `wrapper-chain-vs-direct-exec` | two identical MCP servers under one host - one via `cmd /c npx` (server is a GRANDCHILD, excluded from the host's job by SILENT_BREAKAWAY_OK, so it outlives the host) and one via direct `node.exe <entry.js>`: exactly ONE `wrapper-chain` advisory naming the wrapper root, and nothing stopped |
 | `singleton-duplicate-past-grace` | a 3 h-old second Basic Memory daemon that does not own `:8765` is stopped at elevated; the port owner never is |
 
 ## Regression evals (must pass^3 = 1.00 - release-critical safety)
 
 | eval | protects |
 |---|---|
-| `quiet-box` | a healthy box produces no stop and no rule at all (no false positives) |
+| `quiet-box` | a healthy box produces **no stop** and no pressure/lifecycle rule; the one expected advisory is `wrapper-chain` for the real `npx -y @playwright/mcp` shim, which is structurally orphan-prone and stops nothing |
 | `protected-daemons-under-pressure` | at critical, parentless idle auth2api / Basic Memory / agent-mail / bm-watchdog / resource-guard / mcp_http_host are all untouched |
 | `singleton-relaunch-grace` | a 200 s-old relaunch beside the live daemon is inside the grace window - nothing stopped |
 | `pid-reuse-stale-ppid` | a ppid recycled to a newer process counts as orphaned; a child older than its "parent" is excluded from the kill tree |

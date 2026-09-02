@@ -537,9 +537,44 @@ def test_tier_normal_when_ram_and_commit_are_comfortable():
     assert plan.raw_tier == "normal"
 
 
-def test_tier_elevated_by_free_ram_and_critical_by_commit_ratio():
+def test_tier_elevated_by_available_ram():
     plan = observe(engine(), [proc(10, 1)], 1, free=3 * GIB)
     assert plan.tier == "elevated"
+    assert plan.metrics["pressure_legs"]["available"] == "elevated"
+
+
+def test_commit_ratio_alone_can_drive_critical():
+    """The ratio leg needs a case where it is the ONLY leg tripping.
+
+    A small-RAM box with a huge pagefile: 30 GiB committed on 10 GiB of RAM is
+    3.0x (over the 2.5x critical leg), while available RAM is fine and 70 GiB of
+    commit headroom remains. Without this case the ratio leg would be covered only
+    by scenarios that ALSO trip headroom, and could be deleted unnoticed.
+    """
+    plan = observe(
+        engine(),
+        [proc(10, 1)],
+        1,
+        free=8 * GIB,
+        physical=10 * GIB,
+        commit=30 * GIB,
+        commit_limit=100 * GIB,
+    )
+    assert plan.tier == "critical"
+    assert plan.metrics["commit_ratio"] == pytest.approx(3.0, abs=0.001)
+    assert plan.metrics["pressure_legs"] == {
+        "available": "normal",
+        "ratio": "critical",
+        "headroom": "normal",
+    }
+    assert plan.metrics["pressure_modes"] == ["commit-exhaustion"]
+
+
+def test_the_measured_box_is_critical_by_headroom_not_ratio():
+    # 67.7 GB committed on 31.6 GB RAM is 2.14x - BELOW the 2.5x critical leg. It
+    # reads critical because only ~1 GB of commit headroom is left under the
+    # default 64 GiB limit. Naming the right leg matters: a pagefile change moves
+    # headroom and leaves the ratio roughly where it was.
     plan = observe(
         engine(),
         [proc(10, 1)],
@@ -550,6 +585,8 @@ def test_tier_elevated_by_free_ram_and_critical_by_commit_ratio():
     )
     assert plan.tier == "critical"
     assert plan.metrics["commit_ratio"] == pytest.approx(2.142, abs=0.001)
+    assert plan.metrics["pressure_legs"]["ratio"] == "elevated"
+    assert plan.metrics["pressure_legs"]["headroom"] == "critical"
 
 
 def test_tier_deescalation_needs_repeated_calm_readings():
@@ -1777,6 +1814,178 @@ def test_real_registry_validates_with_the_shipped_fleet_supervisor():
 
 
 # ------------------------------------------------- research-driven guards
+
+
+def test_metrics_separate_the_two_failure_modes_behind_one_tier():
+    """`tier` is one ordinal scale over two failures with DIFFERENT remedies.
+
+    Commit-limit exhaustion fails allocations (the mode that kills the Basic
+    Memory daemon) and is relieved by reducing commit or a bigger pagefile.
+    Working-set pressure means the touched set exceeds RAM: hard faults and a
+    growing compression store, i.e. the freezes - and a pagefile does nothing for
+    it. The tier gate stays one scale, but the ledger names which mode is live so
+    the owner is not told "critical" without being told critical of what.
+    """
+    thrash = observe(
+        engine(), [proc(10, 1)], 1, free=1 * GIB, commit=20 * GIB, commit_limit=80 * GIB
+    )
+    assert thrash.tier == "critical"
+    assert thrash.metrics["pressure_modes"] == ["working-set"]
+    assert thrash.metrics["pressure_legs"] == {
+        "available": "critical",
+        "ratio": "normal",
+        "headroom": "normal",
+    }
+
+    starved = observe(
+        engine(),
+        [proc(10, 1)],
+        1,
+        free=20 * GIB,
+        physical=31_600_000_000,
+        commit=67_700_000_000,
+        commit_limit=70_000_000_000,
+    )
+    assert starved.tier == "critical"
+    assert starved.metrics["pressure_modes"] == ["commit-exhaustion"]
+
+    both = observe(
+        engine(),
+        [proc(10, 1)],
+        1,
+        free=1 * GIB,
+        physical=31_600_000_000,
+        commit=67_700_000_000,
+        commit_limit=70_000_000_000,
+    )
+    assert both.metrics["pressure_modes"] == ["commit-exhaustion", "working-set"]
+
+    calm = observe(engine(), [proc(10, 1)], 1)
+    assert calm.metrics["pressure_modes"] == []
+    # An unknown commit limit cannot report a commit verdict it did not measure.
+    unknown = observe(engine(), [proc(10, 1)], 1, commit_limit=0)
+    assert unknown.metrics["pressure_legs"]["headroom"] == "unknown"
+
+
+def test_digest_line_names_the_live_failure_mode():
+    plan = observe(engine(), grok_with_bridge(), 1, free=1 * GIB)
+    line = hygiene.digest_line(
+        plan,
+        {"stopped": 1, "failed": 0, "exit_code": 0, "run_id": "r"},
+        {},
+        apply=True,
+        cooldown=100,
+        stamp="s",
+    )
+    assert "tier=critical(working-set)" in line
+
+
+def wrapper_tree(
+    *, wrapper="cmd.exe", cmd="cmd /c npx -y @modelcontextprotocol/server-git"
+):
+    return [
+        proc(
+            700,
+            1,
+            name="Cursor.exe",
+            exe=CURSOR_IDE_EXE,
+            cmd="Cursor",
+            created=ago(9000),
+        ),
+        proc(
+            710,
+            700,
+            name=wrapper,
+            exe=f"C:/Windows/System32/{wrapper}",
+            cmd=cmd,
+            created=ago(8000),
+        ),
+        proc(
+            720,
+            710,
+            name="node.exe",
+            exe="C:/Program Files/nodejs/node.exe",
+            cmd="node C:/npm/server-git/dist/index.js",
+            created=ago(7900),
+        ),
+    ]
+
+
+def test_wrapper_chain_is_reported_once_per_wrapper_with_the_direct_exec_fix():
+    """A wrapper chain is STRUCTURALLY orphan-prone, so it is worth naming early.
+
+    libuv hosts (Cursor, the VS Code extension host) put their direct child in a
+    job with KILL_ON_JOB_CLOSE *and* SILENT_BREAKAWAY_OK, so grandchildren are
+    deliberately excluded from that job and outlive the host. With
+    `cmd /c npx …` the real server is a grandchild; launched as `node.exe
+    <entry.js>` it is the direct child and the OS reaps it with the host.
+    """
+    plan = observe(engine(), wrapper_tree(), 4)
+    rows = by_rule(plan, "wrapper-chain")
+    assert len(rows) == 1  # one row per wrapper root, not per descendant
+    row = rows[0]
+    assert row.action == "report"
+    assert row.root.pid == 710
+    assert row.detail["matched"] == "cmd /c"
+    assert row.detail["server_pids"] == [720]
+    assert "silent_breakaway" in row.detail["reason"]
+    assert "node.exe" in row.detail["remediation"]
+    assert kill_pids(plan) == set()
+
+
+@pytest.mark.parametrize(
+    "cmd,matched",
+    [
+        ("cmd /c npx -y some-server", "cmd /c"),
+        ("C:/nodejs/npx.cmd server", "npx"),
+        # the real Windows spelling of `npm exec` / `npx <pkg>`
+        ("node C:/npm/node_modules/npm/bin/npm-cli.js exec server", "npm-cli.js exec"),
+        ("node C:/npm/node_modules/npm/bin/npx-cli.js server", "npx"),
+        ("uv tool run mcp-server-git", "uv tool run"),
+        ("uvx mcp-server-git", "uvx"),
+    ],
+)
+def test_every_default_wrapper_token_is_recognised(cmd, matched):
+    plan = observe(engine(), wrapper_tree(wrapper="wrap.exe", cmd=cmd), 4)
+    rows = by_rule(plan, "wrapper-chain")
+    assert [row.detail["matched"] for row in rows] == [matched]
+
+
+def test_wrapper_without_a_surviving_server_child_is_not_reported():
+    # A wrapper whose server already exited is not a config defect to chase.
+    procs = wrapper_tree()[:2]
+    assert by_rule(observe(engine(), procs, 4), "wrapper-chain") == []
+    # ...and a direct-exec server (no wrapper ancestry) is the GOOD shape.
+    good = [
+        proc(
+            700,
+            1,
+            name="Cursor.exe",
+            exe=CURSOR_IDE_EXE,
+            cmd="Cursor",
+            created=ago(9000),
+        ),
+        proc(
+            720,
+            700,
+            name="node.exe",
+            exe="C:/Program Files/nodejs/node.exe",
+            cmd="node C:/npm/server-git/dist/index.js",
+            created=ago(7900),
+        ),
+    ]
+    assert by_rule(observe(engine(), good, 4), "wrapper-chain") == []
+
+
+def test_wrapper_chain_reporting_can_be_disabled():
+    plan = observe(engine(engine_policy_without_wrapper_tokens()), wrapper_tree(), 4)
+    assert by_rule(plan, "wrapper-chain") == []
+
+
+def engine_policy_without_wrapper_tokens():
+    pol = policy()
+    pol["wrapperChains"] = {"tokens": []}
+    return pol
 
 
 def test_tier_critical_is_driven_by_commit_headroom_not_ratio():
