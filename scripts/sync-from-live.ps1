@@ -129,6 +129,7 @@ param(
     [switch]$WhatIf,
     [switch]$Drift,
     [switch]$Prune,
+    [string[]]$Only,
     [string]$Root = (Split-Path $PSScriptRoot -Parent),
     [ValidateSet('text', 'json')][string]$Report = 'text',
     [string]$ReportPath,
@@ -205,6 +206,17 @@ $Map = @(
        KeepDirs = @('build', 'dist')
        KeepFilePatterns = @('*.log') }
 )
+# -Only: narrow $Map before anything walks it. Both the sync loop and the prune loop iterate
+# $Map, so filtering here is the single point of truth for "which areas exist in this run".
+if ($Only) {
+    $knownLabels   = @($Map | ForEach-Object { $_.Label })
+    $unknownLabels = @($Only | Where-Object { $knownLabels -notcontains $_ })
+    if ($unknownLabels.Count -gt 0) {
+        [Console]::Error.WriteLine(("FAILED: unknown -Only label(s): {0}. Known: {1}" -f ($unknownLabels -join ', '), ($knownLabels -join ', ')))
+        exit 2
+    }
+    $Map = @($Map | Where-Object { $Only -contains $_.Label })
+}
 
 # Windows reserved device names. A file literally named 'NUL' exists in the live ast-integrate
 # root (5 KB, created by a stray redirect on 2026-08-15). Copy-Item to a destination named NUL

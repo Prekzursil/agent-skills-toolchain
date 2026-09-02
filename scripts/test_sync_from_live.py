@@ -769,3 +769,38 @@ def test_commit_hint_names_the_agents_root_capture(env):
     assert "'.agents/*.md'" in p.stdout, (
         f"commit hint does not name the agents-root capture:\n{p.stdout[-1500:]}"
     )
+
+
+# --------------------------------------------------------------------------- -Only (area filter)
+
+
+def test_only_limits_the_run_to_the_named_area(env):
+    """-Only <label> walks just that $Map area: nothing else is read, copied or reported.
+
+    This is what makes a single-area capture safe on a branch whose other areas must NOT be
+    resynced from live (e.g. the P2 capture must not overwrite .agents/harness after #306).
+    """
+    write(env.live("ast-integrate", "probe.py"), "print('x')\n")
+    write(env.live("skills", "s/SKILL.md"), "# s\n")
+    doc = report(env.root, env.home, "-Only", "ast-integrate")
+    assert [a["label"] for a in doc["areas"]] == ["ast-integrate"]
+    assert env.repo("ast-integrate", "probe.py").exists()
+    assert not env.repo("skills", "s/SKILL.md").exists()
+    assert doc["_rc"] == 0, doc
+
+
+def test_only_accepts_several_labels(env):
+    write(env.live("rules", "r.md"), "r\n")
+    write(env.live("hooks", "h.py"), "h\n")
+    write(env.live("skills", "k/SKILL.md"), "k\n")
+    doc = report(env.root, env.home, "-Only", "rules,hooks")
+    assert sorted(a["label"] for a in doc["areas"]) == ["hooks", "rules"]
+    assert not env.repo("skills", "k/SKILL.md").exists()
+
+
+def test_only_rejects_an_unknown_label_without_touching_anything(env):
+    write(env.live("skills", "k/SKILL.md"), "k\n")
+    p = run_sync(env.root, env.home, "-Only", "no-such-area", "-Report", "json")
+    assert p.returncode == 2, (p.stdout, p.stderr)
+    assert "no-such-area" in p.stderr
+    assert not env.repo("skills", "k/SKILL.md").exists()
