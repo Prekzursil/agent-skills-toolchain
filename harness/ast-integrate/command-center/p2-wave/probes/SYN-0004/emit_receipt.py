@@ -359,10 +359,11 @@ def envelope(
                     ),
                 ],
             },
-            {
-                "claim": (
+                {
+                    "claim": (
                     "Live SYN-0001 hierarchy was reconciled on this tree with "
-                    "zero unexplained severity deltas."
+                    "zero unexplained severity deltas; causes whose nodes carry "
+                    "no severity key are reported UNRATED, not ranked."
                     if live_present
                     else (
                         "SYN-0001.root-cause-hierarchy.json is absent; live "
@@ -620,7 +621,13 @@ def main() -> int:
         p0_p1 = live_result["p0_p1"]
         live_note = (
             f"Reconciled {live_result['cause_count']} cause nodes from "
-            "SYN-0001.root-cause-hierarchy.json using max-not-mean."
+            "SYN-0001.root-cause-hierarchy.json using max-not-mean. "
+            f"Rated nodes={live_result['rated_node_count']} "
+            f"unrated nodes={live_result['unrated_node_count']} "
+            f"UNRATED causes={live_result['unrated_cause_count']}; an unrated "
+            "node carries no severity key at all, contributes nothing to any "
+            "max, and is never ranked P3. CLAIM-REGISTRY.json overlay index "
+            f"size={live_info['claim_registry']['index_size']}."
         )
 
     if unexplained != 0:

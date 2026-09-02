@@ -30,11 +30,19 @@ def _as_id(value: object) -> str | None:
     return None
 
 
-def _node_severity_raw(node: dict) -> object:
-    for key in ("severity", "recorded_severity", "severity_token"):
-        if key in node and node[key] is not None:
-            return node[key]
-    return None
+SEVERITY_KEYS = ("severity", "recorded_severity", "severity_token")
+UNRATED = "UNRATED"
+
+
+def _node_severity_raw(node: dict) -> tuple[bool, object]:
+    """Return (recorded, raw). A node that carries no severity key at all is
+    UNRATED: it has no rank, contributes nothing to any max, and is never
+    coerced into P3. A key that IS present must hold a closed-vocabulary
+    token; anything else (including null or '') raises loudly."""
+    for key in SEVERITY_KEYS:
+        if key in node:
+            return True, node[key]
+    return False, None
 
 
 def _flatten_nested(node: dict, acc: list[dict], edges: list[tuple[str, str]]) -> None:
@@ -96,10 +104,11 @@ def normalize(doc: dict) -> tuple[dict[str, dict], dict[str, list[str]]]:
             claim_ids = [c for c in (_as_id(x) for x in raw_ids) if c]
         if claim_id and claim_id not in claim_ids:
             claim_ids.insert(0, claim_id)
+        recorded, raw_sev = _node_severity_raw(item)
         nodes[nid] = {
             "id": nid,
             "type": ntype,
-            "severity": parse_severity(_node_severity_raw(item)),
+            "severity": parse_severity(raw_sev) if recorded else None,
             "claim_ids": claim_ids,
         }
         kids = item.get("children") or item.get("child_ids") or []
@@ -163,7 +172,8 @@ def _subtree_max(
     best: str | None = None
     for cid in children.get(nid) or []:
         child_rec = nodes[cid]["severity"]
-        best = child_rec if best is None else max_token((best, child_rec))
+        if child_rec is not None:
+            best = child_rec if best is None else max_token((best, child_rec))
         desc = _subtree_max(cid, nodes, children, visiting, cache)
         if desc is not None:
             best = desc if best is None else max_token((best, desc))
@@ -200,10 +210,15 @@ def _witnesses(
 
 
 def classify_row(
-    recorded: str,
+    recorded: str | None,
     max_child: str | None,
     direct_child_tokens: list[str],
 ) -> tuple[str, int]:
+    if recorded is None:
+        # No recorded severity on the cause: there is no rank to be below or
+        # above its subtree, so it is neither ALIGNED nor a delta. It is
+        # reported as UNRATED and never silently ranked P3.
+        return UNRATED, 0
     if max_child is None:
         return "ALIGNED", 0
     rec = parse_severity(recorded)
@@ -286,7 +301,11 @@ def reconcile(doc: dict) -> dict:
         if node["type"] not in CAUSE_TYPES:
             continue
         max_child = _subtree_max(nid, nodes, children, visiting, cache)
-        direct = [nodes[c]["severity"] for c in children.get(nid) or []]
+        direct = [
+            nodes[c]["severity"]
+            for c in children.get(nid) or []
+            if nodes[c]["severity"] is not None
+        ]
         verdict, delta = classify_row(node["severity"], max_child, direct)
         named = _witnesses(nid, max_child, nodes, children) if delta else []
         rows.append(
@@ -309,6 +328,7 @@ def reconcile(doc: dict) -> dict:
     ]
     findings = [r for r in rows if r["delta"] != 0]
     rows_by_id = {r["cause_id"]: r for r in rows}
+    rated_nodes = sum(1 for n in nodes.values() if n["severity"] is not None)
     return {
         "rows": rows,
         "findings": findings,
@@ -316,7 +336,10 @@ def reconcile(doc: dict) -> dict:
         "unexplained_count": len(unexplained),
         "p0_p1": p0_p1_stats(nodes, children, rows_by_id),
         "cause_count": len(rows),
+        "unrated_cause_count": sum(1 for r in rows if r["verdict"] == UNRATED),
         "node_count": len(nodes),
+        "rated_node_count": rated_nodes,
+        "unrated_node_count": len(nodes) - rated_nodes,
     }
 
 

@@ -472,6 +472,14 @@ def main() -> int:
         },
     }
 
+    # Named probes read the domain rows at the artifact root (probe1:
+    # input_inventory / findings / known_present_control). receipt_core allows
+    # extra root keys, so mirror the report rows there as well; the report copy
+    # stays the schema-pinned one.
+    for key in ("input_inventory", "findings", "known_present_control",
+                "digest_suppressed", "sibling_read_attempts", "deny_list"):
+        doc[key] = doc["report"][key]
+
     out = REPO / OUT
     digest, size = write_stable(doc, out)
     if size < MIN_BYTES:

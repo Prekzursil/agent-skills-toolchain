@@ -403,6 +403,11 @@ def main() -> int:
             "produced_at": now,
         },
     }
+    # probe2 reads records/controls/summary at the artifact root; receipt_core
+    # permits extra root keys, so mirror the report rows there as well.
+    for key in ("records", "controls", "summary", "fingerprint_spec"):
+        if key in doc["report"]:
+            doc[key] = doc["report"][key]
 
     errors = schema_errors(doc)
     if errors:

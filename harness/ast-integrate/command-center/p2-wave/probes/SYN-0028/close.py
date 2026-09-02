@@ -954,6 +954,38 @@ def close(
         ),
     }
     receipt = as_receipt(doc, repo)
+    # probe2 reads control["control"]["dispositions"|"counts"] on what close()
+    # returns and doc["dispositions"] at the artifact root; the root schema
+    # permits extra keys, so mirror the domain rows there as well. The report
+    # copy stays the schema-pinned one; the root control carries its own rows.
+    for key in (
+        "counts",
+        "counts_sum_equals_selected",
+        "selected_ids",
+        "selected_set_size",
+        "selected_set_source",
+        "namespaces",
+        "named_inputs",
+        "using_control_because_live_absent",
+    ):
+        receipt[key] = doc[key]
+    # Root dispositions carry both corpora (every row is tagged with its
+    # `corpus`): the primary set plus the planted control-reconstruction rows,
+    # so the bare/planted controls stay visible even when the live universe is
+    # present. report.dispositions remains the primary, counts-consistent set.
+    receipt["dispositions"] = list(doc["dispositions"]) + (
+        [] if primary is control_pack else list(control_pack["dispositions"])
+    )
+    receipt["live"] = dict(
+        doc["live"],
+        dispositions=live_pack["dispositions"],
+        counts=live_pack["counts"],
+    )
+    receipt["control"] = dict(
+        doc["control"],
+        dispositions=control_pack["dispositions"],
+        counts=control_pack["counts"],
+    )
     ok, why = validate_against_schema(receipt, repo)
     receipt["report"]["schema_gate"] = {
         "enforced": True,
