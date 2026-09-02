@@ -41,10 +41,10 @@ Measured with `diff -rq .agents/skills/<name>/ skills/<name>/` before editing.
 
 ### 3. Anthropic defending-code-reference-harness -> `security-threat-model`
 
-- Additive section added (no existing text gutted): UNKNOWN - not yet measured
-- `/threat-model` -> `/vuln-scan` -> `/triage` -> `/patch` flow points at existing skills (no new daemons): UNKNOWN - not yet measured
-- Anthropic attribution present: UNKNOWN - not yet measured
-- Dual-write parity: UNKNOWN - not yet measured
+- Additive section added (no existing text gutted): YES — new `## Defending-Code Review Flow` section before `## References`; the full 8-step workflow + risk-prioritization + references preserved
+- `/threat-model` -> `/vuln-scan` -> `/triage` -> `/patch` flow points at existing skills (no new daemons): YES — stages wire to this skill, `$semgrep`/`$code-security`/`$security-review`, `$claim-verify-gate`; explicit "no new daemon/MCP/slash-command runtime" note
+- Anthropic attribution present: YES — attribution block + References bullet cite claude-code-security-review; original summary, not vendored
+- Dual-write parity: YES — `diff -rq` returns PARITY OK
 
 ### 4. NEW `native-fuzz` skill
 
