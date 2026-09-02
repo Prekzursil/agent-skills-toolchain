@@ -1,73 +1,26 @@
+"""Council budget package: the CNL-0008 budget dials as four independent modules.
+
+Each dial lives in its own submodule; import the submodule directly, as every
+probe and ``tools/council/cli/runtime.py`` do:
+
+* ``council.budget.engagement`` -- minimum-engagement floor and speaking-ceiling
+  tracker measured in content units, not message count (IMP-0299 / ADV-0094):
+  ``EngagementPolicy``, ``EngagementTracker``, ``score_text``,
+  ``apply_eviction_handoff``.
+* ``council.budget.governor`` -- per-dimension budget governor that stops a run and
+  stamps ``BUDGET_EXHAUSTED`` on the partial output (IMP-0298): ``BudgetGovernor``,
+  ``run_fixture``, ``marker_is_load_bearing``, ``governor_token_count``.
+* ``council.budget.preflight`` -- owner cost ceiling / approval gate evaluated before
+  a council starts (IMP-0352): ``CouncilPlan``, ``OwnerCeiling``, ``OwnerApproval``,
+  ``estimate_cost``, ``calibrate``, ``preflight``.
+* ``council.budget.transport`` -- independent UTF-8 ceil-div-4 token estimate used to
+  cross-check the governor's whitespace-word count (IMP-0298):
+  ``transport_token_count``.
+
+The package deliberately exports only its submodule names. A package-level
+``__getattr__`` would shadow the real submodules under the repo-root ``council``
+``__path__`` shim, and eager re-exports would make importing one dial import all four.
+"""
 from __future__ import annotations
 
-# g1-surface: generated
-
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
-
-
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __iter__(self):
-        return iter(())
-
-    def __len__(self) -> int:
-        return 0
-
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
-        )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
-
-
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
-
-__surface__ = 'tools.council.budget'
-
-# Do not define __getattr__: it shadows real submodules such as engagement.py.
-
+__all__ = ["engagement", "governor", "preflight", "transport"]
