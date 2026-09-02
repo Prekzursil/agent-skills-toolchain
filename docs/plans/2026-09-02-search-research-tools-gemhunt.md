@@ -165,5 +165,21 @@ commit-starved box.
   always-on); borrow both technique-sets (LDR academic-SearXNG route + cheap→escalate
   gating; Vane provider-dir pattern). SPAWNED DIRECTION (G-5b): make
   `pplx_deep_research` work + expand — buildable: deeper harness routing to
-  `pplx_deep_research`/`pplx_council` + expanded surface; OWNER-ACTION: refresh the
+  `pplx_deep_research`/`pplx_council` + expanded surface;   OWNER-ACTION: refresh the
   Perplexity session cookie in `.agents/local.json` (cloud agent cannot).
+- **G-6 — Keyed search APIs: ALL researched lanes.** Build adapters for Brave, Kagi
+  (Enrich + Search), Linkup, Marginalia-commercial, Mojeek, You.com, Perplexity
+  Search API, and the SERP scrapers (Serper/SerpApi/DataForSEO/ZenSerp/ScrapingBee)
+  — all behind a shared keyed-adapter base, DEFAULT-OFF, secrets by env-name only.
+  Caveats recorded: SERP scrapers carry the Google-v-SerpApi legal shadow (noted in
+  each adapter's description) + add no index SearXNG lacks; large surface → phasing
+  decided at the delivery question. Nothing bills until the owner adds a key.
+- **G-7 — Dark-web 2nd engine: VormWeb ONLY, default-ON; skip Ahmia MD5 blacklist.**
+  Wire VormWeb as a second clearnet `onion index` source (HTML/xpath or HTTP
+  scrape of vormweb.de search), DEFAULT-ON, behind the same ask-before-search
+  gate + result tagging as the Ahmia lane. Do NOT build the hub-side Ahmia MD5
+  blacklist guard. Caveats carried (owner-accepted): (1) operator consent is
+  unresolved — cloud agent cannot email VormWeb; ship with the consent gap
+  documented in the adapter description + envelope, not silent; (2) filtering is
+  VormWeb's self-declared policy only (unverifiable) — no independent hub-side
+  CSAM screen. Envelope FORBIDDEN list (no Tor, no .onion fetch) still holds.
