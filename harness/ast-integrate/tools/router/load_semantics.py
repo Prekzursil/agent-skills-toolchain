@@ -24,24 +24,75 @@ def extract_frontmatter(text: str) -> tuple[str | None, str]:
     return block, body
 
 
+def _scalar(raw: str) -> object:
+    """Unquote a YAML scalar; ``[]`` / ``[a, b]`` flow sequences become lists."""
+    val = raw.strip()
+    if val.startswith("[") and val.endswith("]"):
+        inner = val[1:-1].strip()
+        if not inner:
+            return []
+        return [_scalar(item) for item in inner.split(",")]
+    return val.strip('"').strip("'")
+
+
 def _parse_yaml_mapping(block: str) -> dict[str, object]:
-    data: dict[str, object] = {}
-    current: str | None = None
+    """Indentation-aware parse of the frontmatter mapping.
+
+    Only column-0 keys land in the returned mapping; an indented ``key:`` line
+    is stored under its parent (so a ``paths:`` nested inside ``meta:`` is
+    ``fm["meta"]["paths"]``, never ``fm["paths"]``).  ``- item`` lines attach to
+    the nearest open key at the same or lower indentation.  Comments and blank
+    lines are ignored; malformed lines are skipped rather than raising.
+    """
+    root: dict[str, object] = {}
+    # (indent, key, parent-mapping) for every key still open above the cursor.
+    stack: list[tuple[int, str, dict[str, object]]] = []
     for line in (block or "").splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        if stripped.startswith("- ") and current:
-            data.setdefault(current, [])
-            if isinstance(data[current], list):
-                data[current].append(stripped[2:].strip().strip('"').strip("'"))
+        indent = len(line) - len(line.lstrip(" \t"))
+        if stripped.startswith("- "):
+            while stack and stack[-1][0] > indent:
+                stack.pop()
+            if not stack:
+                continue
+            _ind, key, parent = stack[-1]
+            existing = parent.get(key)
+            if existing is None:
+                parent[key] = existing = []
+            if isinstance(existing, list):
+                existing.append(_scalar(stripped[2:]))
             continue
-        if ":" in stripped:
-            key, val = stripped.split(":", 1)
-            current = key.strip()
-            val = val.strip()
-            data[current] = [] if val == "" else val.strip('"').strip("'")
-    return data
+        if ":" not in stripped:
+            continue
+        key, val = stripped.split(":", 1)
+        key = key.strip()
+        val = val.strip()
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        if not stack:
+            parent = root
+        else:
+            _ind, pkey, pparent = stack[-1]
+            child = pparent.get(pkey)
+            if child is None:
+                pparent[pkey] = child = {}
+            if not isinstance(child, dict):
+                continue  # scalar/list parent cannot hold a nested key
+            parent = child
+        parent[key] = None if val == "" else _scalar(val)
+        stack.append((indent, key, parent))
+    # A key opened with no value and never filled is an empty list (``paths:``).
+    def _finalise(mapping: dict[str, object]) -> None:
+        for k, v in list(mapping.items()):
+            if v is None:
+                mapping[k] = []
+            elif isinstance(v, dict):
+                _finalise(v)
+
+    _finalise(root)
+    return root
 
 
 def _frontmatter(text: str) -> dict[str, object]:
