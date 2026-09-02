@@ -241,8 +241,31 @@ would trip.
 - **[INFER]** Materializer: dot-free ids (`hf-router`, not `router.huggingface.co`), `{env:NAME}`
   only, and the launch wrapper (not the config) must export the env from `local.json`.
 
-### 2.6 Aider 0.86 - env / `.aider.conf.yml` / `.aider.model.settings.yml`
-_(pending - next checkpoint)_
+### 2.6 Aider 0.86 - env / `.aider.conf.yml` / `.aider.model.metadata.json` / `.aider.model.settings.yml`
+- **[FACT]** Generic OpenAI-compatible path: `OPENAI_API_BASE` + `OPENAI_API_KEY` (or
+  `--openai-api-base`, env `AIDER_OPENAI_API_BASE`), model named `openai/<id>`; unknown models get
+  context/cost from `.aider.model.metadata.json` (dict keyed by the fully-qualified
+  `provider/model`; `litellm_provider` must equal the prefix; fields `max_input_tokens,
+  max_output_tokens, input_cost_per_token, output_cost_per_token`) and behaviour from
+  `.aider.model.settings.yml` (list of `{name, edit_format, use_repo_map, extra_params, ...}`;
+  `aider/extra_params` applies to all). Load order home -> repo root -> cwd -> `--model-*-file`,
+  last wins. Other knobs: `--alias`, `--set-env NAME=value`, `--api-key PROVIDER=KEY`.
+  (Tier A: [aider.chat adv-model-settings](https://aider.chat/docs/config/adv-model-settings.html),
+  [options reference](https://aider.chat/docs/config/options.html), 2026-09-02.)
+- **[FACT] SHARP EDGE:** one `OPENAI_API_BASE` per process - Aider cannot hold several
+  OpenAI-compatible bases simultaneously. Metadata-file regressions have happened before
+  ([Aider-AI/aider#2928](https://github.com/Aider-AI/aider/issues/2928): 0.72.1 stopped reading the
+  file; "LLM Provider NOT provided" when the prefix is missing).
+- **[INFER]** Materializer for Aider = (a) one shared `~/.aider.model.metadata.json` +
+  `~/.aider.model.settings.yml` covering every registry model (pure data, safe to merge by key),
+  plus (b) per-endpoint *launch wrappers* in `~/.local/bin` (`aider-hf`, `aider-ollama`, ...) that
+  export `OPENAI_API_BASE`/`OPENAI_API_KEY` from `local.json` for that one process - the exact
+  pattern the estate already uses for `fabric-cursor` / `claude-cursor` / `codex-cursor` (dedup
+  item 3). No new gateway.
+- **Lock-L2 reading [INFER]:** Aider *embeds* the `litellm` Python library as its model router.
+  L2 ("no LiteLLM") is read here as "no LiteLLM proxy/gateway as an estate service"; the library
+  inside an already-installed runtime is that runtime's internals, not a second orchestration
+  runtime. Flagged so the owner can overrule.
 
 ### 2.7 Gemini CLI, Agy (Antigravity CLI)
 _(pending - next checkpoint)_
