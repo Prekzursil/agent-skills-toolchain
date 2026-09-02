@@ -30,6 +30,8 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | AUD-0023 | `probes/AUD-0023/fixtures/known-advisory/package-lock.json` | root `.gitignore:2`; write_receipts SUPPORTING row; artifact regen works, receipts cannot be rewritten (b3-p03-AUD-r) | toolchain ignore rule | open |
 | BLD-0002, BLD-0041 | `probes/BLD-0002/fixtures/scratch/`, `probes/BLD-0041/fixtures/scratch/` (4 fixture files) | nothing generates them (b3-p06-BLD) | `scratch` = ExtraExcludeDirs — these fixtures were real inputs under an excluded name | open |
 | IMP-0157 | `tools/workflow_foundry/candidate_registry.json` (manifest row sha d21f100f…, 2194 B) | never in git; unit is green on its original receipt — do NOT regenerate it (b4-p07-IMP) | not captured | open (non-blocking) |
+| CNF-0112 | `probes/CNF-0153/inputs/current/package-lock.json` (+ `inputs/current/tools/mcp/hacktricks-mcp-server/package-lock.json`); `CNF-0153/inputs/` absent entirely | nothing generates it (b3-p10-CNF; same CNF-0153 family as ADV-0011) | lock files / large inputs excluded | open |
+| CNF-0129 | `.agents/skills/claim-verify-gate/scripts/claim_gate.py` | same `.agents/` family as TST-0022/AUD-0045 (b3-p10-CNF) | candidate source at the toolchain root | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
