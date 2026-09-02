@@ -1,9 +1,13 @@
 # Search + deep-research tooling — gem-hunt decision queue (2026-09-02)
 
-**Status: GRILL IN PROGRESS — discovery + decide, NOT a build.** This doc is the
-audit trail for an extensive grill over the 14-lens gem-hunt into better search /
-research tools + upgrades for the estate's search stack. Nothing here is adopted
-until the owner steers it (one question at a time, below). A grill is not a build.
+**Status: GRILL CONVERGING — delivery decided (G-8: build now, phased; Wave 1 on
+this branch, later waves on their own branches). Wave-map confirmation (G-9) is the
+last gate before Wave 1 builds.** This doc is the audit trail for an extensive grill
+over the 14-lens gem-hunt into better search / research tools + upgrades for the
+estate's search stack, and — per G-8 (A) — the program SSOT: every wave is specified
+in the wave map below before it builds. Numbering: the **Decisions log** (G-1…) is
+authoritative; the older queue below kept its original numbers and several of its
+items were answered in batches (G-3 approved the A+B items per their per-item recs).
 
 **Grill modes:** prioritization + scope-change + red-team (dual-use onion lane).
 
@@ -183,3 +187,78 @@ commit-starved box.
   documented in the adapter description + envelope, not silent; (2) filtering is
   VormWeb's self-declared policy only (unverifiable) — no independent hub-side
   CSAM screen. Envelope FORBIDDEN list (no Tor, no .onion fetch) still holds.
+- **G-8 — Delivery: A+B+C+D (all four, reconciled).** Owner picked every option;
+  read together they are consistent: **(A)** this doc + the reunion decision record
+  are the program SSOT — each wave is specified in the wave map below before it
+  builds, and the grill's outcome is frozen here rather than in chat. **(B)** the
+  build starts now, phased — no further approval round for the program as a whole.
+  **(D)** Wave 1 = the A-tier quick wins + VormWeb (default-ON, G-7) on THIS branch
+  (`cursor/search-stack-reunion-self-hosted-9cde`); nothing from later waves lands
+  here, so this branch stays reviewable. **(C)** Waves 2+ each get their own branch
+  spun from this one (or from `main` once it merges); asking for a wave branch IS
+  the trigger — scope is already approved, only the manifest gets a per-item veto.
+  Cloud-agent constraint: this run stays on its assigned branch, so wave branches
+  are opened in later runs (or on explicit instruction in this one).
+
+---
+
+## Program plan — wave map (G-8; per-item veto at G-9, then build)
+
+Sequencing rule: cheapest + already-decided first; anything needing a key, an LLM,
+or a new daemon last. Every wave: tests-first with fakes, `ruff` + search-hub
+`pytest` green, commit + push per step, no PR/merge/force-push from the agent,
+secrets only by env-name.
+
+### Wave 1 — THIS branch (`cursor/search-stack-reunion-self-hosted-9cde`)
+1. **SearXNG engine flips** in `tools/mcp/search-hub/deploy/searxng-min/settings.yml`:
+   `google` OFF (keyless Google scraping is dead), `mwmbl` + `marginalia` ON. The
+   estate's live SearXNG config is on the Windows box — ship the same diff as a
+   documented owner follow-up.
+2. **Snippet-carry** into `FusedResult` / `extract_results` (prerequisite for any
+   rerank; stdlib).
+3. **Host-diversity cap** (≤2 results/host) + Jaccard near-dup demotion in the RRF
+   stage (stdlib, 0 MB).
+4. **Cloudflare `Accept: text/markdown`** request header on the fetch path; use the
+   markdown body when a zone returns it, else fall through unchanged.
+5. **VormWeb, DEFAULT-ON** (G-7): second clearnet `onion index` source, as a
+   SearXNG `xpath` engine in `settings.yml` (config beats adapter) + `vormweb` added
+   to the onion lane's default engine list in `onions.py`. Same ask-before-search
+   gate + TOR/DARK-WEB INDEX tagging as Ahmia; `ENABLE_VORMWEB=0` kill switch;
+   consent gap + self-declared-filtering caveat written into the tool description
+   and `docs/legal/onions-lane-envelope.md`. No Ahmia MD5 blacklist.
+   *Probe receipt (2026-09-02, cloud VM):* `GET https://vormweb.de/en/search?q=…`
+   → HTTP 200 in ~0.5 s, 41 hits for "privacy"; one `div.query-box` per result with
+   `a#urllink` (title + `.onion` href), `li > i` (description), gray `p` (URL), and a
+   "Verified" badge on curated entries. Upstream SearXNG ships `ahmia` + `torch`
+   only — no `vormweb` engine — so the xpath definition is ours to carry.
+6. **GitHub REST search siblings** on the OSSInsight adapter (`created:>…&sort=stars`
+   = the "new & hot" ranking OSSInsight lost). Keyless, in-process, T0.
+
+### Wave 2 — new branch: keyless adapters + extraction + harness trio
+- Parallel Search MCP + grep.app MCP (remote, keyless; probed lattice).
+- Wikipedia + Wayback in-process adapters (HN optional).
+- `read_url` readability tool over trafilatura (rs-trafilatura optional later).
+- ONNX MiniLM rerank stage, gated behind a 30-50 query eval; ships only if it lifts.
+- bestofjs v2 + deps.dev/Scorecard repo-health adapters.
+- Harness borrows: budget/"beast mode" forced finish, evolving-report state,
+  academic-SearXNG route (the trio); the rest as prose in the deep-research skill.
+- corroborate-mcp TRIAL behind a fail-closed flag; open-webSearch adopt-lite.
+
+### Wave 3 — new branch: answer engines (on-demand, endpoint-agnostic; G-4/G-5)
+- Vane adapter (`selfhosted_answer`, `VANE_URL`, OFF by default → 0 RAM idle).
+- LDR MCP registered on-demand (`LDR_URL`); residency is a GPU/OVH item.
+- `pplx_deep_research` / `pplx_council` routing + surface expansion (G-5b).
+  OWNER-ACTION: refresh the Perplexity cookie in `.agents/local.json`.
+
+### Wave 4 — new branch: keyed search APIs (DEFAULT-OFF, env-name secrets; G-6)
+- Shared keyed-adapter base + spend cap.
+- Brave first; then Kagi (Enrich + Search), Linkup, Mojeek, You.com, Perplexity
+  Search API, Marginalia-commercial; SERP scrapers last (legal shadow in each
+  description).
+
+### Not a wave — hand-offs / owner actions
+- OVH standup (G-4): owner follow-up; adapters are already endpoint-agnostic.
+- Estate-ops items (basic-memory → Ollama canary, ugrep/rga PDF search): estate-ops
+  lane, not this program (confirm at G-10).
+- Pending lenses (academic upgrades, native-capability ENABLE list, self-hosted
+  backend re-eval, research-reliability): folded into Wave 2/3 scope when they land.
