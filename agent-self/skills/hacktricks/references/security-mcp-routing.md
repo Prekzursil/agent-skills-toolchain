@@ -34,6 +34,7 @@ none | hexstrike | cyberstrike | re:ida | re:ghidra | re:binary-ninja
 |---|---|---|
 | Timeless methodology, prerequisites, enumeration logic, weakness class, detection, mitigation | Curated local KB when present, then local HackTricks corpus/MCP; sanitized official HackTricks AI REST only on a local miss | No live affected-version claim, target contact, or execution of returned commands |
 | Public footprint and current asset observations | `osint-mcp-server` | No scanning/exploitation; discovered assets do not enter scope; banners are not CVE proof |
+| IOC reputation enrichment (IP/domain/URL) | `osint-mcp-server` VirusTotal (`vt_*`) | PASSIVE lookup only; discloses the selector to VirusTotal; discovered assets do not enter scope; a hit is not authorization to act |
 | CVE/advisory/applicability/risk/exploit-reference metadata | `cve-mcp` | No Nuclei/Metasploit execution; product hits are candidates only |
 | Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike in the same phase; no autonomous/high-risk tools by default |
 | Explicit autonomous multi-phase engagement | CyberStrike alone as top-level harness | Do not nest it while Claude/HexStrike independently executes the plan |
@@ -75,12 +76,15 @@ HackerTarget, and email-security checks. Expand only for a named gap:
 ```text
 dns_lookup              {domain, type: A|AAAA|MX|TXT|NS|SOA|CNAME|SRV}
 dns_wildcard_check      {domain}
+dns_email_security      {domain}
 whois_domain            {domain}
 whois_ip                {ip}
 crtsh_search            {domain, exclude_expired?}
 wayback_urls            {domain, match_type?, filter?, limit?}
 shodan_host             {ip}
 censys_host_details     {ip}
+m365_tenant             {domain}
+m365_userrealm          {email|domain}
 ```
 
 Do not duplicate the same recon with HexStrike `subfinder_scan`/`amass_scan`,
@@ -92,6 +96,29 @@ SecurityTrails, Censys, Wayback, or similar providers. Internal names and
 private IPs require explicit egress approval. Cache by
 provider+query+retrieval-time and respect provider quotas. Keys stay in
 environment/secret storage, never tool arguments, prompts, logs, or Git.
+
+### IOC reputation enrichment (VirusTotal)
+
+The VirusTotal family on `osint-mcp-server` turns a single indicator into a
+reputation verdict. This is IOC **enrichment** and stays PASSIVE: a call discloses
+the selector to VirusTotal and never scans or exploits, and a hit does **not**
+widen scope — discovered assets stay out of the engagement unless the scope packet
+adds them.
+
+```text
+vt_ip                   {ip}
+vt_domain               {domain}
+vt_url                  {url}
+vt_subdomains           {domain}   # passive-DNS subdomain set (enumeration, not a verdict)
+```
+
+Key-gated on `VT_API_KEY` (env/secret only, never a tool argument). With no key the
+VT tools are inert and `osint_list_sources` reports them unavailable. The estate's
+VT family is exactly the four tools above — there is no file-hash / `vt_file` tool
+in `osint-mcp-server@0.2.0`, so a file-hash IOC has no VirusTotal verdict here until
+one is added. `m365_tenant` / `m365_userrealm` and `dns_email_security` are
+`osint-mcp-server` tools (Microsoft 365 tenant / user-realm discovery and
+SPF/DMARC/DKIM posture) — **not** `cve-mcp` tools; route them on the OSINT plane.
 
 ## CVE lane: route by input shape
 
@@ -111,6 +138,11 @@ product/vendor fingerprint:
 
 package + exact version + ecosystem:
   osv_query {package, version, ecosystem}
+  osv_batch {queries}   # batch OSV lookups for many package@version pairs
+
+GitHub Security Advisory (GHSA):
+  ghsa_search {query?, ecosystem?, severity?, limit?}
+  ghsa_get {ghsaId}
 
 general KEV:
   kev_search {query?, vendor?, product?, limit?}
@@ -125,6 +157,7 @@ public exploit references for an exact CVE:
 
 portfolio:
   cve_prioritize {cves}
+  cve_report {cves}   # aggregated portfolio report (convenience; keep field provenance)
 
 ATT&CK:
   derive and verify CWE IDs
@@ -142,6 +175,14 @@ claims. GitHub PoCs, Nuclei/Metasploit availability, AttackerKB, ExploitDB, and
 exploit aggregators remain secondary/community. `nuclei_check=true` means a
 template reference exists; it produces zero `nuclei_scan` calls and is not
 target exploitability proof.
+
+`osv_batch {queries}` is the many-at-once form of `osv_query`; `ghsa_search` /
+`ghsa_get` read the GitHub Advisory Database (GHSA IDs, authoritative for their own
+advisories, key-optional on `GITHUB_TOKEN`); `cve_report` is a mixed-source
+convenience aggregate like `cve_enrich` — preserve field-level provenance, never
+treat it as uniformly authoritative. All are metadata lookups: the "no
+Nuclei/Metasploit execution" envelope still holds, and each tool's exact schema is
+confirmed at handshake.
 
 ## HackTricks lane
 
