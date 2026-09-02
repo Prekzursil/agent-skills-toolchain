@@ -13,6 +13,54 @@ REMEDIATION_ORDER = (
     "independent-critic",
 )
 THRESHOLD_ROUNDS = 1
+# Unanimity is trusted only after at least this many rounds carried a brief or
+# evidence node, and at least this many distinct evidence nodes were tabled.
+THRESHOLD_EVIDENCE_ROUNDS = 1
+THRESHOLD_EVIDENCE_NODES = 1
+
+
+def measure(events: list[dict[str, Any]], roster: list[str] | None = None) -> dict[str, Any]:
+    """Count what the trip-wire reasons about: rounds elapsed, distinct opening
+    positions (independent briefs), rounds carrying a brief/evidence, evidence
+    nodes.  Pure recount over the event list; no verdict."""
+    evs = [e for e in events if isinstance(e, dict)]
+    rounds = sorted({int(e.get("round") or 1) for e in evs if str(e.get("kind") or "") != "tripwire"})
+    first_round = rounds[0] if rounds else 1
+    opening = [
+        e
+        for e in evs
+        if str(e.get("kind") or "") == "position" and int(e.get("round") or 1) == first_round
+    ]
+    by_actor: dict[str, str] = {}
+    for e in opening:
+        actor = str(e.get("actor") or "")
+        text = str((e.get("payload") or {}).get("text") or (e.get("payload") or {}).get("option") or "")
+        by_actor.setdefault(actor, " ".join(text.split()).lower())
+    independent_briefs = len({t for t in by_actor.values() if t})
+    evidence_events = [e for e in evs if str(e.get("kind") or "") in {"brief", "evidence"}]
+    evidence_rounds = len({int(e.get("round") or 1) for e in evidence_events})
+    evidence_nodes = len(
+        {
+            str((e.get("payload") or {}).get("id") or (e.get("payload") or {}).get("text") or e.get("seq"))
+            for e in evidence_events
+        }
+    )
+    positions = [e for e in evs if str(e.get("kind") or "") == "position"]
+    options = [str((e.get("payload") or {}).get("option") or "") for e in positions]
+    return {
+        "rounds_elapsed": len(rounds),
+        "first_round": first_round,
+        "roster": list(roster or []),
+        "opening_actors": sorted(by_actor),
+        "independent_briefs": independent_briefs,
+        "evidence_rounds": evidence_rounds,
+        "evidence_nodes": evidence_nodes,
+        "unanimous": len(options) >= 2 and len(set(o for o in options if o)) == 1,
+        "instant_unanimous": _events_instant_unanimous(evs)[0],
+        "threshold_rounds": THRESHOLD_ROUNDS,
+        "threshold_evidence_rounds": THRESHOLD_EVIDENCE_ROUNDS,
+        "threshold_evidence_nodes": THRESHOLD_EVIDENCE_NODES,
+    }
 
 
 @dataclass
@@ -95,6 +143,8 @@ def evaluate(council: Any, enabled: Any = True, roster: Any = None) -> Result:
             family="events",
             trusted=not fired,
         )
+    if isinstance(council, CouncilSnapshot):
+        council = council.to_dict()
     if not isinstance(council, dict):
         return Result(fired=False)
     first = _first_vote_claim(council)
@@ -158,10 +208,155 @@ def outcome_change_rate(results: list[Result]) -> dict[str, Any]:
 
 @dataclass
 class Vote:
+    """One seat's public position in one round: the ``claim_id`` it backs."""
+
     participant_id: str
     claim_id: str
     round: int = 1
     confidence: float = 1.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "participant_id": self.participant_id,
+            "claim_id": self.claim_id,
+            "round": self.round,
+            "confidence": self.confidence,
+        }
+
+
+@dataclass
+class Brief:
+    """A seat's written reasoning behind its vote.
+
+    ``independent`` records whether the brief was produced by the seat's own
+    re-evaluation (True) or copied from / anchored on another seat's position
+    (False). :func:`evaluate` reads it through ``_independent_briefs``: a
+    unanimous first round whose briefs are not independent is the
+    instant-unanimity anti-fail.
+    """
+
+    participant_id: str
+    text: str = ""
+    cites: tuple[str, ...] = ()
+    independent: bool = True
+    round: int = 1
+
+    def __post_init__(self) -> None:
+        self.cites = tuple(str(c) for c in (self.cites or ()))
+        self.text = "" if self.text is None else str(self.text)
+        self.independent = bool(self.independent)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "participant_id": self.participant_id,
+            "text": self.text,
+            "cites": list(self.cites),
+            "independent": self.independent,
+            "round": self.round,
+        }
+
+
+@dataclass
+class Participant:
+    """A seated council member: its id and the role it was seated in."""
+
+    id: str
+    role: str = "member"
+    seat: int | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "role": self.role, "seat": self.seat}
+
+
+@dataclass
+class CouncilSnapshot:
+    """A council transcript at rest: the shape :func:`evaluate` reads as a dict.
+
+    ``rounds_elapsed`` counts completed voting rounds; ``disagreement_rounds``
+    counts the rounds in which the votes did not all share one ``claim_id``
+    (derived from ``votes`` by :meth:`from_dict` when the transcript omits it).
+    """
+
+    council_id: str = ""
+    question: str = ""
+    claims: list[dict[str, Any]] = field(default_factory=list)
+    participants: list[Participant] = field(default_factory=list)
+    votes: list[Vote] = field(default_factory=list)
+    briefs: list[Brief] = field(default_factory=list)
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    rounds_elapsed: int = 0
+    disagreement_rounds: int = 0
+    family: str = ""
+
+    @staticmethod
+    def _rounds(votes: list[Vote]) -> tuple[int, int]:
+        by_round: dict[int, set[str]] = {}
+        for v in votes:
+            by_round.setdefault(int(v.round), set()).add(str(v.claim_id))
+        elapsed = max(by_round) if by_round else 0
+        disagreement = sum(1 for claims in by_round.values() if len(claims) > 1)
+        return elapsed, disagreement
+
+    @classmethod
+    def from_dict(cls, council: dict[str, Any]) -> "CouncilSnapshot":
+        votes = [
+            v if isinstance(v, Vote) else Vote(
+                participant_id=str(v.get("participant_id") or ""),
+                claim_id=str(v.get("claim_id") or ""),
+                round=int(v.get("round") or 1),
+                confidence=float(v.get("confidence") if v.get("confidence") is not None else 1.0),
+            )
+            for v in council.get("votes") or []
+        ]
+        briefs = [
+            b if isinstance(b, Brief) else Brief(
+                participant_id=str(b.get("participant_id") or ""),
+                text=str(b.get("text") or ""),
+                cites=tuple(b.get("cites") or ()),
+                independent=bool(b.get("independent")),
+                round=int(b.get("round") or 1),
+            )
+            for b in council.get("briefs") or []
+        ]
+        participants = [
+            p if isinstance(p, Participant) else Participant(
+                id=str(p.get("id") or ""),
+                role=str(p.get("role") or "member"),
+                seat=p.get("seat"),
+            )
+            for p in council.get("participants") or []
+        ]
+        elapsed, disagreement = cls._rounds(votes)
+        return cls(
+            council_id=str(council.get("council_id") or ""),
+            question=str(council.get("question") or ""),
+            claims=list(council.get("claims") or []),
+            participants=participants,
+            votes=votes,
+            briefs=briefs,
+            evidence=list(council.get("evidence") or []),
+            rounds_elapsed=int(council.get("rounds_elapsed") or elapsed),
+            disagreement_rounds=int(
+                council["disagreement_rounds"]
+                if council.get("disagreement_rounds") is not None
+                else disagreement
+            ),
+            family=str(council.get("family") or ""),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "council_id": self.council_id,
+            "question": self.question,
+            "claims": list(self.claims),
+            "participants": [p.to_dict() for p in self.participants],
+            "votes": [v.to_dict() for v in self.votes],
+            "briefs": [b.to_dict() for b in self.briefs],
+            "evidence": list(self.evidence),
+            "rounds_elapsed": self.rounds_elapsed,
+            "disagreement_rounds": self.disagreement_rounds,
+            "family": self.family,
+        }
 
 
 def plurality(votes) -> str | None:

@@ -32,14 +32,84 @@ def is_stale(anchor: dict[str, Any], now: float) -> bool:
     return age > window_for(anchor.get("evidence_class") or "")
 
 
+def age_of(anchor: dict[str, Any], now: float) -> float:
+    """Seconds between the anchor's ``as_of_unix`` stamp and ``now``."""
+    return float(now) - float(anchor.get("as_of_unix") or 0)
+
+
+# Age bins (seconds) for the histogram: upper bounds, ascending; the last bin is open.
+AGE_BIN_EDGES: tuple[tuple[str, float], ...] = (
+    ("<=1h", 3600.0),
+    ("<=1d", 86400.0),
+    ("<=7d", 7 * 86400.0),
+    ("<=30d", 30 * 86400.0),
+    ("<=365d", 365 * 86400.0),
+)
+AGE_BIN_OPEN = ">365d"
+
+
+def age_bin(age_s: float) -> str:
+    for label, upper in AGE_BIN_EDGES:
+        if age_s <= upper:
+            return label
+    return AGE_BIN_OPEN
+
+
 def age_histogram(anchors: list[dict[str, Any]], now: float) -> dict[str, Any]:
+    """Age of every anchor at ``now`` against its class window.
+
+    Returns the stale/fresh id lists and counts, ``n_anchors``, ``age_bins`` (anchor
+    count per age bin, every bin present), ``by_class`` (per evidence class: ``n``,
+    ``n_stale``, ``n_fresh``, ``window_s``, ``ages_s``, ``stale_ids``) and ``ages``
+    (per anchor: class, age, window, stale verdict) so a reader can recompute every
+    verdict from the record.
+    """
     stale_ids = [a["anchor_id"] for a in anchors if is_stale(a, now)]
     fresh_ids = [a["anchor_id"] for a in anchors if not is_stale(a, now)]
+    bins: dict[str, int] = {label: 0 for label, _ in AGE_BIN_EDGES}
+    bins[AGE_BIN_OPEN] = 0
+    by_class: dict[str, dict[str, Any]] = {}
+    ages: list[dict[str, Any]] = []
+    for a in anchors:
+        cls = str(a.get("evidence_class") or "")
+        age_s = age_of(a, now)
+        stale = is_stale(a, now)
+        bins[age_bin(age_s)] += 1
+        row = by_class.setdefault(
+            cls,
+            {
+                "n": 0,
+                "n_stale": 0,
+                "n_fresh": 0,
+                "window_s": window_for(cls),
+                "ages_s": [],
+                "stale_ids": [],
+            },
+        )
+        row["n"] += 1
+        row["n_stale" if stale else "n_fresh"] += 1
+        row["ages_s"].append(age_s)
+        if stale:
+            row["stale_ids"].append(a["anchor_id"])
+        ages.append(
+            {
+                "anchor_id": a.get("anchor_id"),
+                "evidence_class": cls,
+                "age_s": age_s,
+                "window_s": window_for(cls),
+                "stale": stale,
+            }
+        )
     return {
         "stale_ids": stale_ids,
         "fresh_ids": fresh_ids,
         "n_stale": len(stale_ids),
         "n_fresh": len(fresh_ids),
+        "n_anchors": len(anchors),
+        "decision_at": float(now),
+        "age_bins": bins,
+        "by_class": by_class,
+        "ages": ages,
     }
 
 
@@ -187,9 +257,20 @@ def bind_on_fresh_anchors(
         a for a in anchors if is_stale(a, now) and a.get("anchor_id") not in revalidations
     ]:
         binding = True
+    if binding:
+        refuse_reason = None
+    elif stale_excluded:
+        refuse_reason = (
+            f"{len(stale_excluded)} stale anchor(s) unrevalidated at decision time: "
+            + ",".join(str(x) for x in stale_excluded)
+        )
+    else:
+        refuse_reason = "no admitted anchors"
     return {
         "binding": binding,
         "stale_excluded": stale_excluded,
         "admitted": admitted,
         "supporting_anchor_ids": list(admitted),
+        "refuse_reason": refuse_reason,
+        "n_revalidated": sum(1 for v in revalidations.values() if v.get("ok")),
     }
