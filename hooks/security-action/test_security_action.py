@@ -90,8 +90,7 @@ class TestRedact:
 
     def test_private_key_block(self, ledger):
         pem = (
-            "-----BEGIN RSA PRIVATE KEY-----\nMIIBjunk==\n"
-            "-----END RSA PRIVATE KEY-----"
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIBjunk==\n-----END RSA PRIVATE KEY-----"
         )
         out = ledger.redact(pem)
         assert "MIIBjunk" not in out

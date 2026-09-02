@@ -90,6 +90,7 @@ def _is_secret_key(k: str) -> bool:
     except Exception:
         return False
 
+
 # Value-shape rules: secret-looking substrings inside ANY string are masked even
 # when the key name is innocent (e.g. a URL query string carrying ?token=...).
 _VALUE_RULES: list[tuple[re.Pattern[str], object]] = [
@@ -109,7 +110,9 @@ _VALUE_RULES: list[tuple[re.Pattern[str], object]] = [
     (re.compile(r"\bxox[baprs]-[A-Za-z0-9\-]{10,}\b"), _REDACTED),
     # JWTs (header.payload.signature).
     (
-        re.compile(r"\beyJ[A-Za-z0-9_\-]{5,}\.[A-Za-z0-9_\-]{5,}\.[A-Za-z0-9_\-]{5,}\b"),
+        re.compile(
+            r"\beyJ[A-Za-z0-9_\-]{5,}\.[A-Za-z0-9_\-]{5,}\.[A-Za-z0-9_\-]{5,}\b"
+        ),
         _REDACTED,
     ),
     # key=value / key: value pairs where the key names a secret — mask the value

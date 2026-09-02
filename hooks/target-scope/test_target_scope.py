@@ -47,7 +47,9 @@ def _run(script: Path, args=(), stdin: str = "", extra_env: dict | None = None):
     return r.returncode, r.stdout, r.stderr
 
 
-def _payload(tool: str, tool_input: dict, session_id="test-session", cwd="/proj") -> str:
+def _payload(
+    tool: str, tool_input: dict, session_id="test-session", cwd="/proj"
+) -> str:
     return json.dumps(
         {
             "tool_name": tool,
