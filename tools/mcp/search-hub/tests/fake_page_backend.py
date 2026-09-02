@@ -12,6 +12,13 @@ loopback socket with NO network. Routes model the paths the adapter must handle:
 * ``/html``      -> an HTML page full of boilerplate (script/style/noscript/svg/
   template/nav/footer/aside/header), a ``<title>``, entities, and paragraphs.
 * ``/plain``     -> ``text/plain``.
+* ``/listing``   -> a link-dense index page (``page_type: listing`` fixture).
+* ``/docs``      -> a reference page with several ``<pre>`` code blocks and a
+  link sidebar (``page_type: docs`` fixture).
+* ``/shell``     -> a JavaScript app shell: big inline state, an empty root
+  ``<div>``, almost no visible text (``page_type: shell`` fixture).
+* ``/short``     -> a genuinely tiny static page (``page_type: other`` fixture;
+  the "short but complete" readability case).
 * ``/latin1``    -> HTML declared ``charset=iso-8859-1`` with a non-ASCII byte.
 * ``/big``       -> a large ``text/plain`` body (size-cap / ``truncated`` path).
 * ``/binary``    -> ``application/pdf`` bytes (unsupported content type).
@@ -30,6 +37,7 @@ the ABSENCE of ``Cookie`` / ``Authorization`` headers. Call ``reset()`` first.
 
 from __future__ import annotations
 
+import json
 import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -91,6 +99,54 @@ HTML_BODY = """<!DOCTYPE html>
 BIG_LINE = ("lorem ipsum dolor sit amet " * 4).strip() + "\n"
 BIG_BODY = (BIG_LINE * 4000).encode("utf-8")  # ~430 KB of text/plain
 
+# page_type fixtures. The link list sits in a <div>, NOT in <nav>, so the
+# tag-stripper keeps it and the link-density signal is what classifies the page.
+LISTING_BODY = (
+    "<!DOCTYPE html><html><head><title>Search results</title></head><body>"
+    '<p>40 results for your query.</p><div class="results"><ul>'
+    + "".join(
+        f'<li><a href="/item/{i}">Result item number {i} with a descriptive '
+        f"title</a></li>"
+        for i in range(40)
+    )
+    + "</ul></div></body></html>"
+)
+
+DOCS_BODY = (
+    "<!DOCTYPE html><html><head><title>http.server reference</title></head><body>"
+    '<div class="sidebar"><ul>'
+    + "".join(f'<li><a href="/ref/{i}">module {i}</a></li>' for i in range(10))
+    + '</ul></div><div class="body"><h1>http.server</h1>'
+    "<p>This module defines classes for implementing HTTP servers. It builds on "
+    "socketserver and is not recommended for production use because it only "
+    "implements basic security checks.</p>"
+    "<h2>Creating a server</h2><p>Instantiate the server class with an address "
+    "and a handler class, then call serve_forever on it.</p>"
+    "<pre><code>def run(server_class=HTTPServer):\n    httpd = server_class(('', 8000), "
+    "Handler)\n    httpd.serve_forever()</code></pre>"
+    "<h2>Handlers</h2><p>Request handlers subclass BaseHTTPRequestHandler and "
+    "implement do_GET and friends; each method writes the response itself.</p>"
+    "<pre><code>class Handler(BaseHTTPRequestHandler):\n    def do_GET(self):\n"
+    "        self.send_response(200)</code></pre>"
+    "<h2>Command line</h2><p>The module doubles as a static file server.</p>"
+    "<pre><code>python -m http.server 8000 --directory /srv/www</code></pre>"
+    "</div></body></html>"
+)
+
+SHELL_BODY = (
+    "<!DOCTYPE html><html><head><title>App</title>"
+    '<script src="/static/app.js"></script>'
+    "<script>window.__STATE__ = " + json.dumps({"items": list(range(600))}) + ";"
+    '</script></head><body><div id="root"></div>'
+    "<noscript>You need to enable JavaScript to run this app.</noscript>"
+    "</body></html>"
+)
+
+SHORT_BODY = (
+    "<html><head><title>Hi</title></head><body><p>Hello world, tiny page.</p>"
+    "</body></html>"
+)
+
 
 def reset() -> None:
     with _LOCK:
@@ -136,6 +192,17 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if path == "/plain":
             self._send(200, b"just  plain\n\n\n\ntext", "text/plain; charset=utf-8")
+            return
+        page_types = {
+            "/listing": LISTING_BODY,
+            "/docs": DOCS_BODY,
+            "/shell": SHELL_BODY,
+            "/short": SHORT_BODY,
+        }
+        if path in page_types:
+            self._send(
+                200, page_types[path].encode("utf-8"), "text/html; charset=utf-8"
+            )
             return
         if path == "/latin1":
             body = b"<html><head><title>Caf\xe9</title></head><body><p>na\xefve</p></body></html>"

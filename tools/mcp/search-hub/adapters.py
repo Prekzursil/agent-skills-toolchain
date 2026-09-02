@@ -1477,8 +1477,12 @@ class GitHubSearchAdapter(SelfHostedAdapter):
 # Why in-process: the hub has NO fetch path of its own. ``web_url_read`` belongs
 # to the downstream mcp-searxng child (no boilerplate removal, cannot add request
 # headers) and ``selfhosted_extract`` fetches server-side inside TrailSearch. This
-# v0 is the minimal honest tool that Wave 2 upgrades IN PLACE (same name, same
-# output shape) with a trafilatura extractor.
+# Wave 1 shipped the minimal honest v0 (markdown negotiation + a stdlib
+# tag-stripper); Wave 2 upgraded it IN PLACE (same name, same output shape,
+# additive fields only) with an extractor LADDER whose middle rung is the
+# OPTIONAL trafilatura / rs-trafilatura readability pass -- imported only when an
+# HTML body needs extracting, never required, faked through ``sys.modules`` in the
+# suite so CI stays stdlib-only.
 # Evidence (Cloudflare "Markdown for Agents" docs + blog, read 2026-09-02): a
 # client sending ``Accept: text/markdown, text/html;q=0.9`` gets, from an OPTED-IN
 # zone (Pro/Business/Enterprise; Cloudflare's own docs and blog are), a response
@@ -1486,9 +1490,44 @@ class GitHubSearchAdapter(SelfHostedAdapter):
 # ``x-original-tokens`` headers whose body is YAML frontmatter + cleaned markdown
 # (+ a fenced JSON-LD block); origin HTML up to 2 MB is converted. The hit-rate
 # across the web is unknown, so every result names the ``extractor`` that
-# produced its text and the ``quality`` that follows from it.
+# produced its text, the ``quality`` that follows from it and the whole
+# ``extractor_ladder`` that was tried.
 ENABLE_READ_URL_ENV = "ENABLE_READ_URL"
 READ_URL_ALLOW_PRIVATE_ENV = "READ_URL_ALLOW_PRIVATE"
+# A readability extract shorter than this is retried with favor_recall=True and,
+# if that retry is used, labelled ``quality: medium`` instead of ``high``.
+READ_URL_MIN_CHARS_ENV = "READ_URL_MIN_CHARS"
+READ_URL_DEFAULT_MIN_CHARS = 200
+READ_URL_MAX_MIN_CHARS = 100_000
+# A favor_recall extract that is STILL shorter than min_chars is kept (medium) only
+# when it covers at least this share of the page's visible text -- i.e. the page
+# itself is short. Below it the extractor evidently missed the content and the
+# stdlib text is the more useful (if noisier) answer.
+_RECALL_MIN_COVERAGE = 0.25
+# The optional readability rung, most-preferred first: (import name, label). The
+# Rust build (PyPI ``rs-trafilatura``, module ``rs_trafilatura``) is preferred
+# when importable; plain ``trafilatura`` is the documented install.
+_READABILITY_MODULES = (
+    ("rs_trafilatura", "rs-trafilatura"),
+    ("trafilatura", "trafilatura"),
+)
+# page_type heuristic thresholds (a HINT computed from the tag-stripper's single
+# pass; documented as a heuristic, never a classifier).
+_SHELL_MAX_CHARS = 80  # visible text below this + scripts + a big body = app shell
+_SHELL_MIN_BYTES = 2048
+_LISTING_MIN_LINKS = 8
+_LISTING_LINK_DENSITY = 0.5
+_DOCS_MIN_CODE_BLOCKS = 2
+_ARTICLE_MIN_PARAGRAPHS = 3
+_ARTICLE_MIN_CHARS = 500
+_DOCS_URL_RE = re.compile(
+    r"(^https?://docs\.|readthedocs\.|/docs?/|/documentation/|/reference/|/api/"
+    r"|/manual/|/guide/)",
+    re.IGNORECASE,
+)
+_MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_MD_FENCE_RE = re.compile(r"^```", re.MULTILINE)
+_HEADING_TAGS = frozenset(("h1", "h2", "h3", "h4", "h5", "h6"))
 READ_URL_MAX_REDIRECTS = 5
 READ_URL_DEFAULT_MAX_BYTES = 2_000_000  # Cloudflare converts origin HTML up to 2 MB
 READ_URL_MIN_MAX_BYTES = 256
@@ -1572,7 +1611,6 @@ _MANY_NEWLINES_RE = re.compile(r"\n{3,}")
 _META_CHARSET_RE = re.compile(
     rb"""<meta[^>]+charset=["']?\s*([A-Za-z0-9_.:-]+)""", re.IGNORECASE
 )
-_FRONTMATTER_TITLE_RE = re.compile(r"^title:[ \t]*(.+?)[ \t]*$", re.MULTILINE)
 _MARKDOWN_H1_RE = re.compile(r"^#[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 
 _READ_URL_SCHEMA = {
@@ -1787,16 +1825,25 @@ def _normalize_plain(text: str) -> str:
     return _MANY_NEWLINES_RE.sub("\n\n", text).strip()
 
 
+def _frontmatter_field(markdown: str, key: str) -> str | None:
+    """``key:`` from a leading YAML frontmatter block (Cloudflare emits one),
+    unquoted; ``None`` when there is no block or no such key."""
+    if not markdown.startswith("---"):
+        return None
+    end = markdown.find("\n---", 3)
+    if end == -1:
+        return None
+    match = re.search(rf"^{key}:[ \t]*(.+?)[ \t]*$", markdown[3:end], re.MULTILINE)
+    if not match:
+        return None
+    return match.group(1).strip().strip("\"'").strip() or None
+
+
 def _markdown_title(markdown: str) -> str | None:
     """``title:`` from Cloudflare's YAML frontmatter, else the first ``# `` heading."""
-    if markdown.startswith("---"):
-        end = markdown.find("\n---", 3)
-        if end != -1:
-            match = _FRONTMATTER_TITLE_RE.search(markdown[3:end])
-            if match:
-                title = match.group(1).strip().strip("\"'").strip()
-                if title:
-                    return title
+    title = _frontmatter_field(markdown, "title")
+    if title:
+        return title
     match = _MARKDOWN_H1_RE.search(markdown)
     return match.group(1).strip() if match else None
 
@@ -1806,6 +1853,234 @@ def _int_header(headers: dict[str, str], key: str) -> int | None:
         return int(str(headers.get(key, "")).strip())
     except ValueError:
         return None
+
+
+def _min_chars_setting(environ) -> int:
+    """``READ_URL_MIN_CHARS`` as a bounded int; anything else is the default."""
+    raw = environ.get(READ_URL_MIN_CHARS_ENV)
+    if isinstance(raw, str) and raw.strip().isdigit():
+        value = int(raw.strip())
+        if 1 <= value <= READ_URL_MAX_MIN_CHARS:
+            return value
+    return READ_URL_DEFAULT_MIN_CHARS
+
+
+def _optional_module(name: str):
+    """Import an OPTIONAL dependency by name; ``None`` when it is not importable.
+
+    Looked up per call (a ``sys.modules`` hit after the first import) so a test
+    can fake presence with a module -- or absence with ``None`` -- in
+    ``sys.modules``. ANY import-time failure counts as absent: a broken optional
+    install must degrade the ladder, never break ``read_url``.
+    """
+    import importlib  # local on purpose: the read_url block owns its own imports
+
+    try:
+        return importlib.import_module(name)
+    except Exception:
+        return None
+
+
+def _module_available(name: str) -> bool:
+    """Is ``name`` importable -- answered WITHOUT importing it (``find_spec``), so
+    ``capabilities()`` stays RAM-cheap; a ``sys.modules`` entry (a test's fake or
+    ``None``) is honoured first."""
+    import importlib.util  # local on purpose, see _optional_module
+    import sys
+
+    if name in sys.modules:
+        return sys.modules[name] is not None
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError):
+        return False
+
+
+def _readability_label() -> str | None:
+    """The label of the readability rung that WOULD run now, or ``None``."""
+    for module_name, label in _READABILITY_MODULES:
+        if _module_available(module_name):
+            return label
+    return None
+
+
+def _parses_public(text: str) -> bool:
+    try:
+        return _is_public_address(ipaddress.ip_address(text))
+    except ValueError:
+        return False
+
+
+def _pick_meta(source) -> dict[str, str]:
+    """``title`` / ``author`` / ``date`` from a trafilatura 2.x ``Document``, a 1.x
+    dict or an rs-trafilatura ``ExtractResult`` -- non-empty strings only, with
+    whitespace runs collapsed (rs hands ``<title>`` text back verbatim)."""
+    if source is None:
+        return {}
+    picked: dict[str, str] = {}
+    for key in ("title", "author", "date"):
+        value = (
+            source.get(key) if isinstance(source, dict) else getattr(source, key, None)
+        )
+        if isinstance(value, str) and value.strip():
+            picked[key] = _WS_RUN_RE.sub(" ", value).strip()
+    return picked
+
+
+@dataclass
+class _Readable:
+    """One readability pass: the body, which payload key it belongs under
+    (``markdown`` or ``text``), metadata, an optional confidence score, and --
+    once the ladder picks it -- the ``extractor`` label and ``quality`` it earns."""
+
+    text: str
+    key: str
+    meta: dict[str, str]
+    confidence: float | None = None
+    note: str = ""
+    label: str = ""
+    quality: str = ""
+
+    @property
+    def chars(self) -> int:
+        return len(self.text.strip())
+
+
+def _run_trafilatura(mod, html: str, url: str, favor_recall: bool) -> _Readable:
+    """One ``trafilatura.extract`` pass, markdown output when the installed
+    version has it (>= 1.9; an unknown format raises AttributeError in 2.x,
+    ValueError in 1.x), plain text otherwise. Exceptions propagate to the ladder."""
+    kwargs = dict(
+        url=url, include_links=False, include_tables=True, favor_recall=favor_recall
+    )
+    try:
+        text = mod.extract(html, output_format="markdown", **kwargs)
+        key, note = "markdown", ""
+    except (AttributeError, ValueError, TypeError):
+        text = mod.extract(html, output_format="txt", **kwargs)
+        key, note = "text", "txt output: this trafilatura has no markdown format"
+    return _Readable(text if isinstance(text, str) else "", key, {}, note=note)
+
+
+def _trafilatura_metadata(mod, html: str, url: str) -> dict[str, str]:
+    """title/author/date via ``bare_extraction``; ``fast=True`` skips the fallback
+    algorithms (measured 6 ms on a 98 KB page, trafilatura 2.2.0, 2026-09-02).
+    Any failure is just no metadata."""
+    kwargs = dict(url=url, with_metadata=True, include_comments=False)
+    try:
+        try:
+            doc = mod.bare_extraction(html, fast=True, **kwargs)
+        except TypeError:  # < 1.9 spells the flag no_fallback
+            doc = mod.bare_extraction(html, no_fallback=True, **kwargs)
+    except Exception:
+        return {}
+    return _pick_meta(doc)
+
+
+def _run_rs_trafilatura(mod, html: str, url: str, favor_recall: bool) -> _Readable:
+    """One ``rs_trafilatura.extract`` pass (PyO3 build; keyword-only API returning
+    an ``ExtractResult`` with content_markdown / main_content / title / author /
+    date / extraction_quality). Exceptions propagate to the ladder."""
+    result = mod.extract(
+        html,
+        url=url,
+        favor_recall=favor_recall,
+        include_tables=True,
+        include_comments=False,
+        output_markdown=True,
+    )
+    if result is None:
+        return _Readable("", "markdown", {})
+    markdown = getattr(result, "content_markdown", None)
+    plain = getattr(result, "main_content", None)
+    if isinstance(markdown, str) and markdown.strip():
+        text, key = markdown, "markdown"
+    else:
+        text, key = (plain if isinstance(plain, str) else ""), "text"
+    score = getattr(result, "extraction_quality", None)
+    confidence = (
+        round(float(score), 3)
+        if isinstance(score, (int, float)) and not isinstance(score, bool)
+        else None
+    )
+    return _Readable(text, key, _pick_meta(result), confidence=confidence)
+
+
+_READABILITY_RUNNERS = {
+    "rs_trafilatura": _run_rs_trafilatura,
+    "trafilatura": _run_trafilatura,
+}
+# Extra metadata pass per module, run ONLY for the rung that wins (rs-trafilatura's
+# result already carries title/author/date, so it needs none).
+_READABILITY_METADATA = {"trafilatura": _trafilatura_metadata}
+
+
+@dataclass
+class _PageStats:
+    """Counters the tag-stripper gathers in its single pass -- the page_type and
+    link_density inputs. Skipped subtrees are excluded except ``scripts``, which
+    counts every ``<script>`` (an app shell is mostly script)."""
+
+    links: int = 0
+    link_chars: int = 0
+    article: bool = False
+    paragraphs: int = 0
+    headings: int = 0
+    code_blocks: int = 0
+    scripts: int = 0
+
+
+def _link_density(stats: _PageStats, text_chars: int) -> float:
+    """Share of the visible text that sits inside ``<a>``, 0.0 .. 1.0."""
+    if text_chars <= 0:
+        return 0.0
+    return round(min(stats.link_chars / text_chars, 1.0), 3)
+
+
+def _classify_html(
+    text_chars: int, stats: _PageStats, html_bytes: int, url: str
+) -> str:
+    """The ``page_type`` HINT for an HTML body: article|docs|listing|shell|other.
+
+    A cheap heuristic over text density, link density, ``<article>`` presence,
+    code blocks and a URL hint -- shells first (no text, scripts, a big body),
+    then code-heavy docs, then link-dominated listings, then docs by URL/headings,
+    then articles. Wrong sometimes by design; it is a hint, never a gate.
+    """
+    if text_chars < _SHELL_MAX_CHARS:
+        if stats.scripts and html_bytes >= _SHELL_MIN_BYTES:
+            return "shell"
+        return "other"
+    if stats.code_blocks >= _DOCS_MIN_CODE_BLOCKS:
+        return "docs"
+    if (
+        stats.links >= _LISTING_MIN_LINKS
+        and _link_density(stats, text_chars) >= _LISTING_LINK_DENSITY
+    ):
+        return "listing"
+    if _DOCS_URL_RE.search(url) or (stats.headings >= 4 and stats.code_blocks):
+        return "docs"
+    if stats.article or (
+        stats.paragraphs >= _ARTICLE_MIN_PARAGRAPHS and text_chars >= _ARTICLE_MIN_CHARS
+    ):
+        return "article"
+    return "other"
+
+
+def _classify_markdown(markdown: str) -> tuple[str, float]:
+    """``(page_type, link_density)`` for a markdown body (negotiated or origin):
+    fenced blocks say docs, ``[label](url)`` density says listing, else article."""
+    chars = len(markdown)
+    labels = [m.group(1) for m in _MD_LINK_RE.finditer(markdown)]
+    link_chars = sum(len(label) for label in labels)
+    density = round(min(link_chars / chars, 1.0), 3) if chars else 0.0
+    if chars < _SHELL_MAX_CHARS:
+        return "other", density
+    if len(_MD_FENCE_RE.findall(markdown)) >= 2 * _DOCS_MIN_CODE_BLOCKS:
+        return "docs", density
+    if len(labels) >= _LISTING_MIN_LINKS and density >= _LISTING_LINK_DENSITY:
+        return "listing", density
+    return "article", density
 
 
 class _TextExtractor(HTMLParser):
@@ -1820,6 +2095,8 @@ class _TextExtractor(HTMLParser):
     to the strongest (``</li><li>`` is ONE newline). Entities are decoded by
     ``HTMLParser(convert_charrefs=True)``. Skipped subtrees are tracked as a
     stack so an unclosed inner ``<header>`` cannot swallow the rest of the page.
+    The same pass fills ``stats`` (links, link text, ``<article>``, paragraphs,
+    headings, ``<pre>`` blocks, scripts) for the page_type / link_density hints.
     """
 
     def __init__(self) -> None:
@@ -1828,14 +2105,18 @@ class _TextExtractor(HTMLParser):
         self._title: list[str] = []
         self._skip: list[str] = []
         self._pre = 0
+        self._in_link = 0
         self._in_title = False
         self._title_done = False
         # Named ``_brk``, not ``_pending``: CPython 3.11.16+'s HTMLParser keeps its
         # own ``_pending`` buffer list and the name collision broke ``close()`` in CI.
         self._brk = 0  # 0 = none, 1 = line break, 2 = paragraph break
+        self.stats = _PageStats()
 
     # -- tags ---------------------------------------------------------------
     def handle_starttag(self, tag: str, attrs) -> None:
+        if tag == "script":
+            self.stats.scripts += 1
         if self._skip:
             if tag in _SKIP_TAGS:
                 self._skip.append(tag)
@@ -1848,10 +2129,20 @@ class _TextExtractor(HTMLParser):
             self._brk = 2
             if tag == "pre":
                 self._pre += 1
+                self.stats.code_blocks += 1
+            elif tag == "p":
+                self.stats.paragraphs += 1
+            elif tag == "article":
+                self.stats.article = True
+            elif tag in _HEADING_TAGS:
+                self.stats.headings += 1
         elif tag in _LINE_TAGS:
             self._brk = max(self._brk, 1)
         elif tag in _CELL_TAGS:
             self._space()
+        elif tag == "a":
+            self._in_link += 1
+            self.stats.links += 1
 
     def handle_endtag(self, tag: str) -> None:
         if self._skip:
@@ -1869,6 +2160,8 @@ class _TextExtractor(HTMLParser):
             self._brk = max(self._brk, 1)
         elif tag in _CELL_TAGS:
             self._space()
+        elif tag == "a" and self._in_link:
+            self._in_link -= 1
 
     # -- text ---------------------------------------------------------------
     def handle_data(self, data: str) -> None:
@@ -1879,9 +2172,13 @@ class _TextExtractor(HTMLParser):
             return
         if self._pre:
             chunk = data.lstrip("\n") if self._brk or not self._out else data
+            if self._in_link:
+                self.stats.link_chars += len(chunk.strip())
             self._emit(chunk, verbatim=True)
             return
         collapsed = _WS_RUN_RE.sub(" ", data)
+        if self._in_link:
+            self.stats.link_chars += len(collapsed.strip())
         if collapsed.strip():
             self._emit(collapsed, verbatim=False)
         elif collapsed and not self._brk:
@@ -1912,13 +2209,27 @@ class _TextExtractor(HTMLParser):
 class ReadUrlAdapter(SelfHostedAdapter):
     """``read_url``: fetch one public page in-process and return its text (default ON).
 
-    Negotiates Cloudflare "Markdown for Agents" (``Accept: text/markdown``) and
-    reports WHICH path produced the text: ``cloudflare-markdown`` (server-side
-    clean markdown, ``quality: high``), ``origin-markdown`` (the origin itself
-    served ``text/markdown`` -- passed through, ``high``) or ``stdlib-text`` (the
-    ``html.parser`` tag-stripper / plain-text pass-through, ``quality: low``
-    because tag-stripping is not readability; Wave 2 swaps in trafilatura behind
-    the same name and output shape).
+    The text comes off an extractor LADDER and every result names what happened
+    (``extractor``, ``quality``, ``extractor_ladder`` = rungs tried, chosen last):
+
+    1. Cloudflare "Markdown for Agents" negotiated with ``Accept: text/markdown``
+       -> ``cloudflare-markdown`` (server-side clean markdown, ``high``); an
+       origin serving ``text/markdown`` itself -> ``origin-markdown`` (``high``).
+    2. For HTML, the OPTIONAL readability rung when importable: ``rs-trafilatura``
+       (Rust build) preferred, else ``trafilatura`` -- a precision pass first;
+       ``high`` when the extract is >= ``READ_URL_MIN_CHARS`` (default 200) chars,
+       else ONE ``favor_recall`` retry labelled ``medium`` (kept below min_chars
+       only when it still covers a quarter of the page's visible text). Metadata
+       (``title`` / ``author`` / ``date``) comes from the extractor when cheap.
+       Empty results, too-short results and exceptions fall through truthfully
+       (the note says why); CI never has the module, tests fake it.
+    3. ``stdlib-text``: the ``html.parser`` tag-stripper / plain-text
+       pass-through, ``quality: low`` because tag-stripping is not readability.
+
+    Quality signals ride along: ``chars``, ``link_density``, ``boilerplate_removed``
+    (true for rungs 1-2), ``min_chars``, and ``page_type`` -- a cheap stdlib
+    HEURISTIC hint (article|docs|listing|shell|other) from text / link density,
+    ``<article>`` presence and code blocks, never a classifier.
 
     Default ON because it is keyless, costless at rest (no child, no dependency,
     no request until called) and fetches the public web under the origin's own
@@ -1926,12 +2237,17 @@ class ReadUrlAdapter(SelfHostedAdapter):
     any request and again on EVERY redirect hop: http/https only, ``.onion``
     refused (the onions-lane envelope forbids onion fetches everywhere), URL
     credentials refused, at most ``READ_URL_MAX_REDIRECTS`` hops, and hosts that
-    resolve to private / loopback / link-local space refused unless
+    resolve to private / loopback / link-local space refused -- EVERY address in
+    the answer is checked, and after each hop's fetch the host is re-resolved: a
+    changed answer (or none) is a ``dns_rebound: true`` error and the fetched
+    bytes are discarded. That is the cheap stdlib mitigation of the v0 TOCTOU gap
+    (the check resolves once, urllib resolves again to connect); the RESIDUAL
+    risk is a resolver that flips public -> private -> public exactly between our
+    two lookups, which only connecting to the checked address ourselves would
+    close (a custom HTTPS connection class; not stdlib-cheap, not done here).
     ``READ_URL_ALLOW_PRIVATE=1`` -- a test/dev escape hatch (the test origin is
-    127.0.0.1), default off. Known v0 limit: the check resolves the name once and
-    urllib resolves it again to connect, so a deliberately rebinding resolver
-    could answer differently between the two (pinning needs a custom connection
-    class -- Wave 2). No cookies or credentials are ever sent; a modest UA is.
+    127.0.0.1), default off -- skips both the check and the pin. No cookies or
+    credentials are ever sent; a modest UA is.
     """
 
     platform = "read_url"
@@ -1952,6 +2268,7 @@ class ReadUrlAdapter(SelfHostedAdapter):
         self._fetch: Fetcher = fetch or _urllib_fetch
         self._resolver: Resolver = resolver or _default_resolver
         self._allow_private = _flag_enabled(self.environ, READ_URL_ALLOW_PRIVATE_ENV)
+        self._min_chars = _min_chars_setting(self.environ)
 
     # ---- surface --------------------------------------------------------
     def _build_tools(self) -> list[AdapterTool]:
@@ -1960,23 +2277,36 @@ class ReadUrlAdapter(SelfHostedAdapter):
                 name="read_url",
                 description=(
                     "Fetch ONE public http(s) page in-process (stdlib urllib; no child, "
-                    "no cookies or credentials ever sent) and return its text. Negotiates "
-                    "Cloudflare 'Markdown for Agents' with Accept: text/markdown -- an "
+                    "no cookies or credentials ever sent) and return its text off an "
+                    "extractor ladder that names what happened. (1) Cloudflare "
+                    "'Markdown for Agents' negotiated with Accept: text/markdown -- an "
                     "opted-in zone answers server-side clean markdown (extractor "
                     "cloudflare-markdown, quality high, tokens{markdown, original}); a "
-                    "text/markdown origin is passed through as origin-markdown (high); "
-                    "everything else falls back to a stdlib html.parser tag-stripper "
-                    "(extractor stdlib-text, quality low: it drops script/style/noscript/"
-                    "svg/template/nav/footer/aside/header subtrees and collapses "
-                    "whitespace, which is NOT readability -- Wave 2 swaps in trafilatura, "
-                    "same output shape). Follows at most 5 redirects, re-checking each "
-                    "hop; refuses .onion hosts (onions-lane envelope), non-http(s) "
-                    "schemes, URLs with credentials, and hosts resolving to private/"
-                    "loopback/link-local addresses (READ_URL_ALLOW_PRIVATE=1 is a dev/"
-                    "test escape hatch). Returns {url, final_url, status, redirects, "
-                    "title, content_type, extractor, quality, markdown|text, tokens?, "
-                    "bytes, truncated, note}. Truthful isError on HTTP errors, binary "
-                    "content or an unreachable origin -- never fabricated."
+                    "text/markdown origin is passed through as origin-markdown (high). "
+                    "(2) For HTML, the OPTIONAL readability rung when installed: "
+                    "rs-trafilatura (Rust) preferred, else trafilatura (pip install "
+                    "trafilatura) -- quality high when the extract has >= "
+                    "READ_URL_MIN_CHARS (default 200) chars, else one favor_recall retry "
+                    "labelled medium; title/author/date come from its metadata. (3) The "
+                    "stdlib html.parser tag-stripper (extractor stdlib-text, quality "
+                    "low: it drops script/style/noscript/svg/template/nav/footer/aside/"
+                    "header subtrees and collapses whitespace, which is NOT "
+                    "readability). Every result carries extractor_ladder (rungs tried, "
+                    "chosen last), page_type (a cheap HEURISTIC hint: article|docs|"
+                    "listing|shell|other), chars, link_density, boilerplate_removed and "
+                    "min_chars. Follows at most 5 redirects, re-checking each hop; "
+                    "refuses .onion hosts (onions-lane envelope), non-http(s) schemes, "
+                    "URLs with credentials, and hosts resolving to private/loopback/"
+                    "link-local addresses -- EVERY resolved address is checked and the "
+                    "host is re-resolved after the fetch: a changed answer is a "
+                    "dns_rebound error and the bytes are discarded (READ_URL_ALLOW_"
+                    "PRIVATE=1 is a dev/test escape hatch that skips both). Returns "
+                    "{url, final_url, status, redirects, title, author, date, "
+                    "content_type, extractor, quality, extractor_ladder, markdown|text, "
+                    "tokens?, extractor_confidence?, chars, page_type, link_density, "
+                    "boilerplate_removed, min_chars, bytes, truncated, note}. Truthful "
+                    "isError on HTTP errors, binary content or an unreachable origin -- "
+                    "never fabricated."
                 ),
                 input_schema=_READ_URL_SCHEMA,
                 path="GET <url>",
@@ -2002,6 +2332,16 @@ class ReadUrlAdapter(SelfHostedAdapter):
         report["private_targets_allowed"] = self._allow_private
         report["negotiates"] = f"Accept: {READ_URL_ACCEPT}"
         report["max_redirects"] = READ_URL_MAX_REDIRECTS
+        # The rung that WOULD run for HTML right now (find_spec, nothing imported).
+        readability = _readability_label()
+        report["readability_extractor"] = readability
+        report["extractor_ladder"] = [
+            "cloudflare-markdown | origin-markdown",
+            *([readability] if readability else []),
+            "stdlib-text",
+        ]
+        report["min_chars"] = self._min_chars
+        report["dns_rebound_check"] = not self._allow_private
         return report
 
     # ---- argument validation (before any request) -------------------------
@@ -2034,9 +2374,15 @@ class ReadUrlAdapter(SelfHostedAdapter):
         return float(value)
 
     # ---- safety: scheme / .onion / credentials / private space -------------
-    def _validate(self, url: str) -> str:
+    def _validate(self, url: str) -> tuple[str, frozenset[str] | None]:
         """The per-hop target check; ValueError names the refusal. No request is
-        made for a refused URL, so the message can never leak a response."""
+        made for a refused URL, so the message can never leak a response.
+
+        Returns ``(url, pinned)`` where ``pinned`` is the set of addresses the
+        host resolved to and passed the public check with -- ``_verify_pin``
+        compares the post-fetch answer against it -- or ``None`` when the
+        private-target escape hatch skipped resolution altogether.
+        """
         parts = urlsplit(url)
         host = parts.hostname or ""
         bare = host.lower().rstrip(".")
@@ -2068,11 +2414,13 @@ class ReadUrlAdapter(SelfHostedAdapter):
             raise ValueError(
                 f"read_url: refused: invalid port in {url} ({exc})."
             ) from None
-        if not self._allow_private:
-            self._check_public(host)
-        return url
+        if self._allow_private:
+            return url, None
+        return url, self._check_public(host)
 
-    def _check_public(self, host: str) -> None:
+    def _check_public(self, host: str) -> frozenset[str]:
+        """Resolve ``host`` and refuse if ANY returned address is non-public; the
+        full answer comes back as the pin ``_verify_pin`` re-checks after the fetch."""
         try:
             addresses = self._resolver(host)
         except (OSError, UnicodeError) as exc:  # socket.gaierror is an OSError
@@ -2101,6 +2449,51 @@ class ReadUrlAdapter(SelfHostedAdapter):
                     f"{READ_URL_ALLOW_PRIVATE_ENV}=1 is the test/dev escape hatch "
                     f"(default off) -- never set it in production."
                 )
+        return frozenset(addresses)
+
+    def _verify_pin(self, url: str, pinned: frozenset[str] | None) -> None:
+        """Re-resolve the host AFTER its fetch; an answer that differs from the one
+        checked before the request is a ``dns_rebound`` refusal (bytes discarded).
+
+        Cheap stdlib mitigation of the check-then-connect TOCTOU (urllib resolves
+        again to connect). Sets are compared, so answer order and duplicates do
+        not count. A rotating CDN with a very short TTL can trip this too -- the
+        message says so and invites a retry, because the alternative is trusting
+        bytes from an address that was never checked.
+        """
+        if pinned is None:
+            return
+        host = urlsplit(url).hostname or ""
+        try:
+            after = frozenset(self._resolver(host))
+        except (OSError, UnicodeError) as exc:
+            raise ValueError(
+                f"read_url: dns_rebound: true -- '{host}' could not be re-resolved "
+                f"after the fetch ({exc}), so the answer checked before the request "
+                f"cannot be confirmed; the fetched bytes were discarded and no content "
+                f"is returned. Retry once DNS for the host is stable."
+            ) from None
+        if after == pinned:
+            return
+        hostile = [text for text in sorted(after) if not _parses_public(text)]
+        if hostile:
+            why = (
+                f" The new answer includes the non-public address(es) "
+                f"{', '.join(hostile)} -- a DNS rebinding pattern; do not retry "
+                f"without checking the host."
+            )
+        else:
+            why = (
+                " Both answers are public, which a rotating CDN answer or a very "
+                "short TTL can also produce; retry if the host is expected to rotate."
+            )
+        raise ValueError(
+            f"read_url: dns_rebound: true -- '{host}' resolved to "
+            f"[{', '.join(sorted(pinned))}] before the fetch and to "
+            f"[{', '.join(sorted(after))}] after it, so the connection may have gone "
+            f"to an address that was never checked; the fetched bytes were discarded "
+            f"and no content is returned.{why}"
+        )
 
     # ---- the fetch chain ------------------------------------------------------
     @staticmethod
@@ -2114,13 +2507,15 @@ class ReadUrlAdapter(SelfHostedAdapter):
     def _fetch_chain(
         self, url: str, max_bytes: int, timeout: float
     ) -> tuple[str, int, int, dict[str, str], bytes]:
-        """Follow at most ``READ_URL_MAX_REDIRECTS`` hops, validating EVERY target.
+        """Follow at most ``READ_URL_MAX_REDIRECTS`` hops, validating EVERY target
+        before its fetch and re-resolving it (``_verify_pin``) right after.
 
         Returns ``(final_url, status, redirects, response_headers, body)``; body
         may hold ``max_bytes + 1`` bytes (the cap signal). ValueError on refusal,
-        transport failure, a Location-less 3xx, or the hop cap.
+        transport failure, a DNS answer that changed, a Location-less 3xx, or the
+        hop cap.
         """
-        current = self._validate(url)
+        current, pinned = self._validate(url)
         hops = 0
         while True:
             status, headers, body, reason = self._fetch(
@@ -2131,6 +2526,7 @@ class ReadUrlAdapter(SelfHostedAdapter):
                     f"read_url: {reason or 'request failed'} ({current}); no content "
                     f"is fabricated."
                 )
+            self._verify_pin(current, pinned)
             if status not in _REDIRECT_STATUSES:
                 return current, status, hops, headers, body
             location = str(headers.get("location") or "").strip()
@@ -2146,7 +2542,7 @@ class ReadUrlAdapter(SelfHostedAdapter):
                     f"{_scrub_url(urljoin(current, location))}. Refused."
                 )
             hops += 1
-            current = self._validate(urljoin(current, location))
+            current, pinned = self._validate(urljoin(current, location))
 
     # ---- result shaping -----------------------------------------------------
     def _shape(
@@ -2197,70 +2593,250 @@ class ReadUrlAdapter(SelfHostedAdapter):
             "redirects": redirects,
         }
         if media == "text/markdown":
-            markdown, capped = _cap_text(
-                _decode_body(body, charset, html=False), max_bytes
+            capped, notes = self._shape_markdown(
+                payload, body, charset, headers, max_bytes
             )
-            tokens = {
-                "markdown": _int_header(headers, "x-markdown-tokens"),
-                "original": _int_header(headers, "x-original-tokens"),
-            }
-            cloudflare = any(v is not None for v in tokens.values())
-            payload.update(
-                title=_markdown_title(markdown),
-                content_type=media,
-                extractor="cloudflare-markdown" if cloudflare else "origin-markdown",
-                quality="high",
-                markdown=markdown,
-            )
-            if cloudflare:
-                payload["tokens"] = tokens
-                note = (
-                    "quality high: markdown produced server-side by Cloudflare Markdown "
-                    "for Agents (Accept: text/markdown negotiated; x-markdown-tokens / "
-                    "x-original-tokens relayed)."
-                )
-            else:
-                note = (
-                    "quality high: the origin served text/markdown itself (no Cloudflare "
-                    "token headers); passed through verbatim."
-                )
         elif media in _HTML_TYPES:
-            parser = _TextExtractor()
-            parser.feed(_decode_body(body, charset, html=True))
-            title, text = parser.result()
-            text, capped = _cap_text(text, max_bytes)
-            payload.update(
-                title=title,
-                content_type=media,
-                extractor="stdlib-text",
-                quality="low",
-                text=text,
-            )
-            note = (
-                "quality low: stdlib html.parser tag-stripping is not readability -- "
-                "boilerplate outside the dropped subtrees (script/style/noscript/svg/"
-                "template/nav/footer/aside/header) survives. Wave 2 swaps in a "
-                "trafilatura extractor with the same output shape."
+            capped, notes = self._shape_html(
+                payload, body, charset, media, final_url, max_bytes
             )
         else:
-            text, capped = _cap_text(
-                _normalize_plain(_decode_body(body, charset, html=False)), max_bytes
+            capped, notes = self._shape_plain(payload, body, charset, media, max_bytes)
+        payload["min_chars"] = self._min_chars
+        payload["bytes"] = len(body)
+        payload["truncated"] = bool(hit_cap or capped)
+        payload["note"] = " ".join(notes)
+        return payload
+
+    @staticmethod
+    def _shape_markdown(
+        payload: dict,
+        body: bytes,
+        charset: str | None,
+        headers: dict[str, str],
+        max_bytes: int,
+    ) -> tuple[bool, list[str]]:
+        """Rung 1: negotiated (Cloudflare) or origin markdown, passed through."""
+        markdown, capped = _cap_text(_decode_body(body, charset, html=False), max_bytes)
+        tokens = {
+            "markdown": _int_header(headers, "x-markdown-tokens"),
+            "original": _int_header(headers, "x-original-tokens"),
+        }
+        cloudflare = any(v is not None for v in tokens.values())
+        extractor = "cloudflare-markdown" if cloudflare else "origin-markdown"
+        page_type, density = _classify_markdown(markdown)
+        payload.update(
+            title=_markdown_title(markdown),
+            author=_frontmatter_field(markdown, "author"),
+            date=_frontmatter_field(markdown, "date"),
+            content_type="text/markdown",
+            extractor=extractor,
+            quality="high",
+            extractor_ladder=[extractor],
+            markdown=markdown,
+        )
+        if cloudflare:
+            payload["tokens"] = tokens
+            note = (
+                "quality high: markdown produced server-side by Cloudflare Markdown "
+                "for Agents (Accept: text/markdown negotiated; x-markdown-tokens / "
+                "x-original-tokens relayed)."
             )
+        else:
+            note = (
+                "quality high: the origin served text/markdown itself (no Cloudflare "
+                "token headers); passed through verbatim."
+            )
+        payload.update(
+            chars=len(markdown),
+            page_type=page_type,
+            link_density=density,
+            boilerplate_removed=True,
+        )
+        return capped, [note]
+
+    def _shape_html(
+        self,
+        payload: dict,
+        body: bytes,
+        charset: str | None,
+        media: str,
+        final_url: str,
+        max_bytes: int,
+    ) -> tuple[bool, list[str]]:
+        """Rungs 2-3 for an HTML body. The tag-stripper ALWAYS runs: it is the
+        fallback text, the ``<title>`` fallback, the page_type / link_density
+        signal and the yardstick a too-short recall extract is measured against."""
+        html = _decode_body(body, charset, html=True)
+        parser = _TextExtractor()
+        parser.feed(html)
+        html_title, plain = parser.result()
+        page_type = _classify_html(len(plain), parser.stats, len(body), final_url)
+        density = _link_density(parser.stats, len(plain))
+        ladder, notes, chosen = self._readability(html, final_url, len(plain))
+        if chosen is None:
+            ladder.append("stdlib-text")
+            text, capped = _cap_text(plain, max_bytes)
             payload.update(
-                title=None,
+                title=html_title,
+                author=None,
+                date=None,
                 content_type=media,
                 extractor="stdlib-text",
                 quality="low",
+                extractor_ladder=ladder,
                 text=text,
+                chars=len(text),
+                page_type=page_type,
+                link_density=density,
+                boilerplate_removed=False,
             )
-            note = (
-                f"quality low: {media} passed through with whitespace collapsed (no "
-                f"extraction applies); Wave 2's trafilatura upgrade targets HTML only."
+            notes.insert(
+                0,
+                "quality low: stdlib html.parser tag-stripping is not readability -- "
+                "boilerplate outside the dropped subtrees (script/style/noscript/svg/"
+                "template/nav/footer/aside/header) survives.",
             )
-        payload["bytes"] = len(body)
-        payload["truncated"] = bool(hit_cap or capped)
-        payload["note"] = note
-        return payload
+            if len(ladder) == 1:  # no readability rung was importable at all
+                notes.append(
+                    "No readability extractor is installed: `pip install trafilatura` "
+                    "(deploy/requirements-optional.txt) enables the trafilatura rung."
+                )
+            return capped, notes
+        text, capped = _cap_text(chosen.text.strip(), max_bytes)
+        payload.update(
+            title=chosen.meta.get("title") or html_title,
+            author=chosen.meta.get("author"),
+            date=chosen.meta.get("date"),
+            content_type=media,
+            extractor=chosen.label,
+            quality=chosen.quality,
+            extractor_ladder=ladder,
+        )
+        payload[chosen.key] = text
+        if chosen.confidence is not None:
+            payload["extractor_confidence"] = chosen.confidence
+        payload.update(
+            chars=len(text),
+            page_type=page_type,
+            link_density=density,
+            boilerplate_removed=True,
+        )
+        if chosen.note:
+            notes.append(chosen.note)
+        return capped, notes
+
+    def _readability(
+        self, html: str, url: str, page_chars: int
+    ) -> tuple[list[str], list[str], _Readable | None]:
+        """Rung 2: each importable readability module in preference order.
+
+        Precision pass first; ``high`` when it reaches ``min_chars``. Otherwise ONE
+        ``favor_recall`` retry (ladder entry ``<label>-recall``) labelled
+        ``medium`` -- kept below ``min_chars`` only when it still covers
+        ``_RECALL_MIN_COVERAGE`` of the page's visible text. Exceptions and
+        too-little text fall through to the next module, then to the stdlib text,
+        each leaving a note. Returns ``(ladder, notes, chosen | None)``; the
+        metadata pass runs only for the winner.
+        """
+        ladder: list[str] = []
+        history: list[str] = []
+        for module_name, label in _READABILITY_MODULES:
+            mod = _optional_module(module_name)
+            if mod is None:
+                continue
+            run = _READABILITY_RUNNERS[module_name]
+            ladder.append(label)
+            try:
+                first = run(mod, html, url, favor_recall=False)
+            except Exception as exc:  # noqa: BLE001 -- a broken optional install
+                history.append(  # must degrade the ladder, never break read_url
+                    f"{label} raised {type(exc).__name__}: {exc}; fell through."
+                )
+                continue
+            if first.chars >= self._min_chars:
+                first.label, first.quality = label, "high"
+                note = (
+                    f"quality high: {label} readability extraction, {first.chars} "
+                    f"chars (>= min_chars {self._min_chars}); boilerplate removed by "
+                    f"the extractor."
+                )
+                return (
+                    ladder,
+                    [note, *history],
+                    self._with_meta(module_name, mod, html, url, first),
+                )
+            ladder.append(f"{label}-recall")
+            try:
+                second = run(mod, html, url, favor_recall=True)
+            except Exception as exc:  # noqa: BLE001 -- same reason as above
+                history.append(
+                    f"{label} precision pass {first.chars} chars; the favor_recall "
+                    f"retry raised {type(exc).__name__}: {exc}; fell through."
+                )
+                continue
+            # A page with NO visible text (an app shell) has nothing to cover: the
+            # real rs-trafilatura returned the <title> three times on one.
+            covers_page = (
+                page_chars > 0 and second.chars >= _RECALL_MIN_COVERAGE * page_chars
+            )
+            if second.chars and (second.chars >= self._min_chars or covers_page):
+                second.label, second.quality = label, "medium"
+                note = (
+                    f"quality medium: {label}'s precision pass yielded {first.chars} "
+                    f"chars (< min_chars {self._min_chars}), so the favor_recall retry "
+                    f"produced this text ({second.chars} chars)."
+                )
+                return (
+                    ladder,
+                    [note, *history],
+                    self._with_meta(module_name, mod, html, url, second),
+                )
+            history.append(
+                f"{label} found too little: precision pass {first.chars} chars, "
+                f"favor_recall pass {second.chars} chars (min_chars {self._min_chars}; "
+                f"the page's visible text is {page_chars} chars), so the stdlib text "
+                f"is returned instead."
+            )
+        return ladder, history, None
+
+    @staticmethod
+    def _with_meta(
+        module_name: str, mod, html: str, url: str, chosen: _Readable
+    ) -> _Readable:
+        fetch_meta = _READABILITY_METADATA.get(module_name)
+        if fetch_meta is not None and not chosen.meta:
+            chosen.meta = fetch_meta(mod, html, url)
+        return chosen
+
+    @staticmethod
+    def _shape_plain(
+        payload: dict, body: bytes, charset: str | None, media: str, max_bytes: int
+    ) -> tuple[bool, list[str]]:
+        """Rung 3 only: ``text/plain``, JSON, XML ... pass through; no extraction
+        applies, so there is no page signal either."""
+        text, capped = _cap_text(
+            _normalize_plain(_decode_body(body, charset, html=False)), max_bytes
+        )
+        payload.update(
+            title=None,
+            author=None,
+            date=None,
+            content_type=media,
+            extractor="stdlib-text",
+            quality="low",
+            extractor_ladder=["stdlib-text"],
+            text=text,
+            chars=len(text),
+            page_type="other",
+            link_density=0.0,
+            boilerplate_removed=False,
+        )
+        note = (
+            f"quality low: {media} passed through with whitespace collapsed (no "
+            f"extraction applies; the readability rung targets HTML only)."
+        )
+        return capped, [note]
 
     # ---- the call path (always truthful) ----------------------------------
     def handle_call(self, name: str, arguments: dict) -> dict:
