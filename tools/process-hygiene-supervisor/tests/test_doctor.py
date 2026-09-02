@@ -798,3 +798,12 @@ def test_browser_policy_cli(capsys):
     assert "never kills" in out.lower() or "discard" in out.lower()
     code = doc.main(["browser-policy", "--emit", "C:/out", "--hive", "HKXX"], probe=p)
     assert code == 2
+
+
+def test_quick_mode_runs_only_the_heartbeat_check_and_spawns_nothing(capsys):
+    p = probe(files={f"{ROOT}/state/heartbeat.json": heartbeat(NOW - 3 * 3600)})
+    code = doc.main(["--root", ROOT, "--home", HOME, "--quick", "--json"], probe=p)
+    out = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert [f["id"] for f in out["findings"]] == ["heartbeat"]
+    assert p.calls == []  # no `claude --version` etc. every five minutes

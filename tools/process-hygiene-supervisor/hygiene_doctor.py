@@ -395,9 +395,13 @@ def check_mcp_wrappers(probe, home: str) -> Finding:
 
 
 def run_checks(
-    probe, *, root: str, home: str, interval_minutes: int = 5
+    probe, *, root: str, home: str, interval_minutes: int = 5, quick: bool = False
 ) -> list[Finding]:
+    """All checks, or with ``quick`` only the heartbeat - the one a 5-minute producer
+    (resource-guard.ps1) can afford to ask every run without spawning CLIs."""
     findings = [check_heartbeat(probe, root, interval_minutes)]
+    if quick:
+        return findings
     findings.extend(check_runtime_versions(probe))
     findings.append(check_wslconfig(probe, home))
     findings.append(check_mcp_wrappers(probe, home))
@@ -754,9 +758,18 @@ def _cmd_doctor(argv: list[str], probe) -> int:
         default=None,
         help="append one ACTION_REQUIRED line here (12 h cooldown)",
     )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="heartbeat check only (cheap enough for a 5-minute producer)",
+    )
     args = parser.parse_args(argv)
     findings = run_checks(
-        probe, root=args.root, home=args.home, interval_minutes=args.interval_minutes
+        probe,
+        root=args.root,
+        home=args.home,
+        interval_minutes=args.interval_minutes,
+        quick=args.quick,
     )
     if args.digest:
         _digest_line(probe, args.root, args.digest, findings)

@@ -40,6 +40,15 @@ param(
     [string]$OrphanEvidenceRoot = 'C:\Users\Prekzursil\.agent-guard\resource-guard\evidence',
     [switch]$ReapOrphanCursorAgents,
 
+    # Process-hygiene supervisor liveness (tools/process-hygiene-supervisor, 2026-09-02).
+    # A dead watchdog and a quiet box look identical from its own output, so this
+    # producer asks the supervisor's read-only doctor whether the heartbeat is stale and
+    # lets the doctor append its own (12 h cooldown) digest line. INERT until the
+    # supervisor is deployed: when the doctor file is absent this is one log line.
+    [string]$HygieneDoctor = 'C:\Users\Prekzursil\.agent-guard\process-hygiene\hygiene_doctor.py',
+    [string]$HygieneRoot   = 'C:\Users\Prekzursil\.agent-guard\process-hygiene',
+    [string]$HygienePython = 'C:\Python314\python.exe',
+
     # --- test/simulation overrides (when set, skip live sampling for that metric) ---
     [Nullable[double]]$FreeRamGbOverride = $null,
     [Nullable[int]]   $CUsedPctOverride  = $null,
@@ -247,6 +256,27 @@ try {
     }
     else {
         Write-RgLog "[$stamp] ORPHAN-GUARD missing: $OrphanReaper"
+    }
+
+    # Supervisor liveness. Read-only (--quick reads one heartbeat file, spawns nothing
+    # else), fail-open, and the doctor owns its own anti-spam marker so this cannot
+    # double-enqueue with the resource-guard signature below.
+    if ($HygieneDoctor -and (Test-Path -LiteralPath $HygieneDoctor -PathType Leaf) -and (Test-Path -LiteralPath $HygienePython -PathType Leaf)) {
+        try {
+            $doctorOut = @(& $HygienePython $HygieneDoctor --quick --root $HygieneRoot --digest $DigestFile 2>&1)
+            $doctorExit = $LASTEXITCODE
+            $doctorLine = (($doctorOut | Select-Object -Last 1) -replace '\r?\n', ' ')
+            if ($doctorLine.Length -gt 300) { $doctorLine = $doctorLine.Substring(0, 300) }
+            Write-RgLog "[$stamp] HYGIENE-DOCTOR exit=$doctorExit $doctorLine"
+        }
+        catch {
+            $detail = ($_.Exception.Message -replace '\r?\n', ' ').Trim()
+            if ($detail.Length -gt 240) { $detail = $detail.Substring(0, 240) }
+            Write-RgLog "[$stamp] HYGIENE-DOCTOR failed open; reason=$detail"
+        }
+    }
+    else {
+        Write-RgLog "[$stamp] HYGIENE-DOCTOR not deployed (skipped): $HygieneDoctor"
     }
 
     $ramGb  = Sample-FreeRamGb
