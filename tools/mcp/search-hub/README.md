@@ -174,7 +174,154 @@ envelope: [`docs/legal/onions-lane-envelope.md`](../../../docs/legal/onions-lane
   `ossinsight_collections`, `ossinsight_collection_ranking`. In-process HTTP,
   **≈ 0 MB**, wired only when the flag is set. Degraded upstream rankings are relayed
   truthfully (their `data_quality` note passes through). Base URL: `OSSINSIGHT_URL`
-  (default `https://api.ossinsight.io`).
+  (default `https://api.ossinsight.io`). OSSInsight's ranking endpoints have been
+  starved upstream since ~2025-10, so the **default-ON GitHub REST lane below** is
+  the working repo-discovery surface; this lane stays as the opt-in sibling.
+
+---
+
+## Repo discovery (keyless, default ON): GitHub REST search (`github_*`)
+
+The `github_*` tools are the repo-discovery lane that works today: keyless
+requests to GitHub's **own** REST search API (`adapters.GitHubSearchAdapter`, a
+sibling of `OSSInsightAdapter`). In-process stdlib `urllib`, **no child, no new
+dependency, ≈ 0 MB at rest**, and no request until a tool is called.
+
+- **Why default ON** (the OSSInsight sibling is default OFF): first-party public
+  API, keyless, no cost, no third-party terms and no legal shadow. The flag
+  **`ENABLE_GITHUB_SEARCH`** is therefore only a **kill switch** — unset/truthy =
+  wired, an explicit falsey value (`0`/`false`/`no`/`off`) unwires all five tools.
+- **Config, not a secret:** **`GITHUB_API_URL`** (default `https://api.github.com`)
+  is the base URL, so tests point the adapter at a fake backend exactly like
+  `TRAILSEARCH_URL` does for TrailSearch.
+- **Optional token:** **`GITHUB_TOKEN`** (fallback **`GH_TOKEN`**) is sent as
+  `Authorization: Bearer …` when set. It is read by env **name** only, never logged
+  or echoed (any upstream echo is scrubbed), and surfaces solely as
+  `authenticated: true|false`. It lifts the search pool from **10 → 30
+  requests/min** and the core pool from **60 → 5000 requests/h**.
+- **Tools** (each answers compact items + `rate_limit {limit, remaining,
+  reset_epoch, resource}` + `authenticated`; GitHub's `total_count` and
+  `incomplete_results` are relayed, never padded — a partial upstream set is
+  flagged in `note`):
+  - `github_repo_search(q, sort=stars|forks|help-wanted-issues|updated, order,
+    per_page<=50, page)` — full GitHub search syntax in `q`; omit `sort` for
+    best-match ranking. `GET /search/repositories`.
+  - `github_new_and_hot(keyword="", days=30, language="", topic="", min_stars=0,
+    per_page, page)` — composes `created:>YYYY-MM-DD` (+ `language:`, `topic:`,
+    `stars:>=N`) with `sort=stars`: the "new & hot" ranking OSSInsight lost.
+  - `github_popular_and_alive(keyword="", pushed_days=30, language="", topic="",
+    min_stars=100, per_page, page)` — composes `pushed:>YYYY-MM-DD` + `stars:>=N`
+    with `sort=stars`: popular **and** still moving.
+  - `github_topic_search(q, per_page, page)` — `GET /search/topics` (no preview
+    header needed); feed a topic name into `github_new_and_hot`'s `topic=`.
+  - `github_repo_activity(owner, repo)` — `GET /repos/{o}/{r}/stats/commit_activity`
+    (52 weekly totals, `total_commits`, `recent_4_weeks_commits`) +
+    `/stats/participation` (`all` vs `owner`, 52 weeks). GitHub answers **HTTP 202
+    with no body while it computes** fresh statistics: the tool pauses once
+    (1.5 s), retries **once**, and otherwise reports `computing: true` truthfully
+    (call again shortly) — never a busy loop, never a fabricated series.
+- **Compact item shape:** `full_name, html_url, description, stargazers_count,
+  forks_count, language, created_at, pushed_at, topics, license` (SPDX id); topic
+  hits carry `name, display_name, short_description, created_by, released,
+  created_at, updated_at, featured, curated`.
+- **Honest limits (also in every tool description):** GitHub search exposes only
+  the **first 1000 results** (`per_page * page <= 1000`), a query is at most **256
+  characters / 5 `AND`/`OR`/`NOT` operators**, and there is **no star velocity**
+  keyless — `/stargazers` is 401 and GraphQL is 403 without a token — so the
+  rankings are a **snapshot, not a growth curve**. Arguments are validated
+  **before** a request is spent, so a bad `sort`/`per_page`/over-long `q` never
+  costs a rate-limited call.
+- **Truthful degradation:** a **403/429 rate limit** returns an `isError` naming
+  the pool, `remaining/limit`, the reset epoch, any `Retry-After`, and the remedy
+  (set a token / wait); a **422** relays GitHub's validation message and fields; a
+  **401** says the token was rejected (value never shown); an unreachable API is a
+  transport error — **never an empty success**.
+- **`search_usage {"provider":"github"}`** reports the lattice state plus
+  `authenticated` and `self_hosted: false`; `"probe":true` does one
+  `GET /rate_limit` (free — not counted against any pool) and reports the
+  `search` / `core` headroom.
+- **Tests:** `tests/test_github_search.py` against `tests/fake_github_backend.py`
+  (canned JSON per route, a 202-then-200 stats pair, a 403 rate-limit response
+  with `x-ratelimit-*` headers, a 422, a token run asserting the `Authorization`
+  header reached the fake and never appears in any output, the kill switch, and
+  one end-to-end call over a real loopback socket). No live network.
+
+---
+
+## `read_url` — in-process fetch negotiating Cloudflare Markdown for Agents (default ON)
+
+The hub had **no fetch path of its own**: `web_url_read` belongs to the downstream
+`mcp-searxng` child (no boilerplate removal, cannot add request headers) and
+`selfhosted_extract` fetches server-side inside TrailSearch. `read_url`
+(`adapters.ReadUrlAdapter`) is the minimal **honest v0**: stdlib `urllib`,
+in-process, no child, no new dependency. **Wave 2 upgrades it in place** (same
+name, same output shape) with a trafilatura extractor.
+
+- **Tool:** `read_url(url, max_bytes=2_000_000, timeout_s=20)` →
+  `{url, final_url, status, redirects, title, content_type, extractor, quality,
+  markdown | text, tokens?, bytes, truncated, note}`.
+- **Negotiation:** every request sends
+  `Accept: text/markdown, text/html;q=0.9, text/plain;q=0.8, */*;q=0.1` (the
+  header Cloudflare's [Markdown for Agents](https://developers.cloudflare.com/fundamentals/reference/markdown-for-agents/)
+  documents). The result **names the path that produced the text**:
+  - `extractor: "cloudflare-markdown"`, `quality: "high"` — the zone answered
+    `Content-Type: text/markdown` **with** `x-markdown-tokens` / `x-original-tokens`
+    (relayed as `tokens: {markdown, original}`); the body is Cloudflare's
+    server-side clean markdown (YAML frontmatter + body). Only opted-in
+    Pro/Business/Enterprise zones do this (Cloudflare's own docs and blog do) —
+    the hit-rate across the web is unknown, which is exactly why the field exists.
+  - `extractor: "origin-markdown"`, `quality: "high"` — the origin itself served
+    `text/markdown` (no Cloudflare token headers); passed through verbatim.
+  - `extractor: "stdlib-text"`, `quality: "low"` — the fallback. HTML goes through
+    a stdlib `html.parser` tag-stripper that drops the
+    `script/style/noscript/svg/template/nav/footer/aside/header` subtrees, keeps
+    `<title>`, collapses whitespace, keeps paragraph breaks and decodes entities.
+    **Tag-stripping is not readability** — boilerplate outside those subtrees
+    survives, hence `low`. `text/plain`, JSON and XML pass through with whitespace
+    collapsed. Binary content is refused, not "extracted".
+- **Size cap:** the body is read up to `max_bytes` (256 … 10 000 000; default 2 MB,
+  Cloudflare's own conversion limit) and the returned text is capped to it;
+  `truncated: true` says so. `bytes` is the body length actually kept.
+- **Safety, enforced BEFORE any request and again on EVERY redirect hop:**
+  - `http` / `https` only (`file:`, `ftp:`, `javascript:` … refused).
+  - **`.onion` hosts refused** via `onions.is_onion_url` — the onions-lane
+    envelope forbids fetching or rendering onion services anywhere in this hub, so
+    no request is made (see
+    [`docs/legal/onions-lane-envelope.md`](../../../docs/legal/onions-lane-envelope.md)).
+  - URLs embedding credentials (`user:pass@host`) refused; **no cookies or
+    credentials are ever sent**; a modest `User-Agent` is.
+  - At most **5 redirects**, followed by the adapter itself (urllib's silent
+    follower is disabled) so a public page cannot redirect the fetch into
+    `http://169.254.169.254/`; a `Location`-less 3xx and a loop are refused.
+  - Hosts that resolve to **loopback / private / link-local / multicast /
+    reserved / unspecified** space (127/8, RFC 1918, 169.254/16, `::1`, `fc00::/7`,
+    …) are refused — literal IPs included, and a mixed answer with **any**
+    non-public address is refused. **`READ_URL_ALLOW_PRIVATE=1`** disables that
+    check: it is a **test/dev escape hatch** (the test origin is 127.0.0.1),
+    default **off**, never set it in production.
+  - A timeout applies to **every** hop (`timeout_s`, 1 … 120). `Accept-Encoding:
+    identity` is requested; a gzip/deflate body served anyway is inflated under the
+    same cap, any other encoding is reported truthfully rather than mis-decoded.
+  - Known v0 limit: the name is resolved once for the check and again by urllib to
+    connect, so a deliberately rebinding resolver could answer differently between
+    the two (pinning needs a custom connection class — Wave 2).
+- **Truthful degradation:** non-2xx status, binary content, an unreachable origin,
+  an undecodable encoding or any refusal above returns an `isError` naming the
+  reason (URL credentials scrubbed) — content is never fabricated.
+- **Flag:** **`ENABLE_READ_URL`** is a kill switch (default ON; explicit falsey
+  unwires the tool). `search_usage {"provider":"read_url"}` reports the lattice
+  state plus `private_targets_allowed`, `negotiates` and `max_redirects`; there is
+  no backend to probe (each call names its own origin).
+- **Tests:** `tests/test_read_url.py` against `tests/fake_page_backend.py`: the
+  Cloudflare-markdown path (tokens parsed, `quality: high`), the HTML fallback
+  (script/nav/footer dropped, title and paragraphs kept, `quality: low`), plain
+  text and charsets, the `.onion` / `file:` / `ftp:` / credential refusals with
+  **no request made**, the redirect loop and >5-hop cap, the private-address
+  refusal with the flag unset (and the fetch with it set), redirects into private
+  space, the size cap → `truncated: true`, binary refusal, and the kill switch.
+  The tests set `READ_URL_ALLOW_PRIVATE=1` in the adapter's **injected** environ
+  because the fake origin is 127.0.0.1 — that is the escape hatch's only intended
+  use. No live network.
 
 ---
 

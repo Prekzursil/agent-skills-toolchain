@@ -219,6 +219,58 @@ def test_default_urllib_caller_against_real_socket():
         result = ad.handle_call("selfhosted_search", {"query": "socket"})
         payload = _payload(result)
         assert payload["results"][0]["content"] == "content about socket"
+        # The header-aware caller is the same call plus lower-cased response
+        # headers; the historical 3-tuple caller is exactly its first three items.
+        url = f"http://127.0.0.1:{port}/docs"
+        status, parsed, raw, headers = adapters._default_header_caller(
+            "GET", url, None, {}, 5.0
+        )
+        assert (status, parsed, raw) == adapters._default_caller(
+            "GET", url, None, {}, 5.0
+        )
+        assert 200 <= status < 400 and headers and all(k == k.lower() for k in headers)
     finally:
         server.shutdown()
         server.server_close()
+
+
+# --------------------------------------------------------------------------- #
+# builders: default_adapters keeps its contract; wired_adapters extends it
+# --------------------------------------------------------------------------- #
+def test_wired_adapters_is_default_adapters_plus_default_on_public_lanes():
+    base = [a.platform for a in adapters.default_adapters({}, caller=fake.fake_caller)]
+    wired = [a.platform for a in adapters.wired_adapters({}, caller=fake.fake_caller)]
+    assert base == ["selfhosted"]  # the historical lane-gated list is untouched
+    assert wired[: len(base)] == base  # same adapters first, same order
+    assert wired[len(base) :] == ["github", "read_url"]  # then the default-ON lanes
+    # Without an injected caller (how hub.py calls it) the same list is built.
+    assert [a.platform for a in adapters.wired_adapters({})] == wired
+
+
+def test_wired_adapters_honours_the_opt_in_and_kill_switch_flags_together():
+    environ = {
+        "ENABLE_OSSINSIGHT": "1",
+        "ENABLE_GITHUB_SEARCH": "0",
+        "ENABLE_READ_URL": "off",
+    }
+    wired = [
+        a.platform for a in adapters.wired_adapters(environ, caller=fake.fake_caller)
+    ]
+    assert wired == ["selfhosted", "ossinsight"]  # opt-in ON, both kill switches OFF
+    only_read_url = adapters.wired_adapters({"ENABLE_GITHUB_SEARCH": "false"})
+    assert [a.platform for a in only_read_url] == ["selfhosted", "read_url"]
+    # Every wired adapter speaks the same contract: names never collide.
+    names = [n for a in adapters.wired_adapters({}) for n in a.tool_names()]
+    assert len(names) == len(set(names))
+    assert not any(
+        a.capabilities()["self_hosted"] for a in adapters.keyless_public_adapters({})
+    )
+
+
+def test_lane_killed_is_explicit_falsey_only():
+    for value in ("0", "false", "no", "off", " Off "):
+        assert adapters._lane_killed({"X": value}, "X") is True
+    for value in ("", "1", "true", "yes", "on", "anything"):
+        assert adapters._lane_killed({"X": value}, "X") is False
+    assert adapters._lane_killed({}, "X") is False  # unset = ON (default-on lanes)
+    assert adapters._flag_enabled({}, "X") is False  # unset = OFF (opt-in lanes)

@@ -306,7 +306,7 @@ class SearchHub:
         self.adapters = (
             self_hosted
             if self_hosted is not None
-            else adapters.default_adapters(self.environ)
+            else adapters.wired_adapters(self.environ)
         )
         self.adapter_routes = {
             name: ad for ad in self.adapters for name in ad.tool_names()
@@ -700,7 +700,7 @@ def _cmd_print_plan() -> int:
     per_provider: dict[str, int] = {s.platform: 0 for s in specs}
     for route in routes.values():
         per_provider[route.platform] += 1
-    self_hosted = adapters.default_adapters(os.environ)
+    self_hosted = adapters.wired_adapters(os.environ)
     adapter_tools = [d for ad in self_hosted for d in ad.tool_defs()]
     for ad in self_hosted:
         per_provider[ad.platform] = len(ad.tool_names())
