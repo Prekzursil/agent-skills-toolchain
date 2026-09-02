@@ -6,16 +6,22 @@ estimating ``len(text) // 4``:
 * :func:`inject` (TST-0240) is the router's per-turn injection.  Every installed
   capability is scored by **query-term coverage** - the share of distinct query
   words that occur in its routing card (id, name, description).  ``policy="topk"``
-  keeps the ``k`` best positive matches and packs their cards into one block
+  follows the IMP-0392 ``budget_inject`` precedent: the *relevant* cards (coverage
+  at or above ``COVERAGE_THRESHOLD``) are packed in rank order into one block
   while the block, counted with the pinned tokenizer in :mod:`router.tokens`,
   stays at or under ``CEILING_TOKENS``; a card that would cross the ceiling is
-  refused together with everything ranked below it, so the injected cost is a
-  function of ``k`` and the ceiling, not of the installed count.
-  ``policy="flood"`` is the detector's red state: every capability card *and
-  body* is concatenated with no ceiling, so the cost grows with the catalogue.
+  refused together with everything ranked below it.  An explicit ``k`` caps the
+  number of relevant cards considered (``k=None``, the default, considers them
+  all), so the injected cost is a function of relevance, ``k`` and the ceiling,
+  never of the installed count.  ``policy="flood"`` is the detector's red state:
+  every capability card *and body* is concatenated with no ceiling, so the cost
+  grows with the catalogue.
 * :func:`inject_topk` / :func:`inject_unbounded_flood` (TST-0085) are the
   trigger-scored payload emitters whose independent recount function is
   :func:`count_payload_tokens`.  They keep their dict return shape.
+
+``DEFAULT_K`` is the explicit-k value the delivered sweeps run at (TST-0085 pins
+its budget curve to it); it is not what :func:`inject` does when ``k`` is omitted.
 """
 
 from __future__ import annotations
@@ -25,30 +31,39 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
+from .injection_budget import HARD_CEILING_TOKENS, SCORE_THRESHOLD
+from .lexical import TOKEN_RE as _CONTENT_RE
+from .lexical import tokenize as content_tokens
 from .tokens import count_tokens, tokenizer_pin
 
-# ADV-0115 / IMP-0392 bounded top-k injection precedent: 512 tokens per turn.
-CEILING_TOKENS = 512
+# ADV-0115 / IMP-0392 bounded injection precedent: 512 tokens per turn and a
+# relevance threshold below which a capability is never injected.
+CEILING_TOKENS = int(HARD_CEILING_TOKENS)
+COVERAGE_THRESHOLD = float(SCORE_THRESHOLD)
 # TST-0085 budget ceiling (IMP-0392 BUDGET_CEILING) used by the trigger-scored path.
 DEFAULT_CEILING = 500
-DEFAULT_K = 5
+# Explicit-k sweep value shared by the TST-0085 and TST-0240 curves.
+DEFAULT_K = 4
 POLICY_TOPK = "topk"
 POLICY_FLOOD = "flood"
 POLICIES = (POLICY_TOPK, POLICY_FLOOD)
 
-_WORD_RE = re.compile(r"[a-z0-9]+")
-
-
-def _words(text: str) -> list[str]:
-    """Lower-cased alphanumeric words of ``text`` in order of appearance."""
-    return _WORD_RE.findall((text or "").lower())
 
 
 def query_terms(query: str) -> tuple[str, ...]:
-    """Distinct query words in first-appearance order; the coverage denominator."""
+    """Distinct content terms of ``query`` in first-appearance order.
+
+    This is the coverage denominator.  Terms are the router's shared lexical
+    tokens (:func:`router.lexical.tokenize`, the IMP-0388 linter's tokenizer):
+    stop words and single characters never count, so a query's ``this``/``for``/
+    ``and`` cannot dilute the score of a card that covers every content word.
+    """
+    keep = content_tokens(query)
     seen: dict[str, None] = {}
-    for word in _words(query):
-        seen.setdefault(word, None)
+    for word in _CONTENT_RE.findall(query or ""):
+        low = word.lower()
+        if low in keep:
+            seen.setdefault(low, None)
     return tuple(seen)
 
 
@@ -109,10 +124,10 @@ class Capability:
 
 
 def coverage_score(terms: tuple[str, ...], cap: Capability) -> float:
-    """Share of distinct query terms present in the capability's routing text."""
+    """Share of the query's content terms present in the capability's routing text."""
     if not terms:
         return 0.0
-    present = set(_words(cap.routing_text()))
+    present = content_tokens(cap.routing_text())
     return sum(1 for term in terms if term in present) / len(terms)
 
 
@@ -209,20 +224,26 @@ def _measure(block: str) -> tuple[int, int]:
 def inject(
     query: str,
     catalogue: Iterable[Capability | Mapping[str, Any]],
-    k: int = DEFAULT_K,
+    k: int | None = None,
     policy: str = POLICY_TOPK,
     ceiling: int = CEILING_TOKENS,
+    threshold: float = COVERAGE_THRESHOLD,
 ) -> InjectResult:
     """Select and pack capabilities for ``query``; tokens are counted on the block.
 
-    ``topk``: the ``k`` best positive-coverage cards in rank order, packed while
-    the measured block stays at or under ``ceiling``.  ``flood``: every card and
-    body, in catalogue order, no ceiling.
+    ``topk``: the cards whose coverage is at or above ``threshold``, best first
+    (at most ``k`` of them when ``k`` is given), packed while the measured block
+    stays at or under ``ceiling``.  ``flood``: every card and body, in rank
+    order, no ceiling, no threshold.
     """
     if not isinstance(query, str):
         raise TypeError(f"query must be str, got {type(query).__name__}")
     if policy not in POLICIES:
         raise ValueError(f"unknown policy {policy!r}; expected one of {POLICIES}")
+    if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
+        raise TypeError("threshold must be a number")
+    if not 0.0 < float(threshold) <= 1.0:
+        raise ValueError(f"threshold must be in (0, 1], got {threshold}")
     scored = tuple(rank(query, catalogue))
     n = len(scored)
 
@@ -248,16 +269,20 @@ def inject(
             truncated_by_ceiling=False,
         )
 
-    if int(k) < 1:
-        raise ValueError(f"k must be >= 1, got {k}")
+    if k is not None:
+        if isinstance(k, bool) or not isinstance(k, int):
+            raise TypeError(f"k must be an int or None, got {type(k).__name__}")
+        if k < 1:
+            raise ValueError(f"k must be >= 1, got {k}")
     if int(ceiling) < 1:
         raise ValueError(f"ceiling must be >= 1, got {ceiling}")
-    candidates = [sc.capability for sc in scored if sc.score > 0.0][: int(k)]
+    relevant = [sc.capability for sc in scored if sc.score >= float(threshold)]
+    candidates = relevant if k is None else relevant[:k]
     lines: list[str] = []
     selected: list[str] = []
     refused: list[str] = []
     truncated = False
-    for index, cap in enumerate(candidates):
+    for cap in candidates:
         if truncated:
             refused.append(cap.id)
             continue
@@ -278,7 +303,7 @@ def inject(
         refused=tuple(refused),
         scored=scored,
         packed=len(selected),
-        k=int(k),
+        k=k,
         policy=POLICY_TOPK,
         ceiling=int(ceiling),
         catalog_n=n,
@@ -397,6 +422,7 @@ def inject_unbounded_flood(
 
 __all__ = [
     "CEILING_TOKENS",
+    "COVERAGE_THRESHOLD",
     "Capability",
     "DEFAULT_CEILING",
     "DEFAULT_K",
