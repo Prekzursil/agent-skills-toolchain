@@ -287,14 +287,17 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
             content_type: str = "application/json",
             session_id: str | None = None,
         ) -> None:
-            self.send_response(status)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(body)))
-            if session_id:
-                self.send_header(SESSION_HEADER, session_id)
-            self.end_headers()
-            if body:
-                self.wfile.write(body)
+            try:
+                self.send_response(status)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(body)))
+                if session_id:
+                    self.send_header(SESSION_HEADER, session_id)
+                self.end_headers()
+                if body:
+                    self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # the client timed out and left: a hung-daemon rehearsal
 
         def _send_rpc_error(
             self, status: int, code: int, message: str, session_id: str | None = None
@@ -431,15 +434,17 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
                 self._send(404, session_not_found_body())
                 return
             sink = session.attach_stream()
+            # Chunked like uvicorn's SSE responses: the client must parse events
+            # as they arrive, not wait for a Content-Length it will never get.
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-cache")
+            self.send_header("Transfer-Encoding", "chunked")
             self.send_header("Connection", "close")
             self.send_header(SESSION_HEADER, session.id)
             self.end_headers()
-            self.wfile.write(b": stream open\n\n")
-            self.wfile.flush()
             try:
+                self._write_chunk(b": stream open\n\n")
                 while not daemon._stopping.is_set() and not session.closed:
                     try:
                         message = sink.get(timeout=0.1)
@@ -447,13 +452,20 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
                         continue
                     if message is None:
                         break
-                    self.wfile.write(_sse_event(message))
-                    self.wfile.flush()
+                    self._write_chunk(_sse_event(message))
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError, OSError):
                 pass
             finally:
                 session.detach_stream(sink)
             self.close_connection = True
+
+        def _write_chunk(self, data: bytes) -> None:
+            self.wfile.write(f"{len(data):x}\r\n".encode("ascii"))
+            self.wfile.write(data)
+            self.wfile.write(b"\r\n")
+            self.wfile.flush()
 
         def do_DELETE(self) -> None:  # noqa: N802 (stdlib name)
             if self._path() != MCP_PATH:
