@@ -5,11 +5,95 @@ citations + a tiered references section, and (b) grading + cache/preflight
 provenance. The Methodology section reports routed providers, cache hit/miss,
 and any provider that was DOWN at preflight - machine-checkable honesty for the
 base skill's "acknowledge gaps" rule.
+
+Terminal-state taxonomy (Lens 12 find 2): a run ends in exactly one of
+``REPORT_STATUSES``. ``partial:*`` is *degraded success* - the renderer ALWAYS
+emits whatever evidence exists plus an "Unanswered sub-questions" section - and
+is counted apart from ``failed`` by ``summarize_statuses`` so a run that died
+on the box is distinguishable from a run that answered wrongly.
 """
 
+from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 
 from .grading import Grade, Source, overall_confidence
+
+STATUS_COMPLETE = "complete"
+STATUS_PARTIAL_BUDGET = "partial:budget"  # call/token budget hit ``finalize``
+STATUS_PARTIAL_SOURCES = "partial:sources"  # sufficiency gate left questions open
+STATUS_PARTIAL_TIMEOUT = "partial:timeout"  # wall-clock axis was the binding one
+STATUS_PARTIAL_LOOP = "partial:loop"  # loop guard tripped (repeated queries)
+STATUS_FAILED = "failed"  # nothing usable; still rendered with its gaps
+REPORT_STATUSES = frozenset(
+    {
+        STATUS_COMPLETE,
+        STATUS_PARTIAL_BUDGET,
+        STATUS_PARTIAL_SOURCES,
+        STATUS_PARTIAL_TIMEOUT,
+        STATUS_PARTIAL_LOOP,
+        STATUS_FAILED,
+    }
+)
+_PARTIAL_PREFIX = "partial:"
+
+
+def status_family(status: str) -> str:
+    """Collapse a status to ``complete`` / ``partial`` / ``failed``."""
+    if status not in REPORT_STATUSES:
+        raise ValueError(f"unknown report status: {status!r}")
+    if status.startswith(_PARTIAL_PREFIX):
+        return "partial"
+    return status
+
+
+@dataclass(frozen=True, slots=True)
+class StatusSummary:
+    """Run-outcome tallies with ``partial:*`` counted apart from ``failed``."""
+
+    total: int
+    complete: int
+    partial: int
+    failed: int
+    partial_by_kind: dict[str, int]
+
+    @property
+    def complete_rate(self) -> float:
+        return self.complete / self.total if self.total else 0.0
+
+    @property
+    def delivered_rate(self) -> float:
+        """Share of runs that shipped a report (complete + partial)."""
+        return (self.complete + self.partial) / self.total if self.total else 0.0
+
+    @property
+    def line(self) -> str:
+        kinds = ", ".join(f"{k}={v}" for k, v in sorted(self.partial_by_kind.items()))
+        detail = f" ({kinds})" if kinds else ""
+        return (
+            f"runs={self.total} complete={self.complete} "
+            f"partial={self.partial}{detail} failed={self.failed}"
+        )
+
+
+def summarize_statuses(statuses: Iterable[str]) -> StatusSummary:
+    """Tally terminal states; ``partial:*`` is never folded into ``failed``."""
+    families = Counter()
+    partial_kinds: Counter[str] = Counter()
+    total = 0
+    for status in statuses:
+        family = status_family(status)
+        families[family] += 1
+        total += 1
+        if family == "partial":
+            partial_kinds[status] += 1
+    return StatusSummary(
+        total=total,
+        complete=families["complete"],
+        partial=families["partial"],
+        failed=families["failed"],
+        partial_by_kind=dict(partial_kinds),
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +144,25 @@ class Report:
     citations: tuple[Citation, ...]
     methodology: Methodology
     takeaways: tuple[str, ...] = field(default_factory=tuple)
+    # Terminal state of the run that produced this report (``REPORT_STATUSES``)
+    # and the sub-questions it never answered. ``complete`` may not carry open
+    # sub-questions; ``partial:*``/``failed`` may (and usually do).
+    status: str = STATUS_COMPLETE
+    open_subquestions: tuple[str, ...] = field(default_factory=tuple)
+    # Rendered "Disputed" callouts (``conflicts.Dispute.callout``) for claims
+    # whose sources quote incompatible values. Plain strings keep the renderer
+    # data-only; a dispute is honest disagreement and does not change ``status``.
+    disputes: tuple[str, ...] = field(default_factory=tuple)
+
+    def __post_init__(self) -> None:
+        if self.status not in REPORT_STATUSES:
+            raise ValueError(f"unknown report status: {self.status!r}")
+        if self.status == STATUS_COMPLETE and self.open_subquestions:
+            raise ValueError("a complete report cannot carry open sub-questions")
+
+    @property
+    def is_partial(self) -> bool:
+        return status_family(self.status) == "partial"
 
 
 def build_citations(graded_sources: list[tuple[Source, Grade]]) -> tuple[Citation, ...]:
@@ -95,12 +198,28 @@ def render(report: Report) -> str:
     lines.append(
         f"*Cache: {report.methodology.cache_hits} hits / "
         f"{report.methodology.cache_misses} misses | "
-        f"Stale-allowed: {'yes' if report.methodology.stale_allowed else 'no'}*"
+        f"Stale-allowed: {'yes' if report.methodology.stale_allowed else 'no'} | "
+        f"Status: {report.status}*"
     )
     lines.append("")
     lines.append("## Executive Summary")
     lines.append(report.summary)
     lines.append("")
+
+    # A partial/failed run still ships everything it has; the gaps are named
+    # up front so a reader never mistakes degraded success for a full answer.
+    if report.status != STATUS_COMPLETE:
+        lines.append("## Unanswered sub-questions")
+        lines.append(
+            f"The run ended `{report.status}`; the following sub-questions were "
+            "not answered (or not to the sufficiency bar):"
+        )
+        if report.open_subquestions:
+            for sq in report.open_subquestions:
+                lines.append(f"- {sq}")
+        else:
+            lines.append("- (none recorded)")
+        lines.append("")
 
     for n, theme in enumerate(report.themes, start=1):
         lines.append(f"## {n}. {theme.title}")
@@ -117,6 +236,14 @@ def render(report: Report) -> str:
         lines.append("## Key Takeaways")
         for takeaway in report.takeaways:
             lines.append(f"- {takeaway}")
+        lines.append("")
+
+    # Contradicted claims are shown with BOTH values rather than silently
+    # resolved to one; each callout names the grading-preferred citation.
+    if report.disputes:
+        lines.append("## Disputed claims")
+        for callout in report.disputes:
+            lines.append(f"> {callout}")
         lines.append("")
 
     lines.append("## Sources")
@@ -141,5 +268,6 @@ def render(report: Report) -> str:
     )
     down = ", ".join(report.methodology.providers_down) or "none"
     lines.append(f"Providers down at preflight: {down}.")
+    lines.append(f"Terminal state: {report.status}.")
 
     return "\n".join(lines).rstrip() + "\n"

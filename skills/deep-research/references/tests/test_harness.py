@@ -1,12 +1,18 @@
 """Preflight + harness-plan integration tests (pure, injected probe)."""
 
-from research_harness.harness import plan_research
+import pytest
+
+from research_harness.budget import EFFORT_CALLS
+from research_harness.harness import classify_effort, plan_research
 from research_harness.preflight import (
     DOWN,
     LIVE,
+    NO_RETRY_SERVERS,
     QUOTA,
+    ProviderStatus,
     down_servers,
     live_servers,
+    retry_allowed,
     routable_servers,
     run_preflight,
 )
@@ -98,3 +104,117 @@ def test_routed_provider_keys_are_distinct_and_ordered():
     keys = plan.routed_provider_keys
     assert len(keys) == len(set(keys))
     assert keys[0] == "firecrawl.firecrawl_search"
+
+
+# --- Sub-question DAG + effort classes (Lens 12 find 8) -----------------------
+
+
+def test_decisions_default_to_input_order_with_fact_effort_and_indexes():
+    statuses = run_preflight(lambda s: LIVE)
+    plan = plan_research(["what is X", "who makes X"], statuses)
+    assert [d.index for d in plan.decisions] == [0, 1]
+    assert all(d.depends_on == () for d in plan.decisions)
+    assert all(d.effort == "fact" for d in plan.decisions)
+    assert all(d.call_allotment == EFFORT_CALLS["fact"] for d in plan.decisions)
+    assert plan.total_allotment == 2 * EFFORT_CALLS["fact"]
+    assert plan.skipped == ()
+
+
+def test_dependencies_are_executed_in_topological_order():
+    statuses = run_preflight(lambda s: LIVE)
+    subqs = ["market size of X", "who are the leaders in X", "what is X"]
+    # 0 depends on 2 and 1; 1 depends on 2 -> 2, 1, 0.
+    plan = plan_research(subqs, statuses, depends_on={0: (2, 1), 1: (2,)})
+    assert [d.index for d in plan.decisions] == [2, 1, 0]
+    assert plan.decisions[2].depends_on == (2, 1)
+    assert plan.decisions[0].subquestion == "what is X"
+
+
+def test_dependency_cycle_is_rejected():
+    statuses = run_preflight(lambda s: LIVE)
+    with pytest.raises(ValueError, match="cycle"):
+        plan_research(["a", "b"], statuses, depends_on={0: (1,), 1: (0,)})
+
+
+def test_out_of_range_dependency_and_unknown_effort_are_rejected():
+    statuses = run_preflight(lambda s: LIVE)
+    with pytest.raises(ValueError, match="depends_on"):
+        plan_research(["a"], statuses, depends_on={0: (3,)})
+    with pytest.raises(ValueError, match="effort"):
+        plan_research(["a"], statuses, efforts={0: "heroic"})
+
+
+def test_effort_classes_drive_call_allotments():
+    statuses = run_preflight(lambda s: LIVE)
+    subqs = [
+        "what year was Acme founded",
+        "compare Rust and Go for backend services",
+        "deep research: the full landscape of solid-state batteries",
+    ]
+    plan = plan_research(subqs, statuses)
+    efforts = [d.effort for d in plan.decisions]
+    assert efforts == ["fact", "compare", "deep"]
+    assert [d.call_allotment for d in plan.decisions] == [3, 8, 15]
+    assert plan.total_allotment == 26
+    # An explicit override wins over the heuristic.
+    forced = plan_research(subqs, statuses, efforts={0: "deep"})
+    assert forced.decisions[0].effort == "deep"
+    assert forced.decisions[0].call_allotment == 15
+
+
+def test_classify_effort_heuristics():
+    assert classify_effort("what is the population of France", "web") == "fact"
+    assert classify_effort("pros and cons of microservices", "synthesis") == "compare"
+    assert classify_effort("Rust vs Go", "web") == "compare"
+    assert (
+        classify_effort("comprehensive landscape of AI code editors", "web") == "deep"
+    )
+    assert classify_effort("anything", "deep_research") == "deep"
+    assert classify_effort("anything", "council") == "deep"
+
+
+def test_completed_subquestions_are_skipped_on_resume():
+    statuses = run_preflight(lambda s: LIVE)
+    subqs = ["what is X", "who makes X", "market size of X"]
+    plan = plan_research(subqs, statuses, completed_subquestions=["What is X  "])
+    assert plan.skipped == ("what is X",)
+    assert [d.subquestion for d in plan.decisions] == [
+        "who makes X",
+        "market size of X",
+    ]
+    # Indexes still refer to the ORIGINAL plan positions so ledgers line up.
+    assert [d.index for d in plan.decisions] == [1, 2]
+
+
+def test_plan_uses_capability_fallback_and_records_it():
+    live = {"scholarly-access", "searxng", "tavily"}
+    statuses = {s: ProviderStatus(s, LIVE) for s in live}
+    statuses["perplexity"] = ProviderStatus("perplexity", DOWN)
+    plan = plan_research(["Deep research: the full landscape of X"], statuses)
+    decision = plan.decisions[0]
+    assert decision.capability == "deep_research"
+    # tavily.tavily_research is on the deep_research chain and live -> no fallback.
+    assert decision.fallback_capability is None
+    assert decision.providers[0].key == "tavily.tavily_research"
+
+    statuses.pop("tavily")
+    plan = plan_research(["Deep research: the full landscape of X"], statuses)
+    decision = plan.decisions[0]
+    assert decision.fallback_capability == "academic"
+    assert decision.providers[0].key == "scholarly-access.paper_resolve"
+
+
+# --- Preflight no-retry rule (G-5b) ------------------------------------------
+
+
+def test_perplexity_is_routed_around_never_retried_within_a_run():
+    assert "perplexity" in NO_RETRY_SERVERS
+    assert not retry_allowed(ProviderStatus("perplexity", DOWN))
+    assert not retry_allowed(ProviderStatus("perplexity", QUOTA))
+    assert retry_allowed(ProviderStatus("perplexity", LIVE))
+
+
+def test_quota_exhaustion_is_never_retried_but_a_plain_down_may_be():
+    assert not retry_allowed(ProviderStatus("exa", QUOTA))
+    assert retry_allowed(ProviderStatus("exa", DOWN))
+    assert retry_allowed(ProviderStatus("exa", LIVE))
