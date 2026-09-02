@@ -51,6 +51,9 @@ CALL_TIMEOUT = 90.0
 HANDSHAKE_TIMEOUT = 30.0
 RECONNECT_DELAY = 1.0
 DEFAULT_PROBE_INTERVAL = 30.0
+# After a failure, cheap requests answer locally for this long instead of each
+# paying another probe window against a daemon that just failed.
+DEFAULT_COOLDOWN = 5.0
 STREAM_READ_TIMEOUT = 300.0
 DEFAULT_CACHE_FILE = (
     pathlib.Path(tempfile.gettempdir()) / "bm-cursor-http-session-cache.json"
@@ -65,7 +68,15 @@ class SessionGone(RuntimeError):
 
 
 class TransportUnavailable(OSError):
-    """The daemon could not be reached or did not answer (refused, reset, hung)."""
+    """The daemon could not be reached or did not answer (refused, reset, hung).
+
+    ``timed_out`` separates a hung daemon (the attempt already cost the probe
+    window) from a fast failure such as ECONNREFUSED (worth one quick retry).
+    """
+
+    def __init__(self, message: str, *, timed_out: bool = False) -> None:
+        super().__init__(message)
+        self.timed_out = timed_out
 
 
 class StdioMessageError(ValueError):
@@ -276,7 +287,12 @@ class BmHttpSession:
             # ECONNREFUSED / reset / timeout: the daemon is dead, dying or hung.
             self.mark_gone()
             reason = getattr(exc, "reason", None)
-            raise TransportUnavailable(f"{self.url}: {reason or exc}") from exc
+            timed_out = isinstance(exc, TimeoutError) or isinstance(
+                reason, TimeoutError
+            )
+            raise TransportUnavailable(
+                f"{self.url}: {reason or exc}", timed_out=timed_out
+            ) from exc
         try:
             messages = parse_rpc_messages(raw, content_type)
         except ValueError:
@@ -359,11 +375,19 @@ class BmHttpSession:
         return result
 
     def _connect(self, attempt: Callable[[], dict[str, Any]]) -> dict[str, Any]:
-        """One handshake attempt plus a single quick retry for a blip."""
+        """One handshake attempt plus a single quick retry for a fast failure.
+
+        A timeout is not retried: the attempt already blocked for the whole
+        probe window, and a hung daemon will not answer a second time sooner.
+        """
         try:
             return attempt()
-        except TransportUnavailable:
-            if self.reconnect_delay is None or self.reconnect_delay < 0:
+        except TransportUnavailable as exc:
+            if (
+                exc.timed_out
+                or self.reconnect_delay is None
+                or self.reconnect_delay < 0
+            ):
                 raise
             time.sleep(self.reconnect_delay)
             return attempt()
@@ -667,6 +691,10 @@ class StdioBridge:
         "resources/templates/list": {"resourceTemplates": []},
         "prompts/list": {"prompts": []},
     }
+    # Answered from local state while the daemon is known to be down. tools/call
+    # is deliberately absent: it always tries upstream, because it is how the
+    # bridge heals on the next call.
+    LOCAL_WHILE_DOWN = frozenset({"initialize", "tools/list", "ping", *LOCAL_LISTS})
 
     def __init__(
         self,
@@ -675,13 +703,17 @@ class StdioBridge:
         cache: DiscoveryCache | None = None,
         probe_interval: float = 0.0,
         stream: bool = False,
+        cooldown: float = DEFAULT_COOLDOWN,
     ) -> None:
         self.session = session
         self.cache = cache
         self.probe_interval = probe_interval
+        self.cooldown = cooldown
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._degraded = False
+        self._degraded_until = 0.0
+        self._last_error: BaseException = TransportUnavailable("not yet attempted")
         self._announced_tools: dict[str, Any] | None = None
         self._prober: threading.Thread | None = None
         self._listener: ServerStreamListener | None = None
@@ -742,10 +774,17 @@ class StdioBridge:
             self._forward_notification(method, params)
             return
         with self._lock:
+            if self._in_cooldown() and method in self.LOCAL_WHILE_DOWN:
+                # The daemon failed moments ago; a cheap request should not pay
+                # another probe window. tools/call and the prober still try.
+                write_stdio_message(
+                    self._degraded_answer(req_id, method, params, self._last_error)
+                )
+                return
             try:
                 result = self.session.call_with_retry(method, params)
             except OSError as exc:
-                self._enter_degraded()
+                self._enter_degraded(exc)
                 out = self._degraded_answer(req_id, method, params, exc)
             except ValueError as exc:
                 write_stdio_error(req_id, -32603, f"Basic Memory response error: {exc}")
@@ -782,9 +821,15 @@ class StdioBridge:
 
     # -- degraded mode -------------------------------------------------------
 
-    def _enter_degraded(self) -> None:
+    def _enter_degraded(self, exc: BaseException | None = None) -> None:
         self._degraded = True
+        if exc is not None:
+            self._last_error = exc
+        self._degraded_until = time.monotonic() + max(self.cooldown, 0.0)
         self._start_prober()
+
+    def _in_cooldown(self) -> bool:
+        return self._degraded and time.monotonic() < self._degraded_until
 
     def _cached(self) -> dict[str, Any] | None:
         return self.cache.load() if self.cache is not None else None
@@ -878,8 +923,8 @@ class StdioBridge:
         """After healing, tell Cursor when the live tool list differs from what it saw."""
         try:
             result = self.session.call_with_retry("tools/list")
-        except (OSError, ValueError):
-            self._enter_degraded()
+        except (OSError, ValueError) as exc:
+            self._enter_degraded(exc if isinstance(exc, OSError) else None)
             return
         live = result.get("result")
         if not isinstance(live, dict):
@@ -921,9 +966,14 @@ def stdio_loop(
     cache: DiscoveryCache | None = None,
     probe_interval: float = 0.0,
     stream: bool = False,
+    cooldown: float = DEFAULT_COOLDOWN,
 ) -> int:
     return StdioBridge(
-        session, cache=cache, probe_interval=probe_interval, stream=stream
+        session,
+        cache=cache,
+        probe_interval=probe_interval,
+        stream=stream,
+        cooldown=cooldown,
     ).run()
 
 
@@ -1012,6 +1062,7 @@ def main(argv: list[str] | None = None) -> int:
         cache=cache,
         probe_interval=args.probe_interval,
         stream=not args.no_stream,
+        cooldown=args.cooldown,
     )
 
 

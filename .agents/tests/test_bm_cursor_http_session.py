@@ -543,15 +543,52 @@ def test_refused_window_raises_transport_unavailable_then_recovers(fake_daemon) 
     assert session.server_info["generation"] == 2
 
 
-def test_hung_daemon_times_out_as_transport_unavailable(fake_daemon) -> None:
+def test_hung_daemon_times_out_once_without_an_immediate_retry(fake_daemon) -> None:
+    """A timeout already cost the probe window; retrying at once would double it.
+
+    Only fast failures (refused / reset) earn the quick second attempt.
+    """
     bm = load_bm()
     fake_daemon.response_delay = 0.6
     session = bm.BmHttpSession(
         url=fake_daemon.url, timeout=0.15, handshake_timeout=0.15, reconnect_delay=0.0
     )
-    with pytest.raises(bm.TransportUnavailable):
+    started = time.monotonic()
+    with pytest.raises(bm.TransportUnavailable) as exc:
         session.call_with_retry("ping")
+    elapsed = time.monotonic() - started
+    assert exc.value.timed_out is True
+    assert elapsed < 0.45, elapsed  # one 0.15 s attempt, not two
     assert not session.initialized
+    attempts = [r for r in fake_daemon.requests if r["method"] == "initialize"]
+    assert len(attempts) == 1
+
+
+def test_cooldown_answers_locally_instead_of_reprobing_a_dead_port(fake_daemon) -> None:
+    """Right after a failure, cheap requests do not each pay another probe.
+
+    tools/call always tries the daemon (that is the healing path); initialize,
+    tools/list, ping and the list calls answer locally until the cooldown ends.
+    """
+    bm = load_bm()
+    session = bm.BmHttpSession(url=fake_daemon.url, reconnect_delay=0.0)
+    with LiveLoop(bm, session, cooldown=60.0) as loop:
+        loop.request(1, "initialize", INIT_PARAMS)
+        fake_daemon.stop()
+        failed = loop.request(2, "tools/call", WHOAMI)
+        assert failed["result"]["isError"] is True
+        fake_daemon.start()  # back, but the bridge is inside its cooldown
+
+        assert loop.request(3, "ping")["result"] == {}
+        assert loop.request(4, "tools/list")["result"] == {"tools": []}
+        assert [r for r in fake_daemon.requests if r["generation"] == 2] == []
+
+        healed = loop.request(
+            5, "tools/call", WHOAMI
+        )  # the healing path is never gated
+        assert whoami_pid(healed) == os.getpid()
+        assert loop.request(6, "tools/list")["result"]["tools"][0]["name"] == "whoami"
+    assert loop.rc == 0
 
 
 def test_stdio_loop_serves_cached_discovery_while_the_daemon_is_down(
