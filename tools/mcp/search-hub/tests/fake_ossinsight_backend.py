@@ -6,7 +6,9 @@ stands in for it so the OSSInsightAdapter can be exercised with NO network. It
 mirrors the shapes verified live on 2026-09-02 (see the decision record):
 
 * ``GET /gh/repo/{owner}/{repo}``     -> {"data": <github repo object>}  (200)
+* ``GET /gh/repos/search?keyword=``   -> {"data":[{id,fullName}]} (200)
 * ``GET /v1/collections/``            -> {"type","data":{"rows":[{id,name}]}} (200)
+* ``GET /v1/collections/{id}/repos/`` -> {"type","data":{"rows":[{repo_id,repo_name}]}} (200)
 * ``GET /v1/collections/{id}/ranking_by_{stars|prs}/`` -> 200 with an EMPTY
   result and the real ``data_quality: unavailable`` block (event-firehose
   degradation) -- so the truthful-passthrough path is testable.
@@ -73,15 +75,62 @@ def build_ranking() -> dict:
     }
 
 
+def build_repo_search(keyword: str) -> dict:
+    return {
+        "data": [
+            {
+                "id": 41986369,
+                "fullName": f"{keyword}/one",
+                "defaultBranchRef": {"name": "master"},
+            },
+            {
+                "id": 143867478,
+                "fullName": f"{keyword}/two",
+                "defaultBranchRef": {"name": "main"},
+            },
+        ]
+    }
+
+
+def build_collection_repos() -> dict:
+    return {
+        "type": "sql_endpoint",
+        "data": {
+            "columns": [{"col": "repo_id"}, {"col": "repo_name"}],
+            "rows": [
+                {"repo_id": "2126244", "repo_name": "twbs/bootstrap"},
+                {"repo_id": "1", "repo_name": "tailwindlabs/tailwindcss"},
+            ],
+            "result": {"code": 200, "row_count": 2, "limit": 50},
+        },
+    }
+
+
 def route(method: str, path: str) -> tuple[int, dict | None]:
-    parts = [p for p in path.split("?", 1)[0].split("/") if p]
+    query = ""
+    if "?" in path:
+        path, query = path.split("?", 1)
+    parts = [p for p in path.split("/") if p]
     if method == "GET" and parts[:2] == ["gh", "repo"] and len(parts) == 4:
         owner, repo = parts[2], parts[3]
         if "boom" in owner:
             return 500, {"detail": "simulated backend failure"}
         return 200, build_repo_stats(owner, repo)
+    if method == "GET" and parts == ["gh", "repos", "search"]:
+        keyword = ""
+        for pair in query.split("&"):
+            if pair.startswith("keyword="):
+                keyword = pair.split("=", 1)[1]
+        return 200, build_repo_search(keyword or "unknown")
     if method == "GET" and parts == ["v1", "collections"]:
         return 200, _COLLECTIONS
+    if (
+        method == "GET"
+        and parts[:2] == ["v1", "collections"]
+        and len(parts) == 4
+        and parts[3] == "repos"
+    ):
+        return 200, build_collection_repos()
     if (
         method == "GET"
         and parts[:2] == ["v1", "collections"]

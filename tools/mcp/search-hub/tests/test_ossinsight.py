@@ -43,9 +43,53 @@ def test_tool_surface():
     names = _adapter().tool_names()
     assert names == [
         "ossinsight_repo_stats",
+        "ossinsight_repo_search",
         "ossinsight_collections",
+        "ossinsight_collection_repos",
         "ossinsight_collection_ranking",
     ]
+
+
+def test_repo_search_templates_query_and_returns_hits():
+    captured = {}
+
+    def spy(method, url, body, _h, _t):
+        captured.update(method=method, url=url)
+        return fake.fake_caller(method, url, body, _h, _t)
+
+    ad = _adapter(caller=spy)
+    result = ad.handle_call("ossinsight_repo_search", {"keyword": "vector db"})
+    assert captured["method"] == "GET"
+    assert captured["url"] == BASE + "/gh/repos/search?keyword=vector%20db"
+    payload = _payload(result)
+    assert isinstance(payload["data"], list) and payload["data"]
+
+
+def test_repo_search_requires_keyword():
+    r = _adapter().handle_call("ossinsight_repo_search", {})
+    assert r["isError"] is True
+    assert "'keyword' is required" in r["content"][0]["text"]
+
+
+def test_collection_repos_returns_real_membership():
+    captured = {}
+
+    def spy(method, url, body, _h, _t):
+        captured["url"] = url
+        return fake.fake_caller(method, url, body, _h, _t)
+
+    ad = _adapter(caller=spy)
+    payload = _payload(
+        ad.handle_call("ossinsight_collection_repos", {"collection_id": "10001"})
+    )
+    assert captured["url"] == BASE + "/v1/collections/10001/repos/"
+    rows = payload["data"]["rows"]
+    assert rows[0]["repo_name"] == "twbs/bootstrap"
+
+
+def test_collection_repos_validates_id():
+    r = _adapter().handle_call("ossinsight_collection_repos", {"collection_id": "a/b"})
+    assert r["isError"] is True
 
 
 def test_default_adapters_gate_off_by_default():

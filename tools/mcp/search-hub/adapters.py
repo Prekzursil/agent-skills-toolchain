@@ -46,6 +46,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Callable
+from urllib.parse import quote
 
 # The lattice vocabulary, ordered most-confident-realized to least-available.
 NATIVE = "native"
@@ -470,6 +471,16 @@ _OSSINSIGHT_REPO_SCHEMA = {
     },
     "required": ["owner", "repo"],
 }
+_OSSINSIGHT_SEARCH_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "keyword": {
+            "type": "string",
+            "description": "repo-name keyword to search, e.g. 'vector database'",
+        }
+    },
+    "required": ["keyword"],
+}
 _OSSINSIGHT_COLLECTIONS_SCHEMA = {
     "type": "object",
     "properties": {
@@ -478,6 +489,16 @@ _OSSINSIGHT_COLLECTIONS_SCHEMA = {
             "description": "optional case-insensitive substring filter over collection names",
         }
     },
+}
+_OSSINSIGHT_COLLECTION_REPOS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "collection_id": {
+            "type": "string",
+            "description": "a collection id from ossinsight_collections",
+        }
+    },
+    "required": ["collection_id"],
 }
 _OSSINSIGHT_RANKING_SCHEMA = {
     "type": "object",
@@ -531,14 +552,39 @@ class OSSInsightAdapter(SelfHostedAdapter):
                 method="GET",
             ),
             AdapterTool(
+                name="ossinsight_repo_search",
+                description=(
+                    "Keyless GitHub repo SEARCH by keyword via the public OSSInsight "
+                    "API GET /gh/repos/search?keyword=. Returns matching repos "
+                    "(id + fullName). The primary discovery tool; truthful error if "
+                    "the API is unreachable, never fabricated."
+                ),
+                input_schema=_OSSINSIGHT_SEARCH_SCHEMA,
+                path="/gh/repos/search",
+                realized_by=NATIVE,
+                method="GET",
+            ),
+            AdapterTool(
                 name="ossinsight_collections",
                 description=(
                     "Keyless repo-discovery: list OSSInsight's curated collections "
                     "(id + name) via GET /v1/collections/, optionally filtered by a "
-                    "name substring. The entry point for finding ranked repo lists."
+                    "name substring. The entry point for finding curated repo lists."
                 ),
                 input_schema=_OSSINSIGHT_COLLECTIONS_SCHEMA,
                 path="/v1/collections/",
+                realized_by=NATIVE,
+                method="GET",
+            ),
+            AdapterTool(
+                name="ossinsight_collection_repos",
+                description=(
+                    "Keyless repo-discovery: the repos in an OSSInsight collection via "
+                    "GET /v1/collections/{id}/repos/ (repo_id + repo_name). Real "
+                    "membership data, unlike the degraded event-ranking below."
+                ),
+                input_schema=_OSSINSIGHT_COLLECTION_REPOS_SCHEMA,
+                path="/v1/collections/{collection_id}/repos/",
                 realized_by=NATIVE,
                 method="GET",
             ),
@@ -578,8 +624,17 @@ class OSSInsightAdapter(SelfHostedAdapter):
             owner = self._segment(args.get("owner"), "owner")
             repo = self._segment(args.get("repo"), "repo")
             return "GET", f"{self.base_url}/gh/repo/{owner}/{repo}", None, headers
+        if tool.name == "ossinsight_repo_search":
+            keyword = str(args.get("keyword") or "").strip()
+            if not keyword:
+                raise ValueError("OSSInsight: 'keyword' is required")
+            url = f"{self.base_url}/gh/repos/search?keyword={quote(keyword)}"
+            return "GET", url, None, headers
         if tool.name == "ossinsight_collections":
             return "GET", f"{self.base_url}/v1/collections/", None, headers
+        if tool.name == "ossinsight_collection_repos":
+            cid = self._segment(args.get("collection_id"), "collection_id")
+            return "GET", f"{self.base_url}/v1/collections/{cid}/repos/", None, headers
         if tool.name == "ossinsight_collection_ranking":
             cid = self._segment(args.get("collection_id"), "collection_id")
             by = str(args.get("by") or "stars").strip().lower()
