@@ -97,6 +97,55 @@ def test_resolve_doi_unresolved(monkeypatch):
     assert out["confidence"] == 0.0
 
 
+# --------------------------------------------------------------------------- openalex_authenticated flag
+KEY = "oa-test-key-never-echoed"
+
+
+@pytest.mark.parametrize("keyed", [True, False])
+def test_resolve_doi_reports_openalex_authenticated(monkeypatch, keyed):
+    if keyed:
+        monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    else:
+        monkeypatch.delenv("OPENALEX_API_KEY", raising=False)
+    patch(
+        monkeypatch,
+        classify_identifier=lambda s: ("doi", "10.1/x"),
+        crossref_by_doi=lambda d: None,
+        openalex_by_doi=lambda d: None,
+        pubmed_pmid_for_doi=lambda d: None,
+    )
+    out = logic.resolve("10.1/x")
+    assert out["openalex_authenticated"] is keyed
+    assert KEY not in repr(out)  # the flag is a bool; the key is never echoed
+
+
+def test_resolve_title_reports_openalex_authenticated(monkeypatch):
+    monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    patch(
+        monkeypatch,
+        classify_identifier=lambda s: ("title", "q"),
+        crossref_search=lambda t, rows=5: [],
+        openalex_search=lambda t, per_page=5: [],
+    )
+    assert logic.resolve("q")["openalex_authenticated"] is True
+
+
+def test_resolve_pmid_and_arxiv_do_not_consult_openalex(monkeypatch):
+    monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    patch(
+        monkeypatch,
+        classify_identifier=lambda s: ("pmid", "999"),
+        pubmed_efetch=lambda p: None,
+    )
+    assert "openalex_authenticated" not in logic.resolve("999")
+    patch(
+        monkeypatch,
+        classify_identifier=lambda s: ("arxiv", "x"),
+        arxiv_lookup=lambda **k: None,
+    )
+    assert "openalex_authenticated" not in logic.resolve("x")
+
+
 # --------------------------------------------------------------------------- resolve: pmid
 def test_resolve_pmid_with_doi(monkeypatch):
     patch(
@@ -491,6 +540,16 @@ def test_citation_graph_openalex_none(monkeypatch):
     patch(monkeypatch, semanticscholar=lambda **k: None, openalex_by_doi=lambda d: None)
     out = logic.citation_graph(doi="10.1/x")
     assert out["references"] == []
+
+
+def test_citation_graph_flag_only_when_openalex_consulted(monkeypatch):
+    monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    patch(monkeypatch, semanticscholar=lambda **k: {"references": [], "citations": []})
+    assert "openalex_authenticated" not in logic.citation_graph(doi="10.1/x")
+    patch(monkeypatch, semanticscholar=lambda **k: None, openalex_by_doi=lambda d: None)
+    assert logic.citation_graph(doi="10.1/x")["openalex_authenticated"] is True
+    monkeypatch.delenv("OPENALEX_API_KEY")
+    assert logic.citation_graph(doi="10.1/x")["openalex_authenticated"] is False
 
 
 # --------------------------------------------------------------------------- download_oa_pdf

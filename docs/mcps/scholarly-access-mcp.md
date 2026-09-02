@@ -13,7 +13,7 @@ Researchers and agents need to find, classify, and (where legal) download the fu
 The server is a small, layered Python package:
 
 - **`sources.py`** — the source clients. Thin clients for each available provider (Crossref, OpenAlex, Unpaywall, Europe PMC, arXiv, Semantic Scholar, CORE, DOAJ, PubMed/NCBI E-utilities, Zenodo, Elsevier entitled-fulltext). A missing API key means that source is skipped, never an error.
-- **`server.py`** — the FastMCP stdio entry point. Exposes the 8 tools over MCP stdio. Run as `python -m scholarly_access.server`.
+- **`server.py`** — the FastMCP stdio entry point. Exposes the 12 tools over MCP stdio. Run as `python -m scholarly_access.server`.
 
 ## Legal access model
 
@@ -32,7 +32,12 @@ Access is classified into 5 honest categories:
 
 Crossref · OpenAlex · Unpaywall · Europe PMC · arXiv · Semantic Scholar (keyless) · CORE (keyed) · DOAJ · PubMed/NCBI E-utilities · Zenodo · institutional repositories · OA publishers · Elsevier entitled-fulltext API (only with a valid key).
 
-## The 8 tools (spec dot-name → MCP underscore-name)
+## The tools (spec dot-name → MCP underscore-name)
+
+The original 8 are below; four keyless additions landed 2026-09-02 (gem-hunt Lens 13):
+`paper_citations_for_doi` / `paper_references_for_doi` (OpenCitations Index, CC0) and
+`paper_europepmc_fulltext` / `paper_europepmc_annotations` (Europe PMC full-text XML and
+Annotations APIs). `list_tools.py` prints the live 12-tool surface.
 
 MCP tool names use underscores instead of the spec's dots for client compatibility; the mapping is 1:1.
 

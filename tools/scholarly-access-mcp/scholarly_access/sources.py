@@ -4,8 +4,14 @@ All keys are read by environment-variable NAME (never hard-coded). Missing key =
 source is skipped, never a failure. Every call is timeout-bounded and returns None on error
 so the resolver degrades gracefully instead of crashing.
 
-Sources: Crossref, OpenAlex, Unpaywall, Europe PMC, arXiv, Semantic Scholar (keyless),
-CORE (keyed), DOAJ, PubMed/NCBI E-utilities, Zenodo. No shadow libraries.
+Sources: Crossref, OpenAlex (OPENALEX_API_KEY optional), Unpaywall, Europe PMC (search,
+full-text XML, annotations), arXiv, Semantic Scholar (keyless), CORE (keyed), DOAJ,
+PubMed/NCBI E-utilities, Zenodo, OpenCitations (keyless, CC0). No shadow libraries.
+
+Two fetch styles coexist on purpose. The resolver clients (`_get`/`_json`) return None on
+any failure because a missing source must degrade, not crash. The newer per-source tools
+(OpenCitations, Europe PMC full text / annotations) use `_fetch`/`_fetch_json`, which raise
+`UpstreamError` carrying the real HTTP status so the tool can report a truthful error.
 """
 
 from __future__ import annotations
@@ -60,14 +66,70 @@ def _get(
     return None
 
 
-def _json(url: str, *, params: Mapping[str, str | int] | None = None) -> object | None:
-    r = _get(url, params=params)
+def _json(
+    url: str,
+    *,
+    params: Mapping[str, str | int] | None = None,
+    headers: Mapping[str, str] | None = None,
+) -> object | None:
+    r = _get(url, params=params, headers=headers)
     if r is None:
         return None
     try:
         return cast("object", r.json())
     except ValueError:
         return None
+
+
+class UpstreamError(Exception):
+    """A request that did not yield HTTP 200, keeping the truthful upstream status.
+
+    ``status`` is the HTTP status code, or None when no response arrived (timeout,
+    DNS, connection reset). The message never embeds the URL or the exception text,
+    so nothing that might sit in a query string (an email, a key) can be echoed.
+    """
+
+    def __init__(self, message: str, *, status: int | None, url: str) -> None:
+        super().__init__(message)
+        self.status: int | None = status
+        self.url: str = url
+
+    def envelope(self) -> dict[str, object]:
+        return {"error": str(self), "upstream_status": self.status, "url": self.url}
+
+
+def _fetch(
+    url: str,
+    *,
+    params: Mapping[str, str | int] | None = None,
+    headers: Mapping[str, str] | None = None,
+    timeout: int = TIMEOUT,
+) -> requests.Response:
+    """Like ``_get`` but raises ``UpstreamError`` instead of returning None."""
+    h: dict[str, str] = {"User-Agent": UA}
+    if headers:
+        h.update(headers)
+    try:
+        r = requests.get(url, params=params, headers=h, timeout=timeout)
+    except requests.RequestException as e:
+        raise UpstreamError(
+            f"request failed: {type(e).__name__}", status=None, url=url
+        ) from e
+    if r.status_code != 200:
+        raise UpstreamError(
+            f"upstream returned HTTP {r.status_code}", status=r.status_code, url=url
+        )
+    return r
+
+
+def _fetch_json(url: str, *, params: Mapping[str, str | int] | None = None) -> object:
+    r = _fetch(url, params=params)
+    try:
+        return cast("object", r.json())
+    except ValueError as e:
+        raise UpstreamError(
+            "upstream returned HTTP 200 with a non-JSON body", status=200, url=url
+        ) from e
 
 
 # ---------------------------------------------------------------------------
@@ -128,13 +190,34 @@ def crossref_search(title: str, rows: int = 5) -> list[object]:
 
 
 # ---------------------------------------------------------------------------
-# OpenAlex
+# OpenAlex — OPENALEX_API_KEY optional. OpenAlex now meters a free daily budget per
+# key; keyless calls run on the smaller anonymous budget. The key may be sent as the
+# `api_key` query parameter or as `Authorization: Bearer <key>` — "both work
+# identically" (https://developers.openalex.org/guides/authentication, page dated
+# 2026-08-19, read 2026-09-02). We send the header so the key never appears in a
+# URL, a request log, or an exception message. `mailto` (polite-pool
+# identification) is kept alongside it.
 # ---------------------------------------------------------------------------
+def openalex_authenticated() -> bool:
+    """True iff OPENALEX_API_KEY is set, i.e. every OpenAlex call carries the key.
+
+    Surfaced verbatim as ``openalex_authenticated`` in tool results; the key value
+    itself is never returned or logged.
+    """
+    return bool(os.environ.get("OPENALEX_API_KEY"))
+
+
+def _openalex_headers() -> dict[str, str]:
+    key = os.environ.get("OPENALEX_API_KEY")
+    return {"Authorization": f"Bearer {key}"} if key else {}
+
+
 def openalex_by_doi(doi: str) -> dict[str, object] | None:
     return _obj(
         _json(
             f"https://api.openalex.org/works/https://doi.org/{doi}",
             params={"mailto": os.environ.get("UNPAYWALL_EMAIL", "")},
+            headers=_openalex_headers(),
         )
     )
 
@@ -147,6 +230,7 @@ def openalex_search(title: str, per_page: int = 5) -> list[object]:
             "per_page": per_page,
             "mailto": os.environ.get("UNPAYWALL_EMAIL", ""),
         },
+        headers=_openalex_headers(),
     )
     return _arr((_obj(d).get("results", []) if d else []) or [])
 
@@ -162,16 +246,76 @@ def unpaywall(doi: str) -> dict[str, object] | None:
 
 
 # ---------------------------------------------------------------------------
-# Europe PMC
+# Europe PMC — search, full-text XML (OA subset only), text-mined annotations.
+# Endpoints probed 2026-09-02: fullTextXML returns JATS `<article>` for OA PMCIDs
+# and HTTP 404 for anything else; annotationsByArticleIds returns a JSON list with
+# one object per article — `[]` for an unknown id, and for an unknown `type` name the
+# article object with an empty `annotations` list (HTTP 200 either way).
 # ---------------------------------------------------------------------------
+EUROPEPMC_REST = "https://www.ebi.ac.uk/europepmc/webservices/rest"
+EUROPEPMC_ANNOTATIONS = (
+    "https://www.ebi.ac.uk/europepmc/annotations_api/annotationsByArticleIds"
+)
+
+
 def europepmc_search(query: str, page_size: int = 5) -> list[object]:
     d = _json(
-        "https://www.ebi.ac.uk/europepmc/webservices/rest/search",
+        f"{EUROPEPMC_REST}/search",
         params={"query": query, "format": "json", "pageSize": page_size},
     )
     return _arr(
         (_obj(_obj(d).get("resultList", {})).get("result", []) if d else []) or []
     )
+
+
+def europepmc_fulltext_url(pmcid: str) -> str:
+    return f"{EUROPEPMC_REST}/{pmcid}/fullTextXML"
+
+
+def europepmc_fulltext_xml(pmcid: str) -> str:
+    """Raw JATS XML for an open-access PMCID. Raises UpstreamError (404 = not in the
+    OA full-text subset; Europe PMC serves nothing else, and neither do we)."""
+    return _fetch(europepmc_fulltext_url(pmcid)).text
+
+
+def europepmc_annotations(article_id: str, type_: str = "") -> list[object]:
+    """Annotations API. ``article_id`` is ``SOURCE:ID`` (``MED:16060722`` for a PMID,
+    ``PMC:PMC1182327`` for a PMCID); ``type_`` is an optional server-side filter such as
+    ``Gene_Proteins`` or ``Diseases``. Raises UpstreamError."""
+    params: dict[str, str | int] = {"articleIds": article_id, "format": "JSON"}
+    if type_:
+        params["type"] = type_
+    return _arr(_fetch_json(EUROPEPMC_ANNOTATIONS, params=params))
+
+
+# ---------------------------------------------------------------------------
+# OpenCitations — keyless, CC0. The v2 Index lives on api.opencitations.net (the
+# documented `opencitations.net/index/api/v2/...` path 301s there; probed 2026-09-02).
+# Rows: {oci, citing, cited, creation, timespan, journal_sc, author_sc}, where
+# `citing`/`cited` are space-separated id lists ("omid:br/... doi:10.... pmid:...").
+# There is no limit parameter, so rows are sorted newest-first server-side and capped
+# client-side by the caller. Meta v1 gives title/author/pub_date for `__`-joined ids;
+# its `author` field reads "Surname, Given [orcid:... omid:...]; Surname, Given [...]".
+# ---------------------------------------------------------------------------
+OPENCITATIONS_INDEX = "https://api.opencitations.net/index/v2"
+OPENCITATIONS_META = "https://api.opencitations.net/meta/v1/metadata"
+
+
+def opencitations_index(kind: str, doi: str) -> list[object]:
+    """``kind`` is ``citations`` (works citing ``doi``) or ``references`` (works ``doi``
+    cites). Unknown DOIs yield ``[]`` upstream, not an error. Raises UpstreamError."""
+    return _arr(
+        _fetch_json(
+            f"{OPENCITATIONS_INDEX}/{kind}/doi:{doi}",
+            params={"sort": "desc(creation)"},
+        )
+    )
+
+
+def opencitations_meta(dois: list[str]) -> list[object]:
+    """Batch bibliographic metadata for up to a few dozen DOIs. Raises UpstreamError."""
+    ids = "__".join(f"doi:{d}" for d in dois)
+    return _arr(_fetch_json(f"{OPENCITATIONS_META}/{ids}"))
 
 
 # ---------------------------------------------------------------------------

@@ -58,15 +58,17 @@ honestly, and routes **only** to available open-access and rights-holder-entitle
 
 > No silent fallback. `paper_download_oa_pdf` only fetches allowlisted hosts that serve a real `%PDF`.
 
-8 tools: `paper_resolve`, `paper_fetch_metadata`, `paper_find_oa_pdf`, `paper_access_status`,
-`paper_citation_graph`, `paper_download_oa_pdf`, `paper_summarize`, `paper_batch_resolve`.
+12 tools: `paper_resolve`, `paper_fetch_metadata`, `paper_find_oa_pdf`, `paper_access_status`,
+`paper_citation_graph`, `paper_download_oa_pdf`, `paper_summarize`, `paper_batch_resolve`,
+`paper_citations_for_doi`, `paper_references_for_doi`, `paper_europepmc_fulltext`,
+`paper_europepmc_annotations`.
 
 ```bash
 cd tools/scholarly-access-mcp
 python -m venv .venv && .venv/Scripts/python -m pip install -e .
-.venv/Scripts/python -m pytest tests/test_policy.py -q   # 24 offline policy/gate tests
+.venv/Scripts/python -m pytest tests/test_policy.py -q   # 26 offline policy/gate tests
 .venv/Scripts/python tests/test_live.py                  # 10 live end-to-end checks
-.venv/Scripts/python list_tools.py                       # the 8-tool surface
+.venv/Scripts/python list_tools.py                       # the 12-tool surface
 ```
 
 Details: [`tools/scholarly-access-mcp/README.md`](tools/scholarly-access-mcp/README.md) ·

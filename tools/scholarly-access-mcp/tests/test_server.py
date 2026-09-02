@@ -59,6 +59,86 @@ def test_paper_batch_resolve(monkeypatch):
     assert server.paper_batch_resolve(["a", "b"]) == {"n": 2}
 
 
+def test_paper_citations_for_doi(monkeypatch):
+    monkeypatch.setattr(logic, "citations_for_doi", lambda d, limit: {"c": (d, limit)})
+    assert server.paper_citations_for_doi("10.1/x") == {"c": ("10.1/x", 100)}
+    assert server.paper_citations_for_doi("10.1/x", limit=5) == {"c": ("10.1/x", 5)}
+
+
+def test_paper_references_for_doi(monkeypatch):
+    monkeypatch.setattr(logic, "references_for_doi", lambda d, limit: {"r": (d, limit)})
+    assert server.paper_references_for_doi("10.1/x", limit=7) == {"r": ("10.1/x", 7)}
+
+
+def test_paper_europepmc_fulltext(monkeypatch):
+    monkeypatch.setattr(
+        logic, "europepmc_fulltext", lambda p, max_chars: {"f": (p, max_chars)}
+    )
+    assert server.paper_europepmc_fulltext("PMC1") == {"f": ("PMC1", 60_000)}
+    assert server.paper_europepmc_fulltext("PMC1", max_chars=5000) == {
+        "f": ("PMC1", 5000)
+    }
+
+
+def test_paper_europepmc_fulltext_refused(monkeypatch):
+    def boom(p, max_chars):
+        raise PermissionError("nope")
+
+    monkeypatch.setattr(logic, "europepmc_fulltext", boom)
+    out = server.paper_europepmc_fulltext("PMC1")
+    assert out["refused"] is True and out["ok"] is False
+    assert out["reason"] == "nope" and out["policy"] == server.policy.POLICY_BANNER
+
+
+def test_paper_europepmc_annotations(monkeypatch):
+    monkeypatch.setattr(
+        logic, "europepmc_annotations", lambda a, type, limit: {"a": (a, type, limit)}
+    )
+    assert server.paper_europepmc_annotations("PMC1") == {"a": ("PMC1", "", 200)}
+    assert server.paper_europepmc_annotations("1", type="Diseases", limit=3) == {
+        "a": ("1", "Diseases", 3)
+    }
+
+
+# --------------------------------------------------------------------------- tool surface
+EXPECTED_TOOLS = [
+    "paper_resolve",
+    "paper_fetch_metadata",
+    "paper_find_oa_pdf",
+    "paper_access_status",
+    "paper_citation_graph",
+    "paper_download_oa_pdf",
+    "paper_summarize",
+    "paper_batch_resolve",
+    "paper_citations_for_doi",
+    "paper_references_for_doi",
+    "paper_europepmc_fulltext",
+    "paper_europepmc_annotations",
+]
+
+
+def test_tool_surface_is_pinned():
+    import asyncio
+
+    tools = asyncio.run(server.mcp.list_tools())
+    assert [t.name for t in tools] == EXPECTED_TOOLS
+    assert len(tools) == 12
+    for t in tools:
+        first = (t.description or "").strip().splitlines()[0]
+        assert first, f"{t.name} has no one-line description"
+        assert "Spec: paper." in (t.description or ""), t.name
+
+
+def test_no_shadow_library_tools_or_params():
+    import asyncio
+
+    tools = asyncio.run(server.mcp.list_tools())
+    for t in tools:
+        blob = (t.name + " " + str(t.inputSchema)).lower()
+        for bad in ("scihub", "sci-hub", "libgen", "scidownl", "use_scihub"):
+            assert bad not in blob, (t.name, bad)
+
+
 # --------------------------------------------------------------------------- _load_env_file
 def test_load_env_file_reads(monkeypatch, tmp_path):
     envf = tmp_path / "env"

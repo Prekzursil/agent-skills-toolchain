@@ -56,6 +56,8 @@ ALLOW_HOST_SUFFIXES = (
     # OA aggregators / repositories
     "ncbi.nlm.nih.gov",
     "europepmc.org",
+    "ebi.ac.uk",  # Europe PMC REST: full-text JATS XML (OA subset) + annotations API
+    "opencitations.net",  # OpenCitations Index/Meta: CC0 citation metadata (JSON)
     "core.ac.uk",
     "doaj.org",
     "zenodo.org",

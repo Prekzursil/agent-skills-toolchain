@@ -99,6 +99,54 @@ def paper_batch_resolve(identifiers: list[str]) -> dict[str, object]:
     return logic.batch_resolve(identifiers)
 
 
+@mcp.tool()
+def paper_citations_for_doi(doi: str, limit: int = 100) -> dict[str, object]:
+    """Works that CITE a DOI, from the keyless CC0 OpenCitations Index (newest first,
+    limit <= 100): citing DOI, title, date, OCI, and a heuristic self_citation_suspect
+    flag (shared first-author surname). Independent of Semantic Scholar / OpenAlex.
+    Spec: paper.citations_for_doi."""
+    return logic.citations_for_doi(doi, limit=limit)
+
+
+@mcp.tool()
+def paper_references_for_doi(doi: str, limit: int = 100) -> dict[str, object]:
+    """Works a DOI CITES (its reference list), from the keyless CC0 OpenCitations Index
+    (limit <= 100): cited DOI, title, date, OCI, and a heuristic self_citation_suspect
+    flag (shared first-author surname). Spec: paper.references_for_doi."""
+    return logic.references_for_doi(doi, limit=limit)
+
+
+@mcp.tool()
+def paper_europepmc_fulltext(pmcid: str, max_chars: int = 60_000) -> dict[str, object]:
+    """Plain-text sections (abstract + body) of an OPEN-ACCESS article from Europe PMC's
+    full-text XML, keyless. Capped at max_chars with a `truncated` flag. Articles outside
+    the OA subset return the upstream 404 truthfully — nothing is fetched elsewhere.
+    Spec: paper.europepmc_fulltext."""
+    try:
+        return logic.europepmc_fulltext(pmcid, max_chars=max_chars)
+    # The fetch URL is policy-checked like every other full-text fetch; with the
+    # shipped allowlist this cannot fire, but if the allowlist ever drifts the
+    # refusal is reported the same way paper_download_oa_pdf reports it.
+    except PermissionError as e:
+        return {
+            "ok": False,
+            "refused": True,
+            "reason": str(e),
+            "policy": policy.POLICY_BANNER,
+        }
+
+
+@mcp.tool()
+def paper_europepmc_annotations(
+    article_id: str, type: str = "", limit: int = 200
+) -> dict[str, object]:
+    """Text-mined annotations (genes/proteins, diseases, chemicals, organisms, ...) for a
+    PMCID (PMC1234567) or PMID (digits) from Europe PMC's keyless Annotations API,
+    optionally filtered by `type` (e.g. Gene_Proteins, Diseases, Chemicals).
+    Spec: paper.europepmc_annotations."""
+    return logic.europepmc_annotations(article_id, type=type, limit=limit)
+
+
 def _load_env_file() -> None:
     """Best-effort load of ~/.tooluniverse/.env so existing keys are inherited out-of-the-box.
     Machine/process environment ALWAYS wins (setdefault). Keys are read by NAME only; never logged."""

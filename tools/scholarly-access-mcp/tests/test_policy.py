@@ -36,6 +36,8 @@ def test_denied_sources_blocked(url):
         "https://www.mdpi.com/2076-3417/1/1/1/pdf",
         "https://research.manchester.ac.uk/files/123/FULL_TEXT.PDF",
         "https://hal.science/hal-02485707/document",
+        "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC1182327/fullTextXML",
+        "https://api.opencitations.net/index/v2/citations/doi:10.1/x",
     ],
 )
 def test_allowlisted_hosts_pass(url):
