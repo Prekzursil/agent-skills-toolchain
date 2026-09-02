@@ -209,6 +209,8 @@ $Map = @(
 # -Only: narrow $Map before anything walks it. Both the sync loop and the prune loop iterate
 # $Map, so filtering here is the single point of truth for "which areas exist in this run".
 if ($Only) {
+    # pwsh -File hands -Only a,b over as ONE string; split so both spellings behave the same.
+    $Only = @($Only | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
     $knownLabels   = @($Map | ForEach-Object { $_.Label })
     $unknownLabels = @($Only | Where-Object { $knownLabels -notcontains $_ })
     if ($unknownLabels.Count -gt 0) {
