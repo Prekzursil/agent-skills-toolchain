@@ -139,4 +139,14 @@ commit-starved box.
 
 ## Decisions log (filled as answered)
 
-_(empty — grill just started)_
+- **G-1 — Ambition tier: A+B+C (full program).** Owner wants all three tiers
+  pursued, sequenced (A first, then B, then C behind per-item gates). Consequence:
+  the grill now scopes the whole program; C items (local-LLM answer engines, keyed
+  APIs, dark-web 2nd engine, OVH) are IN, each gated on its own question.
+- **G-2 — Posture: Balanced + Loose.** Balanced defaults (keyless/in-process/remote
+  freely on-box; OVH/on-demand for heavy) BUT on-box residency for heavy/LLM tools
+  is PERMITTED when the owner opts in, mitigated by on-demand spawn + eviction
+  (`OLLAMA_KEEP_ALIVE=0`). Keyed APIs allowed with a hard spend cap + secrets by
+  env-name only. Our own code still avoids LangGraph/LiteLLM/vector-DB/2nd
+  orchestrator; a vendored tool MAY use them internally (even on-box). Accepted
+  risk: a resident local model pressures the 1.2-1.8 GB-free box; opt-in per item.
