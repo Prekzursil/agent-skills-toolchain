@@ -55,6 +55,12 @@ MUTATIONS = [
         '        elif not gate_ok:\n            planned, deferred = "deferred", deferred + 1',
         '        elif False:\n            planned, deferred = "deferred", deferred + 1',
     ),
+    (
+        "empty-executable fail-closed removed (unidentifiable processes become killable)",
+        "hygiene.py",
+        "        if not proc.executable:\n            return True",
+        "        if False:\n            return True",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
