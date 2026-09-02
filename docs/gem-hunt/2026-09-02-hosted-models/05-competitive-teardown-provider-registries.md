@@ -57,4 +57,97 @@ Kilo Code, Pi (`pi-mono`) / Oh-my-pi, Hermes Agent, Crush, Codex `model_provider
 4. Registry `.agents/agents.json` (`mcp.servers`, 42 servers) + secrets by name in `.agents/local.json`.
 5. Installed runtimes on the Windows 11 box (31.6 GB RAM, no GPU assumed): claude, codex, cursor-agent, grok + agent.exe, goose 1.47, fabric 1.4.470, agy, gemini CLI, opencode, aider 0.86, ollama, lms, ralph, basic-memory :8765, agent-mail :8812, browser-bridge hub :8770.
 
-<!-- sections 1..N appended below, one per harness; rubric table last -->
+## 1. Codex CLI - `[model_providers.<id>]` (TOML) and `ModelProviderInfo` (Rust)
+
+### 1.1 The schema, verbatim from the primary artifact
+
+**[FACT, A, corroborated (Rust struct + generated JSON Schema agree), 2026-09-02]** Codex's
+provider record is the Rust struct `ModelProviderInfo` in
+`codex-rs/model-provider-info/src/lib.rs` and is mirrored 1:1 in the generated
+`codex-rs/core/config.schema.json` (`definitions.ModelProviderInfo`, `schemars(deny_unknown_fields)`).
+Sources: <https://raw.githubusercontent.com/openai/codex/main/codex-rs/model-provider-info/src/lib.rs>
+and <https://raw.githubusercontent.com/openai/codex/main/codex-rs/core/config.schema.json>. Fields
+(all optional unless noted):
+
+| Field | Type | Doc-comment (verbatim, abbreviated) |
+| --- | --- | --- |
+| `name` | string (required) | Friendly display name. |
+| `base_url` | string | Base URL for the provider's OpenAI-compatible API. |
+| `env_key` | string | Environment variable that stores the user's API key for this provider. |
+| `env_key_instructions` | string | Instructions to help the user get a valid value for the variable and set it. |
+| `experimental_bearer_token` | redacted string | Discouraged in favour of `env_key`. |
+| `auth` | `ModelProviderAuthInfo` | **Command-backed bearer token**: `command`, `args`, `cwd`, `timeout_ms`, `refresh_interval_ms` (0 = no proactive refresh). |
+| `aws` | `ModelProviderAwsAuthInfo` | SigV4: `profile`, `region`, `auth_refresh {command,args,timeout_ms}`. |
+| `wire_api` | enum | **Only `"responses"` is accepted** (see 1.2). |
+| `query_params` | map | Appended to the base URL. |
+| `http_headers` | map | Static extra headers. |
+| `env_http_headers` | map header -> ENV NAME | Header is sent only if the env var is set and non-empty. |
+| `request_max_retries` / `stream_max_retries` / `stream_idle_timeout_ms` / `websocket_connect_timeout_ms` | ints | Per-provider resilience knobs, hard-capped by constants. |
+| `requires_openai_auth` | bool | If true, login screen + `auth.json`; else key comes from `env_key`. |
+| `supports_websockets` | bool | Provider supports the Responses-API WebSocket transport. |
+| `supports_standalone_web_search` | bool | Provider supports the standalone web-search endpoint. |
+
+Top-level: `model_providers` is a map `id -> ModelProviderInfo` whose description reads
+"User-defined provider entries that extend the built-in list. **Built-in IDs cannot be
+overridden**"; `model_provider` (string) selects one. Built-ins include `openai`,
+`amazon-bedrock`, `amazon-bedrock-runtime` (default base
+`https://bedrock-mantle.us-east-1.api.aws/openai/v1`), and the OSS ids `ollama` and `lmstudio`.
+
+### 1.2 The load-bearing fact: Codex no longer speaks `chat/completions`
+
+**[FACT, A+C corroborated, 2026-09-02]** `WireApi` now has a single variant, `Responses`; the
+deserializer returns the error string ``"`wire_api = \"chat\"` is no longer supported. How to fix:
+set `wire_api = \"responses\"` ... https://github.com/openai/codex/discussions/7782"``. The
+discussion (opened 2025-12-09 by a maintainer) announced deprecation with hard removal "early
+February 2026"; a commenter confirms removal landed 2026-02-05 via PR #10157. The legacy
+`ollama-chat` provider id was removed at the same time (`OLLAMA_CHAT_PROVIDER_REMOVED_ERROR`).
+Sources: `lib.rs` above (lines 57-59, 64-90) and
+<https://github.com/openai/codex/discussions/7782>.
+
+**[FACT, C, 2026-09-02]** Same thread: LM Studio and llama.cpp `server` implement `/v1/responses`
+(llama.cpp "works by converting Responses request into Chat Completions request"); Ollama was
+"planning" it as of 2025-12; several community bridges exist that translate Responses -> Chat
+Completions (`jazzenchen/VibeAround` + crate `va-ai-api-bridge`, `apieum/codex-proxy` which uses
+LiteLLM - **out of bounds for this estate by the no-LiteLLM lock**). Grade C: single thread,
+not re-verified against each project's docs.
+
+**[INFERENCE]** DEDUP item 3 says `codex-cursor` in `~/.local/bin` routes Codex through
+`auth2api :8317`. That wrapper only works today if `auth2api` serves **`POST /v1/responses`**
+(streamed SSE items), not just `/v1/chat/completions`. Whether it does is not recorded in the
+brief; this lens cannot verify it from the cloud sandbox and flags it **UNVERIFIED / must-probe**.
+This is also why a registry needs an `api.shape` field *per endpoint* and not per provider:
+the same `127.0.0.1:8317` may be `chat_completions`-capable for Goose/Fabric and
+`responses`-capable (or not) for Codex.
+
+**[FACT, A, 2026-09-02]** Codex also ships a *capability probe* in its app-server protocol:
+`ModelProviderCapabilitiesReadResponse { imageGeneration: bool, namespaceTools: bool, webSearch: bool }`
+(<https://raw.githubusercontent.com/openai/codex/main/codex-rs/app-server-protocol/schema/json/v2/ModelProviderCapabilitiesReadResponse.json>).
+It is a *read* of what the provider record declares, not a live HTTP probe.
+
+### 1.3 Materialization pattern
+
+**[FACT, A, 2026-09-02]** Codex materializes from one TOML file (`~/.codex/config.toml`, plus
+project and managed layers - `requirements.toml` can pin `allow_managed_hooks_only`, per
+<https://raw.githubusercontent.com/openai/codex/main/docs/config.md>). Provider blocks are
+`[model_providers.<id>]`; model choice is separate (`model = "..."`, `[profiles.<p>]` can pin
+`model_provider` + `model`). Secrets are never inline by default: `env_key` names the variable,
+`env_http_headers` names variables for headers, `auth.command` runs a token helper.
+
+### 1.4 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM into the estate registry: `env_key` (secret-by-name, matches
+  `.agents/local.json` doctrine), `env_http_headers` (header -> env name), `auth {command,args,
+  timeout_ms, refresh_interval_ms}` (a *command-backed token* slot is exactly what a future
+  Cursor-quota bridge or HF token helper needs), and the trio
+  `request_max_retries / stream_max_retries / stream_idle_timeout_ms`.
+- ADAPT: `wire_api` must become a multi-valued `api.shape` in *our* registry
+  (`chat_completions | responses | anthropic_messages | ollama_native | gemini_generate`),
+  because Codex is the only consumer that is Responses-only.
+- NATIVE: Codex reads `[model_providers.*]` itself - the estate only has to *emit* the TOML
+  block (BUILD = a renderer, ~40 lines, from the registry to `~/.codex/config.toml`; same
+  shape as the existing `merge_generated_cursor_mcp.py` renderer pattern on `main`).
+- Health probe to add for every `responses`-shaped endpoint: `POST {base_url}/responses` with
+  `{"model": id, "input": "ping", "stream": false}` expecting `200` + `object: "response"`.
+
+<!-- sections 2..N appended below; rubric table last -->
