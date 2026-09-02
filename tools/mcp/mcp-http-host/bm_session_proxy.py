@@ -113,6 +113,8 @@ HOP_BY_HOP = frozenset(
         SESSION_HEADER.lower(),
     }
 )
+# http.server adds its own Server / Date; the upstream's would only duplicate them.
+RESPONSE_DROP = HOP_BY_HOP | {"server", "date"}
 _SESSION_ID_RE = re.compile(r"^[\x21-\x7e]{1,256}$")
 
 
@@ -684,7 +686,7 @@ class SessionProxy:
         headers = [
             (key, value)
             for key, value in resp.getheaders()
-            if key.lower() not in HOP_BY_HOP
+            if key.lower() not in RESPONSE_DROP
         ]
         if client_sid:
             headers.append((SESSION_HEADER, client_sid))
@@ -784,7 +786,9 @@ class SessionProxy:
             return
         length = resp.getheader("Content-Length")
         bodiless = resp.status in (204, 304)
-        chunked = length is None and not bodiless
+        # A chunked upstream body is re-chunked for the client (its bytes arrive
+        # decoded); a Content-Length body keeps its length header.
+        chunked = (resp.chunked or length is None) and not bodiless
         if not chunked and not bodiless:
             headers.append(("Content-Length", str(length)))
         writer.start(resp.status, headers, chunked=chunked)
