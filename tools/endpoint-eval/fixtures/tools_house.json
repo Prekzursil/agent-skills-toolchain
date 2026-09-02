@@ -1,0 +1,265 @@
+{
+  "shape": "tools-house",
+  "name": "tools_house",
+  "recorded_at": "2026-09-02",
+  "description": "Twelve house tools drawn from the MCP servers in .agents/agents.json (tavily, basic-memory, agent-mail, firecrawl, context7, inference-hub, github, linear). Each carries its JSON-schema parameters, the prompt a tools_roundtrip probe sends, the BFCL gold spec (accepted values per argument; \"\" marks optional) and one known-good and one known-bad call so the grader is exercised in both states.",
+  "tools": [
+    {
+      "name": "search_web",
+      "description": "Web search (tavily). Returns ranked results for a query.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string"},
+          "max_results": {"type": "integer"}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      },
+      "prompt": "Search the web for 'latest ruff release notes' and return at most 5 results.",
+      "gold": {
+        "name": "search_web",
+        "args": {"query": ["latest ruff release notes", "ruff release notes"], "max_results": [5, ""]},
+        "optional": []
+      },
+      "good_call": {"name": "search_web", "args": {"query": "latest ruff release notes", "max_results": 5}},
+      "bad_call": {"name": "search_web", "args": {"query": "latest ruff release notes", "max_results": 50}}
+    },
+    {
+      "name": "read_file",
+      "description": "Read a UTF-8 text file from the repository checkout.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "path": {"type": "string"},
+          "encoding": {"type": "string", "enum": ["utf-8", "latin-1"]}
+        },
+        "required": ["path"],
+        "additionalProperties": false
+      },
+      "prompt": "Read the file AGENTS.md at the repository root.",
+      "gold": {
+        "name": "read_file",
+        "args": {"path": ["AGENTS.md", "./AGENTS.md"], "encoding": ["utf-8", ""]},
+        "optional": []
+      },
+      "good_call": {"name": "read_file", "args": {"path": "AGENTS.md"}},
+      "bad_call": {"name": "read_file", "args": {"path": "AGENTS.md", "mode": "r"}}
+    },
+    {
+      "name": "note_add",
+      "description": "Create a note in the shared Basic Memory knowledge base (write_note).",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "title": {"type": "string"},
+          "content": {"type": "string"},
+          "folder": {"type": "string"}
+        },
+        "required": ["title", "content"],
+        "additionalProperties": false
+      },
+      "prompt": "Add a note titled 'Eval harness kickoff' with the content 'WU-4 started' to the folder 'ops'.",
+      "gold": {
+        "name": "note_add",
+        "args": {"title": ["Eval harness kickoff"], "content": ["WU-4 started"], "folder": ["ops", ""]},
+        "optional": []
+      },
+      "good_call": {"name": "note_add", "args": {"title": "Eval harness kickoff", "content": "WU-4 started", "folder": "ops"}},
+      "bad_call": {"name": "note_add", "args": {"title": "Eval harness kickoff"}}
+    },
+    {
+      "name": "search_notes",
+      "description": "Full-text search over Basic Memory notes.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string"},
+          "limit": {"type": "integer"}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      },
+      "prompt": "Search my notes for 'routing policy' and return 3 hits.",
+      "gold": {
+        "name": "search_notes",
+        "args": {"query": ["routing policy"], "limit": [3, ""]},
+        "optional": []
+      },
+      "good_call": {"name": "search_notes", "args": {"query": "routing policy", "limit": 3}},
+      "bad_call": {"name": "search_web", "args": {"query": "routing policy", "limit": 3}}
+    },
+    {
+      "name": "send_message",
+      "description": "Send a message on the local MCP Agent Mail bus.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "to": {"type": "string"},
+          "subject": {"type": "string"},
+          "body": {"type": "string"},
+          "priority": {"type": "string", "enum": ["low", "normal", "high"]}
+        },
+        "required": ["to", "subject", "body"],
+        "additionalProperties": false
+      },
+      "prompt": "Message the owner (recipient 'owner') with the subject 'T1 green' and the body 'pass@1 = 1.00' at normal priority.",
+      "gold": {
+        "name": "send_message",
+        "args": {"to": ["owner"], "subject": ["T1 green"], "body": ["pass@1 = 1.00"], "priority": ["normal", ""]},
+        "optional": []
+      },
+      "good_call": {"name": "send_message", "args": {"to": "owner", "subject": "T1 green", "body": "pass@1 = 1.00"}},
+      "bad_call": {"name": "send_message", "args": {"to": "owner", "subject": "T1 green", "body": "pass@1 = 1.00", "priority": "urgent"}}
+    },
+    {
+      "name": "firecrawl_scrape",
+      "description": "Scrape one URL through the hosted Firecrawl MCP and return it in the requested formats.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {"type": "string"},
+          "formats": {"type": "array", "items": {"type": "string", "enum": ["markdown", "html", "links"]}}
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      },
+      "prompt": "Scrape https://example.com/docs and return it as markdown.",
+      "gold": {
+        "name": "firecrawl_scrape",
+        "args": {"url": ["https://example.com/docs"], "formats": [["markdown"], ""]},
+        "optional": []
+      },
+      "good_call": {"name": "firecrawl_scrape", "args": {"url": "https://example.com/docs", "formats": ["markdown"]}},
+      "bad_call": {"name": "firecrawl_scrape", "args": {"url": "http://example.com/docs"}}
+    },
+    {
+      "name": "resolve_library_id",
+      "description": "Resolve a package name to a Context7-compatible library id.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "libraryName": {"type": "string"}
+        },
+        "required": ["libraryName"],
+        "additionalProperties": false
+      },
+      "prompt": "Resolve the Context7 library id for 'pytest'.",
+      "gold": {
+        "name": "resolve_library_id",
+        "args": {"libraryName": ["pytest"]},
+        "optional": []
+      },
+      "good_call": {"name": "resolve_library_id", "args": {"libraryName": "pytest"}},
+      "bad_call": {"name": "resolve_library_id", "args": {"libraryName": "pytest", "version": "8"}}
+    },
+    {
+      "name": "get_library_docs",
+      "description": "Fetch documentation for a Context7 library id, optionally focused on a topic.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "context7CompatibleLibraryID": {"type": "string"},
+          "topic": {"type": "string"},
+          "tokens": {"type": "integer"}
+        },
+        "required": ["context7CompatibleLibraryID"],
+        "additionalProperties": false
+      },
+      "prompt": "Fetch the Context7 docs for '/pytest-dev/pytest' on the topic 'fixtures'.",
+      "gold": {
+        "name": "get_library_docs",
+        "args": {"context7CompatibleLibraryID": ["/pytest-dev/pytest"], "topic": ["fixtures", ""], "tokens": [5000, ""]},
+        "optional": []
+      },
+      "good_call": {"name": "get_library_docs", "args": {"context7CompatibleLibraryID": "/pytest-dev/pytest", "topic": "fixtures"}},
+      "bad_call": {"name": "get_library_docs", "args": {"topic": "fixtures"}}
+    },
+    {
+      "name": "models_list",
+      "description": "List the models the inference hub registry knows about.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "filter": {"type": "string", "enum": ["local", "hosted", "all"]}
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "prompt": "List the local models the inference hub knows about.",
+      "gold": {
+        "name": "models_list",
+        "args": {"filter": ["local"]},
+        "optional": []
+      },
+      "good_call": {"name": "models_list", "args": {"filter": "local"}},
+      "bad_call": {"name": "models_list", "args": {"filter": "hosted"}}
+    },
+    {
+      "name": "hub_chat",
+      "description": "One chat round through the inference hub for a registry model id.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "model": {"type": "string"},
+          "prompt": {"type": "string"},
+          "max_tokens": {"type": "integer"}
+        },
+        "required": ["model", "prompt"],
+        "additionalProperties": false
+      },
+      "prompt": "Ask the model qwen2.5-7b to answer the prompt 'ping' using at most 8 tokens.",
+      "gold": {
+        "name": "hub_chat",
+        "args": {"model": ["qwen2.5-7b"], "prompt": ["ping"], "max_tokens": [8, ""]},
+        "optional": []
+      },
+      "good_call": {"name": "hub_chat", "args": {"model": "qwen2.5-7b", "prompt": "ping", "max_tokens": 8}},
+      "bad_call": {"name": "hub_chat", "args": {"model": "glm-5.3", "prompt": "ping"}}
+    },
+    {
+      "name": "github_search_issues",
+      "description": "Search the issues of one GitHub repository.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "repo": {"type": "string"},
+          "query": {"type": "string"},
+          "state": {"type": "string", "enum": ["open", "closed", "all"]}
+        },
+        "required": ["repo", "query"],
+        "additionalProperties": false
+      },
+      "prompt": "Find the open issues in the repository acme/toolchain that mention 'inference-hub'.",
+      "gold": {
+        "name": "github_search_issues",
+        "args": {"repo": ["acme/toolchain"], "query": ["inference-hub"], "state": ["open", ""]},
+        "optional": []
+      },
+      "good_call": {"name": "github_search_issues", "args": {"repo": "acme/toolchain", "query": "inference-hub", "state": "open"}},
+      "bad_call": {"name": "github_search_issues", "args": {"repo": "acme/toolchain", "query": "inference-hub", "state": "merged"}}
+    },
+    {
+      "name": "linear_create_issue",
+      "description": "Create a Linear issue for a team.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "team": {"type": "string"},
+          "title": {"type": "string"},
+          "priority": {"type": "integer", "enum": [1, 2, 3, 4]}
+        },
+        "required": ["team", "title"],
+        "additionalProperties": false
+      },
+      "prompt": "Create a Linear issue for the team OPS titled 'Rotate HF token' with priority 2.",
+      "gold": {
+        "name": "linear_create_issue",
+        "args": {"team": ["OPS"], "title": ["Rotate HF token"], "priority": [2, ""]},
+        "optional": []
+      },
+      "good_call": {"name": "linear_create_issue", "args": {"team": "OPS", "title": "Rotate HF token", "priority": 2}},
+      "bad_call": {"name": "linear_create_issue", "args": {"team": "OPS", "title": "Rotate HF token", "priority": "2"}}
+    }
+  ]
+}
