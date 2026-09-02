@@ -18,8 +18,8 @@ Owned paths (ONLY these):
 | # | Milestone | Status |
 |---|-----------|--------|
 | 1 | Receipt skeleton written | DONE 2026-09-02 |
-| 2 | Tests-first (no network) authored | UNKNOWN - not yet measured |
-| 3 | defang/refang + STIX export implemented, tests green | UNKNOWN - not yet measured |
+| 2 | Tests-first (no network) authored | DONE 2026-09-02 |
+| 3 | defang/refang + STIX export implemented, tests green | DONE 2026-09-02 |
 | 4 | SKILL.md + references (routes, report skeleton) | UNKNOWN - not yet measured |
 | 5 | agents/openai.yaml | UNKNOWN - not yet measured |
 | 6 | ruff 0.15.17 check + format clean | UNKNOWN - not yet measured |
@@ -28,11 +28,17 @@ Owned paths (ONLY these):
 
 ## Test results
 
-UNKNOWN - not yet measured
+`python3 -m pytest .agents/skills/cti-lookup/tests/ -q` -> **40 passed** (~0.10s),
+stdlib-only, no network. Suites:
+- `test_ioc_defang.py` — defang/refang + roundtrip property; offline IOC extraction
+  (IPv4/URL/email/domain/MD5/SHA-1/SHA-256/CVE), domain-in-URL/email de-dup, CLI.
+- `test_stix_export.py` — STIX 2.1 patterns, quote-escaping, deterministic
+  indicator/vulnerability ids (uuid5 over type:value), bundle assembly + ordering, CLI.
 
 ## Ruff
 
-UNKNOWN - not yet measured
+`ruff 0.15.17` on `.agents/skills/cti-lookup/`: `ruff check` -> All checks passed;
+`ruff format` applied, `ruff format --check` -> 4 files already formatted.
 
 ## Routes documented (real tool names)
 
