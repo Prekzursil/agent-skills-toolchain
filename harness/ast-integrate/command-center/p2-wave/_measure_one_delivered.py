@@ -91,7 +91,10 @@ def probe_commands(uid: str, ret: dict | None, probe_dir: Path) -> list[str]:
 def run_cmd(cmd: str) -> tuple[int, str]:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
-    env.setdefault("AST_INTEGRATE_ROOT", str(REPO))
+    # Unconditional (02.09): the user-site .pth jsonschema hook, imported at THIS process's
+    # start-up, setdefaults AST_INTEGRATE_ROOT to ~/p2-g1; with setdefault here a probe measured
+    # in any other tree silently imported modules from that mirror (measured on ADV-0021).
+    env["AST_INTEGRATE_ROOT"] = str(REPO)
     env.setdefault("PYTHONFAULTHANDLER", "1")  # SIGABRT on timeout dumps the stuck frame
     hook_dir = str(REPO / "command-center" / "p2-wave" / "seed-stage")
     py_path = os.pathsep.join(
