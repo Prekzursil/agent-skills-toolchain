@@ -142,10 +142,8 @@ def apply_update(
 ) -> dict[str, Any]:
     dest = Path(dest)
     prev = preview or preview_update(installed, candidate)
-    if dest.exists():
-        import shutil
-
-        shutil.rmtree(dest)
+    # Decide first: nothing below may touch ``dest`` until the widening gate
+    # has passed, so an abort leaves the installed tree byte-identical.
     if prev.permission_diff.get("verdict") == "widen":
         added = set(candidate.permissions) - set(installed.permissions)
         allowed = False
@@ -159,8 +157,35 @@ def apply_update(
             allowed = True
         if not allowed:
             raise UpdateAborted("permission-widening-requires-consent")
-    write_package_tree(dest, candidate)
+    _swap_in_tree(dest, candidate)
     return {"ok": True, "applied": True, "dest": str(dest), "version": candidate.version}
+
+
+def _swap_in_tree(dest: Path, candidate: Any) -> None:
+    """Stage the candidate beside ``dest`` and swap it in, so a crash while
+    writing leaves either the old tree or the complete new tree, never a mix."""
+    import shutil
+
+    dest = Path(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    staging = dest.parent / f".{dest.name}.staging"
+    retired = dest.parent / f".{dest.name}.retired"
+    for leftover in (staging, retired):
+        if leftover.exists():
+            shutil.rmtree(leftover)
+    try:
+        write_package_tree(staging, candidate)
+        if dest.exists():
+            dest.rename(retired)
+        staging.rename(dest)
+    except BaseException:
+        if staging.exists():
+            shutil.rmtree(staging, ignore_errors=True)
+        if retired.exists() and not dest.exists():
+            retired.rename(dest)
+        raise
+    if retired.exists():
+        shutil.rmtree(retired, ignore_errors=True)
 
 
 def assert_preview_matches_actual(preview: Preview, dest: Path) -> bool:

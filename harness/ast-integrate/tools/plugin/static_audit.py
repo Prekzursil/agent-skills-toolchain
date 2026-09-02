@@ -26,6 +26,18 @@ ALLOWLIST_NAMES = frozenset(
     }
 )
 
+# TST-0225 sandbox substrate. These two modules perform one deliberate TCP
+# connect() so a "network: none" declaration can be *checked* (the canary must
+# fail to connect); they never carry telemetry and are outside this audit's
+# telemetry scope (receipt IMP-0057, retry.pivot_alternatives). Listing them
+# here does not widen any destination allowlist: net_allowlist.py stays empty.
+CANARY_SUBSTRATE = frozenset(
+    {
+        "tools/lib/workspace.py",
+        "tools/lib/workspace.mjs",
+    }
+)
+
 NETWORK_IMPORTS = frozenset(
     {
         "urllib",
@@ -127,6 +139,14 @@ class _Visitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def _repo_rel(path: Path) -> str:
+    """Repo-relative POSIX path, or the path as given when outside REPO."""
+    try:
+        return path.resolve().relative_to(REPO).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def _skip(path: Path) -> bool:
     parts = set(path.parts)
     if "tests" in parts or "probes" in parts or "__pycache__" in parts:
@@ -134,6 +154,8 @@ def _skip(path: Path) -> bool:
     if path.name in ALLOWLIST_NAMES:
         return True
     if path.suffix not in {".py", ".mjs", ".js", ".cjs"}:
+        return True
+    if _repo_rel(path) in CANARY_SUBSTRATE:
         return True
     return False
 
@@ -175,11 +197,7 @@ def audit_source(text: str, rel: str, suffix: str) -> list[dict[str, str]]:
 def audit_tree(roots: Iterable[Path] | None = None) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     for path in iter_production_files(roots):
-        rel = path.as_posix()
-        try:
-            rel = path.resolve().relative_to(REPO).as_posix()
-        except ValueError:
-            pass
+        rel = _repo_rel(path)
         text = path.read_text(encoding="utf-8")
         findings.extend(audit_source(text, rel, path.suffix))
     return findings
