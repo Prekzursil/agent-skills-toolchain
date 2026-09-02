@@ -106,9 +106,71 @@ Three catalogs matter for this estate; all three are plain JSON over HTTPS and n
 - **INFERENCE (why three, not one)** models.dev is the only one of the three that is *provider-neutral and keyless with base URLs*, so it is the natural spine for the "general integration layer": it tells you the OpenAI-compatible `api` URL and the `env` var name for every provider. OpenRouter adds live health for the sidecar; HF router adds per-provider capability flags for the HF path. None of them knows about `auth2api :8317`, `ollama`, or `lms`, so the estate registry must remain the SSOT and merely *ingest* these feeds (section 8).
 - **RECOMMENDATION** Do not adopt any third-party "catalog sync" package; the three feeds are single `GET`s. The build is a ~100-line stdlib Python fetcher with an ETag/`If-Modified-Since` cache and a last-known-good file - see section 8.2.
 
-## 6. Survey: provider health probing `[pending]`
+## 6. Survey: provider health probing
 
-## 7. Ranking: maintenance x license x security `[pending]`
+Two independent signal families exist; the best OSS tools combine them and treat the *gap* as the signal.
+
+### 6.1 Signal family A - vendor status feeds (what the provider *claims*)
+
+| Provider family | Machine-readable feed | Source |
+|---|---|---|
+| Anthropic (Claude) | Atlassian Statuspage: `https://status.claude.com/api/v2/summary.json` (components + unresolved incidents + maintenances) and `/api/v2/status.json` (rollup `indicator` in `none|minor|major|critical`) | `[TA corroborated 2026-09-02] https://status.anthropic.com/api/v2/` |
+| OpenAI | `https://status.openai.com/api/v2/summary.json` - documented as Statuspage-shaped but has gone 404 for hours during a status-site migration (2025-02-27) | `[TC UNVERIFIED 2025-02-28] https://community.openai.com/t/is-the-status-url-still-up-https-status-openai-com-api-v2-summary-json/1131389` |
+| Groq, Cohere, DeepSeek, Replicate, Moonshot, MiniMax, SiliconFlow | Statuspage `summary.json` | `[TB UNVERIFIED 2026-09-02] https://github.com/3389ro/ai-status-monitor` (feed-format table in README) |
+| Google Gemini / Vertex | Google Cloud `incidents.json` | same |
+| Azure OpenAI / AI Foundry | Azure status RSS | same |
+| xAI | custom RSS | same |
+| Perplexity | Instatus `summary.json` | same |
+| **Hugging Face** | **Better Stack `index.json`** | same |
+| **Mistral, Zhipu / GLM** | **no public feed** - reported `Unknown` | same |
+
+- **INFERENCE** The two providers the estate leans on through `router.huggingface.co` for `zai-org/GLM-5.3` (Zhipu upstream) have *no* vendor feed, so for that path only synthetic probing (family B) or the HF router's own `providers[].status` field (section 5) can say anything. This is a concrete reason the retire-loop must not depend on vendor feeds alone.
+
+### 6.2 Signal family B - synthetic probes (what you *observe*)
+
+- **`yejinai/llm-health-monitor` - FIND W4.** **FACT** Zero-database self-hosted monitor that probes each configured model with the cheapest possible request (1 output token), fetches the provider's official Statuspage `status.json` *at the same moment*, and exposes the claim-vs-reality diff as a first-class signal (`/api/health/insights`, Prometheus `llm_health_hidden_degradation`); tunables include `degradedLatencyRatio` (default 2.0 x the model's median baseline) and `confirmationRuns` (consecutive failures before flagging, default 1, "raise to 2-3 to ignore blips"); key management is loopback-only with masked responses; new providers are added by registering in a `ProviderRegistry` plus an optional Statuspage URL. `[TA UNVERIFIED 2026-09-02] https://github.com/yejinai/llm-health-monitor` (single source: its README; licence and commit cadence not confirmed in this pass - **check before adopting**).
+- **`3389ro/ai-status-monitor` - reference only.** **FACT** WPF / .NET 10 single-file Windows desktop console polling 14 providers' *official* feeds every 60 s, normalising to six states, computing 7/30/90-day SLA, with a loopback REST API on `127.0.0.1:12100` (bearer token, per-IP rate limit). It explicitly never sends synthetic requests. `[TA UNVERIFIED 2026-09-02] https://github.com/3389ro/ai-status-monitor` - **INFERENCE**: a resident WPF process on a 31.6 GB, memory-starved box is the wrong shape for us; the value is its feed table (6.1) and its six-state normalisation, both copyable in an hour.
+- **`aidown.io` (AI Down) - external free feed.** **FACT** Aggregates 50+ providers from three sources (official feeds, synthetic probes routed through OpenRouter every 1-5 min measuring latency and TTFT, crowdsourced reports) and exposes a public REST API: `/api/v1/status`, `/api/v1/status/{provider}`, `/api/v1/incidents`, `/api/v1/uptime/{provider}`, `/api/v1/timeline`, `/api/v1/correlation`. `[TB UNVERIFIED 2026-09-02] https://aidown.io/docs` - **INFERENCE**: a keyless third-party read; useful as a *tie-breaker* when our own probe and the vendor feed disagree, never as the primary signal (single vendor, no SLA to us).
+- **Catalog-embedded health (already found in section 5).** OpenRouter's per-endpoint `uptime_30m` / `latency_30m_ms` / `throughput_30m_tokens_per_sec` and the HF router's per-provider `status`, `first_token_latency_ms`, `throughput` mean two of our three catalogs *are* health feeds. `[TA corroborated 2026-09-02]` (sources in section 5 table).
+
+### 6.3 Design principles extracted (INFERENCE, feeding section 8)
+
+1. **Probe with the cheapest legal call.** For OpenAI-compatible endpoints that is `GET /v1/models` (no tokens) first, then a 1-token `chat/completions` only when capability must be re-verified. HF router and OpenRouter `GET /models` are free; `auth2api :8317` `GET /v1/models` spends no Cursor quota (FACT from the brief: it lists 36 ids).
+2. **Hysteresis before retirement.** `confirmationRuns >= 2-3` (llm-health-monitor's own advice) - a single failed probe must never deprecate an endpoint; `[LOCK-TRADEOFF]` demands the tradeoff be shown, not the feature removed.
+3. **Record claim and observation separately** and score the gap; a provider that says `operational` while our probe fails is a *different* state from one that is honestly down.
+4. **Compare against the model's own baseline**, not a global constant (`degradedLatencyRatio` semantics).
+
+## 7. Ranking: maintenance x license x security
+
+### 7.1 Security tooling that should gate any adoption - FIND W5
+
+- **`mcp-scan` (Invariant Labs -> Snyk `agent-scan`).** **FACT** Open-source CLI that auto-discovers Claude / Cursor / Windsurf-style MCP configs, connects to each server, pulls tool descriptions and statically checks them for prompt injection, tool poisoning, cross-origin escalation (tool shadowing) and *rug pulls* via **hash-based pinning of tool descriptions**; issue codes E001/E002; `--json` for CI; `uvx mcp-scan@latest scan --local-only` avoids the cloud Guardrails API at some accuracy cost. `[TA corroborated 2026-09-02] https://github.com/invariantlabs-ai/mcp-scan/blob/608b50b0/README.md` + `https://invariantlabs.ai/blog/introducing-mcp-scan`
+- **FACT** As of the 0.4 line it inventories **harnesses, MCP servers *and skills*** and shipped a technical report on threats in the agent-skill ecosystem. `[TA UNVERIFIED 2026-09-02] https://github.com/invariantlabs-ai/mcp-scan/blob/608b50b0/README.md`
+- **FACT** Launched April 2025; project acquired by Snyk and now lives at `github.com/snyk/agent-scan` with >2,600 stars; Apache-2.0 (forks show the licence). `[TB corroborated 2026-09-02] https://gingerlabs.ai/blog/how-to-audit-mcp-servers-using-mcp-scan` + fork metadata at `https://github.com/gmlglzh/mcp-scan`
+- **Privacy caveat (FACT)** Default mode shares tool names and descriptions with invariantlabs.ai under their ToS; `--local-only` keeps everything on the box. `[TA corroborated 2026-09-02] https://github.com/chatlotus/mcp-scan` (fork README mirrors upstream text) - **RECOMMENDATION**: estate use must be `--local-only`; 42 registry servers include private tooling.
+- **INFERENCE (why this matters for the meta loop)** "Hash-pinned tool descriptions, alarm on change" *is* a capability re-probe. The same hash the scanner computes for security is the drift signal the registry needs; one probe, two consumers.
+
+### 7.2 Catalog-of-MCP-servers feed - FIND W6
+
+- **FACT** The official MCP Registry (`registry.modelcontextprotocol.io`, preview; backed by Anthropic, GitHub, PulseMCP, Microsoft) exposes `GET /v0.1/servers` with cursor pagination, `search=`, `version=latest`, and **`updated_since=<RFC3339>`** for incremental sync; `include_deleted` flips to `true` automatically when `updated_since` is supplied, so **deletions propagate**. Entries follow `server.json` (schema `https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`) with `packages[].registryType/identifier/version/transport`, `remotes[]`, `environmentVariables[]`, and a reverse-DNS-namespaced `_meta` extension block that sub-registries use for ratings, download counts and **security-scan results**. The registry is explicitly *not* meant for direct host consumption; hosts should read a sub-registry (e.g. PulseMCP `com.pulsemcp/server-version.status`). `[TA corroborated 2026-09-02] https://modelcontextprotocol.io/registry/registry-aggregators` + `https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/official-registry-api.md` + `https://modelcontextprotocol.io/registry/about` + `[TB] https://www.pulsemcp.com/api/docs/v0.1`
+- **INFERENCE** Of the 42 servers in `.agents/agents.json`, those that are public npm/pypi packages can be *cross-referenced* against this feed: a server that upstream marks deleted, or whose `latest` version moves, is a retire/upgrade candidate. `_meta` shows the industry pattern for attaching a per-server score without touching the schema - which matches the repo rule in `AGENTS.md` ("treat consumer-owned manifests as closed schemas; store provenance in `.provenance/`").
+
+### 7.3 Ranking table
+
+Scores are 0-3 per axis (3 = best). Maintenance = release/commit recency and bus-factor; Licence = permissive and unambiguous; Security = attack surface + default posture. **Sourced facts feed the score; the score itself is INFERENCE.**
+
+| # | Find | Maint. | Licence | Security | Total | Notes |
+|---|---|---|---|---|---|---|
+| W1 | `huggingface/hf-mcp-server` | 3 (vendor-owned, active 2025-05 -> now) | 3 (MIT) | 2 (needs `MCP_ALLOWED_HOSTS` pinned; OAuth or bearer) | **8** | Already doctrine; new value is Server Card/ETag probe + `PROXY_TOOLS_CSV` pattern |
+| W5 | `mcp-scan` / `snyk/agent-scan` | 3 (Snyk-backed, 2.6k stars) | 3 (Apache-2.0) | 2 (cloud default; `--local-only` required) | **8** | Gate + drift signal |
+| W6 | Official MCP Registry API | 2 (preview; "breaking changes or data resets may occur") | 3 (spec/open) | 3 (read-only JSON, no auth for reads) | **8** | Incremental sync with deletions |
+| W3 | `openrouterteam/skills` `openrouter-models` | 3 (vendor-owned) | UNVERIFIED (repo licence not read) | 3 (keyless read) | **6+** | `[LOCK-OR]`: catalog read only |
+| W4 | `yejinai/llm-health-monitor` | UNVERIFIED (README only) | UNVERIFIED | 2 (loopback key mgmt; but holds keys) | **2+** | Adopt *design*, not code, until verified |
+| W2 | `pyroprompts/any-chat-completions-mcp` | 1 (last visible update 2025-07) | 3 (MIT) | 1 (key in env to `npx` package; one tool = one blind relay) | **5** | Reference pattern only; do not adopt |
+| - | `3389ro/ai-status-monitor` | UNVERIFIED | UNVERIFIED | 2 (loopback API, bearer) | n/a | Feed table copied; WPF resident process rejected for RAM |
+| - | `aidown.io` public API | n/a (SaaS) | n/a | 3 (keyless read) | n/a | Tie-breaker feed only |
+
+**RECOMMENDATION (ranking outcome):** adopt W5 as a gate (it is a CLI, not a runtime, so `[LOCK-NO-2ND-RUNTIME]` is untouched), *read* W6 and the three catalogs of section 5 as feeds, copy the design of W4 into an estate script, and treat W2 as a negative example when designing the `glm53-space` replacement.
 
 ## 8. Meta loop design `[pending]`
 
