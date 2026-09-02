@@ -34,6 +34,7 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | CNF-0129 | `.agents/skills/claim-verify-gate/scripts/claim_gate.py` | same `.agents/` family as TST-0022/AUD-0045 (b3-p10-CNF) | candidate source at the toolchain root | open |
 | CNF-0026 | `probes/CNF-0026/fixtures/control_reproducible_crlf.txt` lost its CRLF bytes in capture (static fixture, no generator) | b3-p09-CNF | eol normalisation (`.gitattributes eol=lf`) at capture time | open — needs the owner's original bytes |
 | IMP-0305 | `tools/council/vote/near_certain_v1.json` (emit_receipt.py reads it; nothing in the tree writes it) | b4-p10-IMP | data fixture excluded | open |
+| IMP-0386 | `schema/capability-record.schema.json` (SCHEMA_ROOT_REL named by the receipt's schema_input_path; nothing generates it) | b4-p11-IMP | schema dir excluded | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
