@@ -1830,7 +1830,9 @@ class _TextExtractor(HTMLParser):
         self._pre = 0
         self._in_title = False
         self._title_done = False
-        self._pending = 0  # 0 = none, 1 = line break, 2 = paragraph break
+        # Named ``_brk``, not ``_pending``: CPython 3.11.16+'s HTMLParser keeps its
+        # own ``_pending`` buffer list and the name collision broke ``close()`` in CI.
+        self._brk = 0  # 0 = none, 1 = line break, 2 = paragraph break
 
     # -- tags ---------------------------------------------------------------
     def handle_starttag(self, tag: str, attrs) -> None:
@@ -1843,11 +1845,11 @@ class _TextExtractor(HTMLParser):
         elif tag == "title":
             self._in_title = not self._title_done
         elif tag in _PARAGRAPH_TAGS:
-            self._pending = 2
+            self._brk = 2
             if tag == "pre":
                 self._pre += 1
         elif tag in _LINE_TAGS:
-            self._pending = max(self._pending, 1)
+            self._brk = max(self._brk, 1)
         elif tag in _CELL_TAGS:
             self._space()
 
@@ -1860,11 +1862,11 @@ class _TextExtractor(HTMLParser):
             self._in_title = False
             self._title_done = True
         elif tag in _PARAGRAPH_TAGS:
-            self._pending = 2
+            self._brk = 2
             if tag == "pre" and self._pre:
                 self._pre -= 1
         elif tag in _LINE_TAGS:
-            self._pending = max(self._pending, 1)
+            self._brk = max(self._brk, 1)
         elif tag in _CELL_TAGS:
             self._space()
 
@@ -1876,13 +1878,13 @@ class _TextExtractor(HTMLParser):
             self._title.append(data)
             return
         if self._pre:
-            chunk = data.lstrip("\n") if self._pending or not self._out else data
+            chunk = data.lstrip("\n") if self._brk or not self._out else data
             self._emit(chunk, verbatim=True)
             return
         collapsed = _WS_RUN_RE.sub(" ", data)
         if collapsed.strip():
             self._emit(collapsed, verbatim=False)
-        elif collapsed and not self._pending:
+        elif collapsed and not self._brk:
             self._space()  # whitespace between inline runs is one separator
 
     def _space(self) -> None:
@@ -1890,11 +1892,11 @@ class _TextExtractor(HTMLParser):
             self._out.append(" ")
 
     def _emit(self, chunk: str, verbatim: bool) -> None:
-        if self._pending and self._out:
+        if self._brk and self._out:
             self._out[-1] = self._out[-1].rstrip(" ")
-            self._out.append("\n" * self._pending)
+            self._out.append("\n" * self._brk)
         at_boundary = not self._out or self._out[-1].endswith((" ", "\n"))
-        self._pending = 0
+        self._brk = 0
         if not verbatim and at_boundary:
             chunk = chunk.lstrip(" ")
         if chunk:
