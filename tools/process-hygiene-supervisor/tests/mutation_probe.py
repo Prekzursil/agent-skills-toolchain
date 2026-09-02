@@ -61,6 +61,12 @@ MUTATIONS = [
         "        if not proc.executable:\n            return True",
         "        if False:\n            return True",
     ),
+    (
+        "PID-reuse child-predates-parent guard dropped",
+        "hygiene.py",
+        "                if snapshot.by_pid[child].created_unix < parent_created:\n                    continue",
+        "                if False:\n                    continue",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
