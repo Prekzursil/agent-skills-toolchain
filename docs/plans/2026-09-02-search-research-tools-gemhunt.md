@@ -290,8 +290,10 @@ and archived, body unedited, under `gemhunt-lenses/`:
   native-capability + monitoring audit (agent bc-148e974b-f9f3-5b2d-b578-09f8bc6cfd47).
 
 Lens 1 (self-hosted search backends, agent bc-1c484032-11cf-5a6e-8c82-a2e6c19cd3a0) had
-stopped after ~21 min / 84 tool calls without a final report and was resumed to finish;
-its return is folded in here when it lands. The digests keep each lens's own evidence
+stopped after ~21 min / 84 tool calls without a final report; it was resumed on the
+owner's instruction and delivered at 05:33 UTC — archived as
+[Lens 1](gemhunt-lenses/lens-01-self-hosted-search-backends.md), digest below. The
+digests keep each lens's own evidence
 (numbers, IDs and licenses are the lens's, not re-verified here); the wave-map table is
 the proposal, still subject to the per-item veto at G-9.
 
@@ -408,6 +410,51 @@ most daily); changedetection.io (NEW DAEMON, 180-280 MB core, ~2 GB with Chrome)
 Kagi has no monitoring product (Search $12/1k, Extract $4/1k pages; official MCP =
 Search + Extract); neither has Tavily.
 
+### Lens 1 - self-hosted search backends (resumed; landed 05:33 UTC)
+
+Bottom line: **nothing found beats TrailSearch for the Tavily slot** (only candidate
+with native `/tavily/*` + clean license + trafilatura/crawl4ai-grade extraction) — keep
+it `native`. 31 backends scored on (clean license) x (low RAM) x (Tavily/Firecrawl
+shape); RAM marked "measured" was run by the lens on Linux.
+
+- **trafilatura-scrape** (github.com/DaRacci/trafilatura_scrape, MIT, `LICENSE` in tree;
+  ~30 KB Python, stdlib HTTP server + requests + trafilatura + pypdf): Firecrawl v2 +
+  v1 shape (`/v2/scrape|batch/scrape|map|parse|search`, `/v1/scrape|search`), search =
+  thin proxy to our SearXNG via `SEARXNG_URL`. **Measured 60 MB idle, 98 MB after 4
+  scrapes**; pure-Python wheels = native Windows, no Docker. Caveats: 0 stars, single
+  author, not on PyPI (README claim false — install from git), two bugs seen (handler
+  thread dies with no HTTP response when SearXNG is unreachable; title mojibake). Verdict
+  ADOPT after a 1-day trial as the **fastCRW (AGPL) replacement** in the emulated
+  Firecrawl tier.
+- **WebSearchFree** (github.com/drmikecrypto/WebSearchFree, MIT): 1 MB static binary,
+  native `.exe`; Tavily-shaped unprefixed `/search` + `/extract` (no `/tavily/*`);
+  **measured 9.7 MB idle, 18.7 MB after use**, 687 ms search. Extract is plain text;
+  6 commits old; Brave scraper already 429ing. Verdict TRIAL as an ultra-low-RAM
+  standby search lane (extract labelled `emulated`).
+- **Markdown Crawler / microcrawl** (MIT core, Rust axum, Firecrawl v2 + streamable
+  MCP, SPA-shell-gated Lightpanda JS tier = AGPL, Linux-only): best-shaped design,
+  2 commits / 0 releases. DEFER, watch-list.
+- **AginxBrowser** (Apache-2.0, V8 + own renderer, no Chromium, Firecrawl `/v1/scrape`,
+  ~227 MB under load self-reported, 73 MiB image, **no Windows asset**): the only
+  sub-300 MB JS renderer found. TRIAL off-box (OVH/WSL2) as the missing JS tier.
+- **fastCRW correction:** v0.33.0 (2026-09-02) ships native `win32-x64` zips for
+  `crw`/`crw-server`/`crw-mcp` with sigstore-signed `SHA256SUMS` (README stale); its own
+  `COMPATIBILITY.md` rates Tavily parity "adapter required" (no `/tavily/*`, no
+  `search_depth`, single-URL extract). Keep as secondary fallback; fix the branch's
+  "Docker-only" note.
+- SKIP (license/weight/redundancy): webclaw (AGPL, `/v1/search` needs Serper key),
+  Searcharvester (AGPL, stale), Draco (no LICENSE file), GroktoCrawl (vector DB),
+  fire_ctrl/ScrapeForge/agents-api/Angler (multi-container), tavily-hikari (keyed),
+  Lightpanda (AGPL, Linux-only -> OVH). BORROW only: AgentSearch, MetaSearchMCP, Argo,
+  Kindly, Scrapyard, TadMSTR/searxng-mcp.
+- Techniques worth borrowing (all 0 RAM): TadMSTR per-domain capability DB (30-day
+  per-tier success, skip tiers <30% over >=10 attempts) = per-domain, time-decayed
+  `probed`; `llms-full.txt` + JSON-LD/`__NEXT_DATA__` fast paths; Scrapyard
+  `pipeline_steps` provenance + daily canary; Argo per-engine circuit breaker + negative
+  cache; AgentSearch escalation ladder + prompt-injection scrub (LLM01) + paywall
+  detection; Searcharvester extract size presets + pagination; UnSearch signed citation
+  envelope (sha256 + fetched-at + engine + lattice label); Scrapling TLS impersonation.
+
 ### Wave-map impact
 
 Anchor applied: ENABLE-native > BORROW-technique > in-process adapter (0 RAM) > stdio
@@ -442,8 +489,18 @@ ENABLING.
 | changedetection.io | 14 | skip (NEW DAEMON, 180-280 MB + ~2 GB Chrome) | no |
 | Kagi for monitoring | 14 | skip; the Kagi search lane stays in Wave 4 with these prices noted | no |
 | Cross-provider RRF exists at `tools/search-expansion/rank_fusion.py` | 14 | - | **confirms, does not change**: Wave-1 items 2-3 extend that file; do not add a second fusion path |
+| Keep TrailSearch as the `native` Tavily-shaped backend | 1 | - | no; confirms the built stack |
+| trafilatura-scrape trial as the fastCRW (AGPL) replacement in the emulated Firecrawl tier (`deploy/` run script + endpoint-agnostic `*_URL`, wrap with hub timeout for the dead-handler bug) | 1 | 2 | no |
+| WebSearchFree as ultra-low-RAM standby search (unprefixed `/search`+`/extract`; extract labelled `emulated`) | 1 | 2 (optional) | no |
+| AginxBrowser JS-render tier (Docker/WSL2 or OVH; `probed`, behind trafilatura) | 1 | 3 (on-demand, G-4 endpoint-agnostic) | no |
+| Markdown Crawler / microcrawl | 1 | watch-list (OSSInsight/GitHub REST) | no |
+| fastCRW: record native Windows x64 build + "adapter required" Tavily parity in the reunion decision record | 1 | 1 (docs-only, parent edits `docs/plans/2026-09-02-search-stack-reunion.md` at Wave-1 wrap-up) | no |
+| Per-domain capability DB, `llms-full.txt` + JSON-LD fast paths, `pipeline_steps` provenance, engine circuit breaker, injection scrub, extract size presets, signed citation envelope | 1 | 2 (harness/adapter borrows, 0 RAM; injection scrub first) | no |
+| webclaw, Searcharvester, Draco, GroktoCrawl, fire_ctrl, ScrapeForge, agents-api, Angler, tavily-hikari, Lightpanda on-box | 1 | skip | no |
 
-Net effect on Wave 1: none of the six items is removed or altered. One conditional,
-additive touch to item 1 (science engines, only if the probe shows them disabled) and
-one confirmation for items 2-3 (extend the existing `rank_fusion.py`). Everything else
-lands in Wave 2/3 or the hand-off list.
+Net effect on Wave 1: none of the six items is removed or altered by any of the four
+recovered lenses. One conditional, additive touch to item 1 (science engines, only if
+the probe shows them disabled), one confirmation for items 2-3 (extend the existing
+`rank_fusion.py`), and one docs-only correction (fastCRW ships Windows binaries) for
+the reunion decision record at wrap-up. Everything else lands in Wave 2/3 or the
+hand-off list.
