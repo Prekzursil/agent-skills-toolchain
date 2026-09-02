@@ -182,6 +182,24 @@ MUTATIONS = [
         "            pass",
     ),
     (
+        "memory-priority demotes protected or active processes",
+        "hygiene.py",
+        "            if self._is_protected(proc, snapshot) or not self._confirmed_idle(",
+        "            if False or not self._confirmed_idle(",
+    ),
+    (
+        "memory-priority never restores (demoted tenants stay demoted forever)",
+        "hygiene.py",
+        "            if active_enough and self._confirmed_idle(proc, observations):",
+        "            if True:",
+    ),
+    (
+        "actuator changes memory priority without the identity check",
+        "hygiene_actuate.py",
+        '                return result("vanished", "exited before the priority change")\n            if not self._identity_matches(member, identity):',
+        '                return result("vanished", "exited before the priority change")\n            if False:',
+    ),
+    (
         "ownership carve-out dropped (an IDE-owned agent is a stale session)",
         "hygiene.py",
         '        if kind in ("ide", "runtime"):',

@@ -1469,6 +1469,8 @@ class FakeActuator:
         self.stopped: list[tuple[list[int], int]] = []
         self.fail_pids = fail_pids or set()
         self.wsl_calls = 0
+        self.priorities: list[tuple[int, int]] = []
+        self.priority_fail = False
         self.reaper_calls: list[bool] = []
         self.reaper = reaper or {
             "status": "success",
@@ -1478,6 +1480,15 @@ class FakeActuator:
             "failed_survivors": [],
             "exit_code": 0,
         }
+
+    def set_memory_priority(self, member, level):
+        self.priorities.append((member.pid, level))
+        outcome = (
+            "failed" if self.priority_fail else ("demoted" if level < 5 else "restored")
+        )
+        return hygiene.StopResult(
+            pid=member.pid, created_unix=member.created_unix, outcome=outcome, detail=""
+        )
 
     def stop_tree(self, tree, *, graceful_seconds):
         self.stopped.append(([member.pid for member in tree], graceful_seconds))
@@ -2887,6 +2898,234 @@ def test_cli_run_writes_effectiveness_row_and_heartbeat_carries_eta(
     assert beat["commit_headroom_bytes"] == 64 * GIB - (20 * GIB - 100 * MIB)
 
 
+# ---------------------------------------------------------- memory priority
+
+
+def mp_policy(**over):
+    base = {"memoryPriority.enabled": True}
+    base.update(over)
+    return policy(**base)
+
+
+def test_memory_priority_is_off_by_default_and_validated():
+    normalised = hygiene.validate_policy(policy())
+    assert normalised["memoryPriority"] == {
+        "enabled": False,
+        "minTier": "elevated",
+        "level": 1,
+    }
+    with pytest.raises(hygiene.PolicyError, match="memoryPriority.level"):
+        hygiene.validate_policy(mp_policy(**{"memoryPriority.level": 9}))
+    with pytest.raises(hygiene.PolicyError, match="unknown key"):
+        hygiene.validate_policy(mp_policy(**{"memoryPriority.typo": 1}))
+    plan = observe(engine(), [orphan_node(created=ago(600))], 4, free=3 * GIB)
+    assert by_rule(plan, "memory-priority") == []  # disabled: never even proposed
+
+
+def test_idle_tenants_are_demoted_at_elevated_and_restored_when_active_or_calm():
+    """Windows trims working sets fairly indiscriminately under pressure, so the
+    ACTIVE session's hot pages go along with the 42 idle servers' - part of the
+    freeze itself. VERY_LOW memory priority on confirmed-idle tenants makes THEIR
+    pages the reclaim pool. This is a priority hint, not EmptyWorkingSet: nothing
+    is forced out and commit does not move (the rejected option stays rejected)."""
+    eng = engine(mp_policy())
+    # a young idle node under a live terminal: not an orphan, not stale - a tenant
+    tenant = proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600))
+    procs = [terminal(), tenant]
+    plan = observe(eng, procs, 4, free=3 * GIB)  # elevated, idle confirmed
+    demote = by_rule(plan, "memory-priority")
+    assert [d.action for d in demote] == ["demote"]
+    assert demote[0].root.pid == 400 and demote[0].min_tier == "elevated"
+    assert demote[0].detail["level"] == 1
+    key = hygiene._key(hygiene.parse_snapshot(snap(procs)).by_pid[400])
+    # the engine remembers what it demoted (so it can restore)
+    assert key in eng.state["demoted"]
+    # next run, still idle: no second demote row
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap(procs, taken=NOW + STEP, free=3 * GIB))
+    )
+    assert by_rule(plan, "memory-priority") == []
+    # activity: restore to NORMAL
+    busy = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600), cpu=40.0),
+    ]
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap(busy, taken=NOW + 2 * STEP, free=3 * GIB))
+    )
+    restore = by_rule(plan, "memory-priority")
+    assert [d.action for d in restore] == ["restore"]
+    assert restore[0].detail["level"] == 5
+    assert key not in eng.state["demoted"]
+
+
+def test_demotions_are_restored_when_pressure_lifts_and_forgotten_when_the_process_leaves():
+    eng = engine(mp_policy())
+    procs = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)),
+    ]
+    observe(eng, procs, 4, free=3 * GIB)
+    assert len(eng.state["demoted"]) == 1
+    # calm again: everything demoted goes back to normal standing - on the SECOND
+    # calm reading, because de-escalation deliberately has hysteresis
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap(procs, taken=NOW + STEP, free=8 * GIB))
+    )
+    assert plan.tier == "elevated" and by_rule(plan, "memory-priority") == []
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap(procs, taken=NOW + 2 * STEP, free=8 * GIB))
+    )
+    assert plan.tier == "normal"
+    assert [d.action for d in by_rule(plan, "memory-priority")] == ["restore"]
+    assert eng.state["demoted"] == {}
+    # demote again, then the process disappears: nothing to restore, state forgets it
+    observe(eng, procs, 4, free=3 * GIB, end=NOW + 6 * STEP)
+    assert len(eng.state["demoted"]) == 1
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap([terminal()], taken=NOW + 7 * STEP, free=3 * GIB))
+    )
+    assert by_rule(plan, "memory-priority") == []
+    assert eng.state["demoted"] == {}
+
+
+def test_memory_priority_never_touches_protected_active_claimed_or_unknown_processes():
+    eng = engine(mp_policy())
+    procs = [
+        terminal(),
+        proc(
+            400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)
+        ),  # idle tenant
+        proc(
+            401,
+            9_999,
+            cmd="node C:\\Users\\x\\Cowork\\tools\\auth2api\\dist\\index.js",
+            created=ago(600),
+        ),  # protected
+        proc(
+            402, 9_999, cmd="node C:\\x\\busy.js", created=ago(600), cpu=None, io=None
+        ),  # metrics unknown
+        proc(
+            403,
+            9_999,
+            name="explorer.exe",
+            exe="C:\\Windows\\explorer.exe",
+            cmd="explorer",
+            created=ago(600),
+        ),
+        *grok_with_bridge(),  # the retired bridge is CLAIMED for a stop: no demote
+    ]
+    plan = observe(eng, procs, 4, free=3 * GIB)
+    demoted = {d.root.pid for d in by_rule(plan, "memory-priority")}
+    # 400 is the idle tenant; 200 is the idle grok SESSION hosting the retired
+    # bridge - an idle agent waiting for input is exactly the standby passenger
+    # this rule is for. The bridge (300) is claimed for a stop and is not demoted.
+    assert demoted == {200, 400}
+    assert 300 in kill_pids(plan)
+
+
+def test_memory_priority_leaves_listening_daemons_alone():
+    """Found by the invariant fuzzer: the Basic Memory singleton (a python.exe in
+    orphans.names, idle between requests) was being demoted. A port owner is a
+    SERVER; paging out its index taxes every request. Same carve-out as `daemon`."""
+    eng = engine(mp_policy())
+    procs = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)),
+        proc(
+            5001,
+            9_999,
+            name="python.exe",
+            exe="C:\\Python314\\python.exe",
+            cmd="python -m basic_memory mcp --transport streamable-http --port 8765",
+            created=ago(600),
+        ),
+    ]
+    plan = observe(eng, procs, 4, free=3 * GIB, listeners={8765: 5001})
+    assert {d.root.pid for d in by_rule(plan, "memory-priority")} == {400}
+
+
+def test_memory_priority_disabled_mid_flight_restores_outstanding_demotions():
+    eng = engine(mp_policy())
+    procs = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)),
+    ]
+    observe(eng, procs, 4, free=3 * GIB)
+    state = eng.state
+    off = engine(policy(), state=state)
+    plan = off.evaluate(
+        hygiene.parse_snapshot(snap(procs, taken=NOW + STEP, free=3 * GIB))
+    )
+    assert [d.action for d in by_rule(plan, "memory-priority")] == ["restore"]
+    assert state["demoted"] == {}
+
+
+def test_apply_plan_actuates_demote_and_restore_outside_the_stop_budget(tmp_path):
+    eng = engine(mp_policy(**{"escalation.maxStopsPerRun": 1}))
+    procs = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)),
+        *grok_with_bridge(),
+    ]
+    plan = observe(eng, procs, 4, free=3 * GIB)
+    actuator = FakeActuator()
+    pol = hygiene.validate_policy(mp_policy(**{"escalation.maxStopsPerRun": 1}))
+    ledger = hygiene.Ledger(tmp_path / "l.jsonl")
+    summary = hygiene.apply_plan(
+        plan, actuator, ledger, apply=True, run_id="r", policy=pol, state=eng.state
+    )
+    assert set(actuator.priorities) == {(400, 1), (200, 1)}
+    assert (
+        summary["demoted"] == 2 and summary["restored"] == 0 and summary["stopped"] == 1
+    )
+    rows = ledger_rows(tmp_path / "l.jsonl")
+    demote_rows = [r for r in rows if r["action"] == "demote"]
+    assert {r["pid"] for r in demote_rows} == {400, 200}
+    assert {r["result"] for r in demote_rows} == {"demoted"}
+    # dry-run never calls the actuator
+    dry = FakeActuator()
+    hygiene.apply_plan(
+        plan, dry, hygiene.Ledger(tmp_path / "d.jsonl"), apply=False, run_id="d"
+    )
+    assert dry.priorities == []
+    assert [
+        r["result"]
+        for r in ledger_rows(tmp_path / "d.jsonl")
+        if r["action"] == "demote"
+    ] == ["dry-run", "dry-run"]
+
+
+def test_apply_plan_demote_below_tier_is_deferred_and_failure_is_recorded(tmp_path):
+    eng = engine(mp_policy())
+    procs = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)),
+    ]
+    plan = observe(eng, procs, 4, free=3 * GIB)
+    # force the plan's tier below the rule's minimum to exercise the gate
+    plan.tier = "normal"
+    ledger = hygiene.Ledger(tmp_path / "l.jsonl")
+    hygiene.apply_plan(plan, FakeActuator(), ledger, apply=True, run_id="r")
+    assert [
+        r["result"]
+        for r in ledger_rows(tmp_path / "l.jsonl")
+        if r["action"] == "demote"
+    ] == ["deferred"]
+    plan.tier = "elevated"
+    failing = FakeActuator()
+    failing.priority_fail = True
+    summary = hygiene.apply_plan(
+        plan, failing, hygiene.Ledger(tmp_path / "f.jsonl"), apply=True, run_id="f"
+    )
+    assert summary["exit_code"] == 2
+    assert [
+        r["result"]
+        for r in ledger_rows(tmp_path / "f.jsonl")
+        if r["action"] == "demote"
+    ] == ["failed"]
+
+
 # ------------------------------------------------------- coverage corners
 
 
@@ -3054,3 +3293,41 @@ def test_cli_reaper_available_yes_forces_delegation(tmp_path, capsys):
     )
     out = capsys.readouterr().out
     assert "delegate_reaper=true" in out
+
+
+def test_apply_plan_counts_a_restore(tmp_path):
+    eng = engine(mp_policy())
+    procs = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600)),
+    ]
+    observe(eng, procs, 4, free=3 * GIB)
+    busy = [
+        terminal(),
+        proc(400, 9_999, cmd="node C:\\x\\mcp\\index.js", created=ago(600), cpu=40.0),
+    ]
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap(busy, taken=NOW + STEP, free=3 * GIB))
+    )
+    actuator = FakeActuator()
+    summary = hygiene.apply_plan(
+        plan, actuator, hygiene.Ledger(tmp_path / "l.jsonl"), apply=True, run_id="r"
+    )
+    assert actuator.priorities == [(400, 5)]
+    assert summary["restored"] == 1 and summary["demoted"] == 0
+
+
+def test_hard_fault_rate_flows_from_snapshot_to_metrics_for_the_q7_measurement():
+    payload = snap([proc(10, 1)])
+    payload["host"]["pages_input_per_sec"] = 812.5
+    plan = engine().evaluate(hygiene.parse_snapshot(payload))
+    assert plan.metrics["pages_input_per_sec"] == 812.5
+    assert (
+        engine()
+        .evaluate(hygiene.parse_snapshot(snap([proc(10, 1)])))
+        .metrics["pages_input_per_sec"]
+        is None
+    )
+    payload["host"]["pages_input_per_sec"] = "fast"
+    with pytest.raises(hygiene.SnapshotError, match="pages_input_per_sec"):
+        hygiene.parse_snapshot(payload)

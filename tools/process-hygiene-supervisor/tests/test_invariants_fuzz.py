@@ -20,6 +20,8 @@ Invariants (every one is a safety property a mutation could silently break):
   I11 two fresh engines fed the same snapshot sequence produce identical plans
   I12 a network-vetoed tree increments its deferral counter at most once per run
   I13 an unprotected parentless port owner is reported as a daemon, never stopped
+  I14 memory-priority demotions (opt-in rule) obey the stop guards: never protected,
+      never the supervisor, never a pid also being stopped, always confirmed idle
 
 It is seeded and bounded (CASES x ROUNDS evaluations, ~seconds), so it is a CI
 gate, not a soak. Raise CASES locally to hunt.
@@ -508,6 +510,20 @@ def check_plan(
             assert d.root.pid not in t.port_owners, (
                 f"{ctx}: I13 parentless port owner {d.root.pid} stopped by {d.rule}"
             )
+    # I14 memory-priority demotions obey the same guards as stops: never a
+    # protected or supervisor pid, never a pid claimed for a stop, always idle
+    stopped = {m.pid for d in stops for m in d.tree}
+    for d in plan.decisions:
+        if d.action != "demote":
+            continue
+        pid = d.root.pid
+        assert pid not in t.protected, f"{ctx}: I14 protected pid {pid} demoted"
+        assert pid not in snapshot.supervisor_pids, f"{ctx}: I14 supervisor pid demoted"
+        assert pid not in stopped, f"{ctx}: I14 pid {pid} both stopped and demoted"
+        streak = eng.state["observations"][hygiene._key(d.root)]["idle_streak"]
+        assert streak >= observations, (
+            f"{ctx}: I14 non-idle pid {pid} demoted (streak {streak})"
+        )
     # I10
     encoded = json.dumps(plan.to_dict())
     assert json.loads(encoded)["tier"] == plan.tier
@@ -518,8 +534,11 @@ def test_invariants_hold_on_random_tables(seed, tmp_path):
     t, reaper = build(seed)
     rng = random.Random(seed + 1_000_000)
     host = random_host(rng)
-    eng = engine()
-    twin = engine()
+    # every other seed runs with the opt-in memory-priority rule ON, so its
+    # demote/restore decisions are held to the same invariants as stops
+    pol = policy(**{"memoryPriority.enabled": True}) if seed % 2 else policy()
+    eng = engine(pol)
+    twin = engine(pol)
     plans = []
     deferrals_before: dict[str, int] = {}
     for r in range(ROUNDS):

@@ -201,6 +201,7 @@ _TOP_KEYS = {
     "ledger",
     "notify",
     "wrapperChains",
+    "memoryPriority",
 }
 
 # Launcher shapes whose real server is a GRANDCHILD of the host. libuv hosts
@@ -523,6 +524,21 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         )
     ]
 
+    memory_priority = _section(
+        policy, "memoryPriority", "memoryPriority", required=False
+    )
+    _closed(memory_priority, {"enabled", "minTier", "level"}, "memoryPriority")
+    mp_level = memory_priority.get("level", 1)
+    if mp_level not in (1, 2, 3, 4):
+        raise PolicyError(
+            "memoryPriority.level must be 1 (very low) .. 4 (below normal)"
+        )
+    memory_priority_norm = {
+        "enabled": _bool(memory_priority, "enabled", "memoryPriority", False),
+        "minTier": _tier(memory_priority, "minTier", "memoryPriority", "elevated"),
+        "level": mp_level,
+    }
+
     notify = _section(policy, "notify", "notify", required=False)
     _closed(notify, {"digestCooldownSeconds"}, "notify")
     notify_norm = {
@@ -549,6 +565,7 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         "ledger": ledger_norm,
         "notify": notify_norm,
         "wrapperChains": {"tokens": wrapper_tokens},
+        "memoryPriority": memory_priority_norm,
     }
 
 
@@ -618,6 +635,7 @@ class Snapshot:
     docker_desktop_running: bool = False
     wsl_client_count: int = 0
     pagefile: dict[str, Any] | None = None
+    pages_input_per_sec: float | None = None
     by_pid: dict[int, ProcRow] = field(default_factory=dict)
     children: dict[int, list[int]] = field(default_factory=dict)
 
@@ -690,6 +708,7 @@ def parse_snapshot(raw: Any) -> Snapshot:
             networked.add(pid)
 
     pagefile = _parse_pagefile(host.get("pagefile"))
+    pages_input = _opt_number(host, "pages_input_per_sec", "host")
 
     listeners: dict[int, int] = {}
     for index, entry in enumerate(raw.get("listeners", [])):
@@ -747,6 +766,7 @@ def parse_snapshot(raw: Any) -> Snapshot:
         docker_desktop_running=docker_running,
         wsl_client_count=client_count,
         pagefile=pagefile,
+        pages_input_per_sec=pages_input,
     )
     for proc in processes:
         if proc.pid in snapshot.by_pid:
@@ -898,6 +918,8 @@ class Plan:
 
 
 TERMINAL_ACTIONS = frozenset({"stop", "wsl-shutdown"})
+PRIORITY_ACTIONS = frozenset({"demote", "restore"})
+MEMORY_PRIORITY_NORMAL = 5
 
 
 def tier_at_least(current: str, minimum: str) -> bool:
@@ -1265,6 +1287,8 @@ class Engine:
             "commit_slope_bytes_per_hour": slope_per_hour,
             "minutes_to_commit_limit": minutes_left,
             "pagefile": snapshot.pagefile,
+            # hard-fault rate: the before/after measurement for memoryPriority (Q7)
+            "pages_input_per_sec": snapshot.pages_input_per_sec,
         }
         decisions: list[Decision] = []
         claimed: set[int] = set()
@@ -1288,6 +1312,7 @@ class Engine:
         self._rule_wrapper_chains(snapshot, tier, decisions)
         self._rule_browsers(snapshot, decisions)
         self._rule_commit_ceiling(snapshot, tier, headroom, legs, decisions)
+        self._rule_memory_priority(snapshot, tier, decisions, claimed)
         if reaper_root is not None:
             decisions.append(
                 Decision(
@@ -2018,6 +2043,83 @@ class Engine:
                 decisions,
             )
 
+    def _rule_memory_priority(self, snapshot, tier, decisions, claimed) -> None:
+        """Opt-in (Q7): make confirmed-idle tenants the reclaim pool, and put them back.
+
+        Windows trims working sets fairly indiscriminately under pressure, taking the
+        ACTIVE session's hot pages along with the idle servers' - which is part of
+        the freeze itself. MEMORY_PRIORITY_VERY_LOW on idle tenants tells the memory
+        manager to trim THEIR pages first. This is a hint, not EmptyWorkingSet:
+        nothing is forced out, commit does not move, and the rejected trimming
+        stays rejected. Demoted processes are restored to NORMAL as soon as they
+        show activity, when the tier falls below the rule's minimum, or when the
+        feature is switched off; a process that leaves is simply forgotten.
+        """
+        conf = self.policy["memoryPriority"]
+        demoted: dict[str, Any] = self.state.setdefault("demoted", {})
+        observations = self.policy["idle"]["observations"]
+        active_enough = conf["enabled"] and tier_at_least(tier, conf["minTier"])
+        by_key = {_key(proc): proc for proc in snapshot.processes}
+        # restores first: anything demoted that is gone, active again, or no longer
+        # under the pressure that justified it
+        for key in list(demoted):
+            proc = by_key.get(key)
+            if proc is None:
+                del demoted[key]
+                continue
+            if active_enough and self._confirmed_idle(proc, observations):
+                continue
+            del demoted[key]
+            self._add_action(
+                "memory-priority",
+                "restore",
+                "normal",
+                proc,
+                {
+                    "level": MEMORY_PRIORITY_NORMAL,
+                    "reason": "active again or pressure lifted",
+                },
+                decisions,
+            )
+        if not active_enough:
+            return
+        names = set(self.policy["orphans"]["names"])
+        for proc in snapshot.processes:
+            key = _key(proc)
+            if key in demoted or proc.pid in claimed:
+                continue
+            if proc.name.lower() not in names and self._runtime_of(proc) is None:
+                continue
+            if self._is_protected(proc, snapshot) or not self._confirmed_idle(
+                proc, observations
+            ):
+                continue
+            # A listening-port owner is a SERVER: its quiet between requests is not
+            # idleness in the sense a session waiting for a human is, and paging
+            # out its working set (the Basic Memory index, say) taxes every future
+            # request. Same carve-out the `daemon` rule applies to stops.
+            if _port_owned_by(proc.pid, snapshot) is not None:
+                continue
+            demoted[key] = snapshot.taken_unix
+            self._add_action(
+                "memory-priority",
+                "demote",
+                conf["minTier"],
+                proc,
+                {
+                    "level": conf["level"],
+                    "idle_observations": self._idle_streak(proc),
+                    "reason": "confirmed-idle tenant; its pages become the reclaim pool "
+                    "(priority hint only - nothing is trimmed or stopped)",
+                },
+                decisions,
+            )
+
+    def _add_action(self, rule, action, min_tier, proc, detail, decisions) -> None:
+        decisions.append(
+            Decision(rule, action, min_tier, proc, [proc], 0, dict(detail))
+        )
+
     def _rule_browsers(self, snapshot, decisions) -> None:
         names = set(self.policy["browsers"]["names"])
         buckets: dict[str, list[ProcRow]] = {}
@@ -2232,10 +2334,44 @@ def apply_plan(
         else None
     )
     stopped = failed = deferred = dry_run = budgeted = looping = 0
+    demoted_count = restored_count = 0
     released_expected = 0
     executed_rules: set[str] = set()
     exit_bad = False
     for decision in plan.decisions:
+        if decision.action in PRIORITY_ACTIONS:
+            gate_ok = decision.action == "restore" or tier_at_least(
+                plan.tier, decision.min_tier
+            )
+            if not apply:
+                result, reason = "dry-run", decision.rule
+            elif not gate_ok:
+                result, reason = "deferred", decision.rule
+            else:
+                outcome = actuator.set_memory_priority(
+                    decision.root, decision.detail["level"]
+                )
+                result, reason = outcome.outcome, outcome.detail or decision.rule
+                if result == "failed":
+                    exit_bad = True
+                elif decision.action == "demote":
+                    demoted_count += 1
+                else:
+                    restored_count += 1
+            ledger.append(
+                record_for(
+                    decision.root,
+                    rule=decision.rule,
+                    action=decision.action,
+                    tier=plan.tier,
+                    result=result,
+                    reason=reason,
+                    run_id=run_id,
+                    ts=ts,
+                    extra=decision.detail,
+                )
+            )
+            continue
         if decision.action not in TERMINAL_ACTIONS:
             if _report_due(state, decision, ts, keepalive):
                 ledger.append(
@@ -2381,6 +2517,8 @@ def apply_plan(
         "budget_deferred": budgeted,
         "crash_loop": looping,
         "rules": sorted(executed_rules),
+        "demoted": demoted_count,
+        "restored": restored_count,
         "released_bytes_expected": released_expected,
         "exit_code": 2 if exit_bad else 0,
     }

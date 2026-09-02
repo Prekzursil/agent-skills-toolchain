@@ -73,6 +73,14 @@ class FakeHandle:
         self.terminated = self.terminate_ok
         return self.terminate_ok
 
+    priority_ok = True
+
+    def set_memory_priority(self, level):
+        if not hasattr(self, "priorities"):
+            self.priorities = []
+        self.priorities.append(level)
+        return self.priority_ok
+
     def wait(self, seconds):
         self.waits.append(seconds)
         if self.terminated:
@@ -352,3 +360,33 @@ def test_win32_prototypes_reference_real_wintypes_and_a_wide_handle():
 def test_default_opener_is_windows_only():
     with pytest.raises(OSError, match="Windows"):
         act._default_open(1)
+
+
+def test_memory_priority_is_set_on_a_pinned_identity_checked_handle():
+    handle = FakeHandle([IDENT])
+    result = actuator(FakeOpener({100: handle})).set_memory_priority(member(), 1)
+    assert result.outcome == "demoted" and handle.priorities == [1] and handle.closed
+    handle = FakeHandle([IDENT])
+    result = actuator(FakeOpener({100: handle})).set_memory_priority(member(), 5)
+    assert result.outcome == "restored" and handle.priorities == [5]
+
+
+def test_memory_priority_refuses_recycled_pids_and_reports_failures():
+    changed = FakeHandle([{"created_unix": 999, "executable": EXE}])
+    result = actuator(FakeOpener({100: changed})).set_memory_priority(member(), 1)
+    assert result.outcome == "identity-changed" and not hasattr(changed, "priorities")
+    assert (
+        actuator(FakeOpener({100: None})).set_memory_priority(member(), 1).outcome
+        == "vanished"
+    )
+    exited = FakeHandle([None])
+    assert (
+        actuator(FakeOpener({100: exited})).set_memory_priority(member(), 1).outcome
+        == "vanished"
+    )
+    denied = FakeOpener({100: PermissionError("access denied")})
+    assert actuator(denied).set_memory_priority(member(), 1).outcome == "failed"
+    failing = FakeHandle([IDENT])
+    failing.priority_ok = False
+    result = actuator(FakeOpener({100: failing})).set_memory_priority(member(), 1)
+    assert result.outcome == "failed" and "SetProcessInformation" in result.detail

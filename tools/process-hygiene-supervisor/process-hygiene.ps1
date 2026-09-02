@@ -109,6 +109,14 @@ function Get-HygieneSnapshot {
         if ($committed -gt 0) { $commitTotal = [long]$committed }
         if ($limit -gt 0) { $commitLimit = [long]$limit }
     } catch { }
+    # Hard-fault rate: the measurement the opt-in memoryPriority rule (Q7) must be
+    # judged by - the point of that rule is fewer hard faults for the ACTIVE session,
+    # and this is the one counter that shows it. Pages Input/sec = pages read from
+    # disk to resolve hard faults (the freezes), sampled over one second.
+    $pagesInput = $null
+    try {
+        $pagesInput = [double](Get-Counter '\Memory\Pages Input/sec' -ErrorAction Stop).CounterSamples[0].CookedValue
+    } catch { }
 
     # Pagefile facts for the commit-ceiling rule: is the pagefile system-managed,
     # how big is it, how much room does its volume have to grow, or what custom
@@ -196,6 +204,7 @@ function Get-HygieneSnapshot {
             commit_limit_bytes = $commitLimit
             compressed_bytes   = $compressed
             pagefile           = $pagefile
+            pages_input_per_sec = $pagesInput
         }
         wsl             = [ordered]@{
             available              = $wslAvailable

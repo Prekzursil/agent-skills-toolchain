@@ -54,6 +54,8 @@ class ProcessHandle(Protocol):
 
     def terminate(self) -> bool: ...
 
+    def set_memory_priority(self, level: int) -> bool: ...
+
     def wait(self, seconds: float) -> bool: ...
 
     def close(self) -> None: ...
@@ -103,8 +105,10 @@ class _Win32Handle:  # pragma: no cover - real OS, exercised only on Windows
     """
 
     PROCESS_TERMINATE = 0x0001
+    PROCESS_SET_INFORMATION = 0x0200
     PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
     SYNCHRONIZE = 0x00100000
+    ProcessMemoryPriority = 0  # PROCESS_INFORMATION_CLASS
     STILL_ACTIVE = 259
     WAIT_OBJECT_0 = 0
     INFINITE = 0xFFFFFFFF
@@ -144,6 +148,13 @@ class _Win32Handle:  # pragma: no cover - real OS, exercised only on Windows
             k.WaitForSingleObject.restype = wintypes.DWORD
             k.CloseHandle.argtypes = [wintypes.HANDLE]
             k.CloseHandle.restype = wintypes.BOOL
+            k.SetProcessInformation.argtypes = [
+                wintypes.HANDLE,
+                ctypes.c_int,
+                ctypes.c_void_p,
+                wintypes.DWORD,
+            ]
+            k.SetProcessInformation.restype = wintypes.BOOL
             cls._kernel32 = k
         return cls._kernel32
 
@@ -158,6 +169,7 @@ class _Win32Handle:  # pragma: no cover - real OS, exercised only on Windows
         access = (
             cls.PROCESS_QUERY_LIMITED_INFORMATION
             | cls.PROCESS_TERMINATE
+            | cls.PROCESS_SET_INFORMATION
             | cls.SYNCHRONIZE
         )
         handle = k.OpenProcess(access, False, pid)
@@ -197,6 +209,20 @@ class _Win32Handle:  # pragma: no cover - real OS, exercised only on Windows
 
     def terminate(self) -> bool:
         return bool(self._k32().TerminateProcess(self._h, 1))
+
+    def set_memory_priority(self, level: int) -> bool:
+        import ctypes
+
+        # MEMORY_PRIORITY_INFORMATION is a single ULONG (1 = VERY_LOW .. 5 = NORMAL)
+        value = ctypes.c_uint32(int(level))
+        return bool(
+            self._k32().SetProcessInformation(
+                self._h,
+                self.ProcessMemoryPriority,
+                ctypes.byref(value),
+                ctypes.sizeof(value),
+            )
+        )
 
     def wait(self, seconds: float) -> bool:
         millis = min(int(seconds * 1000), self.INFINITE - 1)
@@ -267,6 +293,42 @@ class WindowsActuator:
                 "failed",
                 f"{note}still alive {EXIT_WAIT_SECONDS:.0f}s after TerminateProcess",
             )
+        finally:
+            handle.close()
+
+    # -- memory priority (Q7, opt-in) -------------------------------------
+
+    def set_memory_priority(self, member, level: int) -> StopResult:
+        """Set a process's memory priority on a pinned, identity-checked handle.
+
+        A priority is a HINT to the memory manager about whose pages to trim first;
+        it never frees anything by itself. The same identity guard as the kill
+        path applies: a recycled PID is refused, an unopenable one is 'failed'.
+        """
+        want = "restored" if level >= 5 else "demoted"
+
+        def result(outcome: str, detail: str) -> StopResult:
+            return StopResult(member.pid, member.created_unix, outcome, detail)
+
+        try:
+            handle = self._open(member.pid)
+        except PermissionError as exc:
+            return result("failed", f"cannot open process: {exc}")
+        if handle is None:
+            return result("vanished", "gone before the priority change")
+        try:
+            identity = handle.identity()
+            if identity is None:
+                return result("vanished", "exited before the priority change")
+            if not self._identity_matches(member, identity):
+                return result(
+                    "identity-changed", "creation time or executable changed; refused"
+                )
+            if not handle.set_memory_priority(level):
+                return result(
+                    "failed", "SetProcessInformation(ProcessMemoryPriority) failed"
+                )
+            return result(want, f"memory priority set to {level}")
         finally:
             handle.close()
 
