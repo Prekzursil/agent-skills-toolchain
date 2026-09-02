@@ -737,14 +737,24 @@ def _require_mapping_snapshot(value: Any, label: str) -> dict[str, Any]:
     return value
 
 
+_LOOPBACK_HOSTS = {"::1", "0.0.0.0", "::", "localhost"}
+
+
 def _is_loopback(remote: str) -> bool:
-    """True for a `host:port` / `[v6]:port` endpoint on the local machine."""
+    """True for a `host:port` / `[v6]:port` / bare-v6 endpoint on the local machine.
+
+    Get-NetTCPConnection yields a bare RemoteAddress, and the launcher formats it
+    as ``addr:port``; for IPv6 that gives ``::1:8812`` with no brackets, so both
+    the whole string and the string minus a trailing ``:port`` are tested.
+    """
     host = remote.strip()
     if host.startswith("["):
-        host = host[1:].split("]", 1)[0]
+        candidates = [host[1:].split("]", 1)[0]]
     elif host.count(":") == 1:
-        host = host.rsplit(":", 1)[0]
-    return host.startswith("127.") or host in {"::1", "0.0.0.0", "::", "localhost"}
+        candidates = [host.rsplit(":", 1)[0]]
+    else:
+        candidates = [host, host.rsplit(":", 1)[0]]
+    return any(c.startswith("127.") or c in _LOOPBACK_HOSTS for c in candidates)
 
 
 def load_snapshot(path: pathlib.Path | str) -> Snapshot:
@@ -2084,6 +2094,7 @@ def apply_plan(
         else None
     )
     stopped = failed = deferred = dry_run = budgeted = looping = 0
+    executed_rules: set[str] = set()
     exit_bad = False
     for decision in plan.decisions:
         if decision.action not in TERMINAL_ACTIONS:
@@ -2189,6 +2200,7 @@ def apply_plan(
                 )
             if history is not None:
                 history.setdefault(sha, []).append(ts)
+            executed_rules.add(decision.rule)
             if any_failed:
                 failed += 1
                 exit_bad = True
@@ -2203,6 +2215,19 @@ def apply_plan(
         exit_bad = (
             _delegate_reaper(plan, actuator, ledger, apply, run_id, ts) or exit_bad
         )
+    if state is not None:
+        # Both bookkeeping dicts are pruned to their windows so state cannot grow
+        # without bound on a box that churns PIDs (a leak in the leak tool).
+        for sha in list(history):
+            history[sha] = [t for t in history[sha] if ts - t < window]
+            if not history[sha]:
+                del history[sha]
+        if keepalive is not None and "reported" in state:
+            state["reported"] = {
+                key: last
+                for key, last in state["reported"].items()
+                if ts - last < keepalive
+            }
     summary = {
         "stopped": stopped,
         "failed": failed,
@@ -2210,6 +2235,7 @@ def apply_plan(
         "dry_run": dry_run,
         "budget_deferred": budgeted,
         "crash_loop": looping,
+        "rules": sorted(executed_rules),
         "exit_code": 2 if exit_bad else 0,
     }
     ledger.append(
@@ -2353,17 +2379,9 @@ def digest_line(
     digest = state.setdefault("digest", {"signature": [], "last_unix": 0})
     if plan.taken_unix - int(digest.get("last_unix", 0)) >= cooldown:
         digest["signature"] = []
-    stopped_rules = (
-        sorted(
-            {
-                d.rule
-                for d in plan.decisions
-                if d.action == "stop" and tier_at_least(plan.tier, d.min_tier)
-            }
-        )
-        if summary["stopped"] or summary["failed"]
-        else []
-    )
+    # the rules that ACTUALLY executed a stop - never a budget-deferred or
+    # crash-looped decision that merely was executable at this tier
+    stopped_rules = sorted(summary.get("rules", []))
     flags = []
     if summary["failed"] or summary["exit_code"]:
         flags.append("fail")

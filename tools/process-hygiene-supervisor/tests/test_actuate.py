@@ -322,6 +322,33 @@ def test_filetime_conversion():
     assert act.filetime_to_unix(filetime) == unix
 
 
+def test_win32_prototypes_reference_real_wintypes_and_a_wide_handle():
+    """The kernel32 path only runs on Windows, so this is the closest Linux CI gets.
+
+    Two things a typo would only reveal on the owner's box: every ``wintypes.X``
+    the prototypes name must exist, and HANDLE must be pointer-wide - the reason
+    the prototypes exist at all is that ctypes' default C-int marshalling would
+    truncate a 64-bit handle to 32 bits.
+    """
+    import ctypes
+    import ctypes.wintypes as wintypes
+    import pathlib
+    import re
+
+    source = pathlib.Path(act.__file__).read_text(encoding="utf-8")
+    names = sorted(set(re.findall(r"wintypes\.([A-Za-z_]+)", source)))
+    assert names, "prototype block vanished"
+    missing = [name for name in names if not hasattr(wintypes, name)]
+    assert missing == [], f"unknown ctypes.wintypes names: {missing}"
+    assert ctypes.sizeof(wintypes.HANDLE) == ctypes.sizeof(ctypes.c_void_p)
+    # every kernel32 function the handle uses is given a prototype
+    used = set(re.findall(r"k(?:32\(\))?\.([A-Z][A-Za-z]+)\(", source))
+    declared = set(re.findall(r"k\.([A-Z][A-Za-z]+)\.argtypes", source))
+    assert used - {"WinDLL"} <= declared, (
+        f"kernel32 calls without argtypes: {used - declared}"
+    )
+
+
 def test_default_opener_is_windows_only():
     with pytest.raises(OSError, match="Windows"):
         act._default_open(1)

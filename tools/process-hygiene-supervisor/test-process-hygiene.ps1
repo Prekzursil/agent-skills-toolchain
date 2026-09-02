@@ -11,7 +11,10 @@
     3. report-only kills nothing; -Apply against absent fake PIDs is a safe no-op
        (the actuator cannot open the PID -> "vanished");
     4. an ESTABLISHED remote socket defers an otherwise-reapable orphan;
-    5. -DigestFile appends exactly one anti-spam line and the heartbeat is written.
+    5. a REAL spawned process is killed through the pinned-handle Win32 path,
+       the ledger says `forced`, -DigestFile gets exactly one line, heartbeat written;
+    6. a snapshot naming a live pid with a STALE creation time (PID reuse) is
+       refused as identity-changed - the test's own process is the bait.
 
   Run:  pwsh -File test-process-hygiene.ps1
 #>
@@ -24,8 +27,9 @@ $launcher = Join-Path $PSScriptRoot 'process-hygiene.ps1'
 $fails = @()
 
 if (-not $Python) {
-    $Python = (Get-Command python -ErrorAction SilentlyContinue)?.Source
-    if (-not $Python) { $Python = 'C:\Python314\python.exe' }
+    # (no `?.` - that is PowerShell 7 syntax and this file declares 5.1)
+    $cmd = Get-Command python -ErrorAction SilentlyContinue
+    $Python = if ($cmd) { $cmd.Source } else { 'C:\Python314\python.exe' }
 }
 
 function Check([string]$Name, [bool]$Condition) {
@@ -114,19 +118,89 @@ Check 'network veto defers the orphan' (
 Check 'network-vetoed orphan has no dry-run stop row' (
     @($vetoRows | Where-Object { $_.rule -eq 'orphan' -and $_.action -eq 'stop' }).Count -eq 0)
 
-# 5) -DigestFile appends ONE line for a new kill kind; the heartbeat is written.
+# 5) A REAL kill through the pinned-handle path. Spawn a harmless python sleeper
+#    whose command line carries the retired AgentBridge tokens, snapshot it LIVE
+#    (real pid / creation time / executable, so the identity check must agree with
+#    the handle), and -Apply. This is the only place the Win32 OpenProcess ->
+#    GetProcessTimes -> TerminateProcess -> WaitForSingleObject chain runs for real.
 Remove-Item $state, $ledger -Force -ErrorAction SilentlyContinue
 $digest = Join-Path $work 'BACKGROUND-DIGEST.md'
-& $launcher -ProcessSnapshotFile $snapFile -PolicyFile $policy -StateFile $state -LedgerFile $ledger -ReaperAvailable no -Apply -DigestFile $digest -Python $Python | Out-Null
-Check 'digest line written once on a kill' (
-    (Test-Path -LiteralPath $digest) -and (@(Get-Content $digest).Count -eq 1))
-Check 'digest names the tool and proposes a next step' (
-    -not (Test-Path -LiteralPath $digest) -or ((Get-Content $digest -Raw) -match '\[process-hygiene\].*PROPOSE:'))
-$heartbeat = Join-Path (Split-Path -Parent $state) 'heartbeat.json'
-Check 'heartbeat written next to the state file' (Test-Path -LiteralPath $heartbeat)
-Check 'heartbeat records the apply mode' (
-    -not (Test-Path -LiteralPath $heartbeat) -or
-    ((Get-Content -LiteralPath $heartbeat -Raw | ConvertFrom-Json).apply -eq $true))
+$victim = Start-Process -FilePath $Python -PassThru -WindowStyle Hidden -ArgumentList @(
+    '-c', '"import time; time.sleep(600)  # agentbridge bridge-server smoke-test victim"')
+try {
+    Start-Sleep -Milliseconds 800
+    $vcim = Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $victim.Id) -ErrorAction Stop
+    Check 'victim is alive before the run' ($null -ne $vcim)
+    $victimSnap = [ordered]@{
+        schema          = 'process-hygiene-snapshot-v1'
+        taken_unix      = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        host            = [ordered]@{ physical_bytes = 33GB; free_bytes = 8GB; commit_total_bytes = 20GB; commit_limit_bytes = 64GB }
+        wsl             = [ordered]@{ available = $false; running_distros = @() }
+        listeners       = @()
+        connections     = @()
+        supervisor_pids = @([int]$PID)
+        processes       = @(
+            [ordered]@{
+                pid = [int]$victim.Id; ppid = [int]$vcim.ParentProcessId; name = 'python.exe'
+                executable = [string]$vcim.ExecutablePath; command_line = [string]$vcim.CommandLine
+                created_unix = ([DateTimeOffset]$vcim.CreationDate).ToUnixTimeSeconds()
+                cpu_seconds = 0.1; io_bytes = 0; working_set_bytes = 20MB; private_bytes = 20MB
+            }
+        )
+    }
+    $victimFile = Join-Path $work 'victim.json'
+    $victimSnap | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $victimFile -Encoding utf8
+    $killOut = & $launcher -ProcessSnapshotFile $victimFile -PolicyFile $policy -StateFile $state -LedgerFile $ledger -ReaperAvailable no -Apply -DigestFile $digest -Python $Python
+    Check 'real-kill run exits 0' ($LASTEXITCODE -eq 0)
+    Start-Sleep -Milliseconds 300
+    Check 'victim is gone after the run' ($null -eq (Get-Process -Id $victim.Id -ErrorAction SilentlyContinue))
+    $killRows = @(Get-Content $ledger | ForEach-Object { $_ | ConvertFrom-Json })
+    Check 'ledger records the victim as forced on the pinned handle' (
+        @($killRows | Where-Object { $_.rule -eq 'retired' -and $_.pid -eq $victim.Id -and $_.result -eq 'forced' }).Count -eq 1)
+    Check 'digest line written once on a kill' (
+        (Test-Path -LiteralPath $digest) -and (@(Get-Content $digest).Count -eq 1))
+    Check 'digest names the tool, the rule and proposes a next step' (
+        (Test-Path -LiteralPath $digest) -and ((Get-Content $digest -Raw) -match '\[process-hygiene\] stopped 1 tree\(s\) \[retired\].*PROPOSE:'))
+    $heartbeat = Join-Path (Split-Path -Parent $state) 'heartbeat.json'
+    Check 'heartbeat written next to the state file' (Test-Path -LiteralPath $heartbeat)
+    Check 'heartbeat records the apply mode' (
+        (Test-Path -LiteralPath $heartbeat) -and
+        ((Get-Content -LiteralPath $heartbeat -Raw | ConvertFrom-Json).apply -eq $true))
+}
+finally {
+    Stop-Process -Id $victim.Id -Force -ErrorAction SilentlyContinue
+}
+
+# 6) PID-reuse guard for real: a snapshot naming THIS test's own pid but with a
+#    stale creation time must be refused as identity-changed, not killed.
+Remove-Item $state, $ledger -Force -ErrorAction SilentlyContinue
+$selfCim = Get-CimInstance Win32_Process -Filter ("ProcessId = {0}" -f $PID)
+$reuseSnap = [ordered]@{
+    schema          = 'process-hygiene-snapshot-v1'
+    taken_unix      = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    host            = [ordered]@{ physical_bytes = 33GB; free_bytes = 8GB; commit_total_bytes = 20GB; commit_limit_bytes = 64GB }
+    wsl             = [ordered]@{ available = $false; running_distros = @() }
+    listeners       = @()
+    connections     = @()
+    supervisor_pids = @()
+    processes       = @(
+        [ordered]@{
+            pid = [int]$PID; ppid = 99999; name = 'pwsh.exe'
+            executable = [string]$selfCim.ExecutablePath
+            command_line = 'node agentbridge bridge-server (stale identity on purpose)'
+            created_unix = (([DateTimeOffset]$selfCim.CreationDate).ToUnixTimeSeconds() - 7200)
+            cpu_seconds = 0.1; io_bytes = 0; working_set_bytes = 20MB; private_bytes = 20MB
+        }
+    )
+}
+$reuseFile = Join-Path $work 'reuse.json'
+$reuseSnap | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $reuseFile -Encoding utf8
+& $launcher -ProcessSnapshotFile $reuseFile -PolicyFile $policy -StateFile $state -LedgerFile $ledger -ReaperAvailable no -Apply -Python $Python | Out-Null
+$reuseRows = @(Get-Content $ledger | ForEach-Object { $_ | ConvertFrom-Json })
+Check 'a recycled pid with a stale creation time is refused, not killed' (
+    @($reuseRows | Where-Object { $_.pid -eq $PID -and $_.result -eq 'identity-changed' }).Count -eq 1)
+Check 'this test process is still alive (it obviously is, but the ledger must agree)' (
+    @($reuseRows | Where-Object { $_.pid -eq $PID -and $_.result -in @('forced', 'graceful') }).Count -eq 0)
 
 Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
 

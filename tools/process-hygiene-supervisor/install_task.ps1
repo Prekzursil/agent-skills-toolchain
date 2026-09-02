@@ -21,6 +21,8 @@
 .PARAMETER Uninstall   Remove the task.
 .PARAMETER IntervalMinutes  Sampling cadence. Default 5.
 .PARAMETER DigestFile  BACKGROUND-DIGEST.md the supervisor appends its anti-spam line to.
+                       Default is the estate queue hooks/background-digest/reader.py reads
+                       (~\.claude\BACKGROUND-DIGEST.md, same as resource-guard.ps1).
 .PARAMETER OnResourceExhaustion  Also fire on Microsoft-Windows-Resource-Exhaustion-Detector
                        event 2004 (RADAR: commit charge exhausted) via a CIM event trigger.
 #>
@@ -32,7 +34,7 @@ param(
     [string]$Python = 'C:\Python314\python.exe',
     [string]$Root = 'C:\Users\Prekzursil\.agent-guard\process-hygiene',
     [int]$IntervalMinutes = 5,
-    [string]$DigestFile = 'C:\Users\Prekzursil\.agents\BACKGROUND-DIGEST.md',
+    [string]$DigestFile = 'C:\Users\Prekzursil\.claude\BACKGROUND-DIGEST.md',
     [switch]$OnResourceExhaustion
 )
 

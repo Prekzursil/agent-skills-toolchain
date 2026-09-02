@@ -1871,7 +1871,13 @@ def test_digest_line_names_the_live_failure_mode():
     plan = observe(engine(), grok_with_bridge(), 1, free=1 * GIB)
     line = hygiene.digest_line(
         plan,
-        {"stopped": 1, "failed": 0, "exit_code": 0, "run_id": "r"},
+        {
+            "stopped": 1,
+            "failed": 0,
+            "exit_code": 0,
+            "run_id": "r",
+            "rules": ["retired"],
+        },
         {},
         apply=True,
         cooldown=100,
@@ -2167,6 +2173,30 @@ def test_network_deferrals_reset_when_the_tree_shows_activity():
     assert [d.action for d in by_rule(plan, "orphan")] == ["report"]
 
 
+@pytest.mark.parametrize(
+    "remote,loopback",
+    [
+        ("127.0.0.1:8765", True),
+        ("127.9.9.9:1", True),
+        ("[::1]:8812", True),
+        ("::1:8812", True),  # the launcher's unbracketed v6 form
+        ("::1", True),
+        ("localhost:80", True),
+        ("0.0.0.0:0", True),
+        ("[fe80::1]:443", False),
+        ("fe80::1:443", False),  # unbracketed v6 with port: NOT loopback
+        ("2001:db8::1", False),
+        ("52.1.2.3:443", False),
+        ("10.0.0.7:11434", False),  # a LAN model server IS real work
+    ],
+)
+def test_is_loopback_handles_v4_v6_bracketed_and_unbracketed(remote, loopback):
+    # Get-NetTCPConnection hands the launcher a bare RemoteAddress; formatting it
+    # as `addr:port` produces `::1:8812` for v6 loopback. That used to read as
+    # a remote endpoint, so an IPv6-only local MCP client defeated the filter.
+    assert hygiene._is_loopback(remote) is loopback
+
+
 def test_network_veto_ignores_loopback_and_can_be_disabled():
     plan = observe_connected(
         engine(), [orphan_node()], 4, [(400, "127.0.0.1:8765"), (400, "[::1]:8812")]
@@ -2323,6 +2353,60 @@ def test_apply_plan_crash_loop_breaker_stops_killing_a_respawning_component(tmp_
     assert len(next(iter(state["kills"].values()))) == 2
 
 
+def test_apply_plan_prunes_kill_history_and_reported_keys_so_state_stays_bounded(
+    tmp_path,
+):
+    """Both dicts lived in state forever: every command line ever stopped, and every
+    (rule, pid, created) ever reported. On a box that churns PIDs that is a leak in
+    the tool whose job is leaks. Entries older than their window are dropped."""
+    pol = hygiene.validate_policy(
+        policy(
+            **{
+                "escalation.crashLoopWindowSeconds": 1000,
+                "ledger.reportKeepaliveSeconds": 1000,
+            }
+        )
+    )
+    state: dict = {
+        "kills": {"stale-sha": [NOW - 5000], "fresh-sha": [NOW - 100]},
+        "reported": {"rss-soft|1|1": NOW - 5000, "rss-soft|2|2": NOW - 100},
+    }
+    plan = observe(engine(), grok_with_bridge(), 1)
+    hygiene.apply_plan(
+        plan,
+        FakeActuator(),
+        hygiene.Ledger(tmp_path / "l.jsonl"),
+        apply=True,
+        run_id="r",
+        policy=pol,
+        state=state,
+    )
+    assert "stale-sha" not in state["kills"]
+    assert "fresh-sha" in state["kills"]
+    assert "rss-soft|1|1" not in state["reported"]
+    assert "rss-soft|2|2" in state["reported"]
+
+
+def test_summary_and_digest_name_only_rules_that_actually_stopped(tmp_path):
+    """With a stop budget of 1, the orphan is deferred; the digest must not claim
+    it was stopped just because its decision was executable at this tier."""
+    plan = mixed_plan(free=8 * GIB)  # retired 300 and orphan 400 both executable
+    pol = hygiene.validate_policy(policy(**{"escalation.maxStopsPerRun": 1}))
+    summary = hygiene.apply_plan(
+        plan,
+        FakeActuator(),
+        hygiene.Ledger(tmp_path / "l.jsonl"),
+        apply=True,
+        run_id="r",
+        policy=pol,
+        state={},
+    )
+    assert summary["rules"] == ["retired"]
+    line = hygiene.digest_line(plan, summary, {}, apply=True, cooldown=100, stamp="s")
+    assert "[retired]" in line
+    assert "orphan" not in line
+
+
 def test_apply_plan_crash_loop_window_expires(tmp_path):
     pol = hygiene.validate_policy(policy(**{"escalation.crashLoopWindowSeconds": 100}))
     state: dict = {}
@@ -2443,7 +2527,13 @@ def test_digest_line_satisfies_the_estate_background_digest_contract():
     stamp = "2026-09-02 04:50:00"
     ok = hygiene.digest_line(
         plan,
-        {"stopped": 1, "failed": 0, "exit_code": 0, "run_id": "r1"},
+        {
+            "stopped": 1,
+            "failed": 0,
+            "exit_code": 0,
+            "run_id": "r1",
+            "rules": ["retired"],
+        },
         {},
         apply=True,
         cooldown=100,
@@ -2451,7 +2541,13 @@ def test_digest_line_satisfies_the_estate_background_digest_contract():
     )
     failing = hygiene.digest_line(
         plan,
-        {"stopped": 0, "failed": 1, "exit_code": 2, "run_id": "r2"},
+        {
+            "stopped": 0,
+            "failed": 1,
+            "exit_code": 2,
+            "run_id": "r2",
+            "rules": ["retired"],
+        },
         {},
         apply=True,
         cooldown=100,
@@ -2472,7 +2568,13 @@ def test_digest_line_satisfies_the_estate_background_digest_contract():
 def test_digest_line_rules():
     state: dict = {}
     plan = observe(engine(), grok_with_bridge(), 1)
-    ok = {"stopped": 1, "failed": 0, "exit_code": 0, "run_id": "r"}
+    ok = {
+        "stopped": 1,
+        "failed": 0,
+        "exit_code": 0,
+        "run_id": "r",
+        "rules": ["retired"],
+    }
     assert (
         hygiene.digest_line(plan, ok, state, apply=False, cooldown=100, stamp="s")
         is None
@@ -2483,7 +2585,13 @@ def test_digest_line_rules():
         hygiene.digest_line(plan, ok, state, apply=True, cooldown=100, stamp="s")
         is None
     )
-    failing = {"stopped": 0, "failed": 1, "exit_code": 2, "run_id": "r"}
+    failing = {
+        "stopped": 0,
+        "failed": 1,
+        "exit_code": 2,
+        "run_id": "r",
+        "rules": ["retired"],
+    }
     line = hygiene.digest_line(
         plan, failing, state, apply=True, cooldown=100, stamp="s"
     )
@@ -2495,7 +2603,7 @@ def test_digest_line_rules():
         is not None
     )
     calm = observe(engine(), [proc(10, 1)], 1, end=NOW + 2000)
-    nothing = {"stopped": 0, "failed": 0, "exit_code": 0, "run_id": "r"}
+    nothing = {"stopped": 0, "failed": 0, "exit_code": 0, "run_id": "r", "rules": []}
     assert (
         hygiene.digest_line(calm, nothing, {}, apply=True, cooldown=100, stamp="s")
         is None

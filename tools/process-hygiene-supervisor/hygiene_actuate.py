@@ -64,7 +64,18 @@ def filetime_to_unix(filetime: int) -> int:
 
 
 def _default_runner(args: list[str]) -> RunResult:  # pragma: no cover - real OS
-    completed = subprocess.run(args, capture_output=True, text=True, timeout=180)
+    # errors="replace": wsl.exe emits UTF-16LE unless WSL_UTF8=1, and a strict
+    # locale decode of that would raise inside the actuator. The env override
+    # asks for UTF-8 regardless of how hygiene.py was launched.
+    env = dict(os.environ, WSL_UTF8="1")
+    completed = subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        timeout=180,
+        env=env,
+    )
     return RunResult(
         completed.returncode, completed.stdout or "", completed.stderr or ""
     )
@@ -82,75 +93,117 @@ def _default_open(pid: int) -> ProcessHandle | None:
 
 
 class _Win32Handle:  # pragma: no cover - real OS, exercised only on Windows
+    """A pinned process handle over kernel32 with EXPLICIT prototypes.
+
+    Every function used here is declared with argtypes/restype. Without them
+    ctypes assumes C ``int`` for every argument and return value, which silently
+    truncates a 64-bit HANDLE on Win64 - a wrong handle value that CloseHandle
+    rejects at best and that names some other object at worst. This is exactly
+    the class of defect Linux CI cannot reach, so the prototypes are the test.
+    """
+
     PROCESS_TERMINATE = 0x0001
     PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
     SYNCHRONIZE = 0x00100000
     STILL_ACTIVE = 259
     WAIT_OBJECT_0 = 0
+    INFINITE = 0xFFFFFFFF
     ERROR_INVALID_PARAMETER = 87
     ERROR_ACCESS_DENIED = 5
+    _kernel32 = None
 
-    def __init__(self, handle, kernel32, ctypes_module, wintypes):
+    @classmethod
+    def _k32(cls):
+        if cls._kernel32 is None:
+            import ctypes
+            from ctypes import wintypes
+
+            k = ctypes.WinDLL("kernel32", use_last_error=True)
+            k.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            k.OpenProcess.restype = wintypes.HANDLE
+            k.GetExitCodeProcess.argtypes = [wintypes.HANDLE, wintypes.LPDWORD]
+            k.GetExitCodeProcess.restype = wintypes.BOOL
+            k.GetProcessTimes.argtypes = [
+                wintypes.HANDLE,
+                wintypes.LPFILETIME,
+                wintypes.LPFILETIME,
+                wintypes.LPFILETIME,
+                wintypes.LPFILETIME,
+            ]
+            k.GetProcessTimes.restype = wintypes.BOOL
+            k.QueryFullProcessImageNameW.argtypes = [
+                wintypes.HANDLE,
+                wintypes.DWORD,
+                wintypes.LPWSTR,
+                wintypes.PDWORD,
+            ]
+            k.QueryFullProcessImageNameW.restype = wintypes.BOOL
+            k.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
+            k.TerminateProcess.restype = wintypes.BOOL
+            k.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+            k.WaitForSingleObject.restype = wintypes.DWORD
+            k.CloseHandle.argtypes = [wintypes.HANDLE]
+            k.CloseHandle.restype = wintypes.BOOL
+            cls._kernel32 = k
+        return cls._kernel32
+
+    def __init__(self, handle):
         self._h = handle
-        self._k32 = kernel32
-        self._ctypes = ctypes_module
-        self._wt = wintypes
 
     @classmethod
     def open(cls, pid: int):
         import ctypes
-        from ctypes import wintypes
 
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k = cls._k32()
         access = (
             cls.PROCESS_QUERY_LIMITED_INFORMATION
             | cls.PROCESS_TERMINATE
             | cls.SYNCHRONIZE
         )
-        handle = kernel32.OpenProcess(access, False, pid)
+        handle = k.OpenProcess(access, False, pid)
         if not handle:
             error = ctypes.get_last_error()
             if error == cls.ERROR_INVALID_PARAMETER:
                 return None
             raise PermissionError(f"OpenProcess({pid}) failed: Win32 error {error}")
-        return cls(handle, kernel32, ctypes, wintypes)
+        return cls(handle)
 
     def identity(self):
-        code = self._wt.DWORD()
-        if not self._k32.GetExitCodeProcess(self._h, self._ctypes.byref(code)):
+        import ctypes
+        from ctypes import wintypes
+
+        k = self._k32()
+        code = wintypes.DWORD()
+        if not k.GetExitCodeProcess(self._h, ctypes.byref(code)):
             return None
         if code.value != self.STILL_ACTIVE:
             return None
-        creation, exit_, kernel, user = (self._wt.FILETIME() for _ in range(4))
-        if not self._k32.GetProcessTimes(
+        creation, exit_, kernel, user = (wintypes.FILETIME() for _ in range(4))
+        if not k.GetProcessTimes(
             self._h,
-            self._ctypes.byref(creation),
-            self._ctypes.byref(exit_),
-            self._ctypes.byref(kernel),
-            self._ctypes.byref(user),
+            ctypes.byref(creation),
+            ctypes.byref(exit_),
+            ctypes.byref(kernel),
+            ctypes.byref(user),
         ):
             return None
         filetime = (creation.dwHighDateTime << 32) | creation.dwLowDateTime
-        size = self._wt.DWORD(32768)
-        buffer = self._ctypes.create_unicode_buffer(size.value)
+        size = wintypes.DWORD(32768)
+        buffer = ctypes.create_unicode_buffer(size.value)
         executable = ""
-        if self._k32.QueryFullProcessImageNameW(
-            self._h, 0, buffer, self._ctypes.byref(size)
-        ):
+        if k.QueryFullProcessImageNameW(self._h, 0, buffer, ctypes.byref(size)):
             executable = buffer.value
         return {"created_unix": filetime_to_unix(filetime), "executable": executable}
 
     def terminate(self) -> bool:
-        return bool(self._k32.TerminateProcess(self._h, 1))
+        return bool(self._k32().TerminateProcess(self._h, 1))
 
     def wait(self, seconds: float) -> bool:
-        return (
-            self._k32.WaitForSingleObject(self._h, int(seconds * 1000))
-            == self.WAIT_OBJECT_0
-        )
+        millis = min(int(seconds * 1000), self.INFINITE - 1)
+        return self._k32().WaitForSingleObject(self._h, millis) == self.WAIT_OBJECT_0
 
     def close(self) -> None:
-        self._k32.CloseHandle(self._h)
+        self._k32().CloseHandle(self._h)
 
 
 class WindowsActuator:

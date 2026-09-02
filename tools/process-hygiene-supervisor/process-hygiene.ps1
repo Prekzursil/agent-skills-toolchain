@@ -68,8 +68,15 @@ function Get-HygieneSnapshot {
         if ($null -ne $process.ReadTransferCount -and $null -ne $process.WriteTransferCount) {
             $io = [long]$process.ReadTransferCount + [long]$process.WriteTransferCount
         }
+        # CPU: prefer the WMI kernel+user times (100 ns units). They come from the
+        # WMI provider, which sees EVERY process, including vmmemWSL and other
+        # protected/elevated ones where Get-Process .CPU is silently $null. Without
+        # this the idle detector never confirms vmmem idle and the WSL rule is dead.
         $cpu = $null
-        if ($metric -and $null -ne $metric.CPU) { $cpu = [double]$metric.CPU }
+        if ($null -ne $process.KernelModeTime -and $null -ne $process.UserModeTime) {
+            $cpu = ([double]$process.KernelModeTime + [double]$process.UserModeTime) / 1e7
+        }
+        elseif ($metric -and $null -ne $metric.CPU) { $cpu = [double]$metric.CPU }
         [ordered]@{
             pid               = $id
             ppid              = [int]$process.ParentProcessId
@@ -135,9 +142,12 @@ function Get-HygieneSnapshot {
         # ESTABLISHED sockets feed the network veto: an "idle" agent may simply be
         # waiting on a model response. Loopback is filtered in Python.
         foreach ($conn in (Get-NetTCPConnection -State Established -ErrorAction Stop)) {
+            # bracket IPv6 so `addr:port` stays parseable ([::1]:8812, not ::1:8812)
+            $addr = [string]$conn.RemoteAddress
+            if ($addr -match ':') { $addr = "[$addr]" }
             $connections += [ordered]@{
                 pid    = [int]$conn.OwningProcess
-                remote = ('{0}:{1}' -f $conn.RemoteAddress, $conn.RemotePort)
+                remote = ('{0}:{1}' -f $addr, $conn.RemotePort)
             }
         }
     } catch { }
