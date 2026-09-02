@@ -1,0 +1,151 @@
+# Opt-in, ON-DEMAND answer engines for search-hub's `answer` lane (Wave 3, G-2/G-4/G-5).
+#
+# NOTHING in this file starts by default: every service sits behind a compose
+# profile, so a plain `docker compose -f docker-compose.answer-engines.yml up`
+# starts zero containers (0 RAM idle). Pick what you need, for as long as you need:
+#
+#   --profile vane    Vane (github ItzCrazyKns/Vane, ex-Perplexica, MIT): the cited
+#                     answer engine behind the hub's `selfhosted_answer` tool.
+#                     SLIM image only -- it reuses the estate SearXNG on the host
+#                     (127.0.0.1:8890, run for tools/search-expansion). The bundled
+#                     all-in-one image is deliberately NOT used: it carries its own
+#                     unpinned SearXNG whose uwsgi `workers=%k` costs ~500 MB/core.
+#                     Measured on Docker Hub 2026-09-02: slim-v1.12.2 = 578 MB
+#                     (amd64) vs the bundled v1.12.2 = 3,914 MB.
+#   --profile ldr     local-deep-research (github LearningCircuit/local-deep-research,
+#                     MIT): the long-form research engine. Its web UI + REST API
+#                     (`/api/v1/health`, `/api/v1/quick_summary`, ...) run here. The
+#                     hub's LDR MCP path is SEPARATE (providers.py): ENABLE_LDR=1
+#                     runs `ldr-mcp` -- STDIO-only, engine in-process -- via uvx on
+#                     the HOST, and LDR_URL only bridges to a resident ldr-mcp behind
+#                     an operator's Streamable-HTTP gateway. Neither reads this
+#                     container's port; the same LDR_* settings (with 127.0.0.1
+#                     addresses) point the host process at the same Ollama + SearXNG.
+#   --profile ollama  an Ollama daemon configured for immediate model EVICTION
+#                     (OLLAMA_KEEP_ALIVE=0): the model leaves RAM the moment an
+#                     answer is done. Only for a box with no host Ollama; on the
+#                     estate the host Ollama is reused via host.docker.internal.
+#
+# Endpoint-agnostic (G-4): the hub only ever sees VANE_URL / LDR_URL. Move an engine
+# to the OVH box and repoint one variable; nothing in the hub changes.
+#
+# Pins (verified 2026-09-02 against Docker Hub + the upstream tags; bump deliberately):
+#   itzcrazykns1337/vane:slim-v1.12.2             digest sha256:d2878cf9c91962aa3fc053b59bc9b89adcbdcaeb7ee36b54906e853464b2c190
+#     (Dockerfile.slim @ v1.12.2: node server.js, EXPOSE 3000, data in /home/vane/data)
+#   localdeepresearch/local-deep-research:1.10.7   digest sha256:ce95481a35d3eebc2c1ae7bd34fad426108c3fb8d1a22f66c9e772276869c2f0
+#     (docker-compose.yml @ v1.10.7: LDR_WEB_HOST/LDR_WEB_PORT/LDR_DATA_DIR forced, port 5000)
+#   ollama/ollama:0.33.2                           digest sha256:020e4134285e2ef4d8fd801234176de3b4faadc992a3eb06c8e66a2f9d4c4ba2
+# A floating tag (e.g. `slim-latest`) is never used here: the API this hub
+# maps (GET /api/providers, POST /api/search) was read from v1.12.2 exactly.
+#
+# RAM (per-container caps, NOT measurements -- see deploy/README.md):
+#   vane   Lens 4 estimate: slim ~250-450 MB + ~200 MB when its in-process
+#          Transformers embedder is picked -> mem_limit 768m.
+#   ldr    this kit's headroom choice for a Flask + SQLCipher app whose LLM lives
+#          elsewhere -> 2g (the 867 MB image is mostly Python deps, not resident RAM).
+#   ollama the model IS the cost (8-16 GB for a 7-14B model) -> 16g. A host Ollama
+#          is not capped by this file; set OLLAMA_KEEP_ALIVE=0 on it yourself.
+#
+# Ports publish on 127.0.0.1 only. Vane's UI has no auth, Ollama has no auth, LDR's
+# REST API is per-user authenticated -- none of them belong on a LAN interface.
+#
+# This file has NOT been run on the authoring VM (no Docker there). What IS pinned
+# by tests/test_lane_answer.py: it parses, every service is profiled + capped +
+# loopback-only, the tags above, and the run script's `--print` resolution.
+
+name: answer-engines
+
+services:
+  vane:
+    image: ${VANE_IMAGE:-itzcrazykns1337/vane:slim-v1.12.2}
+    container_name: answer-engines-vane
+    profiles:
+      - vane
+    ports:
+      - "127.0.0.1:${VANE_PORT:-3000}:3000"
+    environment:
+      # Seeds config.search.searxngURL ONCE (only while unset in data/config.json);
+      # afterwards Vane's Settings page owns it. Default = the estate SearXNG.
+      SEARXNG_API_URL: ${VANE_SEARXNG_API_URL:-http://host.docker.internal:8890}
+      # Seeds an Ollama chat/embedding provider with a fresh random UUID id (the
+      # reason the hub resolves ids from GET /api/providers on every call). If the
+      # daemon is unreachable, Vane filters the provider OUT of /api/providers and
+      # the hub reports "no chat model configured" -- truthfully, never a made-up
+      # answer. Vane also ships a keyless in-process Transformers EMBEDDING provider
+      # (~200 MB when used), so only the CHAT model must come from Ollama.
+      OLLAMA_BASE_URL: ${VANE_OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    volumes:
+      # Vane's config (providers, searxngURL, setup state) + SQLite live here.
+      - answer_engines_vane_data:/home/vane/data
+    extra_hosts:
+      # Reach the SearXNG / Ollama running on the Docker host (Linux needs this).
+      - "host.docker.internal:host-gateway"
+    security_opt:
+      - "no-new-privileges:true"
+    # On-demand means on-demand: no auto-restart unless the operator asks for it.
+    restart: ${ANSWER_ENGINES_RESTART:-no}
+    mem_limit: ${VANE_MEM_LIMIT:-768m}
+
+  ldr:
+    image: ${LDR_IMAGE:-localdeepresearch/local-deep-research:1.10.7}
+    container_name: answer-engines-ldr
+    profiles:
+      - ldr
+    ports:
+      - "127.0.0.1:${LDR_PORT:-5000}:5000"
+    environment:
+      # Forced by upstream's own compose for Docker operation (env locks the setting).
+      LDR_WEB_HOST: 0.0.0.0
+      LDR_WEB_PORT: "5000"
+      LDR_DATA_DIR: /data
+      # Reuse the host Ollama and the estate SearXNG (env-locking the SearXNG URL
+      # also marks it operator-provisioned for LDR's private-engine protection).
+      LDR_LLM_OLLAMA_URL: ${LDR_OLLAMA_URL:-http://host.docker.internal:11434}
+      LDR_SEARCH_ENGINE_WEB_SEARXNG_DEFAULT_PARAMS_INSTANCE_URL: ${LDR_SEARXNG_URL:-http://host.docker.internal:8890}
+    volumes:
+      - answer_engines_ldr_data:/data
+      - answer_engines_ldr_scripts:/scripts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # SQLCipher mlock() without noisy kernel warnings (as upstream).
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    security_opt:
+      - "no-new-privileges:true"
+    restart: ${ANSWER_ENGINES_RESTART:-no}
+    mem_limit: ${LDR_MEM_LIMIT:-2g}
+
+  # Only for a box WITHOUT a host Ollama. The point of this service is the eviction
+  # policy: OLLAMA_KEEP_ALIVE=0 unloads a model as soon as its request finishes, so
+  # the 8-16 GB a chat model costs is paid only while an answer is being generated
+  # (G-2: heavy/LLM permitted opt-in, evicted on demand). Set the same variable on a
+  # host Ollama (`setx OLLAMA_KEEP_ALIVE 0` on Windows, then restart it) to get the
+  # identical behaviour without this container. Upstream LDR ships '30m' -- 30 min of
+  # a resident model after every answer -- which is exactly what we do NOT want here.
+  ollama-evict:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.33.2}
+    container_name: answer-engines-ollama
+    profiles:
+      - ollama
+    ports:
+      # Loopback only: Ollama has no authentication.
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    environment:
+      OLLAMA_KEEP_ALIVE: "0"
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    volumes:
+      - answer_engines_ollama_models:/root/.ollama
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    restart: ${ANSWER_ENGINES_RESTART:-no}
+    mem_limit: ${OLLAMA_MEM_LIMIT:-16g}
+
+volumes:
+  answer_engines_vane_data:
+  answer_engines_ldr_data:
+  answer_engines_ldr_scripts:
+  answer_engines_ollama_models:

@@ -30,6 +30,12 @@ def test_registry_lists_only_lanes_that_import_and_build_cleanly():
     assert platforms == {"repohealth", "grounding"}
 
 
+def test_opt_in_lanes_appear_only_when_flagged():
+    built, degraded = lanes.extra_adapters({"ENABLE_VANE": "1"})
+    assert degraded == {}
+    assert "answer" in {ad.platform for ad in built}
+
+
 def test_every_registered_lane_can_be_killed_to_nothing():
     kill = {
         "ENABLE_REPO_HEALTH": "0",
