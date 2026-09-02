@@ -83,6 +83,174 @@ def is_progress_stream(body: str | None) -> bool:
         return True
     return False
 
+
+PRODUCER_BODY_REQUIRED_FIELDS: tuple[str, ...] = ("unit_id", "state")
+"""Fields a producer's receipt body must carry (non-null, non-blank) to pass ``receipt-schema``."""
+
+PRODUCER_BODY_FORBIDDEN_MARKERS: tuple[str, ...] = (
+    "work is still in progress",
+    "still in progress",
+    "not yet complete",
+    "partial result",
+)
+"""The "not actually finished" phrases whose presence fails ``receipt-content`` for a body."""
+
+_TERMINAL_SUCCESS_STATES: frozenset[str] = frozenset({"SUCCESS"})
+
+
+@dataclass(frozen=True, slots=True)
+class BodyClassification:
+    """Verdict on a producer's receipt BODY alone — no rail exit code, no per-unit spec.
+
+    ``ok`` is true only when every body-side clause passed; ``reason`` is the taxonomy member
+    that stopped the walk (``None`` on success); ``schema_validated`` records whether the
+    ``receipt-schema`` clause was reached and passed; ``progress_stream`` is true when the body
+    was recognised as a progress/status stream rather than a result.
+    """
+
+    ok: bool
+    reason: str | None
+    schema_validated: bool
+    progress_stream: bool
+    passed_clauses: tuple[str, ...]
+    detail: str
+    payload: Mapping[str, Any] | None = None
+    state: str | None = None
+
+    @property
+    def failure_reason(self) -> str:
+        """The taxonomy reason for a failed classification; ``""`` for a passing one."""
+        return self.reason or ""
+
+
+def classify_producer_body(
+    body: str | bytes | bytearray | None,
+    *,
+    required_fields: tuple[str, ...] = PRODUCER_BODY_REQUIRED_FIELDS,
+    forbidden_markers: tuple[str, ...] = PRODUCER_BODY_FORBIDDEN_MARKERS,
+) -> BodyClassification:
+    """Walk a producer's receipt body through the body-side clauses of the AND-gate.
+
+    This is the body-only sibling of :func:`judge`: it has no rail exit code, so the walk
+    starts at ``receipt-present`` and ends at ``receipt-content`` (parses, required fields
+    present, no "not finished" marker, terminal ``state`` is ``SUCCESS``). It never raises on
+    input shape — garbage yields ``ok=False`` with a taxonomy reason — so a byte-form matrix
+    can feed it BOM-prefixed, CRLF or truncated bodies and compare the classifications.
+
+    Bytes are decoded with :func:`agentspec.receipt.decode` (UTF-8, BOM tolerated, anything
+    else is ``receipt-unparseable``); a ``str`` has a leading BOM stripped for the same reason.
+    LF and CRLF bodies classify identically because JSON whitespace is line-ending agnostic.
+    """
+    spec = ReceiptSpec(
+        fmt="json",
+        required_fields=tuple(required_fields),
+        forbidden_markers=tuple(forbidden_markers),
+    )
+    if body is None:
+        return BodyClassification(
+            ok=False,
+            reason="receipt-missing",
+            schema_validated=False,
+            progress_stream=False,
+            passed_clauses=(),
+            detail="receipt-missing: no body was handed to the oracle",
+        )
+    passed: tuple[str, ...] = ("receipt-present",)
+    if isinstance(body, (bytes, bytearray)):
+        try:
+            text = receipt_mod.decode(bytes(body))
+        except receipt_mod.ReceiptUnparseable as exc:
+            return BodyClassification(
+                ok=False,
+                reason="receipt-unparseable",
+                schema_validated=False,
+                progress_stream=False,
+                passed_clauses=passed,
+                detail=str(exc),
+            )
+    else:
+        text = str(body).removeprefix("\ufeff")
+    if wire.is_blank(text):
+        return BodyClassification(
+            ok=False,
+            reason="receipt-empty",
+            schema_validated=False,
+            progress_stream=False,
+            passed_clauses=passed,
+            detail="receipt-empty: the body is blank",
+        )
+    passed = (*passed, "receipt-non-empty")
+    if is_progress_stream(text):
+        return BodyClassification(
+            ok=False,
+            reason="progress-stream",
+            schema_validated=False,
+            progress_stream=True,
+            passed_clauses=passed,
+            detail="progress-stream: the body is a progress/status stream, not a result",
+        )
+    try:
+        payload = receipt_mod.parse_json_object(text)
+    except receipt_mod.ReceiptUnparseable as exc:
+        return BodyClassification(
+            ok=False,
+            reason="receipt-unparseable",
+            schema_validated=False,
+            progress_stream=False,
+            passed_clauses=passed,
+            detail=str(exc),
+        )
+    passed = (*passed, "receipt-parses")
+    absent = receipt_mod.missing_fields(payload, spec)
+    if absent:
+        return BodyClassification(
+            ok=False,
+            reason="schema-invalid",
+            schema_validated=False,
+            progress_stream=False,
+            passed_clauses=passed,
+            detail=f"schema-invalid: missing or blank {canonical_dumps(list(absent))}",
+            payload=payload,
+        )
+    passed = (*passed, "receipt-schema")
+    raw_state = payload.get("state")
+    state = str(raw_state).strip().upper() if isinstance(raw_state, str) else str(raw_state)
+    markers = receipt_mod.present_markers(text, spec)
+    if markers:
+        return BodyClassification(
+            ok=False,
+            reason="receipt-incomplete",
+            schema_validated=True,
+            progress_stream=False,
+            passed_clauses=passed,
+            detail=f"receipt-incomplete: body carries {canonical_dumps(list(markers))}",
+            payload=payload,
+            state=state,
+        )
+    if state not in _TERMINAL_SUCCESS_STATES:
+        return BodyClassification(
+            ok=False,
+            reason="receipt-incomplete",
+            schema_validated=True,
+            progress_stream=False,
+            passed_clauses=passed,
+            detail=f"receipt-incomplete: state {state!r} is not a terminal SUCCESS",
+            payload=payload,
+            state=state,
+        )
+    passed = (*passed, "receipt-content")
+    return BodyClassification(
+        ok=True,
+        reason=None,
+        schema_validated=True,
+        progress_stream=False,
+        passed_clauses=passed,
+        detail="all body clauses passed",
+        payload=payload,
+        state=state,
+    )
+
+
 def digest_bytes(data: bytes) -> str:
     return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 

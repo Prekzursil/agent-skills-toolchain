@@ -54,10 +54,48 @@ class DryRunPlan:
     egress_count: int = 0
 
 
-def dry_run(workflow: dict, params: dict | None = None, ports=None) -> DryRunPlan:
-    """Resolve routing/params/cardinality/cost without spawning or egress."""
+def _escape_spawn(ports, unit: dict) -> int:
+    """Send one unit through the spawn port; returns the number of spawn attempts made.
+
+    The instrumented rail counts the attempt before it refuses it, so a dry-run
+    plan that escapes shows up as a red zero-spawn counter on the ports, not only
+    on the plan.  Egress is never touched.
+    """
+    rail = getattr(ports, "rail", None) if ports is not None else None
+    if rail is None or not hasattr(rail, "spawn"):
+        return 1
+    argv = [str((unit.get("routing") or {}).get("rail") or "sonnet"), str(unit.get("id") or "")]
+    try:
+        rail.spawn(argv)
+    except Exception:  # noqa: BLE001 -- a forbidding rail raises after counting
+        pass
+    return 1
+
+
+def dry_run(
+    workflow: dict,
+    params: dict | None = None,
+    ports=None,
+    *,
+    escape_unit_id: str | None = None,
+) -> DryRunPlan:
+    """Resolve routing/params/cardinality/cost without spawning or egress.
+
+    ``escape_unit_id`` is the mutation hook for the zero-spawn predicate's
+    both-states test: the named unit escapes the dry run and is pushed through the
+    spawn port, so ``spawn_count`` (plan and ports) must go non-zero while egress
+    stays at zero.  With the default ``None`` nothing spawns.
+    """
     params = dict(params or {})
     units = list(workflow.get("units") or [])
+    planned: list[dict] = []
+    spawn_count = 0
+    for unit in units:
+        entry = dict(unit)
+        if escape_unit_id is not None and str(unit.get("id")) == str(escape_unit_id):
+            entry["escaped_dry_run"] = True
+            spawn_count += _escape_spawn(ports, unit)
+        planned.append(entry)
     vendor = {"opus": "anthropic", "sonnet": "anthropic", "codex": "openai"}
     routing: list[dict] = []
     for unit in units:
@@ -101,16 +139,15 @@ def dry_run(workflow: dict, params: dict | None = None, ports=None) -> DryRunPla
         "unit_count": len(units),
         "total_micro_usd": max(1, len(units) * 25),
     }
-    if ports is not None:
-        # Dry-run must not spawn or egress. Ports stay at zero.
-        pass
+    # Dry-run must not spawn or egress: ports stay at zero unless a unit was
+    # explicitly escaped above, and egress is never exercised here.
     return DryRunPlan(
         workflow_id=str(workflow.get("id") or ""),
         routing=routing,
         params=bound,
         cardinality=card,
         cost=cost,
-        planned_units=units,
-        spawn_count=0,
+        planned_units=planned,
+        spawn_count=spawn_count,
         egress_count=0,
     )

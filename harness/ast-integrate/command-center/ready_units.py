@@ -282,27 +282,74 @@ def _fallback_contract(doc, resolver) -> tuple[bool, str]:
     )
 
 
+_TOOLS_COMMAND_CENTER = Path(__file__).resolve().parents[1] / "tools" / "command-center"
+_RESOLVER_REL = "platform/lib/schema_resolver.py"
+
+
+def _degradation_surface():
+    """The shared user-visible degradation surface (tools/command-center/degradation_events.py).
+
+    Reuses the already-imported module object when a caller loaded it first, so every listener
+    sees one ``USER_EVENTS`` list; returns None only when the surface module itself is absent.
+    """
+    mod = sys.modules.get("degradation_events")
+    if mod is not None:
+        return mod
+    if str(_TOOLS_COMMAND_CENTER) not in sys.path:
+        sys.path.insert(0, str(_TOOLS_COMMAND_CENTER))
+    try:
+        import degradation_events
+    except ImportError:
+        return None
+    return degradation_events
+
+
+def _resolver_unavailable(reason: str) -> None:
+    """Report the lost contract-validation capability LOUDLY, then hand back None.
+
+    The work artifact (the catalog) is untouched by this fallback, and the event names it so.
+    When even the degradation surface is missing, a plain stderr DEGRADATION-EVENT line is
+    written: the degradation is never silent.
+    """
+    fields = {
+        "capability_lost": "jsonschema-contract-validation",
+        "fallback_kind": "capability-missing-shim",
+        "source": "command-center/ready_units.py:_load_resolver",
+        "artifact_preserved": "command-center/WORK-UNIT-CATALOG.json",
+        "reason": reason,
+        "resolver": _RESOLVER_REL,
+    }
+    surface = _degradation_surface()
+    if surface is not None:
+        surface.emit_loud(**fields)
+        return None
+    event = {"type": "DEGRADATION-EVENT", "user_visible": True, **fields}
+    print("DEGRADATION-EVENT " + json.dumps(event, sort_keys=True), file=sys.stderr)
+    return None
+
+
 def _load_resolver():
     """Load platform/lib/schema_resolver for contract validation.
 
     Returns None when unavailable. The caller DEGRADES LOUDLY rather than silently: a predicate
     that quietly stops validating is exactly the no-op gate this module is being fixed to stop
-    manufacturing.
+    manufacturing. Every None path first emits a user-visible DEGRADATION-EVENT naming the lost
+    capability and the preserved artifact.
     """
     p = REPO / "platform" / "lib" / "schema_resolver.py"
     if not p.is_file():
-        return None
+        return _resolver_unavailable("schema_resolver.py absent")  # loud, then return None
     try:
         sys.path.insert(0, str(p.parent))
         spec = importlib.util.spec_from_file_location("schema_resolver", p)
         if spec is None or spec.loader is None:
-            return None
+            return _resolver_unavailable("schema_resolver.py yields no import spec")
         mod = importlib.util.module_from_spec(spec)
         sys.modules["schema_resolver"] = mod
         spec.loader.exec_module(mod)
         return mod
-    except Exception:  # pragma: no cover - environment-dependent
-        return None
+    except Exception as exc:  # pragma: no cover - environment-dependent
+        return _resolver_unavailable(f"{type(exc).__name__}: {exc}"[:200])
 
 
 def artifact_delivered(unit: dict, resolver=None) -> tuple[bool, str]:

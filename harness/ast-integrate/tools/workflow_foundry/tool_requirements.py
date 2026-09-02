@@ -23,9 +23,18 @@ def extract_tool_requirements(candidate: Mapping[str, Any]) -> set[str]:
     return found
 
 
-def reconcile_subset(required: Iterable[str], grantable: Iterable[str]) -> list[str]:
-    grant = set(grantable)
-    return sorted(str(r) for r in required if str(r) not in grant)
+def reconcile_subset(
+    required: Iterable[str], grantable: Iterable[str]
+) -> tuple[bool, frozenset[str]]:
+    """Set-subset check: ``(required ⊆ grantable, required − grantable)``.
+
+    Membership is exact token equality, never substring: ``Read`` is NOT covered by
+    a grantable ``ReadWrite``.  The second element names every missing capability.
+    """
+    grant = frozenset(str(g) for g in grantable)
+    need = frozenset(str(r) for r in required)
+    missing = need - grant
+    return (not missing, missing)
 
 
 @dataclass
@@ -56,14 +65,14 @@ def import_candidate(
     host = set(host_grantable or [])
     unit = set(unit_permissions or [])
     grantable = host | unit
-    missing_host = reconcile_subset(required, host)
-    missing_unit = reconcile_subset(required, unit)
-    missing = reconcile_subset(required, grantable)
-    if missing:
+    _, missing_host = reconcile_subset(required, host)
+    _, missing_unit = reconcile_subset(required, unit)
+    ok, missing = reconcile_subset(required, grantable)
+    if not ok:
         return ImportResult(
             status="BLOCKED",
-            missing_capabilities=missing,
-            missing_from_host=missing_host,
-            missing_from_unit=missing_unit,
+            missing_capabilities=sorted(missing),
+            missing_from_host=sorted(missing_host),
+            missing_from_unit=sorted(missing_unit),
         )
     return ImportResult(status="IMPORTED")
