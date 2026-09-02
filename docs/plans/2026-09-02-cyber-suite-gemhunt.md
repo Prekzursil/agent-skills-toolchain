@@ -94,8 +94,8 @@ per the owner's model directive.
 | L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | QUEUED (reframe defensive) |
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | running |
 | L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | — | QUEUED |
-| L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | running |
-| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-1358f975 | **BLOCKED** (relaunch defensive) |
+| L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | DONE |
+| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | running on `cursor-grok-4.6-xhigh` (Claude blocked bc-1358f975; owner directive) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | running |
 | L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | running |
 | L11 | Cyber skills in the wild (OSS agent/Claude skills) | — | QUEUED |
