@@ -252,7 +252,54 @@ otherwise); (c) refuse slugs whose `expiration_date` is < 30 days out (section 2
 
 ## 5. Model shortlists (T0 / T1) with price/perf evidence
 
-_(pending)_
+Method `[FACT]`: computed from the live public `GET /api/v1/models` on 2026-09-02 (Tier A, single source for
+prices; the quality signal is OpenRouter's embedded `benchmarks.artificial_analysis` = Artificial Analysis
+Intelligence Index / Coding Index, present on 161 rows). Score = `intelligence_index / blended $ per M` with a
+3:1 input:output blend. Filter: `tools` in `supported_parameters`, price > 0. `:batch` rows excluded from the
+shortlist (section 2.1 shows they are dearer than `:floor` for open-weight slugs). Grades: **A** = index present
+and corroborated by the in-repo 08-27 shortlist; **B** = index present, single source; **C** = no index (price only).
+
+### 5.1 T0 grunt (extract / reformat / bulk classify) - target <= $0.10 in, <= $0.30 out
+
+| Slug | $/M in / out | ctx | AA intel / coding | tools / structured | Score | Grade | Note |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **`z-ai/glm-5.3-flash`** (alias `~z-ai/glm-flash-latest`) | 0.075 / 0.25 | 1.31M | **57.5 / 71.5** | yes / yes | 484 | **A** (08-27 listed GLM flash as T1 candidate) | Highest absolute quality in the T0 band; same family as the deprecated `glm53-space`. `[REC]` **new T0 default candidate**, pending a paid smoke once the balance is > 0. |
+| `deepseek/deepseek-v4-flash-0731` | 0.065 / 0.18 | 1.31M | 51.8 / 69.1 | yes / yes | 553 | **A** (current in-repo pin) | Still the best score-per-dollar with an index; price drifted +50% on output since 08-27. Keep as fallback pin. |
+| `upstage/solar-pro4` | 0.03 / 0.12 | 524K | 41.6 / 52.7 | yes / yes | 792 | B | Cheapest indexed slug with structured outputs; unknown provider diversity - verify `/endpoints` before allowlisting. |
+| `inclusionai/ling-3.0-flash` | 0.021 / 0.063 | 262K | 37.8 / 50.6 | yes / **no** | 1200 | B | Cheapest indexed tool-capable; no `structured_outputs` -> schema-fail escalations likely. |
+| `xiaomi/mimo-v2.5` | 0.14 / 0.28 | 1.05M | 38.0 / 56.8 | yes / yes | 217 | A (08-27 "plan T1 shortlist") | Now dominated by GLM-5.3-flash on both price and index. |
+| `mistralai/mistral-nemo` | 0.019 / 0.03 | 131K | none | yes / yes | - | C | Cheapest tools in catalog (08-27 too) but no quality index; extract-only. |
+
+`[INFER]` The in-repo T0 pin remains defensible on score, but `z-ai/glm-5.3-flash` gives +5.7 intelligence /
++2.4 coding points for +$0.01 in / +$0.07 out per M, with structured outputs and a stable-alias
+(`~z-ai/glm-flash-latest`, `expiration_date` placeholder 2098). For agentic T0 with tools the quality delta is
+worth more than the price delta; for pure bulk extract the DeepSeek pin (or `:floor` on it) stays cheaper.
+
+### 5.2 T1 standard (drafts, single-file, summaries) - target <= $1.00 in, <= $3.00 out
+
+| Slug | $/M in / out | ctx | AA intel / coding | tools / structured | Grade | Note |
+| --- | --- | --- | --- | --- | --- | --- |
+| **`z-ai/glm-5.3-flash`** | 0.075 / 0.25 | 1.31M | 57.5 / 71.5 | yes / yes | A | Also the top T1 by coding index at any price <= $1 in. One slug can serve T0 and T1 (fewer allowlist entries). |
+| `openai/gpt-5.6-luna` | 0.20 / 1.20 | 1.05M | 52.3 / 71.4 | yes / yes | B | **Different vendor** for the "one different-vendor outage fallback" rule; **but** Cursor Max already serves GPT-5.6 -> by L3 precedence use auth2api first, OpenRouter only if the Cursor pool is rate-capped. |
+| `qwen/qwen3.8-27b` | 0.425 / 2.55 | 1.0M | 52.0 / 68.1 | yes / yes | B | Third-vendor option (Alibaba) not served by Cursor. |
+| `xiaomi/mimo-v2.5-pro` | 0.435 / 0.87 | 1.05M | 42.9 / 60.2 | yes / yes | B | Mid option; lower coding than GLM flash at 6x the price -> not shortlisted. |
+| `minimax/minimax-m3` | 0.30 / 1.20 | 1.05M | 45.4 / 58.6 | yes / yes | B | `:free` twin exists for smoke (`minimax/minimax-m3:free`, 45.4 / 58.6). |
+| `nousresearch/hermes-4-70b` | 0.13 / 0.40 | 131K | none | **no** / no | C | Keep exactly as the in-repo low-refusal **chat-only** lane; no tools live-confirmed today. |
+
+### 5.3 T0-test / smoke (`:free`, zero cost, never for coding, may be trained on)
+
+`[FACT]` Best indexed free slugs today: `z-ai/glm-5.2:free` (52.6 / 68.8, tools + structured), `minimax/minimax-m3:free`
+(45.4 / 58.6), `thinkingmachines/inkling:free` (42.3 / 52.1). The in-repo smoke slug `liquid/lfm-2.5-2.6b:free` is
+still listed (tools + structured, no index). `dots-studio/dots-3-note-preview:free` expires 2026-09-30 - do not allowlist.
+`[REC]` Promote `z-ai/glm-5.2:free` to the **smoke** role (structured outputs let the smoke exercise the schema path);
+keep LFM as the tiny "pong" probe.
+
+### 5.4 T2 stays native (restated)
+
+`[FACT]` OpenRouter lists `anthropic/claude-fable-5.1` at $10 / $50 per M with AA 65.7 / 81.6 (Tier A live). `[REC]`
+Never route it via OpenRouter: Cursor Max / Claude Max already serve it at zero marginal cost (L1, L3). This row
+exists only to show the T2 quality ceiling the T0/T1 shortlist is measured against (GLM-5.3-flash reaches ~88% of
+the coding index at 0.5% of the output price).
 
 ## 6. Per-find rubric table
 
