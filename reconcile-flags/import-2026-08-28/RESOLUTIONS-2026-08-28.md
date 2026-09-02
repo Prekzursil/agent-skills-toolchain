@@ -17,3 +17,19 @@ or an adjacent `*.alt` file.
 | 8 | `quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py` | **live** (already a 2026-07-18 merge of both fallbacks) | **root → `.root.alt.py`**; **dot → `.dot.alt.py`** | Live documents in-file: in-process PyYAML, then `find_python_with_yaml()`, then pwsh `ConvertFrom-Yaml` last. Root is import-only; dot is the interpreter-search fallback. All three kept. |
 
 `SKILL.alt.md` files are not skill entrypoints (loaders look for `SKILL.md` only).
+
+> **Row 5 application gap, closed 2026-09-01 (PR #290 reconcile), kept rather than deleted:**
+> commit 745b2f77 dual-wrote the `SKILL.alt.md` files but rewrote the 67-tool primary only in
+> `skills/`; `.agents/skills/mechanistic-ddi-pipeline/SKILL.md` still carried the 12-tool line
+> and was byte-identical to its own `SKILL.alt.md`. The `.agents/skills/` primary is now blob
+> `45bac312` in both dests -- the same blob as the live snapshot under this folder and as
+> PR #290's copy of the file. The adjudication itself was right; only its second write was missing.
+
+> **Row 2 re-verified 2026-09-01 (PR #290 reconcile), no change:** PR #290 carries the ROOT/live
+> side (`# noqa: S324` form, blob `811bdc28`, byte-identical to `toolchain-root/` and `skills/`
+> under this folder) for `.agents/skills/bc-drive-plus/snapshot_ring.py`; both dests on main hold
+> the chosen DOT side (blob `ceb12c8b`). Measured with the gate's pinned ruff 0.15.17: under the
+> repo's default rule set both variants pass; with `--select S324` both pass (ruff honours
+> `usedforsecurity=False`, so the `noqa` guards nothing); with `--select RUF100` the PR variant is
+> flagged "Unused `noqa` directive (non-enabled: S324)" and the DOT variant is clean. The
+> adjudication stands; the PR side was not taken.

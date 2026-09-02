@@ -5,7 +5,8 @@
   "events": {
     "SessionStart": {
       "settings_matcher": "*",
-      "settings_timeout": 20,
+      "settings_timeout": 35,
+      "rebalance_note": "2026-08-27 wave A-c (CONSOLIDATED-GEM-DECISIONS TIER-0 #2): wire-check and git-hygiene DEMOTED here from Stop, whose 35s ceiling was oversubscribed (9 checks, timeouts summing 144s) and starved the tail gates (journey-coverage, dark-surface). Both are advisory/inject-only and git-hygiene self-throttles to one scan/15min, so once-per-session is the right cadence. settings_timeout raised 20->35 IN LOCKSTEP with the live settings.json SessionStart dispatch entry (same edit) so the moved checks' 25s/30s budgets stay reachable -- a budget above the enforced ceiling is inert (see git-hygiene timeout_rationale).",
       "checks": [
         {
           "name": "bg-registry/reconcile",
@@ -66,6 +67,29 @@
           "isolate": null,
           "side_effect": "digest-archive+truncate",
           "emits": true
+        },
+        {
+          "name": "wire-check",
+          "script": "wire-check/check.py",
+          "args": [],
+          "timeout": 25,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true,
+          "slow": true,
+          "comment": "Moved from Stop 2026-08-27 (wave A-c) -- see SessionStart.rebalance_note. Advisory/inject-only; 25s budget reachable under the raised 35s SessionStart ceiling."
+        },
+        {
+          "name": "git-hygiene",
+          "script": "git-hygiene/check.py",
+          "args": [],
+          "timeout": 30,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true,
+          "slow": true,
+          "comment": "Moved from Stop 2026-08-27 (wave A-c) -- see SessionStart.rebalance_note. Surfaces live-authored harness artifacts (skills/hooks/rules under ~/.claude,~/.agents) not yet in agent-skills-toolchain, plus your repos holding unversioned work. Self-throttles to one full scan per 15 min (GIT_HYGIENE_THROTTLE_SEC). Advisory/inject, never blocks. Opt-out: GIT_HYGIENE=off or hooks/git-hygiene/.disabled.",
+          "timeout_rationale": "30 leaves 5s of collection headroom under the (raised) 35s SessionStart ceiling -- same headroom pattern the Stop event used. History: was 90 on Stop, which was UNREACHABLE (Stop ceiling 35s; dispatch.py collects with an absolute deadline of start+timeout, so a 90s budget held run() past the cancellation point and the vendor killed the whole dispatcher command, losing all 9 Stop checks' output -- proved by _b12_joinorder.py). Measured range 11.8-32.7s (R4-GITHYGIENE-RANGE.json): runs above 30s lose THIS check's output only, an acceptable trade for an advisory/inject-only check."
         }
       ]
     },
@@ -92,28 +116,6 @@
           "isolate": null,
           "side_effect": "state",
           "emits": true
-        },
-        {
-          "name": "wire-check",
-          "script": "wire-check/check.py",
-          "args": [],
-          "timeout": 25,
-          "isolate": null,
-          "side_effect": "none",
-          "emits": true,
-          "slow": true
-        },
-        {
-          "name": "git-hygiene",
-          "script": "git-hygiene/check.py",
-          "args": [],
-          "timeout": 30,
-          "isolate": null,
-          "side_effect": "none",
-          "emits": true,
-          "slow": true,
-          "comment": "Surfaces live-authored harness artifacts (skills/hooks/rules under ~/.claude,~/.agents) not yet in agent-skills-toolchain, plus your repos holding unversioned work. Self-throttles to one full scan per 15 min (GIT_HYGIENE_THROTTLE_SEC). Advisory/inject, never blocks. Opt-out: GIT_HYGIENE=off or hooks/git-hygiene/.disabled.",
-          "timeout_rationale": "Was 90, which is UNREACHABLE: Stop's enforced ceiling is 35s (manifest mirror and live settings.json agree -- _b12_ceiling.py). dispatch.py:360-372 collects checks sequentially with an absolute deadline of start+timeout, so a 90s budget holds run() past the cancellation point and the vendor kills the whole dispatcher command, losing all 9 Stop checks' output together (proved by _b12_joinorder.py: same worker, 6s-in-a-2s-ceiling overran to 5.024s, 1s-in-the-same-ceiling returned at 1.01s with the trailing check collected). 30 leaves 5s of collection headroom under the 35s cap. COST, stated rather than hidden: this check's measured range is 11.8-32.7s (R4-GITHYGIENE-RANGE.json), so runs above 30s now lose THIS check's output -- an acceptable trade because it is advisory/inject-only, where overrunning the cap lost every check on the event. The 90 came from a round-2 remediation for it being disarmed at 28.3s against a 30s budget; that remediation was inert because it raised a number above the ceiling that caps it."
         },
         {
           "name": "honest-signal",
