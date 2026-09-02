@@ -23,6 +23,13 @@ Cursor-specific rendering differences vs the Claude merge:
   read back as a fallback source (see ``merge_cursor_mcp_servers``).
 - ``--check`` reports drift between the live file and what this merge would
   render, and writes nothing — the read-only probe for off-registry hand edits.
+- An http server may declare ``x_cursor.stdio_bridge`` (``command`` + ``args``):
+  Cursor then runs that per-session stdio shim with ``--url <registry url>``
+  appended instead of dialing the URL itself. Used for ``basic-memory``, whose
+  shared daemon restarts near-daily and whose stale session Cursor's own client
+  never heals (``.agents/BASIC-MEMORY-RELIABILITY_2026-08-27.md``). Claude and
+  Codex renderers ignore the key. Rendering is OS-independent, so ``--check``
+  agrees on this entry from Linux as well.
 """
 
 from __future__ import annotations
@@ -102,11 +109,30 @@ def wrap_for_windows(command: str, args: list[str]) -> tuple[str, list[str]]:
     return command, args
 
 
+def cursor_stdio_bridge(server: Mapping[str, Any]) -> dict[str, Any] | None:
+    """The ``x_cursor.stdio_bridge`` override, or None when Cursor dials the URL."""
+    x_cursor = server.get("x_cursor")
+    if not isinstance(x_cursor, Mapping):
+        return None
+    bridge = x_cursor.get("stdio_bridge")
+    return dict(bridge) if isinstance(bridge, Mapping) else None
+
+
 def build_cursor_server(name: str, server: dict[str, Any]) -> dict[str, Any] | None:
     """Convert an agents.json server definition to a .cursor/mcp.json entry."""
     transport = server.get("transport", "stdio")
 
     if transport == "http":
+        bridge = cursor_stdio_bridge(server)
+        if bridge is not None:
+            # Cursor runs a per-session stdio shim that dials the registry URL.
+            # The URL is appended here, never repeated in the registry, so the
+            # shim can only ever point at the daemon the registry declares.
+            command, args = wrap_for_windows(
+                str(bridge["command"]),
+                [str(a) for a in bridge.get("args", [])] + ["--url", server["url"]],
+            )
+            return {"command": command, "args": args}
         entry: dict[str, Any] = {
             "url": server["url"],
         }
@@ -284,6 +310,11 @@ def main() -> int:
             added.append(name)
 
     merged = merge_cursor_mcp_servers(mcp_servers, generated)
+    bridged = sorted(
+        name
+        for name in merged
+        if cursor_stdio_bridge(servers.get(name, {})) is not None
+    )
 
     if args.check:
         drifted = sorted(
@@ -328,7 +359,7 @@ def main() -> int:
         f"managed={len(generated)} added={len(added)} updated={len(updated)} "
         f"enabled={len(enabled)} disabled={len(disabled)} "
         f"plugin_skips={len(skipped_plugin)} denied_skips={len(skipped_denied)} "
-        f"parked_skips={len(skipped_parked)} "
+        f"parked_skips={len(skipped_parked)} bridged={len(bridged)} "
         f"write={str(args.write).lower()}"
     )
     return 0

@@ -581,7 +581,10 @@ def test_cursor_g6b_write_emits_only_keep_list(tmp_path: pathlib.Path) -> None:
 
 # The exact off-registry shape found in the live ~/.cursor/mcp.json on 2026-09-01:
 # a per-session stdio wrapper standing in front of the ONE shared HTTP daemon the
-# registry declares. It exists nowhere in this repo and no script here emits it.
+# registry declares. Until 2026-09-02 it existed nowhere in this repo and no
+# script emitted it; the registry now declares it (``x_cursor.stdio_bridge``) and
+# renders it WITH ``--url <registry url>``, so this hand-edited shape -- which
+# lacks the URL -- is still drift.
 CURSOR_STDIO_BRIDGE = {
     "command": r"C:\Python314\python.exe",
     "args": [
@@ -590,16 +593,176 @@ CURSOR_STDIO_BRIDGE = {
     ],
 }
 
+BASIC_MEMORY_URL = "http://127.0.0.1:8765/mcp"
+BRIDGE_SCRIPT = r"C:\Users\Prekzursil\.agents\scripts\bm_cursor_http_session.py"
 
-def test_cursor_renders_live_basic_memory_as_the_shared_http_singleton() -> None:
+
+def bridged_http_server(**extra: Any) -> dict[str, Any]:
+    server: dict[str, Any] = {
+        "enabled": True,
+        "targets": ["claude", "codex"],
+        "transport": "http",
+        "url": BASIC_MEMORY_URL,
+        "singletonKey": "basic-memory/http",
+        "x_cursor": {
+            "stdio_bridge": {
+                "command": r"C:\Python314\python.exe",
+                "args": [BRIDGE_SCRIPT, "--stdio"],
+            }
+        },
+    }
+    server.update(extra)
+    return server
+
+
+def test_registry_validates_the_x_cursor_stdio_bridge_shape() -> None:
+    control = load_script("mcp_control_plane")
+
+    control.validate_registry(registry({"basic-memory": bridged_http_server()}))
+
+    with pytest.raises(control.RegistryError, match="x_cursor must be an object"):
+        control.validate_registry(
+            registry({"basic-memory": bridged_http_server(x_cursor="bridge")})
+        )
+    with pytest.raises(control.RegistryError, match="unknown x_cursor key"):
+        control.validate_registry(
+            registry(
+                {
+                    "basic-memory": bridged_http_server(
+                        x_cursor={"stdio_bridge": {"command": "py"}, "reason": "x"}
+                    )
+                }
+            )
+        )
+    with pytest.raises(control.RegistryError, match="requires command"):
+        control.validate_registry(
+            registry(
+                {"basic-memory": bridged_http_server(x_cursor={"stdio_bridge": {}})}
+            )
+        )
+    with pytest.raises(control.RegistryError, match="args must be a string list"):
+        control.validate_registry(
+            registry(
+                {
+                    "basic-memory": bridged_http_server(
+                        x_cursor={"stdio_bridge": {"command": "py", "args": "--stdio"}}
+                    )
+                }
+            )
+        )
+    with pytest.raises(control.RegistryError, match="only valid for http"):
+        control.validate_registry(
+            registry(
+                {
+                    "wrapped": stdio_server(
+                        "claude",
+                        x_cursor={"stdio_bridge": {"command": "py", "args": []}},
+                    )
+                }
+            )
+        )
+    with pytest.raises(control.RegistryError, match="cannot carry headers"):
+        control.validate_registry(
+            registry(
+                {
+                    "basic-memory": bridged_http_server(
+                        headers={"X-Debug": "1"},
+                    )
+                }
+            )
+        )
+    with pytest.raises(control.RegistryError, match="literal credential"):
+        control.validate_registry(
+            registry(
+                {
+                    "basic-memory": bridged_http_server(
+                        x_cursor={
+                            "stdio_bridge": {
+                                "command": "py",
+                                "args": ["--token", "ghp_abcdefghijklmnop"],
+                            }
+                        }
+                    )
+                }
+            )
+        )
+
+
+def test_cursor_renders_a_declared_stdio_bridge_with_the_registry_url() -> None:
     cursor = load_script("merge_generated_cursor_mcp")
-    config = json.loads((AGENTS_ROOT / "agents.json").read_text(encoding="utf-8"))
+    config = registry({"basic-memory": bridged_http_server()})
 
     generated = cursor.build_managed_servers_from_agents(config)
 
-    assert generated["basic-memory"] == {"url": "http://127.0.0.1:8765/mcp"}
-    assert "command" not in generated["basic-memory"]
-    assert "args" not in generated["basic-memory"]
+    assert generated["basic-memory"] == {
+        "command": r"C:\Python314\python.exe",
+        "args": [BRIDGE_SCRIPT, "--stdio", "--url", BASIC_MEMORY_URL],
+    }
+    assert "url" not in generated["basic-memory"]
+    # the URL is single-sourced: change it in the registry and the bridge follows
+    config["mcp"]["servers"]["basic-memory"]["url"] = "http://127.0.0.1:8766/mcp"
+    regenerated = cursor.build_managed_servers_from_agents(config)
+    assert regenerated["basic-memory"]["args"][-1] == "http://127.0.0.1:8766/mcp"
+
+
+def test_other_targets_ignore_x_cursor_and_keep_the_direct_http_entry() -> None:
+    claude = load_script("merge_generated_claude_mcp")
+    codex = load_script("merge_generated_codex_mcp")
+    config = registry({"basic-memory": bridged_http_server()})
+
+    assert claude.build_managed_servers_from_agents(config)["basic-memory"] == {
+        "type": "http",
+        "url": BASIC_MEMORY_URL,
+    }
+    rendered = "\n".join(
+        block.text for block in codex.build_managed_blocks_from_agents(config)
+    )
+    assert f'url = "{BASIC_MEMORY_URL}"' in rendered
+    assert "bm_cursor_http_session" not in rendered
+
+
+def test_live_registry_declares_the_cursor_bridge_for_basic_memory_only() -> None:
+    cursor = load_script("merge_generated_cursor_mcp")
+    config = json.loads((AGENTS_ROOT / "agents.json").read_text(encoding="utf-8"))
+    servers = config["mcp"]["servers"]
+
+    assert servers["basic-memory"]["url"] == BASIC_MEMORY_URL
+    assert servers["basic-memory"]["x_cursor"] == {
+        "stdio_bridge": {
+            "command": r"C:\Python314\python.exe",
+            "args": [BRIDGE_SCRIPT, "--stdio"],
+        }
+    }
+    assert [name for name, server in servers.items() if "x_cursor" in server] == [
+        "basic-memory"
+    ]
+    # the declared script is the tracked one: same basename as the repo copy
+    assert (SCRIPTS_ROOT / pathlib.PureWindowsPath(BRIDGE_SCRIPT).name).is_file()
+
+    generated = cursor.build_managed_servers_from_agents(config)
+    assert generated["basic-memory"] == {
+        "command": r"C:\Python314\python.exe",
+        "args": [BRIDGE_SCRIPT, "--stdio", "--url", BASIC_MEMORY_URL],
+    }
+
+
+def test_bridge_argv_never_matches_the_daemon_process_identity() -> None:
+    """The fleet supervisor must not count bridges as duplicate daemons.
+
+    ``agents.json`` identifies the singleton by ``processMatch`` tokens; a bridge
+    process (one per Cursor window) must match none of them, or the duplicate
+    detector would report the shared daemon as multiplied.
+    """
+    cursor = load_script("merge_generated_cursor_mcp")
+    supervisor = load_script("mcp_fleet_supervisor")
+    config = json.loads((AGENTS_ROOT / "agents.json").read_text(encoding="utf-8"))
+    server = config["mcp"]["servers"]["basic-memory"]
+    tokens = supervisor.identity_tokens("basic-memory", server)
+    assert tokens, "basic-memory must keep an explicit processMatch"
+
+    entry = cursor.build_managed_servers_from_agents(config)["basic-memory"]
+    haystack = supervisor._normalize_token(" ".join([entry["command"], *entry["args"]]))
+    assert not any(token in haystack for token in tokens), (tokens, haystack)
 
 
 def test_cursor_merge_replaces_a_hand_edited_stdio_bridge_with_the_registry_entry() -> (
@@ -712,6 +875,77 @@ def test_cursor_check_is_green_when_the_live_file_matches_the_registry(
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert "SUCCESS:mcp-cursor-check" in completed.stdout
     assert "drift=0" in completed.stdout
+
+
+def _cursor_bridge_fixture(
+    tmp_path: pathlib.Path, live_servers: dict[str, Any]
+) -> tuple[pathlib.Path, pathlib.Path]:
+    live = tmp_path / "mcp.json"
+    live.write_text(json.dumps({"mcpServers": live_servers}), encoding="utf-8")
+    config_path = tmp_path / "agents.json"
+    config_path.write_text(
+        json.dumps(registry({"basic-memory": bridged_http_server()})),
+        encoding="utf-8",
+    )
+    return live, config_path
+
+
+RENDERED_BRIDGE = {
+    "command": r"C:\Python314\python.exe",
+    "args": [BRIDGE_SCRIPT, "--stdio", "--url", BASIC_MEMORY_URL],
+}
+
+
+def test_cursor_check_is_green_when_live_carries_the_declared_bridge(
+    tmp_path: pathlib.Path,
+) -> None:
+    live, config_path = _cursor_bridge_fixture(
+        tmp_path, {"basic-memory": dict(RENDERED_BRIDGE)}
+    )
+
+    completed = _run_cursor_check(live, config_path)
+
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    assert "SUCCESS:mcp-cursor-check" in completed.stdout
+    assert "drift=0" in completed.stdout
+
+
+def test_cursor_check_reports_the_direct_url_and_the_old_hand_edit_as_drift(
+    tmp_path: pathlib.Path,
+) -> None:
+    """Once the registry declares the bridge, both older shapes are drift.
+
+    The direct URL is what PR #293 rendered; the hand edit is the same bridge
+    without ``--url``. ``--write`` normalizes either to the registry shape.
+    """
+    for stale in ({"url": BASIC_MEMORY_URL}, dict(CURSOR_STDIO_BRIDGE)):
+        live, config_path = _cursor_bridge_fixture(tmp_path, {"basic-memory": stale})
+
+        completed = _run_cursor_check(live, config_path)
+
+        assert completed.returncode == 1, completed.stdout + completed.stderr
+        assert "servers=basic-memory" in completed.stdout
+
+        written = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPTS_ROOT / "merge_generated_cursor_mcp.py"),
+                "--live",
+                str(live),
+                "--agents-config",
+                str(config_path),
+                "--write",
+                "--no-backup",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert written.returncode == 0, written.stdout + written.stderr
+        assert "bridged=1" in written.stdout
+        merged = json.loads(live.read_text(encoding="utf-8"))["mcpServers"]
+        assert merged["basic-memory"] == RENDERED_BRIDGE
+        assert _run_cursor_check(live, config_path).returncode == 0
 
 
 def test_cursor_check_refuses_to_run_together_with_write(

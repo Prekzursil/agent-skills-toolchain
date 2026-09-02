@@ -288,6 +288,52 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             ):
                 raise RegistryError(f"{name}: startup_timeout_sec must be within 1..30")
 
+        _validate_x_cursor(name, server)
+
+
+def _validate_x_cursor(name: str, server: Mapping[str, Any]) -> None:
+    """``x_cursor.stdio_bridge``: a per-session stdio shim Cursor runs in front of
+    an http server, rendered by ``merge_generated_cursor_mcp.py`` with the
+    registry URL appended as ``--url``. Closed schema: the only key is
+    ``stdio_bridge``; rationale lives in ``.provenance``, not here."""
+    x_cursor = server.get("x_cursor")
+    if x_cursor is None:
+        return
+    if not isinstance(x_cursor, Mapping):
+        raise RegistryError(f"{name}: x_cursor must be an object")
+    unknown = sorted(str(key) for key in x_cursor if key != "stdio_bridge")
+    if unknown:
+        raise RegistryError(f"{name}: unknown x_cursor key {unknown[0]!r}")
+    bridge = x_cursor.get("stdio_bridge")
+    if bridge is None:
+        return
+    if server.get("transport") != "http":
+        raise RegistryError(
+            f"{name}: x_cursor.stdio_bridge is only valid for http servers"
+        )
+    if not isinstance(bridge, Mapping):
+        raise RegistryError(f"{name}: x_cursor.stdio_bridge must be an object")
+    command = bridge.get("command")
+    if not isinstance(command, str) or not command.strip():
+        raise RegistryError(f"{name}: x_cursor.stdio_bridge requires command")
+    args = bridge.get("args", [])
+    if not isinstance(args, list) or any(not isinstance(arg, str) for arg in args):
+        raise RegistryError(f"{name}: x_cursor.stdio_bridge.args must be a string list")
+    x_codex = server.get("x_codex")
+    bearer = (
+        x_codex.get("bearer_token_env_var") if isinstance(x_codex, Mapping) else None
+    )
+    if server.get("headers") or bearer:
+        # The shim dials the URL bare; a server that needs auth has no bridge.
+        raise RegistryError(
+            f"{name}: x_cursor.stdio_bridge cannot carry headers or bearer credentials"
+        )
+    for arg in [command, *args]:
+        if LITERAL_SECRET_RE.search(arg):
+            raise RegistryError(
+                f"{name}: x_cursor.stdio_bridge contains a literal credential"
+            )
+
 
 def effective_server_contract(config: Mapping[str, Any], name: str) -> dict[str, Any]:
     """Return the decision-complete public contract for a registry entry."""
