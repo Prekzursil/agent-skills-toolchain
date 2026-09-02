@@ -1,0 +1,187 @@
+{
+  "schema": "process-hygiene-policy-v1",
+  "_comment": [
+    "Copy to %USERPROFILE%\\.agent-guard\\process-hygiene\\policy.json and review the",
+    "protected lists before enabling -Apply. Every byte figure is exact bytes.",
+    "Tiers: normal (routine hygiene only) < elevated < critical; each rule names the",
+    "lowest tier at which it may STOP a process. Below that tier it only reports.",
+    "Thresholds are calibrated on the 02.09.2026 04:50 EEST measurement of the",
+    "owner's 31.6 GB box: 3.5 GB free / 67.7 GB committed = elevated by RAM, critical",
+    "by commit ratio (2.14x)."
+  ],
+  "intervalSeconds": 300,
+  "pressure": {
+    "elevated": {
+      "freeBytesBelow": 4294967296,
+      "commitRatioAbove": 1.75
+    },
+    "critical": {
+      "freeBytesBelow": 2147483648,
+      "commitRatioAbove": 2.0
+    },
+    "deescalateObservations": 2
+  },
+  "idle": {
+    "cpuSeconds": 0.1,
+    "ioBytes": 0,
+    "observations": 3
+  },
+  "protected": {
+    "executablePatterns": [
+      "^c:/windows/",
+      "^c:/program files/windowsapps/"
+    ],
+    "names": [
+      "system",
+      "registry",
+      "memory compression",
+      "explorer.exe",
+      "chrome.exe",
+      "msedge.exe",
+      "cursor.exe",
+      "code.exe",
+      "windowsterminal.exe",
+      "openconsole.exe",
+      "vmmemwsl",
+      "vmmem",
+      "wslservice.exe",
+      "wslhost.exe",
+      "wslrelay.exe"
+    ],
+    "commandLineTokens": [
+      "tools/auth2api",
+      "bm-http-server.ps1",
+      "bm-watchdog.ps1",
+      "resource-guard.ps1",
+      "cursor-orphan-reaper.ps1",
+      "process-hygiene",
+      "mcp_host_supervisor",
+      "mcp_http_host.py",
+      "run_host.ps1",
+      "mcp-proxy",
+      "cs-watchdog.ps1",
+      "world-watch.ps1",
+      "bm_cursor_http_session.py"
+    ]
+  },
+  "browsers": {
+    "names": [
+      "chrome.exe",
+      "msedge.exe"
+    ],
+    "reportPrivateBytesAbove": 3221225472
+  },
+  "runtimes": {
+    "cursor-agent": {
+      "executablePattern": "/cursor-agent/versions/[^/]+/node\\.exe$",
+      "maxSessionAgeSeconds": 86400,
+      "softPrivateBytes": 1610612736,
+      "hardPrivateBytes": 3221225472,
+      "gracefulSeconds": 20,
+      "orphanHandler": "cursor-orphan-reaper"
+    },
+    "claude-code": {
+      "executablePattern": "/claude(?:\\.exe)?$",
+      "maxSessionAgeSeconds": 172800,
+      "softPrivateBytes": 2147483648,
+      "hardPrivateBytes": 4294967296,
+      "gracefulSeconds": 20
+    },
+    "codex": {
+      "executablePattern": "/codex(?:-[a-z0-9_.-]+)?(?:\\.exe)?$",
+      "maxSessionAgeSeconds": 172800,
+      "softPrivateBytes": 2147483648,
+      "hardPrivateBytes": 4294967296,
+      "gracefulSeconds": 20
+    },
+    "grok": {
+      "executablePattern": "/grok(?:\\.exe)?$",
+      "commandLineTokens": [
+        "grok-cli"
+      ],
+      "maxSessionAgeSeconds": 86400,
+      "softPrivateBytes": 1610612736,
+      "hardPrivateBytes": 3221225472,
+      "gracefulSeconds": 20
+    },
+    "goose": {
+      "executablePattern": "/goosed?(?:\\.exe)?$",
+      "maxSessionAgeSeconds": 86400,
+      "softPrivateBytes": 1610612736,
+      "hardPrivateBytes": 3221225472,
+      "gracefulSeconds": 20
+    },
+    "fabric": {
+      "executablePattern": "/fabric(?:\\.exe)?$",
+      "maxSessionAgeSeconds": 43200,
+      "softPrivateBytes": 1073741824,
+      "hardPrivateBytes": 2147483648,
+      "gracefulSeconds": 10
+    }
+  },
+  "orphans": {
+    "minAgeSeconds": 1800,
+    "names": [
+      "node.exe",
+      "python.exe",
+      "pythonw.exe",
+      "pwsh.exe",
+      "powershell.exe",
+      "cmd.exe",
+      "uv.exe",
+      "uvx.exe",
+      "deno.exe",
+      "bun.exe"
+    ],
+    "gracefulSeconds": 10
+  },
+  "retired": [
+    {
+      "id": "agentbridge",
+      "matchAll": [
+        "agentbridge",
+        "bridge-server"
+      ],
+      "gracefulSeconds": 5,
+      "remediation": "AgentBridge was retired 2026-07-27 (CLAUDE.md: its daemon does not run and its tools are gone). The parent_chain in this record names the launcher; remove the agentbridge MCP entry from that launcher's config - expected C:/Users/Prekzursil/.grok/config.toml ([mcp_servers.agentbridge]) or the Grok plugin list - so it stops respawning. Killing the instance alone only buys the next crash-loop cycle."
+    }
+  ],
+  "mcp": {
+    "enabled": true,
+    "gracefulSeconds": 10,
+    "sameOwnerDuplicate": {
+      "minTier": "elevated"
+    },
+    "singletonDuplicate": {
+      "minTier": "elevated",
+      "graceSeconds": 600
+    },
+    "overBudget": {
+      "minTier": "critical"
+    }
+  },
+  "wsl": {
+    "vmmemNames": [
+      "vmmemwsl",
+      "vmmem"
+    ],
+    "reportPrivateBytesAbove": 2147483648,
+    "idleShutdown": {
+      "minTier": "elevated",
+      "observations": 6
+    }
+  },
+  "escalation": {
+    "stopActiveAtCritical": false
+  },
+  "integration": {
+    "powershell": "powershell.exe",
+    "reaperPath": "C:/Users/Prekzursil/.agents/scripts/agentic-perfection/cursor-orphan-reaper.ps1",
+    "reaperStateFile": "C:/Users/Prekzursil/.agent-guard/resource-guard/state/cursor-orphan-reaper.state.json",
+    "reaperEvidenceRoot": "C:/Users/Prekzursil/.agent-guard/resource-guard/evidence",
+    "wslExe": "wsl.exe"
+  },
+  "ledger": {
+    "maxBytes": 20971520
+  }
+}
