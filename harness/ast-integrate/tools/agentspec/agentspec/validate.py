@@ -40,6 +40,22 @@ class _Id:
             return self.id == other
         return self.id == getattr(other, "id", other)
 
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    # Probes written against dict-shaped violation rows (``x["id"]`` /
+    # ``x.get("id")``) must read the same id as attribute-style consumers.
+    def __getitem__(self, key: str) -> str:
+        if key == "id":
+            return self.id
+        raise KeyError(key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.id if key == "id" else default
+
+    def keys(self) -> tuple[str, ...]:
+        return ("id",)
+
     def __repr__(self) -> str:
         return f"Violation({self.id!r})"
 
@@ -109,9 +125,44 @@ VIOLATIONS: tuple[str, ...] = (
 # validator (``VIOLATIONS``), the load-time parameter checks (``DOCUMENTED_VIOLATION_IDS``)
 # and the generic-DAG import adapter (``AS-DAG-*``). An id outside this set is a defect in
 # the emitter, never a new category (IMP-0162).
-CLOSED_VIOLATION_IDS: frozenset[str] = (
-    frozenset(VIOLATIONS) | DOCUMENTED_VIOLATION_IDS | frozenset(DAG_VIOLATION_IDS)
+# Phase-7 semantic checks available on dict-shaped workflows (RES-0172 / CNF-0165 fixtures):
+# a HumanCheckpoint must have an exit when the owner never answers, must offer at least one
+# response, and a WorkUnit may only route to ``public-tor`` under the owner's explicit flag.
+PHASE7_DICT_VIOLATION_IDS: frozenset[str] = frozenset(
+    {
+        "human-checkpoint-no-exit",
+        "human-checkpoint-responses-empty",
+        "source-policy-tor-unflagged",
+    }
 )
+
+CLOSED_VIOLATION_IDS: frozenset[str] = (
+    frozenset(VIOLATIONS)
+    | DOCUMENTED_VIOLATION_IDS
+    | frozenset(DAG_VIOLATION_IDS)
+    | PHASE7_DICT_VIOLATION_IDS
+)
+
+
+def _validate_phase7_dict_nodes(workflow: Mapping[str, Any], nodes: list) -> list[_Id]:
+    out: list[_Id] = []
+    owner_tor = workflow.get("owner_tor_flag") is True
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        kind = str(node.get("type") or node.get("kind") or "")
+        if kind == "HumanCheckpoint":
+            responses = node.get("allowed_responses")
+            if isinstance(responses, list) and not responses:
+                out.append(_Id("human-checkpoint-responses-empty"))
+            if node.get("default_if_unanswered") in (None, ""):
+                out.append(_Id("human-checkpoint-no-exit"))
+        elif kind == "WorkUnit":
+            policy = node.get("source_policy")
+            allowed = policy.get("allowed_classes") if isinstance(policy, dict) else None
+            if isinstance(allowed, (list, tuple, set)) and "public-tor" in allowed and not owner_tor:
+                out.append(_Id("source-policy-tor-unflagged"))
+    return out
 
 
 def validate_workflow(workflow: Workflow | dict):
@@ -150,6 +201,7 @@ def validate_workflow(workflow: Workflow | dict):
         if not any(isinstance(n, dict) and n.get("kind") == "WorkUnit" for n in nodes):
             if not nodes:
                 found.append(_Id("workflow-no-units"))
+        found.extend(_validate_phase7_dict_nodes(workflow, nodes))
         return found
     found_ids: list[str] = []
     if workflow.spec_version != SPEC_VERSION:

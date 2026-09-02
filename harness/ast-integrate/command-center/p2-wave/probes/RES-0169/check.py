@@ -173,9 +173,18 @@ def well_formed(doc: dict[str, Any], index: dict | None = None) -> tuple[bool, s
             return False, f"changed-drift:{be}/{filt}"
         if cell.get("verdict") == "NATIVE" and not exp["strongly_changed"]:
             return False, f"native-without-change:{be}/{filt}"
+        if "positive_control_changed" in diff and bool(
+            diff.get("positive_control_changed")
+        ) != bool(exp["positive_control_changed"]):
+            return False, f"pc-drift:{be}/{filt}"
         if cell.get("verdict") == "IGNORED":
             if not exp["positive_control_changed"]:
                 return False, f"ignored-without-pc:{be}/{filt}"
+            # The artifact must itself record the changing positive control;
+            # an IGNORED verdict whose own differential says the control did
+            # not move is an overclaim regardless of what live recompute says.
+            if diff.get("positive_control_changed") is not True:
+                return False, f"artifact-ignored-without-pc:{be}/{filt}"
             if exp["strongly_changed"]:
                 return False, f"ignored-but-changed:{be}/{filt}"
         if cell.get("evidence_basis") == "docs-only" and cell.get("verdict") == "NATIVE":
