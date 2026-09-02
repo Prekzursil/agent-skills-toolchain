@@ -790,4 +790,117 @@ a third wire shape for the same port; **UNVERIFIED** from here, same must-probe 
   target (BUILD = renderer). Do **not** render `modelPricing` (managed-scope only; Claude
   ignores it in user settings - a renderer writing it there would silently no-op).
 
-<!-- sections 11..N appended below; rubric table last -->
+## 11. Synthesis - the best schema for a model endpoint, field by field
+
+### 11.1 Cross-harness field matrix (who has what; A-grade artifacts cited in sections 1-10)
+
+| Concern | Codex | OpenCode / models.dev (=Kilo) | Crush / Catwalk | Goose | Aider | Roo / Cline | Continue | Pi / OMP | Hermes | Grok Build | Claude Code |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Endpoint id + alias | `[model_providers.<id>] name` | `provider` key + `name` | `id`, `name` | `name`, `display_name` | `name` (model key) | `apiProvider` union | `name`, `provider` | provider key, model `name` | providers `<name>` | `[model."alias"]` + `model` | `modelOverrides` id map |
+| `base_url` | base (`/v1`) | `api` / `url` | `base_url`, `api_endpoint` | **full route** | `api_base` (env) | `openAiBaseUrl` | `apiBase` | `baseUrl` | `base_url` | `base_url` (root; appends route) | `ANTHROPIC_BASE_URL` |
+| API shape | `wire_api` = **responses only** | implied by `npm` pkg / `api` union | `type` enum (15, incl. `llamacpp/lmstudio/ollama/omlx`) | `engine` `openai\|anthropic\|ollama` | `litellm_provider` + `mode` | discriminated union | `provider` | `api` 4-9 values | `api_mode` 3-4 values (auto-detected) | `api_backend` 3 values | Anthropic only (+Bedrock/Vertex/Foundry switches) |
+| Auth by env name | `env_key`, `env_http_headers` | `env: string[]` | `"$ENV"` string | `api_key_env`, typed `env_vars[]` | env conventions | inline value | `${{ secrets.X }}` | `$ENV`/`${ENV}` | `key_env` | `env_key: string\|string[]` | `ANTHROPIC_AUTH_TOKEN` etc. |
+| Command-backed token | `auth {command,args,cwd,timeout_ms,refresh_interval_ms}` | - | `aws_auth_refresh` (cmd) | `auth {command,args,refresh_interval,timeout_seconds,cwd}` | - | - | - | `"!cmd"` (no TTL by design) | `key_cmd` (bare or `{access_token,expires_in}`) | - | `apiKeyHelper` (TTL 5 min, re-run on 401/403) |
+| Extra headers / body | `http_headers`, `query_params` | `request.{headers,body}` per provider *and* model | `extra_headers`, `extra_body` | `headers` | `extra_params.extra_headers` | `openAiHeaders` | `requestOptions.headers/extraBodyProperties` | `headers`, `samplingParams` | `extra_headers` | `extra_headers`, `query_params`, `env_http_headers` | `ANTHROPIC_CUSTOM_HEADERS` |
+| Context / output limits | (model-side) | `limit.{context,input,output}` | `context_window`, `default_max_tokens` | `context_limit`, `max_tokens` | `max_input_tokens`, `max_output_tokens` | `contextWindow`, `maxTokens`, `maxThinkingTokens` | `contextLength`, `maxTokens` | `contextWindow`, `maxTokens` | `context_length`, `max_tokens` | `context_window` (drives compaction) | `CLAUDE_CODE_MAX_OUTPUT_TOKENS` |
+| Tool support flag | `supports_standalone_web_search` | `tool_call` / `capabilities.tools` | (implied) | - | `supports_function_calling`, `supports_tool_choice` | `supportsTools`, `excludedTools[]` | `capabilities: [tool_use]` | compat `supportsStrictMode` etc. | - | `stream_tool_calls` | - |
+| Cost | - | `cost.{input,output,reasoning,cache_read,cache_write}` /1M, tiers | `cost_per_1m_*` | via canonical catalog | per-token (LiteLLM) | `inputPrice`..., `tiers[]` | - | `cost{input,output,cacheRead,cacheWrite,tiers[]}` | - | - | `modelPricing.overrides{input,output,cacheRead,cacheWrite}` |
+| Capability flags | `supports_websockets` | `reasoning`, `attachment`, `structured_output`, `temperature`, `interleaved`, `modalities`, `status`, `open_weights`, `knowledge` | `can_reason`, `reasoning_levels`, `supports_attachments` | `preserves_thinking`, `supports_streaming` | `use_temperature`, `reasoning_tag`, `edit_format` | 20+ (`supportsPromptCache`, `promptCacheRetention`, `supportsReasoningBudget/Binary/Effort`, `isFree`, `deprecated`) | `roles[]`, `capabilities[]` | `reasoning`, `input[]`, `thinkingLevelMap`, `compat.*` (25+ quirks) | `reasoning_effort` | `supports_reasoning_effort`, `supports_backend_search` | `modelSettings.effortLevel` |
+| Reliability knobs | `request_max_retries`, `stream_max_retries`, `stream_idle_timeout_ms`, `websocket_connect_timeout_ms` | - | - | `timeout_seconds` | `streaming` | `rateLimitSeconds` | `requestOptions.timeout/verifySsl/proxy/caBundlePath` | - | `request_timeout_seconds`, `stale_timeout_seconds` | `max_retries`, `inference_idle_timeout_secs` | `API_TIMEOUT_MS`, `CLAUDE_CODE_MAX_RETRIES` |
+| Health / discovery probe | `ModelProviderCapabilitiesRead` (declared, not live) | `/v1/models` via SDK; catalog TTL 5 min + flock + 60 min refresh | `discover_models` (`/v1/models`, user wins) | `dynamic_models` (`/v1/models`, 404 -> static) | - | `dynamicProviders` list fetch | autodetect | **`discovery {type: ollama\|llama.cpp\|lm-studio\|openai-models-list\|proxy, timeoutMs, injectV1}`** | auto-detect `api_mode` + context via `/v1/models` | `GROK_MODELS_LIST_URL` `{base}/models` | - |
+| Sidecar / slot models | - | - | `default_large_model_id`, `default_small_model_id` | `fast_model` | `weak_model_name`, `editor_model_name` | - | `roles[]` | `compactionModel` | - | `[models].web_search/session_summary/image_description` | `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`, `ANTHROPIC_SMALL_FAST_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL` |
+| Picker policy | - | `disabled`, `enabled` | `disable`, `hidden` | `setup.*` | - | `deprecated`, `isStealthModel` | - | `modelOverrides` | - | `allowed_models` globs, `hidden_models`, `disabled_models` | `availableModels` (managed), `enforceAvailableModels` |
+| Secret-value grammar | env name only | env name only | `"$ENV"` | env name only | env | inline | `${{ secrets }}` | `$E`, `${E}`, `!cmd`, `$$`, `$!` | `${ENV}`, `key_cmd` | env name (array ok) | env / helper |
+
+### 11.2 The extracted "best" endpoint record (RECOMMENDATION; fits `.agents/agents.json` conventions)
+
+**[FACT, A, 2026-09-02]** The estate's `.agents/agents.json` MCP records already use `label`,
+`description`, `targets[]`, `enabled`, `transport`, `url`, `requiredEnv[]`, `credentialNames[]`,
+`x_codex {...}` per-runtime extension blocks, `${ENV}` interpolation and `tags[]` (read from
+the repo at `main`). A model-endpoint record should reuse those exact conventions rather than
+invent new ones.
+
+**[RECOMMENDATION]** Proposed `models.endpoints.<id>` record. Every field name below is
+*copied verbatim* from the harness named in the trailing comment; nothing is invented except
+the top-level nesting, which mirrors the existing MCP records.
+
+```jsonc
+"models": {
+  "catalog_snapshot": { "source": "https://models.dev/api.json", "pinned_sha256": "...", "fetched": "2026-09-02" }, // OpenCode/Goose: models.dev is the lingua franca
+  "slots": { "large": "cursor/cursor-claude-fable-5-1", "small": "hf/zai-org/GLM-5.3", "subagent": "...", "web_search": "...", "summary": "...", "embed": null }, // Crush large/small, Claude *_MODEL, Grok web_search/session_summary, Aider weak/editor, Goose fast_model
+  "endpoints": {
+    "cursor-auth2api": {
+      "label": "Cursor quota via auth2api",                 // estate MCP convention
+      "targets": ["goose", "grok", "fabric", "aider", "opencode", "codex", "claude"], // estate MCP convention
+      "enabled": true,
+      "base_url": "http://127.0.0.1:8317/v1",              // Codex/Crush/Grok: BASE, renderer appends route
+      "api": ["openai-completions"],                        // Pi enum; may hold several: "openai-responses", "anthropic-messages" once PROBED (see 1.2, 10.1)
+      "env_key": ["CURSOR_AUTH2API_KEY", "OPENAI_API_KEY"], // Grok: string|string[] ; secret BY NAME (lock)
+      "auth": null,                                         // Codex/Goose {command,args,cwd,timeout_ms,refresh_interval_ms}; Hermes key_cmd output contract
+      "env_vars": [ { "name": "AUTH2API_HOST", "required": false, "secret": false, "default": "http://127.0.0.1:8317", "description": "..." } ], // Goose typed non-secret env
+      "headers": {}, "env_http_headers": {}, "query_params": {}, // Codex
+      "request": { "headers": {}, "body": {} },             // OpenCode per-endpoint override
+      "discovery": { "type": "openai-models-list", "timeoutMs": 5000, "injectV1": true }, // OMP probe descriptor
+      "reliability": { "request_max_retries": 4, "stream_max_retries": 5, "stream_idle_timeout_ms": 300000, "request_timeout_seconds": 300, "stale_timeout_seconds": 90 }, // Codex + Hermes
+      "quirks": { "supportsDeveloperRole": true, "supportsUsageInStreaming": true, "maxTokensField": "max_tokens", "stream_tool_calls": true }, // Pi compat + Grok
+      "cost": { "multiplier": 0, "budget": { "unit": "requests", "note": "Cursor quota; see auth2api" } }, // Claude modelPricing.multiplier; honest zero-cost encoding
+      "models": {
+        "cursor-grok-4.6": { "models_dev": null, "limit": { "context": 1000000, "output": 32000 }, "tool_call": true, "reasoning": true, "attachment": false, "status": "active", "roles": ["chat","edit","apply"] } // models.dev names + Continue roles + OpenCode status
+      },
+      "picker": { "allowed_models": ["cursor-*"], "hidden_models": [], "disabled_models": [] }, // Grok Build
+      "x_codex": { "wire_api": "responses", "requires_openai_auth": false }, // only if the /v1/responses probe passes
+      "x_goose": { "engine": "openai", "route": "/chat/completions", "dynamic_models": true },
+      "x_aider": { "weak_model_name": "openai/cursor-grok-4.6", "edit_format": "diff", "use_repo_map": true },
+      "x_claude": { "slot_env": "ANTHROPIC_DEFAULT_SONNET_MODEL" },
+      "credentialNames": ["CURSOR_AUTH2API_KEY"],           // estate MCP convention
+      "tags": ["local", "quota", "shared"]
+    }
+  }
+}
+```
+
+Design rules that fall out of the teardown (each cites the section it came from):
+
+1. **`api` is a list, per endpoint, not per provider** (1.2, 8.1, 10.1): one host can speak
+   several dialects; consumers pick the one they need; the renderer refuses to emit a Codex
+   block when `"openai-responses"` is absent instead of silently writing a config that hard-errors.
+2. **Store the base, derive the route** (4.3): Goose's full-route `base_url` is the only outlier.
+3. **Secrets by name, three forms, one grammar** (3.1, 7.1, 8.1, 10.1): `env_key[]`,
+   `auth.command` with the Hermes/Claude stdout contract, and Pi's `$E`/`!cmd` string grammar
+   for headers. Never a value. Never rotation (lock).
+4. **Model metadata = models.dev names** (2.1, 4.2): `tool_call`, `reasoning`, `attachment`,
+   `structured_output`, `temperature`, `limit.*`, `cost.*`, `modalities.*`, `status`,
+   `release_date`, `knowledge`, `open_weights`, plus a `models_dev` pointer so the nightly
+   snapshot can fill the rest.
+5. **Quirks are first-class** (7.1, 9.1): Pi `compat` + Grok `stream_tool_calls` - the reason
+   "OpenAI-compatible" endpoints fail in practice.
+6. **Probe descriptor per endpoint** (7.2, 3.1, 4.1): OMP `discovery.type` decides *which* URL
+   to hit; result feeds `models{}` with **user entries winning** (Crush rule).
+7. **Slots, not hard-coded sidecars** (10.2): render `slots.*` into every runtime's own
+   small/large/subagent vocabulary.
+8. **Per-runtime extension blocks `x_<runtime>`** (estate convention) hold what only that
+   runtime understands (Codex `wire_api`, Aider `edit_format`), never duplicated upward.
+
+### 11.3 Materialization matrix (how each installed runtime consumes the record)
+
+| Runtime (installed per DEDUP 5) | File written by the renderer | Native mechanism it rides | Probe before render |
+| --- | --- | --- | --- |
+| Codex | `~/.codex/config.toml` `[model_providers.<id>]` + `[profiles.*]` | NATIVE reads TOML; `wire_api="responses"` mandatory | `POST {base}/responses` must 200 |
+| Goose 1.47 | `~/.config/goose/custom_providers/<id>.json` (Windows `%APPDATA%\Block\goose\config\custom_providers\`) | NATIVE `load_custom_providers` | `GET {base}/models` (or static list) |
+| Grok Build | `~/.grok/config.toml` `[model."<alias>"]` + `[models].allowed_models` | NATIVE; `grok models` verifies | `GET {base}/models` |
+| Claude Code | `~/.claude/settings.json` `env` + `model` (never `modelPricing`) | NATIVE; hot-reload | `POST {base}/messages` if `anthropic-messages` claimed |
+| Aider 0.86 | `~/.aider.model.settings.yml` + `~/.aider.model.metadata.json` | NATIVE two-file split | none (static) |
+| OpenCode | `~/.config/opencode/opencode.json` `provider.<id>` | NATIVE; v2-compat maps old keys | `GET {base}/models` |
+| Fabric 1.4.470 | vendor-specific env (`OPENAI_API_BASE_URL`-style) [UNVERIFIED exact key for 1.4.470] | NATIVE | `GET {base}/models` |
+| Ollama / LM Studio (`lms`) | no render; they are *endpoints*, registered with `discovery.type: ollama` / `lm-studio` | NATIVE servers | `/api/tags` / `/api/v0/models` |
+| Cline / Roo / Kilo / Continue / Pi / OMP / Hermes / Crush | not installed - **schema donors only**, no renderer | - | - |
+
+**[RECOMMENDATION]** Build order that respects "never remove a feature to buy reliability":
+(a) write the record + probe script first (read-only; probes only `GET /models` and one
+1-token completion per claimed `api`), (b) render Goose/Grok/Aider/OpenCode (chat-completions
+consumers, already working today), (c) render Codex and Claude *only for endpoints whose
+`responses`/`messages` probe passed* - the existing `codex-cursor`/`claude-cursor` wrappers
+stay untouched until then (tradeoff: they may already be broken by 1.2; the probe tells us,
+the renderer does not guess).
+
+<!-- section 12 rubric appended below -->
