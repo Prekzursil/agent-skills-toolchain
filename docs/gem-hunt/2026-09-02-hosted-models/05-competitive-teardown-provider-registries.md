@@ -150,4 +150,162 @@ project and managed layers - `requirements.toml` can pin `allow_managed_hooks_on
 - Health probe to add for every `responses`-shaped endpoint: `POST {base_url}/responses` with
   `{"model": id, "input": "ping", "stream": false}` expecting `200` + `object: "response"`.
 
-<!-- sections 2..N appended below; rubric table last -->
+## 2. OpenCode - models.dev catalog + `provider` config (V2 schema)
+
+### 2.1 Two-layer design: public catalog (models.dev) + local override (opencode.json)
+
+**[FACT, A, corroborated (README + `packages/core/src/schema.ts` reference + OpenCode loader), 2026-09-02]**
+models.dev is a TOML-per-model catalog (`providers/<provider>/provider.toml`,
+`providers/<provider>/models/<model>.toml`, plus provider-agnostic `models/<lab>/<model>.toml`
+metadata since the `base_model` feature) compiled to one JSON at `https://models.dev/api.json`.
+Source: <https://raw.githubusercontent.com/sst/models.dev/dev/README.md>. Schema reference
+(verbatim field list, README "Schema Reference"):
+
+- Provider: `name`, `npm` (AI-SDK package, e.g. `@ai-sdk/openai-compatible`), `env` (string[]
+  of env-var *names* used for auth), `doc`, `api` (base URL; required only when `npm` is the
+  openai-compatible package).
+- Model: `name`, `family`, `attachment`, `reasoning`, `tool_call`, `structured_output`,
+  `temperature` (bool = "supports temperature control"), `knowledge` (cutoff `YYYY-MM`),
+  `release_date`, `last_updated`, `open_weights`, `interleaved` (bool | `{field:
+  "reasoning_content" | "reasoning_details"}`), `cost.{input,output,reasoning,cache_read,
+  cache_write,input_audio,output_audio}` USD per 1M, `limit.{context,input,output}`,
+  `modalities.{input,output}` from `text|image|audio|video|pdf`, `status` in
+  `alpha|beta|deprecated`, `reasoning_options` (provider-specific control set - the README
+  warns "Do not use `[]` from uncertainty on relays"), `base_model` + `base_model_omit`
+  (override-only inheritance with dot-path removal).
+
+**[FACT, A, 2026-09-02]** OpenCode's runtime model of a provider/model (Effect `Schema`, package
+`@opencode-ai/schema`): <https://raw.githubusercontent.com/sst/opencode/dev/packages/schema/src/provider.ts>
+and <https://raw.githubusercontent.com/sst/opencode/dev/packages/schema/src/model.ts>.
+
+```text
+ProviderV2.Info { id, integrationID?, name, disabled?, api: AISDK|Native, request: {headers, body} }
+  AISDK  = { type:"aisdk", package, url?, settings? }
+  Native = { type:"native", url?, settings }
+ModelV2.Info { id, providerID, family?, name, api: {id, ...AISDK|Native},
+  capabilities: { tools: bool, input: string[], output: string[] },
+  request: { headers, body, variant? }, variants: [{ id, headers, body }],
+  time: { released }, cost: Cost[] where Cost = { tier?: {type:"context", size}, input, output, cache:{read,write} },
+  status: alpha|beta|deprecated|active, enabled, limit: { context, input?, output } }
+```
+
+Key design choices worth naming: (a) **`api` is a tagged union** - either "use this AI-SDK
+npm package" or "native" with an optional `url`; the API *shape* is implied by the package
+(`@ai-sdk/openai-compatible`, `@ai-sdk/anthropic`, ...). (b) **`request.{headers, body}` is a
+generic per-provider *and* per-model override**, and `variants[]` are named request presets
+(e.g. a "high reasoning" variant) - this replaces bespoke `reasoning_effort` fields.
+(c) **`cost` is an array with an optional `tier {type:"context", size}`** so a 200k-context
+price tier and a 1M-context price tier can coexist for the same id. (d) `status` gained
+`active` in the runtime schema (catalog has only `alpha|beta|deprecated`,
+`packages/core/src/models-dev.ts` line 15).
+
+**[FACT, A, 2026-09-02]** User-side config (`packages/core/src/config/provider.ts`) is the same
+shape with everything optional plus `env: string[]`, `models: Record<id, Model>`; i.e. the
+local file *patches* the catalog record. Source:
+<https://raw.githubusercontent.com/sst/opencode/dev/packages/core/src/config/provider.ts>.
+
+### 2.2 Materialization: fetch -> disk cache -> flock -> merge
+
+**[FACT, A, 2026-09-02]** `packages/core/src/models-dev.ts`
+(<https://raw.githubusercontent.com/sst/opencode/dev/packages/core/src/models-dev.ts>):
+source URL `Flag.OPENCODE_MODELS_URL || "https://models.opencode.ai"` + `/api.json`; on-disk
+cache under the global cache dir with a **5-minute TTL** on mtime; **cross-process `flock`**
+around the cache file ("concurrent opencode CLIs can race on this cache file"); a background
+refresh every **60 minutes**; escape hatches `OPENCODE_MODELS_PATH` (load a local snapshot) and
+`OPENCODE_DISABLE_MODELS_FETCH`; a compile-time embedded snapshot `OPENCODE_MODELS_DEV` as last
+resort. The catalog `Model` also carries `reasoning_options` (typed union incl.
+`{type:"budget_tokens", min, max}`) and `experimental.modes` (per-mode `cost` + provider
+`body/headers`).
+
+**[INFERENCE]** This is the most complete *offline-first* materialization among the harnesses
+surveyed: remote -> TTL cache -> local override path -> embedded fallback, with a file lock.
+It is exactly the failure-tolerant shape the estate needs on a memory-starved Windows box where
+multiple CLIs (goose, fabric, aider, codex) may start concurrently.
+
+### 2.3 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM (as the *model metadata* half of the estate registry): models.dev's model TOML
+  fields `tool_call`, `reasoning`, `attachment`, `structured_output`, `temperature`,
+  `knowledge`, `release_date`, `open_weights`, `cost.*`, `limit.*`, `modalities.*`, `status`,
+  `interleaved.field`. They are the de-facto lingua franca (OpenCode, Pi, and - via
+  `@ai-sdk/*` package names - the Vercel ecosystem consume them).
+- COPY VERBATIM (as the *materialization* half): the `OPENCODE_MODELS_URL / _PATH /
+  _DISABLE_MODELS_FETCH` triad and the TTL + flock + embedded-fallback ladder.
+- ADOPT `request.{headers, body}` + `variants[]` instead of inventing per-runtime
+  `reasoning_effort` columns; `cost[]` with `tier` for context-tiered pricing.
+- NATIVE: `opencode` is installed on the box (DEDUP 5) and already reads
+  `~/.config/opencode/opencode.json` `provider.*`; the estate only needs a renderer that
+  emits `provider["cursor-auth2api"] = { npm:"@ai-sdk/openai-compatible", options:{baseURL:
+  "http://127.0.0.1:8317/v1"}, models:{...36 ids...} }`. Verify the exact key names against the
+  *current* OpenCode docs at render time (V2 config has `api`/`request`, older docs used
+  `npm`/`options.baseURL`; both are still accepted through `config/v2-compat.ts`
+  [FACT, A: file exists in tree, content not read - UNVERIFIED as to which keys it maps]).
+- BUILD: a nightly job that snapshots `https://models.dev/api.json` into the estate as
+  `models.snapshot.json` (pin by sha) so registry entries can reference `models_dev:
+  "huggingface/zai-org/GLM-5.3"` and inherit cost/limits without re-typing.
+
+## 3. Crush - `crush.json` `providers` + Catwalk registry (Go)
+
+### 3.1 The schema, verbatim
+
+**[FACT, A, corroborated (JSON Schema + Go struct), 2026-09-02]** Crush's user config is
+validated by <https://raw.githubusercontent.com/charmbracelet/crush/main/schema.json>
+(`$defs.ProviderConfig`, `$defs.Model`, `$defs.SelectedModel`); its catalog type is the Go
+struct in <https://raw.githubusercontent.com/charmbracelet/catwalk/main/pkg/catwalk/provider.go>.
+
+`ProviderConfig` (schema descriptions verbatim): `id`, `name`, `base_url`, `type` enum
+`openai | openai-compat | openrouter | vercel | anthropic | google | azure | bedrock |
+google-vertex | hyper | litellm | llamacpp | lmstudio | ollama | omlx`, `api_key`, `oauth`
+(Token), `disable`, `system_prompt_prefix`, `extra_headers`, `extra_body` ("only works with
+openai-compatible providers"), `provider_options`, `aws_auth_refresh` ("Shell command to run
+when AWS credentials expire"), `flat_rate`, **`discover_models`** ("Auto-discover models from
+`/v1/models` endpoint. When true with existing models they are merged (yours win)"), `models[]`.
+
+`Model` (Go struct, JSON names): `id`, `name`, `cost_per_1m_in`, `cost_per_1m_out`,
+`cost_per_1m_in_cached`, `cost_per_1m_out_cached`, `context_window`, `default_max_tokens`,
+`can_reason`, `reasoning_levels[]`, `default_reasoning_effort`, `supports_attachments`,
+`options {temperature, top_p, top_k, frequency_penalty, presence_penalty, provider_options}`.
+
+`SelectedModel` (the `models.large` / `models.small` slots): `model`, `provider`,
+`reasoning_effort` enum `low|medium|high`, `think` (Anthropic), `max_tokens`, sampling
+params, `provider_options`.
+
+**[FACT, A, 2026-09-02]** Catwalk's shipped provider records use **`"api_key":
+"$OPENROUTER_API_KEY"`** - a `$ENV` reference, not a value - plus `api_endpoint`,
+`default_large_model_id`, `default_small_model_id`, `default_headers` (OpenRouter record sets
+`HTTP-Referer`/`X-Title`). Source:
+<https://raw.githubusercontent.com/charmbracelet/catwalk/main/internal/providers/configs/openrouter.json>
+(266 models at fetch time).
+
+### 3.2 Materialization: `CATWALK_URL` -> 45 s timeout -> cache -> embedded
+
+**[FACT, A, 2026-09-02]** `internal/config/provider.go`
+(<https://raw.githubusercontent.com/charmbracelet/crush/main/internal/config/provider.go>):
+resolution order is `CATWALK_URL` env (or a literal `embedded`) -> HTTP fetch with a
+**45-second context timeout** -> on-disk cache -> `embedded.GetAll()` compiled-in list. The
+doc comment is explicit that "A refresh that simply could not reach the network is not an
+error at all: the cached or embedded catalog is a sound answer".
+
+### 3.3 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM: `type` as an explicit **API-shape enum that includes local servers**
+  (`llamacpp`, `lmstudio`, `ollama`, `omlx`) - this is the cleanest answer to "what wire shape
+  does 127.0.0.1:1234 speak" and maps directly onto the estate's installed `ollama` and `lms`
+  (DEDUP 5). Also copy `discover_models` (probe `/v1/models`, merge, **user entries win**) as
+  the estate's *first* health/discovery probe - it is cheap and works for auth2api, LM Studio,
+  Ollama's OpenAI shim, HF router and Spaces alike.
+- COPY VERBATIM: `"$ENV_NAME"` string convention for `api_key` (compatible with
+  `.agents/local.json` secrets-by-name) and `default_large_model_id / default_small_model_id`
+  (a per-provider "large/small" default pair is how Crush, Claude Code and OpenCode all pick
+  a cheap sidecar model).
+- ADAPT: `cost_per_1m_*` is flatter than models.dev `cost.*`; keep models.dev naming and
+  map on render.
+- NATIVE-vs-BUILD: Crush is **not** installed on the box (absent from DEDUP 5) - treat it as
+  schema-donor only (BUILD nothing for Crush). Catwalk itself is a static JSON service; a
+  Catwalk-format export from the estate registry would be ~30 lines if Crush is ever adopted.
+- Lock check: `type: "litellm"` exists in Crush's enum; it is **not** to be used here
+  (no-LiteLLM lock) - the estate enum should omit it.
+
+<!-- sections 4..N appended below; rubric table last -->
