@@ -8,9 +8,11 @@ This is the implementer contract. Follow it. Do not re-grill.
 
 ## Hard bans (slice, then finish the rest)
 
-- Do **not** author C2 / stealer / ransomware / mass-abuse kits, exploit PoCs, malware, or attack procedures (owner-ops H2 + Cursor cyber rule).
+> **Wave-N owner override (2026-09-02):** Sliver (`sliver-mcp`) and Metasploit-run (`metasploit-run`) are **wired ENABLED** in `agents.json` per explicit owner steer. G2 H1/H2 discovery slice suspended for that wave only. Receipt: `docs/plans/cyber-receipts/W-offensive.md`.
+
+- Do **not** author C2 / stealer / ransomware / mass-abuse kits, exploit PoCs, malware, or attack procedures (owner-ops H2 + Cursor cyber rule) — **except** registering existing third-party MCP runtimes per Wave-N override above.
 - Do **not** target third-party systems (H1). Estate-local / owner-authorized / lab range only.
-- Do **not** add Sliver or Metasploit-*run* runtimes.
+- ~~Do **not** add Sliver or Metasploit-*run* runtimes.~~ **Superseded for Wave N** — see W-offensive receipt.
 - Live authorized scanning rides the **existing** `hexstrike-ai-authorized-engagement` skill after rails are green.
 - `darknet-mcp-server` is **full search** (onion, IntelX, Hudson Rock included). That is CTI lookup, not kit-building. Parent registers it.
 

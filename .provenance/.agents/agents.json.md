@@ -228,3 +228,18 @@ DEFAULT-OFF host-gated (enabled: false, not parked — they are not in the Curso
 **Envelope.** darknet is CTI lookup (including onion indexes and stealer-log *queries*). It is not a stealer/C2 kit (H2). Owner-ops H1: no third-party attacks. Active DAST (`proxy-mcp`) stays off until rails.
 
 **Rollback.** Delete the nine `mcp.servers` entries added here; drop the three parked companions; restore attached=41 / 33 parked / 35 noncore.
+
+## 2026-09-02 — Wave N: `metasploit-run` + `sliver-mcp` ENABLED (owner override)
+
+**What changed.** Owner explicit steer suspended G2 H1/H2 discovery slice for Wave N only. Parent registered two offensive MCP runtimes **enabled** (config/wiring, no in-repo exploit authoring):
+
+- **`metasploit-run`** — PyPI `metasploit-mcp==3.1.0` (setuidloot/MetasploitMCP, Apache-2.0). stdio via owner `uvx.exe`. `requiredEnv: [MSF_PASSWORD]`; optional `MSF_SERVER`, `MSF_PORT`, `MSF_RPC_PROTOCOL`, `PAYLOAD_SAVE_DIR`, `MSF_MCP_ALLOW_DANGEROUS`. Host-gated on local `msfrpcd`.
+- **`sliver-mcp`** — PyPI `sliver-mcp==1.0.1` (hi-unc1e, MIT). stdio via owner `uvx.exe` with `--config C:\Users\Prekzursil\.local\opt\sliver-mcp\operator.cfg`. Host-gated on running Sliver server + operator config.
+
+Each enabled Claude-target server also landed in `.agents/mcp-cursor-parked-31.json` (36 -> 38 definitions). `test_cursor_attach_all_dry_run_projects_the_full_safe_surface` pins attached=46 / noncore=40.
+
+**Receipts (2026-09-02, cloud VM).** `pip index versions metasploit-mcp` -> 3.1.0; `pip index versions sliver-mcp` -> 1.0.1. `uvx metasploit-mcp==3.1.0` starts but cannot reach `127.0.0.1:55553` without msfrpcd. `uvx sliver-mcp==1.0.1` fails on cloud with `mcp` 2.x FastMCP rename — owner host may need dependency pin before live attach.
+
+**Envelope.** Wiring only; authorized owner range/lab when invoked. Rails R1–R7 still govern scope hooks.
+
+**Rollback.** Delete `metasploit-run` and `sliver-mcp` from `mcp.servers` and parked catalog; restore attached=44 / noncore=38.
