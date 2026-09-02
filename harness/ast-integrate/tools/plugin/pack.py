@@ -63,9 +63,16 @@ def crlf_refusal_message(bad: list[str], where: str = "shipped *.sh blob(s)") ->
     return f"CR (0x0D) in {where}: {', '.join(bad)}"
 
 
+def _is_object_id(token: str) -> bool:
+    """True for a full SHA-1 (40) or SHA-256 (64) hex git object id."""
+    return len(token) in (40, 64) and all(ch in "0123456789abcdef" for ch in token.lower())
+
+
 def git_cat_file_blob(repo: Path, rel: str, rev: str = "HEAD") -> bytes:
+    """Blob bytes for ``rev:rel``; ``rel`` may also be a blob object id (from ls-tree)."""
+    spec = str(rel) if _is_object_id(str(rel)) else f"{rev}:{_posix(rel)}"
     proc = subprocess.run(
-        ["git", "-C", str(repo), "cat-file", "-p", f"{rev}:{_posix(rel)}"],
+        ["git", "-C", str(repo), "cat-file", "-p", spec],
         capture_output=True,
         check=False,
     )

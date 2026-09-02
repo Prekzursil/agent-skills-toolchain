@@ -25,11 +25,55 @@ class Finding:
     rule: str
     detail: str = ""
 
+    @property
+    def rule_id(self) -> str:
+        return self.rule
 
-@dataclass
-class LintReport:
-    ok: bool
-    findings: list[Finding]
+    def as_dict(self) -> dict[str, str]:
+        return {"rule": self.rule, "rule_id": self.rule, "detail": self.detail}
+
+
+class LintReport(dict):
+    """Lint outcome: a JSON-shaped mapping with attribute accessors.
+
+    Mapping keys (``report["ok"]``, ``report["finding_count"]``,
+    ``report["findings"][0]["rule"]``) serve callers that treat the report as
+    data; the properties (``report.ok``, ``report.findings[0].rule``) expose the
+    same computed values as objects.
+    """
+
+    def __init__(self, ok: bool, findings: list[Finding] | None = None) -> None:
+        self._findings: list[Finding] = list(findings or [])
+        super().__init__(
+            ok=bool(ok),
+            accepted=bool(ok),
+            finding_count=len(self._findings),
+            findings=[f.as_dict() for f in self._findings],
+            rule_ids=[f.rule for f in self._findings],
+        )
+
+    @property
+    def ok(self) -> bool:
+        return bool(self["ok"])
+
+    @property
+    def accepted(self) -> bool:
+        return bool(self["accepted"])
+
+    @property
+    def findings(self) -> list[Finding]:
+        return list(self._findings)
+
+    @property
+    def finding_count(self) -> int:
+        return int(self["finding_count"])
+
+    @property
+    def rule_ids(self) -> list[str]:
+        return list(self["rule_ids"])
+
+    def as_dict(self) -> dict[str, Any]:
+        return dict(self)
 
 
 def lint_package(path: Path | str) -> LintReport:
@@ -55,10 +99,4 @@ def lint_package(path: Path | str) -> LintReport:
         findings.append(
             Finding("spdx-license", f"license={license_id!r} is not an SPDX identifier")
         )
-    ok = not findings
-    return {
-        "ok": ok,
-        "accepted": ok,
-        "findings": [{"rule": f.rule, "detail": f.detail} for f in findings],
-        "rule_ids": [f.rule for f in findings],
-    }
+    return LintReport(ok=not findings, findings=findings)

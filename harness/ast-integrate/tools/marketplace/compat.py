@@ -36,6 +36,13 @@ def _key(pkg: Mapping[str, Any]) -> str:
     return f"{pkg['id']}@{pkg['version']}"
 
 
+def candidate_key(pkg: Mapping[str, Any]) -> str:
+    """Stable ``id@version`` key for a candidate package record."""
+    if "id" not in pkg or "version" not in pkg:
+        raise KeyError("candidate needs 'id' and 'version'")
+    return _key(pkg)
+
+
 def _ver_tuple(raw: str) -> tuple[int, int, int]:
     parts = str(raw).strip().lstrip("v").split(".")
     nums = []

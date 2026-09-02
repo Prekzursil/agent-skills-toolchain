@@ -2,18 +2,99 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator, overload
+
+ENUMERATOR = "os.walk-independent"
 
 
 def _posix(rel: str) -> str:
     return str(rel).replace("\\", "/").strip("/")
 
 
-def census(root: Path) -> dict[str, Any]:
+class Census(Sequence[str]):
+    """The sorted relative file paths found under one root.
+
+    A census *is* its path list: iterating, ``len``, indexing, ``sorted(...)``
+    and ``==`` all work on the paths, and an empty (or absent) tree is falsy,
+    so ``not census(home)`` means "nothing is placed".  The three fields of the
+    record shape this walk used to return -- ``paths``, ``path_count`` and
+    ``enumerator`` -- stay reachable as attributes and as string keys
+    (``census(home)["paths"]``); :meth:`to_dict` gives that record verbatim.
+    """
+
+    __slots__ = ("_paths",)
+
+    def __init__(self, paths: Iterable[str] = ()) -> None:
+        self._paths: tuple[str, ...] = tuple(sorted({_posix(p) for p in paths if _posix(p)}))
+
+    @property
+    def paths(self) -> list[str]:
+        return list(self._paths)
+
+    @property
+    def path_count(self) -> int:
+        return len(self._paths)
+
+    @property
+    def enumerator(self) -> str:
+        return ENUMERATOR
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"paths": self.paths, "path_count": self.path_count, "enumerator": self.enumerator}
+
+    @overload
+    def __getitem__(self, key: int) -> str: ...
+
+    @overload
+    def __getitem__(self, key: slice) -> tuple[str, ...]: ...
+
+    @overload
+    def __getitem__(self, key: str) -> Any: ...
+
+    def __getitem__(self, key: int | slice | str) -> Any:
+        if isinstance(key, str):
+            try:
+                return self.to_dict()[key]
+            except KeyError:
+                raise KeyError(f"census has no field {key!r}; fields are paths, path_count, enumerator") from None
+        return self._paths[key]
+
+    def __len__(self) -> int:
+        return len(self._paths)
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._paths)
+
+    def __contains__(self, item: object) -> bool:
+        return isinstance(item, str) and _posix(item) in self._paths
+
+    def __bool__(self) -> bool:
+        return bool(self._paths)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, Census):
+            return self._paths == other._paths
+        if isinstance(other, (list, tuple, set, frozenset)):
+            return self._paths == tuple(sorted({_posix(str(p)) for p in other}))
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(self._paths)
+
+    def __repr__(self) -> str:
+        return f"Census({list(self._paths)!r})"
+
+
+def census(root: Path) -> Census:
+    """Walk ``root`` (no symlink following) and return the :class:`Census` of its files.
+
+    An absent or empty root yields an empty, falsy census.
+    """
     root = Path(root)
     paths: list[str] = []
-    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+    for dirpath, _dirnames, filenames in os.walk(root, followlinks=False):
         for name in filenames:
             p = Path(dirpath) / name
             try:
@@ -21,12 +102,7 @@ def census(root: Path) -> dict[str, Any]:
             except ValueError:
                 continue
             paths.append(_posix(rel))
-    paths = sorted(set(paths))
-    return {
-        "paths": paths,
-        "path_count": len(paths),
-        "enumerator": "os.walk-independent",
-    }
+    return Census(paths)
 
 
 def plugin_root(dest_root: Path, name: str) -> Path:

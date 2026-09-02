@@ -1,56 +1,39 @@
-"""Real import surface for compat."""
+"""Compatibility-resolver re-export.
+
+The implementation lives in ``tools/marketplace/compat.py``.  This module makes
+``import compat`` resolve to the same functions when ``tools/`` (rather than
+``tools/marketplace/``) is the ``sys.path`` entry, as the IMP-0085 test runner
+does; nothing is implemented here.
+"""
 from __future__ import annotations
 
-# g1-mod: real-surface
+try:
+    from marketplace import compat as _impl
+except ImportError:  # imported as ``tools.compat`` with the repo root on sys.path
+    from tools.marketplace import compat as _impl
 
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
-import hashlib
-import json
+MATRIX_PLATFORMS = _impl.MATRIX_PLATFORMS
+MATRIX_CLIENTS = _impl.MATRIX_CLIENTS
+DEFAULT_INDEX = _impl.DEFAULT_INDEX
+FilterResult = _impl.FilterResult
+strip_bom = _impl.strip_bom
+decode_text = _impl.decode_text
+load_candidates = _impl.load_candidates
+candidate_key = _impl.candidate_key
+filter_candidates = _impl.filter_candidates
+assert_nonempty_reason_on_empty = _impl.assert_nonempty_reason_on_empty
+resolution_matrix = _impl.resolution_matrix
 
-HERE = Path(__file__).resolve().parent
-
-@dataclass
-class Result:
-    ok: bool = True
-    status: str = 'ok'
-    state: str = 'SUCCESS'
-    verdict: str = 'PASS'
-    reason: str = ''
-    terminal: bool = True
-    substitutions: list = field(default_factory=list)
-    refusals: list = field(default_factory=list)
-    seated: list = field(default_factory=list)
-    requested: list = field(default_factory=list)
-    auto_substitution: bool = False
-    findings: list = field(default_factory=list)
-    outcome: str = 'clean'
-    exit_code: int = 0
-    trusted: bool = True
-
-    def get(self, key: str, default: Any = None) -> Any:
-        return getattr(self, key, default)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {'ok': self.ok, 'status': self.status, 'state': self.state, 'verdict': self.verdict}
-
-    def seated_ids(self) -> list:
-        return list(self.seated)
-
-    def set_equals(self) -> bool:
-        return True
-
-def fixture_dir() -> Path:
-    d = HERE / 'fixtures'
-    d.mkdir(parents=True, exist_ok=True)
-    return d
-
-def _sha(data: bytes) -> str:
-    return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
-
-def compat(*args: Any, **kwargs: Any) -> Any:
-    return Result()
-
-__all__ = ['compat']
-
+__all__ = [
+    "DEFAULT_INDEX",
+    "FilterResult",
+    "MATRIX_CLIENTS",
+    "MATRIX_PLATFORMS",
+    "assert_nonempty_reason_on_empty",
+    "candidate_key",
+    "decode_text",
+    "filter_candidates",
+    "load_candidates",
+    "resolution_matrix",
+    "strip_bom",
+]
