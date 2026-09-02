@@ -210,6 +210,7 @@ def main() -> int:
                 "(spec 11039), never an error to retry away"
             ),
         },
+        "candidates": candidates,
         "report": {
             "kind": "license-audit",
             "control_ids": [
@@ -470,6 +471,9 @@ def main() -> int:
             }
         ],
     }
+    # probe2 reads the summary at the document root (receipt_core allows
+    # additional top-level keys); keep it identical to report.summary.
+    doc["summary"] = doc["report"]["summary"]
 
     errs = S.errors(doc)
     if errs:

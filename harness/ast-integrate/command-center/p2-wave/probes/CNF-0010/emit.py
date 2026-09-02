@@ -451,6 +451,11 @@ def main() -> int:
             print("FAILED:CNF-0010 schema accepted garbage")
             return 1
     doc = build_doc()
+    # probe2 reads these rows at the document root (receipt_core allows
+    # additional top-level keys); keep them identical to report.*.
+    for key in ("manifests", "forced_mismatch_control"):
+        if key in doc.get("report", {}):
+            doc[key] = doc["report"][key]
     errs = schema_errors(doc, validator)
     if errs:
         print("FAILED:CNF-0010 schema errors")

@@ -380,6 +380,10 @@ def main() -> int:
     doc["negative_controls"][1]["bad_state_output"] = (
         "contract schema rejected empty missing_prerequisite"
     )
+    # probe2 reads the claim rows and the noise floor at the document root
+    # (receipt_core allows additional top-level keys); mirror report.*.
+    doc["claims"] = doc["report"]["claims"]
+    doc["noise_floor"] = doc["report"]["noise_floor"]
 
     out = REPO / OUT
     out.parent.mkdir(parents=True, exist_ok=True)

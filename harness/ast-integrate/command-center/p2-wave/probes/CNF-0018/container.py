@@ -41,6 +41,9 @@ IMAGE_RELS = [
     "tools/command-center/catalog.py",
     "tools/command-center/register_parse.py",
     "tools/command-center/phase_graph.py",
+    # catalog.py now loads its sibling id_normalize.py by path; without it
+    # the extracted image raises FileNotFoundError before measure can run.
+    "tools/command-center/id_normalize.py",
 ]
 
 

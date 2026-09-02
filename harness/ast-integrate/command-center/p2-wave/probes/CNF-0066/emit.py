@@ -512,6 +512,11 @@ def main() -> int:
             print(" ", err)
         return 1
 
+    # probe1 reads the record and absence rows at the document root
+    # (receipt_core allows additional top-level keys); mirror report.*.
+    doc["records"] = doc["report"]["records"]
+    doc["absences"] = doc["report"]["absences"]
+
     dest = REPO / OUT
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")

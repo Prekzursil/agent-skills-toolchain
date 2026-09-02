@@ -532,6 +532,11 @@ def main() -> int:
     if doc.get("state") in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
         print(f"FAILED:CNF-0037 self-declared {doc.get('state')}")
         return 1
+    # probe2 reads the command rows (and probe1 falls back to answer /
+    # coverage) at the document root; receipt_core allows additional
+    # top-level keys, so mirror report.* there unchanged.
+    for key in ("commands", "coverage", "answer"):
+        doc[key] = doc["report"][key]
     S.validate_or_die(doc)
     out = write_and_consume(doc)
     S.validate_or_die(json.loads(out.read_text(encoding="utf-8")))

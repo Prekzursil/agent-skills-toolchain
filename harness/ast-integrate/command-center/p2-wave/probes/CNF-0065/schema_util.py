@@ -37,6 +37,10 @@ def catalog_validator() -> jsonschema.Draft7Validator:
         if not isinstance(ident, str) or not ident:
             raise RuntimeError(f"schema {rel} missing $id")
         store[ident] = data
+        # The generated shims now carry file:///C:/... $ids; keep the
+        # https://ast-integrate.invalid/<rel> alias every $ref in this
+        # tree still uses so both spellings resolve from disk.
+        store["https://ast-integrate.invalid/" + rel] = data
     schema = store["https://ast-integrate.invalid/command-center/schema/benchmark-report.schema.json"]
     resolver = jsonschema.RefResolver(
         base_uri=schema["$id"],

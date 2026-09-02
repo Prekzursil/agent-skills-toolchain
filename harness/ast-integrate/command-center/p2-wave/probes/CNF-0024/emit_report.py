@@ -378,6 +378,11 @@ def main() -> int:
         },
     }
 
+    # probe2 reads the image and defect rows at the document root
+    # (receipt_core allows additional top-level keys); mirror report.*.
+    doc["image"] = doc["report"]["image"]
+    doc["defects"] = doc["report"]["defects"]
+
     errs = S.iter_errors(doc)
     if errs:
         print("FAILED:CNF-0024 schema errors")

@@ -654,6 +654,11 @@ def main() -> int:
         print("FAILED:CNF-0016", why_mut)
         return 1
 
+    # probe1 reads the recipe rows and the sufficiency block at the document
+    # root (receipt_core allows additional top-level keys); mirror report.*.
+    doc["defects"] = doc["report"]["recipes"]
+    doc["sufficiency"] = doc["report"]["sufficiency"]
+
     out = REPO / OUT_REL
     out.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(doc, indent=1, sort_keys=True) + "\n"

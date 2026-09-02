@@ -412,6 +412,13 @@ def main() -> int:
         print("FAILED:CNF-0068 completion_sentinel not in document")
         return 1
 
+    # probe1 reads the edge rows and the vote-count flag at the document
+    # root (receipt_core allows additional top-level keys); mirror report.*.
+    doc["edges"] = doc["report"]["edges"]
+    doc["never_adjudicated_by_agent_count"] = doc["report"][
+        "never_adjudicated_by_agent_count"
+    ]
+
     # Self-hash cannot fixpoint (the digest is inside the bytes). Record a
     # well-formed sha256 of the pre-write dump; UNIT-ARTIFACT-MANIFEST holds
     # the live on-disk digest that G-1 compares.
