@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _g1_paths import WIN  # noqa: E402
 
 UID = re.compile(r"\b([A-Z]{2,5}-\d{4})\b")
-PATH_RE = re.compile(r"(?<![\w/])((?:tools|platform|lib|council|marketplace|plugin|router|workflow_foundry|command-center|scripts|hooks|docs|workflows|schema|ci|release|\.github|\.claude-plugin|agent-self)/[\w./+\-]+\.(?:py|json|md|yaml|yml|txt|hook|sh|ps1|toml|cfg|ini))")
+PATH_RE = re.compile(r"(?<![\w/])((?:tools|platform|lib|council|marketplace|plugin|router|workflow_foundry|command-center|scripts|hooks|docs|workflows|schema|ci|release|\.github|\.claude-plugin|agent-self)/[\w./+\-]+\.(?:py|json|md|yaml|yml|txt|hook|sh|ps1|toml|cfg|ini|mjs|cjs|js|ts))")
 MARKERS = ("# g1-surface: " + "generated", "# g1-mod: " + "real-surface")
 
 

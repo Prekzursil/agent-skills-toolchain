@@ -167,8 +167,51 @@ def items(catalog: dict[str, Any]) -> list[dict[str, Any]]:
     return list(raw) if isinstance(raw, list) else []
 
 
+def work_units(catalog: dict[str, Any]) -> list[dict[str, Any]]:
+    """The `work_units` array (the 2007 P2 units), distinct from `items`."""
+    raw = catalog.get("work_units")
+    return list(raw) if isinstance(raw, list) else []
+
+
+def _id_normalize() -> Any:
+    """Sibling module `id_normalize` (this directory is not an importable package)."""
+    try:
+        import id_normalize as inn  # type: ignore[import-not-found]
+
+        return inn
+    except ImportError:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "id_normalize", Path(__file__).resolve().with_name("id_normalize.py")
+        )
+        if spec is None or spec.loader is None:
+            raise
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+
+def _canonical_index(rows: list[dict[str, Any]]) -> Any:
+    """Index rows by id behind the NFC boundary (`id_normalize.CanonicalIdMap`).
+
+    An NFC and an NFD spelling of the same id resolve to one entity; a plain dict
+    would treat them as two keys (the mixed-resolver hazard TST-0057 measures).
+    Later rows with the same canonical id still win, as the plain dict did."""
+    index = _id_normalize().CanonicalIdMap()
+    for row in rows:
+        index[str(row.get("id", ""))] = row
+    return index
+
+
 def by_id(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {str(item.get("id", "")): item for item in items(catalog)}
+    """`items` indexed by NFC-canonical id (a `CanonicalIdMap`, dict-compatible)."""
+    return _canonical_index(items(catalog))
+
+
+def work_units_by_id(catalog: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """`work_units` indexed by NFC-canonical id (a `CanonicalIdMap`, dict-compatible)."""
+    return _canonical_index(work_units(catalog))
 
 
 def is_open(item: dict[str, Any]) -> bool:

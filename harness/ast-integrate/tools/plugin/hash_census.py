@@ -10,8 +10,14 @@ def _digest(data: bytes) -> str:
     return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
-def file_digest(path: Path) -> str:
-    return _digest(Path(path).read_bytes())
+def file_digest(source: Path | str | bytes | bytearray) -> str:
+    """Census digest of a file's bytes; accepts the path or the bytes already read.
+
+    Both forms hash identically (CRLF-normalised sha256), so a caller holding the
+    bytes can compare against a `hash_census` row without a second read."""
+    if isinstance(source, (bytes, bytearray)):
+        return _digest(bytes(source))
+    return _digest(Path(source).read_bytes())
 
 
 def hash_census(root: Path) -> dict[str, str]:

@@ -1,52 +1,62 @@
-"""Import surface for cmdline_guard (probe-derived)."""
+"""``tools.cmdline_guard``: the Windows CreateProcess command-line guard.
+
+The implementation lives in ``tools/command-center/cmdline_guard.py``; that
+directory name is not importable as a package (hyphen), so the module is loaded
+by file path once and its public names are re-exported here explicitly.
+"""
+
 from __future__ import annotations
 
-# g1-mod: real-surface
-
-from dataclasses import dataclass, field
+import importlib.util
+import sys
 from pathlib import Path
-from typing import Any
-import hashlib
-import json
+from types import ModuleType
 
-HERE = Path(__file__).resolve().parent
+_REAL = Path(__file__).resolve().parent / "command-center" / "cmdline_guard.py"
 
-@dataclass
-class Result:
-    ok: bool = True
-    status: str = 'ok'
-    state: str = 'SUCCESS'
-    verdict: str = 'PASS'
-    reason: str = ''
-    terminal: bool = True
-    substitutions: list = field(default_factory=list)
-    refusals: list = field(default_factory=list)
-    seated: list = field(default_factory=list)
-    requested: list = field(default_factory=list)
-    findings: list = field(default_factory=list)
-    outcome: str = 'clean'
-    exit_code: int = 0
-    trusted: bool = True
-    accepted: bool = True
-    blocked: bool = False
-    passed: bool = True
-    present: bool = True
-    found: bool = True
-    planted: bool = True
-    file_count: int = 0
-    payload_bytes: int = 0
-    def get(self, key: str, default: Any = None) -> Any:
-        return getattr(self, key, default)
-    def as_dict(self) -> dict[str, Any]:
-        return {'ok': self.ok, 'status': self.status, 'state': self.state, 'verdict': self.verdict, 'accepted': self.accepted, 'blocked': self.blocked, 'passed': self.passed}
 
-def _sha(data: bytes) -> str:
-    return hashlib.sha256(data.replace(b'\r\n', b'\n')).hexdigest()
+def _load_real() -> ModuleType:
+    cached = sys.modules.get("cmdline_guard")
+    if cached is not None and getattr(cached, "__file__", None) == str(_REAL):
+        return cached
+    spec = importlib.util.spec_from_file_location("cmdline_guard", _REAL)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load cmdline_guard from {_REAL}")
+    module = importlib.util.module_from_spec(spec)
+    # dataclasses resolve `cls.__module__` through sys.modules during class
+    # creation, so the module must be registered before it executes.
+    sys.modules["cmdline_guard"] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop("cmdline_guard", None)
+        raise
+    return module
 
-def cmdline_guard(*args: Any, **kwargs: Any) -> Any:
-    out = {'INLINE_PAYLOAD_THAT_DIED': True, 'SWITCH_EVENT': True, 'SpawnResult': True, 'WINDOWS_CREATEPROCESS_CHAR_CEILING': True, 'WINERROR_FILENAME_EXCED_RANGE': True, 'naive_linux_spawn': True, 'pad_payload_for_inline_chars': True, 'payload_digest': True, 'spawn_guarded': True, 'windows_cmdline_chars': True}
-    out.update({'ok': True, 'accepted': True, 'passed': True, 'blocked': False, 'outcome': 'clean', 'exit_code': 0, 'findings': [], 'trusted': True, 'control': {'found': True, 'planted': True}})
-    return out
 
-__all__ = ['cmdline_guard']
+_real = _load_real()
 
+E2BIG = _real.E2BIG
+INLINE_PAYLOAD_THAT_DIED = _real.INLINE_PAYLOAD_THAT_DIED
+Marshal = _real.Marshal
+PROMPT_FILE_NAME = _real.PROMPT_FILE_NAME
+SWITCH_EVENT = _real.SWITCH_EVENT
+SpawnResult = _real.SpawnResult
+TRANSPORT_FILE = _real.TRANSPORT_FILE
+TRANSPORT_INLINE = _real.TRANSPORT_INLINE
+WINDOWS_CREATEPROCESS_CHAR_CEILING = _real.WINDOWS_CREATEPROCESS_CHAR_CEILING
+WINERROR_FILENAME_EXCED_RANGE = _real.WINERROR_FILENAME_EXCED_RANGE
+emulated_206 = _real.emulated_206
+format_switch_line = _real.format_switch_line
+inline_argv = _real.inline_argv
+marshal_prompt = _real.marshal_prompt
+naive_linux_spawn = _real.naive_linux_spawn
+pad_payload_for_inline_chars = _real.pad_payload_for_inline_chars
+parse_child_report = _real.parse_child_report
+payload_digest = _real.payload_digest
+spawn_guarded = _real.spawn_guarded
+switch_event = _real.switch_event
+windows_cmdline_chars = _real.windows_cmdline_chars
+would_raise_206 = _real.would_raise_206
+
+__all__ = list(_real.__all__)

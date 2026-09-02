@@ -12,6 +12,41 @@ CLASS_SCHEMA_INVALID = "schema-invalid"
 CLASS_MCP = "typed-schema-mcp-interaction"
 
 
+def _cmdline_guard() -> Any:
+    """Sibling `cmdline_guard` (tools/command-center/ is not an importable package)."""
+    try:
+        import cmdline_guard as cg  # type: ignore[import-not-found]
+
+        return cg
+    except ImportError:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "cmdline_guard", Path(__file__).resolve().with_name("cmdline_guard.py")
+        )
+        if spec is None or spec.loader is None:
+            raise
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+
+def measure_cmdline(argv: list[str]) -> int:
+    """Measure the assembled command line against the Windows CreateProcessW ceiling.
+
+    The prompt already travels by --prompt-file, so only pathological paths can
+    push argv over WINDOWS_CREATEPROCESS_CHAR_CEILING; refusing here turns a
+    would-be WinError 206 from the vendor spawn into a clear guard error."""
+    cg = _cmdline_guard()
+    chars = int(cg.windows_cmdline_chars(argv))
+    if cg.would_raise_206(chars):
+        raise ValueError(
+            f"assembled command line {chars}+NUL chars exceeds "
+            f"WINDOWS_CREATEPROCESS_CHAR_CEILING={cg.WINDOWS_CREATEPROCESS_CHAR_CEILING}"
+        )
+    return chars
+
+
 def decide_retry(classification: str, retries_used: int, allow_mcp_retry: bool) -> str | None:
     if classification == CLASS_SCHEMA_INVALID:
         return None
@@ -54,9 +89,11 @@ def _run_vendor(
         argv.append("--ignore-user-config")
     if emit_invalid:
         argv.append("--emit-invalid")
+    cmdline_chars = measure_cmdline(argv)
     proc = subprocess.run(argv, cwd=str(repo), capture_output=True, text=True)
     return {
         "argv": argv,
+        "cmdline_chars": cmdline_chars,
         "returncode": proc.returncode,
         "stdout": proc.stdout,
         "stderr": proc.stderr,

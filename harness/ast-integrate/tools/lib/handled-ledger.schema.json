@@ -1,10 +1,36 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Handled ledger",
+  "title": "Handled ledger record",
+  "description": "One record of the handled ledger as read by tools/lib/handled-ledger.mjs. A JS number is an IEEE-754 double, so every field that can exceed Number.MAX_SAFE_INTEGER (2^53-1 = 9007199254740991) is a decimal STRING and every integer field carries a maximum at or below 2^53-1; parseLossless in the consumer keeps the wide tokens JSON.parse would round. A record is either the wide id/timestamp_ns/byte_count/seq row or the legacy entries envelope (or both).",
   "type": "object",
-  "required": ["entries"],
+  "anyOf": [
+    { "required": ["id", "timestamp_ns", "byte_count", "seq"] },
+    { "required": ["entries"] }
+  ],
   "properties": {
+    "id": {
+      "description": "uint64 work-unit / event id as a decimal string (up to 18446744073709551615); never a JSON number.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "timestamp_ns": {
+      "description": "Unix epoch nanoseconds as a decimal string; above 2^53 since 2001, so a JSON number would already be rounded.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "byte_count": {
+      "description": "Payload size in bytes as a decimal string; may exceed 2^53-1.",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "seq": {
+      "description": "Per-run sequence number; the one integer field, bounded so a JS consumer holds it exactly.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
     "entries": {
+      "description": "Legacy envelope: handled entries carried with the record.",
       "type": "array",
       "items": {
         "type": "object",
@@ -12,8 +38,8 @@
         "properties": {
           "id": { "type": "string" },
           "payload": { "type": "object" },
-          "wall_ms": { "type": "number" },
-          "pid": { "type": "integer" }
+          "wall_ms": { "type": "number", "minimum": 0, "maximum": 9007199254740991 },
+          "pid": { "type": "integer", "minimum": 0, "maximum": 4294967295 }
         }
       }
     }
