@@ -674,4 +674,120 @@ endpoints" is the right shape for a memory-starved box where local cold-starts a
   get longer defaults" rule; and the pattern **one registry entry per (host, api_mode)**.
 - NATIVE-vs-BUILD: Hermes is not installed (DEDUP 5). Schema donor only.
 
-<!-- sections 9..N appended below; rubric table last -->
+## 9. Grok Build CLI (xAI) - `~/.grok/config.toml` `[model."<alias>"]` blocks
+
+### 9.1 The schema, verbatim from the official reference
+
+**[FACT, A (official docs, corroborated by a third-party integration guide), 2026-09-02]**
+`[model.<alias>]` - "Custom / BYOK models (OpenAI-compatible or Anthropic Messages). Prefer
+`env_key` over hardcoding `api_key`." Fields: `model` (id sent to the API), `base_url`
+("Provider endpoint"), `name`, `description`, `api_key`, `env_key`, **`api_backend`:
+`chat_completions | responses | messages`** (docs.x.ai/build/overview example shows the three
+values inline; the third-party guide states "`chat_completions` maps to `/v1/chat/completions`
+and is Grok's default" and "do not append `/chat/completions`"), `temperature`/`top_p`/
+`max_completion_tokens`, **`context_window`** ("drives auto-compact timing"), `extra_headers`,
+`supports_backend_search`, `supports_reasoning_effort` / `reasoning_effort`,
+`stream_tool_calls` ("some BYOK endpoints need `false`"), `max_retries`,
+`inference_idle_timeout_secs`. The in-repo user guide adds `query_params`,
+`env_http_headers`, and **`env_key` as "a single string or an array of names"** ("The first
+set, non-empty" wins) plus `[endpoints] models_base_url` from which per-model `base_url` is
+inherited.
+`[models]`: `default`, `web_search`, `session_summary`, `image_description`,
+`default_reasoning_effort`, global `extra_headers`/sampling/`max_retries`/`stream_tool_calls`,
+**`allowed_models` (glob list), `hidden_models`, `disabled_models`**.
+Env: `GROK_MODELS_BASE_URL` ("model list from `{base}/models`"), `GROK_MODELS_LIST_URL`,
+`GROK_XAI_API_BASE_URL`, `GROK_DEFAULT_MODEL`, `GROK_WEB_SEARCH_MODEL`.
+Config layers: env -> user `~/.grok/config.toml` (or `$GROK_HOME`) -> project `.grok/config.toml`
+(MCP/plugins/permission only) -> managed `managed_config.toml` -> `requirements.toml` policy
+pins. Also `[compat.cursor]` / `[compat.claude]` scanners read Cursor and Claude skills, rules,
+agents, MCP configs and hooks (default on).
+Sources: <https://docs.x.ai/build/settings/reference>, <https://docs.x.ai/build/settings>,
+<https://docs.x.ai/build/overview>,
+<https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md>
+(B: rendered via search snippet, raw not re-fetched), third-party guide
+<https://live-turing-docs.cn.llm.tcljd.com/en/ai-coding-tools/grok-build/overview/> (C).
+
+**[INFERENCE]** Grok Build's block is structurally the closest existing schema to what the
+estate already writes for `[model."cursor-grok-4.6"]` (DEDUP 3): id + alias + base_url +
+env_key + api_backend + context_window + reliability knobs. Its three-valued `api_backend`
+is the same triad as Hermes' `api_mode` and Pi's `api`, confirming the estate needs exactly
+these three (plus `ollama_native`/`gemini` for local/Google) in `api.shape`. The
+`env_key` **array** form is unique and useful: `["CURSOR_AUTH2API_KEY", "OPENAI_API_KEY"]`
+lets one rendered block tolerate two naming conventions without duplicating secrets.
+`allowed_models` globs + `hidden_models`/`disabled_models` is the cleanest *picker policy*
+vocabulary surveyed; `[compat.cursor]` means Grok Build already reads `.cursor/rules` and
+Cursor `mcp.json` on this box - relevant to the `.agents/skills` SSOT lock (Grok scans, does not
+own).
+
+### 9.2 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM: `env_key: string | string[]`, `context_window` semantics ("drives
+  auto-compact timing" - i.e. it is *operational*, not informational), `stream_tool_calls`
+  as a per-endpoint quirk, `inference_idle_timeout_secs`, and the `allowed_models` /
+  `hidden_models` / `disabled_models` picker policy.
+- NATIVE: `grok` + `agent.exe` are installed and already read `[model.*]` (DEDUP 5). The
+  estate renderer should own the `[model."cursor-*"]` blocks (36 of them) and the
+  `[models].allowed_models` list; verify with `grok models` / `grok inspect` after render.
+- Health probe: `GET {base_url}/models` is what Grok itself uses for discovery
+  (`GROK_MODELS_LIST_URL`), so the same probe result can be reused.
+
+## 10. Claude Code - `settings.json` + `ANTHROPIC_*` env, `apiKeyHelper`, `modelOverrides`, `modelPricing`
+
+### 10.1 The relevant keys, verbatim
+
+**[FACT, A (official docs, 2026-09-02)]** Sources: <https://code.claude.com/docs/en/settings.md>,
+<https://code.claude.com/docs/en/settings-reference.md>, <https://code.claude.com/docs/en/env-vars.md>,
+<https://code.claude.com/docs/en/llm-gateway.md>.
+
+- Endpoint/credential env (documented in `env-vars`): `ANTHROPIC_BASE_URL`,
+  `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_API_KEY`, `ANTHROPIC_CUSTOM_HEADERS`, `API_TIMEOUT_MS`,
+  `CLAUDE_CODE_MAX_RETRIES`, `CLAUDE_CODE_SKIP_{BEDROCK,VERTEX,FOUNDRY,MANTLE,ANTHROPIC_AWS}_AUTH`,
+  `CLAUDE_CODE_USE_{BEDROCK,VERTEX,FOUNDRY,MANTLE}`, `ANTHROPIC_FOUNDRY_{API_KEY,AUTH_TOKEN,BASE_URL,RESOURCE}`.
+- Model-slot env: `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU,FABLE}_MODEL`,
+  `ANTHROPIC_SMALL_FAST_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_CODE_MAX_OUTPUT_TOKENS`,
+  `MAX_THINKING_TOKENS`, `CLAUDE_CODE_EFFORT_LEVEL`, `CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST`.
+- Settings keys: `model`, `fallbackModel`, `availableModels` (managed allow-list that
+  "constrains `/model`, `--model`, and the `model` key"), `enforceAvailableModels`,
+  **`modelOverrides`** ("Map Anthropic model IDs to provider-specific model IDs, such as
+  Amazon Bedrock inference profile ARNs"), **`modelPricing {multiplier (0,1], overrides{id:
+  {input, output, cacheRead, cacheWrite}}}`** (USD per 1M, all four required; managed scope
+  only; v2.1.242+), `modelSettings {<canonical-model>: {effortLevel}}` (v2.1.251+),
+  `advisorModel`, `teammateDefaultModel`, `env` block, **`apiKeyHelper`** (shell command whose
+  stdout is sent as both `X-Api-Key` and `Authorization: Bearer`; cached 5 min or
+  `CLAUDE_CODE_API_KEY_HELPER_TTL_MS`; re-run on `401/403` and on expired-JWT output
+  v2.1.246+), `awsAuthRefresh`, `awsCredentialExport`.
+- Precedence rule worth quoting: "`ANTHROPIC_MODEL` exported in your shell applies over the
+  `model` key from any file, while `ANTHROPIC_DEFAULT_MODEL` applies only when no file sets
+  `model`." Settings files hot-reload, including `apiKeyHelper`.
+- Gateway doc: "`ANTHROPIC_BASE_URL` is the variable that points Claude Code at the gateway.
+  Setting only that variable, without a gateway credential, doesn't replace the
+  subscription." Gateways forwarding to Anthropic "must forward the OAuth capability in
+  `anthropic-beta`".
+
+**[FACT + lock note]** The estate lock says OpenRouter is never Claude's `ANTHROPIC_BASE_URL`;
+nothing above changes that. The `claude-cursor` wrapper (DEDUP 3) implies `ANTHROPIC_BASE_URL`
+-> `127.0.0.1:8317` which requires auth2api to speak **Anthropic Messages** (`/v1/messages`) -
+a third wire shape for the same port; **UNVERIFIED** from here, same must-probe as the Codex
+`/v1/responses` case in 1.2.
+
+### 10.2 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM: `modelOverrides` (canonical id -> provider id map) and the *slot* vocabulary
+  `opus|sonnet|haiku|small_fast|subagent` - the estate registry should expose named **slots**
+  (`large`, `small`, `subagent`, `web_search`, `summary`, `embed`) that render to Claude's
+  `ANTHROPIC_DEFAULT_*_MODEL`, Crush's `large/small`, Grok's `[models].web_search/
+  session_summary`, Aider's `weak_model_name/editor_model_name`, Goose's `fast_model`.
+- COPY VERBATIM: `modelPricing.overrides{id:{input,output,cacheRead,cacheWrite}}` field names
+  (they equal Pi's `cost` names) and the `multiplier` idea for contracted/quota pricing -
+  Cursor-quota models via auth2api have *effective* cost 0 with a quota budget; a
+  `cost.multiplier: 0` + `budget: {unit: "requests", ...}` is the honest encoding.
+- COPY VERBATIM: the `apiKeyHelper` contract (stdout token, TTL, re-run on 401/403) - identical
+  in spirit to Hermes `key_cmd`, Codex/Goose `auth.command`; adopt one estate contract and
+  render to all four.
+- NATIVE: `claude` is installed; `~/.claude/settings.json` `env` + `model` keys are the render
+  target (BUILD = renderer). Do **not** render `modelPricing` (managed-scope only; Claude
+  ignores it in user settings - a renderer writing it there would silently no-op).
+
+<!-- sections 11..N appended below; rubric table last -->
