@@ -22,7 +22,11 @@ class DeclarationError(ValueError):
 
 
 class InterpreterError(RuntimeError):
-    pass
+    """A declared interpreter cannot be used; ``code`` is MISSING or VERSION."""
+
+    def __init__(self, message: str, code: str = "MISSING") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 def load_manifest(path: str | Path | None = None) -> dict[str, Any]:
@@ -56,11 +60,21 @@ def lint_entrypoints(manifest: dict[str, Any] | None = None) -> list[dict[str, A
     return out
 
 
-def which_family(name: str) -> str:
-    exe = shutil.which(name)
-    if not exe:
-        raise InterpreterError(f"interpreter not on PATH: {name}")
-    return exe
+def which_family(name: str, *, required: bool = False) -> str:
+    """Return the PATH binary for an interpreter family id (or name), else ``""``.
+
+    Every binary name registered for the family is tried, so ``python3``
+    also finds ``python``. With ``required=True`` a missing interpreter raises
+    ``InterpreterError(code="MISSING")`` instead of returning the empty string.
+    """
+    names = ALLOWED_INTERPRETERS.get(name, {}).get("names") or (name,)
+    for candidate in names:
+        exe = shutil.which(candidate)
+        if exe:
+            return exe
+    if required:
+        raise InterpreterError(f"interpreter not on PATH: {name}", code="MISSING")
+    return ""
 
 
 def resolve_interpreter(row: dict[str, Any]) -> str:
@@ -69,4 +83,6 @@ def resolve_interpreter(row: dict[str, Any]) -> str:
         found = shutil.which(name)
         if found:
             return found
-    raise InterpreterError(f"no binary for {row['interpreter']}")
+    raise InterpreterError(
+        f"no binary for declared interpreter {row['interpreter']} (MISSING)", code="MISSING"
+    )

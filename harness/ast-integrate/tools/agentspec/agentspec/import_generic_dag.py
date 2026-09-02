@@ -1,4 +1,9 @@
-"""Generic declarative DAG adapter that preserves case-distinct keys."""
+"""Generic declarative DAG adapter that preserves case-distinct keys.
+
+Strict parser (IMP-0162): true duplicate keys and duplicate node ids are refused, and so is
+any field the format does not declare -- an unknown field is rejected with
+``AS-DAG-UNKNOWN-FIELD`` naming the field, never silently ignored.
+"""
 from __future__ import annotations
 
 import json
@@ -7,11 +12,34 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+AS_DAG_NOT_OBJECT = "AS-DAG-NOT-OBJECT"
+AS_DAG_DUPLICATE_KEY = "AS-DAG-DUPLICATE-KEY"
+AS_DAG_DUPLICATE_NODE_ID = "AS-DAG-DUPLICATE-NODE-ID"
+AS_DAG_UNKNOWN_FIELD = "AS-DAG-UNKNOWN-FIELD"
+
+# The closed set of ids this adapter can emit; ``agentspec.validate.CLOSED_VIOLATION_IDS``
+# folds it into the package-wide closed set.
+DAG_VIOLATION_IDS: tuple[str, ...] = (
+    AS_DAG_NOT_OBJECT,
+    AS_DAG_DUPLICATE_KEY,
+    AS_DAG_DUPLICATE_NODE_ID,
+    AS_DAG_UNKNOWN_FIELD,
+)
+
+# Declared fields of the generic DAG document and of one node. Anything else is unknown.
+DOCUMENT_FIELDS: frozenset[str] = frozenset(
+    {"id", "name", "description", "version", "nodes", "edges", "params"}
+)
+NODE_FIELDS: frozenset[str] = frozenset(
+    {"kind", "params", "description", "depends_on", "needs", "inputs", "outputs"}
+)
+
 
 @dataclass
 class Violation:
     id: str
     message: str = ""
+    detail: str = ""
 
 
 @dataclass
@@ -255,6 +283,7 @@ class GenericDeclarativeDagAdapter:
                 data = json.loads(raw)
         if not isinstance(data, dict):
             return ImportResult(ok=False, violations=[Violation("AS-DAG-NOT-OBJECT")])
+        violations.extend(_unknown_fields(data))
         nodes = data.get("nodes")
         if isinstance(nodes, tuple) and nodes and nodes[0] == "__DUP__":
             violations.append(Violation("AS-DAG-DUPLICATE-NODE-ID"))
@@ -285,8 +314,48 @@ class GenericDeclarativeDagAdapter:
                 violations.append(Violation("AS-DAG-DUPLICATE-NODE-ID"))
             if _json_duplicate_keys(raw, "params"):
                 violations.append(Violation("AS-DAG-DUPLICATE-KEY"))
-        if any(v.id == "AS-DAG-DUPLICATE-KEY" for v in violations) or any(
-            v.id == "AS-DAG-DUPLICATE-NODE-ID" for v in violations
-        ):
+        if any(v.id in DAG_VIOLATION_IDS for v in violations):
             return ImportResult(ok=False, workflow=None, violations=violations)
         return ImportResult(ok=True, workflow=WorkflowView(units=units), violations=[])
+
+
+def _field_names(mapping: dict[str, Any]) -> list[str]:
+    """Member names of a parsed object, with the parser's ``__dup__`` markers stripped."""
+    names: list[str] = []
+    for key in mapping:
+        text = str(key)
+        if text.startswith("__dup__"):
+            text = text[len("__dup__"):]
+        names.append(text)
+    return names
+
+
+def _unknown_fields(data: dict[str, Any]) -> list[Violation]:
+    """Strict-parser refusals for document- and node-level fields the format never declared."""
+    found: list[Violation] = []
+    for name in _field_names(data):
+        if name not in DOCUMENT_FIELDS:
+            found.append(
+                Violation(
+                    AS_DAG_UNKNOWN_FIELD,
+                    f"document field {name!r} is not declared by the generic DAG format",
+                    detail=name,
+                )
+            )
+    nodes = data.get("nodes")
+    if isinstance(nodes, tuple) and nodes and nodes[0] == "__DUP__":
+        nodes = dict(nodes[1])
+    if isinstance(nodes, dict):
+        for node_id, body in nodes.items():
+            if not isinstance(body, dict):
+                continue
+            for name in _field_names(body):
+                if name not in NODE_FIELDS:
+                    found.append(
+                        Violation(
+                            AS_DAG_UNKNOWN_FIELD,
+                            f"node {node_id!r} field {name!r} is not declared by the generic DAG format",
+                            detail=name,
+                        )
+                    )
+    return found

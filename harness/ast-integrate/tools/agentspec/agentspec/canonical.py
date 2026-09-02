@@ -76,15 +76,40 @@ The rules above make the two runtimes agree on the BYTES. Agreeing on the DECISI
 :mod:`agentspec.wire`'s job, and it is a separate contract with a separate corpus — a
 differential harness found 78 behavioural divergences while this module was already exact.
 
-Pure: no clock, no entropy, no I/O. :func:`agentspec.determinism.scan_package` covers it.
+Pure: no clock, no entropy, and no I/O except :func:`read_blob_via_cat_file`, which reads one
+git blob on request. :func:`agentspec.determinism.scan_package` covers it.
+
+The WORKFLOW document layer (``export`` / ``import_workflow`` / ``round_trip_*``) sits on top
+of these primitives and is documented where it starts, below ``CanonicalError``.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
+from agentspec.spec import (
+    DEFAULT_ON_FAILURE,
+    Barrier,
+    DynamicFanOut,
+    FanOut,
+    HumanCheckpoint,
+    Loop,
+    Param,
+    ParamBinding,
+    Pipeline,
+    ReceiptSpec,
+    Routing,
+    SecretRef,
+    Subworkflow,
+    UnitTemplate,
+    Workflow,
+    WorkUnit,
+)
 from agentspec.wire import utf16_sort_key as utf16_sort_key
 
 MAX_SAFE_INTEGER = 2**53 - 1
@@ -147,25 +172,600 @@ class CanonicalJsonError(ValueError):
 
 CanonicalError = CanonicalJsonError
 
+# --------------------------------------------------------------------------- IMP-0146
+# The WORKFLOW canonical document: one byte-stable rendering of a :class:`Workflow` that
+# carries every node kind in ``EXISTING_NODE_KINDS | NEW_NODE_KINDS`` and satisfies
+# ``export(import_workflow(export(w))) == export(w)`` for every workflow.
+#
+# Shape (keys in UTF-16 code-unit order, two-space indent, LF, one trailing LF, no CR):
+#
+#   {"canonical_format": "agentspec.workflow.canonical", "canonical_format_version": 1,
+#    "workflow": {"id", "kind": "Workflow", "nodes": [...], "params": [...],
+#                 "spec_version", "units": [...]}}
+#
+# The declarative Phase-7 fields of a unit are ALWAYS written; the dispatch-form fields
+# (``prompt``, ``timeout_s``, ``receipt``, ``depends_on``, ``budget_micro``, ``isolation``,
+# ``writes``, ``fail_family``) and the workflow's ``budget_micro`` / ``default_on_failure``
+# appear only when they differ from the type's default, so a purely declarative workflow has
+# a minimal form and a dispatch-form workflow still round-trips losslessly. The importer is a
+# STRICT parser: an unknown key, a missing key or an unknown node kind is refused with a
+# ``canonical-*`` code; nothing is coerced or dropped.
+
+CANONICAL_FORMAT = "agentspec.workflow.canonical"
+CANONICAL_FORMAT_VERSION = 1
+
+E_CANONICAL_INVALID_JSON = "canonical-invalid-json"
+E_CANONICAL_NOT_OBJECT = "canonical-not-object"
+E_CANONICAL_FORMAT = "canonical-format-mismatch"
+E_CANONICAL_UNKNOWN_KEY = "canonical-unknown-key"
+E_CANONICAL_MISSING_KEY = "canonical-missing-key"
+E_CANONICAL_UNKNOWN_KIND = "canonical-unknown-kind"
+E_CANONICAL_BAD_VALUE = "canonical-bad-value"
+E_CANONICAL_ARCHIVE_FORBIDDEN = "canonical-archive-forbidden"
+E_CANONICAL_OBJECTISH = "canonical-objectish-invalid"
+E_CANONICAL_BLOB_MISSING = "canonical-blob-missing"
+
+WORKFLOW_REJECTION_CODES: tuple[str, ...] = (
+    E_CANONICAL_ARCHIVE_FORBIDDEN,
+    E_CANONICAL_BAD_VALUE,
+    E_CANONICAL_BLOB_MISSING,
+    E_CANONICAL_FORMAT,
+    E_CANONICAL_INVALID_JSON,
+    E_CANONICAL_MISSING_KEY,
+    E_CANONICAL_NOT_OBJECT,
+    E_CANONICAL_OBJECTISH,
+    E_CANONICAL_UNKNOWN_KEY,
+    E_CANONICAL_UNKNOWN_KIND,
+)
+"""Sorted and CLOSED: every code the workflow-document layer can raise."""
+
+_DOCUMENT_KEYS = frozenset({"canonical_format", "canonical_format_version", "workflow"})
+_WORKFLOW_REQUIRED = frozenset({"id", "kind", "nodes", "params", "spec_version", "units"})
+_WORKFLOW_OPTIONAL = frozenset({"budget_micro", "default_on_failure"})
+_UNIT_REQUIRED = frozenset(
+    {
+        "id",
+        "kind",
+        "on_failure",
+        "owner_flags",
+        "prompt_ref",
+        "routing",
+        "source_policy",
+        "tool_permissions",
+    }
+)
+_UNIT_OPTIONAL = frozenset(
+    {
+        "prompt",
+        "timeout_s",
+        "receipt",
+        "depends_on",
+        "budget_micro",
+        "isolation",
+        "writes",
+        "fail_family",
+    }
+)
+_ROUTING_KEYS = frozenset({"fallbacks", "model", "role", "vendor"})
+_RECEIPT_KEYS = frozenset({"fmt", "required_fields", "forbidden_markers"})
+_PARAM_REQUIRED = frozenset({"default", "enum", "name", "param_type", "required", "secret_ref"})
+_PARAM_OPTIONAL = frozenset({"ref"})
+_BINDING_KEYS = frozenset({"name", "value"})
+_TEMPLATE_KEYS = frozenset({"id", "prompt_ref"})
+_NODE_REQUIRED: dict[str, frozenset[str]] = {
+    "FanOut": frozenset({"id", "kind", "on_failure", "unit_ids"}),
+    "Barrier": frozenset({"id", "kind", "on_failure", "wait_for"}),
+    "Pipeline": frozenset({"id", "kind", "on_failure", "stages"}),
+    "Subworkflow": frozenset(
+        {"id", "id_namespace", "kind", "on_failure", "param_bindings", "workflow_ref"}
+    ),
+    "Loop": frozenset(
+        {
+            "body",
+            "convergence_expr",
+            "id",
+            "kind",
+            "max_iterations",
+            "on_bound_reached",
+            "on_failure",
+        }
+    ),
+    "HumanCheckpoint": frozenset(
+        {
+            "allowed_responses",
+            "default_if_unanswered",
+            "id",
+            "kind",
+            "on_failure",
+            "pause_token",
+            "prompt_ref",
+        }
+    ),
+    "DynamicFanOut": frozenset(
+        {
+            "id",
+            "item_path",
+            "kind",
+            "max_cardinality",
+            "on_failure",
+            "producer_unit",
+            "unit_template",
+        }
+    ),
+}
+_NODE_OPTIONAL: dict[str, frozenset[str]] = {
+    "Barrier": frozenset({"policy", "null_tolerant"}),
+}
+
+
+def _ordered(value: Any) -> Any:
+    """Recursively order mapping keys by UTF-16 code units (R3) for the indented renderer."""
+    if isinstance(value, dict):
+        return {
+            key: _ordered(value[key]) for key in sorted(value, key=utf16_sort_key)
+        }
+    if isinstance(value, (list, tuple)):
+        return [_ordered(item) for item in value]
+    return value
+
+
+def _wire_int(value: Any, where: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}: expected an integer")
+    if not MIN_SAFE_INTEGER <= value <= MAX_SAFE_INTEGER:
+        raise CanonicalJsonError(E_INT_RANGE, f"{where}: integer outside the safe range")
+    return value
+
+
+def _routing_document(routing: Routing) -> dict[str, Any]:
+    return {
+        "fallbacks": list(routing.fallbacks),
+        "model": routing.model,
+        "role": routing.role,
+        "vendor": routing.vendor,
+    }
+
+
+def _unit_document(unit: WorkUnit) -> dict[str, Any]:
+    doc: dict[str, Any] = {
+        "id": unit.id,
+        "kind": unit.kind,
+        "on_failure": unit.on_failure,
+        "owner_flags": list(unit.owner_flags),
+        "prompt_ref": unit.prompt_ref,
+        "routing": None if unit.routing is None else _routing_document(unit.routing),
+        "source_policy": list(unit.source_policy),
+        "tool_permissions": list(unit.tool_permissions),
+    }
+    if unit.prompt:
+        doc["prompt"] = unit.prompt
+    if unit.timeout_s:
+        doc["timeout_s"] = _wire_int(unit.timeout_s, f"unit {unit.id!r} timeout_s")
+    if unit.receipt is not None:
+        doc["receipt"] = {
+            "fmt": unit.receipt.fmt,
+            "required_fields": list(unit.receipt.required_fields),
+            "forbidden_markers": list(unit.receipt.forbidden_markers),
+        }
+    if unit.depends_on:
+        doc["depends_on"] = list(unit.depends_on)
+    if unit.budget_micro:
+        doc["budget_micro"] = _wire_int(unit.budget_micro, f"unit {unit.id!r} budget_micro")
+    if unit.isolation != "shared":
+        doc["isolation"] = unit.isolation
+    if unit.writes:
+        doc["writes"] = list(unit.writes)
+    if unit.fail_family is not None:
+        doc["fail_family"] = unit.fail_family
+    return doc
+
+
+def _node_document(node: Any) -> dict[str, Any]:
+    kind = getattr(node, "kind", type(node).__name__)
+    if kind not in _NODE_REQUIRED:
+        raise CanonicalJsonError(E_CANONICAL_UNKNOWN_KIND, f"node kind {kind!r}")
+    doc: dict[str, Any] = {"id": node.id, "kind": kind, "on_failure": node.on_failure}
+    if isinstance(node, FanOut):
+        doc["unit_ids"] = list(node.unit_ids or node.units)
+    elif isinstance(node, Barrier):
+        doc["wait_for"] = list(node.wait_for or node.awaits)
+        if node.policy != "all":
+            doc["policy"] = node.policy
+        if node.null_tolerant is not True:
+            doc["null_tolerant"] = bool(node.null_tolerant)
+    elif isinstance(node, Pipeline):
+        doc["stages"] = list(node.stages)
+    elif isinstance(node, Subworkflow):
+        doc["workflow_ref"] = node.workflow_ref
+        doc["id_namespace"] = node.id_namespace
+        doc["param_bindings"] = [
+            {"name": binding.name, "value": binding.value} for binding in node.param_bindings
+        ]
+    elif isinstance(node, Loop):
+        doc["body"] = list(node.body)
+        doc["convergence_expr"] = node.convergence_expr
+        doc["max_iterations"] = (
+            None
+            if node.max_iterations is None
+            else _wire_int(node.max_iterations, f"loop {node.id!r} max_iterations")
+        )
+        doc["on_bound_reached"] = node.on_bound_reached
+    elif isinstance(node, HumanCheckpoint):
+        doc["prompt_ref"] = node.prompt_ref
+        doc["allowed_responses"] = list(node.allowed_responses)
+        doc["default_if_unanswered"] = node.default_if_unanswered
+        doc["pause_token"] = node.pause_token
+    elif isinstance(node, DynamicFanOut):
+        doc["producer_unit"] = node.producer_unit
+        doc["item_path"] = node.item_path
+        template = node.unit_template
+        doc["unit_template"] = (
+            {"id": template.id, "prompt_ref": template.prompt_ref}
+            if isinstance(template, UnitTemplate)
+            else template
+        )
+        doc["max_cardinality"] = _wire_int(
+            node.max_cardinality, f"dynamic fan-out {node.id!r} max_cardinality"
+        )
+    return doc
+
+
+def _param_document(param: Param) -> dict[str, Any]:
+    secret = param.secret_ref
+    if isinstance(secret, SecretRef):
+        secret = f"{secret.source}:{secret.name}"
+    doc: dict[str, Any] = {
+        "default": param.default,
+        "enum": list(param.enum),
+        "name": param.name or param.id,
+        "param_type": param.param_type or param.kind,
+        "required": bool(param.required),
+        "secret_ref": secret,
+    }
+    if param.ref is not None:
+        doc["ref"] = dict(param.ref)
+    return doc
+
+
+def workflow_to_document(workflow: Workflow) -> dict[str, Any]:
+    """The canonical document (plain JSON-typed mapping) of ``workflow``."""
+    if not isinstance(workflow, Workflow):
+        raise CanonicalJsonError(
+            E_CANONICAL_NOT_OBJECT, f"expected a Workflow, got {type(workflow).__name__}"
+        )
+    body: dict[str, Any] = {
+        "id": workflow.id,
+        "kind": workflow.kind,
+        "spec_version": str(workflow.spec_version),
+        "units": [_unit_document(unit) for unit in workflow.units],
+        "nodes": [_node_document(node) for node in workflow.nodes],
+        "params": [_param_document(param) for param in workflow.params],
+    }
+    if workflow.budget_micro:
+        body["budget_micro"] = _wire_int(workflow.budget_micro, "workflow budget_micro")
+    if workflow.default_on_failure != DEFAULT_ON_FAILURE:
+        body["default_on_failure"] = workflow.default_on_failure
+    return {
+        "canonical_format": CANONICAL_FORMAT,
+        "canonical_format_version": CANONICAL_FORMAT_VERSION,
+        "workflow": body,
+    }
+
+
+def _check_keys(
+    mapping: Any, required: frozenset[str], optional: frozenset[str], where: str
+) -> dict[str, Any]:
+    if not isinstance(mapping, dict):
+        raise CanonicalJsonError(E_CANONICAL_NOT_OBJECT, f"{where}: expected an object")
+    keys = set(mapping)
+    unknown = sorted(keys - required - optional)
+    if unknown:
+        raise CanonicalJsonError(E_CANONICAL_UNKNOWN_KEY, f"{where}: unknown key(s) {unknown}")
+    missing = sorted(required - keys)
+    if missing:
+        raise CanonicalJsonError(E_CANONICAL_MISSING_KEY, f"{where}: missing key(s) {missing}")
+    return mapping
+
+
+def _text(value: Any, where: str) -> str:
+    if not isinstance(value, str):
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}: expected a string")
+    return value
+
+
+def _text_or_none(value: Any, where: str) -> str | None:
+    return None if value is None else _text(value, where)
+
+
+def _texts(value: Any, where: str) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}: expected a list of strings")
+    return tuple(_text(item, where) for item in value)
+
+
+def _flag(value: Any, where: str) -> bool:
+    if not isinstance(value, bool):
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}: expected a boolean")
+    return value
+
+
+def _unit_from_document(doc: Any, index: int) -> WorkUnit:
+    where = f"units[{index}]"
+    doc = _check_keys(doc, _UNIT_REQUIRED, _UNIT_OPTIONAL, where)
+    if doc["kind"] != "WorkUnit":
+        raise CanonicalJsonError(E_CANONICAL_UNKNOWN_KIND, f"{where}: kind {doc['kind']!r}")
+    routing = None
+    if doc["routing"] is not None:
+        routing_doc = _check_keys(doc["routing"], _ROUTING_KEYS, frozenset(), f"{where}.routing")
+        routing = Routing(
+            vendor=_text(routing_doc["vendor"], f"{where}.routing.vendor"),
+            model=_text(routing_doc["model"], f"{where}.routing.model"),
+            role=_text(routing_doc["role"], f"{where}.routing.role"),
+            fallbacks=_texts(routing_doc["fallbacks"], f"{where}.routing.fallbacks"),
+        )
+    receipt = None
+    if doc.get("receipt") is not None:
+        receipt_doc = _check_keys(doc["receipt"], _RECEIPT_KEYS, frozenset(), f"{where}.receipt")
+        receipt = ReceiptSpec(
+            fmt=_text(receipt_doc["fmt"], f"{where}.receipt.fmt"),
+            required_fields=_texts(receipt_doc["required_fields"], f"{where}.receipt"),
+            forbidden_markers=_texts(receipt_doc["forbidden_markers"], f"{where}.receipt"),
+        )
+    return WorkUnit(
+        id=_text(doc["id"], f"{where}.id"),
+        prompt=_text(doc.get("prompt", ""), f"{where}.prompt"),
+        timeout_s=_wire_int(doc.get("timeout_s", 0), f"{where}.timeout_s"),
+        receipt=receipt,
+        depends_on=_texts(doc.get("depends_on", []), f"{where}.depends_on"),
+        budget_micro=_wire_int(doc.get("budget_micro", 0), f"{where}.budget_micro"),
+        isolation=_text(doc.get("isolation", "shared"), f"{where}.isolation"),
+        writes=_texts(doc.get("writes", []), f"{where}.writes"),
+        source_policy=_texts(doc["source_policy"], f"{where}.source_policy"),
+        owner_flags=_texts(doc["owner_flags"], f"{where}.owner_flags"),
+        prompt_ref=_text(doc["prompt_ref"], f"{where}.prompt_ref"),
+        routing=routing,
+        tool_permissions=_texts(doc["tool_permissions"], f"{where}.tool_permissions"),
+        on_failure=_text(doc["on_failure"], f"{where}.on_failure"),
+        fail_family=_text_or_none(doc.get("fail_family"), f"{where}.fail_family"),
+    )
+
+
+def _node_from_document(doc: Any, index: int) -> Any:
+    where = f"nodes[{index}]"
+    if not isinstance(doc, dict):
+        raise CanonicalJsonError(E_CANONICAL_NOT_OBJECT, f"{where}: expected an object")
+    kind = doc.get("kind")
+    if kind not in _NODE_REQUIRED:
+        raise CanonicalJsonError(E_CANONICAL_UNKNOWN_KIND, f"{where}: node kind {kind!r}")
+    doc = _check_keys(doc, _NODE_REQUIRED[kind], _NODE_OPTIONAL.get(kind, frozenset()), where)
+    node_id = _text(doc["id"], f"{where}.id")
+    on_failure = _text(doc["on_failure"], f"{where}.on_failure")
+    if kind == "FanOut":
+        return FanOut(
+            id=node_id, unit_ids=_texts(doc["unit_ids"], f"{where}.unit_ids"), on_failure=on_failure
+        )
+    if kind == "Barrier":
+        return Barrier(
+            id=node_id,
+            wait_for=_texts(doc["wait_for"], f"{where}.wait_for"),
+            policy=_text(doc.get("policy", "all"), f"{where}.policy"),
+            null_tolerant=_flag(doc.get("null_tolerant", True), f"{where}.null_tolerant"),
+            on_failure=on_failure,
+        )
+    if kind == "Pipeline":
+        return Pipeline(
+            id=node_id, stages=_texts(doc["stages"], f"{where}.stages"), on_failure=on_failure
+        )
+    if kind == "Subworkflow":
+        bindings_doc = doc["param_bindings"]
+        if not isinstance(bindings_doc, list):
+            raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}.param_bindings: list")
+        bindings = tuple(
+            ParamBinding(
+                name=_text(binding["name"], f"{where}.param_bindings[{i}].name"),
+                value=binding["value"],
+            )
+            for i, binding in enumerate(
+                _check_keys(b, _BINDING_KEYS, frozenset(), f"{where}.param_bindings[{i}]")
+                for i, b in enumerate(bindings_doc)
+            )
+        )
+        return Subworkflow(
+            id=node_id,
+            workflow_ref=_text(doc["workflow_ref"], f"{where}.workflow_ref"),
+            param_bindings=bindings,
+            id_namespace=_text(doc["id_namespace"], f"{where}.id_namespace"),
+            on_failure=on_failure,
+        )
+    if kind == "Loop":
+        max_iterations = doc["max_iterations"]
+        return Loop(
+            id=node_id,
+            body=_texts(doc["body"], f"{where}.body"),
+            convergence_expr=_text_or_none(doc["convergence_expr"], f"{where}.convergence_expr"),
+            max_iterations=(
+                None
+                if max_iterations is None
+                else _wire_int(max_iterations, f"{where}.max_iterations")
+            ),
+            on_bound_reached=_text(doc["on_bound_reached"], f"{where}.on_bound_reached"),
+            on_failure=on_failure,
+        )
+    if kind == "HumanCheckpoint":
+        # The object model has no ``on_failure`` on a checkpoint (IMP-0131 pins its five
+        # fields); the wire form carries the fixed default. Any other value could not survive
+        # a round trip, so it is refused rather than silently rewritten.
+        if on_failure != DEFAULT_ON_FAILURE:
+            raise CanonicalJsonError(
+                E_CANONICAL_BAD_VALUE,
+                f"{where}.on_failure: a HumanCheckpoint carries only {DEFAULT_ON_FAILURE!r}",
+            )
+        return HumanCheckpoint(
+            id=node_id,
+            prompt_ref=_text(doc["prompt_ref"], f"{where}.prompt_ref"),
+            allowed_responses=_texts(doc["allowed_responses"], f"{where}.allowed_responses"),
+            default_if_unanswered=_text_or_none(
+                doc["default_if_unanswered"], f"{where}.default_if_unanswered"
+            ),
+            pause_token=_text(doc["pause_token"], f"{where}.pause_token"),
+        )
+    template_doc = doc["unit_template"]
+    if isinstance(template_doc, dict):
+        template_doc = _check_keys(template_doc, _TEMPLATE_KEYS, frozenset(), f"{where}.unit_template")
+        template: UnitTemplate | str = UnitTemplate(
+            id=_text(template_doc["id"], f"{where}.unit_template.id"),
+            prompt_ref=_text(template_doc["prompt_ref"], f"{where}.unit_template.prompt_ref"),
+        )
+    else:
+        template = _text(template_doc, f"{where}.unit_template")
+    return DynamicFanOut(
+        id=node_id,
+        producer_unit=_text(doc["producer_unit"], f"{where}.producer_unit"),
+        item_path=_text(doc["item_path"], f"{where}.item_path"),
+        unit_template=template,
+        max_cardinality=_wire_int(doc["max_cardinality"], f"{where}.max_cardinality"),
+        on_failure=on_failure,
+    )
+
+
+def _param_from_document(doc: Any, index: int) -> Param:
+    where = f"params[{index}]"
+    doc = _check_keys(doc, _PARAM_REQUIRED, _PARAM_OPTIONAL, where)
+    enum = doc["enum"]
+    if not isinstance(enum, list):
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}.enum: expected a list")
+    ref = doc.get("ref")
+    if ref is not None and not isinstance(ref, dict):
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"{where}.ref: expected an object")
+    return Param(
+        name=_text(doc["name"], f"{where}.name"),
+        param_type=_text(doc["param_type"], f"{where}.param_type"),
+        default=doc["default"],
+        required=_flag(doc["required"], f"{where}.required"),
+        secret_ref=_text_or_none(doc["secret_ref"], f"{where}.secret_ref"),
+        enum=tuple(enum),
+        ref=ref,
+    )
+
+
+def document_to_workflow(document: Any) -> Workflow:
+    """Strict inverse of :func:`workflow_to_document`."""
+    doc = _check_keys(document, _DOCUMENT_KEYS, frozenset(), "document")
+    if doc["canonical_format"] != CANONICAL_FORMAT:
+        raise CanonicalJsonError(
+            E_CANONICAL_FORMAT, f"canonical_format {doc['canonical_format']!r}"
+        )
+    if doc["canonical_format_version"] != CANONICAL_FORMAT_VERSION:
+        raise CanonicalJsonError(
+            E_CANONICAL_FORMAT, f"canonical_format_version {doc['canonical_format_version']!r}"
+        )
+    body = _check_keys(doc["workflow"], _WORKFLOW_REQUIRED, _WORKFLOW_OPTIONAL, "workflow")
+    if body["kind"] != "Workflow":
+        raise CanonicalJsonError(E_CANONICAL_UNKNOWN_KIND, f"workflow kind {body['kind']!r}")
+    for key in ("units", "nodes", "params"):
+        if not isinstance(body[key], list):
+            raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, f"workflow.{key}: expected a list")
+    return Workflow(
+        id=_text(body["id"], "workflow.id"),
+        spec_version=_text(body["spec_version"], "workflow.spec_version"),
+        units=tuple(_unit_from_document(u, i) for i, u in enumerate(body["units"])),
+        nodes=tuple(_node_from_document(n, i) for i, n in enumerate(body["nodes"])),
+        budget_micro=_wire_int(body.get("budget_micro", 0), "workflow.budget_micro"),
+        params=tuple(_param_from_document(p, i) for i, p in enumerate(body["params"])),
+        default_on_failure=_text(
+            body.get("default_on_failure", DEFAULT_ON_FAILURE), "workflow.default_on_failure"
+        ),
+    )
+
 
 def export(workflow: Any) -> bytes:
-    return dumpb(workflow)
+    """Render ``workflow`` as the canonical document: UTF-8, LF only, one trailing LF.
+
+    A document (mapping / str / bytes) is accepted too and is NORMALISED -- imported strictly,
+    then rendered -- so ``export`` of any accepted input is always canonical bytes.
+    """
+    if not isinstance(workflow, Workflow):
+        workflow = import_workflow(workflow)
+    document = _ordered(workflow_to_document(workflow))
+    try:
+        text = json.dumps(document, indent=2, ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, str(exc)) from exc
+    try:
+        return (text + "\n").encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise CanonicalJsonError(E_CANONICAL_BAD_VALUE, "unpaired surrogate in a string") from exc
 
 
-def import_workflow(data: Any) -> Any:
-    if isinstance(data, bytes):
-        return loadb(data)
+def import_workflow(data: Any) -> Workflow:
+    """Parse a canonical document (bytes, text or mapping) into a :class:`Workflow`.
+
+    Bytes may carry CRLF line ends or a leading BOM -- the working-tree copies git produces on
+    an autocrlf checkout -- and import to the SAME workflow as the LF blob, which is the whole
+    point of a canonical form. Anything else that differs is refused, never repaired.
+    """
+    if isinstance(data, Workflow):
+        return data
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        try:
+            text = bytes(data).decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise CanonicalJsonError(E_INVALID_UTF8, "not valid UTF-8") from exc
+        data = text.lstrip("\ufeff")
     if isinstance(data, str):
-        return loads(data)
-    return data
+        try:
+            data = json.loads(data, parse_constant=_reject_constant)
+        except (ValueError, RecursionError) as exc:
+            raise CanonicalJsonError(E_CANONICAL_INVALID_JSON, str(exc)[:200]) from exc
+    return document_to_workflow(data)
 
 
-def round_trip_bytes(data: bytes) -> bytes:
-    return dumpb(import_workflow(data))
+def round_trip_bytes(data: Any) -> bytes:
+    """``export(import_workflow(data))`` -- the canonical bytes of whatever ``data`` denotes."""
+    return export(import_workflow(data))
 
 
-def round_trip_workflow(workflow: Any) -> Any:
-    return import_workflow(export(workflow))
+def round_trip_workflow(workflow: Workflow) -> bytes:
+    """``export(import_workflow(export(workflow)))``: equal to ``export(workflow)`` iff the
+    document layer is a fixed point for this workflow."""
+    return export(import_workflow(export(workflow)))
+
+
+def read_blob_via_cat_file(*, git_dir: Path | str, objectish: str) -> bytes:
+    """The exact bytes of one git BLOB, via ``git cat-file -p`` -- never ``git archive``.
+
+    ``cat-file -p`` streams the object as stored, so an LF blob comes back as LF even when the
+    working tree is CRLF; ``git archive`` applies export attributes and EOL conversion and is
+    therefore refused by name (``canonical-archive-forbidden``). ``objectish`` must be one
+    token: a sha, a ref or ``<rev>:<path>``.
+    """
+    token = str(objectish).strip()
+    if not token or any(ch.isspace() for ch in token):
+        parts = token.split()
+        if parts and parts[0].lower() == "archive":
+            raise CanonicalJsonError(
+                E_CANONICAL_ARCHIVE_FORBIDDEN, "git archive is not a blob read; use cat-file -p"
+            )
+        raise CanonicalJsonError(E_CANONICAL_OBJECTISH, f"objectish must be one token: {token!r}")
+    if token.lower() == "archive" or token.lower().startswith("archive:"):
+        raise CanonicalJsonError(
+            E_CANONICAL_ARCHIVE_FORBIDDEN, "git archive is not a blob read; use cat-file -p"
+        )
+    if token.startswith("-"):
+        raise CanonicalJsonError(E_CANONICAL_OBJECTISH, f"objectish looks like an option: {token!r}")
+    env = dict(os.environ)
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
+    proc = subprocess.run(
+        ["git", "--git-dir", str(git_dir), "cat-file", "-p", token],
+        capture_output=True,
+        env=env,
+        check=False,
+    )
+    if proc.returncode != 0:
+        detail = (proc.stderr or b"").decode("utf-8", "replace").strip()[:200]
+        raise CanonicalJsonError(E_CANONICAL_BLOB_MISSING, f"{token}: {detail or 'not found'}")
+    return proc.stdout
 
 
 def encode_string(text: str) -> str:

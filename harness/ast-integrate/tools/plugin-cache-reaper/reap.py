@@ -77,47 +77,326 @@ DEFAULT_MIN_AGE_MINUTES = 120
 # can only be taken on one OS is a branch the coverage gate can never close).
 IS_WINDOWS = os.name == "nt"
 
-# IMP-0042: retention is the plugin cache_policy control plane, not a fork.
-import sys as _sys
-from pathlib import Path as _Path
+# ---------------------------------------------------------------------------
+# IMP-0042: retention for the development-loop cache is tools/plugin/cache_policy
+# (``apply_retention``) -- imported, never forked.  The reaper is ALSO run from
+# places where that module is not importable: the mutation probe copies reap.py
+# alone into a scratch directory, and the scheduled task launches it by absolute
+# path with an empty sys.path[0].  So the import is resolved, not assumed: try the
+# normal import (same module object as any caller that already imported it), then
+# the sibling ``tools/plugin`` directory, and otherwise record the absence.  With
+# ``cp`` None the staging sweep still works; only retention argv is refused.
+# ---------------------------------------------------------------------------
 
-_PLUGIN_DIR = str(_Path(__file__).resolve().parents[1] / "plugin")
-if _PLUGIN_DIR not in _sys.path:
-    _sys.path.insert(0, _PLUGIN_DIR)
-import cache_policy as cp  # noqa: E402
+
+def _load_cache_policy():
+    try:
+        import cache_policy as module  # noqa: PLC0415
+
+        return module
+    except ImportError:
+        pass
+    sibling = Path(__file__).resolve().parents[1] / "plugin"
+    if (sibling / "cache_policy.py").is_file():
+        if str(sibling) not in sys.path:
+            sys.path.insert(0, str(sibling))
+        try:
+            import cache_policy as module  # noqa: PLC0415
+
+            return module
+        except ImportError:
+            return None
+    return None
+
+
+cp = _load_cache_policy()
+
+# The ONE scheduled task this tool owns.  The installer updates it in place
+# (Set-ScheduledTask) when it exists and registers it (Register-ScheduledTask)
+# exactly once when it does not; retention argv rides on that same task.
+TASK_NAME = "PluginCacheReaper"
+LEGACY_TASK_NAMES = ("ClaudePluginCacheReaper",)
+RETENTION_ARGV = ("--max-entries", "--max-bytes", "--retention-floor")
+DEFAULT_IDLE_TTL_MINUTES = 0  # 0 = no idle-TTL eviction; ceilings and floor only
+
+
+def installer_path() -> Path:
+    return Path(__file__).resolve().with_name("install_reaper_task.ps1")
+
+
+def task_identity() -> dict[str, object]:
+    """What the installer actually binds, read from its text -- not asserted.
+
+    ``task_name`` is the installer's ``$TaskName`` default; ``replaced`` is True only
+    if the install path drops and re-creates the task instead of updating it in
+    place; ``retention_via`` names the retention control plane the task's argv
+    reaches (``cache_policy.apply_retention``) or is None when that module is not
+    importable from here.
+    """
+    path = installer_path()
+    text = path.read_text(encoding="utf-8") if path.is_file() else ""
+    match = re.search(r"\[string\]\$TaskName\s*=\s*'([^']+)'", text)
+    task_name = match.group(1) if match else TASK_NAME
+    registers = text.count("Register-ScheduledTask")
+    updates_in_place = "Set-ScheduledTask" in text
+    install_section = text.split("if ($Uninstall)", 1)[-1]
+    # Any Unregister on the install path that is not the legacy-name migration
+    # means the task is torn down and re-created, i.e. replaced.
+    unregisters_current = bool(
+        re.search(r"Unregister-ScheduledTask\s+-TaskName\s+\$TaskName\b", install_section)
+    )
+    replaced = (not updates_in_place) or registers != 1 or unregisters_current
+    return {
+        "task_name": task_name,
+        "legacy_task_names": [n for n in LEGACY_TASK_NAMES if n in text],
+        "replaced": replaced,
+        "retention_via": "cache_policy.apply_retention" if cp is not None else None,
+        "retention_argv": [flag for flag in RETENTION_ARGV if flag in text],
+        "installer": path.name,
+        "installer_present": path.is_file(),
+        "installer_has_set_scheduled_task": updates_in_place,
+        "register_scheduled_task_count": registers,
+        "binds_reap_py": "reap.py" in text,
+    }
+
+
+def default_dev_cache_root() -> Path:
+    """The development-loop cache retention bounds (sibling of the vendor cache)."""
+    if cp is not None and hasattr(cp, "default_dev_cache_root"):
+        return Path(cp.default_dev_cache_root())
+    return Path.home() / ".claude" / "plugins" / "dev-cache"
+
+
+def retain_dev_cache(
+    root: Path,
+    *,
+    max_entries: int,
+    max_bytes: int,
+    retention_floor: int,
+    idle_ttl_minutes: int = DEFAULT_IDLE_TTL_MINUTES,
+    apply: bool,
+    now_ns: int | None = None,
+) -> dict[str, object]:
+    """Bound the dev cache through ``cache_policy`` -- the plan is theirs, not ours.
+
+    Dry-run (the default, like the staging sweep) reports the plan and touches
+    nothing; ``apply`` executes ``cache_policy.apply_retention`` on that plan.
+    """
+    if cp is None:
+        raise RuntimeError("cache_policy is not importable from here; retention unavailable")
+    root = Path(root)
+    idle_ttl_ns = int(idle_ttl_minutes) * 60_000_000_000 if int(idle_ttl_minutes) > 0 else None
+    plan = cp.retention_plan(
+        root,
+        max_entries=max_entries,
+        max_bytes=max_bytes,
+        retention_floor=retention_floor,
+        idle_ttl_ns=idle_ttl_ns,
+        now_ns=now_ns,
+    )
+    if apply and plan["index_present"]:
+        cp.apply_retention(
+            root,
+            max_entries=max_entries,
+            max_bytes=max_bytes,
+            retention_floor=retention_floor,
+            idle_ttl_ns=idle_ttl_ns,
+            now_ns=now_ns,
+        )
+    return {
+        "root": str(root),
+        "applied": bool(apply and plan["index_present"]),
+        "index_present": plan["index_present"],
+        "evicted": [str(v.get("name")) for v in plan["victims"]],
+        "kept": len(plan["kept"]),
+        "bytes_before": plan["bytes_before"],
+        "bytes_after": plan["bytes_after"],
+        "via": "cache_policy.apply_retention",
+    }
 
 
 PAYLOAD_NAME = "payload.bin"
+SOURCE_NAME = "source.bin"
+META_NAME = "entry.json"
+
+# ---------------------------------------------------------------------------
+# IMP-0040: content-addressed plugin cache.  The cache key is derived from the
+# plugin version AND the sha256 of the source bytes that produced the artefact,
+# so a fixed package can never be masked by a stale entry: when the source hash
+# changes the key changes and the old entry is unreachable by construction, not
+# by an expiry heuristic.  Layout: <root>/<plugin_version>/<source_sha256>/payload.bin
+# (the on-disk key IS the directory pair, so a listing shows the change).
+# tools/plugin/cache.py is a facade that re-exports these names; the layout is
+# defined here and nowhere else.
+# ---------------------------------------------------------------------------
+_VERSION_SAFE_RE = re.compile(r"[^A-Za-z0-9._+-]")
+
+
+def source_digest_of(source: bytes) -> str:
+    """sha256 of the source bytes with CRLF normalised to LF (the source identity)."""
+    import hashlib
+
+    return hashlib.sha256(bytes(source).replace(b"\r\n", b"\n")).hexdigest()
+
+
+def _safe_version(plugin_version: str) -> str:
+    text = str(plugin_version).strip()
+    if not text:
+        raise ValueError("plugin_version must be non-empty")
+    return _VERSION_SAFE_RE.sub("_", text)
 
 
 def content_addressed_key(plugin_version: str, source_digest: str) -> str:
-    """Cache key is plugin_version + source_digest, not a hit-rate counter."""
-    import hashlib
-
-    blob = f"{plugin_version}:{source_digest}".encode("utf-8")
-    return hashlib.sha256(blob).hexdigest()
+    """Cache key is ``<plugin_version>/<source_digest>``: version AND source hash, never a counter."""
+    digest = str(source_digest).strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ValueError(f"source_digest must be a sha256 hex, got {source_digest!r}")
+    return f"{_safe_version(plugin_version)}/{digest}"
 
 
 def cache_key(plugin_version: str, source_digest: str) -> str:
     return content_addressed_key(plugin_version, source_digest)
 
 
-def get_or_compute(root, key: str, source: bytes) -> bytes:
-    """Serve stored bytes for key, else derive from source and persist."""
-    from pathlib import Path as _P
+def default_produce(source: bytes) -> bytes:
+    """The identity build: the artefact is the LF-normalised source.  Real callers inject theirs."""
+    return bytes(source).replace(b"\r\n", b"\n")
 
-    root_p = _P(root)
-    root_p.mkdir(parents=True, exist_ok=True)
-    dest = root_p / key
-    if dest.is_file():
-        return dest.read_bytes()
-    payload = source
-    if b"NEW-PAYLOAD" in source:
-        payload = b"NEW-PAYLOAD"
-    elif b"OLD-PAYLOAD" in source:
-        payload = b"OLD-PAYLOAD"
-    dest.write_bytes(payload)
-    return payload
+
+def _atomic_write_bytes(path: Path, data: bytes) -> None:
+    """Sibling temp file + ``os.replace`` so a concurrent reader sees old or new, never torn."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.{id(data) & 0xFFFF:x}.tmp")
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    try:
+        view = memoryview(data)
+        while view:
+            written = os.write(fd, view)
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    os.replace(str(tmp), str(path))
+
+
+class ContentAddressedPluginCache:
+    """Entries keyed by plugin version + sha256(source); a source change makes the old key unreachable."""
+
+    def __init__(self, root, produce=None) -> None:
+        self.root = Path(root)
+        self.produce = produce or default_produce
+        self.computed = 0
+        self.served_from_disk = 0
+
+    def key(self, plugin_version: str, source: bytes) -> str:
+        return content_addressed_key(plugin_version, source_digest_of(source))
+
+    def entry_dir(self, key: str) -> Path:
+        version, _, digest = key.partition("/")
+        if not version or not digest or "/" in digest or ".." in (version, digest):
+            raise ValueError(f"malformed cache key {key!r}")
+        return self.root / version / digest
+
+    def payload_path(self, key: str) -> Path:
+        return self.entry_dir(key) / PAYLOAD_NAME
+
+    def has(self, key: str) -> bool:
+        return self.payload_path(key).is_file()
+
+    def get_or_compute(self, plugin_version: str, source: bytes, produce=None) -> bytes:
+        """Serve the artefact for (version, sha256(source)); derive and persist it on a miss."""
+        key = self.key(plugin_version, source)
+        return self.get_or_compute_key(key, source, produce)
+
+    def get_or_compute_key(self, key: str, source: bytes, produce=None) -> bytes:
+        path = self.payload_path(key)
+        if path.is_file():
+            self.served_from_disk += 1
+            return path.read_bytes()
+        builder = produce or self.produce
+        payload = bytes(builder(bytes(source)))
+        entry = self.entry_dir(key)
+        _atomic_write_bytes(entry / SOURCE_NAME, bytes(source))
+        _atomic_write_bytes(
+            entry / META_NAME,
+            (
+                '{"key": "%s", "source_sha256": "%s", "payload_bytes": %d}\n'
+                % (key, source_digest_of(source), len(payload))
+            ).encode("utf-8"),
+        )
+        _atomic_write_bytes(path, payload)
+        self.computed += 1
+        return payload
+
+    def keys(self) -> list[str]:
+        """On-disk keys as ``version/source_sha256`` pairs (directory listing, not a counter)."""
+        found: list[str] = []
+        if not self.root.is_dir():
+            return found
+        for version_dir in sorted(p for p in self.root.iterdir() if p.is_dir()):
+            for digest_dir in sorted(p for p in version_dir.iterdir() if p.is_dir()):
+                if (digest_dir / PAYLOAD_NAME).is_file():
+                    found.append(f"{version_dir.name}/{digest_dir.name}")
+        return found
+
+
+class TimeBasedPluginCache:
+    """NEGATIVE CONTROL: keyed by plugin id + version only, expiring by TTL.
+
+    Inside its TTL window it keeps serving the artefact built from the OLD
+    source after the source changed -- exactly the staleness the
+    content-addressed cache makes impossible.  Kept so the oracle can be shown
+    to fire on the bad design and stay silent on the good one.
+    """
+
+    def __init__(self, root, ttl_seconds: float = 3600.0, clock=None, produce=None) -> None:
+        import time as _time
+
+        self.root = Path(root)
+        self.ttl_seconds = float(ttl_seconds)
+        self.clock = clock or _time.time
+        self.produce = produce or default_produce
+        self.computed = 0
+
+    def key(self, plugin_id: str, plugin_version: str) -> str:
+        return f"{_VERSION_SAFE_RE.sub('_', str(plugin_id))}@{_safe_version(plugin_version)}"
+
+    def entry_dir(self, key: str) -> Path:
+        return self.root / key
+
+    def _stamp_path(self, key: str) -> Path:
+        return self.entry_dir(key) / "built-at.txt"
+
+    def is_fresh(self, key: str) -> bool:
+        stamp = self._stamp_path(key)
+        payload = self.entry_dir(key) / PAYLOAD_NAME
+        if not stamp.is_file() or not payload.is_file():
+            return False
+        built_at = float(stamp.read_text(encoding="ascii").strip() or "0")
+        return (float(self.clock()) - built_at) < self.ttl_seconds
+
+    def get_or_compute(self, plugin_id: str, plugin_version: str, source: bytes, produce=None) -> bytes:
+        """Serve whatever was built within the TTL, regardless of the source bytes passed now."""
+        key = self.key(plugin_id, plugin_version)
+        payload_path = self.entry_dir(key) / PAYLOAD_NAME
+        if self.is_fresh(key):
+            return payload_path.read_bytes()
+        builder = produce or self.produce
+        payload = bytes(builder(bytes(source)))
+        _atomic_write_bytes(payload_path, payload)
+        _atomic_write_bytes(self._stamp_path(key), f"{float(self.clock()):.6f}\n".encode("ascii"))
+        self.computed += 1
+        return payload
+
+    def keys(self) -> list[str]:
+        if not self.root.is_dir():
+            return []
+        return sorted(p.name for p in self.root.iterdir() if (p / PAYLOAD_NAME).is_file())
+
+
+def get_or_compute(root, key: str, source: bytes, produce=None) -> bytes:
+    """Module-level convenience: serve ``key`` from ``root`` or derive it from ``source``."""
+    return ContentAddressedPluginCache(root, produce).get_or_compute_key(key, source, produce)
 
 
 @dataclass(frozen=True)
@@ -331,7 +610,50 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--no-measure", action="store_true", help="skip the byte tally (faster)"
     )
+    # IMP-0042: dev-cache retention rides on the SAME task and the same --apply
+    # switch.  Defaults are None so "not passed" is distinguishable from a value:
+    # with no retention argv and no dev cache on disk, nothing retention-related
+    # happens and the output is unchanged.
+    retention = parser.add_argument_group("dev-cache retention (cache_policy)")
+    retention.add_argument(
+        "--dev-cache-root",
+        type=Path,
+        default=None,
+        help="development-loop cache to bound (default: cache_policy.default_dev_cache_root())",
+    )
+    retention.add_argument("--max-entries", type=int, default=None, help="entry ceiling")
+    retention.add_argument("--max-bytes", type=int, default=None, help="byte ceiling")
+    retention.add_argument(
+        "--retention-floor", type=int, default=None, help="never evict below this many newest"
+    )
+    retention.add_argument(
+        "--idle-ttl-minutes",
+        type=int,
+        default=None,
+        help="also evict entries idle longer than this (0 disables; floor still wins)",
+    )
+    retention.add_argument(
+        "--skip-retention", action="store_true", help="staging sweep only, never touch the dev cache"
+    )
     return parser
+
+
+def _retention_requested(args: argparse.Namespace) -> bool:
+    return any(
+        getattr(args, name) is not None
+        for name in ("dev_cache_root", "max_entries", "max_bytes", "retention_floor", "idle_ttl_minutes")
+    )
+
+
+def _retention_summary(result: dict[str, object]) -> str:
+    evicted = result["evicted"]
+    count = len(evicted) if isinstance(evicted, list) else 0
+    verb = "evicted" if result["applied"] else "would evict"
+    return (
+        f"retention={verb} {count} dev-cache entries "
+        f"(kept {result['kept']}, {result['bytes_before']}->{result['bytes_after']} bytes) "
+        f"under {result['root']} via {result['via']}"
+    )
 
 
 def main(argv: list[str] | None = None, *, now_ms: int | None = None) -> int:
@@ -340,6 +662,19 @@ def main(argv: list[str] | None = None, *, now_ms: int | None = None) -> int:
     if args.min_age_minutes < 1:
         print(
             "FAILED:plugin-cache-reap --min-age-minutes must be >= 1", file=sys.stderr
+        )
+        return 2
+    for name in ("max_entries", "max_bytes", "retention_floor", "idle_ttl_minutes"):
+        value = getattr(args, name)
+        if value is not None and value < 0:
+            print(f"FAILED:plugin-cache-reap --{name.replace('_', '-')} must be >= 0", file=sys.stderr)
+            return 2
+    retention_wanted = _retention_requested(args) and not args.skip_retention
+    if retention_wanted and cp is None:
+        print(
+            "FAILED:plugin-cache-reap retention argv given but tools/plugin/cache_policy "
+            "is not importable from here",
+            file=sys.stderr,
         )
         return 2
     root = args.root if args.root is not None else default_cache_root()
@@ -359,10 +694,38 @@ def main(argv: list[str] | None = None, *, now_ms: int | None = None) -> int:
         print(f"FAILED:plugin-cache-reap {exc}", file=sys.stderr)
         return 2
     verb = "reaped" if args.apply else "would reap"
-    print(
+    line = (
         f"SUCCESS:plugin-cache-reap {verb} {report['count']} staging dirs "
         f"({report['bytes']} bytes) under {report['root']} by_kind={report['by_kind']}"
     )
+    dev_root = args.dev_cache_root if args.dev_cache_root is not None else None
+    if cp is not None and not args.skip_retention and dev_root is None:
+        candidate = default_dev_cache_root()
+        # Unrequested retention only when a dev cache already exists: never create one.
+        if (candidate / "index.json").is_file():
+            dev_root = candidate
+    if retention_wanted or dev_root is not None:
+        if dev_root is None:
+            dev_root = default_dev_cache_root()
+        try:
+            result = retain_dev_cache(
+                dev_root,
+                max_entries=args.max_entries if args.max_entries is not None else cp.DEFAULT_MAX_ENTRIES,
+                max_bytes=args.max_bytes if args.max_bytes is not None else cp.DEFAULT_MAX_BYTES,
+                retention_floor=(
+                    args.retention_floor if args.retention_floor is not None else cp.DEFAULT_RETENTION_FLOOR
+                ),
+                idle_ttl_minutes=(
+                    args.idle_ttl_minutes if args.idle_ttl_minutes is not None else DEFAULT_IDLE_TTL_MINUTES
+                ),
+                apply=args.apply,
+                now_ns=now_ms * 1_000_000,
+            )
+        except (OSError, RuntimeError, ValueError) as exc:
+            print(f"FAILED:plugin-cache-reap retention {exc}", file=sys.stderr)
+            return 2
+        line += " " + _retention_summary(result)
+    print(line)
     return 0
 
 

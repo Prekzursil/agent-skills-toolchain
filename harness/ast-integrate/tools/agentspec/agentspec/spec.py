@@ -30,6 +30,21 @@ ISOLATIONS: tuple[str, ...] = ("shared", "worktree")
 SPEC_VERSION_PRE_PHASE7 = 6
 CURRENT_SPEC_VERSION = 11
 
+# What a node does when a unit under it fails. ``abort`` stops the siblings that have not
+# started (they are SKIPPED, observably); ``continue`` lets them run. A workflow may set a
+# ``default_on_failure`` that its composer applies to every child (IMP-0189).
+ON_FAILURE_POLICIES: tuple[str, ...] = ("abort", "continue")
+DEFAULT_ON_FAILURE = "abort"
+
+# Node kinds the spec carried before Phase 7 and the four Phase-7 additions. The canonical
+# exporter (:mod:`agentspec.canonical`) must round-trip every member of the union byte-for-byte
+# (IMP-0146); a kind outside the union is refused on import, never coerced.
+EXISTING_NODE_KINDS: frozenset[str] = frozenset({"WorkUnit", "FanOut", "Barrier", "Pipeline"})
+NEW_NODE_KINDS: frozenset[str] = frozenset(
+    {"Subworkflow", "Loop", "HumanCheckpoint", "DynamicFanOut"}
+)
+ALL_NODE_KINDS: frozenset[str] = EXISTING_NODE_KINDS | NEW_NODE_KINDS
+
 
 @dataclass(frozen=True, slots=True)
 class ReceiptSpec:
@@ -64,18 +79,47 @@ class ReceiptSpec:
 
 @dataclass(frozen=True, slots=True)
 class WorkUnit:
-    """One dispatchable unit of work."""
+    """One dispatchable unit of work.
+
+    Two construction styles are legal and both round-trip:
+
+    * the DISPATCH form (``prompt``, ``timeout_s``, ``receipt``) a runtime executes -- the
+      defaults here are deliberately the values :func:`agentspec.validate.validate_workflow`
+      REPORTS (``unit-timeout-missing`` for ``timeout_s == 0``, a vacuous receipt for a missing
+      one), so omitting them is a validation finding, never a silent dispatch without a timeout;
+    * the DECLARATIVE form (``prompt_ref``, ``routing``, ``tool_permissions``, ``on_failure``)
+      the Phase-7 canonical document carries (IMP-0146).
+
+    ``budget`` and ``budget_micro`` are one quantity under two names (``budget`` is the
+    composer's spelling, IMP-0189); whichever is given is mirrored into the other.
+    """
 
     id: str
-    prompt: str
-    timeout_s: int
-    receipt: ReceiptSpec
+    prompt: str = ""
+    timeout_s: int = 0
+    receipt: ReceiptSpec | None = None
     depends_on: tuple[str, ...] = ()
     budget_micro: int = 0
     isolation: str = "shared"
     writes: tuple[str, ...] = ()
     source_policy: tuple[str, ...] = ()
     owner_flags: tuple[str, ...] = ()
+    prompt_ref: str = ""
+    routing: Routing | None = None
+    tool_permissions: tuple[str, ...] = ()
+    on_failure: str = DEFAULT_ON_FAILURE
+    budget: int = 0
+    fail_family: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.budget and not self.budget_micro:
+            object.__setattr__(self, "budget_micro", self.budget)
+        elif self.budget_micro and not self.budget:
+            object.__setattr__(self, "budget", self.budget_micro)
+
+    @property
+    def kind(self) -> str:
+        return "WorkUnit"
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,12 +129,17 @@ class FanOut:
     id: str
     units: tuple[str, ...] = ()
     unit_ids: tuple[str, ...] = ()
+    on_failure: str = DEFAULT_ON_FAILURE
 
     def __post_init__(self) -> None:
         if self.unit_ids and not self.units:
             object.__setattr__(self, "units", self.unit_ids)
         elif self.units and not self.unit_ids:
             object.__setattr__(self, "unit_ids", self.units)
+
+    @property
+    def kind(self) -> str:
+        return "FanOut"
 
 
 @dataclass(frozen=True, slots=True)
@@ -101,11 +150,23 @@ class UnitTemplate:
 
 @dataclass(frozen=True, slots=True)
 class DynamicFanOut:
+    """Fan out over the items a producer unit emits.
+
+    ``unit_template`` is either a :class:`UnitTemplate` (what
+    :mod:`agentspec.dynamic_fanout` resolves) or the template's id as a string, which is how
+    the canonical document spells it.
+    """
+
     id: str
     producer_unit: str
     item_path: str
-    unit_template: UnitTemplate
+    unit_template: UnitTemplate | str
     max_cardinality: int = 64
+    on_failure: str = DEFAULT_ON_FAILURE
+
+    @property
+    def kind(self) -> str:
+        return "DynamicFanOut"
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,12 +175,27 @@ class Barrier:
 
     ``null_tolerant`` defaults True: a unit that died and produced no result must not deadlock
     the join — the measured shape is one hung agent stalling a whole phase.
+
+    ``wait_for`` is the canonical-document spelling of ``awaits``; either may be given and the
+    other is filled in, so ``node.awaits`` is always the join set.
     """
 
     id: str
-    awaits: tuple[str, ...]
+    awaits: tuple[str, ...] = ()
     policy: str = "all"
     null_tolerant: bool = True
+    wait_for: tuple[str, ...] = ()
+    on_failure: str = DEFAULT_ON_FAILURE
+
+    def __post_init__(self) -> None:
+        if self.wait_for and not self.awaits:
+            object.__setattr__(self, "awaits", tuple(self.wait_for))
+        elif self.awaits and not self.wait_for:
+            object.__setattr__(self, "wait_for", tuple(self.awaits))
+
+    @property
+    def kind(self) -> str:
+        return "Barrier"
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +205,11 @@ class Pipeline:
 
     id: str
     stages: tuple[str, ...]
+    on_failure: str = DEFAULT_ON_FAILURE
+
+    @property
+    def kind(self) -> str:
+        return "Pipeline"
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,24 +221,107 @@ class Loop:
     convergence_expr: str | None
     max_iterations: int | None
     on_bound_reached: str = "abort"
+    on_failure: str = DEFAULT_ON_FAILURE
 
     def __post_init__(self) -> None:
         if self.convergence_expr in (None, "") and self.max_iterations is None:
             raise ValueError("loop-unbounded")
 
+    @property
+    def kind(self) -> str:
+        return "Loop"
 
-Node = FanOut | Barrier | Pipeline | Loop
+
+@dataclass(frozen=True, slots=True)
+class HumanCheckpoint:
+    """Owner gate that pauses dispatch until an allowed response is recorded.
+
+    A checkpoint has NO ``on_failure`` of its own: it never fails, it pauses, and
+    ``default_if_unanswered`` is its whole policy. The field set is the frozen constructor
+    contract IMP-0131 pins (exactly these five); the canonical wire form carries
+    ``on_failure`` for it as the fixed :data:`DEFAULT_ON_FAILURE`.
+    """
+
+    id: str
+    prompt_ref: str
+    allowed_responses: tuple[str, ...]
+    default_if_unanswered: str | None
+    pause_token: str
+
+    @property
+    def kind(self) -> str:
+        return "HumanCheckpoint"
+
+    @property
+    def on_failure(self) -> str:
+        """Read-only wire constant: a checkpoint's failure policy is always the default."""
+        return DEFAULT_ON_FAILURE
+
+
+@dataclass(frozen=True, slots=True)
+class ParamBinding:
+    """Bind one parameter of an embedded workflow to a value the parent supplies."""
+
+    name: str
+    value: object
+
+
+@dataclass(frozen=True, slots=True)
+class Subworkflow:
+    """Embed another workflow (``workflow_ref``) as one node of this one.
+
+    ``id_namespace`` prefixes every embedded unit id so two embeddings of the same child never
+    collide; :meth:`namespaced` is the ONE joining rule, shared by the composer
+    (:mod:`agentspec.compose`) and the canonical document.
+    """
+
+    id: str
+    workflow_ref: str
+    param_bindings: tuple[ParamBinding, ...] = ()
+    id_namespace: str = ""
+    on_failure: str = DEFAULT_ON_FAILURE
+
+    def __post_init__(self) -> None:
+        if not self.workflow_ref:
+            raise ValueError("subworkflow-ref-empty")
+
+    @property
+    def kind(self) -> str:
+        return "Subworkflow"
+
+    def namespaced(self, unit_id: str) -> str:
+        """The embedded id of a child unit: ``<namespace>.<unit_id>`` (a namespace that already
+        ends in ``.`` is used as-is; an empty namespace leaves the id untouched)."""
+        if not self.id_namespace:
+            return unit_id
+        if self.id_namespace.endswith("."):
+            return f"{self.id_namespace}{unit_id}"
+        return f"{self.id_namespace}.{unit_id}"
+
+
+Node = FanOut | Barrier | Pipeline | Loop | Subworkflow | HumanCheckpoint | DynamicFanOut
 
 
 @dataclass(frozen=True, slots=True)
 class Workflow:
-    """A whole declarative workflow: units, the graph over them, and the budget ceiling."""
+    """A whole declarative workflow: units, the graph over them, and the budget ceiling.
+
+    ``params`` declares the workflow's parameters (:class:`Param`); ``default_on_failure`` is
+    the policy the composer applies to an embedded child's failure unless a per-family
+    override says otherwise (IMP-0189).
+    """
 
     id: str
     spec_version: str
     units: tuple[WorkUnit, ...]
     nodes: tuple[Node, ...]
-    budget_micro: int
+    budget_micro: int = 0
+    params: tuple[Param, ...] = ()
+    default_on_failure: str = DEFAULT_ON_FAILURE
+
+    @property
+    def kind(self) -> str:
+        return "Workflow"
 
     def to_json(self) -> dict:
         def node_json(node: object) -> dict:
@@ -219,17 +383,6 @@ def unit_by_id(workflow: Workflow, unit_id: str) -> WorkUnit:
     raise KeyError(f"no work unit with id {unit_id!r}")
 
 
-@dataclass(frozen=True, slots=True)
-class HumanCheckpoint:
-    """Owner gate that pauses dispatch until an allowed response is recorded."""
-
-    id: str
-    prompt_ref: str
-    allowed_responses: tuple[str, ...]
-    default_if_unanswered: str | None
-    pause_token: str
-
-
 FAILURE_POLICIES: tuple[str, ...] = (
     "fail-closed",
     "fail-open",
@@ -270,12 +423,33 @@ class SecretRef:
 
 @dataclass
 class Param:
-    id: str
+    """A declared workflow parameter.
+
+    ``id``/``name`` and ``kind``/``param_type`` are the graph-file and canonical-document
+    spellings of the same two fields; give either and the other is filled in. ``secret_ref``
+    is a :class:`SecretRef` in the graph form and a ``"env:NAME"`` string in the canonical form.
+    """
+
+    id: str = ""
     kind: str = "string"
-    default: str | None = None
+    default: object | None = None
     required: bool = False
-    secret_ref: SecretRef | None = None
+    secret_ref: SecretRef | str | None = None
     ref: dict | None = None
+    name: str = ""
+    param_type: str = ""
+    enum: tuple[object, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.id and self.name:
+            self.id = self.name
+        elif not self.name and self.id:
+            self.name = self.id
+        if self.param_type:
+            self.kind = self.param_type
+        else:
+            self.param_type = self.kind
+        self.enum = tuple(self.enum)
 
 
 @dataclass

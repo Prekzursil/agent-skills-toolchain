@@ -2,10 +2,27 @@
   "$id": "https://prekzursil.dev/ast-integrate/schema/deploy-provenance.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "The provenance hash is the third reading the drift classifier needs; without it only a one-directional comparison is possible and DIVERGED is invisible.",
+  "description": "The provenance hash is the third reading the drift classifier needs; without it only a one-directional comparison is possible and DIVERGED is invisible. IMP-0033 adds the git blob identity (source_blob_sha) so every live file can be re-verified with git cat-file -p, plus the ledger-level context (git_dir, plugin_version, invoked_scripts, deployed_at) written by tools/plugin/deploy_provenance.py.",
   "properties": {
     "artifact": {
       "const": "deploy-provenance"
+    },
+    "deployed_at": {
+      "type": "number"
+    },
+    "git_dir": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "invoked_scripts": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "plugin_version": {
+      "type": "string"
     },
     "record_count": {
       "minimum": 0,
@@ -15,12 +32,23 @@
       "items": {
         "additionalProperties": false,
         "properties": {
+          "bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
           "content_sha256": {
             "pattern": "^[0-9a-f]{64}$",
             "type": "string"
           },
           "deployed_at": {
             "type": "number"
+          },
+          "family": {
+            "enum": [
+              "skills",
+              "hooks",
+              "rules"
+            ]
           },
           "live_path": {
             "minLength": 1,
@@ -32,6 +60,10 @@
               "link",
               "merge"
             ]
+          },
+          "source_blob_sha": {
+            "pattern": "^[0-9a-f]{40}$",
+            "type": "string"
           },
           "source_path": {
             "minLength": 1,

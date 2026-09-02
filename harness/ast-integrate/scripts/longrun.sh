@@ -38,6 +38,21 @@ OPT_HEARTBEAT_SEC=15
 OPT_HANG_TIMEOUT_SEC=0
 OPT_LOG_DIR="${TMPDIR:-${TMP:-/tmp}}"
 
+# ── Interpreter self-report (IMP-0012) ───────────────────────────────────────
+# Invoked with no arguments at all, the entrypoint identifies the interpreter
+# that is actually executing it and exits 0, so a launcher can compare the
+# child-reported executable with the interpreter it resolved from the
+# declaration in .claude-plugin/plugin.json. Options without a command still
+# fall through to the usage error below.
+if [[ $# -eq 0 ]]; then
+    LONGRUN_SELF_EXE="$(readlink -f "/proc/$$/exe" 2>/dev/null || command -v bash || printf 'bash')"
+    printf 'IMP-0012-CHILD entrypoint=scripts/longrun.sh family=bash\n'
+    printf 'interpreter=%s\n' "$LONGRUN_SELF_EXE"
+    printf 'bash_version=%s\n' "${BASH_VERSION:-unknown}"
+    printf 'usage: longrun.sh [OPTIONS] -- <command> [args...]\n'
+    exit 0
+fi
+
 # ── Parse options ─────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case "$1" in

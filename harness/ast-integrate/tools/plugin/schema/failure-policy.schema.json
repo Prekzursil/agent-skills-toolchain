@@ -1,60 +1,131 @@
 {
   "$id": "https://prekzursil.dev/ast-integrate/schema/failure-policy.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "additionalProperties": false,
-  "description": "Every fail-open row must carry a reason; the default is pinned to fail-closed.",
+  "title": "Per-component fail-open versus fail-closed policy table",
+  "description": "One row per plugin component. posture and on_failure must agree (fail-open <=> proceed, fail-closed <=> deny); every row carries a rationale and the published rule it encodes; the default is pinned to fail-closed. minItems is pinned to the current row count so dropping a component is a schema violation, not a silent contract break. Flipping a row is owner-gated (owner_lock).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "artifact",
+    "default_posture",
+    "encoded_published_rule",
+    "owner_lock",
+    "components"
+  ],
   "properties": {
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1
+    },
     "artifact": {
       "const": "failure-policy"
     },
-    "default_mode": {
+    "default_posture": {
       "const": "fail-closed"
     },
-    "fail_open_count": {
-      "minimum": 0,
-      "type": "integer"
+    "encoded_published_rule": {
+      "type": "string",
+      "minLength": 40
     },
-    "rules": {
+    "owner_lock": {
+      "type": "object",
+      "required": [
+        "flip_requires",
+        "posture_change_owner_gated"
+      ],
+      "properties": {
+        "flip_requires": {
+          "type": "string",
+          "minLength": 1
+        },
+        "posture_change_owner_gated": {
+          "const": true
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 11,
+      "uniqueItems": true,
       "items": {
+        "type": "object",
         "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "posture",
+          "on_failure",
+          "rationale",
+          "source_rule"
+        ],
         "properties": {
-          "component": {
-            "minLength": 1,
-            "type": "string"
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
           },
-          "error_code": {
-            "pattern": "^E_[A-Z_]+$",
-            "type": "string"
+          "kind": {
+            "enum": [
+              "hook",
+              "advisory",
+              "warning-channel",
+              "heartbeat",
+              "validator",
+              "secret-gate",
+              "signature",
+              "allowlist",
+              "content-gate",
+              "permission",
+              "rollback"
+            ]
           },
-          "mode": {
+          "posture": {
             "enum": [
               "fail-open",
               "fail-closed"
             ]
           },
-          "reason": {
-            "minLength": 1,
-            "type": "string"
+          "on_failure": {
+            "enum": [
+              "proceed",
+              "deny"
+            ]
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 20
+          },
+          "source_rule": {
+            "type": "string",
+            "pattern": "^(AGENTS\\.md#[0-9]+|_USER-PROMPTS\\.md:[0-9]+)$"
           }
         },
-        "required": [
-          "component",
-          "mode",
-          "error_code",
-          "reason"
-        ],
-        "type": "object"
-      },
-      "minItems": 1,
-      "type": "array"
+        "oneOf": [
+          {
+            "properties": {
+              "posture": {
+                "const": "fail-open"
+              },
+              "on_failure": {
+                "const": "proceed"
+              }
+            }
+          },
+          {
+            "properties": {
+              "posture": {
+                "const": "fail-closed"
+              },
+              "on_failure": {
+                "const": "deny"
+              }
+            }
+          }
+        ]
+      }
     }
-  },
-  "required": [
-    "artifact",
-    "default_mode",
-    "fail_open_count",
-    "rules"
-  ],
-  "title": "Per-component fail-open versus fail-closed policy",
-  "type": "object"
+  }
 }

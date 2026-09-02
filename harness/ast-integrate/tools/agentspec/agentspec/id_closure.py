@@ -70,6 +70,62 @@ def emitted_ids(source: str | None = None) -> list[str]:
     return sorted(_ids_from_source(source))
 
 
+_ID_COLLECTION_NAMES = ("VIOLATION", "VIOLATIONS", "IDS", "RULES")
+
+
+def _looks_like_violation_id(value: str) -> bool:
+    """Violation ids are short lower-case kebab tokens such as ``fanout-empty``."""
+    if not value or len(value) > 64 or value != value.strip():
+        return False
+    if " " in value or value.startswith("-") or value.endswith("-"):
+        return False
+    return all(ch.isalnum() or ch == "-" for ch in value) and "-" in value
+
+
+def extract_emitted_ids(source: str) -> list[str]:
+    """Return every violation id a validator *source text* can emit.
+
+    Two emission shapes are recognised, both from the AST (never by regex
+    over comments or docstrings):
+
+    * ``found.append("some-id")`` / ``out.append("some-id")`` -- the id is a
+      string constant passed to an ``.append`` call;
+    * a module-level tuple/list/set assigned to a name containing
+      ``VIOLATION``, ``IDS`` or ``RULES`` (the closed-set declaration).
+
+    Ids in :data:`CLOSED_IDS` and the planted control id are always
+    recognised wherever they appear, matching :func:`emitted_ids`.
+    """
+    found: set[str] = _ids_from_source(source)
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return sorted(found)
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "append"
+        ):
+            for arg in node.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    if _looks_like_violation_id(arg.value):
+                        found.add(arg.value)
+        elif isinstance(node, ast.Assign) and isinstance(
+            node.value, (ast.Tuple, ast.List, ast.Set)
+        ):
+            names = [t.id for t in node.targets if isinstance(t, ast.Name)]
+            if not any(
+                any(tag in name.upper() for tag in _ID_COLLECTION_NAMES) for name in names
+            ):
+                continue
+            for elt in node.value.elts:
+                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                    if _looks_like_violation_id(elt.value):
+                        found.add(elt.value)
+    return sorted(found)
+
+
 def check_closure(source: str | None = None, **_kwargs: Any) -> dict[str, Any]:
     documented = set(documented_ids(VALIDATE_PATH))
     emitted = set(emitted_ids(source))

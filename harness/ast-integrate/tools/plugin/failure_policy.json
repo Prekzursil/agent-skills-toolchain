@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "artifact": "failure-policy",
+  "default_posture": "fail-closed",
+  "encoded_published_rule": "AGENTS.md#6: Exit 2 (block) only for irreversible/dangerous work. Exit 0 + inject for all other guidance. All hook code wrapped in try/except; any hook error exits 0 (fail-open). Validators, secret gates, and signature checks are not hooks: they deny on error. Changing a row is owner-gated (_USER-PROMPTS.md:11359).",
+  "owner_lock": {
+    "flip_requires": "owner sign-off",
+    "posture_change_owner_gated": true,
+    "note": "This table records the published rule. It does not invent a new security posture. Flipping any row remains owner-gated."
+  },
+  "components": [
+    {
+      "id": "hooks",
+      "kind": "hook",
+      "posture": "fail-open",
+      "on_failure": "proceed",
+      "rationale": "Hooks must never block the user. A raising or unparseable hook still exits 0 and the session proceeds, degraded.",
+      "source_rule": "AGENTS.md#6"
+    },
+    {
+      "id": "advisories",
+      "kind": "advisory",
+      "posture": "fail-open",
+      "on_failure": "proceed",
+      "rationale": "Advisories inject context; they are not a hard stop. Failure to emit an advisory must not refuse the operation.",
+      "source_rule": "AGENTS.md#6"
+    },
+    {
+      "id": "degrade_loudly",
+      "kind": "warning-channel",
+      "posture": "fail-open",
+      "on_failure": "proceed",
+      "rationale": "The degrade-loudly sink is a warning channel. A write failure must not convert a warning into a blocked user.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "heartbeat",
+      "kind": "heartbeat",
+      "posture": "fail-open",
+      "on_failure": "proceed",
+      "rationale": "A heartbeat is a liveness surface. Failure to advance a token must not abort the long-running operation.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "validators",
+      "kind": "validator",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "An unverifiable package or config must not proceed. Validator errors deny.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "secret_gate",
+      "kind": "secret-gate",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "A leaked credential is unrecoverable once published. Gate errors deny.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "signature_check",
+      "kind": "signature",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "An invalid or missing signature must refuse the operation, never skip the check.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "payload_allowlist",
+      "kind": "allowlist",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "Shipping unintended content is deny-by-default. Allowlist errors deny.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "forbidden_content",
+      "kind": "content-gate",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "Forbidden-content detection that cannot complete must deny rather than ship.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+      "id": "tool_permissions",
+      "kind": "permission",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "Undeclared writes, spawns, or network calls are refused. Permission-check errors deny.",
+      "source_rule": "_USER-PROMPTS.md:11359"
+    },
+    {
+      "id": "rollback",
+      "kind": "rollback",
+      "posture": "fail-closed",
+      "on_failure": "deny",
+      "rationale": "A rollback that cannot invert applied steps must not report success. Errors deny.",
+      "source_rule": "_USER-PROMPTS.md:10840"
+    }
+  ]
+}

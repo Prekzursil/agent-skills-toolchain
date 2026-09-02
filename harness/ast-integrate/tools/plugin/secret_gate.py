@@ -75,6 +75,10 @@ def build_report(root: Path) -> dict[str, Any]:
 
 
 def write_report(report: dict[str, Any], path: Path) -> None:
+    try:
+        from plugin.redact import redact_text
+    except Exception:
+        from redact import redact_text
     text = json.dumps(report, indent=2, sort_keys=True) + "\n"
     text = redact_text(text)
     path = Path(path)

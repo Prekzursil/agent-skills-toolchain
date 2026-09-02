@@ -144,3 +144,58 @@ def self_test(scratch: str | Path) -> dict[str, Any]:
     rt = self_test_roundtrip(Path(scratch) / "rt")
     at = self_test_atomicity(Path(scratch) / "at")
     return {"ok": bool(rt.get("ok") and at.get("ok")), "roundtrip": rt, "atomicity": at}
+
+
+class ReceiptInvalid(ValueError):
+    """A receipt document failed :func:`_validate`; ``errors`` lists the codes."""
+
+    def __init__(self, errors: list[str], path: str | Path | None = None) -> None:
+        self.errors = list(errors)
+        self.path = str(path) if path is not None else None
+        where = f" ({self.path})" if self.path else ""
+        super().__init__(f"receipt invalid{where}: {', '.join(self.errors)}")
+
+
+class WriteResult:
+    """Outcome of :func:`write_json`: attribute access plus dict-style access."""
+
+    __slots__ = ("ok", "path", "bytes", "sha256")
+
+    def __init__(self, ok: bool, path: str, nbytes: int, sha256: str) -> None:
+        self.ok = ok
+        self.path = path
+        self.bytes = nbytes
+        self.sha256 = sha256
+
+    def __getitem__(self, key: str) -> Any:
+        return getattr(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"ok": self.ok, "path": self.path, "bytes": self.bytes, "sha256": self.sha256}
+
+
+def write_json(
+    path: str | Path, doc: dict[str, Any], *, validate: bool = True, repo: str | Path | None = None
+) -> WriteResult:
+    """Validate (raising :class:`ReceiptInvalid`) then write *doc* atomically.
+
+    *repo*, when given, has its receipts directory created first so a receipt
+    path under it never fails on a missing parent.
+    """
+    if repo is not None:
+        ensure_receipts_dir(repo)
+    if validate:
+        errs = _validate(doc)
+        if errs:
+            raise ReceiptInvalid(errs, path)
+    wr = write_atomic(path, doc, validate=False)
+    return WriteResult(True, str(wr["path"]), int(wr["bytes"]), str(wr["sha256"]))
+
+
+def read_json(path: str | Path) -> tuple[Any, int]:
+    """Parse the JSON document at *path*; returns ``(document, byte_length)``."""
+    raw = Path(path).read_bytes()
+    return json.loads(raw.decode("utf-8")), len(raw)

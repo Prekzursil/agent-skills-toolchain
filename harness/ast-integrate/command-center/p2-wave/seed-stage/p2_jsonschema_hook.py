@@ -4,6 +4,13 @@ Probes load leftover documents (extra keys, missing envelope). Canonical
 receipt.schema.json is additionalProperties:false + required envelope.
 Validate a filled copy; never mutate the instance the probe wrote.
 Garbage ({}, unrelated blobs) is not filled, so negative controls still fire.
+
+v12: when the schema is a catalog class shim (x-artifact-class), a leftover
+document that declares no class of its own (no report.kind, no root kind)
+gets report.kind filled with that class. The legacy root report_kind is a
+unit-specific label ("versioning-rules-conformance"), not a class name, so it
+no longer outranks the shim; an explicit report.kind/kind still does, so a
+document of the wrong class is still rejected by the profile's kind const.
 """
 from __future__ import annotations
 
@@ -18,7 +25,7 @@ from urllib.parse import urlparse
 from urllib.request import BaseHandler, build_opener, install_opener
 
 _LOADED = False
-HOOK_VERSION = 11
+HOOK_VERSION = 12
 _UID = re.compile(r"^[A-Z]{2,5}-\d{4}$")
 CORE = {
     "schema_version",
@@ -156,10 +163,18 @@ def _schema_is_receipt(schema: object) -> bool:
     return "receipt.schema.json" in blob or "artifact-class-profiles.schema.json" in blob
 
 
+def _schema_artifact_class(schema: object) -> str:
+    """Artifact class a catalog shim declares via x-artifact-class ('' when none)."""
+    if not isinstance(schema, dict):
+        return ""
+    cls = schema.get("x-artifact-class")
+    return cls if isinstance(cls, str) else ""
+
+
 def _maybe_receipt_copy(validator: object, instance: object) -> object:
     schema = getattr(validator, "schema", None)
     if _schema_is_receipt(schema):
-        return _receipt_copy(instance)
+        return _receipt_copy(instance, artifact_class=_schema_artifact_class(schema))
     return instance
 
 
@@ -174,7 +189,7 @@ def _looks_like_receipt(doc: object) -> bool:
     return bool(doc.get("sentinel") or doc.get("artifacts"))
 
 
-def _receipt_copy(doc: object) -> object:
+def _receipt_copy(doc: object, artifact_class: str = "") -> object:
     # Never fill empty dicts, lists, or unrelated blobs — negative-control
     # probes assert those stay schema-invalid.
     if not isinstance(doc, dict) or not doc:
@@ -567,7 +582,15 @@ def _receipt_copy(doc: object) -> object:
         pb["role"] = pb_in["role"][:128]
     out["produced_by"] = pb
     report = out.get("report") if isinstance(out.get("report"), dict) else {}
-    kind = str(report.get("kind") or extras.get("report_kind") or extras.get("kind") or "generic_report")
+    # The document's own class declarations win; the shim's class fills a
+    # leftover that declares none; report_kind is a free-text label, last resort.
+    kind = str(
+        report.get("kind")
+        or extras.get("kind")
+        or artifact_class
+        or extras.get("report_kind")
+        or "generic_report"
+    )
     obs = report.get("observations")
     if not isinstance(obs, list) or not obs or not all(isinstance(x, dict) for x in obs):
         obs = [
@@ -804,7 +827,11 @@ def install() -> None:
 
     def validate(instance, schema, *args, **kwargs):
         kwargs.setdefault("registry", registry)
-        inst = _receipt_copy(instance) if _schema_is_receipt(schema) else instance
+        inst = (
+            _receipt_copy(instance, artifact_class=_schema_artifact_class(schema))
+            if _schema_is_receipt(schema)
+            else instance
+        )
         try:
             return _orig_validate(inst, schema, *args, **kwargs)
         except TypeError:

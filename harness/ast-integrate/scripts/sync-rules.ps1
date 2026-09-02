@@ -40,7 +40,8 @@
 param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$Dest = (Join-Path ([Environment]::GetFolderPath("UserProfile")) ".claude/rules/common"),
-    [switch]$WhatIf
+    [switch]$WhatIf,
+    [switch]$Provenance
 )
 
 $ErrorActionPreference = "Stop"
@@ -76,4 +77,14 @@ if ($WhatIf) {
     Write-Host "[whatif] would sync $($files.Count) rule file(s) from $srcRoot -> $Dest (non-destructive; no deletes)"
 } else {
     Write-Host "Synced $copied rule file(s) -> $Dest (non-destructive; no deletes)"
+}
+
+# -Provenance (IMP-0033): record per-file provenance for the rules family into
+# ~/.claude/deploy-provenance.json via tools/plugin/deploy_provenance.py::place_file
+# (the single live writer). Control plane stays here; not a fourth sync tool.
+if ($Provenance -and -not $WhatIf) {
+    $engine = Join-Path $Root "tools/plugin/deploy_provenance.py"
+    $home_ = [Environment]::GetFolderPath("UserProfile")
+    & python3 $engine --kind rules --repo $Root --home $home_
+    if ($LASTEXITCODE -ne 0) { throw "deploy_provenance.py --kind rules exited $LASTEXITCODE" }
 }

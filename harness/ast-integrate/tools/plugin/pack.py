@@ -47,6 +47,22 @@ def sha256_file(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
+SHELL_SUFFIXES = (".sh",)
+
+
+def is_shell_member(rel: str) -> bool:
+    return _posix(rel).lower().endswith(SHELL_SUFFIXES)
+
+
+def cr_shell_members(blobs: dict[str, bytes]) -> list[str]:
+    """Shipped ``*.sh`` members whose bytes carry a CR (0x0D); sorted, posix."""
+    return sorted(rel for rel, data in blobs.items() if is_shell_member(rel) and b"\r" in data)
+
+
+def crlf_refusal_message(bad: list[str], where: str = "shipped *.sh blob(s)") -> str:
+    return f"CR (0x0D) in {where}: {', '.join(bad)}"
+
+
 def git_cat_file_blob(repo: Path, rel: str, rev: str = "HEAD") -> bytes:
     proc = subprocess.run(
         ["git", "-C", str(repo), "cat-file", "-p", f"{rev}:{_posix(rel)}"],
@@ -141,6 +157,24 @@ def pack_staging(staging: Path, output: Path, doc: dict[str, Any] | None = None)
                 print(rel)
             report = {"ok": False, "extras": extras, "members": members}
             return 1 if rc_mode else report
+    staged_shell = {
+        rel: (staging / rel).read_bytes()
+        for rel in members
+        if is_shell_member(rel) and (staging / rel).is_file()
+    }
+    bad_shell = cr_shell_members(staged_shell)
+    if bad_shell:
+        message = crlf_refusal_message(bad_shell, "staged *.sh file(s)")
+        print(f"REFUSED: {message}")
+        report = {
+            "ok": False,
+            "refused": True,
+            "message": message,
+            "extras": extras,
+            "members": members,
+            "crlf_members": bad_shell,
+        }
+        return 1 if rc_mode else report
     output.parent.mkdir(parents=True, exist_ok=True)
     if str(output).lower().endswith(".zip"):
         import zipfile
@@ -169,9 +203,18 @@ class PackReport:
         self.archive = data.get("archive")
         self.sha256 = str(data.get("sha256") or "")
         self.size = int(data.get("size") or 0)
+        self.refused = bool(data.get("refused"))
+        self.message = str(data.get("message") or "")
+        self.crlf_members = list(data.get("crlf_members") or [])
 
     def as_dict(self) -> dict[str, Any]:
         return dict(self._data)
+
+    def __getitem__(self, key: str) -> Any:
+        return self._data[key]
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._data.get(key, default)
 
 
 class PackResult(PackReport):
@@ -200,19 +243,38 @@ def pack_repository(
         local = root / "payload-allowlist.json"
         cfg = load_allowlist(local if local.is_file() else None)
     pairs = select_pairs(root, cfg)
+    # Read every member from its git blob (git cat-file -p), never the worktree,
+    # so CRLF that only lives in a checkout cannot leak into the archive; a *.sh
+    # blob that itself carries CR is refused instead of silently normalised.
+    blobs: dict[str, bytes] = {}
+    for rel, src in pairs:
+        try:
+            blobs[rel] = git_cat_file_blob(root, rel)
+        except FileNotFoundError:
+            blobs[rel] = src.read_bytes()
+    bad_shell = cr_shell_members(blobs)
+    if bad_shell:
+        message = crlf_refusal_message(bad_shell)
+        print(f"REFUSED: {message}")
+        return PackResult(
+            {
+                "ok": False,
+                "refused": True,
+                "message": message,
+                "members": [],
+                "extras": [],
+                "crlf_members": bad_shell,
+                "archive": None,
+            }
+        )
     output.parent.mkdir(parents=True, exist_ok=True)
     import io
     import tarfile as _tarfile
-    import time as _time
 
     buf = io.BytesIO()
     with _tarfile.open(fileobj=buf, mode="w") as tf:
-        for rel, src in pairs:
-            try:
-                payload = git_cat_file_blob(root, rel)
-            except FileNotFoundError:
-                payload = src.read_bytes()
-            payload = payload.replace(b"\r\n", b"\n")
+        for rel, _src in pairs:
+            payload = blobs[rel].replace(b"\r\n", b"\n")
             info = _tarfile.TarInfo(name=rel)
             info.size = len(payload)
             info.mtime = 0

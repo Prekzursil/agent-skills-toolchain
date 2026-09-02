@@ -8,7 +8,11 @@ validator never emits. That bidirectional lock is the anti-divergence guard.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from typing import Any, Mapping
+
 from agentspec import SPEC_VERSION, wire
+from agentspec.import_generic_dag import DAG_VIOLATION_IDS
 from agentspec.spec import (
     BARRIER_POLICIES,
     CURRENT_SPEC_VERSION,
@@ -41,6 +45,34 @@ class _Id:
 
 VIOLATION_SUBWORKFLOW_CYCLE = "subworkflow-reference-cycle"
 
+# Workflow-parameter violations, reported at LOAD time by :func:`load_workflow` (IMP-0134).
+VIOLATION_PARAM_MISSING_REQUIRED = "param-missing-required"
+VIOLATION_PARAM_TYPE_MISMATCH = "param-type-mismatch"
+VIOLATION_PARAM_OUT_OF_ENUM = "param-out-of-enum"
+VIOLATION_PARAM_UNKNOWN_KEY = "param-unknown-key"
+
+# Failure classes carried on a :class:`ParamViolation`. An unknown key is a STRICT-PARSER
+# refusal (spec:11302): the document is rejected before any semantic check runs.
+FAILURE_CLASS_STRICT_PARSER = "strict-parser"
+FAILURE_CLASS_SEMANTIC = "semantic"
+SPEC_ANCHOR_STRICT_PARSER = "spec:11302"
+
+# Every ``VIOLATION_*`` constant in this module, as a LITERAL set. IMP-0134 probe 2 re-parses
+# this file with ``ast`` and requires the constants and this set to be equal, so adding a
+# constant without listing it here (or vice versa) is a red probe, not a silent drift. Kept as
+# a plain (un-annotated) assignment: the probe's ``ast`` scan looks for ``ast.Assign``.
+DOCUMENTED_VIOLATION_IDS = frozenset(
+    {
+        "spec-version-unsupported",
+        "loop-unbounded",
+        "subworkflow-reference-cycle",
+        "param-missing-required",
+        "param-type-mismatch",
+        "param-out-of-enum",
+        "param-unknown-key",
+    }
+)
+
 VIOLATIONS: tuple[str, ...] = (
     "barrier-awaits-unknown",
     "barrier-empty",
@@ -71,6 +103,14 @@ VIOLATIONS: tuple[str, ...] = (
     "workflow-id-empty",
     "workflow-no-units",
     "loop-unbounded",
+)
+
+# The CLOSED set of every violation id anything under ``agentspec`` can emit: the structural
+# validator (``VIOLATIONS``), the load-time parameter checks (``DOCUMENTED_VIOLATION_IDS``)
+# and the generic-DAG import adapter (``AS-DAG-*``). An id outside this set is a defect in
+# the emitter, never a new category (IMP-0162).
+CLOSED_VIOLATION_IDS: frozenset[str] = (
+    frozenset(VIOLATIONS) | DOCUMENTED_VIOLATION_IDS | frozenset(DAG_VIOLATION_IDS)
 )
 
 
@@ -216,7 +256,13 @@ def _validate_unit(unit: WorkUnit, known: set[str]) -> list[str]:
 
 
 def _validate_receipt(unit: WorkUnit) -> list[str]:
-    """A receipt spec must give the AND-gate a NON-VACUOUS content clause."""
+    """A receipt spec must give the AND-gate a NON-VACUOUS content clause.
+
+    A unit declared without any receipt (the declarative Phase-7 form) has NO content clause
+    at all, which is the vacuous case, not a new category.
+    """
+    if unit.receipt is None:
+        return ["unit-receipt-clause-vacuous"]
     if unit.receipt.fmt not in RECEIPT_FORMATS:
         return ["unit-receipt-format-unknown"]
     if unit.receipt.is_vacuous():
@@ -316,3 +362,183 @@ def _validate_pipeline(node: Pipeline, known_units: set[str]) -> list[str]:
     if any(s not in known_units for s in node.stages):
         found.append("pipeline-stage-unknown")
     return found
+
+
+# --------------------------------------------------------------------------- IMP-0134
+# Workflow parameters are validated when the workflow is LOADED, never when a unit runs.
+# ``load_workflow`` either returns a ``LoadedWorkflow`` or a list of ``ParamViolation``; only
+# a ``LoadedWorkflow`` is accepted by ``run_unit``, so a bad value mapping cannot reach run
+# time by any typed path.
+
+PARAM_TYPES: tuple[str, ...] = ("string", "integer", "number", "boolean", "secret_ref")
+
+
+@dataclass(frozen=True, slots=True)
+class ParamViolation:
+    """One load-time parameter refusal: closed ``id``, the offending ``param`` and a detail."""
+
+    id: str
+    param: str
+    detail: str
+    failure_class: str = FAILURE_CLASS_SEMANTIC
+
+
+@dataclass(frozen=True, slots=True)
+class LoadedWorkflow:
+    """A workflow whose parameter values passed every load-time check (values coerced)."""
+
+    workflow_id: str
+    params: tuple[Mapping[str, Any], ...]
+    values: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class LoadResult:
+    """``ok`` iff ``loaded`` is a :class:`LoadedWorkflow`; otherwise ``violations`` says why."""
+
+    ok: bool
+    loaded: LoadedWorkflow | None
+    violations: tuple[ParamViolation, ...] = ()
+
+
+def _declared_params(workflow: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    raw = workflow.get("params") or ()
+    out: list[Mapping[str, Any]] = []
+    for item in raw:
+        if isinstance(item, Mapping) and item.get("name") is not None:
+            out.append(item)
+    return out
+
+
+def _coerce(value: Any, ptype: str) -> tuple[bool, Any]:
+    """Return ``(accepted, coerced)``; string digits coerce to ``int`` for ``integer``."""
+    if ptype == "string":
+        return isinstance(value, str), value
+    if ptype == "integer":
+        if isinstance(value, bool):
+            return False, value
+        if isinstance(value, int):
+            return True, value
+        if isinstance(value, str) and value.strip().lstrip("+-").isdigit():
+            return True, int(value.strip())
+        return False, value
+    if ptype == "number":
+        if isinstance(value, bool):
+            return False, value
+        if isinstance(value, (int, float)):
+            return True, value
+        if isinstance(value, str):
+            try:
+                return True, float(value)
+            except ValueError:
+                return False, value
+        return False, value
+    if ptype == "boolean":
+        if isinstance(value, bool):
+            return True, value
+        if isinstance(value, str) and value.strip().lower() in {"true", "false"}:
+            return True, value.strip().lower() == "true"
+        return False, value
+    if ptype == "secret_ref":
+        if isinstance(value, Mapping):
+            return bool(value.get("env") or value.get("name")), dict(value)
+        if isinstance(value, str):
+            return value.startswith("env:") and len(value) > 4, value
+        return False, value
+    return False, value
+
+
+def validate_params_at_load(
+    workflow: Mapping[str, Any], values: Mapping[str, Any] | None
+) -> tuple[list[ParamViolation], dict[str, Any]]:
+    """Check ``values`` against the workflow's declared ``params``.
+
+    Strict-parser refusals (unknown keys, spec:11302) come first: a document carrying a key
+    the schema never declared is rejected before its declared values are even looked at.
+    Returns the violations in detection order plus the coerced value mapping.
+    """
+    declared = _declared_params(workflow)
+    supplied: Mapping[str, Any] = values or {}
+    found: list[ParamViolation] = []
+    names = [str(p["name"]) for p in declared]
+    for key in supplied:
+        if str(key) not in names:
+            found.append(
+                ParamViolation(
+                    VIOLATION_PARAM_UNKNOWN_KEY,
+                    str(key),
+                    f"{SPEC_ANCHOR_STRICT_PARSER}: value key {key!r} is not a declared param",
+                    FAILURE_CLASS_STRICT_PARSER,
+                )
+            )
+    coerced: dict[str, Any] = {}
+    for spec in declared:
+        name = str(spec["name"])
+        ptype = str(spec.get("type") or "string")
+        if name not in supplied:
+            if "default" in spec and spec["default"] is not None:
+                coerced[name] = spec["default"]
+            elif spec.get("required"):
+                found.append(
+                    ParamViolation(
+                        VIOLATION_PARAM_MISSING_REQUIRED,
+                        name,
+                        f"required param {name!r} has no value and no default",
+                    )
+                )
+            continue
+        accepted, value = _coerce(supplied[name], ptype)
+        if not accepted:
+            found.append(
+                ParamViolation(
+                    VIOLATION_PARAM_TYPE_MISMATCH,
+                    name,
+                    f"param {name!r} expects {ptype}, got {type(supplied[name]).__name__}",
+                )
+            )
+            continue
+        enum = spec.get("enum")
+        if enum and value not in tuple(enum):
+            found.append(
+                ParamViolation(
+                    VIOLATION_PARAM_OUT_OF_ENUM,
+                    name,
+                    f"param {name!r} value {value!r} not in {list(enum)}",
+                )
+            )
+            continue
+        coerced[name] = value
+    return found, coerced
+
+
+def load_workflow(
+    workflow: Mapping[str, Any], values: Mapping[str, Any] | None = None
+) -> LoadResult:
+    """Load ``workflow`` with ``values``; a failed load yields NO :class:`LoadedWorkflow`."""
+    if not isinstance(workflow, Mapping):
+        raise TypeError("load_workflow expects the workflow document as a mapping")
+    violations, coerced = validate_params_at_load(workflow, values)
+    if violations:
+        return LoadResult(ok=False, loaded=None, violations=tuple(violations))
+    loaded = LoadedWorkflow(
+        workflow_id=str(workflow.get("id") or ""),
+        params=tuple(dict(p) for p in _declared_params(workflow)),
+        values=coerced,
+    )
+    return LoadResult(ok=True, loaded=loaded, violations=())
+
+
+def run_unit(loaded: LoadedWorkflow, unit_id: str | None = None) -> dict[str, Any]:
+    """Run against a LOADED workflow only. Anything else (a failed ``LoadResult``, a raw
+    document) is a ``TypeError``: load-time checks cannot be bypassed by a runtime-shaped call."""
+    if not isinstance(loaded, LoadedWorkflow):
+        raise TypeError(
+            f"run_unit requires a LoadedWorkflow, got {type(loaded).__name__}; "
+            "call load_workflow first"
+        )
+    return {
+        "ran": True,
+        "workflow_id": loaded.workflow_id,
+        "unit_id": unit_id,
+        "values": dict(loaded.values),
+    }

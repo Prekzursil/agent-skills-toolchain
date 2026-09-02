@@ -72,7 +72,8 @@ param(
     [switch]$IncludeClaudeOnly,
     [string[]]$Skill,
     [switch]$Prune,
-    [switch]$WhatIf
+    [switch]$WhatIf,
+    [switch]$Provenance
 )
 
 $ErrorActionPreference = "Stop"
@@ -164,4 +165,16 @@ if ($Prune) {
         }
     }
     if (-not $orphans) { Write-Host "No orphans to prune." }
+}
+
+# -Provenance (IMP-0033): after the copy, record per-file provenance (source blob sha,
+# source path, plugin version, deploy timestamp) into ~/.claude/deploy-provenance.json.
+# This script stays the control plane; the engine below is its ONLY live writer
+# (tools/plugin/deploy_provenance.py::place_file) and is invoked for the skills family
+# alone. Deliberately not a fourth sync tool.
+if ($Provenance -and -not $WhatIf) {
+    $engine = Join-Path $Root "tools/plugin/deploy_provenance.py"
+    $home_ = [Environment]::GetFolderPath("UserProfile")
+    & python3 $engine --kind skills --repo $Root --home $home_
+    if ($LASTEXITCODE -ne 0) { throw "deploy_provenance.py --kind skills exited $LASTEXITCODE" }
 }

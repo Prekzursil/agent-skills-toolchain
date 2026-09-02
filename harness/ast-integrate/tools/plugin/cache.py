@@ -1,10 +1,43 @@
-"""Pin-aware LRU cache: pinned entries are never evicted (TST-0178)."""
+"""Pin-aware LRU cache: pinned entries are never evicted (TST-0178).
+
+Also the facade for the content-addressed plugin cache (IMP-0040): the on-disk
+layout (``<version>/<source_sha256>/<artefact>``) is defined ONLY in
+``tools/plugin-cache-reaper/reap.py``; the names below are re-exported so callers
+import from the plugin package without a second implementation of the layout.
+"""
 from __future__ import annotations
 
+import importlib.util as _ilu
+import sys as _sys
 import threading
 import time
 from collections import OrderedDict
+from pathlib import Path as _Path
 from typing import Any
+
+
+def _load_reaper():
+    """Return the ``reap`` module (plugin-cache-reaper) without mutating sys.path."""
+    loaded = _sys.modules.get("reap")
+    if loaded is not None:
+        return loaded
+    path = _Path(__file__).resolve().parents[1] / "plugin-cache-reaper" / "reap.py"
+    spec = _ilu.spec_from_file_location("reap", path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"plugin-cache-reaper not found at {path}")
+    module = _ilu.module_from_spec(spec)
+    _sys.modules["reap"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_MOD = _load_reaper()
+ContentAddressedPluginCache = _MOD.ContentAddressedPluginCache
+TimeBasedPluginCache = _MOD.TimeBasedPluginCache
+content_addressed_key = _MOD.content_addressed_key
+cache_key = _MOD.cache_key
+source_digest_of = _MOD.source_digest_of
+default_produce = _MOD.default_produce
 
 
 class PinnedLRUCache:

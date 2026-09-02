@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -259,14 +260,138 @@ def inspect_published_bytes(raw: bytes) -> dict:
     return {
         "parseable": not truncated,
         "n_records": len(rows),
+        "line_count": len([ln for ln in text.splitlines() if ln.strip()]),
         "truncated": truncated,
         "half_written": half,
         "rows": rows,
     }
 
 
+# --------------------------------------------------------------------------
+# run-ledger-v1: the hash-chained, monotonic per-run event log
+# (command-center/events/EVENTS.jsonl, command-center/events/run-ledger.jsonl)
+# --------------------------------------------------------------------------
+
+RUN_LEDGER_KIND = "run-ledger-v1"
+GENESIS_PREV_SHA256 = "0" * 64
+RUN_RECORD_REQUIRED = (
+    "kind",
+    "seq",
+    "ts",
+    "actor",
+    "unit_id",
+    "phase",
+    "from_state",
+    "to_state",
+    "correlation_id",
+    "causality_id",
+    "payload",
+    "prev_sha256",
+)
+_RUN_RECORD_STRINGS = (
+    "actor",
+    "unit_id",
+    "phase",
+    "from_state",
+    "to_state",
+    "correlation_id",
+    "causality_id",
+)
+_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$")
+_SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def encode_run_record(record: dict) -> bytes:
+    """Canonical single-line encoding: compact, sorted keys, ASCII, LF-terminated.
+
+    The hash chain is computed over exactly these bytes, so every writer and
+    verifier must agree on them.
+    """
+    text = json.dumps(record, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+    if "\n" in text or "\r" in text:
+        raise ValueError("run-ledger record must encode to a single line")
+    return (text + "\n").encode("utf-8")
+
+
+def run_record_errors(record: object) -> list[str]:
+    """Field-level violations of the run-ledger-v1 record contract ([] when clean)."""
+    if not isinstance(record, dict):
+        return ["not-object"]
+    errs = [f"missing:{k}" for k in RUN_RECORD_REQUIRED if k not in record]
+    if record.get("kind") != RUN_LEDGER_KIND:
+        errs.append(f"kind:{record.get('kind')!r}")
+    seq = record.get("seq")
+    if type(seq) is not int or seq < 1:
+        errs.append(f"seq:{seq!r}")
+    ts = record.get("ts")
+    if not isinstance(ts, str) or not _TS_RE.match(ts):
+        errs.append(f"ts:{ts!r}")
+    for key in _RUN_RECORD_STRINGS:
+        val = record.get(key)
+        if not isinstance(val, str) or not val.strip():
+            errs.append(f"empty:{key}")
+    if not isinstance(record.get("payload"), dict):
+        errs.append("payload:not-object")
+    prev = record.get("prev_sha256")
+    if not isinstance(prev, str) or not _SHA_RE.match(prev):
+        errs.append(f"prev_sha256:{prev!r}")
+    return errs
+
+
+def run_ledger_chain_state(raw: bytes) -> dict:
+    """Walk published bytes and return where the next record must attach.
+
+    ``seq`` is the last conforming record's sequence number (0 for an empty
+    log), ``prev_sha256`` the digest of that record's line bytes (the genesis
+    digest for an empty log) and ``complete`` whether the tail ends in LF.
+    Lines that do not parse or do not conform are counted, never trusted.
+    """
+    seq = 0
+    prev = GENESIS_PREV_SHA256
+    conforming = 0
+    rejected = 0
+    complete = (not raw) or raw.endswith(b"\n")
+    parts = raw.split(b"\n")
+    if raw.endswith(b"\n"):
+        parts = parts[:-1]
+    if not complete:
+        parts = parts[:-1]  # the torn fragment is not a record
+    for part in parts:
+        if part == b"":
+            rejected += 1
+            continue
+        try:
+            obj = json.loads(part.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            rejected += 1
+            continue
+        if run_record_errors(obj):
+            rejected += 1
+            continue
+        conforming += 1
+        seq = obj["seq"]
+        prev = hashlib.sha256(part + b"\n").hexdigest()
+    return {
+        "seq": seq,
+        "prev_sha256": prev,
+        "conforming": conforming,
+        "rejected": rejected,
+        "complete": complete,
+    }
+
+
 class LedgerWriter:
-    """Atomic JSONL append: write staging then replace published file."""
+    """Atomic, hash-chained append of ``run-ledger-v1`` records.
+
+    Every ``append`` reads the published file, derives the next monotonic
+    ``seq`` and ``prev_sha256`` (SHA-256 of the previous record's line bytes,
+    64 zeros for genesis) from the durable bytes, stamps ``kind`` and an
+    ISO-8601 UTC ``ts``, validates the record against
+    :func:`run_record_errors`, and publishes ``current + line`` through a
+    staging file plus ``os.replace`` so a reader never observes a torn line.
+    Concurrent writers may lose an update (last snapshot wins) but cannot
+    interleave bytes.
+    """
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -274,9 +399,36 @@ class LedgerWriter:
         if not self.path.is_file():
             self.path.write_text("", encoding="utf-8")
 
-    def append(self, **fields: object) -> None:
-        line = json.dumps(fields, default=str) + "\n"
-        staging = self.path.with_name(self.path.name + ".staging")
+    def chain_state(self) -> dict:
         current = self.path.read_bytes() if self.path.is_file() else b""
-        staging.write_bytes(current + line.encode("utf-8"))
-        staging.replace(self.path)
+        return run_ledger_chain_state(current)
+
+    def append(self, **fields: object) -> dict:
+        current = self.path.read_bytes() if self.path.is_file() else b""
+        state = run_ledger_chain_state(current)
+        if not state["complete"]:
+            # Terminate a torn tail so the new record starts on its own line;
+            # the fragment stays in place (append-only) and verifiers flag it.
+            current += b"\n"
+        record: dict = {}
+        for key, value in fields.items():
+            try:
+                json.dumps(value)
+                record[key] = value
+            except (TypeError, ValueError):
+                record[key] = repr(value)
+        record.setdefault("kind", RUN_LEDGER_KIND)
+        record["seq"] = int(state["seq"]) + 1
+        record.setdefault("ts", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+        record["prev_sha256"] = state["prev_sha256"]
+        errs = run_record_errors(record)
+        if errs:
+            raise ValueError("run-ledger record rejected: " + ", ".join(errs))
+        blob = encode_run_record(record)
+        staging = self.path.with_name(self.path.name + ".staging")
+        with staging.open("wb") as fh:
+            fh.write(current + blob)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(staging, self.path)
+        return record

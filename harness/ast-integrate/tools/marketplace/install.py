@@ -1,4 +1,10 @@
-"""Guarded sequential install with casefold collision refuse (IMP-0126)."""
+"""Guarded sequential install with casefold collision refuse (IMP-0126).
+
+Also hosts the lockfile-pinned marketplace path (IMP-0086): :class:`InstallRequest`
+plus :func:`marketplace_install`, which fetches a blob into the cache, runs every
+verification gate, and hands a typed handoff to the plugin installer.  The
+marketplace path must still never place files itself.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -6,9 +12,13 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
+from marketplace.fetch import FetchError, fetch_to_cache
 from marketplace.path_conflict import PathConflict, named_intersection
+from marketplace.verify import run_verification
 from plugin.projection_map import project_payload
 
 HANDLING_NAIVE_HOST = "naive-host"
@@ -238,3 +248,134 @@ def measure_postinstall_policy(package=None, dest=None, **kwargs):
     if dest is None:
         dest = Path(".")
     return install_package(package or {"files": {}, "scripts": {}}, Path(dest), **kwargs)
+
+
+# --------------------------------------------------------------------- IMP-0086
+# Lockfile-pinned marketplace install: fetch -> verify (all gates) -> handoff.
+
+HANDOFF_SCHEMA_VERSION = 1
+HANDOFF_KIND = "install-handoff"
+
+
+@dataclass(frozen=True)
+class InstallRequest:
+    """Everything :func:`marketplace_install` needs to install one pinned package.
+
+    ``source`` is a local blob path or a ``file:`` URL (the two documented fetch
+    sources; ``http(s):`` is refused).  ``lockfile`` must pin
+    ``package_ref`` (``<package_id>@<package_version>``) to the blob digest.
+    There is deliberately no skip-lock / force field: an unpinned or mismatching
+    blob always aborts.  ``installer`` is the object whose
+    ``install_from_handoff(handoff, dest_home)`` places files; it defaults to
+    :mod:`plugin.installer`.
+    """
+
+    source: str | Path
+    dest_home: str | Path
+    cache_dir: str | Path
+    package_id: str
+    package_version: str
+    lockfile: Mapping[str, Any] | None
+    signature: Mapping[str, Any] | None
+    trust_store: Mapping[str, str]
+    revocation: Mapping[str, Any] | None
+    compatibility: Mapping[str, Any] | None
+    projection_map: Mapping[str, Any]
+    declared_permissions: tuple[str, ...] | list[str] = ()
+    transaction_id: str = ""
+    client_version: str = "0.0.0"
+    platform: str = sys.platform
+    installer: Any = None
+
+    @property
+    def package_ref(self) -> str:
+        return f"{self.package_id}@{self.package_version}"
+
+
+def _resolve_source(source: str | Path) -> Path:
+    """Map a documented fetch source onto a local path; refuse network schemes."""
+    if isinstance(source, Path):
+        return source
+    text = str(source)
+    parsed = urlparse(text)
+    if parsed.scheme == "file":
+        return Path(url2pathname(parsed.path))
+    if parsed.scheme in {"http", "https", "ftp"}:
+        raise FetchError(f"unsupported source scheme {parsed.scheme!r}; only local paths and file: URLs are fetched")
+    return Path(text)
+
+
+def build_marketplace_handoff(req: InstallRequest, cached_blob: Path, digest: str) -> dict[str, Any]:
+    """Typed handoff for the plugin installer; carries the verified digest and the request's projection."""
+    if not req.transaction_id:
+        raise ValueError("transaction_id is required; no handoff may be built without one")
+    return {
+        "schema_version": HANDOFF_SCHEMA_VERSION,
+        "kind": HANDOFF_KIND,
+        "package_id": req.package_id,
+        "package_ref": req.package_ref,
+        "payload_path": str(cached_blob),
+        "digest": {"algorithm": "sha256", "value": digest},
+        "projection_map": dict(req.projection_map),
+        "declared_permissions": list(req.declared_permissions),
+        "transaction_id": req.transaction_id,
+        "source": "marketplace",
+    }
+
+
+def marketplace_install(req: InstallRequest) -> dict[str, Any]:
+    """Fetch, verify every gate, then hand off. Fail-closed at each step.
+
+    Order: fetch to cache -> :func:`marketplace.verify.run_verification`
+    (signature, revocation, compatibility, lockfile) -> typed handoff ->
+    installer.  A :class:`marketplace.fetch.FetchError` or
+    :class:`marketplace.verify.GateFailure` propagates before any handoff exists,
+    so nothing is placed.  Returns ``ok``, the ``digest`` that was installed
+    spelled ``sha256:<hex>`` (the lockfile pin, in the same form the plugin
+    installer reports), the gate ``trace`` (``fetch``, each gate, ``handoff``),
+    the ``handoff`` and the installer ``result``.
+    """
+    trace: list[str] = []
+    source = _resolve_source(req.source)
+    cached = fetch_to_cache(source, req.cache_dir)
+    trace.append("fetch")
+    verified = run_verification(
+        cached,
+        package_ref=req.package_ref,
+        lockfile=req.lockfile,
+        signature=req.signature,
+        trust_store=req.trust_store,
+        revocation=req.revocation,
+        compatibility=req.compatibility,
+        platform=req.platform,
+        client_version=req.client_version,
+    )
+    trace.extend(verified["trace"])
+    handoff = build_marketplace_handoff(req, cached, verified["digest"])
+    result = deliver(handoff, Path(req.dest_home), req.installer)
+    trace.append("handoff")
+    return {
+        "ok": True,
+        "package_id": req.package_id,
+        "package_ref": req.package_ref,
+        "digest": f"sha256:{verified['digest']}",
+        "key_id": verified["key_id"],
+        "cached_path": str(cached),
+        "dest_home": str(req.dest_home),
+        "trace": trace,
+        "handoff": handoff,
+        "result": result,
+    }
+
+
+def deliver(handoff: Mapping[str, Any], dest_home: Path, installer: Any = None) -> dict[str, Any]:
+    """Hand the verified payload to the plugin installer, which alone places files.
+
+    Defined after :func:`marketplace_install` on purpose: verification must
+    precede delivery in the source as well as at run time.
+    """
+    if installer is None:
+        import plugin.installer as default_installer
+
+        installer = default_installer
+    return installer.install_from_handoff(handoff, dest_home)
