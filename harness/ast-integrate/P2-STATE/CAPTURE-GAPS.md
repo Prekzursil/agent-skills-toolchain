@@ -55,6 +55,12 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | (kept) | `probes/RES-0161/captures/local-catalog.bin` (5.28 MB) rebuilt from the live catalog via the unit's `capture.py --local-only`; add to KeepOversized for the next capture | b4-p18-RES | MaxFileBytes cap | **repaired** |
 | TST-0086 | `agent-self/config/settings.json` (whole `agent-self/` tree absent; scenario runs its hook commands live) | b4-p23-TST | `agent-self/` excluded | open |
 | TST-0052 | `tools/marketplace/schema/install-handoff.schema.json` (full text recoverable from `receipts/TST-0052.json:220`) + `tools/plugin/hook_client.py` (TST-0054 supporting file) | b4-p23-TST | schema/tool files excluded | open — reconstructible from the receipt if the owner agrees |
+| SYN-0035 | `command-center/analysis/forecast_gate.py` (supporting; not determined by the unit's spec) | b4-p21-SYN | analysis dir excluded | open |
+| TST-0284 | `probes/AUD-0084/_refute_out.json` (foreign scratch output harvested by TST-0284) | b4-p28-TST | `_*_out.json` excluded | open |
+| TST-0263 / TST-0272 | `tools/council/tests/test_gain.py`, `tools/council/tests/test_partition.py`, `tools/council/schema/information-partition.schema.json` (emitter supporting files; units pass with existing receipts) | b4-p28-TST | tests/schema excluded | open — receipts not regenerable until reconstructed |
+| TST-0310 | `command-center/bench/results/runs.jsonl` present but 0 bytes (probe2 needs 9 run rows) | b4-p29-TST | truncated at capture | open |
+| TST-0194 | `probes/TST-0194/fixtures/colliding/readme.md` (case-insensitive checkout collapsed it into README.md; unit passes from the manifest declaration) | b4-p26b-TST | case collision | informational |
+| (reconstructed) | TST-0290 `tools/council/stopping/tests/{conftest,test_deadlock}.py` + `schema/deadlock-classification.schema.json`; TST-0162 `tools/command-center/tests/test_claim_resume.py`; TST-0117 `tools/fuzz_triage/tests/`; TST-0315 7 marketplace evidence fixtures/schemas (to pinned raw output) | b4-p29/p25/p24/p30 | — | **repaired** from the units' own contracts |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
