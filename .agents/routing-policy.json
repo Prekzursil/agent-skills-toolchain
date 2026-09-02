@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "classes": {
+    "simple": {
+      "primary": "qwen2.5-7b",
+      "escalate_to": [
+        "glm-5.3"
+      ],
+      "floors": {
+        "features.streaming": "declared"
+      },
+      "exponents": {
+        "quality": 0.2,
+        "speed": 0.5,
+        "cost": 0.3
+      },
+      "spend_share": 0.05,
+      "pace": {
+        "P": "qwen2.5-7b@ollama",
+        "A": "glm-5.3@hf-router",
+        "C": "cursor-grok-4.6@cursor-auth2api",
+        "E": "handoff: basic-memory :8765 note (question + partial answer) + agent-mail :8812 message to the owner",
+        "triggers": [
+          "timeout",
+          "BACKEND_UNAVAILABLE",
+          "BUDGET_EXCEEDED"
+        ]
+      },
+      "justification": "Short factual turns fit the on-disk 7B model at zero cost, and the hosted router is the escalation when the local answer misses the quality floor."
+    },
+    "code-edit": {
+      "primary": "glm-5.3",
+      "escalate_to": [
+        "glm-5.2-free"
+      ],
+      "callers": [
+        "codex",
+        "cli"
+      ],
+      "floors": {
+        "features.tools": "declared"
+      },
+      "exponents": {
+        "quality": 0.6,
+        "speed": 0.2,
+        "cost": 0.2
+      },
+      "spend_share": 0.35,
+      "pace": {
+        "P": "glm-5.3@hf-router",
+        "A": "glm-5.2-free@openrouter",
+        "C": "qwen2.5-7b@ollama",
+        "E": "handoff: basic-memory :8765 note (diff so far + failing step) + agent-mail :8812 message to the owner",
+        "triggers": [
+          "timeout",
+          "BACKEND_UNAVAILABLE",
+          "BUDGET_EXCEEDED"
+        ]
+      },
+      "justification": "Multi-file edits need the strongest tool-calling model, and the OpenRouter free slug is a different vendor, credential and network path, so it is a real alternate for CLI/Codex callers only (L1)."
+    },
+    "extract-json": {
+      "primary": "glm-5.3",
+      "escalate_to": [
+        "qwen2.5-7b"
+      ],
+      "floors": {
+        "features.structured_output": "declared"
+      },
+      "exponents": {
+        "quality": 0.5,
+        "speed": 0.2,
+        "cost": 0.3
+      },
+      "spend_share": 0.15,
+      "pace": {
+        "P": "glm-5.3@hf-router",
+        "A": "cursor-grok-4.6@cursor-auth2api",
+        "C": "qwen2.5-7b@ollama",
+        "E": "handoff: basic-memory :8765 note (schema + input pointer) + agent-mail :8812 message to the owner",
+        "triggers": [
+          "timeout",
+          "BACKEND_UNAVAILABLE",
+          "BUDGET_EXCEEDED",
+          "MALFORMED_RESPONSE"
+        ]
+      },
+      "justification": "Schema-valid output is graded pass^3 = 1.00, so the class starts on the model with the best declared structured-output support and falls to the local model, which the eval lane runs with constrained decoding."
+    },
+    "long-context": {
+      "primary": "glm-5.3",
+      "escalate_to": [],
+      "floors": {
+        "wire.completions": "native"
+      },
+      "exponents": {
+        "quality": 0.6,
+        "speed": 0.1,
+        "cost": 0.3
+      },
+      "spend_share": 0.15,
+      "pace": {
+        "P": "glm-5.3@hf-router",
+        "A": "cursor-grok-4.6@cursor-auth2api",
+        "C": "procedure: split the input into 8k windows, run the summarize class on each window locally, stitch the partial results",
+        "E": "handoff: basic-memory :8765 note (input pointer + windows done) + agent-mail :8812 message to the owner",
+        "triggers": [
+          "timeout",
+          "BACKEND_UNAVAILABLE",
+          "BUDGET_EXCEEDED"
+        ]
+      },
+      "justification": "Only the hosted 131k-context rows open to every caller can take the prompt whole (the OpenRouter row is closed to non-CLI callers by L1), so the local 8k model serves this class through the map-reduce procedure instead of silently truncating.",
+      "pinned_until": "2026-10-02"
+    },
+    "summarize": {
+      "primary": "qwen2.5-7b",
+      "escalate_to": [
+        "glm-5.3"
+      ],
+      "floors": {
+        "features.streaming": "declared"
+      },
+      "exponents": {
+        "quality": 0.3,
+        "speed": 0.3,
+        "cost": 0.4
+      },
+      "spend_share": 0.1,
+      "pace": {
+        "P": "qwen2.5-7b@ollama",
+        "A": "glm-5.3@hf-router",
+        "C": "cursor-grok-4.6@cursor-auth2api",
+        "E": "handoff: basic-memory :8765 note (source pointer) + agent-mail :8812 message to the owner",
+        "triggers": [
+          "timeout",
+          "BACKEND_UNAVAILABLE",
+          "BUDGET_EXCEEDED"
+        ]
+      },
+      "justification": "Summaries are the highest-volume, lowest-stakes class, so they stay local and free unless the quality floor fails."
+    },
+    "cli-grunt": {
+      "primary": "glm-5.2-free",
+      "escalate_to": [
+        "qwen2.5-7b"
+      ],
+      "callers": [
+        "codex",
+        "cli"
+      ],
+      "floors": {
+        "features.tools": "declared"
+      },
+      "exponents": {
+        "quality": 0.2,
+        "speed": 0.3,
+        "cost": 0.5
+      },
+      "spend_share": 0.2,
+      "pace": {
+        "P": "glm-5.2-free@openrouter",
+        "A": "glm-5.3@hf-router",
+        "C": "qwen2.5-7b@ollama",
+        "E": "handoff: basic-memory :8765 note (command + partial output) + agent-mail :8812 message to the owner",
+        "triggers": [
+          "timeout",
+          "BACKEND_UNAVAILABLE",
+          "BACKEND_RATE_LIMITED",
+          "BUDGET_EXCEEDED"
+        ]
+      },
+      "justification": "Repetitive CLI/Codex chores ride the spend-capped OpenRouter sidecar (L1) so the HF router budget stays for edits, and the class is closed to cursor and claude callers."
+    }
+  },
+  "review": {
+    "cadence": "monthly",
+    "last_review": "2026-09-02",
+    "owner": "human write-back only"
+  }
+}
