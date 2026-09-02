@@ -98,7 +98,7 @@ per the owner's model directive.
 | L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | DONE on `cursor-grok-4.6-xhigh` (Claude bc-1358f975 blocked; grok delivered full coverage) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | DONE |
 | L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | DONE |
-| L11 | Cyber skills in the wild (OSS agent/Claude skills) | bc-fb044a7b | running |
+| L11 | Cyber skills in the wild (OSS agent/Claude skills) | bc-fb044a7b | DONE |
 | L12 | Native-capability audit of the existing stack (ENABLE, not build) | bc-62b84f3e | DONE |
 | L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | bc-ff5d27d7 | DONE |
 | L14 | Wildcard / cross-domain cyber gem | bc-faefa3b5 | DONE |
