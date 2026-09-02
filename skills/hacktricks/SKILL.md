@@ -643,7 +643,9 @@ Use `references/security-mcp-routing.md` for the combined security workflow:
   `none`, `hexstrike`, `cyberstrike`, `metasploit`, `sliver`, `re:ida`,
   `re:ghidra`, or `re:binary-ninja`;
 - `metasploit` uses registry server `metasploit-run`; `sliver` uses
-  `sliver-mcp`. HexStrike's embedded `metasploit_run` stays denied;
+  `sliver-mcp`. When `executor_owner` is `hexstrike`, embedded `metasploit_run`
+  is allowed under the same scope + approved-plan gate as `nuclei_scan` — pick
+  one Metasploit path per phase, not both HexStrike MSF and `metasploit-run` MCP;
 - CyberStrike is optional and not assumed installed. When explicitly selected
   as top-level harness, HexStrike and other planners do not execute that phase;
 - finish a network executor phase before assigning one RE backend. Runtime

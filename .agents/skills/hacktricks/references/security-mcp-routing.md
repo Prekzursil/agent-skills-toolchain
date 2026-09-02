@@ -20,8 +20,11 @@ none | hexstrike | cyberstrike | metasploit | sliver | re:ida | re:ghidra | re:b
 - At most one non-`none` owner may exist in a phase.
 - HexStrike and CyberStrike are alternative execution planes, not parent/child
   planners.
-- `metasploit` owns the dedicated `metasploit-run` MCP (Wave N). It is not
-  HexStrike's embedded `metasploit_run` tool.
+- `metasploit` owns the dedicated `metasploit-run` MCP (Wave N).
+- When `executor_owner` is `hexstrike`, embedded `metasploit_run` is allowed after
+  scope sidecar + approved `ExecutionPlan` (same gate as `nuclei_scan`).
+- Pick **one** Metasploit path per phase: HexStrike `metasploit_run` **or**
+  `metasploit-run` MCP — never both in the same phase.
 - `sliver` owns the dedicated `sliver-mcp` MCP (Wave N). Do not overlap it with
   HexStrike network execution in the same phase.
 - An RE backend is a later artifact-analysis execution plane. It does not
@@ -40,8 +43,9 @@ none | hexstrike | cyberstrike | metasploit | sliver | re:ida | re:ghidra | re:b
 | Public footprint and current asset observations | `osint-mcp-server` | No scanning/exploitation; discovered assets do not enter scope; banners are not CVE proof |
 | IOC reputation enrichment (IP/domain/URL) | `osint-mcp-server` VirusTotal (`vt_*`) | PASSIVE lookup only; discloses the selector to VirusTotal; discovered assets do not enter scope; a hit is not authorization to act |
 | CVE/advisory/applicability/risk/exploit-reference metadata | `cve-mcp` | `msf_check`/`nuclei_check` report reference existence only; they do not invoke `metasploit-run` |
-| Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike / `metasploit` / `sliver` in the same phase; no autonomous/high-risk HexStrike tools by default |
-| Authorized Metasploit RPC (search/check/run/session) on owner range | `metasploit-run` MCP after scope sidecar + approval | Not HexStrike `metasploit_run`; not `cve-mcp`; not third-party targets |
+| Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike / `metasploit` / `sliver` in the same phase; high-risk HexStrike tools (`metasploit_run`, `nuclei_scan`, …) only when named in the approved plan |
+| Authorized Metasploit on owner range (`executor_owner: hexstrike`) | `hexstrike-ai.metasploit_run` after scope sidecar + approved plan with exact module/options | Not `metasploit-run` MCP in the same phase; not `cve-mcp`; not third-party targets |
+| Authorized Metasploit RPC on owner range (`executor_owner: metasploit`) | `metasploit-run` MCP after scope sidecar + approval | Not HexStrike in the same phase; not `cve-mcp`; not third-party targets |
 | Authorized Sliver C2 operator surface on owner range | `sliver-mcp` after scope sidecar + approval | Not HexStrike; not overlapping another executor in the same phase |
 | Explicit autonomous multi-phase engagement | CyberStrike alone as top-level harness | Do not nest it while Claude/HexStrike independently executes the plan |
 | Authorized local artifact behavior | `re-ensure`, then exactly one RE MCP | Do not start every backend or overlap network execution |
@@ -394,21 +398,30 @@ review and a separate approved plan.
 `httpx_probe` and `execute_command` have duplicate definitions; do not use
 either until the live winning schemas and hashes are accepted. Deny by default
 arbitrary command/Python, file create/modify/delete, install, payload generation,
-credential attacks, `metasploit_run`, `generate_exploit_from_cve`,
+credential attacks, `generate_exploit_from_cve`,
 `pwntools_exploit`, `advanced_payload_generation`, all `ai_*`, all
 `bugbounty_*`, and `intelligent_smart_scan`.
 
-HexStrike `metasploit_run` stays denied even after Wave N. Metasploit execution
-rides the dedicated `metasploit-run` MCP (`executor_owner: metasploit`), not
-the HexStrike tool of the same name.
+### `metasploit_run` (enabled Wave N+)
 
-## Wave N executors (`metasploit` / `sliver`)
+`metasploit_run` is **allowed** when `executor_owner` is `hexstrike` and the
+coordinator's `ExecutionPlan` names the exact module, canonical target, bounded
+options, and abort conditions — the same bar as tightly parameterized
+`nuclei_scan`. Preflight `/health` plus client `tools/list`; record the live
+schema hash before first use.
+
+Do not call `metasploit_run` in the same phase as `metasploit-run` MCP
+(`executor_owner: metasploit`). For full MSF RPC (sessions, listeners, payload
+generation outside HexStrike's wrapper), switch phases and use the dedicated MCP.
+
+## Wave N executors (`metasploit` / `sliver` / HexStrike MSF)
 
 Owner override 2026-09-02 wired these ENABLED in `.agents/agents.json`. Receipt:
 `docs/plans/cyber-receipts/W-offensive.md`. Config/wiring only.
 
-| Owner | Registry server | Host gate |
+| Owner | Registry server / tool | Host gate |
 |---|---|---|
+| `hexstrike` | `hexstrike-ai.metasploit_run` (embedded) | HexStrike `/health` + local MSF on the HexStrike host; scope sidecar + approved plan |
 | `metasploit` | `metasploit-run` (`uvx metasploit-mcp==3.1.0 --transport stdio`) | local `msfrpcd` + `MSF_PASSWORD` |
 | `sliver` | `sliver-mcp` (`uvx --with mcp<2 sliver-mcp==1.0.1 --config <operator.cfg>`) | running Sliver server + operator config |
 

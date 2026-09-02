@@ -29,8 +29,11 @@ This receipt records **parent SSOT changes only**. No new skills, no wrapper scr
 - `.provenance/.agents/agents.json.md` — Wave N provenance block
 - `docs/plans/2026-09-02-cyber-suite-build.md` — hard-ban strikethrough + override note
 - `docs/plans/cyber-receipts/W-offensive.md` (this file)
+- `.agents/skills/hacktricks/references/security-mcp-routing.md` — HexStrike `metasploit_run` enabled; `metasploit` / `sliver` executor tokens (triple-write to `skills/` + `agent-self/`)
+- `.agents/skills/hacktricks/SKILL.md` — executor_owner prose for HexStrike MSF path
+- `.agents/skills/hexstrike-ai-authorized-engagement/SKILL.md` — Metasploit via HexStrike section
 
-Not touched: skills, hooks, `security-mcp-routing.md` (HexStrike still denies embedded `metasploit_run` until a separate routing update wave).
+Not touched: hooks (W-rails unchanged).
 
 ## Deliverables / claims
 
@@ -46,6 +49,7 @@ Not touched: skills, hooks, `security-mcp-routing.md` (HexStrike still denies em
 | Package existence verified on PyPI | DONE |
 | Host runtime wiring on owner box | **NOT DONE** — checklist below; out of scope for this wave |
 | `tools/list` captured live on owner host | **NOT DONE** — cloud VM lacks msfrpcd + Sliver; sliver-mcp blocked by `mcp` 2.x on Linux receipt box |
+| HexStrike `metasploit_run` enabled in routing doc | DONE — `executor_owner=hexstrike`; triple-write to `skills/` + `agent-self/` |
 
 ## Execution-plane placement (routing)
 
@@ -58,11 +62,12 @@ Intelligence (executor_owner=none):
   darknet-mcp-server → CTI lookup (full 66-tool surface)
 
 Bounded active (default plane today):
-  hexstrike-ai     → nmap, reviewed nuclei, etc.; metasploit_run DENIED in routing doc
+  hexstrike-ai     → nmap, reviewed nuclei, etc.
 
-Wave N (new, registry-enabled, host-gated):
-  metasploit-run   → full MSF RPC surface via metasploit-mcp 3.1.0
-  sliver-mcp       → Sliver operator surface via hi-unc1e/sliver-mcp 1.0.1
+Wave N (registry-enabled, host-gated; pick one Metasploit path per phase):
+  hexstrike-ai.metasploit_run → embedded MSF when executor_owner=hexstrike + approved plan
+  metasploit-run   → full MSF RPC surface via metasploit-mcp 3.1.0 (executor_owner=metasploit)
+  sliver-mcp       → Sliver operator surface via hi-unc1e/sliver-mcp 1.0.1 (executor_owner=sliver)
 ```
 
 **Coordinator rules (unchanged from `security-mcp-routing.md`):**
@@ -73,14 +78,15 @@ Wave N (new, registry-enabled, host-gated):
 4. `cve-mcp` `msf_check` output is still **candidate metadata** — it does not authorize a `run_exploit` call on `metasploit-run`.
 5. W-rails `hooks/target-scope/` still gates tool-argument hosts/URLs/paths; `hooks/security-action/` still appends a redacted audit line. Wiring these MCPs does **not** disable hooks.
 
-**Suggested `executor_owner` labels for future routing-doc update (PROPOSED, not merged):**
+**`executor_owner` labels (merged in `security-mcp-routing.md`):**
 
-| MCP | Proposed owner token | Notes |
-|-----|---------------------|-------|
-| `metasploit-run` | `metasploit` | MSF RPC executor |
+| MCP / tool | Owner token | Notes |
+|------------|-------------|-------|
+| `hexstrike-ai.metasploit_run` | `hexstrike` | Embedded MSF; same scope + approved-plan gate as `nuclei_scan` |
+| `metasploit-run` | `metasploit` | Full MSF RPC executor |
 | `sliver-mcp` | `sliver` | C2 post-ex session executor |
 
-Until routing.md is updated, treat both as **high-risk executors** requiring the same scope packet + human approval gate as HexStrike authorized engagement.
+All three require scope sidecar + human approval; at most one non-`none` owner per phase.
 
 ## Registry entries (as merged)
 
@@ -189,7 +195,7 @@ To harden: set `MSF_MCP_ALLOW_DANGEROUS=false` in the owner environment **or** a
 | BishopFox built-in `sliver-client mcp` | Filesystem-only (~11 tools); hi-unc1e package covers full operator workflow per owner steer |
 | v0idravl/sliver-mcp | Not on PyPI; would require git pin + local venv path |
 | x746b/sliver-mcp | Larger surface (~74 tools) but not the PyPI package verified here |
-| HexStrike embedded `metasploit_run` | Denied by routing doc; separate MCP gives schema-hash TOFU + explicit executor boundary |
+| HexStrike embedded `metasploit_run` | **Enabled** when `executor_owner=hexstrike`; use dedicated `metasploit-run` MCP for full RPC in a separate phase |
 | Rapid7 official Metasploit MCP | Not packaged on PyPI under `metasploit-mcp`; setuidloot fork is what `pip install metasploit-mcp` resolves to |
 
 ## Environment variables
@@ -327,7 +333,7 @@ python3 -m pytest -q .agents/tests
 | Wave | Interaction |
 |------|-------------|
 | **W-rails** | Scope + audit hooks apply to these MCP tool calls |
-| **W-routing** | `cve-mcp` `msf_check` stays metadata; routing doc still denies HexStrike `metasploit_run` — **follow-up wave** should add `metasploit` / `sliver` executor tokens |
+| **W-routing** | `cve-mcp` `msf_check` stays metadata; routing doc now allows HexStrike `metasploit_run` under `executor_owner=hexstrike` and documents `metasploit` / `sliver` tokens |
 | **W-purple** | CALDERA/ART/Stratus stay separate; Sliver is live C2, not purple emulation catalog |
 | **W-cti** | darknet/osint/cve remain intelligence-only; do not conflate with execution |
 | **W-cloud** | prowler/trivy stay DEFAULT-OFF posture tools; orthogonal |
@@ -354,7 +360,8 @@ Implementation commit: **`09013ab3`** — `Wire Sliver and Metasploit-run MCPs e
 
 | Item | Status |
 |------|--------|
-| Update `security-mcp-routing.md` with `metasploit` / `sliver` executor_owner tokens | DONE — W-routing follow-up on this branch (triple-write + SKILL.md) |
+| Update `security-mcp-routing.md` with `metasploit` / `sliver` executor_owner tokens | DONE — triple-write + SKILL.md |
+| Enable HexStrike embedded `metasploit_run` in routing doc | DONE — `executor_owner=hexstrike` + phase separation from `metasploit-run` MCP |
 | Pin `sliver-mcp` uvx with `mcp<2` | DONE — `args` now `--with mcp<2 sliver-mcp==1.0.1` (parked companion matched) |
 | Live `tools/list` + schema-hash TOFU on owner host | OPEN — needs msfrpcd + Sliver on the Windows box |
 | Optional `--safe-mode` on `metasploit-run` args | OPEN — owner chose full surface; set `MSF_MCP_ALLOW_DANGEROUS=false` if hardening |
