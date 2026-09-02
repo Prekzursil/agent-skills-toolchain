@@ -38,7 +38,7 @@ Dedup-set (exists; not re-proposed): `hosted-model-agents` skill (branch
 Sections are appended as research lands; each section is committed and pushed on completion.
 
 - [x] 2. router.huggingface.co/v1 (Inference Providers)
-- [ ] 3. Inference Endpoints (dedicated)
+- [x] 3. Inference Endpoints (dedicated)
 - [ ] 4. Spaces as inference hosts (Gradio MCP, /v1 Spaces, ZeroGPU, sleep/wake, owner recipe)
 - [ ] 5. Official Hugging Face MCP server
 - [ ] 6. HF token scopes
@@ -213,4 +213,77 @@ Cheap tool-capable workhorses on the same sheet: `openai/gpt-oss-120b` on deepin
 
 ### 2.7 Hub-wide rate limits (context for the router)
 
-Filled in section 2.8 below after fetching <https://huggingface.co/docs/hub/rate-limits>.
+- `[fact][A][corr][page dated "September '25", f:2026-09-02]` The Hub enforces three buckets over
+  **5-minute fixed windows**: Hub API, Resolvers (`/resolve/` file downloads), Pages. Tiers:
+  Anonymous 500 / 3,000 / 100; Free 1,000 / 5,000 / 200; **PRO 2,500 / 12,000 / 400**; Team
+  3,000 / 20,000 / 400; Enterprise 6,000 / 50,000 / 600; Enterprise Plus 10,000 / 100,000 / 1,000
+  (100,000 / 500,000 / 10,000 with "Higher Hub Rate Limits"). Anonymous and Free values are
+  "subject to change ... depending on platform health". Org limits apply per member, not shared.
+  Source: <https://huggingface.co/docs/hub/rate-limits>.
+- `[fact][A][corr][f:2026-09-02]` On 429 the Hub returns IETF `draft-ietf-httpapi-ratelimit-headers`
+  v9 headers `RateLimit: "api|pages|resolvers";r=<remaining>;t=<seconds-to-reset>` and
+  `RateLimit-Policy`. `huggingface_hub >= 1.2.0` parses them and sleeps exactly until reset for
+  downloads and paginated list calls. Same source.
+- `[fact][A][corr][f:2026-09-02]` HF's stated number-one cause of throttling is requests without
+  `HF_TOKEN`; the stated remedies are spacing requests, preferring Resolver URLs over API calls, or
+  upgrading. Same source.
+- `[infer]` The router (`router.huggingface.co`) is not one of the three named buckets on that
+  page, and the pricing page gives no request-per-minute figure for it; the practical router ceiling
+  is therefore **credits then pay-as-you-go**, with each partner's own concurrency limits behind the
+  proxy (which HF's failover is designed to mask under `:fastest`/auto but **not** under a pinned
+  `:<provider>` suffix). This should be stated in the skill as an open question, not a number.
+- `[rec]` Any estate client that talks to both `huggingface.co/api/*` (Hub MCP, `hf models ls`) and
+  the router should honour `RateLimit` headers and pass the token everywhere; the estate already
+  centralises the token name (`HUGGINGFACE_TOKEN`) in `.agents/local.json`, so this is a code-path
+  rule, not a secrets change.
+
+### 2.8 Official "Quick Setup for Agents" integrations (new since the skill was written)
+
+- `[fact][A][corr][f:2026-09-02]` The Inference Providers index now carries a "Quick Setup for
+  Agents" block with per-tool guides at `docs/inference-providers/integrations/{opencode, pi,
+  codex, claude-code, hermes-agent, datadesigner, macwhisper, visionagents, vscode}`, and the
+  guides section gained `guides/responses-api`, `guides/gpt-oss`, `guides/coding-environment`
+  ("Agentic Coding Environments with OpenEnv"), `guides/evaluation-inspect-ai` and
+  `guides/github-actions-code-review`. Sources: rendered index
+  <https://huggingface.co/docs/inference-providers/index>; navigation
+  <https://github.com/huggingface/hub-docs/blob/main/docs/inference-providers/_toctree.yml>.
+- `[infer]` Three of the estate's installed runtimes (Codex, Claude Code, OpenCode) are now
+  first-party-documented router consumers. Section 8 examines whether the estate locks permit
+  each one (the Claude Code path implies a base-URL swap, which the OpenRouter lock forbids for
+  OpenRouter and which the same reasoning should be applied to for HF - see 8.x).
+
+## 3. Inference Endpoints (dedicated)
+
+- `[fact][A][corr][f:2026-09-02]` Dedicated Endpoints bill an hourly instance rate, metered per
+  minute, only while the endpoint is initializing or running; requires an active subscription and a
+  card on file. Formula: `rate * ((hours * min_replicas) + (scale_up_hours * extra_replicas))`.
+  Source: <https://huggingface.co/docs/inference-endpoints/pricing>.
+- `[fact][A][corr][f:2026-09-02]` GPU price points relevant to a 27B-class model (AWS unless noted):
+  T4 16 GB $0.50/h; L4 24 GB $0.80/h (GCP $0.70); A10G 24 GB $1.00/h; **L40S 48 GB $1.80/h**;
+  A100 80 GB $2.50/h (GCP $3.60); H200 141 GB $5.00/h; GCP H100 80 GB $10.00/h. CPU
+  intel-spr x2 (2 vCPU, 4 GB) $0.067/h. Same source.
+- `[fact][A][corr][f:2026-09-02]` Scale-to-zero: idle timeout default **1 hour**; while a replica
+  cold-starts the proxy returns **503**, unless the client sends `X-Scale-Up-Timeout: <seconds>`
+  (e.g. 600), in which case the proxy holds the request until ready or timeout. HF's own guidance:
+  "scaling up can take a few minutes depending on the model ... scaling from 0 to 1 based on a
+  request is typically not recommended if your application needs to be responsive." Autoscaling
+  signals: hardware utilisation (80% default, scale-up evaluated every minute, scale-down every 2
+  minutes, 300 s stabilisation) or pending requests (>1.5 per replica over 20 s). Source:
+  <https://huggingface.co/docs/inference-endpoints/guides/autoscaling>.
+- `[fact][A][corr][f:2026-09-02]` Quotas: instance quota is shown in the Endpoints dashboard;
+  **paused** endpoints do not consume quota, **scaled-to-zero endpoints do**; PRO and Enterprise can
+  request higher quota. Source: <https://huggingface.co/docs/inference-endpoints/pricing>.
+- `[fact][A][corr][f:2026-09-02]` PRO/Team/Enterprise monthly credits ($2 / $2 per seat) may be spent
+  on Endpoints. Source: <https://huggingface.co/docs/inference-providers/pricing>.
+- `[infer]` Cost picture for the estate's private Heretic checkpoint (Qwen3.8-27B class, needs
+  roughly 48 GB in bf16 or 24 GB in 4-bit): an always-on L40S is ~$1,314/month (730 h x $1.80);
+  the same box scale-to-zero with a 1 h idle window costs $1.80 per wake-hour plus a multi-minute
+  cold start and a 503-or-hold client contract. Versus ZeroGPU (section 4): $0 up to the daily quota
+  and $6/GPU-hour beyond it, but shared queueing and a 60-s default per-call GPU budget. Versus the
+  router: the *base* Qwen3.8-27B is $0.40/$3.00 per M tokens on deepinfra with no fixed cost, but
+  the abliterated fine-tune is not on the router at all.
+- `[rec]` An Endpoint is only the right surface for this estate when (a) the checkpoint is not on
+  the router, (b) usage is bursty-but-long (hours per session, not one call per hour), and (c) the
+  client is prepared to send `X-Scale-Up-Timeout` and treat 503 as "warming". None of those is true
+  of the glm53 use case (GLM-5.3 is on five router providers), so the Endpoint column of the
+  decision table is "reserved for private checkpoints under sustained load".
