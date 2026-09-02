@@ -1,8 +1,10 @@
 # Search + deep-research tooling — gem-hunt decision queue (2026-09-02)
 
-**Status: GRILL CONVERGING — delivery decided (G-8: build now, phased; Wave 1 on
-this branch, later waves on their own branches). Wave-map confirmation (G-9) is the
-last gate before Wave 1 builds.** This doc is the audit trail for an extensive grill
+**Status: WAVE 1 BUILT on this branch (2026-09-02) — all six items landed in three
+gated commits (`64762079` onion lane + VormWeb default-ON, `7bdd57cc` search-expansion,
+`ecfcc9aa` GitHub REST + `read_url`); Waves 2-4 are specified below and wait for their
+own branches (G-8 C). Owner follow-ups are listed under "Wave 1 — status".** This doc
+is the audit trail for an extensive grill
 over the 14-lens gem-hunt into better search / research tools + upgrades for the
 estate's search stack, and — per G-8 (A) — the program SSOT: every wave is specified
 in the wave map below before it builds. Numbering: the **Decisions log** (G-1…) is
@@ -244,6 +246,34 @@ secrets only by env-name.
    only — no `vormweb` engine — so the xpath definition is ours to carry.
 6. **GitHub REST search siblings** on the OSSInsight adapter (`created:>…&sort=stars`
    = the "new & hot" ranking OSSInsight lost). Keyless, in-process, T0.
+
+#### Wave 1 — status (2026-09-02): BUILT, gated, pushed
+
+| # | Item | Landed in | Gate evidence |
+|---|------|-----------|---------------|
+| 1a | Flips rendered into the owner's managed block (`searxng_config.py`, `--probe` extended) | `7bdd57cc` | 191 tests, 100% line+branch, mutation 53/53 + 24/24 + 8/8 |
+| 1b | Flips mirrored in `deploy/searxng-min/settings.yml` + text-level guard test | `64762079` | `tests/test_deploy_settings.py` (11) |
+| 2 | `FusedResult.snippet` carried through RRF (500-char cap, best-rank provider) | `7bdd57cc` | `test_rank_fusion.py` snippet block |
+| 3 | `diversify()` opt-in: <=2/host + Jaccard > 0.8 demotion, re-order only; multilingual-search snippet opted in | `7bdd57cc` + wrap-up | boundary tests (0.8 kept, > 0.8 demoted) |
+| 4 | `read_url` v0: Cloudflare `Accept: text/markdown` negotiation, stdlib fallback labelled `quality: low`, `.onion`/private-address refusal | `ecfcc9aa` | `tests/test_read_url.py` (47 cases) |
+| 5 | VormWeb DEFAULT-ON as SearXNG `xpath` engine, `ENABLE_VORMWEB=0`, same gate + tagging, envelope caveats | `64762079` | `tests/test_onions.py` (+15) |
+| 6 | `GitHubSearchAdapter` (5 tools, default ON, rate-limit relay, token by env-name) | `ecfcc9aa` | `tests/test_github_search.py` (59 cases) |
+
+search-hub suite 99 -> 233 passing; search-expansion 105 -> 191 at 100% coverage; ruff
+0.15.17 clean on both. Concurrency note for the record: the three builders shared one
+working tree with disjoint file ownership and no commits of their own; each slice was
+gated against the others' in-progress files excluded, then committed alone.
+
+**Owner follow-ups (cannot be done from the cloud VM):**
+1. Restart the estate SearXNG (engine stanzas load only on restart), then run one
+   `engines=vormweb` query and tick the envelope sign-off checkbox.
+2. `python tools/search-expansion/searxng_regional.py --dry-run` -> `--apply` -> `--probe`
+   on the box; expect `marginalia` to 429 truthfully until a personal key replaces
+   `public` (untracked overlay, never committed).
+3. Optional live probes: `read_url` against a Cloudflare doc page (expect
+   `extractor: cloudflare-markdown`), `search_usage {"provider":"github","probe":true}`.
+4. Not built by design (G-7): no hub-side Ahmia MD5 blacklist. Not verified from here:
+   a live SearXNG loading the VormWeb xpath stanza; live GitHub rate-limit headers.
 
 ### Wave 2 — new branch: keyless adapters + extraction + harness trio
 - Parallel Search MCP + grep.app MCP (remote, keyless; probed lattice).

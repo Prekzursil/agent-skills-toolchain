@@ -86,10 +86,16 @@ from rank_fusion import fuse_provider_payloads  # tools/search-expansion/
 fused = fuse_provider_payloads(
     {"searxng-ru": ru_payload, "searxng-cn": cn_payload, "exa": exa_payload},
     limit=20,
+    max_per_host=2,          # opt-in: <=2 results per registrable host in the top window
+    near_dup_threshold=0.8,  # opt-in: demote title+snippet token-Jaccard > 0.8 twins
 )
 for r in fused:
-    print(r.score, r.sources, r.display_url)
+    print(r.score, r.sources, r.display_url, r.snippet[:80])
 ```
+
+Both keyword arguments are opt-in (omit them for the plain RRF order); demotion only
+re-orders, `score` stays the RRF sum, and `snippet` carries the best-ranking provider's
+passage so a later reranker has text to work with.
 
 RRF uses only each provider's *rank ordinal*, never its relevance score — those scores are
 not comparable across providers, and normalising them invents a shared scale. A document

@@ -583,7 +583,8 @@ def _usage_tool_def() -> dict:
             "state. Exa reports 'error-driven (no balance API)'; SearXNG reports "
             "keyless and never cooled. The self-hosted section reports each tool's "
             "state (native|probed|declared|emulated|absent). Pass "
-            "provider='exa'|'tavily'|'firecrawl'|'searxng'|'selfhosted' to narrow, or "
+            "provider='exa'|'tavily'|'firecrawl'|'searxng'|'selfhosted'|'github'|"
+            "'read_url' to narrow, or "
             "omit for all; probe=true does ONE health GET per self-hosted backend. "
             "Read-only; does not spawn a search child."
         ),
@@ -593,7 +594,8 @@ def _usage_tool_def() -> dict:
                 "provider": {
                     "type": "string",
                     "description": (
-                        "exa | tavily | firecrawl | searxng | selfhosted; empty = all"
+                        "exa | tavily | firecrawl | searxng | selfhosted | github | "
+                        "read_url; empty = all"
                     ),
                 },
                 "probe": {

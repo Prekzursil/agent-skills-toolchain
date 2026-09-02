@@ -139,6 +139,20 @@ ranked fallback the interface already supports.
 pages are needed — it is far lighter than Crawl4AI. Reserve **Crawl4AI** for an OVH host only
 (§6), never as an always-on local daemon.
 
+> **Correction 2026-09-02 (gem-hunt Lens 1, kept beside the original):** fastCRW v0.33.0
+> (released 2026-09-02) ships native **`win32-x64` zips** for `crw`, `crw-server` and
+> `crw-mcp` with sigstore-signed `SHA256SUMS` — the README's "macOS and Linux" line is
+> stale, so the "Docker on Windows" assumption above no longer holds. Its own
+> `COMPATIBILITY.md` rates Tavily parity **"adapter required"** (no `/tavily/*`, no
+> `search_depth`, single-URL extract), which confirms TrailSearch as the Tavily-shape
+> owner. Two lighter alternatives were measured by the lens and are queued in the
+> gem-hunt wave map (`2026-09-02-search-research-tools-gemhunt.md`): **trafilatura-scrape**
+> (MIT, Firecrawl v1+v2 shape over our SearXNG, 60 MB idle measured, pure-Python wheels =
+> native Windows) as the Wave-2 trial to replace the AGPL fastCRW fallback, and
+> **WebSearchFree** (MIT, 1 MB binary, 9.7 MB idle) as an optional standby search lane.
+> **AginxBrowser** (Apache-2.0, V8 + own renderer, 73 MiB image, Linux/macOS only) is the
+> Wave-3 off-box JS-render trial.
+
 ### 3c. Local index
 
 | candidate | RAM (documented) | note |
@@ -372,6 +386,40 @@ RAM beyond the hub**, all daemons on OVH.
 `test_ossinsight.py`, and hub integration tests incl. real loopback-socket cases and the
 flag-off gate tests. **Suite 44 → 92 passed; `ruff check` + `ruff format --check` clean; both
 lane flags default 0; zero new containers, zero new long-running processes.**
+
+**Wave 3 — gem-hunt program Wave 1 (2026-09-02; decided in
+`2026-09-02-search-research-tools-gemhunt.md`, built by three subagents with disjoint file
+ownership, gated and committed per slice):**
+
+- **`64762079` search-hub onion lane** — **VormWeb** as a second clearnet `onion index`
+  source, **DEFAULT-ON** (owner decision G-7): a generic SearXNG `xpath` engine stanza in
+  `deploy/searxng-min/settings.yml` (upstream ships no `vormweb` engine; xpaths verified
+  41/41 against live markup), `onions.py` lane engines `ahmia,vormweb`, `ENABLE_VORMWEB=0`
+  per-engine kill switch, the same ask-before-search gate/modes/tagging, `_onion.lane`
+  naming the index that answered. The default-mix flips (google off; mwmbl + marginalia
+  on) mirrored in the same file; `tests/test_deploy_settings.py` guards both. Envelope
+  amended with the two owner-accepted caveats (operator consent unresolved; filtering
+  self-declared; no hub-side blacklist guard).
+- **`7bdd57cc` search-expansion** — `FusedResult.snippet` carried through RRF (rerank
+  prerequisite); opt-in `diversify()` (<=2 results per registrable host, token-Jaccard
+  > 0.8 near-dup demotion, re-ordering only); `searxng_config.py` renders the flips
+  (`google: disabled: true`; `mwmbl: disabled: false`; `marginalia: disabled: false,
+  inactive: false, api_key: public`) into the managed block the owner applies on the box;
+  191 tests, 100% line+branch, mutation-check clean.
+- **`ecfcc9aa` search-hub adapters** — `GitHubSearchAdapter` (default ON;
+  `github_repo_search`, `github_new_and_hot`, `github_popular_and_alive`,
+  `github_topic_search`, `github_repo_activity`; `x-ratelimit-*` relayed; optional
+  `GITHUB_TOKEN` by env-name only) restores the "new & hot" ranking OSSInsight lost; and
+  `ReadUrlAdapter` (`read_url`, default ON) negotiating Cloudflare Markdown for Agents
+  with a stdlib fallback that is labelled `quality: low` — Wave 2 swaps in trafilatura
+  behind the same name and shape. Suite: 233 passing.
+
+**Owner follow-ups this wave cannot do from the cloud VM:** restart the estate SearXNG so
+the xpath engine loads, then one `engines=vormweb` query (envelope sign-off checkbox);
+`python tools/search-expansion/searxng_regional.py --dry-run` then `--apply` then
+`--probe` on the box (expect `marginalia` to 429 truthfully until a personal key replaces
+`public`); optionally probe `read_url` against a Cloudflare doc page and
+`search_usage {"provider":"github","probe":true}` for live rate-limit headers.
 
 ### 7a. Finding: SearXNG config beats a new adapter for the onion lane
 

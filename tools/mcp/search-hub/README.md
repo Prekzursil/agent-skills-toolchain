@@ -342,6 +342,13 @@ name, same output shape) with a trafilatura extractor.
 - **Self-hosted tools (keyless, HTTP-backed):** `selfhosted_search`,
   `selfhosted_extract` — Tavily-shaped, served in-process from `TRAILSEARCH_URL`
   (no child). See the lane section above.
+- **Repo discovery (keyless, default ON):** `github_repo_search`,
+  `github_new_and_hot`, `github_popular_and_alive`, `github_topic_search`,
+  `github_repo_activity` — first-party GitHub REST, in-process, `x-ratelimit-*`
+  relayed on every answer. `ENABLE_GITHUB_SEARCH=0` removes the lane.
+- **`read_url` (keyless, default ON):** in-process fetch that negotiates Cloudflare
+  Markdown for Agents and names the extractor that produced the text.
+  `ENABLE_READ_URL=0` removes it. Never fetches `.onion` hosts.
 - **`search_usage` (hub-native, on-demand):** per stored key, reports
   `label + remaining` (Firecrawl remaining credits; Tavily plan+paygo headroom)
   plus cooldown/health, **plus** the self-hosted lane's capability lattice. Exa
@@ -442,6 +449,16 @@ truthful degradation when the daemon is down (an `isError`, never fake hits), an
 one end-to-end case over a real loopback socket using the default `urllib` caller.
 `python deploy/smoke_selfhosted_no_docker.py` runs the same path standalone.
 
+The GitHub REST lane (`tests/test_github_search.py` + `tests/fake_github_backend.py`)
+and `read_url` (`tests/test_read_url.py` + `tests/fake_page_backend.py`) are covered
+the same way: canned routes on a loopback `HTTPServer`, including the 202 "computing"
+stats path, a 403 with rate-limit headers, Cloudflare `text/markdown` negotiation,
+redirect loops and private-address refusal. The onion lane is `tests/test_onions.py`
+(gate, modes, tagging, `ENABLE_ONIONS` / `ENABLE_VORMWEB` kill switches) and
+`tests/test_deploy_settings.py` (text-level guards on `deploy/searxng-min/settings.yml`
+so nobody silently re-enables `google` or moves VormWeb back to the Tor-gated
+`onions` category).
+
 **Needs live services (manual, not in CI):** actually reaching
 Exa/Tavily/Firecrawl/SearXNG, real `search_usage` balances, and observing a real
 402→rotate in production. Use `python hub.py --refresh` to regenerate
@@ -455,8 +472,11 @@ Exa/Tavily/Firecrawl/SearXNG, real `search_usage` balances, and observing a real
   the exhaustion-signal classifier.
 - `adapters.py` — the self-hosted adapter interface (capability lattice + probe +
   truthful-degradation `handle_call`), `TrailSearchAdapter` (keyless Tavily lane),
-  and `OSSInsightAdapter` (keyless repo discovery, default OFF).
-- `onions.py` — the pure onions-lane envelope guard (index-only, `ENABLE_ONIONS`).
+  `OSSInsightAdapter` (keyless repo discovery, default OFF), `GitHubSearchAdapter`
+  (keyless GitHub REST repo discovery, default ON) and `ReadUrlAdapter` (`read_url`,
+  default ON); `wired_adapters` is what the hub instantiates.
+- `onions.py` — the pure onions-lane envelope guard (index-only; Ahmia + VormWeb;
+  `ENABLE_ONIONS` lane kill switch, `ENABLE_VORMWEB` per-engine kill switch).
 - `rotation.py` — per-key health, `pick_active`, `mark_exhausted`, the
   rotate-retry wrapper, and numbered-backup seeding.
 - `usage.py` — stdlib `urllib` calls to the keyed providers' usage endpoints.
