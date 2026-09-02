@@ -45,6 +45,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
 import accounts  # noqa: E402
 import adapters  # noqa: E402
+import lanes  # noqa: E402
 import onions  # noqa: E402
 import providers  # noqa: E402
 import rotation  # noqa: E402
@@ -303,11 +304,14 @@ class SearchHub:
         self.account_tools, self.account_routes = self._account_surface(specs)
         # Self-hosted, key-free lane: in-process HTTP adapters (no child spawned,
         # no new import beyond urllib). Their tools/list surface is committed too.
-        self.adapters = (
-            self_hosted
-            if self_hosted is not None
-            else adapters.wired_adapters(self.environ)
-        )
+        if self_hosted is not None:
+            self.adapters = self_hosted
+        else:
+            # Registered lane modules (lanes.py) wire after the core adapters; a
+            # lane that fails to import/build is dropped and reported, not fatal.
+            extra, lane_degraded = lanes.extra_adapters(self.environ)
+            self.adapters = adapters.wired_adapters(self.environ) + extra
+            self.degraded.update(lane_degraded)
         self.adapter_routes = {
             name: ad for ad in self.adapters for name in ad.tool_names()
         }
@@ -702,7 +706,9 @@ def _cmd_print_plan() -> int:
     per_provider: dict[str, int] = {s.platform: 0 for s in specs}
     for route in routes.values():
         per_provider[route.platform] += 1
-    self_hosted = adapters.wired_adapters(os.environ)
+    extra, lane_degraded = lanes.extra_adapters(os.environ)
+    degraded.update(lane_degraded)
+    self_hosted = adapters.wired_adapters(os.environ) + extra
     adapter_tools = [d for ad in self_hosted for d in ad.tool_defs()]
     for ad in self_hosted:
         per_provider[ad.platform] = len(ad.tool_names())
