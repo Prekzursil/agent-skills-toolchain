@@ -312,8 +312,8 @@ class SearchHub:
             name: ad for ad in self.adapters for name in ad.tool_names()
         }
         self.adapter_tools = [d for ad in self.adapters for d in ad.tool_defs()]
-        # Onion lane (Ahmia index via SearXNG): works by default, ASKS before
-        # searching, ENABLE_ONIONS=0 is a hard kill switch (§ onions.py).
+        # Onion lane (Ahmia + VormWeb indexes via SearXNG): works by default, ASKS
+        # before searching, ENABLE_ONIONS=0 is a hard kill switch (§ onions.py).
         self.onions_kill_switched = onions.is_kill_switched(self.environ)
         self._children: dict[tuple[str, str], ProviderKeyChild] = {}
         self.all_tools = (
@@ -469,7 +469,11 @@ class SearchHub:
         else:
             response = self.rotator.route_call(route.platform, msg, forward)
         if onion_mode is not None:
-            response = onions.tag_onion_response(response, onion_mode)
+            # `msg` was rebound above with the pinned onion args; they name the
+            # index engine(s) that answered, so the lane tag can say which.
+            response = onions.tag_onion_response(
+                response, onion_mode, (msg.get("params") or {}).get("arguments")
+            )
         response.setdefault("jsonrpc", "2.0")
         response["id"] = mid
         self._emit(json.dumps(response, ensure_ascii=False))

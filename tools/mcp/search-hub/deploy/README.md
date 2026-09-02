@@ -72,7 +72,12 @@ python deploy/smoke_selfhosted_no_docker.py     # exit 0 = keyless lane works
 
 - `docker-compose.selfhosted-search.yml` — app (always) + SearXNG (`bundled` profile).
 - `env.minimal.example` — the key-free minimal env; copy to `.env` (which is gitignored).
-- `searxng-min/settings.yml` — minimal SearXNG config (JSON format enabled).
+- `searxng-min/settings.yml` — minimal SearXNG config (JSON format enabled) plus
+  the Wave-1 default-mix flips — `google` **off** (keyless Google scraping is dead),
+  `mwmbl` + `marginalia` **on** (`api_key: public`, rate-limited) — and the two
+  clearnet onion-INDEX engines `ahmia` + `vormweb` under category `onion index`
+  (see `docs/legal/onions-lane-envelope.md`). Engine changes load on a SearXNG
+  **restart** only. Pinned by `tests/test_deploy_settings.py`.
 - `run-selfhosted-search.{sh,ps1}` — clone/pin/build/up + real-daemon smoke.
 - `smoke_selfhosted_no_docker.py` — Docker-free adapter/hub smoke.
 

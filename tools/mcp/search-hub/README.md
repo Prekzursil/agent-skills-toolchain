@@ -143,17 +143,32 @@ running hub ~0 RAM at rest. The heavy daemon it talks to is started **on demand*
 Two extra lanes ship **disabled** and are gated by env flags. See the legal/safety
 envelope: [`docs/legal/onions-lane-envelope.md`](../../../docs/legal/onions-lane-envelope.md).
 
-- **Ahmia onion lane (default ON, ask-first; `ENABLE_ONIONS=0` kills it)** —
-  **index-only** dark-web search via the **existing** `searxng_web_search` tool
-  (not a new tool/service): `engines=ahmia` (or `categories="onion index"`). It
-  **works by default but ASKS before searching** — the first onion call returns a
-  confirmation request listing modes (`low|medium|high|deepest`, index breadth
-  only); the caller re-invokes with `onion_confirm=true` + `onion_mode`. Confirmed
-  results are prepended with a `TOR / DARK-WEB INDEX` banner + an `_onion` marker so
-  they are clearly distinct from normal web results. No Tor, no `.onion` fetch
-  (`web_url_read` of any `.onion` is refused regardless); the SearXNG engine is
-  pinned to clearnet `ahmia.fi` and fails closed. Inherits Ahmia's abuse blacklist.
-  `ENABLE_ONIONS=0` is a hard kill switch. **≈ 0 MB.** See the envelope doc.
+- **Onion-index lane: Ahmia + VormWeb (default ON, ask-first; `ENABLE_ONIONS=0`
+  kills it)** — **index-only** dark-web search via the **existing**
+  `searxng_web_search` tool (not a new tool/service). Two clearnet **index**
+  engines, both under SearXNG category `onion index` (never the Tor-gated
+  `onions`): `ahmia` (`ahmia.fi`) and, since owner decision G-7, `vormweb`
+  (`vormweb.de`, a SearXNG `xpath` engine we carry in
+  `deploy/searxng-min/settings.yml` because upstream ships none). **How to ask
+  for one engine:** `engines=ahmia` or `engines=vormweb` queries that index only;
+  omit `engines` (or pass `categories="onion index"`) to query every enabled index
+  (`ahmia,vormweb` by default). It **works by default but ASKS before searching**
+  — the first onion call returns a confirmation request listing the `engines` it
+  will query and the modes (`low|medium|high|deepest`, index breadth only); the
+  caller re-invokes with `onion_confirm=true` + `onion_mode`. Confirmed results
+  are prepended with a `TOR / DARK-WEB INDEX` banner naming the index(es) + an
+  `_onion` marker (`lane: ahmia-index | vormweb-index | ahmia+vormweb-index`,
+  `engines`, `verified:false`) so they are clearly distinct from normal web
+  results. No Tor, no `.onion` fetch (`web_url_read` of any `.onion` is refused
+  regardless, whichever index listed it); both engines are clearnet and fail
+  closed. Ahmia's abuse blacklist is inherited; **VormWeb's filtering is its own
+  self-declared policy and unverifiable, and its operator's consent is unresolved
+  (no ToS/robots published)** — the owner accepted both caveats (G-7) and declined
+  a hub-side blacklist guard, so treat VormWeb hits as exactly as unvetted as the
+  envelope says. **Flags:** `ENABLE_ONIONS=0` = hard kill switch for the whole
+  lane; `ENABLE_VORMWEB=0` = drop VormWeb from the default set and refuse an
+  explicit `engines=vormweb` with a truthful message (unset = ON). **≈ 0 MB.** See
+  the envelope doc; the xpath stanza needs a SearXNG restart to load.
 - **OSSInsight repo-discovery (`ENABLE_OSSINSIGHT=0`)** — keyless GitHub repo
   discovery over the public OSSInsight API: `ossinsight_repo_stats`,
   `ossinsight_collections`, `ossinsight_collection_ranking`. In-process HTTP,
