@@ -2,9 +2,12 @@
 
 **Wave:** W-upgrades (upgrades to existing skills + new `native-fuzz` skill)
 **Branch:** `cursor/cyber-suite-full-program`
-**Status:** UNKNOWN - not yet measured
+**Status:** DONE — all four deliverables landed, dual-written, and measured green.
 
 > If it still reads this way, the unit died before measuring anything and no verdict here may be cited.
+
+(The skeleton sentence above is kept for provenance; its precondition — an
+all-`UNKNOWN` skeleton — no longer holds. Every claim below is measured.)
 
 ## Scope (ONLY these paths)
 
@@ -58,20 +61,33 @@ Measured with `diff -rq .agents/skills/<name>/ skills/<name>/` before editing.
 
 ## Validation
 
-- `ruff` (only if Python scripts ship): UNKNOWN - not yet measured
-- `pwsh validate-all-skills.ps1`: UNKNOWN - not yet measured (pwsh not installed in cloud per AGENTS.md)
-- Frontmatter YAML sanity: UNKNOWN - not yet measured
+- `ruff`: N/A — this wave ships **no Python scripts**. native-fuzz is Markdown-only (SKILL.md + agents/openai.yaml); the three upgrades are Markdown edits. Per the wave rule, "otherwise the skill is the artifact."
+- `pwsh validate-all-skills.ps1`: NOT RUN — `pwsh` is not installed in cloud (AGENTS.md). Substituted a manual frontmatter/YAML check.
+- Frontmatter YAML sanity: PASS — PyYAML parsed native-fuzz `SKILL.md` frontmatter (keys == {name, description}) and `agents/openai.yaml` (`interface` with display_name/short_description/default_prompt) in both roots; the three edited skills' frontmatter was left untouched.
 
 ## Safety posture
 
-- No exploit code / PoCs authored: UNKNOWN - not yet measured
-- No edits to `.agents/agents.json` or any other wave's files: UNKNOWN - not yet measured
-- Existing skill text preserved (additive only): UNKNOWN - not yet measured
+- No exploit code / PoCs authored: YES — all four deliverables are defensive (review loop, detection-rule CI, threat-model find-and-fix, own-code fuzzing). native-fuzz explicitly bans exploit dev and non-owned targets in its `When NOT to use` and framing.
+- No edits to `.agents/agents.json` or any other wave's files: YES — every commit's `--stat` shows only the four skill dirs + this receipt. Path-scoped `git commit -o -- <paths>` used throughout. (`.agents/agents.json` / `.agents/mcp-cursor-parked-31.json` were left dirty in the worktree by the environment's concurrent-wave sync; never staged by this unit.)
+- Existing skill text preserved (additive only): YES — original anchors still present (`## Security Checklist`, `capa / FLOSS / ghidriff`, `# Threat Model Source Code Repo`); new sections inserted before each skill's closing block, plus one `$capa-triage` Related bullet.
 
 ## Git
 
-- Commit SHA(s): UNKNOWN - not yet measured
-- Files changed: UNKNOWN - not yet measured
+Branch `cursor/cyber-suite-full-program` (path-scoped, retried on race via env auto-rebase onto concurrent waves).
+
+- `bba476ef` — receipt skeleton
+- `acff126f` — security-review: Trail of Bits scanner-driven review loop (CC-BY-SA)
+- `1dec0df9` — malware-analysis-triage: YARA rules-as-code CI (yara-forge/yaraQA)
+- `5b030032` — security-threat-model: Anthropic defending-code flow
+- `d838335f` — native-fuzz: new skill (go test -fuzz + ASan/UBSan/MSan)
+- final receipt-finalization commit adds this section
+
+Files changed (excluding this receipt):
+- `.agents/skills/security-review/SKILL.md` + `skills/security-review/SKILL.md`
+- `.agents/skills/malware-analysis-triage/SKILL.md` + `skills/malware-analysis-triage/SKILL.md`
+- `.agents/skills/security-threat-model/SKILL.md` + `skills/security-threat-model/SKILL.md`
+- `.agents/skills/native-fuzz/SKILL.md` + `.agents/skills/native-fuzz/agents/openai.yaml`
+- `skills/native-fuzz/SKILL.md` + `skills/native-fuzz/agents/openai.yaml`
 
 ## PARENT MERGE
 
