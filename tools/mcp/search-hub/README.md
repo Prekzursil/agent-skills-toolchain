@@ -133,8 +133,29 @@ running hub ~0 RAM at rest. The heavy daemon it talks to is started **on demand*
   `tools/call` always hits the backend and returns a truthful `isError` (no
   fabricated hits) when it is down — **safe-inert** like SearXNG.
 - **Swappable backend:** the adapter is backend-agnostic. TrailSearch is `native`
-  (its routes *are* the Tavily contract); a fastCRW / OrioSearch / Sicry /
-  OSSInsight subclass would be `emulated`, same interface and honesty contract.
+  (its routes *are* the Tavily contract); a fastCRW / OrioSearch / Sicry subclass
+  would be `emulated`, same interface and honesty contract.
+
+---
+
+## Opt-in lanes (default OFF)
+
+Two extra lanes ship **disabled** and are gated by env flags. See the legal/safety
+envelope: [`docs/legal/onions-lane-envelope.md`](../../../docs/legal/onions-lane-envelope.md).
+
+- **Ahmia onion lane (`ENABLE_ONIONS=0`)** — **index-only** dark-web search via the
+  **existing** `searxng_web_search` tool (not a new tool/service): pass
+  `categories=onions` (or `engines=ahmia`). With the flag unset the hub **refuses**
+  onion queries (no child spawned); `web_url_read` of any `.onion` is refused
+  **regardless** of the flag. No Tor, no onion fetch — the SearXNG engine is pinned
+  to clearnet `ahmia.fi` and the lane fails closed. Inherits Ahmia's abuse blacklist.
+  **≈ 0 MB.**
+- **OSSInsight repo-discovery (`ENABLE_OSSINSIGHT=0`)** — keyless GitHub repo
+  discovery over the public OSSInsight API: `ossinsight_repo_stats`,
+  `ossinsight_collections`, `ossinsight_collection_ranking`. In-process HTTP,
+  **≈ 0 MB**, wired only when the flag is set. Degraded upstream rankings are relayed
+  truthfully (their `data_quality` note passes through). Base URL: `OSSINSIGHT_URL`
+  (default `https://api.ossinsight.io`).
 
 ---
 
@@ -267,7 +288,9 @@ Exa/Tavily/Firecrawl/SearXNG, real `search_usage` balances, and observing a real
 - `providers.py` — the 4 provider specs (stdio cmd + env/config + usage URL) and
   the exhaustion-signal classifier.
 - `adapters.py` — the self-hosted adapter interface (capability lattice + probe +
-  truthful-degradation `handle_call`) and `TrailSearchAdapter` (keyless, HTTP).
+  truthful-degradation `handle_call`), `TrailSearchAdapter` (keyless Tavily lane),
+  and `OSSInsightAdapter` (keyless repo discovery, default OFF).
+- `onions.py` — the pure onions-lane envelope guard (index-only, `ENABLE_ONIONS`).
 - `rotation.py` — per-key health, `pick_active`, `mark_exhausted`, the
   rotate-retry wrapper, and numbered-backup seeding.
 - `usage.py` — stdlib `urllib` calls to the keyed providers' usage endpoints.
