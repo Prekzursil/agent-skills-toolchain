@@ -14,8 +14,9 @@
   edits, `command-center/p2-wave/seed-stage/*`, `ovh-monitor/repair-claude/w0902-*.jsonl`, the
   append-only repair log) and `harness/ast-integrate/P2-STATE/*`. Commits + pushes after every
   green step; a claim older than 20 min without a new push is stale.
-- **Claim refreshed:** 02.09 06:31 EEST — step 1 (native measurement established, 893 overlay
-  reproduced). Next: native full census (`w0902-01-census-native`, 8 workers).
+- **Claim refreshed:** 02.09 07:05 EEST — step 2 done (native census 1281/726; measurement moved to
+  the `~/p2-g1` mirror; bad local commits rebuilt, remote head `75e5b40fd`+). Next: split the 86
+  environment-dependent fails, then shared-module class by blast radius.
 - Stage-1 capture claim below (worker-B) is superseded: the capture landed on the handoff branch.
 
 ### Stage-1 claim (historical, `stage1-worker-B`)

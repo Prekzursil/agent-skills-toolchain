@@ -170,3 +170,39 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
 - **Parallelism:** sanctioned here (cloud VM, 47 GB free); 8 workers. Every repaired unit is
   re-measured by a wave row before it counts. Green stays fail-closed: full native census 2007/2007
   + independent recount + 12-ID spot-check.
+
+### Step 2 (02.09 06:35–07:05 EEST): native full census + a correction the ledger must carry
+- **Census `w0902-01-census-native`** (`G1_WORKERS=8 python3 seed-stage/_g1_regen_par.py ALL
+  w0902-01-census-native --no-regen`, run in-tree): **2007/2007 measured, 1281 ok / 726 fail**, 1236 s
+  wall (8 workers; median 1.8 s/unit, p90 5.0 s, max 315.7 s). Classes: probe-exit 707,
+  probe-file-missing 12, ModuleNotFoundError 5, schema-ref 1, self-declared 1. Rows carry `ts`/`secs`/`cls`.
+  vs the 668 overlay: 86 newly failing, 28 newly ok (delta list kept in the wave rows themselves).
+- **Correction (disk-verified):** running probes IN the git tree is wrong here. Probes write receipts,
+  fixtures, `deps/` vendoring, zip builds and even nested git repos into their own dirs and into
+  `tools/` fixtures; `git add -A` swept **3,105 added files (2,730 under probes/*/deps), 12 embedded git
+  repos as gitlinks, 205 probe-rewritten fixtures** into local commit `5ca049736`, and GitHub rejected
+  the push (GH001: `probes/ADV-0024/_work/.../blob.bin` 2 GB, `probes/AUD-0090/deps/.../semgrep-core`
+  242 MB). Neither `5ca049736` nor its local follow-up `da8f8558c` ever reached the remote; the branch
+  was rebuilt from the remote head `970d7ba21` with ONE clean commit (`75e5b40fd`) holding only the
+  intended paths (tree verified equal to the capture except ledgers/tools). Not a force-push, no
+  published history changed. Rule from here: **never `git add -A`; add explicit paths only.**
+- **Measurement now runs in a mirror, as on the owner's box:** `_g1_paths.py` has two roles —
+  `WIN` = state of record (the git tree), `ROOT` = execution mirror `~/p2-g1` (`G1_MIRROR`);
+  `COPY_BACK=True` so regen results (artifact + SUBAGENT-RETURN + MANIFEST) flow mirror → record exactly
+  as `_g1_regen_par.py` did on WSL. Sync: `bash seed-stage/_g1_rsync.sh` (falls back to
+  `_g1_mirror_sync.py`, an rsync-free size+mtime copier, because the VM has no rsync/sudo): 47,360
+  files in 9 s. Persistent-mirror semantics (no delete), matching the owner's flow. `.gitignore` gained
+  the capture's ExtraExcludeDirs names under `probes/*/` plus three probe-built git repos as a backstop.
+  Smoke `w0902-02-smoke-mirror` (5 ids): identical verdicts to in-tree; repo tree untouched.
+- **Environment classes seen in the 86 newly-failing (to be split, not guessed):** (a) probes that run
+  `git` against the tree root or assert a fixture is NOT inside a repo — the in-tree run sat inside
+  `/workspace/.git` (AUD-0010, AUD-0019); the mirror is outside any repo; (b) cross-unit side-effect
+  dependencies (ADV-0018 reads `17-DECISION-LOG.md` that another unit's probe writes) — a persistent
+  mirror satisfies these on the second pass; (c) load-sensitive timing probes (ARC-0032 queueing ratio);
+  (d) live-tree fingerprint probes (ARC-0101 `files_parsed art=273 live=274`, ADV-0127) — regen refreshes
+  them; (e) possible capture gaps (ADV-0011 `probes/CNF-0153/known-clean/package-lock.json`,
+  ARC-0082 `blueprints/workflows/wf.research.archival.json`) → CAPTURE-GAPS.md once confirmed;
+  (f) EOL-normalisation of the capture (`.gitattributes eol=lf`) vs probes that test EOL handling
+  (ADV-0017) — to be measured before it is called a gap.
+- Advisors launched 06:45 (council: skeptic/pragmatist/critic; gem-hunt: prune, meta, native, frontier,
+  false-green) as read-only background subagents; verdicts land in P2-STATE/ADVISORS-0209.md when in.

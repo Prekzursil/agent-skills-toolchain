@@ -14,6 +14,10 @@ else
 fi
 DST="${G1_MIRROR:-$HOME/p2-g1}"
 mkdir -p "$DST"
+if ! command -v rsync >/dev/null 2>&1; then
+  # cloud VM has no rsync and no sudo: same semantics in Python (size+mtime compare, no delete)
+  exec python3 "$HERE/_g1_mirror_sync.py" "$@"
+fi
 rsync -a ${G1_RSYNC_CHECKSUM:+--checksum} \
   --exclude .git \
   --exclude node_modules \
