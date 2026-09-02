@@ -25,6 +25,14 @@ Keep the list **narrow** (`agent-harness-construction`). A red-team reporter and
 
 Validate **before** local execution: name ∈ allowlist, required keys present, args parse as JSON. Unknown names → treat as ordinary assistant text, do not run.
 
+### Router Responses API beta (rule 3 applies)
+
+The HF router also serves `/v1/responses` (beta, as lens 02 recorded it on 2026-09-02): event streaming, `reasoning.effort`, `response_format`, and **remote MCP tool execution on the router side**. That last part is exactly the "remote executes tools" pattern rule 3 forbids. Opt out explicitly: never send `type: mcp` tools (or any hosted-tool type) from an estate wrapper or profile; send function schemas only and execute locally. The Responses wire is still needed - Codex requires `wire_api = "responses"` - so the Codex renderer floors `wire.responses >= probed` on the `hf-router` row while the tool set stays function-only.
+
+### Through `inference-hub`
+
+`chat` and `chat_many` return **exactly one model round**: the result carries `content`, `tool_calls[]`, `finish_reason`, `usage`, `structured_mode`, `capability_report`, `cost` and a `ledger_id`. The hub never executes a tool, never loops, and never accepts `base_url` / `api_key` / `provider` / `headers`. The caller (Claude, Cursor, Agy, Gemini, or your script) validates and executes `tool_calls` locally, appends the `role: tool` messages with the same ids, and calls `chat` again. A request the registry lattice says the endpoint cannot serve comes back as an `UNSUPPORTED_CAPABILITY` error instead of a guess; `structured_mode: prompted` means the JSON was requested through the prompt, not a native `response_format`.
+
 ## Three ways tools appear (do not collapse them)
 
 | Mechanism | Who lists tools | Who runs them |

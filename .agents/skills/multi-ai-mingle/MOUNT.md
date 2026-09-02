@@ -10,6 +10,31 @@ Verified ground truth (this machine, 2026-07-11):
 - `claude mcp add --help` → supports `--scope user`, `-e/--env`, `-t/--transport` (default stdio).
   There is **no `--timeout` flag** on `claude mcp add` (timeout is set separately — see §2).
 
+## 0. Deprecation note (recorded 2026-09-02)
+
+As of 2026-08-24 `codex mcp-server` is deprecated upstream. The Codex docs now open with "use the
+Codex app server instead" and keep the command documented for existing integrations (as the
+hosted-models hunt lens 12 recorded it). Keep this mount: lock L7 removes nothing before its
+replacement has a receipt, and every section below still works. Do not re-plumb new docs to it.
+
+Alternative mount, parallel path - `codex-plugin-cc` (Codex as a Claude Code plugin):
+
+```text
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/codex:setup
+```
+
+It exposes `/codex:*` slash commands and delegates through the local Codex CLI and the Codex app
+server (same auth, config and MCP setup; not a separate runtime). This repo already registers it:
+`enabledPlugins."codex@openai-codex": true` and `extraKnownMarketplaces.openai-codex.source.repo =
+"openai/codex-plugin-cc"` in `agent-self/config/settings.json`; `[plugins."codex@openai-codex"]`
+and `[marketplaces.openai-codex]` (`source = "https://github.com/openai/codex-plugin-cc.git"`) in
+`agent-self/config/codex/config.toml`. Honest limit: slash commands are interactive, not
+autonomous fan-out - a Claude subagent cannot call them as `mcp__codex__*` tools. Migration
+target for autonomous fan-out, later: Codex app-server (`codex app-server --listen stdio://`,
+JSON-RPC 2.0 as JSONL) or ACP workers.
+
 ---
 
 ## 1. Mount command (USER scope)

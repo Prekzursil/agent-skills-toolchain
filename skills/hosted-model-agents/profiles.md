@@ -37,3 +37,5 @@ profiles/
 ```
 
 Point `hosted-model-agents` here; do not duplicate HexStrike or HF Hub schemas inside the pack — import by reference.
+
+Hub resolution (lock L5, 2026-09-02): `.agents/skills` is the ONE prompt SSOT, and `inference-hub` resolves a named profile to a path under it (registry `x_hub.profile_root`). A project-local pack like the layout above is an overlay for that project, never a second SSOT; personas that every runtime should see live under `.agents/skills`.

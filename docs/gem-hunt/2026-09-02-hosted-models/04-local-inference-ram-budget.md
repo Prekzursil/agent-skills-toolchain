@@ -1,5 +1,7 @@
 # Gem-hunt 2026-09-02 (hosted-models) - lens 04: local inference on a 31.6 GB RAM Windows box, no known GPU
 
+> **PARTIAL; GPU premise corrected 2026-09-02:** the box has an NVIDIA GeForce RTX 4050 Laptop GPU (6 GB VRAM); the RAM tiers below stand as CPU worst-case budgets.
+
 - **Lens id:** `04-local-inference-ram-budget`
 - **Mode:** discovery only (no code changes). One file, committed + pushed per section.
 - **Question:** which local inference servers (Ollama, LM Studio `lms`, llama.cpp `llama-server`, vLLM-in-WSL) and which quantized models fit a **6-12 GB RAM budget** on the owner's **31.6 GB RAM, chronically memory-starved Windows 11 box with no GPU assumed**, with tool-calling that actually works; what OpenAI-compatible API parity each server offers (tools, JSON mode, streaming, embeddings); how each releases RAM when idle (keep_alive, JIT load/unload, TTL); Windows-specific pitfalls; and how the replacement integration layer should **probe** capability instead of assuming it.
