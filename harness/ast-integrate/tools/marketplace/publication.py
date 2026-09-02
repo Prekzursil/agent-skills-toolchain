@@ -6,7 +6,7 @@ import io
 import json
 import re
 import tarfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -30,12 +30,24 @@ class CredHit:
 
 
 class OwnerGateError(RuntimeError):
-    pass
+    """Publication attempted without an explicit, granted owner approval."""
 
 
 @dataclass
 class Gate:
+    """Inventory-gate verdict computed from packed bytes.
+
+    ``excluded_intersection`` lists archive members in the excluded class;
+    ``credential_hits`` lists members whose bytes look credential-shaped.
+    ``ok`` is True only when both lists are empty.
+    """
+
     ok: bool
+    excluded_intersection: list[str] = field(default_factory=list)
+    credential_hits: list["CredHit"] = field(default_factory=list)
+
+
+PUBLISH_ACTION = "marketplace-publish"
 
 
 def _rel(path: Path, root: Path) -> str:
@@ -107,8 +119,83 @@ def scan_packed_credentials(archive: bytes) -> list[CredHit]:
 
 
 def inventory_gate(archive: bytes) -> Gate:
+    """Fail closed when packed bytes carry excluded paths or credential-shaped data."""
     inv = inventory_from_packed(archive)
-    return Gate(ok=not paths_matching_excluded(inv) and not scan_packed_credentials(archive))
+    intersection = paths_matching_excluded(inv)
+    hits = scan_packed_credentials(archive)
+    return Gate(
+        ok=not intersection and not hits,
+        excluded_intersection=intersection,
+        credential_hits=hits,
+    )
+
+
+def plant_into_archive(archive: bytes, members: dict[str, bytes]) -> bytes:
+    """Return a copy of ``archive`` with ``members`` appended as regular files.
+
+    This bypasses :func:`pack_tree`'s allowlist on purpose: it is the adversarial
+    fixture that lets the inventory gate be tested against packed bytes rather
+    than against a pre-cleaned source tree. Existing members are preserved.
+    """
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=io.BytesIO(archive), mode="r") as src, tarfile.open(
+        fileobj=buf, mode="w"
+    ) as dst:
+        for m in src.getmembers():
+            fh = src.extractfile(m) if m.isfile() else None
+            dst.addfile(m, fh)
+        for name in sorted(members):
+            data = members[name]
+            info = tarfile.TarInfo(name=name.replace("\\", "/"))
+            info.size = len(data)
+            info.mtime = 0
+            info.mode = 0o644
+            dst.addfile(info, io.BytesIO(data))
+    return buf.getvalue()
+
+
+def _approval_valid(approval: Any, unit: str | None) -> tuple[bool, str]:
+    if not isinstance(approval, dict):
+        return False, "no owner approval record"
+    if approval.get("granted") is not True:
+        return False, "owner approval not granted"
+    if approval.get("action") != PUBLISH_ACTION:
+        return False, f"approval action {approval.get('action')!r} != {PUBLISH_ACTION!r}"
+    if not str(approval.get("owner") or "").strip():
+        return False, "approval names no owner"
+    if unit and approval.get("unit") not in (None, unit):
+        return False, f"approval unit {approval.get('unit')!r} != {unit!r}"
+    return True, ""
+
+
+def publish(payload: dict[str, Any], approval: dict[str, Any] | None, *, unit: str | None = None) -> dict[str, Any]:
+    """Transition an emitted payload to PUBLISHED under an explicit owner approval.
+
+    Raises :class:`OwnerGateError` unless ``approval`` is a granted record for
+    ``marketplace-publish`` naming an owner. The input payload is not mutated;
+    the returned record carries the publication state and the approval used.
+    """
+    ok, why = _approval_valid(approval, unit)
+    if not ok:
+        raise OwnerGateError(f"publication refused: {why}")
+    assert isinstance(approval, dict)
+    record = json.loads(json.dumps(payload))
+    pub = dict(record.get("publication") or {})
+    pub.update(
+        {
+            "owner_gated": True,
+            "published": True,
+            "state": "PUBLISHED",
+            "approval": {
+                "action": approval["action"],
+                "owner": approval["owner"],
+                "unit": approval.get("unit"),
+            },
+        }
+    )
+    record["publication"] = pub
+    record["state"] = "PUBLISHED"
+    return record
 
 
 def emit_payload(root: Path) -> dict[str, Any]:

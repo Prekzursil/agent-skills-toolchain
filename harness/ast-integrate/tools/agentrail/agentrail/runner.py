@@ -23,6 +23,7 @@ import errno
 import glob as globlib
 import os.path as ospath
 import subprocess
+import threading
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -477,63 +478,254 @@ def execute_loop(loop: Loop, initial: dict) -> LoopResult:
 COMPLETED = "completed"
 TIMEOUT = "timeout"
 TIMEOUT_TYPED = "timeout-typed"
+TIMEOUT_UNTYPED = "timeout-untyped"
+ABSENT_NOTE = "ABSENT-terminal-record"
+
+
+@dataclass(frozen=True, slots=True)
+class CohortUnit:
+    """One unit of a cohort: does ``work_s`` of work, or hangs for ``hang_s`` if ``hung``.
+
+    ``timeout_s`` is the unit's OWN declared timeout; the isolated runner never lets a
+    sibling's hang hold this unit past it.
+    """
+
+    id: str
+    timeout_s: float
+    work_s: float
+    hang_s: float
+    hung: bool = False
+
+    def planned_duration_s(self) -> float:
+        return self.hang_s if self.hung else self.work_s
+
+
+@dataclass(slots=True)
+class LedgerEntry:
+    """Terminal record for one unit, with timestamps relative to the cohort start."""
+
+    unit_id: str
+    pipeline_id: str
+    terminal_state: str
+    timeout_class: str | None
+    timeout_s: float
+    started_s: float
+    ended_s: float
+    note: str = ""
+
+    @property
+    def duration_s(self) -> float:
+        return max(0.0, self.ended_s - self.started_s)
+
+
+@dataclass(slots=True)
+class CohortLedger:
+    """Every unit's terminal record plus how long the barrier held the cohort."""
+
+    runner: str
+    entries: list[LedgerEntry]
+    barrier_wait_s: float
+
+    def by_id(self) -> dict[str, LedgerEntry]:
+        return {e.unit_id: e for e in self.entries}
+
+
+def make_cohort(
+    n: int = 50,
+    hang_at: int | None = None,
+    timeout_s: float = 0.4,
+    work_s: float = 0.001,
+    hang_s: float = 1.2,
+) -> list[CohortUnit]:
+    """Build ``n`` units ``U-0000..``; unit ``hang_at`` (if given) hangs for ``hang_s``."""
+    return [
+        CohortUnit(
+            id=f"U-{i:04d}",
+            timeout_s=float(timeout_s),
+            work_s=float(work_s),
+            hang_s=float(hang_s),
+            hung=(hang_at is not None and i == int(hang_at)),
+        )
+        for i in range(int(n))
+    ]
+
+
+def _unit_work(unit: CohortUnit, cancel: threading.Event) -> None:
+    """The unit's body: a sleep that a cancel can cut short. Hung units ignore nothing here;
+    the isolated runner stops WAITING for them, and cancels them so the thread can exit."""
+    cancel.wait(unit.planned_duration_s())
+
+
+def _fill_absent(units: Sequence[CohortUnit], have: dict[str, LedgerEntry], now_s: float) -> None:
+    """A unit with no terminal record is recorded as ABSENT, never silently dropped."""
+    for unit in units:
+        if unit.id not in have:
+            have[unit.id] = LedgerEntry(
+                unit_id=unit.id,
+                pipeline_id="",
+                terminal_state=TIMEOUT,
+                timeout_class=TIMEOUT_UNTYPED,
+                timeout_s=unit.timeout_s,
+                started_s=0.0,
+                ended_s=now_s,
+                note=ABSENT_NOTE,
+            )
 
 
 class IsolatedPipelineRunner:
-    """Per-unit pipeline that cannot be deadlocked by a hung sibling."""
+    """Per-unit pipeline that cannot be deadlocked by a hung sibling.
 
-    def __init__(self, timeout_s: float = 1.0) -> None:
-        self.timeout_s = timeout_s
+    Every unit runs on its own thread with its OWN deadline. The barrier is the moment the
+    last deadline-or-completion has been recorded, so a hung unit costs the cohort at most
+    its declared ``timeout_s`` and is written as a TYPED timeout, not left absent.
+    """
 
-    def run(self, cohort) -> dict:
-        return summarize(cohort, isolated=True)
+    def run_cohort(self, units: Sequence[CohortUnit]) -> CohortLedger:
+        origin = time.monotonic()
+        cancels: dict[str, threading.Event] = {}
+        threads: dict[str, threading.Thread] = {}
+        starts: dict[str, float] = {}
+        for unit in units:
+            cancel = threading.Event()
+            thread = threading.Thread(
+                target=_unit_work, args=(unit, cancel), name=f"pipe-{unit.id}", daemon=True
+            )
+            cancels[unit.id] = cancel
+            threads[unit.id] = thread
+            starts[unit.id] = time.monotonic() - origin
+            thread.start()
+
+        records: dict[str, LedgerEntry] = {}
+        for unit in units:
+            thread = threads[unit.id]
+            deadline = starts[unit.id] + unit.timeout_s
+            remaining = deadline - (time.monotonic() - origin)
+            if remaining > 0:
+                thread.join(remaining)
+            ended = time.monotonic() - origin
+            if thread.is_alive():
+                cancels[unit.id].set()
+                records[unit.id] = LedgerEntry(
+                    unit_id=unit.id,
+                    pipeline_id=thread.name,
+                    terminal_state=TIMEOUT,
+                    timeout_class=TIMEOUT_TYPED,
+                    timeout_s=unit.timeout_s,
+                    started_s=starts[unit.id],
+                    ended_s=ended,
+                    note=f"killed at declared timeout {unit.timeout_s}s",
+                )
+            else:
+                records[unit.id] = LedgerEntry(
+                    unit_id=unit.id,
+                    pipeline_id=thread.name,
+                    terminal_state=COMPLETED,
+                    timeout_class=None,
+                    timeout_s=unit.timeout_s,
+                    started_s=starts[unit.id],
+                    ended_s=ended,
+                )
+        barrier = time.monotonic() - origin
+        _fill_absent(units, records, barrier)
+        return CohortLedger(
+            runner=type(self).__name__,
+            entries=[records[u.id] for u in units],
+            barrier_wait_s=barrier,
+        )
 
 
 class CoupledBarrierRunner:
-    """Barrier-coupled runner: a hung unit can stall the cohort."""
+    """Known-broken join-all barrier: a hung unit stalls the whole cohort.
 
-    def run(self, cohort) -> dict:
-        return summarize(cohort, isolated=False)
+    Kept as the negative control for :func:`assert_no_barrier_past_timeout`. Units are
+    classified only after EVERY thread has joined, so the hung unit's real duration -- and
+    the cohort's barrier wait -- exceed the declared timeout.
+    """
 
+    def run_cohort(self, units: Sequence[CohortUnit]) -> CohortLedger:
+        origin = time.monotonic()
+        never_cancel = threading.Event()
+        threads: dict[str, threading.Thread] = {}
+        starts: dict[str, float] = {}
+        ends: dict[str, float] = {}
+        lock = threading.Lock()
 
-def make_cohort(n: int = 50, hang_at: int = 0, timeout_s: float = 0.4, work_s: float = 0.001, hang_s: float = 1.2):
-    units = []
-    for i in range(n):
-        hung = i == hang_at
-        units.append(
-            {
-                "id": f"U-{i:04d}",
-                "hung": hung,
-                "status": TIMEOUT if hung else COMPLETED,
-                "elapsed_s": hang_s if hung else work_s,
-            }
+        def body(unit: CohortUnit) -> None:
+            _unit_work(unit, never_cancel)
+            with lock:
+                ends[unit.id] = time.monotonic() - origin
+
+        for unit in units:
+            thread = threading.Thread(target=body, args=(unit,), name="barrier-shared", daemon=True)
+            threads[unit.id] = thread
+            starts[unit.id] = time.monotonic() - origin
+            thread.start()
+        for thread in threads.values():
+            thread.join()
+        barrier = time.monotonic() - origin
+
+        records: dict[str, LedgerEntry] = {}
+        for unit in units:
+            ended = ends.get(unit.id, barrier)
+            late = (ended - starts[unit.id]) > unit.timeout_s
+            records[unit.id] = LedgerEntry(
+                unit_id=unit.id,
+                pipeline_id="barrier-shared",
+                terminal_state=TIMEOUT if late else COMPLETED,
+                timeout_class=TIMEOUT_TYPED if late else None,
+                timeout_s=unit.timeout_s,
+                started_s=starts[unit.id],
+                ended_s=ended,
+                note="classified after join-all" if late else "",
+            )
+        _fill_absent(units, records, barrier)
+        return CohortLedger(
+            runner=type(self).__name__,
+            entries=[records[u.id] for u in units],
+            barrier_wait_s=barrier,
         )
-    return units
 
 
-def summarize(cohort, isolated: bool = True) -> dict:
-    hung = [u for u in cohort if u.get("hung")]
-    done = [u for u in cohort if not u.get("hung")]
-    if isolated:
-        stalled = hung
-        finished = done
-        terminal = COMPLETED
-    else:
-        stalled = hung + done
-        finished = []
-        terminal = TIMEOUT
+def summarize(ledger: CohortLedger) -> dict:
+    """Counts a probe can assert on, all derived from the ledger rows."""
+    entries = list(ledger.entries)
+    completed = [e for e in entries if e.terminal_state == COMPLETED]
+    timeouts = [e for e in entries if e.terminal_state == TIMEOUT]
+    typed = [e for e in timeouts if e.timeout_class == TIMEOUT_TYPED]
+    absent = [e for e in entries if e.note == ABSENT_NOTE]
     return {
-        "terminal": terminal,
-        "completed": [u["id"] for u in finished],
-        "timed_out": [u["id"] for u in hung],
-        "isolated": isolated,
-        "n": len(cohort),
+        "runner": ledger.runner,
+        "n": len(entries),
+        "completed": len(completed),
+        "timeout": len(timeouts),
+        "timeout_typed": len(typed),
+        "timeout_untyped": len(timeouts) - len(typed),
+        "absent": len(absent),
+        "pipeline_ids": len({e.pipeline_id for e in entries if e.pipeline_id}),
+        "timeout_unit_ids": sorted(e.unit_id for e in timeouts),
+        "completed_unit_ids": sorted(e.unit_id for e in completed),
+        "barrier_wait_s": ledger.barrier_wait_s,
     }
 
 
-def assert_no_barrier_past_timeout(summary: dict) -> None:
-    if not summary.get("isolated") and summary.get("completed"):
-        raise AssertionError("coupled barrier completed siblings past timeout")
+def assert_no_barrier_past_timeout(ledger: CohortLedger, *, slack_s: float = 0.0) -> tuple[bool, str]:
+    """Check the barrier and every unit stayed within the declared timeout (+ ``slack_s``).
+
+    Returns ``(ok, why)`` rather than raising so a probe can use the coupled runner as a
+    both-states control.
+    """
+    entries = list(ledger.entries)
+    if not entries:
+        return False, "empty ledger"
+    ceiling = max(e.timeout_s for e in entries) + slack_s
+    if ledger.barrier_wait_s > ceiling:
+        return False, (
+            f"barrier_wait_s={ledger.barrier_wait_s:.4f} exceeds max declared timeout+slack {ceiling:.4f}"
+        )
+    late = [e.unit_id for e in entries if e.duration_s > e.timeout_s + slack_s]
+    if late:
+        return False, f"units held past their timeout: {late[:5]}"
+    return True, f"barrier_wait_s={ledger.barrier_wait_s:.4f} <= {ceiling:.4f}"
 
 
 def loop_result_to_dict(result: LoopResult) -> dict:

@@ -3,7 +3,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from workflow_foundry.anti_rebuild_guard import ADOPT, BUILD, Registry, consult
+from workflow_foundry.anti_rebuild_guard import (
+    ADOPT,
+    BUILD,
+    GuardError,
+    Registry,
+    assert_build_citation_structural,
+    consult,
+)
 
 
 class ConsultRequired(RuntimeError):
@@ -36,7 +43,11 @@ class GeneratorSession:
             raise RebuildBlocked("incumbent blocks BUILD", verdict=self._consulted)
         if action != BUILD:
             raise ConsultRequired(f"unexpected action {action}")
-        return {"emitted": True, "action": BUILD}
+        try:
+            citation = assert_build_citation_structural(self._consulted)
+        except GuardError as exc:
+            raise ConsultRequired(f"BUILD verdict is not structurally cited: {exc}") from exc
+        return {"emitted": True, "action": BUILD, "citation_kind": citation.get("kind")}
 
     def adopt_or_emit(self, goal: dict[str, Any], blueprint: dict[str, Any] | None = None) -> dict[str, Any]:
         guard = self.consult(goal)

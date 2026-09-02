@@ -401,8 +401,22 @@ def get_case(cases: list[dict], cid: str, mode: str | None = None, log: object |
     return found
 
 
-def development_run(*_a, **_k):
-    return []
+def development_run(
+    cases: list[dict], case_ids: list[str], log: object | None = None
+) -> list[dict]:
+    """Fetch ``case_ids`` in DEVELOPMENT mode, recording every access on ``log``.
+
+    Any held-out id in the batch raises :class:`HeldOutTouchError` (via
+    :func:`get_case`) after the access has been recorded, so a mixed batch
+    can never be silently developed against.
+    """
+    fetched: list[dict] = []
+    for cid in case_ids:
+        got = get_case(cases, cid, mode=DEVELOPMENT, log=log)
+        if got is None:
+            raise KeyError(f"unknown case id {cid!r}")
+        fetched.append(got)
+    return fetched
 
 
 class AccessLog:
