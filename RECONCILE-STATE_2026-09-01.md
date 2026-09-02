@@ -146,10 +146,27 @@ findings (1 critical, 10 high, 5 moderate, 1 low)** that GitHub's dependency gra
 never reports because it skips `vendor/`; gating it would block every merge on
 upstream code. The fix is re-vendoring a newer ralph-orchestrator — owner decision.
 
+> **REFUTED 2026-09-01 (same day, kept rather than deleted):** the last sentence
+> assumed a newer upstream would carry a clean lockfile. Measured with
+> `npm audit --package-lock-only`: upstream `v2.10.1` (latest release) audits at
+> **22** findings (1 critical, 13 high, 7 moderate, 1 low) and upstream `main` @
+> `edc2b326` (2026-08-25) at the same 22 — re-vendoring would have added five. What
+> does fix it is `npm audit fix --package-lock-only` + `npm update tsx
+> --package-lock-only` on the vendored lockfile: 17 → 4, the four being one dev-only
+> drizzle-kit → deprecated @esbuild-kit → esbuild 0.18.20 chain with no non-breaking
+> upgrade (GHSA-67mh-4wv8-2f99, esbuild `serve()` CORS; core-utils never calls
+> `serve`), carried as the single reasoned ignore in `osv-scanner.toml`. No
+> `package.json` changed; the vendored suites pass on the result (backend 178/178,
+> dashboard 144/144, build clean). The lockfile is now in the `gate-deps` scan set,
+> so the blind spot is closed rather than recorded. Item 6b.2 below is therefore not
+> a security item any more; re-vendoring remains a framework-upgrade decision with
+> its breaking changes listed in `tools/editor/ralph-orchestrator/README.md`.
+
 ### 6b. Still open for the owner
 
 1. Four of the five #290 files listed under step 4. The fifth -- `.gitignore`'s `.agents/session-catalog.md` line -- turned out not to be a judgment call: `.agents/session-catalog.POINTER.md` on main already states the catalog "is NOT in git" and names that exact ignore line, so the fold had violated a tracked rule. Resolved by enforcing it (catalog untracked, line added) in the root-organizing change; the PR's stale "This repo is PUBLIC" wording was not carried.
-2. Re-vendor `ralph-orchestrator` (17 findings).
+2. Re-vendor `ralph-orchestrator` — now a framework-upgrade decision only; the 17
+   findings were fixed in place and gated on 2026-09-01 (see the REFUTED note in §6a).
 3. Intake #288's questions into `REGISTER.md`.
 4. The two harness-lineage decisions in `reconcile-flags/harness-lineage-2026-09-01.md`.
 5. Retire the 2026-07 lanes (74 branches) after confirming each reached `main`.

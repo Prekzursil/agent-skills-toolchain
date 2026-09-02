@@ -10,11 +10,18 @@
 # it does not.
 #
 # Lockfiles scanned (see .github/workflows/quality.yml gate-deps job):
-#   - package-lock.json                                 (root npm tree)
-#   - tools/mcp/hacktricks-mcp-server/package-lock.json (our own hardened MCP server)
+#   - package-lock.json                                        (root npm tree)
+#   - tools/mcp/hacktricks-mcp-server/package-lock.json        (our own hardened MCP server)
+#   - browser-bridge/chrome-bridge-mcp/package-lock.json       (our own browser bridge)
+#   - tools/editor/ralph-orchestrator/vendor/package-lock.json (vendored upstream snapshot;
+#     added 2026-09-01 -- see the esbuild entry below for the one reasoned ignore it needs)
 #
-# NOT scanned, on purpose: tools/editor/ralph-orchestrator/vendor/package-lock.json is a
-# vendored third-party tree. Everything else npm-shaped is covered.
+# Every committed npm lockfile is now in the scan set. The ralph-orchestrator vendor lockfile
+# used to be excluded as "not our code"; that exclusion was RETIRED 2026-09-01 because the
+# findings were fixable by non-breaking lockfile-only upgrades (npm audit fix + npm update tsx,
+# no package.json change) and an unscanned lockfile is exactly how 17 npm-audit findings sat
+# unreported for five months (GitHub's dependency graph skips vendor/ paths, so Dependabot never
+# saw them either). A vendored lockfile is still a lockfile this repo commits and ships.
 #
 # HOW THIS FILE IS LOADED — do not assume "repo root" is enough. osv-scanner auto-loads
 # osv-scanner.toml only from the SCANNED FILE's own directory, and it "does not propagate
@@ -49,5 +56,39 @@
 #   brace-expansion copy, at 5.0.8 (dev), so the gate reaches clean-zero by UPGRADE, which
 #   is what this policy prefers. Lesson recorded: the `overrides` route was judged unsafe in
 #   the ignore rationale above; it worked, and CI stayed green.
+
+# ACTIVE IGNORES (exactly one; each must satisfy the POLICY clause it cites)
 #
-# The file intentionally carries NO active IgnoredVulns again.
+# GHSA-67mh-4wv8-2f99 (esbuild dev-server CORS `Access-Control-Allow-Origin: *`, CVSS 5.3,
+# fixed in esbuild 0.25.0) -- ignored 2026-09-01 for
+# tools/editor/ralph-orchestrator/vendor/package-lock.json. (An IgnoredVulns entry is
+# config-wide, not per-lockfile; measured 2026-09-01 that the other three scanned lockfiles
+# contain zero esbuild entries, so this entry cannot mask anything outside the vendor tree
+# today. Re-check that if esbuild ever enters a first-party lockfile.)
+#   WHERE: the single remaining copy is esbuild 0.18.20 at
+#   node_modules/@esbuild-kit/core-utils/node_modules/esbuild, reached solely through
+#   drizzle-kit@0.31.10 (backend devDependency `^0.31.8`) -> @esbuild-kit/esm-loader@2.6.5 ->
+#   @esbuild-kit/core-utils@3.3.2 -> `esbuild: ~0.18.20`. Both @esbuild-kit packages are
+#   deprecated ("Merged into tsx") and 3.3.2 / 2.6.5 are their final versions, so no release
+#   of either declares a fixed esbuild; every other esbuild copy in the lockfile is >= 0.25.12.
+#   UNFIXABLE WITHOUT BREAKING: `npm audit fix` leaves it (measured 2026-09-01: 17 -> 4
+#   npm-audit findings, all four being this one chain counted per package); the only npm
+#   remedy is `npm audit fix --force`, which DOWNGRADES drizzle-kit 0.31.10 -> 0.18.1, and
+#   every drizzle-kit 0.19.0 .. 1.0.0-beta.1 still requires @esbuild-kit/esm-loader. Moving to
+#   drizzle-kit 1.0.0-rc.x is a major bump = a package.json edit in an upstream-owned tree.
+#   NOT REACHABLE: the advisory is in esbuild's `serve()` development server
+#   (pkg/api/serve_other.go). @esbuild-kit/core-utils/dist/index.js calls only
+#   esbuild `transform`/`transformSync` (grep: 4 transform, 2 transformSync, 0 serve) to
+#   transpile TypeScript for a Node ESM loader; it never starts a server. drizzle-kit is a
+#   dev-only migration CLI that no script, test, build or CI step in this repo invokes
+#   (the vendored tree's only mention is a code comment), and this repo's ralph wrapper
+#   installs the upstream Linux release binary -- the vendored npm tree is never executed
+#   here at all.
+#   EXIT CONDITION / RE-REVIEW: drop this entry when re-vendoring ralph-orchestrator picks up
+#   a drizzle-kit that no longer depends on @esbuild-kit/esm-loader (drizzle-kit 1.0 stable),
+#   or at ignoreUntil, whichever comes first. Re-check with:
+#     cd tools/editor/ralph-orchestrator/vendor && npm audit --package-lock-only
+[[IgnoredVulns]]
+id = "GHSA-67mh-4wv8-2f99"
+ignoreUntil = 2027-03-01
+reason = "dev-only transitive (drizzle-kit -> deprecated @esbuild-kit/esm-loader -> core-utils -> esbuild ~0.18.20); vuln is in esbuild.serve() which core-utils never calls; no non-breaking upgrade exists (npm audit fix --force would downgrade drizzle-kit to 0.18.1). Re-review by ignoreUntil or on re-vendor."
