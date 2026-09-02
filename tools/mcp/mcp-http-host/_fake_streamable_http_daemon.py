@@ -20,6 +20,11 @@ box in ``.agents/BASIC-MEMORY-RELIABILITY_2026-08-27.md``:
 * ``GET /mcp`` opens a server->client SSE stream (406 without the SSE Accept
   header - the shape the on-box health probe relies on); ``push()`` delivers a
   message on it; ``DELETE`` terminates a session.
+* knobs for rehearsing a reverse proxy: ``session_not_found_status`` (a server
+  that reports the stale id in-band on a 200), ``force_session_not_found`` (the
+  daemon flaps again in the middle of a heal), ``sse_prelude_delay`` (events are
+  produced slowly, so relaying without buffering is observable), and every
+  ``initialize`` entry in ``requests`` carries the ``params`` it was sent.
 
 stdlib only. Run standalone to rehearse a client by hand::
 
@@ -109,6 +114,8 @@ class FakeStreamableHttpDaemon:
         allow_get_stream: bool = True,
         delete_status: int = 200,
         response_delay: float = 0.0,
+        session_not_found_status: int = 404,
+        sse_prelude_delay: float = 0.0,
     ) -> None:
         if response_mode not in ("json", "sse"):
             raise ValueError("response_mode must be 'json' or 'sse'")
@@ -118,11 +125,21 @@ class FakeStreamableHttpDaemon:
         # Notifications emitted on the POST SSE stream BEFORE the response, the
         # way a FastMCP tool that logs through its context does.
         self.sse_prelude: list[dict[str, Any]] = list(sse_prelude or [])
+        # Seconds between prelude events: with a delay, each event is flushed as
+        # it is produced, so a relay that buffers the body is caught in the act.
+        self.sse_prelude_delay = sse_prelude_delay
         self.allow_get_stream = allow_get_stream
         self.delete_status = delete_status
         # Seconds to sit on a POST before answering: the "bound but HTTP
         # unresponsive" strike the watchdog measures under RAM pressure.
         self.response_delay = response_delay
+        # The HTTP status wrapping the SDK's -32600 body for a stale id. The
+        # Python SDK uses 404; 200 rehearses a server that reports it in-band.
+        self.session_not_found_status = session_not_found_status
+        # While > 0, every session-bearing *request* (not a notification) is
+        # answered "Session not found" even though the id is valid, one strike
+        # per request: a daemon that flaps again while a client is mid-heal.
+        self.force_session_not_found = 0
         self.extra_tools: list[dict[str, Any]] = []
         self.generation = 0
         self.sessions: dict[str, _Session] = {}
@@ -236,6 +253,16 @@ class FakeStreamableHttpDaemon:
         with self._lock:
             return list(self.sessions)
 
+    def _take_forced_strike(self, message: dict[str, Any]) -> bool:
+        """Spend one ``force_session_not_found`` strike on a request (never a notification)."""
+        if "id" not in message or "method" not in message:
+            return False
+        with self._lock:
+            if self.force_session_not_found <= 0:
+                return False
+            self.force_session_not_found -= 1
+            return True
+
     # -- JSON-RPC semantics --------------------------------------------------
 
     def answer(self, message: dict[str, Any]) -> dict[str, Any] | None:
@@ -311,19 +338,24 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
             ).encode("utf-8")
             self._send(status, body, session_id=session_id)
 
-        def _send_chunked_sse(self, events: list[bytes], session_id: str) -> None:
+        def _send_chunked_sse(
+            self, events: list[bytes], session_id: str, delay: float = 0.0
+        ) -> None:
             self.send_response(200)
             self.send_header("Content-Type", "text/event-stream")
             self.send_header("Cache-Control", "no-cache")
             self.send_header("Transfer-Encoding", "chunked")
             self.send_header(SESSION_HEADER, session_id)
             self.end_headers()
-            for event in events:
-                self.wfile.write(f"{len(event):x}\r\n".encode("ascii"))
-                self.wfile.write(event)
-                self.wfile.write(b"\r\n")
-            self.wfile.write(b"0\r\n\r\n")
-            self.wfile.flush()
+            try:
+                for index, event in enumerate(events):
+                    if delay and index:
+                        time.sleep(delay)
+                    self._write_chunk(event)
+                self.wfile.write(b"0\r\n\r\n")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # the client left mid-stream
 
         def _read_json(self) -> Any:
             length = int(self.headers.get("Content-Length", "0") or "0")
@@ -364,15 +396,17 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
                 return
 
             requested = self._session_header()
-            daemon.record(
-                {
-                    "verb": "POST",
-                    "session_id": requested,
-                    "method": message.get("method"),
-                    "id": message.get("id"),
-                    "generation": daemon.generation,
-                }
-            )
+            entry: dict[str, Any] = {
+                "verb": "POST",
+                "session_id": requested,
+                "method": message.get("method"),
+                "id": message.get("id"),
+                "generation": daemon.generation,
+                "protocol_version_header": self.headers.get("MCP-Protocol-Version"),
+            }
+            if message.get("method") == "initialize":
+                entry["params"] = message.get("params")
+            daemon.record(entry)
 
             if message.get("method") == "initialize":
                 session = daemon.new_session()
@@ -381,8 +415,10 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
                     self._send_rpc_error(400, -32600, "Bad Request: Missing session ID")
                     return
                 session = daemon.get_session(requested)
-                if session is None:
-                    self._send(404, session_not_found_body())
+                if session is None or daemon._take_forced_strike(message):
+                    self._send(
+                        daemon.session_not_found_status, session_not_found_body()
+                    )
                     return
 
             if daemon.response_delay:
@@ -401,7 +437,7 @@ def _make_handler(daemon: FakeStreamableHttpDaemon) -> type[BaseHTTPRequestHandl
             if daemon.response_mode == "sse":
                 events = [_sse_event(note) for note in daemon.sse_prelude]
                 events.append(_sse_event(response))
-                self._send_chunked_sse(events, session.id)
+                self._send_chunked_sse(events, session.id, daemon.sse_prelude_delay)
                 return
             self._send(200, json.dumps(response).encode("utf-8"), session_id=session.id)
 
