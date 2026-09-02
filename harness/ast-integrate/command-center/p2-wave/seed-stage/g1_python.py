@@ -223,6 +223,25 @@ if not _script_is_wfa0001_probe2(args):
 else:
     args = args  # probe2 must not see jsonschema already imported
 
+
+def _g1_install_placeholder_guard() -> None:
+    """02.09: G1_PLACEHOLDER_MODE=trace|strict tripwire for generated _NS modules."""
+    import importlib.util
+    import os
+
+    if not (os.environ.get("G1_PLACEHOLDER_MODE") or "").strip():
+        return
+    spec = importlib.util.spec_from_file_location("g1_placeholder_guard", HERE / "g1_placeholder_guard.py")
+    if spec is None or spec.loader is None:
+        return
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["g1_placeholder_guard"] = mod
+    spec.loader.exec_module(mod)
+    mod.install()
+
+
+_g1_install_placeholder_guard()
+
 while args and args[0].startswith("-") and args[0] not in ("-c", "-m"):
     args.pop(0)
 if not args:

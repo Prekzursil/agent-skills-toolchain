@@ -76,6 +76,8 @@ def fail_class(last: str, tail: str, ok: bool) -> str:
         return "SUCCESS"
     t = (last or "").strip()
     blob = (tail or "").lower()
+    if "g1-strict placeholder" in blob:
+        return "placeholder-strict"
     if "modulenotfounderror" in blob:
         return "ModuleNotFoundError"
     if "unresolvable" in blob or "refresolutionerror" in blob or "ast-integrate.invalid" in blob:
@@ -117,6 +119,7 @@ def one(uid: str, regen: bool) -> dict:
     ok = last2 == f"SUCCESS:delivered {uid}"
     rec.update(ok=ok, stage="measure", rc=rc2, line=last2[:400], tail=out2[-2500:],
                cls=fail_class(last2, out2, ok),
+               mode=os.environ.get("G1_PLACEHOLDER_MODE") or "",
                ts=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                secs=round(time.time() - t0, 1))
     return rec
@@ -127,6 +130,17 @@ def main() -> int:
     regen = "--no-regen" not in sys.argv[3:]
     out = MON / "repair-claude" / f"{name}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
+    # 02.09 council guard: --placeholder=trace logs every generated _NS module a probe
+    # loads to <wave>.trace.tsv; --placeholder=strict makes loading one a probe failure.
+    mode = ""
+    for arg in sys.argv[3:]:
+        if arg.startswith("--placeholder="):
+            mode = arg.split("=", 1)[1].strip().lower()
+    if mode in ("trace", "strict"):
+        os.environ["G1_PLACEHOLDER_MODE"] = mode
+        os.environ["G1_TRACE_FILE"] = str(out.with_suffix(".trace.tsv"))
+    elif mode:
+        raise SystemExit(f"unknown --placeholder mode {mode!r}")
     if sys.argv[1] == "ALL":
         ids = [u["id"] for u in CATALOG["work_units"]]
     else:
