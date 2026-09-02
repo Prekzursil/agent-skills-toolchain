@@ -2097,6 +2097,76 @@ def test_network_veto_defers_an_idle_orphan_with_a_live_remote_socket_then_expir
     assert [d.action for d in by_rule(plan, "orphan")] == ["stop"]
 
 
+def test_network_veto_is_decided_once_per_tree_per_run_across_rules():
+    """Found by the invariant fuzzer's follow-up probe.
+
+    A parentless, stale cursor-agent with the reaper unavailable is examined by
+    BOTH the orphan rule and the session-age rule. Each used to charge its own
+    deferral, so a 3-cycle veto lasted 2 runs - and worse, in the run where the
+    counter hit the cap the session rule STOPPED a tree the orphan rule had just
+    reported as vetoed, inside one plan. The veto is now one verdict per tree per
+    run, shared by every rule.
+    """
+    eng = engine()
+    stale = cursor_root(created=ago(30 * 3600))  # parentless (ppid 9_999 absent)
+    conns = [(600, "52.1.2.3:443")]
+    key = hygiene._key(hygiene.parse_snapshot(snap([stale])).by_pid[600])
+    seen = []
+    for r in range(7):
+        plan = eng.evaluate(
+            hygiene.parse_snapshot(
+                snap_with_connections([stale], conns, taken=NOW + r * STEP)
+            ),
+            reaper_available=False,
+        )
+        deferrals = eng.state["observations"][key]["network_deferrals"]
+        actions = {(d.rule, d.action) for d in plan.decisions}
+        seen.append((deferrals, actions))
+        # never a stop and a veto report for the same tree in one plan
+        assert not (
+            any(a == "stop" for _, a in actions)
+            and any(d.detail.get("network_veto") for d in plan.decisions)
+        )
+    deferral_track = [d for d, _ in seen]
+    # idle is confirmed at round 3; then exactly one deferral per run for 3 runs
+    assert deferral_track == [0, 0, 0, 1, 2, 3, 3]
+    # the orphan rule runs first and claims the tree; exactly one stop, by one rule
+    stops_at_6 = [rule for rule, action in seen[6][1] if action == "stop"]
+    assert stops_at_6 == ["orphan"]
+    assert all(a == "report" for _, a in seen[3][1] | seen[4][1] | seen[5][1])
+
+
+def test_network_deferrals_reset_when_the_tree_shows_activity():
+    eng = engine()
+    remote = [(400, "52.1.2.3:443")]
+    for r in range(5):  # 3 rounds to confirm idle, then 2 vetoes
+        eng.evaluate(
+            hygiene.parse_snapshot(
+                snap_with_connections([orphan_node()], remote, taken=NOW + r * STEP)
+            )
+        )
+    key = hygiene._key(hygiene.parse_snapshot(snap([orphan_node()])).by_pid[400])
+    assert eng.state["observations"][key]["network_deferrals"] == 2
+    # a burst of CPU: the tree is not idle, and it earns a fresh veto window
+    busy = orphan_node(cpu=50.0)
+    eng.evaluate(
+        hygiene.parse_snapshot(
+            snap_with_connections([busy], remote, taken=NOW + 5 * STEP)
+        )
+    )
+    assert eng.state["observations"][key]["network_deferrals"] == 0
+    for r in range(
+        6, 9
+    ):  # idle again: streak 1, 2, 3 - the third round is the first veto
+        plan = eng.evaluate(
+            hygiene.parse_snapshot(
+                snap_with_connections([busy], remote, taken=NOW + r * STEP)
+            )
+        )
+    assert eng.state["observations"][key]["network_deferrals"] == 1
+    assert [d.action for d in by_rule(plan, "orphan")] == ["report"]
+
+
 def test_network_veto_ignores_loopback_and_can_be_disabled():
     plan = observe_connected(
         engine(), [orphan_node()], 4, [(400, "127.0.0.1:8765"), (400, "[::1]:8812")]

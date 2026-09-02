@@ -992,9 +992,13 @@ class Engine:
                 "metrics_known": proc.metrics_known,
                 "first_seen": first_seen,
                 "last_seen": snapshot.taken_unix,
-                "network_deferrals": int(prior.get("network_deferrals", 0))
-                if prior
-                else 0,
+                # carried across runs while the streak holds; a burst of activity
+                # earns a fresh veto window on the next idle episode
+                "network_deferrals": (
+                    int(prior.get("network_deferrals", 0))
+                    if prior and streak > 0
+                    else 0
+                ),
             }
         self.state["observations"] = current
 
@@ -1010,10 +1014,18 @@ class Engine:
             return False
         if not any(member.pid in snapshot.networked for member in tree):
             return False
-        entry = self.state["observations"][_key(proc)]
+        key = _key(proc)
+        # Decided ONCE per tree per run. A parentless cursor-agent is examined by
+        # both the orphan and the session rules; before this, each charged a
+        # deferral (a 3-cycle veto lasted 2) and the second rule could stop a tree
+        # the first had just reported as vetoed, inside one plan.
+        if key in self._vetoed_this_run:
+            return True
+        entry = self.state["observations"][key]
         if entry["network_deferrals"] >= self.policy["idle"]["networkVetoMaxCycles"]:
             return False
         entry["network_deferrals"] += 1
+        self._vetoed_this_run.add(key)
         return True
 
     def _confirmed_idle(self, proc: ProcRow, observations: int) -> bool:
@@ -1088,6 +1100,7 @@ class Engine:
     # -- evaluate --------------------------------------------------------
 
     def evaluate(self, snapshot: Snapshot, *, reaper_available: bool = True) -> Plan:
+        self._vetoed_this_run: set[str] = set()
         if snapshot.taken_unix <= self.state.get("last_run_unix", 0):
             raise SnapshotError("snapshot taken_unix must be after the last run")
         self._update_observations(snapshot)
