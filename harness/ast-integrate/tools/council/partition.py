@@ -26,6 +26,10 @@ SEAT_B = "seat-b"
 ALL_SEATS = (SEAT_A, SEAT_B, "moderator")
 WITHHELD_NONCE = "nonce-withheld-adv0106"
 ALLOWED_NONCE = "nonce-allowed-adv0106"
+WITHHELD_ID = "B-WITHHELD"
+ALLOWED_ID = "B-ALLOWED"
+SUMMARY_PATH = f"derived/moderator_summary/{WITHHELD_ID}"
+PARAPHRASE_PATH = f"derived/moderator_paraphrase/{WITHHELD_ID}"
 
 
 def mint_canary(kind: str, nonce: str) -> str:
@@ -54,12 +58,21 @@ class SearchResult:
     hits: list[SearchHit]
     paths_searched: list[str]
 
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "hit_count": self.hit_count,
+            "leaked": self.leaked,
+            "hits": [{"path": h.path, "snippet": h.snippet} for h in self.hits],
+            "paths_searched": list(self.paths_searched),
+        }
+
 
 @dataclass
 class FixtureRound:
     withheld_canary: str
     allowed_canary: str
     artifacts: list[Artifact]
+    notes: dict[str, Any] = field(default_factory=dict)
 
 
 class EmptySearchError(RuntimeError):
@@ -140,6 +153,66 @@ def run_fixture(mode: str) -> FixtureRound:
             ALL_SEATS,
         ),
     ]
+    # Assembled per-seat prompts: seat-a's prompt is built from B-ALLOWED only,
+    # seat-b's prompt carries the B-WITHHELD bundle (privileged seat).
+    seat_a_prompt = (
+        f"You are the partitioned analyst {SEAT_A}. Briefing bundle {ALLOWED_ID}: "
+        f"{public_body} {allowed}"
+    )
+    if mode == DETECTOR_CONTROL:
+        # Detector control: the SAME withheld token planted in the ALLOWED bundle
+        # must be found by the same search that reports zero hits in HONEST.
+        seat_a_prompt += f" Planted-in-{ALLOWED_ID}: {withheld}"
+    seat_b_prompt = (
+        f"You are the privileged seat {SEAT_B}. Bundle {ALLOWED_ID}: {public_body} "
+        f"{allowed} Bundle {WITHHELD_ID}: {private_body}"
+    )
+    arts.append(Artifact("seat-a/prompt", seat_a_prompt, "assembled-prompt", (SEAT_A,)))
+    arts.append(Artifact("seat-b/prompt", seat_b_prompt, "assembled-prompt", (SEAT_B,)))
+
+    # Forced moderator summary of the withheld bundle: it necessarily carries the
+    # token, so the honest assembler keeps it privileged (seat-b + moderator) while
+    # a naive summary channel exposes it to the partitioned seat.
+    summary_body = f"Moderator summary of {WITHHELD_ID}: {private_body}"
+    summary_visible: tuple[str, ...] = (SEAT_B, "moderator")
+    if mode == NAIVE_SUMMARY:
+        summary_visible = ALL_SEATS
+    arts.append(Artifact(SUMMARY_PATH, summary_body, "moderator_summary", summary_visible))
+    arts.append(
+        Artifact(
+            PARAPHRASE_PATH,
+            paraphrase_privileged(private_body, withheld),
+            "moderator_paraphrase",
+            ALL_SEATS,
+        )
+    )
+    if mode == NAIVE_SCRATCHPAD:
+        arts.append(
+            Artifact(
+                "shared/scratchpad.md",
+                f"Working notes (shared): {private_body}",
+                "scratchpad",
+                ALL_SEATS,
+            )
+        )
+    if mode == NAIVE_TOOL:
+        arts.append(
+            Artifact(
+                "tools/ledger-lookup/output.json",
+                f'{{"tool": "ledger-lookup", "result": "{private_body}"}}',
+                "tool-output",
+                ALL_SEATS,
+            )
+        )
+    if mode == NAIVE_PARAPHRASE:
+        arts.append(
+            Artifact(
+                "derived/moderator_paraphrase/naive",
+                f"Moderator paraphrase (verbatim): {private_body}",
+                "moderator_paraphrase",
+                ALL_SEATS,
+            )
+        )
     if mode == DETECTOR_CONTROL:
         arts.append(
             Artifact(
@@ -149,4 +222,14 @@ def run_fixture(mode: str) -> FixtureRound:
                 (SEAT_A,),
             )
         )
-    return FixtureRound(withheld_canary=withheld, allowed_canary=allowed, artifacts=arts)
+    notes = {
+        "mode": mode,
+        "forced_moderator_summary": True,
+        "summary_path": SUMMARY_PATH,
+        "summary_visible_to": list(summary_visible),
+        "withheld_bundle_id": WITHHELD_ID,
+        "allowed_bundle_id": ALLOWED_ID,
+    }
+    return FixtureRound(
+        withheld_canary=withheld, allowed_canary=allowed, artifacts=arts, notes=notes
+    )

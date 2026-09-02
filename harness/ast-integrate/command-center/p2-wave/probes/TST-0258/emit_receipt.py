@@ -66,7 +66,7 @@ def main() -> int:
         return 1
 
     cite = U.cite_snippet(clone_a["events"], clone_roster)
-    tw_line = line_of(UNI, "THRESHOLD_ROUNDS = 2")
+    tw_line = line_of(UNI, "THRESHOLD_ROUNDS = 1")
     rem_line = line_of(UNI, "critic-independent")
     sim_line = line_of(SIM, 'if verdict["fired"]:')
     schema_present, schema_bytes = sha_file(SCHEMA)[2], sha_file(SCHEMA)[1]
@@ -173,7 +173,7 @@ def main() -> int:
             {
                 "path": UNI,
                 "line": tw_line,
-                "snippet": "THRESHOLD_ROUNDS = 2",
+                "snippet": "THRESHOLD_ROUNDS = 1",
                 "claim": "The published trip-wire number is 2 rounds_elapsed.",
             },
             {
