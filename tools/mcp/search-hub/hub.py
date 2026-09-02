@@ -312,9 +312,9 @@ class SearchHub:
             name: ad for ad in self.adapters for name in ad.tool_names()
         }
         self.adapter_tools = [d for ad in self.adapters for d in ad.tool_defs()]
-        # Onion lane (Ahmia index via SearXNG) is default OFF; the flag only gates
-        # whether the onions category / ahmia engine is forwarded (§ onions.py).
-        self.onions_enabled = onions.flag_enabled(self.environ)
+        # Onion lane (Ahmia index via SearXNG): works by default, ASKS before
+        # searching, ENABLE_ONIONS=0 is a hard kill switch (§ onions.py).
+        self.onions_kill_switched = onions.is_kill_switched(self.environ)
         self._children: dict[tuple[str, str], ProviderKeyChild] = {}
         self.all_tools = (
             self.tools + self.adapter_tools + self.account_tools + [_usage_tool_def()]
@@ -434,16 +434,25 @@ class SearchHub:
     def _handle_provider(self, msg: dict, mid, name: str) -> None:
         """Route a provider tool through the rotator (active key, rotate-retry)."""
         route = self.routes[name]
+        onion_mode = None
         if route.platform == "searxng":
-            block = onions.guard(
-                name,
-                (msg.get("params") or {}).get("arguments") or {},
-                self.onions_enabled,
-            )
-            if block is not None:
+            args = (msg.get("params") or {}).get("arguments") or {}
+            action, payload = onions.onion_decision(name, args, self.environ)
+            if action in (onions.FORBID, onions.KILLED):
                 # Refuse at the hub -- no child spawned, no query forwarded.
-                self._tool_result(mid, {"envelope": block}, is_error=True)
+                self._tool_result(mid, {"envelope": payload}, is_error=True)
                 return
+            if action == onions.ASK:
+                # Ask-before-searching: a confirmation request, NOT an error.
+                self._tool_result(mid, payload, is_error=False)
+                return
+            if action == onions.RUN:
+                # Confirmed onion search: forward the mode-applied (index-only) args
+                # and tag the response so onion hits are clearly differentiated.
+                onion_args, onion_mode = payload
+                params = dict(msg.get("params") or {})
+                params["arguments"] = onion_args
+                msg = {**msg, "params": params}
 
         def forward(key_name: str, request: dict) -> dict:
             req = dict(request)
@@ -459,6 +468,8 @@ class SearchHub:
             response = forward("keyless", msg)
         else:
             response = self.rotator.route_call(route.platform, msg, forward)
+        if onion_mode is not None:
+            response = onions.tag_onion_response(response, onion_mode)
         response.setdefault("jsonrpc", "2.0")
         response["id"] = mid
         self._emit(json.dumps(response, ensure_ascii=False))

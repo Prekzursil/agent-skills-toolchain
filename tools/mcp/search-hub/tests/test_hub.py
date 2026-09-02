@@ -308,40 +308,58 @@ def test_search_usage_includes_selfhosted_capability_lattice(hub_env):
     assert server._children == {}
 
 
-def test_onions_category_blocked_when_flag_off(hub_env):
-    """Envelope: the onions category must be UNREACHABLE with ENABLE_ONIONS unset."""
+def test_onion_search_asks_before_searching_by_default(hub_env):
+    """Default-ON but ask-first: an onion search returns a confirmation request
+    (not an error) and does NOT spawn a SearXNG child."""
     server, cap, _rot = hub_env
-    assert server.onions_enabled is False  # default off (no ENABLE_ONIONS in env)
+    assert server.onions_kill_switched is False  # works by default
     server.dispatch(
-        _call(70, "searxng_web_search", {"query": "ahmia", "categories": "onions"})
+        _call(70, "searxng_web_search", {"query": "ahmia", "engines": "ahmia"})
     )
     reply = cap.wait(1)[0]
     result = reply["result"]
-    assert result["isError"] is True
+    assert result["isError"] is False  # an ask, not an error
     payload = json.loads(result["content"][0]["text"])
-    assert "ENABLE_ONIONS=1" in payload["envelope"]
-    # Refused at the hub: no SearXNG child was spawned to serve the onion query.
+    assert payload["onion_confirmation_required"] is True
+    assert {m["mode"] for m in payload["modes"]} == {"low", "medium", "high", "deepest"}
+    # Nothing searched yet: no child spawned.
     assert ("searxng", "keyless") not in server._children
 
 
-def test_onions_category_forwarded_when_flag_on(hub_env):
+def test_onion_search_runs_and_tags_results_when_confirmed(hub_env):
     server, cap, _rot = hub_env
-    server.onions_enabled = True  # simulate ENABLE_ONIONS=1
     server.dispatch(
-        _call(71, "searxng_web_search", {"query": "ahmia", "categories": "onions"})
+        _call(
+            71,
+            "searxng_web_search",
+            {
+                "query": "ahmia",
+                "engines": "ahmia",
+                "onion_confirm": True,
+                "onion_mode": "high",
+            },
+        )
     )
     reply = cap.wait(1)[0]
-    payload = json.loads(reply["result"]["content"][0]["text"])
+    content = reply["result"]["content"]
+    # First content block is the dark-web differentiation banner.
+    assert "DARK-WEB INDEX RESULTS" in content[0]["text"]
+    assert reply["result"]["_onion"]["tor"] is True
+    assert reply["result"]["_onion"]["onion_fetched"] is False
+    # The forwarded child call was pinned to the ahmia index with the mode breadth.
+    payload = json.loads(content[1]["text"])
     assert payload["backend"] == "searxng"
-    assert payload["arguments"]["categories"] == "onions"
+    assert payload["arguments"]["engines"] == "ahmia"
+    assert payload["arguments"]["num_results"] == 20  # high mode
+    assert "onion_confirm" not in payload["arguments"]
 
 
-def test_ordinary_searxng_search_unaffected_by_onions_gate(hub_env):
+def test_ordinary_searxng_search_unaffected_by_onion_lane(hub_env):
     server, cap, _rot = hub_env
     server.dispatch(_call(72, "searxng_web_search", {"query": "python"}))
     reply = cap.wait(1)[0]
     payload = json.loads(reply["result"]["content"][0]["text"])
-    assert payload["backend"] == "searxng"  # non-onion search still works, flag off
+    assert payload["backend"] == "searxng"  # non-onion search runs immediately
 
 
 def test_ossinsight_tools_listed_and_route_through_hub(hub_env):

@@ -1,8 +1,14 @@
-# Onions lane — legal / safety envelope (index-only, default OFF)
+# Onions lane — legal / safety envelope (index-only)
 
-**Status: default OFF. Both follow-up lanes ship disabled.** This document is the
-binding scope for the dark-web (Ahmia) lane and the repo-discovery (OSSInsight)
-lane added to `tools/mcp/search-hub`. Read it before setting either flag.
+**Status (owner decision 2026-09-02): the Ahmia onion lane works BY DEFAULT but
+ASKS before every search.** `ENABLE_ONIONS=0` is a hard kill switch. The
+repo-discovery (OSSInsight) lane remains **default OFF** (`ENABLE_OSSINSIGHT=0`).
+This document is the binding scope for both; read it before enabling either.
+
+The unchanged hard rules — **no Tor, no `.onion` fetch, index-only, Ahmia's
+blacklist inherited** — are NOT relaxed by making the lane default-on. The
+ask-before-search confirmation gate + a one-time owner sign-off replace the old
+default-off env flag as the safety mechanism.
 
 ## Scope statement — Ahmia lane
 
@@ -11,6 +17,21 @@ the hub already fronts. It is **not** a new tool and **not** a new service: it i
 `engines=ahmia` (or `categories="onion index"`) parameter on the existing
 `searxng_web_search` tool, gated at the hub. A result is **a title + the indexed
 snippet/metadata + the `.onion` URL as a string** — nothing more.
+
+### Ask-before-search + modes + result tagging (the default-on UX)
+
+- **Ask before searching.** An onion-intent `searxng_web_search` (`engines=ahmia`
+  or a category containing `onion`) is **not forwarded** until the caller re-invokes
+  with `onion_confirm=true`. The first call returns a **confirmation request** (not
+  an error) that the agent must surface to the human — it never auto-confirms.
+- **Search modes (index breadth only).** The confirmation lists `onion_mode`:
+  `low` (~5 index hits) · `medium` (~10) · `high` (~20) · `deepest` (max ~20, all
+  index-only). Modes set how many **index** hits come back — they do **not** crawl,
+  fetch, or render any `.onion` page.
+- **Clearly differentiated results.** A confirmed onion response is prepended with a
+  `TOR / DARK-WEB INDEX RESULTS` banner and carries a structured `_onion` marker
+  (`tor:true, onion_fetched:false, verified:false, mode:…`), so onion hits are
+  unambiguously distinct from normal web results.
 
 > **Why not the literal `onions` category?** Stock SearXNG **hard-gates** the
 > `onions` category on a working Tor proxy: `searx/engines/__init__.py`
@@ -34,15 +55,26 @@ snippet/metadata + the `.onion` URL as a string** — nothing more.
 - Ahmia's abuse blacklist is a feature, not an obstacle. Never filter
   around it; surface their removal policy in the envelope doc.
 
+> **Owner amendment 2026-09-02 (kept beside the original, not silently edited).**
+> The owner reversed the "onion default OFF" activation rule for the **Ahmia lane
+> only**: it now works by default but **asks before every search** (per-use
+> confirmation) with `ENABLE_ONIONS=0` as a hard kill switch. Every OTHER line
+> above — no Tor, no `.onion` fetch, no crawling/scraping/storing onion content,
+> Ahmia's blacklist inherited — stands **verbatim and unchanged**. OSSINSIGHT stays
+> default OFF.
+
 ### How the code enforces this
 
-- `onions.py` `guard()` refuses `searxng_web_search` that selects an onion category
-  (any category containing `onion`, incl. `onions` / `onion index`) or the `ahmia`
-  engine unless `ENABLE_ONIONS` is truthy, and refuses **any** `web_url_read` of a
-  `.onion` host **regardless of the flag** (that would be fetching an onion service
-  — forbidden). Refusals happen **at the hub**: no SearXNG child is spawned and no
-  query is forwarded. Pinned by `tests/test_onions.py` +
-  `tests/test_hub.py::test_onions_category_blocked_when_flag_off`.
+- `onions.py` `onion_decision()` classifies each SearXNG-provider call into
+  `pass` / `forbid` / `killed` / `ask` / `run`: onion intent (any category
+  containing `onion`, incl. `onions` / `onion index`, or the `ahmia` engine)
+  returns `ask` (a confirmation request, not an error) until the caller supplies
+  `onion_confirm=true`; `web_url_read` of a `.onion` host is `forbid` **always**;
+  `ENABLE_ONIONS=0` returns `killed`. A confirmed `run` forwards mode-applied,
+  index-pinned args and the response is tagged. Decisions happen **at the hub**: on
+  `ask`/`forbid`/`killed` no SearXNG child is spawned and no query is forwarded.
+  Pinned by `tests/test_onions.py` +
+  `tests/test_hub.py::test_onion_search_asks_before_searching_by_default`.
 - The SearXNG engine (`deploy/searxng-min/settings.yml`) registers a **clearnet
   `ahmia.fi`** Ahmia engine under category **`onion index`** (not the Tor-gated
   `onions`) with **no `outgoing.proxies`**, and **removes** the onion-only default
@@ -90,22 +122,24 @@ live HTTP 200 (see the decision record for the endpoint verification). Degraded
 metrics are **passed through truthfully** (the API's own `data_quality` block is
 relayed, never hidden or fabricated).
 
-## Activation flags (both default 0 / OFF)
+## Activation flags
 
-| flag | default | effect when set truthy (`1`/`true`) |
+| flag | default | effect |
 |---|---|---|
-| `ENABLE_ONIONS` | `0` (OFF) | the hub forwards `searxng_web_search` calls that select `engines=ahmia` / `categories="onion index"` (or the intuitive `onions`); `.onion` fetch stays forbidden |
+| `ENABLE_ONIONS` | **unset = ON (ask-first)** | the Ahmia INDEX lane works by default: an onion-intent `searxng_web_search` returns a confirmation request; the caller re-invokes with `onion_confirm=true` + `onion_mode`. Set `ENABLE_ONIONS=0` to **hard-disable** (kill switch). `.onion` fetch stays forbidden regardless |
 | `ENABLE_OSSINSIGHT` | `0` (OFF) | the hub wires the OSSInsight repo-discovery adapter (`ossinsight_*` tools) |
 
 Set them in the hub's environment (e.g. the `search-hub` entry's `env` in
-`~/.mcp.json`). With both unset, neither lane is reachable.
+`~/.mcp.json`). The onion lane is reachable by default (ask-gated); OSSInsight is
+not reachable until `ENABLE_OSSINSIGHT=1`.
 
-## Owner sign-off (fill in before enabling the onion lane)
+## Owner sign-off (one-time authorization for the ask-gated onion lane)
 
-By enabling `ENABLE_ONIONS=1` I confirm this is **authorized research** use, that I
-have read the FORBIDDEN list above and Ahmia's blacklist/removal policy, and that
-the lane is index-only (no Tor, no `.onion` fetch, no scraping/storage of onion
-content):
+Because the lane is now default-on-with-ask, this sign-off is the **one-time**
+authorization; the per-search confirmation is the ongoing gate. I confirm this is
+**authorized research** use, that I have read the FORBIDDEN list above and Ahmia's
+blacklist/removal policy, and that the lane is index-only (no Tor, no `.onion`
+fetch, no scraping/storage of onion content):
 
 - Authorized by: `________________________`
 - Date: `________________________`

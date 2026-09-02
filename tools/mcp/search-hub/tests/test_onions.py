@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Unit tests for the onions-lane envelope guard (index-only, default OFF).
+"""Unit tests for the onions-lane envelope + ask/modes/tagging (index-only).
 
-Pure and network-free: the guard is a function of tool name + arguments + the
-flag. These pin the hard envelope so a regression that quietly re-opens the lane
-fails the build.
+Pure and network-free: everything is a function of tool name + arguments +
+environ. These pin the hard envelope (no Tor, no .onion fetch), the default-ON
+ask-before-search flow, the search modes, the kill switch, and the result
+tagging, so a regression that quietly changes behaviour fails the build.
 """
 
 from __future__ import annotations
@@ -17,17 +18,10 @@ sys.path.insert(0, HUB_DIR)
 import onions  # noqa: E402
 
 
-def test_flag_defaults_off():
-    assert onions.flag_enabled({}) is False
-    assert onions.flag_enabled({"ENABLE_ONIONS": ""}) is False
-    assert onions.flag_enabled({"ENABLE_ONIONS": "0"}) is False
-    assert onions.flag_enabled({"ENABLE_ONIONS": "false"}) is False
-    assert onions.flag_enabled({"ENABLE_ONIONS": "1"}) is True
-    assert onions.flag_enabled({"ENABLE_ONIONS": "true"}) is True
-
-
+# --------------------------------------------------------------------------- #
+# intent detection + helpers
+# --------------------------------------------------------------------------- #
 def test_requests_onions_detects_category_and_engine():
-    # Intuitive "onions" (Tor-reserved) AND the clearnet lane's "onion index".
     assert onions.requests_onions({"categories": "onions"})
     assert onions.requests_onions({"categories": "general,onions"})
     assert onions.requests_onions({"categories": "onion index"})
@@ -35,7 +29,6 @@ def test_requests_onions_detects_category_and_engine():
     assert onions.requests_onions({"engines": "ahmia"})
     assert onions.requests_onions({"engines": ["ahmia", "google"]})
     assert not onions.requests_onions({"categories": "general"})
-    assert not onions.requests_onions({"categories": "news,images"})
     assert not onions.requests_onions({"engines": "google"})
     assert not onions.requests_onions({})
 
@@ -50,66 +43,122 @@ def test_is_onion_url():
     assert not onions.is_onion_url(None)
 
 
-def test_guard_blocks_onions_category_when_flag_off():
-    for cats in ("onions", "onion index"):
-        reason = onions.guard(
-            "searxng_web_search", {"query": "x", "categories": cats}, enabled=False
-        )
-        assert reason is not None, cats
-        assert "ENABLE_ONIONS=1" in reason
-        assert onions.ENVELOPE_DOC in reason
+def test_confirm_and_mode_parsing():
+    assert onions.is_confirmed({"onion_confirm": True})
+    assert onions.is_confirmed({"onion_confirm": "true"})
+    assert not onions.is_confirmed({"onion_confirm": "no"})
+    assert not onions.is_confirmed({})
+    assert onions.selected_mode({"onion_mode": "deepest"}) == "deepest"
+    assert onions.selected_mode({"onion_mode": "HIGH"}) == "high"
+    assert onions.selected_mode({"onion_mode": "bogus"}) == onions.DEFAULT_MODE
+    assert onions.selected_mode({}) == onions.DEFAULT_MODE
 
 
-def test_guard_blocks_ahmia_engine_selector_when_flag_off():
-    reason = onions.guard(
-        "searxng_web_search",
-        {"query": "x", "engines": "ahmia"},
-        enabled=False,
+def test_kill_switch_default_on():
+    assert onions.is_kill_switched({}) is False  # works by default
+    assert onions.is_kill_switched({"ENABLE_ONIONS": "1"}) is False
+    for off in ("0", "false", "no", "off"):
+        assert onions.is_kill_switched({"ENABLE_ONIONS": off}) is True
+
+
+# --------------------------------------------------------------------------- #
+# the decision function (ask / run / forbid / killed / pass)
+# --------------------------------------------------------------------------- #
+def test_normal_search_passes_through():
+    action, payload = onions.onion_decision(
+        "searxng_web_search", {"query": "python"}, {}
     )
-    assert reason is not None
-    assert "engines=ahmia" in reason
+    assert action == onions.PASS and payload is None
 
 
-def test_guard_allows_onion_lane_when_flag_on():
+def test_onion_intent_default_asks_before_searching():
     for args in (
+        {"query": "x", "engines": "ahmia"},
         {"query": "x", "categories": "onions"},
         {"query": "x", "categories": "onion index"},
-        {"query": "x", "engines": "ahmia"},
     ):
-        assert onions.guard("searxng_web_search", args, enabled=True) is None
+        action, payload = onions.onion_decision("searxng_web_search", args, {})
+        assert action == onions.ASK, args
+        assert payload["onion_confirmation_required"] is True
+        assert "ask the human" in payload["action_required"].lower()
+        assert {m["mode"] for m in payload["modes"]} == set(onions.MODES)
+        assert onions.ENVELOPE_DOC in payload["envelope_doc"]
 
 
-def test_guard_blocks_ahmia_engine_when_flag_off():
-    reason = onions.guard(
-        "searxng_web_search", {"query": "x", "engines": "ahmia"}, enabled=False
+def test_confirmed_onion_search_runs_with_mode_applied():
+    action, payload = onions.onion_decision(
+        "searxng_web_search",
+        {
+            "query": "leak",
+            "engines": "ahmia",
+            "onion_confirm": True,
+            "onion_mode": "high",
+        },
+        {},
     )
-    assert reason is not None
+    assert action == onions.RUN
+    searxng_args, mode = payload
+    assert mode == "high"
+    # Pins the clearnet Ahmia index engine + category, applies breadth, strips control args.
+    assert searxng_args["engines"] == "ahmia"
+    assert searxng_args["categories"] == onions.ONION_CATEGORY
+    assert searxng_args["num_results"] == onions.MODES["high"]["num_results"]
+    assert "onion_confirm" not in searxng_args and "onion_mode" not in searxng_args
+    assert searxng_args["query"] == "leak"
 
 
-def test_guard_ignores_non_onion_search_regardless_of_flag():
-    assert onions.guard("searxng_web_search", {"query": "x"}, enabled=False) is None
-    assert (
-        onions.guard(
-            "searxng_web_search", {"query": "x", "categories": "general"}, enabled=False
+def test_kill_switch_forces_off_even_when_confirmed():
+    action, payload = onions.onion_decision(
+        "searxng_web_search",
+        {"query": "x", "engines": "ahmia", "onion_confirm": True},
+        {"ENABLE_ONIONS": "0"},
+    )
+    assert action == onions.KILLED
+    assert "hard-disabled" in payload
+
+
+def test_web_url_read_of_onion_is_forbidden_always():
+    for env in ({}, {"ENABLE_ONIONS": "1"}, {"ENABLE_ONIONS": "0"}):
+        action, payload = onions.onion_decision(
+            "web_url_read", {"url": "http://abc.onion/x"}, env
         )
-        is None
+        assert action == onions.FORBID
+        assert "FORBIDDEN" in payload and onions.ENVELOPE_DOC in payload
+
+
+def test_web_url_read_clearnet_passes():
+    action, _ = onions.onion_decision(
+        "web_url_read", {"url": "https://example.com"}, {}
     )
+    assert action == onions.PASS
 
 
-def test_guard_never_lets_web_url_read_fetch_onion_even_with_flag_on():
-    for enabled in (False, True):
-        reason = onions.guard(
-            "web_url_read",
-            {"url": "http://juhanurmihxlp77nkq76.onion/search"},
-            enabled=enabled,
-        )
-        assert reason is not None
-        assert "FORBIDDEN" in reason
-        assert onions.ENVELOPE_DOC in reason
+# --------------------------------------------------------------------------- #
+# result tagging (clearly differentiate tor/onion results from normal)
+# --------------------------------------------------------------------------- #
+def test_tag_onion_response_prepends_banner_and_marker():
+    child = {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "result": {
+            "content": [{"type": "text", "text": "results..."}],
+            "isError": False,
+        },
+    }
+    tagged = onions.tag_onion_response(child, "deepest")
+    banner = tagged["result"]["content"][0]["text"]
+    assert "DARK-WEB INDEX RESULTS" in banner and "mode=deepest" in banner
+    assert "NOT fetched" in banner
+    assert tagged["result"]["_onion"]["tor"] is True
+    assert tagged["result"]["_onion"]["onion_fetched"] is False
+    assert tagged["result"]["_onion"]["mode"] == "deepest"
+    # original content preserved after the banner
+    assert tagged["result"]["content"][1]["text"] == "results..."
+    # input not mutated
+    assert child["result"]["content"][0]["text"] == "results..."
 
 
-def test_guard_allows_web_url_read_for_clearnet():
-    assert (
-        onions.guard("web_url_read", {"url": "https://example.com"}, enabled=True)
-        is None
-    )
+def test_prepare_onion_args_defaults_low_mode():
+    args = onions.prepare_onion_args({"query": "q", "onion_confirm": True})
+    assert args["num_results"] == onions.MODES["low"]["num_results"]
+    assert args["engines"] == "ahmia"

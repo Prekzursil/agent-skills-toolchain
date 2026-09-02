@@ -85,16 +85,26 @@ in the notes column.
 |---|---|---|---|---|---|---|
 | **TrailSearch** | [github.com/jianjungki/tavily-open](https://github.com/jianjungki/tavily-open) | **YES — MIT** (`gh api .../license` → `MIT`, `LICENSE` at root) | **YES** (`openapi.json`: `POST /tavily/search`, `POST /tavily/extract`) | none published; built from `python:3.11-slim` + reqs | ~270–320 MB app (FastAPI+trafilatura, `http_first`, no browser) | gh api + `openapi.json` + `Dockerfile` |
 | OrioSearch | [github.com/vkfolio/orio-search](https://github.com/vkfolio/orio-search) | **NO** — still absent (`gh api .../license` → 404; `raw .../{master,main}/LICENSE` → **404/404**) | NO (`/search`,`/extract`; not the `/tavily/*` namespace) | none published; `python` + reqs | lighter (no crawl4ai; FlashRank ~4 MB) | gh api + `curl -I` both branches |
-| fastCRW | [github.com/us/crw](https://github.com/us/crw) | YES — AGPL-3.0 | NO (Firecrawl-shaped `/v1/*`) | **~8 MB** (`docker run ghcr.io/us/crw`) | **~6 MB** single Rust binary | fastcrw.com/use-cases/self-hosting (vendor) |
-| Crawl4AI | [github.com/unclecode/crawl4ai](https://github.com/unclecode/crawl4ai) | YES — Apache-2.0 | NO (scraper) | multi-GB (`unclecode/crawl4ai`, `--shm-size=1g`) | base **270 MB** + browser **270 MB** + **180 MB**/pool; docs say **4 GB** | deploy/docker/ARCHITECTURE.md |
-| Meilisearch | [github.com/meilisearch/meilisearch](https://github.com/meilisearch/meilisearch) | YES — NOASSERTION (custom) | NO (index engine) | `getmeili/meilisearch` (Rust) | **50–100 MB idle**; 1 GB rec. <100k docs | meilisearch docs FAQ / self_hosting |
+| fastCRW | [github.com/us/crw](https://github.com/us/crw) | YES — AGPL-3.0 (engine); MIT (SDKs) | NO (Firecrawl-shaped `/v1/*`) | **~73 MB compressed / 191 MB uncompressed** (`ghcr.io/us/crw`, registry-measured) | **~14 MB idle** (maintainer-measured; ~66 MB heavy) | ghcr registry + repo BENCHMARKS.md/docs |
+| Crawl4AI | [github.com/unclecode/crawl4ai](https://github.com/unclecode/crawl4ai) | YES — Apache-2.0 | NO (scraper) | **~1.65 GB** amd64 (`unclecode/crawl4ai`, Docker Hub) | base **270 MB** + browser **270 MB** + **180 MB**/pool; docs say **4 GB** | Docker Hub + ARCHITECTURE.md |
+| Meilisearch | [github.com/meilisearch/meilisearch](https://github.com/meilisearch/meilisearch) | YES — **MIT AND BUSL-1.1** (core MIT; enterprise-edition files BUSL) | NO (index engine) | **~100 MB compressed** (`getmeili/meilisearch`) | **50–100 MB idle** (third-party); official publishes none (mmap: 9 MB data → ~305 MB) | LICENSE + Docker Hub + docs |
+
+**Corrected 2026-09-02** by five parallel research subagents (the initial figures were
+vendor-blog conflations): fastCRW is **not** "~6 MB / ~8 MB" — the registry image is ~73 MB
+compressed and idle RAM is ~14 MB (the "6 MB" string lives only in the GitHub About blurb);
+Meilisearch is dual-licensed **MIT AND BUSL-1.1**, not an opaque "custom". TrailSearch's
+~270–320 MB app figure is an **estimate** (app-only, `http_first`; undocumented — the repo's
+own guidance is 4c/8 GB for the *full* demo stack with Reader+Browserless), and a stale
+pre-rename `jianjungki/searcrawl-app` image (550 MB, Chromium-bundled) exists but is
+unofficial.
 
 **Re-evaluation outcome (this pass): TrailSearch stays chosen.** OrioSearch **still has no
-LICENSE file** on either `master` or `main` (verified twice this pass), so the license
-blocker stands — it is not eligible for an owned estate dependency. Nothing else changed the
-fundamentals: TrailSearch remains the only candidate that is both native-`/tavily/*` **and**
-cleanly licensed **and** runnable minimal. fastCRW stays the ranked `emulated` Firecrawl-class
-fallback; Crawl4AI/Meilisearch stay OVH-only (too heavy for the box).
+LICENSE file** on either `master` or `main` (verified twice this pass, incl. a recursive tree
+scan), so the license blocker stands — it is not eligible for an owned estate dependency.
+Nothing else changed the fundamentals: TrailSearch remains the only candidate that is both
+native-`/tavily/*` **and** cleanly licensed **and** runnable minimal. fastCRW stays the ranked
+`emulated` Firecrawl-class fallback (still the lightest by far at ~14 MB idle);
+Crawl4AI/Meilisearch stay OVH-only (too heavy for the box).
 
 | candidate | stars / last push | license | Tavily shape | stack / deps | idle RAM (minimal) | verdict |
 |---|---|---|---|---|---|---|
@@ -160,10 +170,13 @@ The Sicry/Robin/OnionClaw agents in the table would add a **Tor daemon + onion f
 scraping**, which is **out of the current envelope** — they require a *new* decision record
 and a fresh owner sign-off before any code. What we built:
 
-1. **Default OFF, env-gated** — `ENABLE_ONIONS=0` by default. `onions.py::guard` refuses a
-   `searxng_web_search` with `categories=onions` / `engines=ahmia` unless the flag is set,
-   **at the hub** (no child spawned, no query forwarded). Test fails if reachable with the
-   flag off.
+1. **Default ON, ask-before-search (owner amendment 2026-09-02)** — the lane works by default
+   but `onions.py::onion_decision` returns an `ask` (a confirmation request, not an error) for
+   any onion-intent `searxng_web_search` until the caller re-invokes with `onion_confirm=true`
+   + `onion_mode` (`low|medium|high|deepest`, index breadth only). `ENABLE_ONIONS=0` is a hard
+   kill switch. Confirmed results are tagged with a `TOR / DARK-WEB INDEX` banner + an `_onion`
+   marker so they are clearly differentiated from normal web results. Decisions happen at the
+   hub (no child spawned on ask/forbid/killed).
 2. **Index-only, inherits Ahmia's filtering** — the query hits the Ahmia index; Ahmia's own
    abuse blacklist ([ahmia.fi/blacklist](https://ahmia.fi/blacklist/)) applies by
    construction and we never filter around it. Results are titles + indexed metadata + the
@@ -256,7 +269,7 @@ an RSS census understates the real cost ~19×).
 |---|---|---|---|
 | `search-hub` process (stdlib) | the hub itself | **measured ~20–25 MB RSS / ~15–17 MB private** (stdlib json+urllib; same stack the basic-memory bridge measured at ~16–17 MB private) | **always** (already running) |
 | self-hosted **adapter** (TrailSearch/OSSInsight) | in-process HTTP bridge | **~0 new** — no child, no new import (urllib already loaded); measured stdlib HTTP client roundtrip adds ~1 MB transient | **always** (part of the hub) |
-| **Ahmia onion lane** (via SearXNG) | index-only category on the existing search tool | **≈ 0 MB** — config + a pure hub guard (`onions.py`); no new process/container | **default OFF** (`ENABLE_ONIONS=0`); reuses the estate SearXNG |
+| **Ahmia onion lane** (via SearXNG) | index-only, ask-first, on the existing search tool | **≈ 0 MB** — config + a pure hub decision (`onions.py`); no new process/container | **default ON, ask-before-search** (`ENABLE_ONIONS=0` kill switch); reuses the estate SearXNG |
 | **OSSInsight** repo-discovery | keyless public-API adapter | **≈ 0 MB** — in-process HTTP, same as the self-hosted adapter | **default OFF** (`ENABLE_OSSINSIGHT=0`); no daemon (public API) |
 | estate **SearXNG** (reused) | keyless meta-search | ~150 MB idle at `UWSGI_WORKERS=1`; ~250 MB active; **~500 MB/core by default** (documented; discussion #1892 / issue #1431) | **reused** — already running for `search-expansion`, not re-run |
 | **TrailSearch app** | Tavily-shaped search+extract | **~270–320 MB** (FastAPI + trafilatura, `http_first`; crawl4ai lib imported but no browser launched) | **on-demand** (start when you want keyless search) |

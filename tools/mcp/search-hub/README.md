@@ -143,13 +143,17 @@ running hub ~0 RAM at rest. The heavy daemon it talks to is started **on demand*
 Two extra lanes ship **disabled** and are gated by env flags. See the legal/safety
 envelope: [`docs/legal/onions-lane-envelope.md`](../../../docs/legal/onions-lane-envelope.md).
 
-- **Ahmia onion lane (`ENABLE_ONIONS=0`)** — **index-only** dark-web search via the
-  **existing** `searxng_web_search` tool (not a new tool/service): pass
-  `categories=onions` (or `engines=ahmia`). With the flag unset the hub **refuses**
-  onion queries (no child spawned); `web_url_read` of any `.onion` is refused
-  **regardless** of the flag. No Tor, no onion fetch — the SearXNG engine is pinned
-  to clearnet `ahmia.fi` and the lane fails closed. Inherits Ahmia's abuse blacklist.
-  **≈ 0 MB.**
+- **Ahmia onion lane (default ON, ask-first; `ENABLE_ONIONS=0` kills it)** —
+  **index-only** dark-web search via the **existing** `searxng_web_search` tool
+  (not a new tool/service): `engines=ahmia` (or `categories="onion index"`). It
+  **works by default but ASKS before searching** — the first onion call returns a
+  confirmation request listing modes (`low|medium|high|deepest`, index breadth
+  only); the caller re-invokes with `onion_confirm=true` + `onion_mode`. Confirmed
+  results are prepended with a `TOR / DARK-WEB INDEX` banner + an `_onion` marker so
+  they are clearly distinct from normal web results. No Tor, no `.onion` fetch
+  (`web_url_read` of any `.onion` is refused regardless); the SearXNG engine is
+  pinned to clearnet `ahmia.fi` and fails closed. Inherits Ahmia's abuse blacklist.
+  `ENABLE_ONIONS=0` is a hard kill switch. **≈ 0 MB.** See the envelope doc.
 - **OSSInsight repo-discovery (`ENABLE_OSSINSIGHT=0`)** — keyless GitHub repo
   discovery over the public OSSInsight API: `ossinsight_repo_stats`,
   `ossinsight_collections`, `ossinsight_collection_ranking`. In-process HTTP,
