@@ -1,23 +1,36 @@
-"""Tests for the Windows actuator's safety logic (OS boundaries are injected)."""
+"""Tests for the Windows actuator's safety logic (OS boundaries are injected).
+
+The kill path pins ONE process handle from identity validation through
+TerminateProcess (a PID cannot be recycled while a handle to it is open), so the
+TOCTOU window that `taskkill`'s own OpenProcess reintroduced is closed. Polite
+WM_CLOSE is opt-in: Windows has no cooperative stop for windowless console
+processes, and `taskkill /PID` without /F is refused for them.
+"""
 
 from __future__ import annotations
 
 import json
 
+import pytest
+
 import hygiene
 import hygiene_actuate as act
 
+EXE = "C:/Users/x/cursor-agent/versions/1/node.exe"
+IDENT = {"created_unix": 500, "executable": EXE}
 
-def policy() -> dict:
-    return {
-        "integration": {
-            "powershell": "powershell.exe",
-            "reaperPath": "C:/reaper.ps1",
-            "reaperStateFile": "C:/state.json",
-            "reaperEvidenceRoot": "C:/evidence",
-            "wslExe": "wsl.exe",
-        }
+
+def policy(**integration) -> dict:
+    base = {
+        "powershell": "powershell.exe",
+        "reaperPath": "C:/reaper.ps1",
+        "reaperStateFile": "C:/state.json",
+        "reaperEvidenceRoot": "C:/evidence",
+        "wslExe": "wsl.exe",
+        "politeStopSeconds": 0,
     }
+    base.update(integration)
+    return {"integration": base}
 
 
 class FakeRunner:
@@ -28,37 +41,62 @@ class FakeRunner:
     def __call__(self, args: list[str]) -> act.RunResult:
         self.calls.append(args)
         key = args[0].split(".")[0]
-        if "taskkill" in args[0]:
-            key = "taskkill-force" if "/F" in args else "taskkill-graceful"
+        if key == "wsl" and len(args) > 2:
+            key = f"wsl:{args[2]}"
         return self.results.get(key, act.RunResult(0, ""))
 
 
-class FakeProber:
-    """A scripted process table: each pid maps to a list of per-probe answers."""
+class FakeHandle:
+    """Scripted process handle: identity answers, terminate outcome, wait outcome."""
 
-    def __init__(self, timeline: dict[int, list[dict | None]]):
-        self.timeline = {pid: list(states) for pid, states in timeline.items()}
-        self.default = {pid: states[-1] for pid, states in timeline.items()}
+    def __init__(
+        self,
+        identities,
+        *,
+        terminate_ok=True,
+        exits_after_polite=False,
+        exits_after_terminate=True,
+    ):
+        self.identities = list(identities)
+        self.terminate_ok = terminate_ok
+        self.exits_after_polite = exits_after_polite
+        self.exits_after_terminate = exits_after_terminate
+        self.terminated = False
+        self.closed = False
+        self.waits: list[float] = []
+
+    def identity(self):
+        return self.identities.pop(0) if self.identities else None
+
+    def terminate(self):
+        # A failed TerminateProcess leaves the process running.
+        self.terminated = self.terminate_ok
+        return self.terminate_ok
+
+    def wait(self, seconds):
+        self.waits.append(seconds)
+        if self.terminated:
+            return self.exits_after_terminate
+        return self.exits_after_polite
+
+    def close(self):
+        self.closed = True
+
+
+class FakeOpener:
+    def __init__(self, handles: dict[int, FakeHandle | None | Exception]):
+        self.handles = handles
+        self.opened: list[int] = []
 
     def __call__(self, pid: int):
-        states = self.timeline.get(pid)
-        if not states:
-            return self.default.get(pid)
-        return states.pop(0)
+        self.opened.append(pid)
+        result = self.handles.get(pid)
+        if isinstance(result, Exception):
+            raise result
+        return result
 
 
-class Clock:
-    def __init__(self, step: float = 1.0):
-        self.t = 0.0
-        self.step = step
-
-    def __call__(self) -> float:
-        now = self.t
-        self.t += self.step
-        return now
-
-
-def member(pid=100, created=500, exe="C:/Users/x/cursor-agent/versions/1/node.exe"):
+def member(pid=100, created=500, exe=EXE):
     return hygiene.parse_snapshot(
         {
             "schema": hygiene.SCHEMA_SNAPSHOT,
@@ -87,136 +125,170 @@ def member(pid=100, created=500, exe="C:/Users/x/cursor-agent/versions/1/node.ex
     ).by_pid[pid]
 
 
-def actuator(runner, prober, **kw):
+def actuator(opener, runner=None, **integration):
     return act.WindowsActuator(
-        policy(),
-        run_id="r",
-        runner=runner,
-        prober=prober,
-        clock=Clock(),
-        sleeper=lambda _s: None,
-        poll_seconds=1.0,
-        **kw,
+        policy(**integration), run_id="r", opener=opener, runner=runner or FakeRunner()
     )
 
 
-IDENT = {
-    "created_unix": 500,
-    "executable": "C:/Users/x/cursor-agent/versions/1/node.exe",
-}
-
-
-def test_graceful_stop_exits_without_force():
-    runner = FakeRunner()
-    prober = FakeProber({100: [IDENT, IDENT, None]})  # revalidate, alive, then gone
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=5)[0]
-    assert result.outcome == "graceful"
-    assert ["taskkill", "/PID", "100"] in runner.calls
-    assert not any("/F" in call for call in runner.calls)
-
-
-def test_force_kill_after_graceful_window():
-    runner = FakeRunner()
-    # revalidate, two "still alive" polls across the 3s window, then gone after /F.
-    prober = FakeProber({100: [IDENT, IDENT, IDENT, None]})
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=3)[0]
+def test_forced_kill_pins_the_handle_and_waits_for_exit():
+    handle = FakeHandle([IDENT])
+    opener = FakeOpener({100: handle})
+    result = actuator(opener).stop_tree([member()], graceful_seconds=0)[0]
     assert result.outcome == "forced"
-    assert ["taskkill", "/PID", "100", "/F"] in runner.calls
+    assert handle.terminated and handle.closed
+    assert handle.waits == [act.EXIT_WAIT_SECONDS]
+    assert opener.opened == [100]
 
 
-def test_refused_graceful_request_forces_immediately_without_waiting():
-    # Windows fact (Microsoft Learn + measured behaviour): `taskkill /PID n` without
-    # /F only posts WM_CLOSE to windows the process OWNS. A windowless console
-    # process (node.exe agent session, python MCP server) answers rc=1 "can only be
-    # terminated forcefully". Waiting the grace window after that refusal is pure
-    # latency - the actuator must force at once and say so in the ledger.
-    runner = FakeRunner(
-        {"taskkill-graceful": act.RunResult(1, "", "ERROR: ...forcefully")}
-    )
-    prober = FakeProber({100: [IDENT, None]})
-    slept: list[float] = []
-    actuator_ = act.WindowsActuator(
-        policy(),
-        run_id="r",
-        runner=runner,
-        prober=prober,
-        clock=Clock(),
-        sleeper=slept.append,
-        poll_seconds=1.0,
-    )
-    result = actuator_.stop_tree([member()], graceful_seconds=20)[0]
-    assert result.outcome == "forced"
-    assert "graceful refused" in result.detail
-    assert slept == []
-    assert runner.calls == [
-        ["taskkill", "/PID", "100"],
-        ["taskkill", "/PID", "100", "/F"],
-    ]
-
-
-def test_force_kill_when_graceful_disabled():
-    runner = FakeRunner()
-    prober = FakeProber({100: [IDENT, None]})
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=0)[0]
-    assert result.outcome == "forced"
-    assert runner.calls == [["taskkill", "/PID", "100", "/F"]]
-
-
-def test_survivor_is_reported_as_failed():
-    runner = FakeRunner()
-    prober = FakeProber({100: [IDENT, IDENT]})  # revalidate ok, still alive after /F
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=0)[0]
-    assert result.outcome == "failed"
-
-
-def test_pid_that_vanished_before_the_kill_is_not_touched():
-    runner = FakeRunner()
-    prober = FakeProber({100: [None]})
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=5)[0]
+def test_vanished_before_open_and_exited_after_open_are_not_kills():
+    result = actuator(FakeOpener({100: None})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
     assert result.outcome == "vanished"
-    assert runner.calls == []
+    handle = FakeHandle([None])  # OpenProcess succeeded but the process already exited
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
+    assert result.outcome == "vanished"
+    assert not handle.terminated and handle.closed
 
 
-def test_changed_identity_aborts_the_kill():
-    runner = FakeRunner()
-    prober = FakeProber(
-        {100: [{"created_unix": 999, "executable": IDENT["executable"]}]}
-    )
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=0)[0]
+def test_changed_identity_aborts_without_terminating():
+    handle = FakeHandle([{"created_unix": 999, "executable": EXE}])
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
     assert result.outcome == "identity-changed"
-    assert runner.calls == []
+    assert not handle.terminated and handle.closed
+    handle = FakeHandle([{"created_unix": 500, "executable": "C:/other.exe"}])
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
+    assert result.outcome == "identity-changed"
 
 
-def test_recycled_pid_after_force_counts_as_gone():
-    runner = FakeRunner()
-    prober = FakeProber(
-        {100: [IDENT, {"created_unix": 4242, "executable": "C:/other.exe"}]}
-    )
-    result = actuator(runner, prober).stop_tree([member()], graceful_seconds=0)[0]
+def test_one_second_creation_time_tolerance_matches_cim_rounding():
+    handle = FakeHandle([{"created_unix": 501, "executable": EXE.upper()}])
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
     assert result.outcome == "forced"
 
 
-def test_stop_tree_processes_children_first_order_verbatim():
+def test_access_denied_is_reported_as_failed_not_vanished():
+    opener = FakeOpener({100: PermissionError("access denied")})
+    result = actuator(opener).stop_tree([member()], graceful_seconds=0)[0]
+    assert result.outcome == "failed"
+    assert "access denied" in result.detail
+
+
+def test_terminate_failure_and_survivor_are_failed():
+    handle = FakeHandle([IDENT], terminate_ok=False)
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
+    assert result.outcome == "failed"
+    assert "TerminateProcess" in result.detail
+    handle = FakeHandle([IDENT], exits_after_terminate=False)
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
+    assert result.outcome == "failed"
+    assert "still alive" in result.detail
+
+
+def test_terminate_failure_on_an_already_exited_process_is_forced():
+    class RaceHandle(FakeHandle):
+        def wait(self, seconds):
+            self.waits.append(seconds)
+            return True  # gone by the time we look
+
+    handle = RaceHandle([IDENT], terminate_ok=False)
+    result = actuator(FakeOpener({100: handle})).stop_tree(
+        [member()], graceful_seconds=0
+    )[0]
+    assert result.outcome == "forced"
+
+
+def test_polite_stop_is_opt_in_and_honoured_when_the_process_owns_a_window():
     runner = FakeRunner()
-    prober = FakeProber({100: [IDENT, None], 101: [IDENT, None]})
-    tree = [member(101, exe="C:/Users/x/cursor-agent/versions/1/node.exe"), member(100)]
-    results = actuator(runner, prober).stop_tree(tree, graceful_seconds=0)
-    assert [r.pid for r in results] == [101, 100]
+    handle = FakeHandle([IDENT], exits_after_polite=True)
+    result = actuator(FakeOpener({100: handle}), runner).stop_tree(
+        [member()], graceful_seconds=5
+    )[0]
+    assert result.outcome == "graceful"
+    assert runner.calls == [["taskkill", "/PID", "100"]]
+    assert not handle.terminated
+    assert handle.waits == [5]
 
 
-def test_wsl_shutdown_reports_outcome():
-    ok = actuator(FakeRunner(), FakeProber({})).wsl_shutdown()
-    assert ok.outcome == "ok"
-    fail = actuator(
-        FakeRunner({"wsl": act.RunResult(1, "")}), FakeProber({})
-    ).wsl_shutdown()
-    assert fail.outcome == "failed"
+def test_polite_stop_refused_for_a_windowless_process_forces_immediately():
+    runner = FakeRunner({"taskkill": act.RunResult(1, "", "ERROR: ...forcefully")})
+    handle = FakeHandle([IDENT])
+    result = actuator(FakeOpener({100: handle}), runner).stop_tree(
+        [member()], graceful_seconds=20
+    )[0]
+    assert result.outcome == "forced"
+    assert "polite stop refused (taskkill rc=1)" in result.detail
+    assert handle.waits == [act.EXIT_WAIT_SECONDS]  # no 20 s grace burned
+
+
+def test_polite_stop_that_is_ignored_falls_through_to_terminate():
+    runner = FakeRunner()
+    handle = FakeHandle([IDENT], exits_after_polite=False)
+    result = actuator(FakeOpener({100: handle}), runner).stop_tree(
+        [member()], graceful_seconds=5
+    )[0]
+    assert result.outcome == "forced"
+    assert handle.terminated
+    assert handle.waits == [5, act.EXIT_WAIT_SECONDS]
+
+
+def test_stop_tree_keeps_children_first_order_and_isolates_failures():
+    opener = FakeOpener(
+        {
+            101: FakeHandle([IDENT]),
+            100: FakeHandle([IDENT], terminate_ok=False, exits_after_terminate=False),
+        }
+    )
+    results = actuator(opener).stop_tree([member(101), member(100)], graceful_seconds=0)
+    assert [(r.pid, r.outcome) for r in results] == [(101, "forced"), (100, "failed")]
+
+
+def test_wsl_terminate_per_distro_and_shutdown_fallback():
+    runner = FakeRunner()
+    result = actuator(FakeOpener({}), runner).wsl_shutdown(
+        distros=["Ubuntu", "Debian"], action="terminate"
+    )
+    assert result.outcome == "ok"
+    assert runner.calls == [
+        ["wsl.exe", "--terminate", "Ubuntu"],
+        ["wsl.exe", "--terminate", "Debian"],
+    ]
+    runner = FakeRunner({"wsl:Debian": act.RunResult(1, "")})
+    result = actuator(FakeOpener({}), runner).wsl_shutdown(
+        distros=["Ubuntu", "Debian"], action="terminate"
+    )
+    assert result.outcome == "failed"
+    assert "Debian" in result.detail
+    runner = FakeRunner()
+    result = actuator(FakeOpener({}), runner).wsl_shutdown(
+        distros=["Ubuntu"], action="shutdown"
+    )
+    assert runner.calls == [["wsl.exe", "--shutdown"]]
+    assert result.outcome == "ok"
+    result = actuator(FakeOpener({}), FakeRunner()).wsl_shutdown(
+        distros=[], action="terminate"
+    )
+    assert result.outcome == "ok"
+    assert "nothing to terminate" in result.detail
 
 
 def test_run_reaper_parses_the_last_json_line_and_appends_apply():
     stdout = "noise\n" + json.dumps({"status": "success", "reaped": 2}) + "\n"
     runner = FakeRunner({"powershell": act.RunResult(0, stdout)})
-    result = actuator(runner, FakeProber({})).run_reaper(apply=True)
+    result = actuator(FakeOpener({}), runner).run_reaper(apply=True)
     assert result["status"] == "success"
     assert result["reaped"] == 2
     assert result["exit_code"] == 0
@@ -225,19 +297,31 @@ def test_run_reaper_parses_the_last_json_line_and_appends_apply():
 
 def test_run_reaper_without_apply_omits_the_switch():
     runner = FakeRunner({"powershell": act.RunResult(0, "{}")})
-    actuator(runner, FakeProber({})).run_reaper(apply=False)
+    actuator(FakeOpener({}), runner).run_reaper(apply=False)
     assert "-Apply" not in runner.calls[0]
 
 
 def test_run_reaper_reports_failure_when_no_json_and_nonzero():
     runner = FakeRunner({"powershell": act.RunResult(1, "boom\nnot-json\n")})
-    result = actuator(runner, FakeProber({})).run_reaper(apply=True)
+    result = actuator(FakeOpener({}), runner).run_reaper(apply=True)
     assert result["exit_code"] == 1
     assert result["status"] == "error"
 
 
 def test_run_reaper_ignores_a_malformed_json_line():
     runner = FakeRunner({"powershell": act.RunResult(0, "{bad json\n")})
-    result = actuator(runner, FakeProber({})).run_reaper(apply=True)
+    result = actuator(FakeOpener({}), runner).run_reaper(apply=True)
     assert result["status"] == "success"
     assert result["exit_code"] == 0
+
+
+def test_filetime_conversion():
+    # 2026-09-02T04:50:00Z as a Windows FILETIME (100 ns ticks since 1601-01-01).
+    unix = 1_788_324_600
+    filetime = (unix + 11_644_473_600) * 10_000_000
+    assert act.filetime_to_unix(filetime) == unix
+
+
+def test_default_opener_is_windows_only():
+    with pytest.raises(OSError, match="Windows"):
+        act._default_open(1)

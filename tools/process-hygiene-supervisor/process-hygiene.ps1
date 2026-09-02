@@ -7,7 +7,8 @@
     This script does NO decision-making. It samples the Windows process table and
     memory/WSL/listener signals into the JSON snapshot schema that hygiene.py
     validates, then shells to `hygiene.py run`, which decides and (with -Apply)
-    actuates through hygiene_actuate.WindowsActuator. All rules, thresholds and
+    actuates through hygiene_actuate.WindowsActuator (a pinned process handle,
+    never taskkill /F by PID). All rules, thresholds and
     the audit ledger live in Python and are unit-tested; this file only actuates
     the OS-specific data collection - the same Python-decides / PowerShell-
     gathers split that tools/mcp/mcp-host-supervisor uses.
@@ -16,12 +17,13 @@
     a sampling error degrades a signal rather than crashing the run.
 
     DEFAULT IS REPORT-ONLY. Pass -Apply (the install task adds it only when the
-    owner opts in) to allow graceful-stop-then-kill. Report-only writes the same
+    owner opts in) to allow the engine to stop processes. Report-only writes the same
     ledger with result=dry-run so a dry-run week is auditable before any kill.
 
-.PARAMETER Apply         Allow the engine to stop processes / shut WSL down.
+.PARAMETER Apply         Allow the engine to stop processes / terminate idle WSL distros.
 .PARAMETER Python        Python interpreter. Default C:\Python314\python.exe.
 .PARAMETER Root          Protected runtime root for policy/state/ledger.
+.PARAMETER DigestFile    BACKGROUND-DIGEST.md to append one anti-spam line to on kills ('' = off).
 .PARAMETER ProcessSnapshotFile  TEST override: use this snapshot instead of sampling.
 .PARAMETER EmitSnapshotOnly     TEST: write the sampled snapshot to -SnapshotOut and exit.
 #>
@@ -34,6 +36,7 @@ param(
     [string]$PolicyFile = '',
     [string]$StateFile = '',
     [string]$LedgerFile = '',
+    [string]$DigestFile = '',
     [string]$ReaperAvailable = '',
     [string]$ProcessSnapshotFile = '',
     [string]$SnapshotOut = '',
@@ -100,17 +103,35 @@ function Get-HygieneSnapshot {
     $running = @()
     $wslAvailable = $false
     try {
-        $wslList = & wsl.exe -l --running --quiet 2>$null
+        # WSL_UTF8=1 makes wsl.exe emit UTF-8 instead of UTF-16LE (the historic
+        # source of the "\0"-riddled distro names); the strip below stays as a belt.
+        $env:WSL_UTF8 = '1'
+        $wslList = & wsl.exe --list --running --quiet 2>$null
         $wslAvailable = ($LASTEXITCODE -eq 0)
         if ($wslList) {
             $running = @($wslList | ForEach-Object { ($_ -replace '\0', '').Trim() } | Where-Object { $_ })
         }
     } catch { }
+    # Gates for the idle shutdown: Docker Desktop's distros must stay up, and any
+    # live wsl.exe client (VS Code Remote-WSL, an attached terminal) would lose
+    # its session - both are sourced from the vscode-remote-release / Docker
+    # Desktop trackers. Counted here, decided in Python.
+    $dockerDesktop = [bool](Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)
+    $wslClients = @(Get-Process -Name 'wsl' -ErrorAction SilentlyContinue).Count
 
     $listeners = @()
+    $connections = @()
     try {
         foreach ($conn in (Get-NetTCPConnection -State Listen -ErrorAction Stop)) {
             $listeners += [ordered]@{ port = [int]$conn.LocalPort; pid = [int]$conn.OwningProcess }
+        }
+        # ESTABLISHED sockets feed the network veto: an "idle" agent may simply be
+        # waiting on a model response. Loopback is filtered in Python.
+        foreach ($conn in (Get-NetTCPConnection -State Established -ErrorAction Stop)) {
+            $connections += [ordered]@{
+                pid    = [int]$conn.OwningProcess
+                remote = ('{0}:{1}' -f $conn.RemoteAddress, $conn.RemotePort)
+            }
         }
     } catch { }
 
@@ -124,8 +145,14 @@ function Get-HygieneSnapshot {
             commit_limit_bytes = $commitLimit
             compressed_bytes   = $compressed
         }
-        wsl             = [ordered]@{ available = $wslAvailable; running_distros = $running }
+        wsl             = [ordered]@{
+            available              = $wslAvailable
+            running_distros        = $running
+            docker_desktop_running = $dockerDesktop
+            client_count           = [int]$wslClients
+        }
         listeners       = $listeners
+        connections     = $connections
         supervisor_pids = @([int]$PID)
         processes       = @($processes)
     }
@@ -157,6 +184,7 @@ try {
     )
     if ($Apply) { $pyArgs += '--apply' }
     if ($ReaperAvailable) { $pyArgs += @('--reaper-available', $ReaperAvailable) }
+    if ($DigestFile) { $pyArgs += @('--digest', $DigestFile) }
 
     $output = & $Python @pyArgs
     $code = $LASTEXITCODE

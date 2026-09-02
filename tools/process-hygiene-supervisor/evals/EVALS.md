@@ -10,11 +10,12 @@ python evals/run_evals.py            # EVAL REPORT + exit 1 on any failure
 pytest tests/test_evals.py           # the same evals as a CI gate (+ both-states proofs)
 ```
 
-## Capability evals (must pass@3 >= 0.90; currently 5/5, pass^3 = 100%)
+## Capability evals (must pass@3 >= 0.90; currently 6/6, pass^3 = 100%)
 
 | eval | asserts |
 |---|---|
-| `measurement-2026-09-02` | replay of the owner's 02.09.2026 measurement (31.6 GB / 3.5 GB free / 67.7 GB committed, 70 chrome, 42 msedge, 28 node, 14 pwsh, 3 Grok + bridge-servers, auth2api, 4 orphans, daemons, idle vmmem): tier `critical`; stop **exactly** the 3 retired bridge-servers, 4 leaked orphans, 2 detached leaf shells and the younger duplicate playwright tree; delegate the 28-31 h cursor orphans to the reaper; report chrome; never touch auth2api, Basic Memory, agent-mail, the watchdog, the IDE, its active agent, browsers, Memory Compression, vmmem |
+| `measurement-2026-09-02` | replay of the owner's 02.09.2026 measurement (31.6 GB / 3.5 GB free / 67.7 GB committed, 70 chrome, 42 msedge, 28 node, 14 pwsh, 3 Grok + bridge-servers, auth2api, 4 orphans, daemons, idle vmmem): tier `elevated` **because 12.3 GB of commit headroom remains** under an 80 GB commit limit and 2.14x is below the 2.5x critical leg; stop **exactly** the 3 retired bridge-servers, 4 leaked orphans, 2 detached leaf shells and the younger duplicate playwright tree; delegate the 28-31 h cursor orphans to the reaper; report chrome; never touch auth2api, Basic Memory, agent-mail, the watchdog, the IDE, its active agent, browsers, Memory Compression, vmmem |
+| `measurement-2026-09-02-low-headroom` | the identical box with a 70 GB commit limit (2.3 GB headroom) reads `critical` with an **unchanged kill set** - proof the headroom leg changes what may *execute*, not what is *decided* |
 | `stale-cli-sessions-under-terminal` | 30 h idle cursor-agent and 50 h idle Claude sessions under a terminal are stopped by `session-age`; an IDE-owned session of the same age is only reported |
 | `oversized-active-session-default` | an ACTIVE 4 GiB cursor session at critical is reported (`rss-hard`), not stopped |
 | `oversized-active-session-opt-in` | the same with `escalation.stopActiveAtCritical=true` is stopped |

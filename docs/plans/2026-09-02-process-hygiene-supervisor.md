@@ -57,24 +57,27 @@ One supervisor, split the way the estate already splits `mcp-host-supervisor`
 (Python decides, PowerShell actuates):
 
 ```
-Task Scheduler ─every 5 min + logon─▶ process-hygiene.ps1  (thin, fail-open)
+Task Scheduler ─every 5 min + logon (+ optional RADAR event 2004)─▶ process-hygiene.ps1
       │  samples Win32_Process + Get-Process (private/WS) + Get-NetTCPConnection
-      │  (listeners) + Win32_OperatingSystem + Committed/Commit-Limit counters +
-      │  Memory Compression + wsl --running  ──▶ snapshot JSON (schema-validated)
+      │  (Listen -> listeners, Established -> connections) + Win32_OperatingSystem
+      │  + Committed/Commit-Limit counters + Memory Compression + wsl --running
+      │  + Docker Desktop / wsl.exe client counts  ──▶ snapshot JSON (validated)
       ▼
   hygiene.py run --snapshot … [--apply]   (PURE decision engine, 100% tested)
-      │  tiers ← commit ratio + free RAM (+ hysteresis)
+      │  tiers ← free RAM ∨ commit ratio ∨ COMMIT HEADROOM (+ hysteresis)
       │  rules ← retired · orphan/daemon · session-age · rss · mcp-* · wsl · browser
-      │  protected allowlist ← auth2api · bm daemon+watchdog · MCP hosts · Windows · self
+      │  gates ← protected allowlist · whole-tree idle · bounded network veto
+      │  budget ← maxStopsPerRun · crash-loop breaker (per command_sha256)
       │  cursor-agent parentless ─────────────▶ DELEGATE
       ▼                                              │
   hygiene_actuate.WindowsActuator (--apply only)     │
-      │  children-first graceful-stop-then-force,     │
-      │  per-PID identity revalidation, wsl --shutdown│
+      │  children-first; ONE PINNED HANDLE per PID   │
+      │  (identity → TerminateProcess → exit wait);  │
+      │  opt-in WM_CLOSE; wsl --terminate <distro>   │
       ▼                                              ▼
-  JSONL ledger (every kill/defer/dry-run, secrets redacted)   cursor-orphan-reaper.ps1
-                                                       (tested multi-observation reaper,
-                                                        report-only under Resource-Guard)
+  JSONL ledger (rotating, secrets redacted)   cursor-orphan-reaper.ps1
+  + heartbeat.json + one BACKGROUND-DIGEST     (tested multi-observation reaper,
+    line per NEW kill kind                      report-only under Resource-Guard)
 ```
 
 **Reuse, not reimplementation.** The MCP verdicts call
@@ -83,23 +86,91 @@ keys, `processMatch`, `maxPrivateBytes`, per-instance budgets from `agents.json`
 cursor-agent orphans are handed to `scripts/agentic-perfection/cursor-orphan-reaper.ps1`;
 the `.wslconfig` cap complements, rather than replaces, the idle-shutdown signal.
 
-**Tiers → escalating actions.** Each rule declares the lowest tier at which it may
-*stop*; below that it only reports. `normal`: retired components, whole-tree-idle
-orphans (incl. cursor-agent fallback), hard-RSS breaches. `elevated`: soft-RSS,
-same-owner MCP duplicates, non-owner singleton duplicates, idle WSL shutdown.
-`critical`: per-instance MCP over-budget, and (opt-in) stopping *active* oversized
-sessions. Escalation is immediate; de-escalation needs repeated calm readings.
+**Tiers → escalating actions.** Three legs raise the tier: free physical RAM,
+commit charge / physical RAM, and **commit headroom** (`commit limit − commit
+charge`) — the last is the quantity whose exhaustion actually fails allocations,
+and the reason the ratio leg for `critical` is **2.5×** rather than 2.0×: this
+box's *chronic baseline* is 2.14×, so a 2.0× trigger would make "critical" a
+permanent standing state and every critical-tier action a standing action. Each
+rule declares the lowest tier at which it may *stop*; below that it only reports.
+`normal`: retired components, whole-tree-idle orphans (incl. cursor-agent
+fallback), hard-RSS breaches. `elevated`: soft-RSS, same-owner MCP duplicates,
+non-owner singleton duplicates, idle WSL terminate. `critical`: per-instance MCP
+over-budget, and (opt-in) stopping *active* oversized sessions. Escalation is
+immediate; de-escalation needs repeated calm readings.
+
+**What an oversized ACTIVE session gets at `critical`: still report-only.** Three
+independent reviews (`docs/plans/2026-09-02-process-hygiene-decision-queue.md`
+records them) converged: killing it frees ~6% of commit and returns at the next
+tick, i.e. a serial kill loop; and *working-set trimming* — the tempting third
+option — is a placebo, because `EmptyWorkingSet` moves pages to the modified list
+where Windows **compresses** them into the very `Memory Compression` process that
+already holds 9.7 GB, then the active heap re-faults them in seconds. Efficiency
+mode/EcoQoS is CPU-only and does nothing for commit. So the default stays
+`escalation.stopActiveAtCritical=false`, and the durable fix is upstream
+admission control (ceilings at launch), not reactive reclaim.
+
+**Kill-storm and crash-loop guards** (borrowed from earlyoom/oomd/kubelet):
+`escalation.maxStopsPerRun` caps stops per snapshot — the remainder is ledgered
+`deferred-budget` and reconsidered next tick; a command line stopped
+`crashLoopKills` times inside `crashLoopWindowSeconds` is *reported*, not killed
+again (`result=crash-loop`), because a respawning component means the spawner is
+the bug — for the retired AgentBridge that is the `[mcp_servers.agentbridge]`
+entry the `retired` remediation names.
+
+**The idle signal has a second opinion.** Zero CPU and zero disk I/O also
+describes a session waiting on a slow model response, so a tree holding an
+ESTABLISHED **non-loopback** socket defers its own stop up to
+`idle.networkVetoMaxCycles` times (`network_veto: true` in the ledger) — bounded,
+so a half-open keep-alive cannot shield a leak forever.
+
+**WSL: terminate the distro, and only when nobody is attached.** `wsl --shutdown`
+tears down *every* distro plus the whole VM, which unrecoverably breaks VS Code
+Remote-WSL sessions and Docker Desktop; the supervisor therefore issues
+`wsl --terminate <distro>` per idle distro, excludes `docker-desktop*`, and skips
+the action entirely while Docker Desktop or any live `wsl.exe` client is running
+(ledgered `blocked_by`). `.wslconfig` carries the continuous lever:
+`autoMemoryReclaim=dropCache` under `[experimental]` (**not** `[wsl2]`, where it
+is a silent no-op) — `gradual` reclaims slowly and stops short of an empty guest,
+a plausible cause of the measured 1.1 GB idle plateau. `sparseVhd` is left off on
+purpose: it is a *disk*-space feature and is gated behind a corruption warning.
+
+**Browsers keep every tab.** The supervisor never kills or trims a browser; it
+reports and names the only lever that actually returns commit — making the
+browser *discard* idle tabs: `TotalMemoryLimitMb` (Chrome and Edge, HKLM
+policies), Chrome `HighEfficiencyModeEnabled` + `MemorySaverModeSavings=2`, Edge
+`SleepingTabsEnabled` + `SleepingTabsTimeout` + `EfficiencyModeEnabled`.
 
 **Auditability.** Every decision writes one JSONL row (`schema`,`ts`,`run_id`,
 `rule`,`action`,`tier`,`result`,`pid`,`command_sha256`, redacted `command_line`,
-private bytes, detail). Report-only rows carry `result=dry-run`; deferred rows
-`result=deferred`; kills `forced`/`graceful`/`failed`/`vanished`. The ledger
-rotates and never records a credential (secret flags + literal-key tokens are
-redacted before write).
+private bytes, detail incl. a per-runtime `resume_hint`). Report-only rows carry
+`result=dry-run`; deferred rows `result=deferred`/`deferred-budget`; kills
+`forced`/`graceful`/`failed`/`vanished`/`identity-changed`. Unchanged *report*
+rows are deduped to one per `ledger.reportKeepaliveSeconds` so kills are not aged
+out by chatter, and the ledger rotates over `ledger.generations` files. Each run
+also writes `heartbeat.json` (ts, tier, apply, script hash) so a SessionStart
+check can tell "supervisor stale/disabled" from "quiet box", and appends **one**
+`BACKGROUND-DIGEST` line only when a NEW rule kind stopped something, a failure
+appears, or the tier first hits critical.
 
-**Safety invariants (all mutation-tested, `tests/mutation_probe.py`).** Whole-tree
-idle before any reap; the protected allowlist; cursor-agent delegation; the
-singleton port owner is kept; the age gate; and the apply-time tier gate.
+**Safety invariants (all mutation-tested, `tests/mutation_probe.py`, 26/26
+killed).** Whole-tree idle before any reap; the protected allowlist; cursor-agent
+delegation; the singleton port owner is kept; the age gate; the apply-time tier
+gate; the network veto; the crash-loop breaker; the stop budget; the WSL
+attach-gate; the ownership carve-out; and in the actuator: the pinned-handle
+identity revalidation, the exit wait, and access-denied ≠ vanished.
+
+**The TOCTOU window is closed in the kill path.** The actuator opens **one**
+handle per member (`PROCESS_QUERY_LIMITED_INFORMATION|PROCESS_TERMINATE|
+SYNCHRONIZE`) and holds it from identity validation through `TerminateProcess`
+and the exit wait: a PID cannot be recycled while a handle to it is open, whereas
+`taskkill /F /PID` re-opens by PID *after* validation and can land on a newcomer
+that reused the number. Polite stop is opt-in
+(`integration.politeStopSeconds`, default `0`) because `taskkill /PID` without
+`/F` posts WM_CLOSE only to windows a process owns and is refused outright for
+windowless console processes — exactly the node/python agent sessions and MCP
+servers this supervisor targets; when refused, the actuator forces immediately
+instead of burning the grace window.
 
 ## 3. Windows install steps (owner)
 
@@ -164,11 +235,26 @@ Every step is reversible and leaves no residue beyond the ledger:
 
 ## 5. Verification performed
 
-- `hygiene.py` + `hygiene_actuate.py`: **124 tests, 100% line+branch**
-  (`pytest --cov --cov-branch --cov-fail-under=100`), pinned `ruff==0.15.17`
-  clean, and `tests/mutation_probe.py` kills all 6 reverted-safety mutations.
+- `hygiene.py` + `hygiene_actuate.py` + `evals/run_evals.py`: **181 tests, 100%
+  line+branch** (`pytest --cov --cov-branch --cov-fail-under=100`), pinned
+  `ruff==0.15.17` clean, and `tests/mutation_probe.py` kills **26/26**
+  reverted-safety mutations (each mutation names the invariant it breaks).
+- `evals/run_evals.py`: **11/11 scenarios, pass@1 and pass^3 = 100%** — including
+  a replay of the 02.09.2026 measurement, which reads `elevated` under an 80 GB
+  commit limit (12.3 GB headroom) and `critical` under 70 GB (2.3 GB headroom)
+  with an identical kill set: the tier changes what may *execute*, not what is
+  *decided*.
 - The launcher's snapshot contract was exercised end-to-end by feeding the
-  equivalent AgentBridge+auth2api payload through `hygiene.py` on Linux: the
-  retired bridge is a dry-run stop, auth2api never appears in a stop row, tier
-  reads `elevated` at 3 GB free. `test-process-hygiene.ps1` re-proves this on
-  Windows (with the live sampler) and is not run in CI (no `pwsh` there).
+  launcher-shaped payload (AgentBridge + auth2api + a network-vetoed orphan +
+  vmmemWSL) through `hygiene.py` on Linux: the retired bridge is a dry-run stop,
+  auth2api never appears in a stop row, the vetoed orphan is a report with
+  `network_veto`, the heartbeat is written, and no digest line is emitted in
+  report-only mode. `test-process-hygiene.ps1` re-proves this on Windows with the
+  live sampler (and additionally asserts the sampler emits `connections`,
+  `wsl.docker_desktop_running` and `wsl.client_count`); it is not run in CI
+  because there is no `pwsh` there.
+- Owner-steered follow-ups (Job-object launch shims, `node.exe` entrypoints
+  instead of `cmd /c npx`, browser discard policies, Resource-Guard merge) are
+  queued with evidence and blast radius in
+  `docs/plans/2026-09-02-process-hygiene-decision-queue.md` rather than applied
+  unilaterally.

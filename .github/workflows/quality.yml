@@ -792,14 +792,20 @@ jobs:
       # so the whole repo checkout (not a working-directory install) is the environment;
       # cwd is the package so `--cov=hygiene --cov=hygiene_actuate` resolve as import names.
       # The mutation step is the both-states check (rules/common/single-signal-verification.md):
-      # it reverts six safety rules (whole-tree-idle gate, protected allowlist, cursor-agent
-      # delegation, singleton port-owner keep, orphan age gate, apply-time tier gate) and
-      # requires the suite to go RED for each. evals/run_evals.py replays scenario process
-      # tables (incl. the owner's 02.09.2026 measurement) through the real engine and grades
-      # the exact kill set / never-touched set / tier with code, reporting pass@1 and pass^3;
-      # tests/test_evals.py proves the grader goes red on a wrong expectation. Measured on
-      # python 3.12.3: 131 passed, 100.00% line+branch over hygiene + hygiene_actuate +
-      # run_evals, 10/10 evals pass^3, 6/6 mutations killed. install_task.ps1 is NOT invoked here.
+      # it reverts 26 safety rules ACROSS BOTH FILES -- in hygiene.py the whole-tree-idle gate,
+      # protected allowlist, cursor-agent delegation, singleton port-owner keep, orphan age
+      # gate, apply-time tier gate, both pressure legs, the network veto, the stop budget, the
+      # crash-loop breaker, the WSL attach-gate and the ownership carve-out; in
+      # hygiene_actuate.py the pinned-handle identity revalidation, the exit wait, the opt-in
+      # polite stop and access-denied-is-not-vanished -- and requires the suite to go RED for
+      # each. Takes ~60 s (each mutation reruns the suite), which is why it runs last.
+      # evals/run_evals.py replays scenario process tables (incl. the owner's 02.09.2026
+      # measurement, under two commit limits so the headroom tier leg is exercised both ways)
+      # through the real engine and grades the exact kill set / never-touched set / tier with
+      # code, reporting pass@1 and pass^3; tests/test_evals.py proves the grader goes red on a
+      # wrong expectation. Measured on python 3.12.3: 181 passed, 100.00% line+branch over
+      # hygiene + hygiene_actuate + run_evals, 11/11 evals pass^3, 26/26 mutations killed.
+      # install_task.ps1 and test-process-hygiene.ps1 are NOT invoked here (no pwsh).
       - name: gate-tests-coverage process-hygiene-supervisor (suite + evals + mutation probe)
         working-directory: tools/process-hygiene-supervisor
         run: |
@@ -807,7 +813,7 @@ jobs:
           pytest --cov=hygiene --cov=hygiene_actuate --cov=run_evals --cov-branch \
             --cov-report=term-missing --cov-fail-under=100
           python evals/run_evals.py
-          python tests/mutation_probe.py hygiene.py
+          python tests/mutation_probe.py
 
       - name: gate-tests-coverage strict-target hook manifests
         run: |

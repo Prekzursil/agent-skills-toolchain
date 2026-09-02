@@ -11,7 +11,7 @@
     SAFE BY DEFAULT. Without -Apply the task runs the supervisor in REPORT-ONLY
     mode: it writes the JSONL ledger with result=dry-run and kills nothing, so the
     owner can review a dry-run week first. Add -Apply only after that review to
-    let it graceful-stop-then-kill. Re-run with -Apply to flip an existing task;
+    let it stop processes. Re-run with -Apply to flip an existing task;
     an existing registration is backed up to a timestamped .xml first.
 
     Deploy the tested Python next to this script (hygiene.py, hygiene_actuate.py)
@@ -20,6 +20,9 @@
 .PARAMETER Apply       Register the task in ENFORCING mode (default: report-only).
 .PARAMETER Uninstall   Remove the task.
 .PARAMETER IntervalMinutes  Sampling cadence. Default 5.
+.PARAMETER DigestFile  BACKGROUND-DIGEST.md the supervisor appends its anti-spam line to.
+.PARAMETER OnResourceExhaustion  Also fire on Microsoft-Windows-Resource-Exhaustion-Detector
+                       event 2004 (RADAR: commit charge exhausted) via a CIM event trigger.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -28,7 +31,9 @@ param(
     [string]$TaskName = 'ProcessHygiene',
     [string]$Python = 'C:\Python314\python.exe',
     [string]$Root = 'C:\Users\Prekzursil\.agent-guard\process-hygiene',
-    [int]$IntervalMinutes = 5
+    [int]$IntervalMinutes = 5,
+    [string]$DigestFile = 'C:\Users\Prekzursil\.agents\BACKGROUND-DIGEST.md',
+    [switch]$OnResourceExhaustion
 )
 
 $ErrorActionPreference = 'Stop'
@@ -74,12 +79,34 @@ if ($existing) {
 
 $argument = '-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}"' -f $Script
 if ($Apply) { $argument += ' -Apply' }
+if ($DigestFile) { $argument += (' -DigestFile "{0}"' -f $DigestFile) }
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $argument -WorkingDirectory $PSScriptRoot
 
 $atLogon = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME
 $recurring = New-ScheduledTaskTrigger -Once -At (Get-Date) `
     -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) `
     -RepetitionDuration ([TimeSpan]::MaxValue)
+$triggers = @($atLogon, $recurring)
+
+if ($OnResourceExhaustion) {
+    # Event-driven leg (borrowed from the commercial memory tools' teardown): the
+    # Resource Exhaustion Detector logs event 2004 the moment commit charge runs
+    # out - the exact instant a 5-minute cadence is too slow. Registered through
+    # the CIM class because New-ScheduledTaskTrigger has no -OnEvent parameter.
+    try {
+        $eventClass = Get-CimClass -Namespace 'ROOT\Microsoft\Windows\TaskScheduler' -ClassName 'MSFT_TaskEventTrigger'
+        $onEvent = New-CimInstance -CimClass $eventClass -ClientOnly
+        $onEvent.Enabled = $true
+        $onEvent.Subscription = @'
+<QueryList><Query Id="0" Path="System"><Select Path="System">*[System[Provider[@Name='Microsoft-Windows-Resource-Exhaustion-Detector'] and EventID=2004]]</Select></Query></QueryList>
+'@
+        $triggers += $onEvent
+        Write-Info 'added event trigger: Resource-Exhaustion-Detector 2004'
+    }
+    catch {
+        Write-Warning "could not build the event trigger; continuing with time triggers only: $($_.Exception.Message)"
+    }
+}
 
 $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
@@ -91,7 +118,7 @@ $principal = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interac
 
 if ($PSCmdlet.ShouldProcess($TaskName, "register scheduled task (apply=$($Apply.IsPresent))")) {
     Register-ScheduledTask -TaskName $TaskName -Action $action `
-        -Trigger @($atLogon, $recurring) -Settings $settings -Principal $principal -Force | Out-Null
+        -Trigger $triggers -Settings $settings -Principal $principal -Force | Out-Null
     $mode = if ($Apply) { 'ENFORCING (-Apply)' } else { 'REPORT-ONLY' }
     Write-Info "registered '$TaskName' every $IntervalMinutes min + at logon, mode=$mode"
     Write-Info "start now:  Start-ScheduledTask -TaskName $TaskName"

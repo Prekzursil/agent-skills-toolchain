@@ -92,10 +92,22 @@ MUTATIONS = [
         "        if False:",
     ),
     (
-        "actuator skips graceful stop and goes straight to /F",
+        "actuator ignores the opt-in polite stop and forces at once",
         "hygiene_actuate.py",
-        "        if graceful_seconds > 0:",
-        "        if False:",
+        "            if polite_seconds > 0:",
+        "            if False:",
+    ),
+    (
+        "actuator terminates without waiting for the pinned handle to exit",
+        "hygiene_actuate.py",
+        "            if handle.wait(EXIT_WAIT_SECONDS):",
+        "            if True:",
+    ),
+    (
+        "actuator treats an unopenable (protected) process as vanished",
+        "hygiene_actuate.py",
+        '            return result("failed", f"cannot open process: {exc}")',
+        '            return result("vanished", "gone before kill")',
     ),
     (
         "singleton grace dropped (a warming relaunch is killed)",
