@@ -350,12 +350,141 @@ an explicit knob with the outage cost stated next to it, per the owner's "presen
 
 ## 6. Wildcard: the find the other lenses would miss
 
-_(pending)_
+### 6.1 Gold gem: a **PACE plan per task class**, with the "Distinguishable" rule (military signal doctrine)
+
+**Mechanism (sourced).** US Army signal doctrine requires a **Primary / Alternate / Contingency / Emergency**
+communications plan: "Primary - the best, and intended, method. Alternate - another common, but perhaps less optimal
+method. Contingency - may not be as fast, convenient, or reliable, but it can still accomplish the task. Emergency -
+method of last resort", because "continuous mission command requires adequate, but not necessarily continuous,
+network connectivity". `[FACT]` Tier A (FM 6-02 *Signal Support to Operations*, paras 1-50/1-51, checked
+2026-09-02): <https://armypubs.army.mil/epubs/DR_pubs/DR_a/pdf/web/ARN19185_FM%206-02_FINAL_WEB.pdf>.
+The planning test is **FASDC**: *Feasible, Acceptable, Suitable, Distinguishable, Complete*. **Distinguishable**:
+"Redundant communications means cannot rely on a denied method. For example, if network data were not available,
+Voice over Internet Protocol would be a poor backup method ... the next step in the PACE plan should use a different
+transmission medium." **Complete**: "outline each means ... along with **triggers for execution**." The plan
+"should be as simple as possible", built **per warfighting function**, published in Annex H of the order, and "an
+emergency means ... does not necessarily have to be equipment; it may be a **procedure**". `[FACT]` Tier A text via a
+Tier C mirror (ATP 6-02.12 on Scribd, checked 2026-09-02):
+<https://www.scribd.com/document/555696690/ATP-6-02-12-Department-of-Defense-Information-Network-Army-Planning-Techniques>;
+corroborated by the Army MIPB article on independent / dependent / combined PACE plans (2023):
+<https://mipb.ikn.army.mil/media/jxsogms0/2023-01-06-burnett_pace_online.pdf>.
+**2026 evolution:** I Corps' commander said in Aug 2026 that "a sequential PACE plan, predicated on responding to
+failure with manual, step-by-step user actions is useless against concurrent multi-band jamming" and described a
+"polymorphic C2 mesh" that "routes data across multiple different physical mediums simultaneously". `[FACT]` Tier B
+(trade press, 2026-08, checked 2026-09-02):
+<https://breakingdefense.com/2026/08/picking-up-the-pace-ew-battlefield-demands-updated-contingency-planning/>.
+
+**Exact analogue.** Every task class gets a four-rung plan **in which each rung fails independently**:
+
+| Rung | This estate (interactive coding class, example) | Why it is distinguishable |
+|---|---|---|
+| **P** | `cursor-claude-*` via `auth2api :8317` | Cursor quota + the bridge |
+| **A** | HF Inference Endpoint or Space `/v1` (open-weights model), or for **CLI/Codex classes only** an OpenRouter id | Different vendor, different auth, different network path. **Not** a second `cursor-*` id behind the same bridge: that is P again, not A |
+| **C** | Local `llama-server` / `ollama` / `lms` model already committed for the day (s5) | No network, no third-party quota. Slower, smaller |
+| **E** | A **procedure**, not a model: stop cleanly, write the handoff to `basic-memory :8765`, post to `agent-mail :8812`, and ask the owner | Works when every model path is down; the estate already owns both ports |
+
+**Triggers** are written next to each rung ("Complete"): P->A on 3 consecutive 5xx/529 **or** CCR below `crit` (s1);
+A->C on A's own trigger or spend-cap reached; C->E when C cannot satisfy the class's never-deferrable MEL items (s4).
+
+`[INFER]` Why other lenses miss it: software lenses will propose "fallback chains" (an ordered list of model ids).
+A chain of four `cursor-*` ids is **P, P, P, P** in PACE terms: every rung dies with the same bridge, which is also
+this estate's Most Severe Single Contingency (s5). PACE adds three things chains lack: (1) the **Distinguishable**
+test, which forces at least one non-Cursor, one non-network, and one non-model rung; (2) **E is a procedure**, so
+"gracefully stop with a handoff" becomes a designed state rather than a crash; (3) **Complete = written triggers**,
+plus the doctrine's habit of rehearsing the plan ("comms checks") = a periodic smoke test of A/C/E while P is
+healthy, which is the reserve test of s5 in different clothes.
+
+`[INFER, speculative]` The 2026 "polymorphic mesh" is the military arriving at **hedged/racing requests** (send to
+two mediums at once). For a quota-metered estate that doubles token and quota spend, so it fits only tiny, cheap
+classes (`cheap-classify` on local + HF). Present it as a knob, not a default.
+
+**Ride the bus.** A `pace:` block per task class in the s1 routing table (four ids + triggers), prose in the routing
+skill (the SSOT; Fabric/Goose read it too), the E procedure as a skill step that uses the two owned ports. Zero new
+runtime, zero new port. Lock check: the OpenRouter rung is only legal in CLI/Codex classes; the validator from s1
+fails closed otherwise. `[REC]`
+
+**Grading.** Doctrine: Tier A, corroborated by three Army sources and 2026 trade press. Application: my inference.
+Value x effort: high x low (a table and a paragraph). Novelty for us: high; no estate doc read this run frames
+fallback as independent means with a procedural last rung. NATIVE-vs-BUILD: BUILD-small (data + skill prose).
+
+### 6.2 Runner-up wildcards (each speculative in its application)
+
+**(a) Ground Delay Program / EDCT (air traffic flow management).** When arrival capacity drops, the FAA "holds
+aircraft on the ground in order to manage capacity and demand ... to limit airborne holding", assigning each flight an
+**Expect Departure Clearance Time** it must meet within +/-5 min; delays are assigned "equitably to all system users"
+and airlines may **substitute among their own flights**; a **ground stop** is used when acceptance rate falls to zero
+or to buy time to set up a GDP. `[FACT]` Tier A (FAA JO 7210.3 ch. 18 and FAA TFM training, checked 2026-09-02):
+<https://www.faa.gov/air_traffic/publications/atpubs/foa_html/chap18_section_10.html>,
+<https://tfmlearning.faa.gov/tfm-training/atfm-basics/files/pdf/Appendix_B_Ground%20Delay%20Program.pdf>,
+<https://www.fly.faa.gov/ais/Help/ais_message_help.html>.
+*Analogue:* **airborne holding = retrying a 100k-token prompt against a 429**; every retry re-sends the context
+(fuel). The wrapper should instead assign a local EDCT from `Retry-After` / known RPM and **hold the request before
+sending**; a provider at zero acceptance = ground stop = the existing quarantine. CDM's equity + substitution rule maps
+to the several runtimes on one box (claude, codex, goose, fabric): slots are shared so one runtime cannot starve the
+others, and a runtime may swap which of its own requests takes its slot. *Ride the bus:* a slot file in
+`.agents/state/` that wrappers read/append (single box, lock-file suffices; no daemon). `[INFER, speculative]` whether
+a lock-file slot table is enough under real concurrency is untested.
+
+**(b) Prior appropriation (western US water law).** "First in time, first in right": in shortage **nobody shares**;
+the most junior right is shut off entirely, then the next, until the senior is satisfied; a call is not enforced if
+**futile** (curtailing juniors would not deliver usable water to the senior); unused rights are forfeited ("use it or
+lose it"). `[FACT]` Tier A/B (UNR Extension, Colorado water-education body, Wikipedia, a practitioner handbook, all
+agree; checked 2026-09-02): <https://naes.unr.edu/publication.aspx?PubID=3750>,
+<https://watereducationcolorado.org/water-101/water-law-policy-regulation/prior-appropriation/>,
+<https://en.wikipedia.org/wiki/Prior-appropriation_water_rights>,
+<https://lawwisegroup.com/handbook/prior-appropriation-first-in-time/>.
+*Analogue for Cursor quota scarcity:* the owner's interactive session is the senior appropriator; background
+digests/monitors are juniors. When headroom is short, **curtail juniors completely in reverse priority rather than
+degrade everyone proportionally** (fair-share is the riparian alternative; this estate's quota is one owner's, so
+seniority is the honest model). *Futile call:* do not curtail a job whose quota use is too small to help. *Use it or
+lose it:* juniors run freely when the quota window is about to reset with headroom unspent. *Ride the bus:* the same
+`priority` field as s5 and one wrapper check. `[UNVERIFIED]` whether `auth2api` or Cursor exposes remaining quota
+programmatically; if not, headroom is estimated from local request counts, which is weaker.
+
+**(c) Cross-lens convergence note.** s4's dispatch release, s5's reserve check and 6.1's comms check are one hook
+body with three lines; s3's equivalence rating, s1's KPIs and s2's review are one data file and one skill. The five
+domains converge on **one table + one skill + one hook**, which is the anti-overfit shape the gem-hunt method asks
+for. `[INFER]`
 
 ## 7. Rubric table
 
-_(pending)_
+| name | what | why THIS estate | how to build or adopt | source (tier, date) | value x effort | novelty-for-us | NATIVE-vs-BUILD |
+|---|---|---|---|---|---|---|---|
+| qrouting KPIs + route-advance (s1) | Per-class ordered endpoints re-scored live on ASR/CCR/PDD/AST/ACD with warn/crit, `min_samples`, `history_span`; advance on 429/503/529 | Replaces `glm53-space`'s hardcoded single endpoint with a table; makes the OpenRouter/Cursor lock inspectable | `routes.json` next to `agents.json`; ~30-line loop in wrappers; stats into `state/` like `mcp_fleet_supervisor` | OpenSIPS qrouting docs + blog (A/B, 2026-09-02); RFC 3261 (A) | high x low | medium (CCR + ACD as silent-degradation signals are new) | BUILD-small (data + loop) |
+| best-dest-first vs dynamic-weights (s1) | Deterministic top-1 vs weighted-random that keeps sampling weak endpoints | Quota-metered classes want deterministic; local/HF classes can afford exploration | One per-class flag | OpenSIPS blog part 2 (B, 2020) | medium x low | medium | BUILD-small |
+| Regular-and-rigorous routing review (s2) | Scheduled per-class comparison incl. endpoints not in use; "modified / justified" record; log actual provider used | Stops quota drifting to a model a local one now matches; discharges the duty OpenRouter/Cursor auto-routing does not | A skill in `.agents/skills`; report to `.agents/reports/`; `justification` column in the table | FINRA 5310 + RN 15-46 + 2026 report (A); MiFID II Art. 27 (B) | high x low | medium-high (regulator's multi-factor wording vs "cheapest") | BUILD-small (skill) |
+| Interpositioning lock rationale (s2) | Do not add a hop that adds cost/latency without benefit | Gives the `auth2api`-only / no-LiteLLM locks a principled test rather than a bare rule | One paragraph in the routing skill | FINRA 5310 (A) | low x trivial | low | prose only |
+| Formulary + AB/B equivalence per class (s3) | Tiered allowed endpoints; per-(class, endpoint) substitutability derived from evals; interchange protocol with opt-out pin; step therapy; PA for background T3; grandfathering | Makes "swap for a local model" safe per class; codifies "never remove a feature" as an exceptions log | `equivalence`, `pinned_until` fields; PA check in hook/wrapper; `evals.md` produces the ratings | FDA Orange Book via 3 secondaries (B); ASHP guideline (A); P&T checklist (B) | high x low-medium | high (AB1/AB2 relativity) | BUILD-small (data + skill) |
+| MEL with repair categories + dispatch release (s4) | Capabilities may be inoperative for a bounded time (A/B/C/D) per class; never-deferrable set; pre-flight go/no-go hook; dispatch-reliability KPI | Adds a repair clock to quarantine; formalises flying degraded instead of grounding or pretending | `deferred[]` in `state/mcp-supervisor.json`; hook body in `cursor-hooks/`; MEL table in skill | 14 CFR 121.628 (A); FAA PL-25 (A); AviationHunt (B) | high x low | high (repair clock is absent from software breakers) | BUILD-small (hook + data) |
+| SCUC: commitment vs dispatch, MSSC-sized reserve, ORDC headroom curve, curtailable jobs (s5) | Daily "what is on" plan; per-request dispatch; reserve sized to loss of the Cursor path; background jobs shed first as headroom shrinks | 31.6 GB box: stop thrashing local model loads; name the worst single failure and size the fallback to it | `state/commitment-<date>.json`; reserve line in the hook; `priority` field | PJM M11 (A, 2025-10); OSTI SCUC review (A); PJM M12 + IMM (A/B); Wolak penalty paper (B) | high x medium | high (named contingency sizing) | BUILD-small (skill + data) |
+| **PACE plan per class with Distinguishable rule (6.1, gold)** | P/A/C/E where each rung uses a different means; E is a procedure (handoff via `:8765`/`:8812`); written triggers; periodic comms check | A chain of `cursor-*` ids is P,P,P,P; the bridge is the MSSC; the estate already owns the two ports E needs | `pace:` block per class; skill prose; E as a skill step | FM 6-02 (A); ATP 6-02.12 (A via C mirror); MIPB 2023 (A); Breaking Defense 2026-08 (B) | high x low | **high** | BUILD-small (data + skill prose) |
+| Ground Delay Program / EDCT (6.2a) | Hold before send using `Retry-After`/RPM; ground stop = quarantine; equitable slots across runtimes | Retrying large prompts re-sends context (fuel); several runtimes share one box | Slot file in `.agents/state/` read by wrappers | FAA JO 7210.3 ch.18 + TFM training (A) | medium x low-medium | high | BUILD-small; **speculative** |
+| Prior-appropriation curtailment (6.2b) | Seniority, no proration, futile-call exception, use-it-or-lose-it for quota windows | Owner-interactive vs background on one quota; honest model for a single owner | `priority` field + wrapper check; needs a headroom signal | UNR / WECO / Wikipedia / Lawwise (A/B) | medium x low | high | BUILD-small; **headroom signal UNVERIFIED** |
 
 ## 8. Ten-line summary
 
-_(pending)_
+1. Five domains were mined; each yielded a mechanism that maps cleanly onto choosing a model endpoint under cost,
+   latency, capability and quota constraints, and each rides the existing table/skill/hook bus with no new runtime.
+2. Telecom (OpenSIPS qrouting) gives the KPI set: add **CCR** (tool-call well-formedness) and **ACD** (output-length
+   collapse) to the usual success/latency, with `min_samples` and a sliding window before demoting an endpoint.
+3. Finance (FINRA 5310 / MiFID II Art. 27) gives the governance: a scheduled **"regular and rigorous review"** that
+   compares against endpoints not in use and writes "modified / justified"; interpositioning is the principled form
+   of the `auth2api`-only and no-LiteLLM locks.
+4. Pharmacy (Orange Book, ASHP) gives the substitution grammar: **AB vs B per (class, endpoint)**, therapeutic
+   interchange under a written protocol with an opt-out pin, step therapy, prior authorisation for background quota
+   use, and grandfathering as the formal shape of "never remove a feature".
+5. Aviation (14 CFR 121.628, MMEL categories A/B/C/D) gives the missing **repair clock**: fly degraded, deferred and
+   time-boxed, with a pre-flight dispatch-release hook and a dispatch-reliability KPI.
+6. Power grid (PJM SCUC, NERC BAL-002) gives sizing: separate daily commitment from per-request dispatch, and hold
+   a reserve **sized to the named Most Severe Single Contingency**, which for this estate is loss of the Cursor path.
+7. Gold gem: a **PACE plan per task class** whose rungs must be *Distinguishable* (a chain of `cursor-*` ids is
+   P,P,P,P), whose Emergency rung is a *procedure* riding `basic-memory :8765` and `agent-mail :8812`, and whose
+   triggers are written. Doctrine Tier A; application is inference.
+8. Runner-ups, flagged speculative: FAA Ground Delay Program (hold before send instead of retrying large prompts)
+   and water-law prior appropriation (curtail juniors fully, futile-call exception; needs a quota-headroom signal
+   that is UNVERIFIED for `auth2api`).
+9. Convergence: everything reduces to **one routing table + one skill + one hook body**, extending
+   `mcp_fleet_supervisor`'s state rather than adding files, ports or daemons; all estate locks are respected and
+   the OpenRouter rung is CLI/Codex-only by validator.
+10. Tradeoffs are stated per section (exploration cost, review cadence, reserve cost, hedging spend); nothing here
+    removes a feature, and nothing here re-proposes the dedup-set items.
