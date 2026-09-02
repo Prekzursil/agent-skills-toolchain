@@ -65,11 +65,16 @@ Two questions, in order:
 - **FACT** The legacy `api-inference.huggingface.co/models/{id}` serverless endpoint is decommissioned and returns permanent errors pointing at the router. `[TC UNVERIFIED 2025-11-14] https://huggingface.co/datasets/John6666/knowledge_base_md_for_rag_1/commit/7bc4408b933001aa748b5c07b63e1dbd840d4e66` (community migration notes; consistent with HF docs no longer documenting the old host, but I did not find an official deprecation notice in this pass).
 - **INFERENCE** Any estate probe that still targets `api-inference.huggingface.co` is a dead-endpoint candidate for the retire loop in section 8.
 
-### 3.3 HF CLI / Python surfaces `[pending - see 3.4 if this run dies]`
+### 3.3 The skills ecosystem the estate publishes into (context for "skills in the wild")
+
+- **FACT** Agent Skills is an open format: a directory with a required `SKILL.md` (YAML frontmatter `name`, `description`; optional `license`, `compatibility`, `metadata` string-map, experimental `allowed-tools`) plus optional `scripts/`, `references/`, `assets/`; progressive loading (~100 tokens of metadata at startup, <5000-token body on activation, resources on demand); project-level cross-client discovery path is **`.agents/skills/`**, user-level `~/.agents/skills/`. `[TA corroborated 2026-09-02] https://agentskills.io/specification` + `https://agentskills.io/skill.md`
+- **FACT** Distribution channels: git repo + `npx skills add owner/repo` (Vercel `skills` CLI; skills.sh leaderboard ranks by install telemetry, no submission step), npm via `skillpm` / `skills-npm`, Claude Code plugin marketplaces (`.claude-plugin/marketplace.json`), and an optional `.well-known/agent-skills/index.json` discovery file per domain. `[TB corroborated 2026-09-02] https://vercel.com/kb/guide/agent-skills-creating-installing-and-sharing-reusable-agent-context` + `[TC UNVERIFIED] https://github.com/llodev/skills/blob/main/docs/publishing-guide.md` (the latter also claims SkillsMP indexes ~350k skills in 2026 - single source).
+- **INFERENCE** The estate's `.agents/skills/` root *is* the spec's cross-client path, and `AGENTS.md` already restricts frontmatter to `name`+`description` (a strict subset of the spec) - so `[LOCK-SSOT]` is compatible with the wild format and nothing needs to change for Fabric/Goose consumers. The `metadata` map is the spec-sanctioned place for a *skill* version/health tag if the meta loop ever wants one; the estate's current rule forbids it, and I do **not** recommend loosening the rule (a sidecar file does the same job - section 8.4).
 
 ### 3.4 What I did not find (negative results)
 
-- No maintained OSS *skill* (SKILL.md-style) dedicated to HF Inference Providers surfaced in this pass beyond vendor docs; the closest is the estate's own `hosted-model-agents` (dedup set). **UNVERIFIED negative** - a targeted search of skill marketplaces is in section 7.
+- No maintained OSS *skill* (SKILL.md-style) dedicated to HF Inference Providers surfaced in this pass beyond vendor docs; the closest is the estate's own `hosted-model-agents` (dedup set). **UNVERIFIED negative** (one search pass over web + skills.sh-adjacent aggregators).
+- No OSS tool found that *combines* catalog sync + capability probing + registry write-back; every find covers one leg. **INFERENCE**: this is why section 8 is a build (small), not an adoption.
 
 ## 4. Survey: OpenAI-compatible model access
 
