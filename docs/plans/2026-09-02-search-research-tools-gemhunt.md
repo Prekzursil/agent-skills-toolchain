@@ -158,3 +158,12 @@ commit-starved box.
   from an env var (like `TRAILSEARCH_URL`): on-box on-demand now, one-line repoint to
   OVH later, no rework. OVH standup = documented owner follow-up (cloud agent cannot
   provision it).
+- **G-5 — Answer engines: build BOTH fully now (on-demand) + expand Perplexity.**
+  Vane as a `search-hub` adapter (`selfhosted_answer`, `VANE_URL`, flag OFF by
+  default → 0 RAM idle, usable once an LLM is pointed at it); LDR MCP registered but
+  ON-DEMAND (resident is 8-16 GB — "enabled" = wired/callable, a GPU/OVH item, not
+  always-on); borrow both technique-sets (LDR academic-SearXNG route + cheap→escalate
+  gating; Vane provider-dir pattern). SPAWNED DIRECTION (G-5b): make
+  `pplx_deep_research` work + expand — buildable: deeper harness routing to
+  `pplx_deep_research`/`pplx_council` + expanded surface; OWNER-ACTION: refresh the
+  Perplexity session cookie in `.agents/local.json` (cloud agent cannot).
