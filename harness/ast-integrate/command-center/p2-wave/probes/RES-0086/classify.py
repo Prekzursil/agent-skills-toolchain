@@ -117,8 +117,56 @@ def load_index() -> list[dict]:
     return json.loads(INDEX_PATH.read_text(encoding="utf-8"))
 
 
+LOCAL_SOURCES: tuple[tuple[str, str, str], ...] = (
+    (
+        "command-center/WORK-UNIT-CATALOG.json",
+        "catalog-res-0086-row",
+        "structured-catalog-json",
+    ),
+    (
+        "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md",
+        "prompt-two-slice-dissent-lines",
+        "prose-named-failure-class",
+    ),
+)
+
+
+def build_local_rows(now: str | None = None) -> list[dict]:
+    """Derive the two local (non-network) rails straight from the tree.
+
+    The catalog row and the CC-0024 fixture live in this repository, so their
+    lineage never needs a fetch: it is rebuilt from bytes on disk. ``capture.py``
+    freezes the same rows into ``captures/LOCAL.json``; ``load_local`` falls back
+    to this builder when that frozen file is absent from a capture.
+    """
+    from datetime import datetime, timezone
+
+    stamp = now or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rows = []
+    for rel, lid, kind in LOCAL_SOURCES:
+        path = REPO / rel
+        present = path.is_file()
+        raw = path.read_bytes() if present else b""
+        rows.append(
+            {
+                "id": lid,
+                "kind": kind,
+                "path": rel if present else str(path),
+                "present": present,
+                "bytes": len(raw),
+                "sha256": digest_bytes(raw) if raw else "",
+                "http_status": 200 if present else 0,
+                "fetched_at": stamp,
+                "permalink": rel if present else "",
+            }
+        )
+    return rows
+
+
 def load_local() -> list[dict]:
-    return json.loads(LOCAL_PATH.read_text(encoding="utf-8"))
+    if LOCAL_PATH.is_file():
+        return json.loads(LOCAL_PATH.read_text(encoding="utf-8"))
+    return build_local_rows()
 
 
 def index_by_id() -> dict[str, dict]:

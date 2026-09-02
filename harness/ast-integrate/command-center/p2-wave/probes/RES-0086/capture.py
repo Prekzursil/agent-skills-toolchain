@@ -186,7 +186,26 @@ def fetch(url: str) -> dict:
     }
 
 
+def write_local() -> Path:
+    """Freeze the two in-tree rails (catalog row, CC-0024 fixture) without any network."""
+    sys.path.insert(0, str(HERE))
+    from classify import build_local_rows  # noqa: E402 - sibling module
+
+    CAP.mkdir(parents=True, exist_ok=True)
+    out = CAP / "LOCAL.json"
+    out.write_text(
+        json.dumps(build_local_rows(), indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return out
+
+
 def main() -> int:
+    if "--local-only" in sys.argv[1:]:
+        out = write_local()
+        print(f"wrote {out.relative_to(HERE.parents[3]).as_posix()}")
+        print("SUCCESS:RES-0086 capture local rails")
+        return 0
     CAP.mkdir(parents=True, exist_ok=True)
     index = []
     fail = 0
@@ -227,42 +246,8 @@ def main() -> int:
         json.dumps(index, indent=1, sort_keys=True) + "\n", encoding="utf-8"
     )
     print(f"wrote {len(index)} captures fail={fail}")
-    # Local rails for the synthesizer-instruction anti-pattern.
-    catalog = HERE.parents[3] / "command-center" / "WORK-UNIT-CATALOG.json"
-    fixture = (
-        HERE.parent
-        / "CC-0024"
-        / "fixtures"
-        / "prompt-two-slice.md"
-    )
-    local = []
-    for path, lid, kind in (
-        (catalog, "catalog-res-0086-row", "structured-catalog-json"),
-        (fixture, "prompt-two-slice-dissent-lines", "prose-named-failure-class"),
-    ):
-        raw = path.read_bytes() if path.is_file() else b""
-        local.append(
-            {
-                "id": lid,
-                "kind": kind,
-                "path": path.relative_to(HERE.parents[3]).as_posix()
-                if path.is_file()
-                else str(path),
-                "present": path.is_file(),
-                "bytes": len(raw),
-                "sha256": digest_bytes(raw) if raw else "",
-                "http_status": 200 if path.is_file() else 0,
-                "fetched_at": datetime.now(timezone.utc).strftime(
-                    "%Y-%m-%dT%H:%M:%SZ"
-                ),
-                "permalink": path.relative_to(HERE.parents[3]).as_posix()
-                if path.is_file()
-                else "",
-            }
-        )
-    (CAP / "LOCAL.json").write_text(
-        json.dumps(local, indent=1, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    # Local rails for the synthesizer-instruction anti-pattern (no network).
+    write_local()
     if fail:
         print("FAILED:RES-0086 capture one or more remote rails")
         return 1

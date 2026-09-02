@@ -342,13 +342,16 @@ RECORD = {
                 },
             ],
             "contrast_not_this_gate": {
-                "path": "tools/plugin/install_gate.py",
-                "line": 2,
-                "snippet": "refuse unsupported clients before any payload write",
+                "path": "tools/marketplace/revocation_list/install_gate.py",
+                "line": 7,
+                "snippet": "on ``REFUSE`` places **nothing** - not even the package directory",
                 "note": (
-                    "Plugin install does refuse before write. That is one "
-                    "pause-before-irreversible-action for IMP-0008, not a "
-                    "Haynes pause-point set on the unit-delivery gate."
+                    "The install-time revocation gate (IMP-0079) does refuse "
+                    "before any payload write. That is one "
+                    "pause-before-irreversible-action on package install, not a "
+                    "Haynes pause-point set on the unit-delivery gate. "
+                    "tools/plugin/install_gate.py (IMP-0008) is not on this tree, "
+                    "so the contrast cites the gate that is."
                 ),
             },
         },
@@ -418,7 +421,43 @@ RECORD = {
 }
 
 
+def find_line(rel: str, snippet: str) -> int:
+    fp = REPO / rel
+    if not fp.is_file():
+        raise SystemExit(f"FAILED:emit missing {rel}")
+    text = fp.read_text(encoding="utf-8")
+    idx = text.find(snippet)
+    if idx < 0:
+        raise SystemExit(f"FAILED:emit snippet missing in {rel}: {snippet[:80]!r}")
+    return text[:idx].count("\n") + 1
+
+
+def bind_live_lines(record: dict) -> None:
+    """Re-anchor every in-tree gate citation to the line its snippet lives on now.
+
+    The gate files are live code (``_measure_one_delivered.py`` moved on 02.09),
+    so a hard-coded ``line`` rots; the snippet is the stable identity. A window
+    (``end_line``) keeps its span so a def-block citation still covers the body.
+    """
+    for row in record.get("property_gap_table") or []:
+        for cite in row.get("gate_citations") or []:
+            rel = str(cite.get("path") or "")
+            snip = str(cite.get("snippet") or "")
+            if not rel or not snip or rel.startswith(("http://", "https://")):
+                continue
+            old = cite.get("line")
+            new = find_line(rel, snip)
+            end = cite.get("end_line")
+            if isinstance(end, int) and isinstance(old, int) and end >= old:
+                cite["end_line"] = new + (end - old)
+            cite["line"] = new
+        contrast = row.get("contrast_not_this_gate")
+        if isinstance(contrast, dict) and contrast.get("path") and contrast.get("snippet"):
+            contrast["line"] = find_line(str(contrast["path"]), str(contrast["snippet"]))
+
+
 def main() -> int:
+    bind_live_lines(RECORD)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(
         json.dumps(RECORD, indent=1, ensure_ascii=True) + "\n",

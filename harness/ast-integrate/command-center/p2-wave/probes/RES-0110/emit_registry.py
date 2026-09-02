@@ -462,6 +462,10 @@ def main() -> int:
             "not_adv_rebuild": True,
         },
     }
+    # The probes read the domain rows at the artifact root; the receipt envelope
+    # permits extra root keys, so mirror them there as well as under report.
+    for key in ("register", "controls", "reviewers", "answer", "question"):
+        doc[key] = report[key]
 
     try:
         SL.assert_valid(doc)

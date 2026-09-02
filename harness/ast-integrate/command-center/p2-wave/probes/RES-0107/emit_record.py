@@ -76,7 +76,14 @@ def local_probe_capture() -> dict:
         str(REPO / "command-center/sources/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md"),
         str(REPO / "command-center/sources/REGISTER.md"),
     ]
-    present = {p: Path(p).is_file() for p in eco_paths}
+    def display(p: str) -> str:
+        # Repo-relative for in-tree candidates so the record does not pin one checkout's mount.
+        try:
+            return Path(p).relative_to(REPO).as_posix()
+        except ValueError:
+            return p
+
+    present = {display(p): Path(p).is_file() for p in eco_paths}
     catalog = REPO / "command-center/WORK-UNIT-CATALOG.json"
     catalog_sha = sha_bytes(catalog.read_bytes()) if catalog.is_file() else None
     schema = REPO / SCHEMA_REL
@@ -87,7 +94,7 @@ def local_probe_capture() -> dict:
         "any_05_eco_present": any(
             Path(p).is_file() and "05-ECOSYSTEM" in p for p in eco_paths
         ),
-        "register_present": bool(present.get(str(REPO / "command-center/sources/REGISTER.md"))),
+        "register_present": bool(present.get("command-center/sources/REGISTER.md")),
         "schema_research_claim_record_present": schema.is_file(),
         "catalog_present": catalog.is_file(),
         "catalog_sha256": catalog_sha,
@@ -97,10 +104,11 @@ def local_probe_capture() -> dict:
     dest = HERE / "captures" / "local-05-eco-absent.json"
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(raw)
+    rel_dest = dest.relative_to(REPO).as_posix()
     rec = {
         "name": "local-05-eco-absent.json",
-        "requested_url": "file://" + str(dest),
-        "final_url": "file://" + str(dest),
+        "requested_url": "file://" + rel_dest,
+        "final_url": "file://" + rel_dest,
         "ok": True,
         "http_status": 0,
         "bytes": len(raw),
