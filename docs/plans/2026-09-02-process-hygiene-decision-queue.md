@@ -26,7 +26,29 @@ outcome, both of which are worth more than a changelog line:
 | **Re-sampling free RAM from a "free page list" counter** | Proposed on the theory that `Win32_OperatingSystem.FreePhysicalMemory` excludes the standby list and is "near zero by design". Checked: it maps to Task Manager's **Available** (free + zero + standby), the same quantity as `\Memory\Available MBytes`. The near-zero counter is `\Memory\Free & Zero Page List Bytes`, which the supervisor never reads. The thresholds are calibrated correctly; "fixing" this would have mis-set them by ~an order of magnitude. The sampling site now says so, since the field name `free_bytes` invites the same wrong fix. |
 | **`taskkill /PID` (no `/F`) as a graceful stop for agents** | Posts WM_CLOSE only to windows a process owns; refused outright for windowless console processes — which is exactly what node/python agent sessions and MCP servers are. Kept as an opt-in that forces immediately when refused. |
 
-## 2. Queued for the owner — prevention, not reclaim
+## 2. The queue — every item now shipped (2026-09-02, second pass)
+
+The user asked for the queue to be handled end to end. Each item below keeps its
+original evidence and blast-radius note; a **Shipped** line records what was built,
+where, and what the owner still has to *do* (the code cannot enrol a machine, edit
+the owner's `$PROFILE`, or reboot for a pagefile). Nothing was applied to the
+owner's box from here; everything is a tool the install steps in the design doc
+walk through in order.
+
+| item | shipped as | owner action that remains |
+| --- | --- | --- |
+| Q1 job-object shim | `hygiene_launch.py` + `profile/Start-Agent.ps1` | dot-source the profile |
+| Q2 direct-exec MCP | `hygiene_doctor.py rewrite-mcp` (dry run → `--apply`), `wrapper-chain` rule | run it per JSON config; paste for TOML |
+| Q3 browser discard | `hygiene_doctor.py browser-policy` (.reg + rollback + verify) | apply as admin, check `chrome://policy` |
+| Q4 Resource-Guard fold | `resource-guard.ps1` calls `hygiene_doctor.py --quick` | none (inert until deployed) |
+| Q5 % committed | `commit_pct` in metrics (headroom leg already carries the tier) | none |
+| Q6 stale surface | `doctor` heartbeat check + `--digest`, via Q4 | none |
+| Q7 memory priority | `memoryPriority` policy (default **off**), `pages_input_per_sec` measurement | enable only with a before/after |
+| Q8 vendor fixes | `doctor` runtime-version check (Claude ≥ 2.1.153 verified; Codex advisory) | update the CLIs |
+| Q9 pagefile | `commit-ceiling` advisory with pagefile facts sampled | set a fixed pagefile if `pinned_by: disk` |
+| Q10 admission | `hygiene_launch.py` gate (critical or ETA < 30 min refuses; fails open) | as Q1 |
+
+### Original evidence and blast radius, per item
 
 Ordered by the ratio of measured relief to blast radius. Items Q1–Q2 attack the
 *cause* the supervisor can only mop up after.

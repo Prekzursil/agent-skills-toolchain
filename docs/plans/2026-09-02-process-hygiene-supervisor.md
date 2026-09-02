@@ -57,16 +57,29 @@ One supervisor, split the way the estate already splits `mcp-host-supervisor`
 (Python decides, PowerShell actuates):
 
 ```
+                     PREVENTION (the half the review ranked first)
+  $PROFILE: claude/codex/... ─▶ hygiene_launch.py ── admission gate (heartbeat: tier,
+      │                          │                    headroom, minutes-to-limit; fails OPEN)
+      │                          └─ Job Object KILL_ON_JOB_CLOSE (+ commit cap) ─▶ agent tree
+      │                             dies with the launcher; per-session bill ─▶ sessions.jsonl
+  hygiene_doctor.py rewrite-mcp ─▶ MCP configs launch node.exe <entry.js> directly
+                                   (no cmd/npx/uvx grandchild for SILENT_BREAKAWAY_OK to orphan)
+  hygiene_doctor.py browser-policy ─▶ .reg: browsers DISCARD idle tabs (never killed)
+  hygiene_doctor.py ─▶ heartbeat staleness · runtime versions · .wslconfig · wrapper scan
+                        (Resource-Guard asks it --quick every 5 min)
+
+                     REACTION (the supervisor)
 Task Scheduler ─every 5 min + logon (+ optional RADAR event 2004)─▶ process-hygiene.ps1
       │  samples Win32_Process + Get-Process (private/WS) + Get-NetTCPConnection
       │  (Listen -> listeners, Established -> connections) + Win32_OperatingSystem
-      │  + Committed/Commit-Limit counters + Memory Compression + wsl --running
-      │  + Docker Desktop / wsl.exe client counts  ──▶ snapshot JSON (validated)
-      ▼
+      │  + Committed/Commit-Limit counters + Pages Input/sec + Memory Compression
+      │  + wsl --running + Docker Desktop / wsl.exe clients + pagefile facts
+      ▼                                                    ──▶ snapshot JSON (validated)
   hygiene.py run --snapshot … [--apply]   (PURE decision engine, 100% tested)
-      │  tiers ← free RAM ∨ commit ratio ∨ COMMIT HEADROOM (+ hysteresis)
+      │  tiers ← available RAM ∨ commit ratio ∨ COMMIT HEADROOM (+ hysteresis)
+      │  modes ← working-set | commit-exhaustion · ETA ← commit slope over 1 h
       │  rules ← retired · orphan/daemon · session-age · rss · mcp-* · wsl ·
-      │          wrapper-chain · browser
+      │          wrapper-chain · commit-ceiling · browser · memory-priority (opt-in)
       │  gates ← protected allowlist · whole-tree idle · bounded network veto
       │  budget ← maxStopsPerRun · crash-loop breaker (per command_sha256)
       │  cursor-agent parentless ─────────────▶ DELEGATE
@@ -74,11 +87,12 @@ Task Scheduler ─every 5 min + logon (+ optional RADAR event 2004)─▶ proces
   hygiene_actuate.WindowsActuator (--apply only)     │
       │  children-first; ONE PINNED HANDLE per PID   │
       │  (identity → TerminateProcess → exit wait);  │
-      │  opt-in WM_CLOSE; wsl --terminate <distro>   │
+      │  opt-in WM_CLOSE; wsl --terminate <distro>;  │
+      │  SetProcessInformation(memory priority)      │
       ▼                                              ▼
-  JSONL ledger (rotating, secrets redacted)   cursor-orphan-reaper.ps1
-  + heartbeat.json + one BACKGROUND-DIGEST     (tested multi-observation reaper,
-    line per NEW kill kind                      report-only under Resource-Guard)
+  JSONL ledger (rotating, secrets redacted,   cursor-orphan-reaper.ps1
+  effectiveness rows) + heartbeat.json +      (tested multi-observation reaper,
+  one BACKGROUND-DIGEST line per NEW kind      report-only under Resource-Guard)
 ```
 
 **Reuse, not reimplementation.** The MCP verdicts call
@@ -152,6 +166,19 @@ host's death **by design** — it is the orphan the reaper cleans up later. The 
 reports one row per wrapper root (with the parent chain and the `node.exe <entry.js>`
 remediation), turning a config fix into a worked list instead of advice.
 
+**The launch path is where orphans are prevented, not reaped.** `hygiene_launch.py`
+puts the launcher — and therefore every descendant, automatically — inside a job
+with `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` (handle non-inheritable, so closing ours
+is closing the last one) and an optional `JOB_OBJECT_LIMIT_JOB_MEMORY` cap that makes
+a runaway tree fail *its own* allocations instead of the box's. Before spawning it
+reads the supervisor heartbeat and refuses a new session (exit 75, `--force`
+recorded) when the box is critical or the commit limit is under 30 minutes away at
+the current slope — call-admission control, which converts "everything is slow and
+something dies" into "the fifth session waits". The gate fails open when the
+supervisor is down. Each session leaves a bill (peak job memory via
+`PeakJobMemoryUsed`, duration, exit) in `sessions.jsonl`. `rewrite-mcp` removes the
+other orphan source by making MCP servers the host's *direct* children.
+
 **Browsers keep every tab.** The supervisor never kills or trims a browser; it
 reports and names the only lever that actually returns commit — making the
 browser *discard* idle tabs: `TotalMemoryLimitMb` (Chrome and Edge, HKLM
@@ -193,25 +220,29 @@ instead of burning the grace window.
 
 Prereq: `C:\Python314\python.exe` present (the estate's bundled interpreter);
 the repo checkout at `C:\Users\Prekzursil\source\ast-integrate` (the only edited
-checkout per CLAUDE.md).
+checkout per CLAUDE.md). Steps 1–5 are the supervisor (reactive half); steps 6–9
+are the prevention half the review ranked above it — do them, in that order.
 
 1. **Deploy the tool** to a protected runtime root (so it does not self-reap and
    is not edited by other agents):
    ```powershell
    $src  = 'C:\Users\Prekzursil\source\ast-integrate\tools\process-hygiene-supervisor'
    $root = 'C:\Users\Prekzursil\.agent-guard\process-hygiene'
-   New-Item -ItemType Directory -Force -Path $root | Out-Null
-   Copy-Item "$src\hygiene.py","$src\hygiene_actuate.py","$src\process-hygiene.ps1",
-             "$src\install_task.ps1" -Destination $root
+   New-Item -ItemType Directory -Force -Path $root, "$root\profile" | Out-Null
+   Copy-Item "$src\hygiene.py","$src\hygiene_actuate.py","$src\hygiene_doctor.py",
+             "$src\hygiene_launch.py","$src\process-hygiene.ps1","$src\install_task.ps1" -Destination $root
+   Copy-Item "$src\profile\Start-Agent.ps1" -Destination "$root\profile"
    Copy-Item "$src\policy.example.json" -Destination "$root\policy.json"
    ```
    Then open `$root\policy.json` and confirm the `protected` lists (auth2api,
    `bm-http-server.ps1`, `bm-watchdog.ps1`, `resource-guard.ps1`,
    `cursor-orphan-reaper.ps1`, the MCP hosts, WSL/vmmem, browsers) match your box.
-2. **Cap WSL** (bounds vmmem continuously so shutdown is a last resort):
+   Every section is a closed schema: `python "$root\hygiene.py" validate-policy
+   --policy "$root\policy.json"` fails on a typo instead of silently dropping a rule.
+2. **Cap WSL** (bounds vmmem continuously so terminate is a last resort):
    ```powershell
    Copy-Item "$src\wslconfig.example" "$env:USERPROFILE\.wslconfig"   # review memory=8GB first
-   wsl --shutdown        # apply the new limits on next WSL start
+   wsl --shutdown        # apply the new limits on next WSL start (one-off, by hand)
    ```
 3. **Dry-run once, read the plan** (writes nothing, kills nothing):
    ```powershell
@@ -220,6 +251,10 @@ checkout per CLAUDE.md).
      --policy "$root\policy.json" `
      --registry 'C:\Users\Prekzursil\source\ast-integrate\.agents\agents.json'
    ```
+   The plan's `metrics` names the live failure mode (`working-set` vs
+   `commit-exhaustion`), the commit headroom and, after an hour of samples, the
+   minutes to the commit limit; `commit-ceiling` tells you if the pagefile is the
+   constraint; `wrapper-chain` lists the MCP configs step 7 will fix.
 4. **Register the task in REPORT-ONLY** and let it run for a while, then read the
    ledger (`$root\ledger\process-hygiene.jsonl`) to confirm it would only stop
    the right things:
@@ -227,13 +262,72 @@ checkout per CLAUDE.md).
    pwsh -File "$root\install_task.ps1"          # report-only, every 5 min + logon
    Start-ScheduledTask -TaskName ProcessHygiene
    Get-Content "$root\ledger\process-hygiene.jsonl" -Tail 40
+   pwsh -File "$root\test-process-hygiene.ps1"  # optional: proves the Win32 kill path on a spawned victim
    ```
+   Add `-OnResourceExhaustion` to also fire on Resource-Exhaustion-Detector event
+   2004 (the moment commit runs out, when a 5-minute cadence is too slow).
 5. **Enable enforcement** only after the dry-run week looks right:
    ```powershell
    pwsh -File "$root\install_task.ps1" -Apply   # re-registers ProcessHygiene enforcing
    ```
-   Enforcing mode still reports below each rule's tier and only graceful-stops
-   confirmed-idle / detached / duplicate / over-budget consumers.
+   Enforcing mode still reports below each rule's tier, only stops confirmed-idle /
+   detached / duplicate / over-budget consumers, never more than
+   `escalation.maxStopsPerRun` trees per tick, and writes an `effectiveness` row on
+   the next run saying how much commit the kills actually returned.
+6. **Doctor** (read-only) — run it once now and whenever something feels off:
+   ```powershell
+   python "$root\hygiene_doctor.py"            # heartbeat, runtime versions, .wslconfig, MCP wrappers
+   ```
+   Resource-Guard now asks the same doctor (`--quick`) every 5 minutes whether the
+   supervisor's heartbeat is stale and surfaces it in the BACKGROUND-DIGEST — a dead
+   watchdog and a quiet box otherwise look identical.
+7. **Remove the orphan class at the source: direct-exec MCP servers.** libuv hosts
+   (Cursor, the VS Code extension host) set `SILENT_BREAKAWAY_OK` on their child job,
+   so a server launched as `cmd /c npx <pkg>` is a *grandchild* and outlives the
+   host by design. Resolve each to its installed entrypoint:
+   ```powershell
+   python "$root\hygiene_doctor.py" rewrite-mcp --config "$env:USERPROFILE\.claude.json" `
+     --node 'C:\Program Files\nodejs\node.exe'                 # dry run: diff + .rewritten.json
+   python "$root\hygiene_doctor.py" rewrite-mcp --config "$env:USERPROFILE\.claude.json" `
+     --node 'C:\Program Files\nodejs\node.exe' --apply         # backs the original up first
+   python "$root\hygiene_doctor.py" rewrite-mcp --config "$env:USERPROFILE\.cursor\mcp.json" --node '...' [--apply]
+   ```
+   Unresolved entries (package not installed) are listed with the install command;
+   TOML configs (Codex, Grok) are scanned but must be edited by hand from the dry
+   run's resolved `command`/`args`. Restart the host after applying.
+8. **Launch agents through the gate and the job object.** Dot-source the profile
+   functions; `claude`, `codex`, `cursor-agent`, `grok`, `goose` keep working as
+   commands but now (a) ask the supervisor's heartbeat whether the box can take
+   another session — critical, or a commit limit under 30 min away, refuses with
+   exit 75 (`-Force` to override; the override is recorded) — and (b) run inside a
+   `KILL_ON_JOB_CLOSE` job with a per-runtime commit cap, so closing the shell tears
+   the whole tree down and a runaway session fails its own allocations instead of
+   the box's:
+   ```powershell
+   Add-Content $PROFILE ". '$root\profile\Start-Agent.ps1'"
+   . $PROFILE
+   claude --version           # runs through hygiene_launch.py; bill appended to $root\ledger\sessions.jsonl
+   ```
+   The gate fails OPEN when the supervisor is down (a gate that blocks work because
+   the watchdog died is worse than no gate). `Start-Agent claude -NoLimit ...` skips
+   the cap for a session that legitimately needs more.
+9. **Browsers keep every tab, but discard idle ones** (the only lever that returns
+   commit from a browser). Generate, apply as admin, verify:
+   ```powershell
+   python "$root\hygiene_doctor.py" browser-policy --emit "$root\browser"
+   regedit /s "$root\browser\browser-discard-policies.reg"
+   pwsh -File "$root\browser\verify-browser-policies.ps1"
+   ```
+   Then open `chrome://policy` and `edge://policy` and confirm the values show as
+   applied — Chromium honours registry policies fully only on enrolled machines and
+   may mark some as ignored; if Chrome ignores HKLM, regenerate with `--hive HKCU`.
+   `browser-discard-policies.ROLLBACK.reg` removes exactly what was set.
+10. **Pagefile (only if `commit-ceiling` reports `pinned_by: disk`)**: the commit
+    ceiling is RAM + pagefile, and a system-managed pagefile cannot grow on a nearly
+    full C:. Set a fixed (min = max) pagefile of about *peak commit − RAM + headroom*
+    on a volume with room, reboot. This relieves allocation failures (the daemon
+    deaths); it does nothing for working-set thrash, which only a smaller touched set
+    or more RAM fixes.
 
 ## 4. Rollback
 
@@ -245,33 +339,54 @@ Every step is reversible and leaves no residue beyond the ledger:
   `$root\*.BEFORE-*.xml` first).
 - **Undo the WSL cap:** delete `%USERPROFILE%\.wslconfig` (or restore your prior
   one) and `wsl --shutdown`.
-- **Nothing else changed.** The supervisor never edits `agents.json`,
-  `~/.claude.json`, any MCP config, or a credential; it does not bind or move any
-  port; it does not touch the Basic Memory daemon, its watchdog, or auth2api. The
-  ledger and state under `$root` can be deleted safely; they regenerate.
+- **Undo a config rewrite:** `rewrite-mcp --apply` leaves `<config>.BEFORE-<stamp>.json`
+  next to the file; copy it back and restart the host.
+- **Stop launching through the gate:** remove the dot-source line from `$PROFILE`;
+  the plain commands return with nothing left on disk (functions, not shims).
+- **Undo the browser policies:** `regedit /s browser-discard-policies.ROLLBACK.reg`.
+- **Switch memory priority off:** it is off by default; if enabled, set
+  `memoryPriority.enabled=false` — the next run restores every demoted process to
+  NORMAL and the state forgets them.
+- **Nothing else changed.** The supervisor never edits `agents.json`, any MCP config
+  (only `rewrite-mcp --apply` does, with a backup), or a credential; it does not bind
+  or move any port; it does not touch the Basic Memory daemon, its watchdog, or
+  auth2api. The ledger and state under `$root` can be deleted safely; they regenerate.
 
 ## 5. Verification performed
 
-- `hygiene.py` + `hygiene_actuate.py` + `evals/run_evals.py`: **195 tests, 100%
-  line+branch** (`pytest --cov --cov-branch --cov-fail-under=100`), pinned
-  `ruff==0.15.17` clean, and `tests/mutation_probe.py` kills **28/28**
-  reverted-safety mutations (each mutation names the invariant it breaks).
-- `evals/run_evals.py`: **12/12 scenarios, pass@1 and pass^3 = 100%** — including
-  a replay of the 02.09.2026 measurement, which reads `elevated` under an 80 GB
-  commit limit (12.3 GB headroom) and `critical` under 70 GB (2.3 GB headroom)
-  with an identical kill set: the tier changes what may *execute*, not what is
-  *decided*.
-- The launcher's snapshot contract was exercised end-to-end by feeding the
-  launcher-shaped payload (AgentBridge + auth2api + a network-vetoed orphan +
-  vmmemWSL) through `hygiene.py` on Linux: the retired bridge is a dry-run stop,
-  auth2api never appears in a stop row, the vetoed orphan is a report with
-  `network_veto`, the heartbeat is written, and no digest line is emitted in
-  report-only mode. `test-process-hygiene.ps1` re-proves this on Windows with the
-  live sampler (and additionally asserts the sampler emits `connections`,
-  `wsl.docker_desktop_running` and `wsl.client_count`); it is not run in CI
-  because there is no `pwsh` there.
-- Owner-steered follow-ups (Job-object launch shims, `node.exe` entrypoints
-  instead of `cmd /c npx`, browser discard policies, Resource-Guard merge) are
-  queued with evidence and blast radius in
-  `docs/plans/2026-09-02-process-hygiene-decision-queue.md` rather than applied
-  unilaterally.
+- Five Python modules (`hygiene.py`, `hygiene_actuate.py`, `hygiene_doctor.py`,
+  `hygiene_launch.py`, `evals/run_evals.py`): **433 tests, 100% line+branch**
+  (`pytest --cov --cov-branch --cov-fail-under=100`), pinned `ruff==0.15.17` clean.
+- **Seeded invariant fuzz** (`tests/test_invariants_fuzz.py`): random process tables
+  with every actor type, 14 safety invariants checked after every observation
+  round; 120 × 5 in CI, a 3,000 × 7 hunt (and 2,000 × 7 with memory priority on)
+  clean. It found one real defect — a network veto charged twice per run by two
+  rules, with a stop and a "vetoed" report for the same tree in one plan — and
+  forced the port-owner carve-out for memory priority (the Basic Memory singleton
+  would otherwise have been demoted).
+- `tests/mutation_probe.py` kills **31/31** reverted-safety mutations across the
+  engine and the actuator (each names the invariant it breaks).
+- `evals/run_evals.py`: **13/13 scenarios, pass@1 and pass^3 = 100%** — the
+  02.09.2026 measurement replayed under three regimes: `elevated` at an 80 GB
+  commit limit (12.3 GB headroom), `critical` at 70 GB with the measured C: (15.5 GiB
+  free; the pagefile can still grow ~6 GB, so `commit-ceiling` stays quiet), and
+  `critical` + `commit-ceiling` with C: at 3 GiB — an **identical kill set** in all
+  three: the tier and the advisories change what may *execute* and what the owner
+  is *told*, never what is *decided*.
+- Cross-platform proofs of Windows-only code: every `ctypes.wintypes` name and
+  kernel32 prototype is checked (a 64-bit `HANDLE` marshalled through a C `int` was
+  the defect this caught), and the job-object structs are pinned to the Win64 ABI
+  sizes (64 / 48 / 144 bytes) — the test itself carried the x86 size for the basic
+  struct and was corrected against the computed layout.
+- The launcher's snapshot contract was run end-to-end on Linux; `hygiene_launch.py`
+  ran a real child (exit code pass-through, refusal at critical, bill row); the
+  digest line round-trips through the real `hooks/background-digest/reader.py`.
+  `test-process-hygiene.ps1` re-proves on Windows with the live sampler, kills a
+  **real spawned process** through the pinned-handle Win32 path, and uses the
+  test's own PID with a stale creation time as PID-reuse bait that must be refused.
+- Every constant encoded from research was verified against a primary source
+  first (Chrome/Edge policy names and types, Job Object flags and info classes,
+  `SetProcessInformation` values and access right, pagefile WMI classes, Claude Code
+  2.1.153 in the vendor changelog). One research claim — that `FreePhysicalMemory`
+  is a free-page-list counter — was checked and **refuted** before it could
+  miscalibrate the thresholds by an order of magnitude.

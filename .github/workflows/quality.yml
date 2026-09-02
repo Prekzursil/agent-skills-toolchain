@@ -783,35 +783,43 @@ jobs:
           python test_reap_mutations.py
 
       # process-hygiene-supervisor: the estate-wide process governor (design in
-      # docs/plans/2026-09-02-process-hygiene-supervisor.md). The decision engine
-      # (hygiene.py) and the Windows actuator (hygiene_actuate.py) are pure Python
-      # with the OS boundary injected, so BOTH are 100% line+branch gated here; the
-      # PowerShell launcher/installer/smoke-test carry no gated logic (CI has no
-      # pwsh, same as the reaper's *.ps1). hygiene.py imports the shipped
-      # mcp_fleet_supervisor + mcp_control_plane from .agents/scripts at DEFAULT_FLEET_PATH,
-      # so the whole repo checkout (not a working-directory install) is the environment;
-      # cwd is the package so `--cov=hygiene --cov=hygiene_actuate` resolve as import names.
-      # The mutation step is the both-states check (rules/common/single-signal-verification.md):
-      # it reverts 28 safety rules ACROSS BOTH FILES -- in hygiene.py the whole-tree-idle gate,
-      # protected allowlist, cursor-agent delegation, singleton port-owner keep, orphan age
-      # gate, apply-time tier gate, both pressure legs, the network veto, the stop budget, the
-      # crash-loop breaker, the WSL attach-gate and the ownership carve-out; in
-      # hygiene_actuate.py the pinned-handle identity revalidation, the exit wait, the opt-in
-      # polite stop and access-denied-is-not-vanished -- and requires the suite to go RED for
-      # each. Takes ~60 s (each mutation reruns the suite), which is why it runs last.
-      # evals/run_evals.py replays scenario process tables (incl. the owner's 02.09.2026
-      # measurement, under two commit limits so the headroom tier leg is exercised both ways)
-      # through the real engine and grades the exact kill set / never-touched set / tier with
-      # code, reporting pass@1 and pass^3; tests/test_evals.py proves the grader goes red on a
-      # wrong expectation. Measured on python 3.12.3: 195 passed, 100.00% line+branch over
-      # hygiene + hygiene_actuate + run_evals, 12/12 evals pass^3, 28/28 mutations killed.
-      # install_task.ps1 and test-process-hygiene.ps1 are NOT invoked here (no pwsh).
-      - name: gate-tests-coverage process-hygiene-supervisor (suite + evals + mutation probe)
+      # docs/plans/2026-09-02-process-hygiene-supervisor.md; queue + rejected options in
+      # docs/plans/2026-09-02-process-hygiene-decision-queue.md). Four Python modules, all
+      # pure with the OS boundary injected, so ALL FOUR are 100% line+branch gated here:
+      # hygiene.py (decision engine), hygiene_actuate.py (pinned-handle Win32 actuator),
+      # hygiene_doctor.py (read-only estate checks + MCP wrapper rewriter + browser policy
+      # generator), hygiene_launch.py (admission gate + job-object launch shim), plus
+      # evals/run_evals.py. The PowerShell launcher/installer/profile/smoke-test carry no
+      # gated logic (CI has no pwsh, same as the reaper's *.ps1). hygiene.py imports the
+      # shipped mcp_fleet_supervisor + mcp_control_plane from .agents/scripts at
+      # DEFAULT_FLEET_PATH, so the whole repo checkout is the environment; cwd is the
+      # package so --cov names resolve as import names.
+      # Three kinds of proof run here: (1) the suite, incl. tests/test_invariants_fuzz.py,
+      # a seeded property fuzz over random process tables (protected daemons, dangling
+      # parents, nested runtimes, duplicate singletons, browsers, vmmem, retired parts,
+      # random pressure/idleness/sockets) checking 14 safety invariants after every
+      # observation round - it found a real double-charged network veto and forced the
+      # port-owner carve-out for memory priority; (2) evals/run_evals.py replays scenario
+      # process tables (incl. the owner's 02.09.2026 measurement under three commit-limit
+      # / disk regimes) through the real engine and grades the exact kill set /
+      # never-touched set / tier with code (pass@1, pass^3), with tests/test_evals.py
+      # proving the grader goes red on a wrong expectation; (3) tests/mutation_probe.py
+      # reverts 31 named safety rules across hygiene.py and hygiene_actuate.py (idle gate,
+      # protected allowlist, reaper delegation, singleton keeper, age gate, tier gate, both
+      # pressure legs, failure-mode reporting, network veto, stop budget, crash-loop
+      # breaker, WSL attach-gate, ownership carve-out, wrapper-chain, memory-priority
+      # guards; pinned-handle revalidation, exit wait, polite-stop opt-in, access-denied
+      # != vanished, priority identity check) and requires the suite to go RED for each
+      # (~80 s, so it runs last). Measured on python 3.12.3: 433 passed, 100.00%
+      # line+branch over the five modules, 13/13 evals pass^3, 31/31 mutations killed.
+      # install_task.ps1, test-process-hygiene.ps1 and profile/Start-Agent.ps1 are NOT
+      # invoked here (no pwsh).
+      - name: gate-tests-coverage process-hygiene-supervisor (suite + fuzz + evals + mutation probe)
         working-directory: tools/process-hygiene-supervisor
         run: |
           pip install pytest pytest-cov
-          pytest --cov=hygiene --cov=hygiene_actuate --cov=run_evals --cov-branch \
-            --cov-report=term-missing --cov-fail-under=100
+          pytest --cov=hygiene --cov=hygiene_actuate --cov=hygiene_doctor --cov=hygiene_launch \
+            --cov=run_evals --cov-branch --cov-report=term-missing --cov-fail-under=100
           python evals/run_evals.py
           python tests/mutation_probe.py
 
