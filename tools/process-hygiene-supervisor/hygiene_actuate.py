@@ -105,15 +105,27 @@ class WindowsActuator:
                 "identity-changed",
                 "creation time or executable changed; refused",
             )
+        note = ""
         if graceful_seconds > 0:
-            self._run(["taskkill", "/PID", str(member.pid)])
-            deadline = self._now() + graceful_seconds
-            while self._now() < deadline:
-                if self._probe(member.pid) is None:
-                    return StopResult(
-                        member.pid, member.created_unix, "graceful", "exited on request"
-                    )
-                self._sleep(self._poll)
+            polite = self._run(["taskkill", "/PID", str(member.pid)])
+            if polite.returncode == 0:
+                # WM_CLOSE was posted to a window the process owns; give it the
+                # grace window before forcing.
+                deadline = self._now() + graceful_seconds
+                while self._now() < deadline:
+                    if self._probe(member.pid) is None:
+                        return StopResult(
+                            member.pid,
+                            member.created_unix,
+                            "graceful",
+                            "exited on request",
+                        )
+                    self._sleep(self._poll)
+            else:
+                # Windows has no cooperative stop for a windowless console process
+                # ("can only be terminated forcefully"); waiting would only add
+                # latency, so force at once and record why.
+                note = f"graceful refused (taskkill rc={polite.returncode}); "
         result = self._run(["taskkill", "/PID", str(member.pid), "/F"])
         after = self._probe(member.pid)
         if after is None or not self._identity_matches(member, after):
@@ -121,7 +133,7 @@ class WindowsActuator:
                 member.pid,
                 member.created_unix,
                 "forced",
-                f"taskkill rc={result.returncode}",
+                f"{note}taskkill rc={result.returncode}",
             )
         return StopResult(
             member.pid,

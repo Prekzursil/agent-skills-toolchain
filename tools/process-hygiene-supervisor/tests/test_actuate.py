@@ -124,6 +124,36 @@ def test_force_kill_after_graceful_window():
     assert ["taskkill", "/PID", "100", "/F"] in runner.calls
 
 
+def test_refused_graceful_request_forces_immediately_without_waiting():
+    # Windows fact (Microsoft Learn + measured behaviour): `taskkill /PID n` without
+    # /F only posts WM_CLOSE to windows the process OWNS. A windowless console
+    # process (node.exe agent session, python MCP server) answers rc=1 "can only be
+    # terminated forcefully". Waiting the grace window after that refusal is pure
+    # latency - the actuator must force at once and say so in the ledger.
+    runner = FakeRunner(
+        {"taskkill-graceful": act.RunResult(1, "", "ERROR: ...forcefully")}
+    )
+    prober = FakeProber({100: [IDENT, None]})
+    slept: list[float] = []
+    actuator_ = act.WindowsActuator(
+        policy(),
+        run_id="r",
+        runner=runner,
+        prober=prober,
+        clock=Clock(),
+        sleeper=slept.append,
+        poll_seconds=1.0,
+    )
+    result = actuator_.stop_tree([member()], graceful_seconds=20)[0]
+    assert result.outcome == "forced"
+    assert "graceful refused" in result.detail
+    assert slept == []
+    assert runner.calls == [
+        ["taskkill", "/PID", "100"],
+        ["taskkill", "/PID", "100", "/F"],
+    ]
+
+
 def test_force_kill_when_graceful_disabled():
     runner = FakeRunner()
     prober = FakeProber({100: [IDENT, None]})
