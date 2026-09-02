@@ -581,7 +581,66 @@ no gateway process appears (L2).
 
 ## 7. Test plan
 
-_(pending)_
+Mirrors how the MCP plane is tested today (`test-live-skill-helpers.py`, merge-script suites
+named in `main`'s PR #309 "both suites green"); Python 3.12 + pytest in `~/.local/bin`; runnable
+in cloud except where marked *box-only*.
+
+### 7.1 Validator unit tests (`test_models_control_plane.py`) - red-proof style, one failing case per rule
+| # | Case | Expect |
+|---|---|---|
+| V1 | literal `hf_...` in any string field | `RegistryError` (reuse `LITERAL_SECRET_RE`) |
+| V2 | `auth.env` not `^[A-Z][A-Z0-9_]*$` | error |
+| V3 | `baseUrl` `http://` with non-loopback host | error; loopback passes |
+| V4 | OpenAI-compatible kind with `baseUrl` not ending `/v1` | error (Fabric/Aider/Goose edge) |
+| V5 | model `features.tools = native` while endpoint says `absent` | error ("downward only") |
+| V6 | two enabled `cursor-auth2api` endpoints | error (L3 lock) |
+| V7 | openrouter endpoint with `targets.cursor == native` | error (L1 lock) |
+| V8 | new endpoint on port 8765/8812 | error (L4 lock) |
+| V9 | `x_codex` with unknown key | error (closed schema, same as `x_cursor`) |
+| V10 | local endpoints' `ramBytes` sum > `localRamBudgetBytes` | **warning**, not error (L7: tradeoff surfaced) |
+| V11 | `probed` value without `{at, version}` | error |
+| V12 | alias pointing at a disabled/missing model | error |
+| V13 | `retiresWhen` missing on `cursor-auth2api` | error |
+
+### 7.2 Materializer golden tests (fixture live file -> merged file), per runtime
+- **Idempotency:** `merge(merge(live)) == merge(live)` byte-for-byte; running with an unchanged
+  registry produces `removed=0` and a zero diff.
+- **Preservation:** a live Codex `config.toml` fixture containing (a) an unmanaged
+  `[model_providers.mine]`, (b) `[mcp_servers.x]` blocks, (c) a managed block with a **local-only
+  sub-table** `[model_providers.hf-router.env_http_headers]`... after merge (a) and (b) are
+  byte-identical and (c)'s replaceable suffixes are regenerated while a non-replaceable local
+  sub-table is preserved (exact `is_replaceable_suffix` semantics).
+- **Retirement purge:** fixture containing `[mcp_servers.glm53-space]` -> removed after M5;
+  Goose fixture dir containing an *unmarked* `goose-cursor-proxy.json` -> untouched.
+- **Never-chat:** grep the rendered Codex TOML for `wire_api = "chat"` -> must be absent for every
+  fixture; grep for `api_key =` in rendered Grok TOML -> absent.
+- **Parity:** delete one generated block before write -> `RegistryError` (fail closed).
+- **Routing report:** a chat-only endpoint yields a report line
+  `codex: excluded hf-space-x reason=wire:responses=absent alternative=inference-mcp`.
+- **Wrappers:** rendered `.ps1` never contains the credential value (fixture `local.json` with a
+  sentinel string `SENTINEL_NEVER_PRINT`; assert absent from every output).
+
+### 7.3 Probe tests
+- Offline: a fake OpenAI-compatible HTTP server (stdlib `http.server`, as `tools/stdin-server`
+  is stdlib-only) that answers `/models`, `/chat/completions`, 404 on `/responses` -> probe writes
+  `wire.responses = absent`, `wire.chat_completions = probed{at,version}`; a second run within
+  `ttlHours` is a no-op.
+- *Box-only, live, read-only:* `probe ollama`, `probe lmstudio`, `probe cursor-auth2api`,
+  `probe hf-router` (uses the existing token by NAME; nothing rotated, nothing printed). Expected
+  from section 2.9: Ollama responses `probed`, LM Studio responses `probed`, auth2api and hf-router
+  whatever they are - **the point is to replace UNVERIFIED with evidence**.
+
+### 7.4 Smoke + rollback tests (*box-only*)
+- Inject a deliberately bad block into a *copy* of `~/.codex/config.toml`, point `--live` at the
+  copy, run merge `--write`; assert the smoke (`codex --version` with `CODEX_HOME` pointed at the
+  copy's dir) fails and the copy is restored byte-for-byte. Never run against the real file.
+- Same shape for Grok (`GROK_HOME`) and Goose (`XDG_CONFIG_HOME`/`APPDATA` override).
+
+### 7.5 Migration acceptance (one per step in section 6)
+M3: fixture prompt through `glm53_chat` and through `inference.chat(model="glm-5.3@hf-router")`
+returns the same schema (`content` string, no tool_calls); M5: `.claude.json` lacks `glm53-space`
+after merge; M6: `qwen-space` wrapper exits 2 and prints the "Use instead" table; M8:
+repo-wide `rg "glm53-space"` hits only tombstones, `RETIRED_MCP_SERVERS`, and this doc.
 
 ## 8. Per-find rubric table
 
