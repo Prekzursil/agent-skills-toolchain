@@ -49,8 +49,13 @@ def autofix_text() -> str:
 
 
 SCAN_CMD = (
-    '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 .'
+    '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 \\\n'
+    '            --log-opts="--full-history HEAD" .'
 )
+# HEAD-scoped on purpose: `gitleaks git` defaults to `git log --all`, and
+# `fetch-depth: 0` fetches every remote branch, so without this the gate went red on
+# refs the PR does not carry (the 802 MB P2 capture branches, 02.09.2026).
+SCAN_SCOPE = '--log-opts="--full-history HEAD"'
 
 
 def test_secrets_gate_runs_a_range_independent_full_history_scan() -> None:
@@ -65,6 +70,10 @@ def test_range_independent_scan_fails_the_job_on_a_finding() -> None:
     """A scan that cannot go red is decoration, not a gate."""
     text = quality_text()
     assert SCAN_CMD in text, f"expected the exact invocation: {SCAN_CMD}"
+    assert SCAN_SCOPE in text, "the full-history scan must be scoped to HEAD ancestors"
+    assert "--all" not in text.split(SCAN_CMD)[1].split("deps:")[0], (
+        "the range-independent scan must not re-widen to every fetched ref"
+    )
 
 
 def test_range_independent_scan_uses_the_same_pinned_gitleaks_as_the_action() -> None:
