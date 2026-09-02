@@ -38,6 +38,13 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | CNF-0178 | `probes/CNF-0178/published/packages/demo.echo/1.0.0/` (dir carried a planted `.git/HEAD`, so git dropped the whole package) | b4-p04-CNF | nested-repo marker | **repaired**: package.json + commands/echo.py reconstructed from the unit's own spec; harness plants the markers at run time |
 | IMP-0437 | `.github/workflows/quality.yml` (only `plugin-repro.yml` captured) | b4-p12-IMP; same file as ADV-0016/TST-0016/CNF-0024 | `.github/` excluded | open |
 | IMP-0449 | `probes/AUD-0064/_validate_out.json`, `probes/IMP-0433/_measure_out.json` (harvested run outputs) | b4-p12-IMP | `_*_out.json` run outputs excluded | open |
+| RES-0054 | `probes/RES-0054/captures/r2-vscode-publishing-extension.html` — mixed-EOL capture, CRs stripped at non-contiguous lines; recorded sha256 unreachable | b4-p15-RES | eol normalisation | unrecoverable without re-fetch |
+| RES-0055 | `probes/RES-0055/captures/r2-pytorch-blog.bin` — same damage (109 CRs missing) | b4-p15-RES | eol normalisation | unrecoverable without re-fetch |
+| RES-0095 | `command-center/bench/cases/IMP-0198/corpus.json` (n_cases=240 source) | b4-p16-RES | bench corpus excluded | open |
+| RES-0116 | `probes/RES-0116/captures/ringi-atled.bin` + 7 more of 42 index rows (mixed-EOL) | b4-p16-RES | eol normalisation | unrecoverable without re-fetch |
+| RES-0132 | `probes/RES-0132/{control-red,frozen-green,historical/npm-braces-3.0.2,historical/npm-cross-spawn-7.0.3}/package-lock.json` | b4-p17-RES | lock files excluded | open |
+| RES-0146 | `probes/RES-0146/captures/m01-guru99-linux.body` + 10 more of 50 (mixed-EOL) | b4-p17-RES | eol normalisation | unrecoverable without re-fetch |
+| (restored) | RES-0058 debian-wiki-raw.bin, RES-0073 n8n-devto-visual-to-git.raw, RES-0122 copyright-gov-102.html, RES-0137 mo2-readme.bin, RES-0140 blog-codex.bin — pure-CRLF captures restored, sha256-verified against their index; `.gitattributes -text` now covers `probes/*/captures/**` and `snapshots/**` | b4-p15/16/17 | — | **repaired** |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
