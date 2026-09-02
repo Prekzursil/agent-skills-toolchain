@@ -1,73 +1,91 @@
 """Mutation probe: revert each safety rule in turn; the suite MUST go red.
 
-A green suite after a reverted guard is a suite that does not protect the
-behaviour it claims to (the both-states rule). Each mutation below re-introduces
-a leak or a hazard the 02.09.2026 measurement or the estate incidents already
-paid for.
+A suite that stays green after a reverted guard is not protecting the behaviour it
+claims to (the both-states rule). Each mutation re-introduces a leak or a hazard
+the 02.09.2026 measurement or the estate incidents already paid for. Mutations
+may target any module in the tool (``file`` field); the probe restores every
+file it touched even if pytest crashes.
 
-Run: ``python tests/mutation_probe.py hygiene.py`` (exit 0 = every mutation killed).
+Run from the tool root: ``python tests/mutation_probe.py``
+(a legacy positional target path is accepted and ignored for compatibility).
+Exit 0 = every mutation killed.
 """
 
 import pathlib
 import subprocess
 import sys
 
-TARGET = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "hygiene.py").resolve()
-ORIGINAL = TARGET.read_text(encoding="utf-8")
+TOOL_ROOT = pathlib.Path(__file__).resolve().parents[1]
 
+# (label, file, old, new)
 MUTATIONS = [
     (
         "orphan reaps active processes (drop the whole-tree-idle gate)",
+        "hygiene.py",
         "            if not self._all_idle(tree, observations):\n                continue",
         "            if False:\n                continue",
     ),
     (
         "protected allowlist disabled (auth2api / daemons / Windows get reaped)",
+        "hygiene.py",
         'return any(token in haystack for token in self.policy["protected"]["tokens"])',
         "return False",
     ),
     (
         "cursor-agent orphans reaped directly instead of via the reaper",
+        "hygiene.py",
         "            if self._is_parentless(proc, snapshot):\n                for pid in self._descendants(proc.pid, snapshot):",
         "            if False:\n                for pid in self._descendants(proc.pid, snapshot):",
     ),
     (
         "singleton port owner is killed instead of kept",
+        "hygiene.py",
         "                if pid == keeper or pid in claimed:",
         "                if pid in claimed:",
     ),
     (
         "orphan age gate dropped (a just-detached process is reaped immediately)",
+        "hygiene.py",
         "            if snapshot.taken_unix - proc.created_unix < min_age:\n                continue",
         "            if False:\n                continue",
     ),
     (
         "apply ignores the tier gate (elevated/critical actions fire at normal)",
+        "hygiene.py",
         '        elif not gate_ok:\n            planned, deferred = "deferred", deferred + 1',
         '        elif False:\n            planned, deferred = "deferred", deferred + 1',
     ),
 ]
 
+originals: dict[pathlib.Path, str] = {}
 failures = []
 try:
-    for label, old, new in MUTATIONS:
-        if old not in ORIGINAL:
-            failures.append(f"ANCHOR-MISS: {label!r} -- pattern not found")
+    for label, filename, old, new in MUTATIONS:
+        target = TOOL_ROOT / filename
+        original = originals.setdefault(target, target.read_text(encoding="utf-8"))
+        if old not in original:
+            failures.append(
+                f"ANCHOR-MISS: {label!r} -- pattern not found in {filename}"
+            )
             print(f"[ANCHOR-MISS] {label}")
             continue
-        TARGET.write_text(ORIGINAL.replace(old, new, 1), encoding="utf-8")
-        proc = subprocess.run(
-            [sys.executable, "-m", "pytest", "tests/", "-q", "--no-header", "-x"],
-            cwd=TARGET.parent,
-            capture_output=True,
-            text=True,
-        )
+        target.write_text(original.replace(old, new, 1), encoding="utf-8")
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest", "tests/", "-q", "--no-header", "-x"],
+                cwd=TOOL_ROOT,
+                capture_output=True,
+                text=True,
+            )
+        finally:
+            target.write_text(original, encoding="utf-8")
         killed = proc.returncode != 0
         print(f"[{'KILLED ' if killed else 'SURVIVED'}] {label}")
         if not killed:
             failures.append(f"SURVIVED: {label}")
 finally:
-    TARGET.write_text(ORIGINAL, encoding="utf-8")
+    for target, original in originals.items():
+        target.write_text(original, encoding="utf-8")
 
 print()
 if failures:
