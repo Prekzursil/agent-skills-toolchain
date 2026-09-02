@@ -782,6 +782,28 @@ jobs:
           pytest --cov=reap --cov-branch --cov-report=term-missing --cov-fail-under=100
           python test_reap_mutations.py
 
+      # process-hygiene-supervisor: the estate-wide process governor (design in
+      # docs/plans/2026-09-02-process-hygiene-supervisor.md). The decision engine
+      # (hygiene.py) and the Windows actuator (hygiene_actuate.py) are pure Python
+      # with the OS boundary injected, so BOTH are 100% line+branch gated here; the
+      # PowerShell launcher/installer/smoke-test carry no gated logic (CI has no
+      # pwsh, same as the reaper's *.ps1). hygiene.py imports the shipped
+      # mcp_fleet_supervisor + mcp_control_plane from .agents/scripts at DEFAULT_FLEET_PATH,
+      # so the whole repo checkout (not a working-directory install) is the environment;
+      # cwd is the package so `--cov=hygiene --cov=hygiene_actuate` resolve as import names.
+      # The mutation step is the both-states check (rules/common/single-signal-verification.md):
+      # it reverts six safety rules (whole-tree-idle gate, protected allowlist, cursor-agent
+      # delegation, singleton port-owner keep, orphan age gate, apply-time tier gate) and
+      # requires the suite to go RED for each. Measured on python 3.12.3: 124 passed,
+      # 100.00% line+branch, 6/6 mutations killed. install_task.ps1 is NOT invoked here.
+      - name: gate-tests-coverage process-hygiene-supervisor (suite + mutation probe)
+        working-directory: tools/process-hygiene-supervisor
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=hygiene --cov=hygiene_actuate --cov-branch \
+            --cov-report=term-missing --cov-fail-under=100
+          python tests/mutation_probe.py hygiene.py
+
       - name: gate-tests-coverage strict-target hook manifests
         run: |
           python -m pytest ci/tests/test_emit_hook_manifest.py -q
