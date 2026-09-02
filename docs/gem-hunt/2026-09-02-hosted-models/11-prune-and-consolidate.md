@@ -76,3 +76,44 @@ Overlap map (INFERENCE from I1-I12):
 - **One orphaned registration.** I2a: the registry, the merge script and a live test all pin
   an adapter whose source is not on the SSOT remote (SSOT-WIRE lock). This is the single
   highest-value prune because it is already half-gone.
+
+## 3. Capability matrix: what each lane uniquely provides, and how each consumer already speaks "custom endpoint"
+
+The consolidation question is not "which lane to delete" but "which CLI dialect each lane
+is the only speaker of". Vendor docs for every consumer (all Tier A unless marked):
+
+| Consumer | Native custom-endpoint mechanism (FACT) | Wire protocol it needs | Source |
+|---|---|---|---|
+| Goose 1.47 | Declarative provider JSON in `~/.config/goose/custom_providers/<name>.json` with `engine: "openai"`, `base_url`, `api_key_env`, `models[]`; selected by `GOOSE_PROVIDER=<name>` or `goose configure`. Alternative: built-in `openai` provider + `OPENAI_HOST` (host only; Goose appends `/v1/chat/completions`). | Chat Completions | https://block-goose.mintlify.app/api/providers/custom ; https://block-goose.mintlify.app/concepts/providers ; https://github.com/block/goose/blob/main/documentation/docs/getting-started/providers.md (A, corroborated by 3 pages) |
+| Grok CLI (xAI Grok Build) | `~/.grok/config.toml` `[model."<alias>"]` with `model`, `base_url`, `env_key`, `api_backend` in `chat_completions | responses | messages`; **`[endpoints] models_base_url` / `GROK_MODELS_BASE_URL` pulls the whole model list from `{base_url}/models` and partial `[model.*]` overrides inherit that `base_url`**; five-layer config with `requirements.toml` as a fail-closed pin. | Chat Completions, Responses or Anthropic Messages (per model) | https://docs.x.ai/build/settings/reference ; https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md ; https://docs.x.ai/build/enterprise (A, corroborated) |
+| Fabric 1.4.470 | Fixed vendor list, each with `<VENDOR>_API_BASE_URL` / `<VENDOR>_API_KEY` in `~/.config/fabric/.env` (e.g. `OPENAI_API_BASE_URL`, `GROQ_API_BASE_URL`); `-V/--vendor` selects; per-pattern `FABRIC_MODEL_<PATTERN>=vendor|model`; "LM Studio", "GrokAI", "OpenRouter", "LiteLLM" are pre-named OpenAI-compatible vendors. | Chat Completions | https://github.com/danielmiessler/Fabric/blob/main/README.md (B) ; https://github.com/danielmiessler/Fabric/issues/883 (B, closed "already available") |
+| Codex CLI | `~/.codex/config.toml` `[model_providers.<id>]` with `base_url`, `env_key`; **`wire_api = "chat"` was removed in February 2026 - `responses` is the only value and a leftover `chat` entry hard-fails config load**; built-in `ollama` and `lmstudio` providers are defined with `WireApi::Responses`. | **Responses API only** | https://github.com/openai/codex/blob/main/codex-rs/model-provider-info/src/lib.rs lines 64, 94, 540-544 (A) ; https://github.com/openai/codex/issues/41816 (B) ; https://github.com/openai/codex/discussions/7782 (B, cited by both) |
+| Cursor (as *upstream*) | Official Cursor APIs are the Cloud Agents API (`POST /v1/agents`, `GET /v1/models` for *agent* model ids) and "are not a standalone model-inference or chat-completions API". A forum feature request for `POST /v1/chat/completions` is open. | n/a (no official chat endpoint) | https://cursor.com/docs/api ; https://cursor.com/docs/cloud-agent/api/endpoints (A) ; https://forum.cursor.com/t/openai-compatible-v1-chat-completions-for-cloud-api/164522 (C) |
+
+FACT (Tier A, cursor.com/docs/api, accessed 2026-09-02): no official Cursor `/v1/chat/completions`
+exists. INFERENCE: the L3 retirement trigger ("within 7 days of an official Cursor /v1 GA") has
+NOT fired; auth2api remains the only sanctioned Cursor bridge and every consolidation below
+keeps it as the single upstream for Cursor quota.
+
+INFERENCE (load-bearing for Section 4): the four auth2api consumers are not interchangeable
+because their wire protocols differ. Goose and Fabric need Chat Completions; Codex needs
+Responses; Grok can do either per model; Claude Code needs Anthropic Messages. A bridge that
+only speaks Chat Completions cannot serve `codex-cursor` at all after February 2026. Whether
+auth2api serves `/v1/responses` and `/v1/messages` today is UNVERIFIED from this checkout
+(its source is not in the repository); it is the first thing the migration must probe.
+
+Unique capabilities that must survive (RECOMMENDATION = keep each row):
+
+| Capability | Only provider today | Survives as |
+|---|---|---|
+| C1 Reach Cursor quota from any OpenAI-speaking CLI | auth2api :8317 (I1) | unchanged (L3) |
+| C2 Per-process opt-in to Cursor quota for one CLI run | `*-cursor` wrappers (I7) | one wrapper family (Section 4) |
+| C3 See / switch which backend each CLI is on | `ai-mode` / `ai-mode status` (I6) | the same wrapper family's `status` verb |
+| C4 Goose on Cursor quota | `goose-cursor-proxy` provider JSON (I9) | unchanged: it is already a registry-style entry (0 MB idle) |
+| C5 Grok CLI on Cursor quota | `[model."cursor-*"]` blocks (I10) | one `[endpoints]` block + zero-or-few overrides |
+| C6 Fabric patterns on Cursor quota | `fabric-cursor` (I7) | wrapper family + `.env` vendor slot |
+| C7 Chat with GLM-5.3 on the HF router from Claude as a tool | `glm53-space` MCP tool (I2) | generalised: one hosted-inference MCP whose *model* is a parameter (Section 4, F2) |
+| C8 Mini OpenAI proxy in front of HF router | `openai_proxy.py` (I2) | redundant with the router itself (the router *is* OpenAI-compatible); becomes a documented recipe, not code |
+| C9 HF Hub control plane | `huggingface` Hub MCP (I3) | unchanged |
+| C10 Space wire contract for the Qwen recipe | `qwen-space-tool-api/reference.md` (I5) | folded into `hosted-model-agents/recipes/`; skill folder becomes a redirect tombstone (it already is) |
+| C11 Local weights | ollama, lms (I12) | unchanged; both already expose OpenAI-compatible `/v1` (Codex's built-ins target them with the Responses API) |
