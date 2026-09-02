@@ -103,9 +103,10 @@ backend fan-out those hubs spawn is de-duplicated from per-session to once.
 
 ## Proof (the stdlib fallback is a PROVEN proof-of-concept)
 
-- **40 tests pass**, 96–99% line coverage (`python -m pytest tests/`) — 24 for the
-  stdlib host, 16 for the apply tool (incl. the `--transport sse` path). Includes a
-  CONTROL test asserting the status quo: **N direct stdio spawns → N distinct pids**.
+- **52 tests pass** (`python -m pytest tests/`) — 24 for the stdlib host (96–99% line
+  coverage), 16 for the apply tool (incl. the `--transport sse` path), 12 pinning the
+  fake Streamable-HTTP daemon below. Includes a CONTROL test asserting the status quo:
+  **N direct stdio spawns → N distinct pids**.
   (The mcp-proxy *transport* is proven separately by this session's live handshake;
   the supervisor's reap / `-Status` / `-DryRun` were verified on-box — see RESCOPE.md.)
 - **Live HTTP handshake** against the real `search-hub` over this host:
@@ -179,7 +180,29 @@ supervisor's `/healthz` status probe reads. In every case the differentiated par
 | `apply_registration.py` | apply-when-closed `~/.mcp.json` stdio→{http,sse} editor (`--transport`, dry-run/apply/revert) |
 | `smoke_stdio.py` | drive any stdio MCP command through the wrapper (serverInfo + tool count) |
 | `_fake_mcp_server.py` | minimal stdio MCP server used as the deterministic test fixture |
-| `tests/` | 40 tests: HTTP handshake, shared-child invariant, apply-tool round-trip incl. `--transport sse` |
+| `_fake_streamable_http_daemon.py` | the same fixture behind the MCP Python SDK's Streamable-HTTP session semantics (sessions, 404 + `-32600 Session not found` on a stale id, `restart()`, refused window, JSON/SSE, GET stream) — the stand-in for the Basic Memory `:8765` daemon |
+| `tests/` | 52 tests: HTTP handshake, shared-child invariant, apply-tool round-trip incl. `--transport sse`, fake-daemon contract |
+
+## Basic Memory (`:8765`): the shared daemon that restarts under you
+
+The daemon on `:8765` is already the shared-HTTP model this lane argues for — and it
+dies under RAM pressure near-daily, so its *clients* need to survive a restart.
+Cursor's does not (stale `mcp-session-id` → `-32600 Session not found`; stale
+`ECONNREFUSED`). The decision, the measured criteria matrix, the memory numbers and
+the deploy/rollback steps are in
+[`docs/plans/2026-09-02-basic-memory-transport-decision.md`](../../../docs/plans/2026-09-02-basic-memory-transport-decision.md):
+
+- **Chosen (shipped):** a registry-declared per-session stdio shim for Cursor,
+  `.agents/scripts/bm_cursor_http_session.py`, rendered by
+  `merge_generated_cursor_mcp.py` from `x_cursor.stdio_bridge` and tested against
+  `_fake_streamable_http_daemon.py` here.
+- **Proposed (needs owner approval, not built):** a session-healing reverse proxy in
+  *this* lane that owns `:8765` with the daemon moved behind it — uniform healing
+  for Cursor, Claude and Codex with one process and no client config change, at the
+  price of changing who binds `:8765`.
+
+Rehearse a client against a restarting daemon without touching the real one:
+`python _fake_streamable_http_daemon.py --port 8799 --mode sse --restart-every 20`.
 
 ## Dev
 
