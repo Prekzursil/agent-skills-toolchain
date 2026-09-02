@@ -12,23 +12,34 @@ any more (a decommissioned host such as ``api-inference.huggingface.co``).
 Rules this script keeps:
 
 * Feeds are INGESTED, never authoritative: the two registries
-  (``.agents/agents.json``, ``.agents/models.json``) are read-only here.
-* ETag / ``If-Modified-Since`` cache per feed; a 304 leaves the feed file untouched.
-* Last-known-good on ANY failure (5xx, timeout, parse error): the previous rows are
-  kept and the file is marked ``source_status: "stale"`` with an ``error``. Loopback
-  feeds are optional: unreachable is RECORDED as ``unreachable``, not an error.
-* An upstream outage is never a failure of this script. Exit 2 only for misuse or a
-  bug; the last stdout line is exactly one ``SUCCESS:catalog-sync ...`` or
-  ``FAILED:catalog-sync <reason>``.
+  (``.agents/agents.json``, ``.agents/models.json``) are read-only here. An endpoint
+  id becomes a feed FILE name only when it matches ``ENDPOINT_ID_RE``; anything else
+  (``../../models``) is a corrupt registry and exits 2 before a byte is written.
+* ETag / ``If-Modified-Since`` cache per feed, on the FIRST page only; a 304 leaves the
+  feed file untouched unless an earlier outage marked it stale, in which case it is
+  rewritten as ``ok`` with its original ``fetched_at``. The MCP Registry pages on
+  ``metadata.nextCursor``: continuation pages are plain GETs, capped at ``MAX_PAGES``,
+  and the feed file records ``pages`` and ``truncated``.
+* Last-known-good on ANY upstream failure (5xx, timeout, reset, parse error, refused
+  redirect, oversized body, failed continuation page): the previous rows are kept and
+  the file is marked ``source_status: "stale"`` with an ``error``. Loopback feeds are
+  optional: unreachable is RECORDED as ``unreachable``, not an error.
+* An upstream outage is never a failure of this script; a programming error is. Exit 2
+  only for misuse (argparse misuse included) or a bug; the last stdout line is exactly
+  one ``SUCCESS:catalog-sync ...`` or ``FAILED:catalog-sync <reason>``.
 * Network calls go through the module-level ``fetch`` callable so tests replace it
-  with recorded fixtures (``fixtures/catalog/``). No secret is needed or sent.
+  with recorded fixtures (``fixtures/catalog/``). ``fetch`` follows a redirect only
+  inside the origin's class (https off the box for hosted feeds, loopback for loopback
+  feeds) and refuses a body above ``MAX_BODY_BYTES``. No secret is needed or sent.
 """
 
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
+import re
 import sys
 import tempfile
 import urllib.error
@@ -36,9 +47,9 @@ import urllib.request
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
-from typing import Any
-from urllib.parse import urlparse
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import IO, Any, NoReturn
+from urllib.parse import urlencode, urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_ROOT = REPO_ROOT / "state" / "catalog"
@@ -51,6 +62,9 @@ LOOPBACK_TIMEOUT_SECONDS = 5.0
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 LIVE_STATUSES = frozenset({"live", "active"})
 REPORT_ITEM_LIMIT = 10
+MAX_PAGES = 20
+MAX_BODY_BYTES = 20 * 1024 * 1024
+ENDPOINT_ID_RE = re.compile(r"[a-z0-9][a-z0-9._-]*")
 
 # Closed row schema. ``version`` is carried so ``version_moves`` can be computed for
 # the MCP Registry feed; every other key is optional and omitted when unknown.
@@ -84,7 +98,16 @@ Parser = Callable[[Any], tuple[JsonRows, list[str]]]
 
 
 class CatalogSyncError(Exception):
-    """Misuse or a bug -- the only way this script exits 2."""
+    """Misuse or a bug -- exits 2 when it reaches ``main``."""
+
+
+class FeedRefused(CatalogSyncError):
+    """An upstream response this script refuses to consume (redirect out of the
+    origin's class, oversized body, failed continuation page). Recorded as an outage
+    of that feed, never exit 2."""
+
+
+UPSTREAM_ERRORS = (OSError, http.client.HTTPException, FeedRefused)
 
 
 @dataclass(frozen=True)
@@ -94,6 +117,7 @@ class Feed:
     parser: Parser
     optional: bool = False
     timeout: float = DEFAULT_TIMEOUT_SECONDS
+    paginated: bool = False
 
 
 @dataclass
@@ -105,6 +129,8 @@ class FeedResult:
     models: JsonRows
     hosts: list[str]
     error: str | None = None
+    pages: int | None = None
+    truncated: bool = False
 
     def document(self) -> dict[str, Any]:
         doc: dict[str, Any] = {
@@ -115,6 +141,9 @@ class FeedResult:
             "hosts": self.hosts,
             "models": self.models,
         }
+        if self.pages is not None:
+            doc["pages"] = self.pages
+            doc["truncated"] = self.truncated
         if self.error is not None:
             doc["error"] = self.error
         return doc
@@ -186,6 +215,19 @@ def validate_url(url: str) -> None:
     if parsed.scheme == "http" and parsed.hostname in LOOPBACK_HOSTS:
         return
     raise CatalogSyncError(f"feed url must be https or loopback http: {url}")
+
+
+def redirect_allowed(target: str, *, loopback: bool) -> bool:
+    """Whether a feed of the given class may be redirected to ``target``.
+
+    A loopback feed stays on the box; a hosted feed stays on https off the box
+    (``validate_url`` already refuses plain http there).
+    """
+    try:
+        validate_url(target)
+    except CatalogSyncError:
+        return False
+    return is_loopback(target) == loopback
 
 
 def _coerce_int(value: Any) -> int | None:
@@ -422,6 +464,7 @@ FEEDS: tuple[Feed, ...] = (
         "mcp-registry",
         "https://registry.modelcontextprotocol.io/v0.1/servers?version=latest",
         parse_mcp_registry,
+        paginated=True,
     ),
 )
 
@@ -431,7 +474,12 @@ def loopback_url(base_url: str) -> str:
 
 
 def loopback_feeds(registry: Mapping[str, Any]) -> list[Feed]:
-    """One optional feed per ENABLED endpoint whose ``baseUrl`` is loopback."""
+    """One optional feed per ENABLED endpoint whose ``baseUrl`` is loopback.
+
+    The endpoint id becomes the feed's file name under ``root``, so a row that would
+    become a feed must have an id matching ``ENDPOINT_ID_RE``; ``../../models`` is a
+    corrupt registry, refused before anything is fetched or written.
+    """
     feeds: list[Feed] = []
     endpoints = registry.get("endpoints")
     for endpoint_id, endpoint in (
@@ -442,9 +490,12 @@ def loopback_feeds(registry: Mapping[str, Any]) -> list[Feed]:
         base_url = endpoint.get("baseUrl")
         if not isinstance(base_url, str) or not is_loopback(base_url):
             continue
+        name = str(endpoint_id)
+        if ENDPOINT_ID_RE.fullmatch(name) is None:
+            raise CatalogSyncError(f"endpoint id is not a safe feed name: {name!r}")
         feeds.append(
             Feed(
-                str(endpoint_id),
+                name,
                 loopback_url(base_url),
                 parse_openai_models,
                 optional=True,
@@ -457,31 +508,76 @@ def loopback_feeds(registry: Mapping[str, Any]) -> list[Feed]:
 # ---------------------------------------------------------------------------
 # Transport (replaced by tests)
 # ---------------------------------------------------------------------------
+class _RedirectPolicy(urllib.request.HTTPRedirectHandler):
+    """Re-validate every redirect target against the origin's class before following."""
+
+    def __init__(self, loopback: bool) -> None:
+        super().__init__()
+        self.loopback = loopback
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: http.client.HTTPMessage,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        if not redirect_allowed(newurl, loopback=self.loopback):
+            fp.close()
+            raise FeedRefused(f"redirect to {newurl} refused")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch(
     url: str, headers: Mapping[str, str], timeout: float = DEFAULT_TIMEOUT_SECONDS
 ) -> tuple[int, dict[str, str], bytes]:
-    """GET ``url`` -> ``(status, headers, body)``. HTTP errors are returned as their
-    status; transport failures (refused, timeout, DNS) raise ``OSError``."""
+    """GET ``url`` -> ``(status, headers, body)``.
+
+    HTTP errors are returned as their status (body truncated to ``MAX_BODY_BYTES``);
+    transport failures (refused, timeout, DNS) raise ``OSError``; a redirect out of the
+    origin's class or a success body above ``MAX_BODY_BYTES`` raises ``FeedRefused``.
+    """
     request = urllib.request.Request(
         url, headers={"User-Agent": "catalog-sync/1 (+stdlib)", **headers}
     )
+    # Feed URLs are the fixed public catalogs plus loopback endpoints from the registry;
+    # validate_url() refuses anything else before this call and _RedirectPolicy keeps a
+    # redirect inside the same class.
+    opener = urllib.request.build_opener(_RedirectPolicy(is_loopback(url)))
     try:
-        # nosemgrep: python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected -- feed URLs are the fixed public catalogs plus loopback endpoints from the registry; validate_url() rejects anything else before this call
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, dict(response.headers.items()), response.read()
+        with opener.open(request, timeout=timeout) as response:
+            body = response.read(MAX_BODY_BYTES + 1)
+            if len(body) > MAX_BODY_BYTES:
+                raise FeedRefused(f"body exceeds {MAX_BODY_BYTES} bytes")
+            return response.status, dict(response.headers.items()), body
     except urllib.error.HTTPError as exc:
-        return exc.code, dict(exc.headers.items()), exc.read()
+        return exc.code, dict(exc.headers.items()), exc.read(MAX_BODY_BYTES)
 
 
 # ---------------------------------------------------------------------------
 # One feed: cache, fetch, normalise, last-known-good
 # ---------------------------------------------------------------------------
+def _plain_component(name: str) -> str:
+    """``name`` when it can only ever name a file directly under ``root``."""
+    if (
+        not name
+        or name in (".", "..")
+        or "\0" in name
+        or PurePosixPath(name).name != name
+        or PureWindowsPath(name).name != name
+    ):
+        raise CatalogSyncError(f"feed name is not a plain filename component: {name!r}")
+    return name
+
+
 def _feed_path(root: Path, feed: Feed) -> Path:
-    return root / f"{feed.name}.json"
+    return root / f"{_plain_component(feed.name)}.json"
 
 
 def _cache_path(root: Path, feed: Feed) -> Path:
-    return root / ".cache" / f"{feed.name}.headers.json"
+    return root / ".cache" / f"{_plain_component(feed.name)}.headers.json"
 
 
 def _last_known_good(root: Path, feed: Feed) -> dict[str, Any] | None:
@@ -492,18 +588,33 @@ def _last_known_good(root: Path, feed: Feed) -> dict[str, Any] | None:
 
 
 def _carry_forward(
-    feed: Feed, previous: dict[str, Any] | None, status: str, error: str
+    feed: Feed, previous: dict[str, Any] | None, status: str, error: str | None
 ) -> FeedResult:
-    """The last-known-good rows (or nothing) under a non-ok status."""
+    """The last-known-good rows (or nothing) under ``status``; ``pages`` and
+    ``truncated`` describe the ingest that produced those rows, so they travel too."""
+    if previous is None:
+        return FeedResult(feed.name, feed.url, status, None, [], [], error)
+    pages = previous.get("pages")
     return FeedResult(
         feed=feed.name,
         url=feed.url,
         status=status,
-        fetched_at=previous.get("fetched_at") if previous else None,
-        models=list(previous["models"]) if previous else [],
-        hosts=list(previous.get("hosts") or []) if previous else [],
+        fetched_at=previous.get("fetched_at"),
+        models=list(previous["models"]),
+        hosts=list(previous.get("hosts") or []),
         error=error,
+        pages=pages if isinstance(pages, int) else None,
+        truncated=bool(previous.get("truncated")),
     )
+
+
+def _publish(path: Path, result: FeedResult) -> FeedResult:
+    atomic_write_json(path, result.document())
+    return result
+
+
+def _exception_text(exc: BaseException) -> str:
+    return f"{type(exc).__name__}: {exc}"
 
 
 def _conditional_headers(cache: dict[str, Any] | None) -> dict[str, str]:
@@ -523,73 +634,118 @@ def _header(headers: Mapping[str, str], name: str) -> str | None:
     return None
 
 
+def _decode(body: bytes) -> Any:
+    return json.loads(body.decode("utf-8", errors="replace"))
+
+
+def _next_cursor(payload: Any) -> str | None:
+    metadata = payload.get("metadata") if isinstance(payload, dict) else None
+    cursor = metadata.get("nextCursor") if isinstance(metadata, dict) else None
+    return cursor if isinstance(cursor, str) and cursor else None
+
+
+def _page_url(url: str, cursor: str) -> str:
+    return url + ("&" if "?" in url else "?") + urlencode({"cursor": cursor})
+
+
+def _ingest(feed: Feed, body: bytes) -> tuple[JsonRows, list[str], int | None, bool]:
+    """Parse the first page and, for a paginated feed, follow ``metadata.nextCursor``.
+
+    Continuation pages are plain GETs (no conditional headers, validators ignored).
+    A non-2xx continuation page refuses the whole ingest so a partial catalog is never
+    published; reaching ``MAX_PAGES`` keeps what was read and marks it ``truncated``.
+    Returns ``(rows, hosts, pages, truncated)``; ``pages`` is None for a single-page feed.
+    """
+    payload = _decode(body)
+    rows, hosts = feed.parser(payload)
+    if not feed.paginated:
+        return rows, hosts, None, False
+    pages = 1
+    cursor = _next_cursor(payload)
+    while cursor is not None:
+        if pages >= MAX_PAGES:
+            return rows, hosts, pages, True
+        status, _headers, page_body = fetch(
+            _page_url(feed.url, cursor), {}, feed.timeout
+        )
+        if not 200 <= status < 300:
+            raise FeedRefused(f"page {pages + 1}: http {status}")
+        payload = _decode(page_body)
+        more_rows, more_hosts = feed.parser(payload)
+        rows.extend(more_rows)
+        hosts.extend(more_hosts)
+        pages += 1
+        cursor = _next_cursor(payload)
+    return rows, hosts, pages, False
+
+
 def sync_feed(
     feed: Feed, root: Path, *, offline: bool = False, now: str | None = None
 ) -> FeedResult:
     """Fetch one feed into ``root/<feed>.json`` honouring the cache and last-known-good.
 
-    Returns the result that went into the file (or, for a 304, the untouched file).
+    The ETag / ``If-Modified-Since`` validators cover the FIRST page only: a 304 means
+    the rows on disk (every page of the last full ingest) are still current, and the
+    continuation pages of a paginated feed are refetched in full on any 200. A 304
+    that follows an outage rewrites the file as ``ok`` (same ``fetched_at``) so the
+    ``stale`` marker does not outlive the recovery.
+
+    Returns the result that went into the file (or, for a 304, the file's rows).
     """
+    path = _feed_path(root, feed)
     validate_url(feed.url)
     now = now or utc_now_iso()
     previous = _last_known_good(root, feed)
     failure_status = "unreachable" if feed.optional else "stale"
     cache_path = _cache_path(root, feed)
 
+    def failed(error: str) -> FeedResult:
+        return _publish(path, _carry_forward(feed, previous, failure_status, error))
+
     if offline:
-        result = _carry_forward(feed, previous, "stale", "offline")
-        atomic_write_json(_feed_path(root, feed), result.document())
-        return result
+        return _publish(path, _carry_forward(feed, previous, "stale", "offline"))
 
     try:
         status, headers, body = fetch(
             feed.url, _conditional_headers(load_json_object(cache_path)), feed.timeout
         )
-    except Exception as exc:  # transport failure: refused, timeout, reset, DNS
-        result = _carry_forward(
-            feed, previous, failure_status, f"{type(exc).__name__}: {exc}"
-        )
-        atomic_write_json(_feed_path(root, feed), result.document())
-        return result
+    except UPSTREAM_ERRORS as exc:
+        return failed(_exception_text(exc))
 
     if status == 304:
-        if previous is not None:
-            return FeedResult(
-                feed=feed.name,
-                url=feed.url,
-                status="unchanged",
-                fetched_at=previous.get("fetched_at"),
-                models=list(previous["models"]),
-                hosts=list(previous.get("hosts") or []),
+        if previous is None:
+            cache_path.unlink(missing_ok=True)
+            return failed("http 304 without a cached body")
+        if previous.get("source_status") != "ok":
+            atomic_write_json(
+                path, _carry_forward(feed, previous, "ok", None).document()
             )
-        cache_path.unlink(missing_ok=True)
-        result = _carry_forward(
-            feed, None, failure_status, "http 304 without a cached body"
-        )
-        atomic_write_json(_feed_path(root, feed), result.document())
-        return result
+        return _carry_forward(feed, previous, "unchanged", None)
 
     if not 200 <= status < 300:
-        result = _carry_forward(feed, previous, failure_status, f"http {status}")
-        atomic_write_json(_feed_path(root, feed), result.document())
-        return result
+        return failed(f"http {status}")
 
     try:
-        raw_rows, hosts = feed.parser(
-            json.loads(body.decode("utf-8", errors="replace"))
-        )
+        raw_rows, hosts, pages, truncated = _ingest(feed, body)
+    except UPSTREAM_ERRORS as exc:
+        return failed(_exception_text(exc))
     except (ValueError, CatalogSyncError) as exc:
-        result = _carry_forward(
-            feed, previous, failure_status, f"parse: {type(exc).__name__}: {exc}"
-        )
-        atomic_write_json(_feed_path(root, feed), result.document())
-        return result
+        return failed(f"parse: {_exception_text(exc)}")
 
     models = sorted(
         (row for row in map(normalise_row, raw_rows) if row is not None), key=sort_key
     )
-    result = FeedResult(feed.name, feed.url, "ok", now, models, sorted(set(hosts)))
-    atomic_write_json(_feed_path(root, feed), result.document())
+    result = FeedResult(
+        feed.name,
+        feed.url,
+        "ok",
+        now,
+        models,
+        sorted(set(hosts)),
+        pages=pages,
+        truncated=truncated,
+    )
+    atomic_write_json(path, result.document())
     etag = _header(headers, "ETag")
     last_modified = _header(headers, "Last-Modified")
     if etag or last_modified:
@@ -618,6 +774,9 @@ def build_index(results: Mapping[str, FeedResult], *, now: str) -> dict[str, Any
             "fetched_at": result.fetched_at,
             "count": len(result.models),
         }
+        if result.pages is not None:
+            entry["pages"] = result.pages
+            entry["truncated"] = result.truncated
         if result.error is not None:
             entry["error"] = result.error
         feeds[name] = entry
@@ -723,7 +882,10 @@ def _describe(item: Any) -> str:
 def render_report(diff: Mapping[str, Any], index: Mapping[str, Any]) -> str:
     lines = [f"catalog-sync diff {diff.get('generated_at', '')}".rstrip()]
     for name, entry in sorted(index.get("feeds", {}).items()):
-        lines.append(f"  {name}: {entry['source_status']} ({entry['count']} models)")
+        line = f"  {name}: {entry['source_status']} ({entry['count']} models)"
+        if entry.get("truncated"):
+            line += f" [truncated at {entry['pages']} pages]"
+        lines.append(line)
     for kind in DIFF_KINDS:
         items = list(diff.get(kind, []))
         lines.append(f"{kind}: {len(items)}")
@@ -754,15 +916,14 @@ def _stored_result(feed: Feed, root: Path) -> FeedResult | None:
     previous = _last_known_good(root, feed)
     if previous is None:
         return None
-    return FeedResult(
-        feed=feed.name,
-        url=str(previous.get("url") or feed.url),
-        status=str(previous.get("source_status") or "stale"),
-        fetched_at=previous.get("fetched_at"),
-        models=list(previous["models"]),
-        hosts=list(previous.get("hosts") or []),
-        error=previous.get("error"),
+    stored = _carry_forward(
+        feed,
+        previous,
+        str(previous.get("source_status") or "stale"),
+        previous.get("error"),
     )
+    stored.url = str(previous.get("url") or feed.url)
+    return stored
 
 
 def run(
@@ -829,8 +990,17 @@ def _success_line(counts: Mapping[str, int]) -> str:
     )
 
 
+class _ArgumentParser(argparse.ArgumentParser):
+    """Command-line misuse ends on the same ``FAILED:catalog-sync`` line (exit 2)."""
+
+    def error(self, message: str) -> NoReturn:
+        self.print_usage(sys.stderr)
+        print(f"FAILED:catalog-sync {message}")
+        sys.exit(2)
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
+    parser = _ArgumentParser(
         prog="catalog_sync.py",
         description="Daily catalog sync; the diff against the previous index is the product.",
     )

@@ -9,11 +9,14 @@ DEFAULT ``fetch`` implementation itself.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import io
 import json
 import socket
 import sys
 import threading
+import urllib.request
+from collections.abc import Callable
 from contextlib import redirect_stdout
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -835,6 +838,20 @@ class _Handler(BaseHTTPRequestHandler):
         elif self.path == "/cached":
             self.send_response(304)
             self.end_headers()
+        elif self.path == "/redirect-local":
+            self.send_response(302)
+            self.send_header("Location", "/ok")
+            self.end_headers()
+        elif self.path == "/redirect-off-box":
+            self.send_response(302)
+            self.send_header("Location", "http://evil.example/models")
+            self.end_headers()
+        elif self.path == "/big":
+            body = b"x" * 65
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         else:
             body = b"nope"
             self.send_response(500)
@@ -877,3 +894,391 @@ def test_default_fetch_raises_when_nothing_listens() -> None:
         port = probe.getsockname()[1]
     with pytest.raises(OSError):
         cs.fetch(f"http://127.0.0.1:{port}/v1/models", {}, timeout=1.0)
+
+
+# ---------------------------------------------------------------------------
+# Review fix 1: an endpoint id is a file name, so it must be a plain component
+# ---------------------------------------------------------------------------
+def test_hostile_endpoint_id_cannot_traverse_out_of_root(
+    fake: FakeFetch, tmp_path: Path
+) -> None:
+    """``--root <home>/.agents/state/catalog`` plus an endpoint id ``../../models``
+    used to overwrite ``<home>/.agents/models.json`` -- the registry being read."""
+    home = tmp_path / "home"
+    registry = _registry()
+    registry["endpoints"]["../../models"] = {
+        "enabled": True,
+        "baseUrl": "http://127.0.0.1:9/v1",
+    }
+    decoy = home / ".agents" / "models.json"
+    decoy.parent.mkdir(parents=True)
+    decoy.write_text(json.dumps(registry), encoding="utf-8")
+    root = home / ".agents" / "state" / "catalog"
+    assert (root / "../../models.json").resolve() == decoy.resolve()
+    before = hashlib.sha256(decoy.read_bytes()).hexdigest()
+
+    rc, out = _run(root, decoy)
+
+    assert rc == 2
+    assert out.strip().splitlines()[-1] == (
+        "FAILED:catalog-sync endpoint id is not a safe feed name: '../../models'"
+    )
+    assert hashlib.sha256(decoy.read_bytes()).hexdigest() == before
+    assert not root.exists()
+    assert fake.calls == []
+
+
+@pytest.mark.parametrize(
+    "endpoint_id",
+    ["../../models", "..", "Ollama", "my endpoint", "-lead", ".hidden", "a/b", ""],
+)
+def test_loopback_feeds_refuses_an_unsafe_endpoint_id(endpoint_id: str) -> None:
+    registry = {
+        "endpoints": {
+            endpoint_id: {"enabled": True, "baseUrl": "http://127.0.0.1:9/v1"}
+        }
+    }
+    with pytest.raises(cs.CatalogSyncError, match="not a safe feed name"):
+        cs.loopback_feeds(registry)
+
+
+def test_loopback_feeds_checks_only_rows_that_become_feeds() -> None:
+    registry = {
+        "endpoints": {
+            "a.b_c-d0": {"enabled": True, "baseUrl": "http://127.0.0.1:9/v1"},
+            "../disabled": {"enabled": False, "baseUrl": "http://127.0.0.1:9/v1"},
+            "../hosted": {"enabled": True, "baseUrl": "https://x.example/v1"},
+        }
+    }
+    assert [f.name for f in cs.loopback_feeds(registry)] == ["a.b_c-d0"]
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["../../models", "a/b", "a\\b", "C:x", "/abs", "..", ".", "", "a\0b", "dir/"],
+)
+def test_feed_paths_refuse_a_name_that_is_not_a_plain_component(
+    tmp_path: Path, name: str
+) -> None:
+    feed = cs.Feed(name, "http://127.0.0.1:9/v1/models", cs.parse_openai_models, True)
+    root = tmp_path / "catalog"
+    with pytest.raises(cs.CatalogSyncError, match="plain filename component"):
+        cs.sync_feed(feed, root, now=NOW)
+    with pytest.raises(cs.CatalogSyncError, match="plain filename component"):
+        cs._cache_path(root, feed)
+    assert list(tmp_path.iterdir()) == []
+
+
+# ---------------------------------------------------------------------------
+# Review fix 2: the MCP Registry pages on metadata.nextCursor
+# ---------------------------------------------------------------------------
+def _serve_two_pages(fake: FakeFetch) -> str:
+    first = cs.FEEDS[3].url
+    second = first + "&cursor=page-2"
+    fake.serve_fixture(first, "mcp-registry-page1.json", ETag='"p1"')
+    fake.serve_fixture(second, "mcp-registry-page2.json")
+    return second
+
+
+def test_mcp_registry_follows_next_cursor_across_pages(
+    fake: FakeFetch, tmp_path: Path, registry_path: Path
+) -> None:
+    second = _serve_two_pages(fake)
+    root = tmp_path / "catalog"
+
+    summary = cs.run(root, registry_path, feed_names=["mcp-registry"], now=NOW)
+
+    feed = json.loads((root / "mcp-registry.json").read_text(encoding="utf-8"))
+    assert [row["id"] for row in feed["models"]] == [
+        "io.github.example/filesystem",
+        "io.github.example/legacy-search",
+        "io.github.example/repomix",
+        "io.github.example/search-hub",
+    ]
+    assert (feed["source_status"], feed["pages"], feed["truncated"]) == (
+        "ok",
+        2,
+        False,
+    )
+    assert summary["feeds"]["mcp-registry"] == {
+        "source_status": "ok",
+        "fetched_at": NOW,
+        "count": 4,
+        "pages": 2,
+        "truncated": False,
+    }
+    assert [c[0] for c in fake.calls] == [cs.FEEDS[3].url, second]
+    assert fake.calls[1][1] == {}
+    cache = json.loads((root / ".cache" / "mcp-registry.headers.json").read_text())
+    assert cache["etag"] == '"p1"'
+
+    fake.serve(cs.FEEDS[3].url, 304)
+    later = "2026-09-03T03:30:00+00:00"
+    summary = cs.run(root, registry_path, feed_names=["mcp-registry"], now=later)
+
+    assert fake.calls[-1] == (cs.FEEDS[3].url, {"If-None-Match": '"p1"'})
+    assert summary["feeds"]["mcp-registry"] == {
+        "source_status": "unchanged",
+        "fetched_at": NOW,
+        "count": 4,
+        "pages": 2,
+        "truncated": False,
+    }
+
+
+def test_mcp_registry_page_cap_marks_the_feed_truncated(
+    fake: FakeFetch, tmp_path: Path, registry_path: Path
+) -> None:
+    first = cs.FEEDS[3].url
+    fake.serve_fixture(first, "mcp-registry-page1.json")
+    fake.serve_fixture(first + "&cursor=page-2", "mcp-registry-page1.json")
+    root = tmp_path / "catalog"
+
+    rc, out = _run(root, registry_path, "--feeds", "mcp-registry")
+
+    assert rc == 0
+    feed = json.loads((root / "mcp-registry.json").read_text(encoding="utf-8"))
+    assert (feed["pages"], feed["truncated"]) == (cs.MAX_PAGES, True)
+    assert len(feed["models"]) == 2 * cs.MAX_PAGES
+    assert len(fake.calls) == cs.MAX_PAGES
+    assert (
+        f"mcp-registry: ok ({2 * cs.MAX_PAGES} models) "
+        f"[truncated at {cs.MAX_PAGES} pages]"
+    ) in out
+
+
+@pytest.mark.parametrize(
+    "failure, error",
+    [
+        (("status", 500), "FeedRefused: page 2: http 500"),
+        (("exc", ConnectionResetError("reset")), "ConnectionResetError: reset"),
+        (("body", b"{not json"), "parse: JSONDecodeError: "),
+    ],
+)
+def test_a_failed_continuation_page_keeps_last_known_good(
+    fake: FakeFetch,
+    tmp_path: Path,
+    registry_path: Path,
+    failure: tuple[str, Any],
+    error: str,
+) -> None:
+    second = _serve_two_pages(fake)
+    root = tmp_path / "catalog"
+    cs.run(root, registry_path, feed_names=["mcp-registry"], now=NOW)
+
+    kind, value = failure
+    if kind == "status":
+        fake.serve(second, value)
+    elif kind == "body":
+        fake.serve(second, 200, value)
+    else:
+        fake.raise_for(second, value)
+    later = "2026-09-03T03:30:00+00:00"
+    summary = cs.run(root, registry_path, feed_names=["mcp-registry"], now=later)
+
+    feed = json.loads((root / "mcp-registry.json").read_text(encoding="utf-8"))
+    assert feed["source_status"] == "stale"
+    assert feed["error"].startswith(error)
+    assert len(feed["models"]) == 4
+    assert (feed["fetched_at"], feed["pages"], feed["truncated"]) == (NOW, 2, False)
+    assert summary["counts"]["stale"] == 1
+
+
+def test_only_a_paginated_feed_follows_next_cursor(
+    fake: FakeFetch, tmp_path: Path, registry_path: Path
+) -> None:
+    assert [f.name for f in cs.FEEDS if f.paginated] == ["mcp-registry"]
+    url = cs.FEEDS[1].url
+    body = {"data": [{"id": "a/b"}], "metadata": {"nextCursor": "page-2"}}
+    fake.serve(url, 200, json.dumps(body).encode("utf-8"))
+    root = tmp_path / "catalog"
+
+    cs.run(root, registry_path, feed_names=["openrouter"], now=NOW)
+
+    assert [c[0] for c in fake.calls] == [url]
+    feed = json.loads((root / "openrouter.json").read_text(encoding="utf-8"))
+    assert "pages" not in feed and "truncated" not in feed
+
+
+def test_next_cursor_and_page_url_helpers() -> None:
+    assert cs._next_cursor({"metadata": {"nextCursor": "a b"}}) == "a b"
+    assert cs._next_cursor({"metadata": {"nextCursor": ""}}) is None
+    assert cs._next_cursor({"metadata": {"nextCursor": 5}}) is None
+    assert cs._next_cursor({"metadata": "junk"}) is None
+    assert cs._next_cursor([]) is None
+    assert cs._page_url("https://h/p", "a b") == "https://h/p?cursor=a+b"
+    assert cs._page_url("https://h/p?v=1", "c&d") == "https://h/p?v=1&cursor=c%26d"
+
+
+# ---------------------------------------------------------------------------
+# Review fix 3: a 304 after an outage clears the stale marker
+# ---------------------------------------------------------------------------
+def test_304_after_an_outage_clears_the_stale_marker(
+    fake: FakeFetch, tmp_path: Path, registry_path: Path
+) -> None:
+    url = cs.FEEDS[0].url
+    fake.serve_fixture(url, "models-dev.json", ETag='"v1"')
+    root = tmp_path / "catalog"
+    cs.run(root, registry_path, feed_names=["models-dev"], now=NOW)
+    good = json.loads((root / "models-dev.json").read_text(encoding="utf-8"))
+
+    fake.serve(url, 500)
+    cs.run(
+        root, registry_path, feed_names=["models-dev"], now="2026-09-03T03:30:00+00:00"
+    )
+    outage = json.loads((root / "models-dev.json").read_text(encoding="utf-8"))
+    assert (outage["source_status"], outage["error"]) == ("stale", "http 500")
+
+    fake.serve(url, 304)
+    summary = cs.run(
+        root, registry_path, feed_names=["models-dev"], now="2026-09-04T03:30:00+00:00"
+    )
+
+    assert fake.calls[-1][1]["If-None-Match"] == '"v1"'
+    assert summary["feeds"]["models-dev"]["source_status"] == "unchanged"
+    recovered = json.loads((root / "models-dev.json").read_text(encoding="utf-8"))
+    assert recovered == good
+    index = json.loads((root / "index.json").read_text(encoding="utf-8"))
+    assert "error" not in index["feeds"]["models-dev"]
+
+
+# ---------------------------------------------------------------------------
+# Review fix 4: only upstream conditions are outages; a bug still exits 2
+# ---------------------------------------------------------------------------
+def test_a_bug_in_the_transport_is_failed_exit_2_not_an_outage(
+    fake: FakeFetch, tmp_path: Path, registry_path: Path
+) -> None:
+    fake.raise_for(cs.FEEDS[1].url, TypeError("fetch() got an unexpected keyword"))
+    root = tmp_path / "catalog"
+
+    rc, out = _run(root, registry_path, "--feeds", "openrouter")
+
+    assert rc == 2
+    assert out.strip().splitlines()[-1] == (
+        "FAILED:catalog-sync TypeError: fetch() got an unexpected keyword"
+    )
+    assert not (root / "openrouter.json").exists()
+    assert not (root / "index.json").exists()
+
+
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda: OSError("connection reset"),
+        lambda: TimeoutError("timed out"),
+        lambda: http.client.IncompleteRead(b"partial"),
+        lambda: http.client.RemoteDisconnected("closed"),
+        lambda: cs.FeedRefused("redirect to http://models.dev/x refused"),
+    ],
+    ids=["OSError", "TimeoutError", "IncompleteRead", "RemoteDisconnected", "Refused"],
+)
+def test_upstream_transport_conditions_are_recorded_as_outages(
+    fake: FakeFetch,
+    tmp_path: Path,
+    registry_path: Path,
+    make: Callable[[], Exception],
+) -> None:
+    assert cs.UPSTREAM_ERRORS == (OSError, http.client.HTTPException, cs.FeedRefused)
+    assert issubclass(cs.FeedRefused, cs.CatalogSyncError)
+    exc = make()
+    url = cs.FEEDS[1].url
+    root = tmp_path / "catalog"
+    cs.run(root, registry_path, feed_names=["openrouter"], now=NOW)
+    fake.raise_for(url, exc)
+
+    rc, out = _run(root, registry_path, "--feeds", "openrouter")
+
+    assert rc == 0
+    assert "stale=1" in out
+    feed = json.loads((root / "openrouter.json").read_text(encoding="utf-8"))
+    assert feed["source_status"] == "stale"
+    assert feed["error"].startswith(f"{type(exc).__name__}:")
+    assert len(feed["models"]) == 4
+
+
+# ---------------------------------------------------------------------------
+# Review fix 5: argparse misuse ends on the FAILED line
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    "argv, needle",
+    [
+        (["--bogus"], "unrecognized arguments: --bogus"),
+        (["--root"], "argument --root: expected one argument"),
+        (["--feeds"], "argument --feeds: expected one argument"),
+    ],
+)
+def test_argparse_misuse_prints_the_failed_line_and_exits_2(
+    argv: list[str], needle: str
+) -> None:
+    buf = io.StringIO()
+    with redirect_stdout(buf), pytest.raises(SystemExit) as info:
+        cs.main(argv)
+    assert info.value.code == 2
+    line = buf.getvalue().strip().splitlines()[-1]
+    assert line == f"FAILED:catalog-sync {needle}"
+
+
+# ---------------------------------------------------------------------------
+# Review fix 7: redirects stay in the origin's class; bodies are capped
+# ---------------------------------------------------------------------------
+def test_default_fetch_follows_a_redirect_that_stays_on_the_box(
+    local_server: str,
+) -> None:
+    status, _headers, body = cs.fetch(f"{local_server}/redirect-local", {}, timeout=5.0)
+    assert (status, body) == (200, b'{"data": []}')
+
+
+def test_default_fetch_refuses_a_redirect_off_the_box(local_server: str) -> None:
+    with pytest.raises(
+        cs.FeedRefused, match="redirect to http://evil.example/models refused"
+    ):
+        cs.fetch(f"{local_server}/redirect-off-box", {}, timeout=5.0)
+
+
+def test_redirect_policy_for_hosted_feeds_requires_https_off_the_box() -> None:
+    assert cs.redirect_allowed("https://cdn.models.dev/api.json", loopback=False)
+    assert not cs.redirect_allowed("http://models.dev/api.json", loopback=False)
+    assert not cs.redirect_allowed("https://127.0.0.1:8901/v1/models", loopback=False)
+    assert not cs.redirect_allowed("ftp://models.dev/api.json", loopback=False)
+    assert cs.redirect_allowed("http://localhost:11434/v1/models", loopback=True)
+    assert not cs.redirect_allowed("https://evil.example/v1/models", loopback=True)
+
+    handler = cs._RedirectPolicy(loopback=False)
+    request = urllib.request.Request("https://models.dev/api.json")
+    response = io.BytesIO(b"moved")
+    with pytest.raises(
+        cs.FeedRefused, match="redirect to http://models.dev/api.json refused"
+    ):
+        handler.redirect_request(
+            request,
+            response,
+            302,
+            "Found",
+            http.client.HTTPMessage(),
+            "http://models.dev/api.json",
+        )
+    assert response.closed
+    moved = handler.redirect_request(
+        request,
+        io.BytesIO(),
+        302,
+        "Found",
+        http.client.HTTPMessage(),
+        "https://cdn.models.dev/api.json",
+    )
+    assert moved is not None
+    assert moved.full_url == "https://cdn.models.dev/api.json"
+
+
+def test_default_fetch_refuses_an_oversized_body(
+    local_server: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cs, "MAX_BODY_BYTES", 64)
+    with pytest.raises(cs.FeedRefused, match="body exceeds 64 bytes"):
+        cs.fetch(f"{local_server}/big", {}, timeout=5.0)
+    status, _headers, body = cs.fetch(f"{local_server}/ok", {}, timeout=5.0)
+    assert (status, body) == (200, b'{"data": []}')
+
+    monkeypatch.setattr(cs, "MAX_BODY_BYTES", 2)
+    status, _headers, body = cs.fetch(f"{local_server}/boom", {}, timeout=5.0)
+    assert (status, body) == (500, b"no")
