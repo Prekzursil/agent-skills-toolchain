@@ -391,7 +391,7 @@ def main() -> int:
                     "local-validate-workflow",
                     "command-center/schema/validate_workflow.py",
                     "prose-source",
-                    "duplicate stage ids",
+                    "duplicate stage id",
                     now,
                 ),
             ],

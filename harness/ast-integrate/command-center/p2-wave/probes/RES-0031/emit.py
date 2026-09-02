@@ -437,6 +437,12 @@ def main() -> int:
             "cloud_ok": False,
         },
     }
+    # Mirror the domain rows to the artifact root: the probes read `intersection`
+    # and `cells` there, while the receipt shape carries them under `report`.
+    # receipt_core is additionalProperties:true, so the root copies are legal.
+    for key in ("intersection", "cells", "unique_sets", "feature_sets", "presence_intersection"):
+        if key in doc["report"] and key not in doc:
+            doc[key] = doc["report"][key]
 
     errs = S.errors(doc)
     if errs:

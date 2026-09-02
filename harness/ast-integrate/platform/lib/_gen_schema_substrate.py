@@ -69,10 +69,41 @@ META_MIRRORS = {
 CANONICAL_RECEIPT = "command-center/schema/receipt.schema.json"
 
 
+#: --force: overwrite a hand-authored file that sits on a generated path.
+FORCE = False
+#: outputs skipped because a unit hand-authored real constraints at that path.
+PRESERVED: list[str] = []
+
+
+def _generator_owned(text: str, rel: str) -> bool:
+    """True when the bytes at a generated path were written by this generator.
+
+    Every output carries one of these markers (shims: x-generated-by; profiles and
+    registry: a GENERATED $comment naming this file; the meta alias: x-alias-of; the
+    meta mirror: its path). A catalog-declared path whose file carries none was
+    hand-authored by a unit (measured 2026-09-02: claim-record CC-0017,
+    discrepancy-record CNF-0001, wfa-schema-pack WFA-0001) and a blind regen would
+    silently revert that unit's constraints -- the exact defect the docstring warns
+    about. Such files are preserved unless --force is given.
+    """
+    return (
+        rel in META_MIRRORS
+        or "x-generated-by" in text
+        or "_gen_schema_substrate.py" in text
+        or "x-alias-of" in text
+    )
+
+
 def write_json(rel: str, obj) -> int:
     path = os.path.join(OUT_ROOT, rel)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     text = json.dumps(obj, indent=2, sort_keys=False, ensure_ascii=False) + "\n"
+    if not FORCE and os.path.isfile(path):
+        with open(path, "rb") as fh:
+            existing = fh.read().decode("utf-8", "replace")
+        if existing != text and not _generator_owned(existing, rel):
+            PRESERVED.append(rel)
+            return 0
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)
     return len(text.encode("utf-8"))
@@ -248,8 +279,20 @@ def main(argv: list[str] | None = None) -> int:
             "over -- and thereby silently repairing -- the real tree."
         ),
     )
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "Overwrite a hand-authored file that sits on a generated path. Default: such "
+            "files are preserved and listed, so a regen cannot silently revert a unit's "
+            "constraints."
+        ),
+    )
     ns = ap.parse_args(sys.argv[1:] if argv is None else argv)
     OUT_ROOT = os.path.abspath(ns.out_root) if ns.out_root else REPO
+    global FORCE
+    FORCE = bool(ns.force)
+    PRESERVED.clear()
 
     if not os.path.isfile(
         CATALOG
@@ -417,7 +460,14 @@ def main(argv: list[str] | None = None) -> int:
     }
     written.append((REGISTRY_REL, write_json(REGISTRY_REL, registry)))
 
+    written = [(rel, b) for rel, b in written if rel not in PRESERVED]
     print(f"generated {len(written)} files")
+    if PRESERVED:
+        print(
+            f"  preserved (hand-authored)  : {len(PRESERVED)} -- "
+            + ", ".join(PRESERVED)
+            + "  (pass --force to overwrite)"
+        )
     print(f"  out root                   : {OUT_ROOT}")
     print(f"  physical class definitions : {len(class_names)}")
     print(f"  logical ids (shims+mirrors): {len(entries)}")

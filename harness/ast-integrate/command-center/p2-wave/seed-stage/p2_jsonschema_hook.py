@@ -219,7 +219,12 @@ def _receipt_copy(doc: object, artifact_class: str = "") -> object:
     if not _looks_like_receipt(doc):
         return doc
     out = copy.deepcopy(doc)
-    extras = {k: out.pop(k) for k in list(out) if k not in CORE}
+    # receipt_core is additionalProperties:true, so non-core root keys are legal as
+    # written. Keep them in place -- probes bind root properties for their
+    # discriminators (RES-0031 binds `intersection` and expects the adjective
+    # mutant rejected; popping the key hid it from that binding) -- and mirror
+    # them into extensions.legacy_root for consumers that read the legacy channel.
+    extras = {k: copy.deepcopy(out[k]) for k in list(out) if k not in CORE}
     ext = out.get("extensions") if isinstance(out.get("extensions"), dict) else {}
     if extras:
         legacy = ext.get("legacy_root") if isinstance(ext.get("legacy_root"), dict) else {}

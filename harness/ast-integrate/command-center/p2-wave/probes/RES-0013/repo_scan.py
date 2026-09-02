@@ -105,7 +105,10 @@ def classify_row(row: dict[str, Any], hits: dict[str, list[str]], manifest: dict
         reason = "CODED-AGAINST:@-mention MCP enable still present"
     elif surface in {"hook", "mcp", "skill", "plugin", "mixed"}:
         reason = "NOT-USED: plugin payload does not ship that host contract"
-    floor = str(manifest.get("min_client_version") or "")
+    # plugin.json moved the client floor from a root min_client_version key to
+    # compatibility.min_client; read either spelling of the same field.
+    compat = manifest.get("compatibility") if isinstance(manifest.get("compatibility"), dict) else {}
+    floor = str(manifest.get("min_client_version") or compat.get("min_client") or "")
     return {
         "repo_still_uses_old_contract": old,
         "repo_status": "CODED-AGAINST" if old else "NOT-USED",

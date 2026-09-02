@@ -311,7 +311,7 @@ def main() -> int:
                 "schema-garbage",
             ],
             "plugin_min_client_line": line_of(
-                ".claude-plugin/plugin.json", "min_client_version"
+                ".claude-plugin/plugin.json", "min_client"
             ),
             "definition_line": line_of(
                 "command-center/p2-wave/probes/RES-0013/extractor.py",
@@ -475,6 +475,12 @@ def main() -> int:
             },
         ],
     }
+    # Mirror the domain rows to the artifact root: probe2 reads corroborated_count
+    # and seeded_control there while the receipt shape carries them under report.
+    # receipt_core is additionalProperties:true, so the root copies are legal.
+    for key in ("register", "corroborated_count", "seeded_control", "row_count"):
+        if key in doc["report"] and key not in doc:
+            doc[key] = doc["report"][key]
 
     errors = SL.errors_of(doc)
     if errors:

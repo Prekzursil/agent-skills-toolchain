@@ -1,8 +1,10 @@
 """Emit command-center/research/RES-0049.json from live census + pinned captures."""
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -20,8 +22,41 @@ QUESTION = (
 )
 
 
+def refresh_local_rows(index: dict) -> bool:
+    """Re-digest local-file rails against the live tree at emit time.
+
+    The AUD-0041 probe outputs are live-tree fingerprints, not network captures;
+    a pinned sha256 taken at first capture goes stale whenever that unit is
+    re-emitted. The rail must therefore be re-hashed on every emit, and the
+    index kept in step with the artifact so the two never disagree.
+    """
+    changed = False
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for row in index.get("local") or []:
+        if row.get("transport") != "local-file":
+            continue
+        path = REPO / str(row.get("path") or "").replace("\\", "/")
+        if not path.is_file():
+            continue
+        raw = path.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest == row.get("sha256") and len(raw) == row.get("bytes"):
+            continue
+        row["sha256"] = digest
+        row["bytes"] = len(raw)
+        row["fetch_timestamp"] = now
+        changed = True
+    return changed
+
+
 def load_index() -> dict:
-    return json.loads(INDEX.read_text(encoding="utf-8"))
+    index = json.loads(INDEX.read_text(encoding="utf-8"))
+    if refresh_local_rows(index):
+        INDEX.write_text(
+            json.dumps(index, indent=2, sort_keys=True, ensure_ascii=True) + "\n",
+            encoding="utf-8",
+        )
+    return index
 
 
 def cap(index: dict, cap_id: str) -> dict:

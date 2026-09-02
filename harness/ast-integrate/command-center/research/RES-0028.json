@@ -1,494 +1,211 @@
 {
-  "unit_id": "RES-0028",
-  "state": "SUCCESS",
-  "sentinel": "SUCCESS:RES-0028",
-  "tests": [
-    {
-      "id": "T-PARSE",
-      "name": "artifact parses as JSON",
-      "command": "python -c json.load(command-center/research/RES-0028.json)",
-      "result": "PASS",
-      "assertions": 1,
-      "duration_seconds": 0.01
-    },
-    {
-      "id": "T1",
-      "name": "ranking citation is source file:line, not the blog",
-      "result": "PASS",
-      "blog_rejected_as_ranking_citation": true
-    }
-  ],
-  "reviewer": {
-    "reviewer_id": "schema-resolver",
-    "verdict": "PASS",
-    "independent": true,
-    "fresh_context": true,
-    "vendor": "custom",
-    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
-  },
-  "artifacts": [
-    {
-      "path": "command-center/research/RES-0028.json",
-      "bytes": 10856,
-      "sha256": "5f76a401239073d179d58e279e9434d32fd083f150e9bd574b3a5063d80d973e",
-      "exists": true,
-      "eol": "LF",
-      "role": "primary"
-    }
-  ],
-  "extensions": {
-    "legacy_root": {
-      "id": "RES-0028",
-      "completion_sentinel": "SUCCESS:RES-0028 in the receipt AND the ranking algorithm cited at source file:line plus an explicit reproduced/not-reproduced verdict",
-      "title": "Extract the Aider repo-map mechanism and its measured token/accuracy tradeoff",
-      "question": "How exactly does Aider build its repo map (graph ranking over symbol references, token budget), and what evidence exists that it improves edit accuracy versus simply sending more files?",
-      "output_schema": "command-center/schema/research-claim-record.schema.json",
-      "schema_note": "Declared schema file is absent on this worktree (RES-0001 did not ship). This record still carries the Phase-2 field set named by RES-0001: claim id, canonical mechanism, source lineage, evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256.",
-      "ranking_algorithm": {
-        "name": "personalized PageRank over a directed file graph of symbol references",
-        "library": "networkx.pagerank",
-        "cited_at_source_file_line": "aider/repomap.py:525",
-        "source_path": "aider/repomap.py",
-        "source_line": 525,
-        "source_line_text": "ranked = nx.pagerank(G, weight=\"weight\", **pers_args)",
-        "function": "RepoMap.get_ranked_tags",
-        "function_line": 365,
-        "permalink": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L525",
-        "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938",
-        "not_a_blog_description": true
-      },
-      "independent_reproduction_verdict": "NOT-REPRODUCED",
-      "reproduced_not_reproduced_verdict": "not-reproduced",
-      "canonical_mechanism": "Parse each source file with tree-sitter tag queries into defs and refs; build a directed NetworkX graph whose nodes are files and whose weighted edges run referencer-file -> definer-file; call nx.pagerank at aider/repomap.py:525 with chat-file / mentioned-ident personalization; distribute each file's PageRank mass across its outgoing symbol edges; then binary-search the ranked tag prefix at aider/repomap.py:677 until the rendered tree is within 15% of the token budget (default map_tokens=1024 at aider/repomap.py:49; 8x multiplier when the chat has no files at aider/repomap.py:56).",
-      "claims": [
-        {
-          "claim_id": "RES-0028-M1-PAGERANK-SYMBOL-GRAPH",
-          "canonical_mechanism": "personalized-pagerank-over-symbol-reference-graph-with-token-budget",
-          "statement": "Aider's repo map ranks files by networkx.pagerank on a symbol-reference graph and trims the ranked tags to a token budget. Ranking implementation: aider/repomap.py:525.",
-          "evidence_tier": "E2",
-          "confidence_band": "high-for-mechanism-existence; none-for-accuracy-delta",
-          "promotable_to_tier1": false,
-          "doi": null,
-          "arxiv_id": null,
-          "effect_size": null,
-          "baseline": null,
-          "promotion_block": "No paper DOI/arXiv. Mechanism existence is sourced from the implementation, which is an extract, not E1.",
-          "source_lineage": {
-            "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L525",
-            "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
-            "http_status": 200,
-            "fetched_at": "2026-08-24T18:56:52Z",
-            "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-            "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938",
-            "locator": "aider/repomap.py:525",
-            "excerpt": "ranked = nx.pagerank(G, weight=\"weight\", **pers_args)"
-          },
-          "freshness_stamp": "2026-08-24T18:56:52Z",
-          "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-          "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe1_ranking_file_line.py",
-          "strongest_caveat": "Line numbers are pinned to commit 94bd7abd17cd; a later refactor of get_ranked_tags would move the citation. Tag quality follows tree-sitter query coverage, with a pygments Token.Name fallback for refs.",
-          "edges": {
-            "supports": [
-              "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH"
-            ],
-            "contradicts": []
-          }
-        },
-        {
-          "claim_id": "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH",
-          "canonical_mechanism": "binary-search-ranked-tags-to-token-budget",
-          "statement": "After ranking, get_ranked_tags_map_uncached binary-searches the ranked tag prefix (aider/repomap.py:677) until the rendered outline is within 15% of max_map_tokens.",
-          "evidence_tier": "E2",
-          "confidence_band": "high-for-mechanism-existence",
-          "promotable_to_tier1": false,
-          "doi": null,
-          "arxiv_id": null,
-          "effect_size": null,
-          "baseline": null,
-          "source_lineage": {
-            "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L677",
-            "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
-            "http_status": 200,
-            "fetched_at": "2026-08-24T18:56:52Z",
-            "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-            "locator": "aider/repomap.py:677"
-          },
-          "freshness_stamp": "2026-08-24T18:56:52Z",
-          "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-          "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe1_ranking_file_line.py",
-          "strongest_caveat": "The 15% slack and the map_mul_no_files=8 expansion mean --map-tokens is not a hard cap; Aider-AI/aider#752 records this.",
-          "edges": {
-            "supports": [
-              "RES-0028-M1-PAGERANK-SYMBOL-GRAPH"
-            ],
-            "contradicts": []
-          }
-        },
-        {
-          "claim_id": "RES-0028-M2-ACCURACY-VS-MORE-FILES",
-          "canonical_mechanism": "repo-map-beats-sending-more-files",
-          "statement": "Aider's first-party docs claim the token-budgeted map is a better use of context than adding many extra files, but they do not report an isolated accuracy delta versus a more-files baseline.",
-          "evidence_tier": "E3",
-          "confidence_band": "insufficient",
-          "promotable_to_tier1": false,
-          "doi": null,
-          "arxiv_id": null,
-          "effect_size": null,
-          "baseline": null,
-          "headline_without_baseline": true,
-          "promotion_block": "Catalog evidence rule: a headline number without its baseline is E3 and cannot promote a mechanism; a blog-reported improvement without a stated baseline is E3 and cannot promote to Tier 1. The 2023-10-22 tree-sitter post and docs/repomap.html describe the graph ranker and a 1k default budget; neither states an accuracy effect size nor a more-files control. SWE-bench Lite full-stack scores are not an ablation of the map.",
-          "source_lineage": {
-            "url": "https://aider.chat/2023/10/22/repomap.html",
-            "final_url": "https://aider.chat/2023/10/22/repomap.html",
-            "http_status": 200,
-            "fetched_at": "2026-08-24T18:57:16Z",
-            "sha256": "312c556eee765b5843e1017be7d7f568ecbe6e9bb048e5a93337f296bedb2397",
-            "locator": "Building a better repository map with tree sitter (no numeric ablation)"
-          },
-          "second_rail": {
-            "url": "https://aider.chat/docs/repomap.html",
-            "http_status": 200,
-            "fetched_at": "2026-08-24T18:57:16Z",
-            "sha256": "77708d7004b0755018668f7db831cb09b7cb5883da4e46d90bd65fe5683b07f0",
-            "locator": "docs/repomap.html graph ranking + --map-tokens 1k default",
-            "names_pagerank": false
-          },
-          "freshness_stamp": "2026-08-24T18:57:16Z",
-          "snapshot_sha256": "312c556eee765b5843e1017be7d7f568ecbe6e9bb048e5a93337f296bedb2397",
-          "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe2_independent_reproduction.py",
-          "independent_reproduction": {
-            "verdict": "NOT-REPRODUCED",
-            "independent_party_found": false,
-            "parties": [],
-            "control": "Searched first-party writeups and public secondary analyses for an isolated repo-map vs more-files accuracy measurement. None reported a baseline plus effect size from a party independent of Aider."
-          },
-          "strongest_caveat": "Qualitative FAQ advice that extra files distract the model is not a measured tradeoff. Full-stack SWE-bench numbers cannot be attributed to the map.",
-          "edges": {
-            "supports": [],
-            "contradicts": [],
-            "independence_collapse_with": []
-          }
-        }
-      ],
-      "source_lineage": {
-        "rails": [
-          {
-            "rail_id": "R1-source",
-            "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py",
-            "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
-            "http_status": 200,
-            "fetched_at": "2026-08-24T18:56:52Z",
-            "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-            "bytes": 27306,
-            "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938"
-          },
-          {
-            "rail_id": "R2-docs",
-            "url": "https://aider.chat/docs/repomap.html",
-            "http_status": 200,
-            "fetched_at": "2026-08-24T18:57:16Z",
-            "sha256": "77708d7004b0755018668f7db831cb09b7cb5883da4e46d90bd65fe5683b07f0",
-            "bytes": 30519,
-            "note": "Prose names a graph ranking algorithm and 1k token default; it does not name PageRank."
-          }
-        ]
-      },
-      "freshness_stamp": "2026-08-24T18:56:52Z",
-      "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-      "inputs_status": {
-        "Aider-AI/aider_source": "captured",
-        "Aider_benchmark_writeups": "captured; no isolated accuracy ablation present",
-        "command-center/sources/REGISTER.md": "absent-on-this-worktree",
-        "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md": "absent-on-this-worktree"
-      },
-      "ts": "2026-08-24T18:56:52Z"
-    }
-  },
-  "schema_version": 1,
-  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0028",
-  "min_bytes_threshold": 1,
-  "evidence": [
-    {
-      "claim": "RES-0028 catalog output_path exists, parses, and is registered as the primary artifact.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/research/RES-0028.json",
-      "probes": [
-        {
-          "role": "source",
-          "method": "file-read",
-          "command": "stat command-center/research/RES-0028.json",
-          "raw_output": "bytes=10856 sha256=5f76a401239073d179d58e279e9434d32fd083f150e9bd574b3a5063d80d973e",
-          "fingerprint": "c01c47243ef39811726deb1f667c3b16",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "schema-validate",
-          "command": "validate_artifact RES-0028",
-          "raw_output": "schema-check",
-          "fingerprint": "087f7853b7825fb4d345b226443a122e",
-          "exit_code": 0
-        }
-      ]
-    },
-    {
-      "claim": "RES-0028 named probes/schema contract were exercised against the live artifact.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/RES-0028",
-      "probes": [
-        {
-          "role": "source",
-          "method": "command",
-          "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0028",
-          "raw_output": "SUCCESS:delivered",
-          "fingerprint": "03a606057ee3175f77e499576e3266c9",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "static-analysis",
-          "command": "ready_units.artifact_delivered RES-0028",
-          "raw_output": "schema-valid",
-          "fingerprint": "b72965de6e7b55a62f510d6e87aa31d4",
-          "exit_code": 0
-        }
-      ]
-    }
-  ],
-  "negative_controls": [
-    {
-      "id": "NC-ABSENT",
-      "kind": "absent-input",
-      "description": "Missing output_path must fail artifact_delivered.",
-      "fired_on_bad_state": true,
-      "silent_on_good_state": true,
-      "bad_state_output": "absent",
-      "good_state_output": "delivered"
-    }
-  ],
-  "manifest_registration": {
-    "registered": true,
-    "manifest_path": "command-center/p2-wave/probes/RES-0028/UNIT-ARTIFACT-MANIFEST.json",
-    "entry_id": "RES-0028"
-  },
-  "downstream_consumers": [
-    {
-      "consumer": "platform/lib/schema_resolver.py validate_artifact",
-      "artifact_path": "command-center/research/RES-0028.json",
-      "executed": true,
-      "read_ok": true,
-      "exit_code": 0,
-      "probe": {
-        "role": "verifier",
-        "method": "schema-validate",
-        "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0028.json",
-        "raw_output": "SUCCESS:schema-valid",
-        "fingerprint": "d2b1f195ab84192daa67997a02765f26",
-        "exit_code": 0
-      }
-    }
-  ],
-  "timestamps": {
-    "started_at": "2026-08-25T00:20:00Z",
-    "ended_at": "2026-08-25T01:48:00Z",
-    "duration_seconds": 5280
-  },
-  "retry": {
-    "count": 0,
-    "policy": "two strikes then pivot (AGENTS.md 4b)"
-  },
-  "residual_unknowns": [
-    {
-      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
-      "verdict": "NOT-CHECKED",
-      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
-    }
-  ],
-  "defects": [],
-  "report": {
-    "kind": "research-claim-record",
-    "observations": [
-      {
-        "name": "primary_artifact_bytes",
-        "measured": 10856,
-        "method": "filesystem-stat",
-        "anchor": "command-center/research/RES-0028.json"
-      }
-    ],
-    "control_ids": [
-      "NC-ABSENT"
-    ]
-  },
-  "produced_by": {
-    "vendor": "anthropic",
-    "model": "cursor-grok-4.6",
-    "role": "implementer",
-    "execution_substrate": "ovh-leftover-fleet"
-  },
-  "id": "RES-0028",
-  "completion_sentinel": "SUCCESS:RES-0028 in the receipt AND the ranking algorithm cited at source file:line plus an explicit reproduced/not-reproduced verdict",
-  "title": "Extract the Aider repo-map mechanism and its measured token/accuracy tradeoff",
-  "question": "How exactly does Aider build its repo map (graph ranking over symbol references, token budget), and what evidence exists that it improves edit accuracy versus simply sending more files?",
-  "output_schema": "command-center/schema/research-claim-record.schema.json",
-  "schema_note": "Declared schema file is absent on this worktree (RES-0001 did not ship). This record still carries the Phase-2 field set named by RES-0001: claim id, canonical mechanism, source lineage, evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256.",
-  "ranking_algorithm": {
-    "name": "personalized PageRank over a directed file graph of symbol references",
-    "library": "networkx.pagerank",
-    "cited_at_source_file_line": "aider/repomap.py:525",
-    "source_path": "aider/repomap.py",
-    "source_line": 525,
-    "source_line_text": "ranked = nx.pagerank(G, weight=\"weight\", **pers_args)",
-    "function": "RepoMap.get_ranked_tags",
-    "function_line": 365,
-    "permalink": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L525",
+ "unit_id": "RES-0028",
+ "id": "RES-0028",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0028",
+ "completion_sentinel": "SUCCESS:RES-0028 in the receipt AND the ranking algorithm cited at source file:line plus an explicit reproduced/not-reproduced verdict",
+ "title": "Extract the Aider repo-map mechanism and its measured token/accuracy tradeoff",
+ "question": "How exactly does Aider build its repo map (graph ranking over symbol references, token budget), and what evidence exists that it improves edit accuracy versus simply sending more files?",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "schema_note": "Declared schema file is absent on this worktree (RES-0001 did not ship). This record still carries the Phase-2 field set named by RES-0001: claim id, canonical mechanism, source lineage, evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256.",
+ "ranking_algorithm": {
+  "name": "personalized PageRank over a directed file graph of symbol references",
+  "library": "networkx.pagerank",
+  "cited_at_source_file_line": "aider/repomap.py:525",
+  "source_path": "aider/repomap.py",
+  "source_line": 525,
+  "source_line_text": "ranked = nx.pagerank(G, weight=\"weight\", **pers_args)",
+  "function": "RepoMap.get_ranked_tags",
+  "function_line": 365,
+  "permalink": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L525",
+  "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938",
+  "not_a_blog_description": true
+ },
+ "independent_reproduction_verdict": "NOT-REPRODUCED",
+ "reproduced_not_reproduced_verdict": "not-reproduced",
+ "canonical_mechanism": "Parse each source file with tree-sitter tag queries into defs and refs; build a directed NetworkX graph whose nodes are files and whose weighted edges run referencer-file -> definer-file; call nx.pagerank at aider/repomap.py:525 with chat-file / mentioned-ident personalization; distribute each file's PageRank mass across its outgoing symbol edges; then binary-search the ranked tag prefix at aider/repomap.py:677 until the rendered tree is within 15% of the token budget (default map_tokens=1024 at aider/repomap.py:49; 8x multiplier when the chat has no files at aider/repomap.py:56).",
+ "claims": [
+  {
+   "claim_id": "RES-0028-M1-PAGERANK-SYMBOL-GRAPH",
+   "canonical_mechanism": "personalized-pagerank-over-symbol-reference-graph-with-token-budget",
+   "statement": "Aider's repo map ranks files by networkx.pagerank on a symbol-reference graph and trims the ranked tags to a token budget. Ranking implementation: aider/repomap.py:525.",
+   "evidence_tier": "E2",
+   "confidence_band": "high-for-mechanism-existence; none-for-accuracy-delta",
+   "promotable_to_tier1": false,
+   "doi": null,
+   "arxiv_id": null,
+   "effect_size": null,
+   "baseline": null,
+   "promotion_block": "No paper DOI/arXiv. Mechanism existence is sourced from the implementation, which is an extract, not E1.",
+   "source_lineage": {
+    "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L525",
+    "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
+    "http_status": 200,
+    "fetched_at": "2026-08-24T18:56:52Z",
+    "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
     "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938",
-    "not_a_blog_description": true
+    "locator": "aider/repomap.py:525",
+    "excerpt": "ranked = nx.pagerank(G, weight=\"weight\", **pers_args)"
+   },
+   "freshness_stamp": "2026-08-24T18:56:52Z",
+   "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe1_ranking_file_line.py",
+   "strongest_caveat": "Line numbers are pinned to commit 94bd7abd17cd; a later refactor of get_ranked_tags would move the citation. Tag quality follows tree-sitter query coverage, with a pygments Token.Name fallback for refs.",
+   "edges": {
+    "supports": [
+     "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH"
+    ],
+    "contradicts": []
+   }
   },
-  "independent_reproduction_verdict": "NOT-REPRODUCED",
-  "reproduced_not_reproduced_verdict": "not-reproduced",
-  "canonical_mechanism": "Parse each source file with tree-sitter tag queries into defs and refs; build a directed NetworkX graph whose nodes are files and whose weighted edges run referencer-file -> definer-file; call nx.pagerank at aider/repomap.py:525 with chat-file / mentioned-ident personalization; distribute each file's PageRank mass across its outgoing symbol edges; then binary-search the ranked tag prefix at aider/repomap.py:677 until the rendered tree is within 15% of the token budget (default map_tokens=1024 at aider/repomap.py:49; 8x multiplier when the chat has no files at aider/repomap.py:56).",
-  "claims": [
-    {
-      "claim_id": "RES-0028-M1-PAGERANK-SYMBOL-GRAPH",
-      "canonical_mechanism": "personalized-pagerank-over-symbol-reference-graph-with-token-budget",
-      "statement": "Aider's repo map ranks files by networkx.pagerank on a symbol-reference graph and trims the ranked tags to a token budget. Ranking implementation: aider/repomap.py:525.",
-      "evidence_tier": "E2",
-      "confidence_band": "high-for-mechanism-existence; none-for-accuracy-delta",
-      "promotable_to_tier1": false,
-      "doi": null,
-      "arxiv_id": null,
-      "effect_size": null,
-      "baseline": null,
-      "promotion_block": "No paper DOI/arXiv. Mechanism existence is sourced from the implementation, which is an extract, not E1.",
-      "source_lineage": {
-        "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L525",
-        "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
-        "http_status": 200,
-        "fetched_at": "2026-08-24T18:56:52Z",
-        "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-        "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938",
-        "locator": "aider/repomap.py:525",
-        "excerpt": "ranked = nx.pagerank(G, weight=\"weight\", **pers_args)"
-      },
-      "freshness_stamp": "2026-08-24T18:56:52Z",
-      "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-      "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe1_ranking_file_line.py",
-      "strongest_caveat": "Line numbers are pinned to commit 94bd7abd17cd; a later refactor of get_ranked_tags would move the citation. Tag quality follows tree-sitter query coverage, with a pygments Token.Name fallback for refs.",
-      "edges": {
-        "supports": [
-          "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH"
-        ],
-        "contradicts": []
-      }
-    },
-    {
-      "claim_id": "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH",
-      "canonical_mechanism": "binary-search-ranked-tags-to-token-budget",
-      "statement": "After ranking, get_ranked_tags_map_uncached binary-searches the ranked tag prefix (aider/repomap.py:677) until the rendered outline is within 15% of max_map_tokens.",
-      "evidence_tier": "E2",
-      "confidence_band": "high-for-mechanism-existence",
-      "promotable_to_tier1": false,
-      "doi": null,
-      "arxiv_id": null,
-      "effect_size": null,
-      "baseline": null,
-      "source_lineage": {
-        "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L677",
-        "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
-        "http_status": 200,
-        "fetched_at": "2026-08-24T18:56:52Z",
-        "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-        "locator": "aider/repomap.py:677"
-      },
-      "freshness_stamp": "2026-08-24T18:56:52Z",
-      "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-      "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe1_ranking_file_line.py",
-      "strongest_caveat": "The 15% slack and the map_mul_no_files=8 expansion mean --map-tokens is not a hard cap; Aider-AI/aider#752 records this.",
-      "edges": {
-        "supports": [
-          "RES-0028-M1-PAGERANK-SYMBOL-GRAPH"
-        ],
-        "contradicts": []
-      }
-    },
-    {
-      "claim_id": "RES-0028-M2-ACCURACY-VS-MORE-FILES",
-      "canonical_mechanism": "repo-map-beats-sending-more-files",
-      "statement": "Aider's first-party docs claim the token-budgeted map is a better use of context than adding many extra files, but they do not report an isolated accuracy delta versus a more-files baseline.",
-      "evidence_tier": "E3",
-      "confidence_band": "insufficient",
-      "promotable_to_tier1": false,
-      "doi": null,
-      "arxiv_id": null,
-      "effect_size": null,
-      "baseline": null,
-      "headline_without_baseline": true,
-      "promotion_block": "Catalog evidence rule: a headline number without its baseline is E3 and cannot promote a mechanism; a blog-reported improvement without a stated baseline is E3 and cannot promote to Tier 1. The 2023-10-22 tree-sitter post and docs/repomap.html describe the graph ranker and a 1k default budget; neither states an accuracy effect size nor a more-files control. SWE-bench Lite full-stack scores are not an ablation of the map.",
-      "source_lineage": {
-        "url": "https://aider.chat/2023/10/22/repomap.html",
-        "final_url": "https://aider.chat/2023/10/22/repomap.html",
-        "http_status": 200,
-        "fetched_at": "2026-08-24T18:57:16Z",
-        "sha256": "312c556eee765b5843e1017be7d7f568ecbe6e9bb048e5a93337f296bedb2397",
-        "locator": "Building a better repository map with tree sitter (no numeric ablation)"
-      },
-      "second_rail": {
-        "url": "https://aider.chat/docs/repomap.html",
-        "http_status": 200,
-        "fetched_at": "2026-08-24T18:57:16Z",
-        "sha256": "77708d7004b0755018668f7db831cb09b7cb5883da4e46d90bd65fe5683b07f0",
-        "locator": "docs/repomap.html graph ranking + --map-tokens 1k default",
-        "names_pagerank": false
-      },
-      "freshness_stamp": "2026-08-24T18:57:16Z",
-      "snapshot_sha256": "312c556eee765b5843e1017be7d7f568ecbe6e9bb048e5a93337f296bedb2397",
-      "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe2_independent_reproduction.py",
-      "independent_reproduction": {
-        "verdict": "NOT-REPRODUCED",
-        "independent_party_found": false,
-        "parties": [],
-        "control": "Searched first-party writeups and public secondary analyses for an isolated repo-map vs more-files accuracy measurement. None reported a baseline plus effect size from a party independent of Aider."
-      },
-      "strongest_caveat": "Qualitative FAQ advice that extra files distract the model is not a measured tradeoff. Full-stack SWE-bench numbers cannot be attributed to the map.",
-      "edges": {
-        "supports": [],
-        "contradicts": [],
-        "independence_collapse_with": []
-      }
-    }
+  {
+   "claim_id": "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH",
+   "canonical_mechanism": "binary-search-ranked-tags-to-token-budget",
+   "statement": "After ranking, get_ranked_tags_map_uncached binary-searches the ranked tag prefix (aider/repomap.py:677) until the rendered outline is within 15% of max_map_tokens.",
+   "evidence_tier": "E2",
+   "confidence_band": "high-for-mechanism-existence",
+   "promotable_to_tier1": false,
+   "doi": null,
+   "arxiv_id": null,
+   "effect_size": null,
+   "baseline": null,
+   "source_lineage": {
+    "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py#L677",
+    "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
+    "http_status": 200,
+    "fetched_at": "2026-08-24T18:56:52Z",
+    "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
+    "locator": "aider/repomap.py:677"
+   },
+   "freshness_stamp": "2026-08-24T18:56:52Z",
+   "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe1_ranking_file_line.py",
+   "strongest_caveat": "The 15% slack and the map_mul_no_files=8 expansion mean --map-tokens is not a hard cap; Aider-AI/aider#752 records this.",
+   "edges": {
+    "supports": [
+     "RES-0028-M1-PAGERANK-SYMBOL-GRAPH"
+    ],
+    "contradicts": []
+   }
+  },
+  {
+   "claim_id": "RES-0028-M2-ACCURACY-VS-MORE-FILES",
+   "canonical_mechanism": "repo-map-beats-sending-more-files",
+   "statement": "Aider's first-party docs claim the token-budgeted map is a better use of context than adding many extra files, but they do not report an isolated accuracy delta versus a more-files baseline.",
+   "evidence_tier": "E3",
+   "confidence_band": "insufficient",
+   "promotable_to_tier1": false,
+   "doi": null,
+   "arxiv_id": null,
+   "effect_size": null,
+   "baseline": null,
+   "headline_without_baseline": true,
+   "promotion_block": "Catalog evidence rule: a headline number without its baseline is E3 and cannot promote a mechanism; a blog-reported improvement without a stated baseline is E3 and cannot promote to Tier 1. The 2023-10-22 tree-sitter post and docs/repomap.html describe the graph ranker and a 1k default budget; neither states an accuracy effect size nor a more-files control. SWE-bench Lite full-stack scores are not an ablation of the map.",
+   "source_lineage": {
+    "url": "https://aider.chat/2023/10/22/repomap.html",
+    "final_url": "https://aider.chat/2023/10/22/repomap.html",
+    "http_status": 200,
+    "fetched_at": "2026-08-24T18:57:16Z",
+    "sha256": "312c556eee765b5843e1017be7d7f568ecbe6e9bb048e5a93337f296bedb2397",
+    "locator": "Building a better repository map with tree sitter (no numeric ablation)"
+   },
+   "second_rail": {
+    "url": "https://aider.chat/docs/repomap.html",
+    "http_status": 200,
+    "fetched_at": "2026-08-24T18:57:16Z",
+    "sha256": "77708d7004b0755018668f7db831cb09b7cb5883da4e46d90bd65fe5683b07f0",
+    "locator": "docs/repomap.html graph ranking + --map-tokens 1k default",
+    "names_pagerank": false
+   },
+   "freshness_stamp": "2026-08-24T18:57:16Z",
+   "snapshot_sha256": "312c556eee765b5843e1017be7d7f568ecbe6e9bb048e5a93337f296bedb2397",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0028/probe2_independent_reproduction.py",
+   "independent_reproduction": {
+    "verdict": "NOT-REPRODUCED",
+    "independent_party_found": false,
+    "parties": [],
+    "control": "Searched first-party writeups and public secondary analyses for an isolated repo-map vs more-files accuracy measurement. None reported a baseline plus effect size from a party independent of Aider."
+   },
+   "strongest_caveat": "Qualitative FAQ advice that extra files distract the model is not a measured tradeoff. Full-stack SWE-bench numbers cannot be attributed to the map.",
+   "edges": {
+    "supports": [],
+    "contradicts": [],
+    "independence_collapse_with": []
+   }
+  }
+ ],
+ "tests": [
+  {
+   "id": "T1",
+   "name": "cite the ranking implementation at file:line, not the blog description",
+   "result": "PASS",
+   "observed": "aider/repomap.py:525",
+   "blog_rejected_as_ranking_citation": true
+  },
+  {
+   "id": "T2",
+   "name": "control: state explicitly whether any independent party has reproduced the improvement",
+   "result": "PASS",
+   "observed": "NOT-REPRODUCED",
+   "independent_party_has_reproduced_the_improvement": false
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "RES-0028-probe2-independent-reproduction",
+  "independent": true,
+  "role": "adversarial-refuter",
+  "default_if_insufficient": "REFUTED",
+  "verdict": "PASS",
+  "refuted_claims": [
+   "RES-0028-M2-ACCURACY-VS-MORE-FILES as Tier-1/E1"
   ],
-  "source_lineage": {
-    "rails": [
-      {
-        "rail_id": "R1-source",
-        "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py",
-        "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
-        "http_status": 200,
-        "fetched_at": "2026-08-24T18:56:52Z",
-        "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-        "bytes": 27306,
-        "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938"
-      },
-      {
-        "rail_id": "R2-docs",
-        "url": "https://aider.chat/docs/repomap.html",
-        "http_status": 200,
-        "fetched_at": "2026-08-24T18:57:16Z",
-        "sha256": "77708d7004b0755018668f7db831cb09b7cb5883da4e46d90bd65fe5683b07f0",
-        "bytes": 30519,
-        "note": "Prose names a graph ranking algorithm and 1k token default; it does not name PageRank."
-      }
-    ]
+  "surviving_claims": [
+   "RES-0028-M1-PAGERANK-SYMBOL-GRAPH (E2, mechanism extract)",
+   "RES-0028-M1-TOKEN-BUDGET-BINARY-SEARCH (E2, mechanism extract)"
+  ],
+  "notes": "Accuracy-vs-more-files is REFUTED as a measured fact and kept only as E3. Ranking-algorithm existence survives because the live snapshot contains nx.pagerank at the cited file:line."
+ },
+ "source_lineage": {
+  "rails": [
+   {
+    "rail_id": "R1-source",
+    "url": "https://github.com/Aider-AI/aider/blob/94bd7abd17cdbcdab91b445b3ab165ecd2220938/aider/repomap.py",
+    "final_url": "https://raw.githubusercontent.com/Aider-AI/aider/main/aider/repomap.py",
+    "http_status": 200,
+    "fetched_at": "2026-08-24T18:56:52Z",
+    "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
+    "bytes": 27306,
+    "commit": "94bd7abd17cdbcdab91b445b3ab165ecd2220938"
+   },
+   {
+    "rail_id": "R2-docs",
+    "url": "https://aider.chat/docs/repomap.html",
+    "http_status": 200,
+    "fetched_at": "2026-08-24T18:57:16Z",
+    "sha256": "77708d7004b0755018668f7db831cb09b7cb5883da4e46d90bd65fe5683b07f0",
+    "bytes": 30519,
+    "note": "Prose names a graph ranking algorithm and 1k token default; it does not name PageRank."
+   }
+  ]
+ },
+ "freshness_stamp": "2026-08-24T18:56:52Z",
+ "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0028.json",
+   "role": "primary"
   },
-  "freshness_stamp": "2026-08-24T18:56:52Z",
-  "snapshot_sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd",
-  "inputs_status": {
-    "Aider-AI/aider_source": "captured",
-    "Aider_benchmark_writeups": "captured; no isolated accuracy ablation present",
-    "command-center/sources/REGISTER.md": "absent-on-this-worktree",
-    "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md": "absent-on-this-worktree"
-  },
-  "ts": "2026-08-24T18:56:52Z"
+  {
+   "path": "command-center/p2-wave/probes/RES-0028/fixtures/aider-repomap.py",
+   "role": "frozen-source-snapshot",
+   "sha256": "a5d4befe70445114b9f62da47b0eeb2a5384f9e84a0c083c77a4b339caf61ecd"
+  }
+ ],
+ "inputs_status": {
+  "Aider-AI/aider_source": "captured",
+  "Aider_benchmark_writeups": "captured; no isolated accuracy ablation present",
+  "command-center/sources/REGISTER.md": "absent-on-this-worktree",
+  "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md": "absent-on-this-worktree"
+ },
+ "ts": "2026-08-24T18:56:52Z"
 }

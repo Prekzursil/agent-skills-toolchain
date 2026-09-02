@@ -76,7 +76,12 @@ def main() -> int:
         print(t2[-1500:])
         return 1
     primary = row(OUT, "primary")
-    artifacts = [primary] + [row(p, "supporting") for p in SUPPORTING]
+    # .github/workflows/quality.yml is not part of this capture (only plugin-repro.yml
+    # is); the census already records its absence, so the receipt lists only the
+    # supporting files that exist rather than crashing on the missing one.
+    artifacts = [primary] + [
+        row(p, "supporting") for p in SUPPORTING if (REPO / p).is_file()
+    ]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     ret = {
         "id": "RES-0049",
