@@ -206,3 +206,44 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
   (ADV-0017) — to be measured before it is called a gap.
 - Advisors launched 06:45 (council: skeptic/pragmatist/critic; gem-hunt: prune, meta, native, frontier,
   false-green) as read-only background subagents; verdicts land in P2-STATE/ADVISORS-0209.md when in.
+
+### Step 3 (02.09 07:05–07:50 EEST): council pre-passes, tripwire, writers dispatched
+- **Council verdict** (P2-STATE/ADVISORS-0209.md, `/tmp/council/*.md`): the 379-file denominator is
+  wrong — root `marketplace/`, `plugin/`, `workflow_foundry/` are `__path__` shims so their 160 root
+  placeholders are dead; root `council/` (72/79 placeholders) and `router/` (7/11) were real packages
+  shadowing 128 + 26 real modules under `tools/`; `find_spec` over 5,936 probe imports resolves to
+  ~92 live placeholders, 77 direct-importer units (66 FAIL / 11 OK); 634 failing units never touch a
+  placeholder. All voices reject keeping the permissive `_NS` fallback.
+- **Pre-pass 1 (resolution, commit c09477aa5):** `council/__init__.py` and `router/__init__.py`
+  became shims (`__path__ = [tools/<pkg>, <root dir>]`; root kept second only for `council.builder`
+  and `council.tests`, which exist nowhere else). All 7+3 real root files were re-exports or
+  identical copies (diff-verified). `council.builder` now resolves to the real
+  `tools/council/builder.py` module, so `council.builder.metrics` (IMP-0327) needs a real package.
+- **Pre-pass 2 (tripwire, commit 46d698477):** `seed-stage/g1_placeholder_guard.py` — a meta-path
+  finder installed by `g1_python.py`; `G1_PLACEHOLDER_MODE=trace` logs `unit\tmodule\torigin` for
+  every generated module a probe loads (direct or transitive) → the exact dependency/regression set;
+  `strict` raises `ImportError: G1-STRICT placeholder module ...` → the unit fails. Verified in a dev
+  mirror: TST-0261 strict → fails on `council.tests`; ARC-0052 / IMP-0327 strict → SUCCESS.
+  `_g1_regen_par.py --placeholder=trace|strict` writes `<wave>.trace.tsv`; rows carry `mode`.
+  **Green is defined with STRICT on** (EVAL-G1-GREEN.md C2).
+- **Gem-hunt TIER-0 adopted (commit e95f989d6), both measured verdict-neutral:** (1) the 180 s
+  probe timeout SIGKILLed only `/bin/sh`; the Python probe survived as an orphan (one seen alive
+  9 min after rc=124, still writing). `_measure_one_delivered.run_cmd` now starts the probe in its
+  own session and `os.killpg`s it on timeout. (2) The container image zeroed source mtimes, so every
+  interpreter start recompiled stdlib; `_g1_regen_par.py` now warms `PYTHONPYCACHEPREFIX=/dev/shm/g1-pyc`
+  once (IMP-0021: 1.96 s → 0.56 s; census throughput 1.4 → 2.8 units/s in the light stretch).
+- **Tools added:** `_g1_contract_excerpt.py` (per module: placeholder names, every importing probe /
+  code file, imported names, using lines, unit verdicts — searches submodule imports and the code tree),
+  `_g1_blast_radius.py` (static; superseded by TRACE for shimmed packages).
+- **Census `w0902-04-census-trace`** (8 workers, mirror `~/p2-g1`, warm cache, trace mode) running;
+  partial trace after ~380 units: 12 distinct placeholder files across 9 units — all under `tools/`.
+- **Writers dispatched 07:45 (w1–w6, private mirrors `~/p2-w1..6`, contract in `/tmp/writer-common.md`
+  — STRICT measurement of every dependent, no git, no probe edits, complete-file writes):**
+  w1 ADV-0126 (`marketplace.revocation_list` ×3, `marketplace.ledger`, `bench.baseline_store`);
+  w2 ADV-0096/ADV-0135 (`council.quota`); w3 ADV-0103 (`council.roles` init + templates, IMP-0280 regression);
+  w4 ADV-0094 (`council.budget`) + ADV-0071 (`council.topology.jury`); w5 ADV-0031 (`foundry.runtime`);
+  w6 ADV-0021 (`marketplace.crypto`) + ADV-0025 (`plugin.installer`).
+- **Rule adopted (autoresearch discipline):** a writer's files are committed only after its dependents
+  were measured STRICT in a mirror; a regression that is not "lost the fake" reverts the module
+  (ledger row first). `probe-file-missing` candidates (12 in census 01) are held for the steady-state
+  mirror census before any CAPTURE-GAPS.md entry is written.

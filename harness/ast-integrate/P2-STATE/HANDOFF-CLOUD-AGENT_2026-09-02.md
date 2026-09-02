@@ -14,9 +14,10 @@
   edits, `command-center/p2-wave/seed-stage/*`, `ovh-monitor/repair-claude/w0902-*.jsonl`, the
   append-only repair log) and `harness/ast-integrate/P2-STATE/*`. Commits + pushes after every
   green step; a claim older than 20 min without a new push is stale.
-- **Claim refreshed:** 02.09 07:05 EEST — step 2 done (native census 1281/726; measurement moved to
-  the `~/p2-g1` mirror; bad local commits rebuilt, remote head `75e5b40fd`+). Next: split the 86
-  environment-dependent fails, then shared-module class by blast radius.
+- **Claim refreshed:** 02.09 07:50 EEST — step 3: council pre-passes landed (shims, STRICT/TRACE
+  tripwire), TRACE census `w0902-04` running, writers w1–w6 active on 13 placeholder files under
+  `tools/` (they write module files only; the orchestrator commits). Do not edit `tools/council`,
+  `tools/marketplace`, `tools/plugin`, `tools/bench`, `tools/foundry` while this claim is fresh.
 - Stage-1 capture claim below (worker-B) is superseded: the capture landed on the handoff branch.
 
 ### Stage-1 claim (historical, `stage1-worker-B`)
