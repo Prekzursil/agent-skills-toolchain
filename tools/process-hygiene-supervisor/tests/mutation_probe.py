@@ -115,6 +115,12 @@ MUTATIONS = [
         "            if self._is_protected(proc, snapshot):\n                protected.append(pid)",
         "            if False:\n                protected.append(pid)",
     ),
+    (
+        "commit-ratio no longer escalates to critical",
+        "hygiene.py",
+        '            or ratio > pressure["critical"]["ratio"]',
+        "            or False",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
