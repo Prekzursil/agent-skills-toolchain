@@ -269,7 +269,41 @@ Minimal flags if the GPU branch ever activates (for completeness, Tier A docs ab
 
 ## 8. How the integration layer should PROBE capability instead of assuming it
 
-_(pending)_
+**Principle [recommendation]:** every server exposes *declared* capabilities (Ollama `capabilities`, LM Studio `type`/`state`, llama-server `chat_template`), and section 4 shows declared != working (parser bugs, thinking preambles, `/v1` vs native, stale GGUF templates). The layer therefore stores **declared** and **observed** side by side and routes on observed. Probes are cheap (seconds, one tiny model load) and must be re-run when `server version`, `model digest`, or `build` changes, on a weekly timer, and after any live tool-call failure.
+
+### 8.1 Probe ladder (each step gates the next; nothing loads a model before step 5)
+
+| # | Probe | Ollama | LM Studio | llama-server | Pass rule / what is stored |
+|---|---|---|---|---|---|
+| 0 | **Host budget** | PowerShell: `Get-Counter '\Memory\Available MBytes'`; `(Get-CimInstance Win32_Processor).NumberOfCores`; `Get-CimInstance Win32_PhysicalMemory \| Select Speed,SMBIOSMemoryType` (bandwidth class); `Get-CimInstance Win32_VideoController` (iGPU/dGPU present?); `Get-NetTCPConnection -State Listen` for 11434/1234/8080 **and** the owned 8765/8812/8317/8770 | same | same | store `free_ram_mb`, `phys_cores`, `mem_speed`, `gpu_present`, port map; **refuse to load** if predicted working set > free RAM - 2 GB |
+| 1 | **Liveness + version** | `GET /api/version` | `lms ps --json` (daemon up?) / `GET /api/v0/models` | `GET /health`; `GET /props` | store `server_version`/`build`; a version change invalidates cached probes |
+| 2 | **Inventory (on disk)** | `GET /api/tags` (size, digest, quantization_level) | `GET /api/v0/models` (`state`, `type`, `quantization`, `max_context_length`) | `GET /models` (router: `status` per model) or file scan of `LLAMA_CACHE` | store digest/size; the shortlist (section 5) is filtered to what is actually present |
+| 3 | **Declared capabilities (no load)** | `POST /api/show` -> `capabilities` (`tools`, `thinking`, `embedding`, `vision`) **and** `model_info` (`*.block_count`, `*.attention.head_count_kv`, `*.attention.key_length`) | `type`, `max_context_length` | `GET /props` -> `chat_template` contains `tools`/`tool_call`? (the function-calling doc's own advice), `default_generation_settings.n_ctx`, `total_slots` | store `declared_tools`, `declared_thinking`, `declared_embedding`; **compute KV bytes/token exactly** from `model_info` instead of the section-2 estimate |
+| 4 | **Budget gate** | predicted = file size + KV(requested ctx, cache type) + 0.8 GB | same | same | choose the largest Tier whose prediction fits `free_ram_mb - 2048`; downgrade ctx before downgrading model |
+| 5 | **Load + measure footprint** | minimal `/api/chat` (`"keep_alive":"2m"`, `num_ctx` as chosen); then `GET /api/ps` (`size`, `expires_at`) and `Get-Process ollama* \| Measure-Object WorkingSet64 -Sum` | `lms load … --ttl 300` or JIT call; `lms ps --json`; `Get-Process llmster*,'LM Studio'*` | first request (wakes/loads); `GET /slots`; `Get-Process llama-server*` | store `measured_rss_mb`, `load_seconds`; if measured > predicted x 1.25, flag and shrink ctx |
+| 6 | **Tool canary, non-streaming** | native `/api/chat` **and** `/v1/chat/completions`, `temperature 0`, `think:false` | `/v1/chat/completions` | `/v1/chat/completions` (thinking off via template kwargs) | tool `probe_echo(token:string)`; prompt "Call probe_echo with token=<nonce>"; pass = 200 **and** `finish_reason=="tool_calls"` **and** `tool_calls[0].function.name=="probe_echo"` **and** arguments parse as JSON containing the nonce **and** `content` has no raw `<tool_call>`/XML; require **3/3** (2/3 = `degraded`) |
+| 7 | **Tool canary, streaming** | same endpoints, `stream:true` | same | same | accumulate `delta.tool_calls`; assembled call must equal step 6; no tool XML leaking into `delta.content` (the failure class in 3.1 and 4.3) |
+| 8 | **Tool-result round trip** | append `{"role":"tool","tool_name":…,"content":"<result>"}` | `{"role":"tool","tool_call_id":…}` | same | final answer must reference the result (catches missing tool role - Gemma 3 - and role-mapping bugs - Granite pre-b8634) |
+| 9 | **Tools with thinking ON** (only if declared `thinking`) | `think:true` | model-specific | `enable_thinking:true`, `--reasoning-format deepseek` | pass = tool call still structured and reasoning lands in `thinking`/`reasoning_content`; fail => store `tools_require_thinking_off=true` (the Qwen3.5 PEG failure class) |
+| 10 | **Parallel tool calls** | prompt needing two calls | `parallel_tool_calls:true` | same (verified against jinja) | record `parallel_tools: yes/no/degraded`; never a hard fail |
+| 11 | **JSON mode + schema** | `format:"json"` then `format:{schema}`; `/v1` `response_format` | `response_format.json_schema` (docs warn <7B may fail) | `response_format` `json_object` and `json_schema` | validate 3/3 against the schema with a real validator |
+| 12 | **Embeddings** (only if an embedding model is on disk) | `/v1/embeddings` or `/api/embed` | `/v1/embeddings` | `/v1/embeddings` (server started with an embedding model / `--embeddings`) | vector length constant; cos(similar) > cos(dissimilar) |
+| 13 | **Speed** | `eval_count / eval_duration` and `prompt_eval_*` from the native response | `stats.tokens_per_second` (REST v0) | `timings.predicted_per_second`, `prompt_per_second` | store `tok_s_decode`, `tok_s_prompt` for the actual box - replaces the section-5 class estimate |
+| 14 | **Idle release** | wait `keep_alive + 30 s`; `GET /api/ps` must be empty; process working set back to baseline; **process count == 0 runners** (zombie check, issues #10433/#7606) | wait TTL + 30 s; `lms ps --json` empty | wait `sleep-idle-seconds + 30 s`; `GET /props` (or `/props?model=`) shows sleeping; RSS dropped | store `idle_release_seconds_observed`; a fail here is a **hard fail for this box** (the whole point is RAM back) |
+| 15 | **Persist** | one record per (server, version, model digest, ctx, cache type) | same | same | fields: `declared_*`, `tools_nonstream`, `tools_stream`, `tools_roundtrip`, `tools_with_thinking`, `parallel_tools`, `json_mode`, `json_schema`, `embeddings`, `measured_rss_mb`, `tok_s_*`, `idle_release_ok`, `probed_at`, `probe_schema_version` |
+
+### 8.2 Routing rules derived from the record [recommendation]
+
+- Route tools to the **endpoint that passed** (for Ollama that may be native `/api/chat`, not `/v1`; keep an adapter per server rather than assuming OpenAI parity).
+- If `tools_with_thinking=false`, the layer forces thinking off for tool turns and may re-enable it for the final answer turn only.
+- If `tools_stream=false` but `tools_nonstream=true`, disable streaming for tool turns only (clients still get streamed final answers).
+- A model that fails step 6 on every endpoint is **text-only** in the registry; a prompted-JSON fallback with client-side parsing is a *separate, opt-in* mode (present as a trade-off, never silently substituted - estate lock).
+- The free-RAM gate is evaluated at **every** request that may trigger a load, not once at startup; if the box is below the Tier S floor the layer reports "local unavailable, N GB free" rather than swapping.
+- Never register a local server as a Cursor BYOK/`ANTHROPIC_BASE_URL` target or behind `auth2api :8317`; local models are their own provider family in the layer (estate locks).
+
+### 8.3 Where the record lives [recommendation, coordinates with lens 06 models-registry-ssot-design]
+
+Probe results are *machine state*, not manifest content: keep them out of `.agents/agents.json` (closed schema; MCP inventory) and out of `.agents/local.json` (names of secrets only). A machine-local cache such as `.agents/local-models.probe.json` (or whatever lens 06 names the models registry's per-host overlay) with the field list above is enough; the `hosted-model-agents` skill's `evals.md` is the natural home for the canary definitions so Fabric/Goose consumers read one SSOT.
 
 ## 9. Per-find rubric table
 
