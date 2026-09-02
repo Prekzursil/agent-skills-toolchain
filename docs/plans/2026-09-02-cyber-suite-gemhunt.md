@@ -96,12 +96,14 @@ per the owner's model directive.
 | L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | running |
 | L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | DONE |
 | L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | running on `cursor-grok-4.6-xhigh` (Claude blocked bc-1358f975; owner directive) |
-| L9 | Active Directory / identity attack + defend | bc-571bb94b | running |
+| L9 | Active Directory / identity attack + defend | bc-571bb94b | DONE |
 | L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | running |
 | L11 | Cyber skills in the wild (OSS agent/Claude skills) | bc-fb044a7b | running |
 | L12 | Native-capability audit of the existing stack (ENABLE, not build) | bc-62b84f3e | DONE |
 | L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | bc-ff5d27d7 | DONE |
-| L14 | Wildcard / cross-domain cyber gem | bc-faefa3b5 | running |
+| L14 | Wildcard / cross-domain cyber gem | bc-faefa3b5 | DONE |
+
+**All 14 dispatched.** DONE (7): L1, L5, L7, L12, L13, L14 + (L4/L8/L3 on grok are the offense-leaning trio moved off Claude's cyber safeguard). Running (7): L2, L3, L4, L6, L8, L9, L10, L11. Early cross-lens convergence (for synthesis): (a) **ENABLE-not-build dominates** — L1/L7/L12/L13/L14 all find the estate already owns deep capability that is merely unwired/unrouted/unenforced (cve/osint ~65% unrouted; 5 more security MCPs in fleet files not the SSOT; ROE doctrine is prose with no hook enforcement; corpora gaps SecLists/Exploit-DB). (b) **The live kill-chain (C2, payload-gen, cred-attack) is owner-hard-banned**, so its only in-doctrine home is purple/emulation + detection-validation (L1+L3). (c) **The reflexive gem** (L14): scan the estate's OWN 47 MCP + 374 skills with mcp-scan, and make `llm-security` executable with garak/promptfoo — "scan what you install, attack what you ship."
 
 ## Platform constraint — Anthropic real-time cyber safeguards (2026-09-02)
 
