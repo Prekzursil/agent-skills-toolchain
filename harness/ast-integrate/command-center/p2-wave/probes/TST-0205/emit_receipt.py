@@ -142,7 +142,7 @@ def build_receipt(exp: dict) -> dict:
     artifacts = [art(p, "supporting") for p in SUPPORTING]
     garbage_ok, garbage_n = schema_rejects_garbage()
     ended = iso_now()
-    return {
+    doc = {
         "schema_version": 1,
         "unit_id": UNIT,
         "state": "SUCCESS" if exp["pass"] else "FAILED",
@@ -422,6 +422,15 @@ def build_receipt(exp: dict) -> dict:
             "cloud_ok": False,
         },
     }
+    # Consumers (probe1/probe2, downstream readers) address the domain rows at
+    # the receipt root; receipt_core allows additional properties, so mirror
+    # every report row there and spell the kind as report_kind.
+    report = doc["report"]
+    doc["report_kind"] = report["kind"]
+    for key, value in report.items():
+        if key != "kind" and key not in doc:
+            doc[key] = value
+    return doc
 
 
 def write_receipt(exp: dict | None = None) -> Path:

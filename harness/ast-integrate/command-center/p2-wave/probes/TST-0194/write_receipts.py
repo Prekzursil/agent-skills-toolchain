@@ -59,16 +59,25 @@ def run_probe(cmd: str) -> tuple[int, str]:
 
 def row(rel: str, role: str) -> dict:
     path = REPO / rel
-    sha, size = digest(path)
-    return {
+    out = {
         "path": rel,
-        "sha256": sha,
-        "bytes": size,
-        "present": True,
+        "sha256": "",
+        "bytes": 0,
+        "present": False,
         "unit_id": "TST-0194",
         "receipt_path": "command-center/p2-wave/probes/TST-0194/SUBAGENT-RETURN.json",
         "role": role,
     }
+    if path.is_file():
+        sha, size = digest(path)
+        out.update({"sha256": sha, "bytes": size, "present": True})
+    else:
+        # The colliding fixture declares README.md and readme.md; a checkout on a
+        # case-insensitive filesystem can only hold one of the pair. The probes
+        # work from the manifest declaration, so the missing twin is recorded
+        # honestly rather than invented.
+        out["absent_reason"] = "case-colliding twin not representable on this checkout"
+    return out
 
 
 def main() -> int:
@@ -137,7 +146,7 @@ def main() -> int:
         "unit_id": "TST-0194",
         "verified_on_disk": True,
         "expected": len(artifacts),
-        "present": len(artifacts),
+        "present": sum(1 for a in artifacts if a["present"]),
         "artifacts": artifacts,
     }
     (HERE / "SUBAGENT-RETURN.json").write_text(

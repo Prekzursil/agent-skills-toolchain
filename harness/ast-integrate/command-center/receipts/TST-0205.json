@@ -1,4 +1,5 @@
 {
+  "answer": "On this Linux host a long POSIX path (>260 chars, measured 270 chars) created in the WSL/bash view is visible and writable from the pwsh7 view and the Git Bash view: short-path both-states control all_three_visible=True; long-path all_three_visible=True; POSIX parity=True. pwsh binary present=None; Git Bash bash.exe present=None. The difference versus Windows is documented as two Git Bash/MSYS abstraction leaks with operations enumerated: git-bash:create, git-bash:delete, git-bash:read, git-bash:stat, git-bash:write. Planted detector control discriminates (POSIX long still works in the Git Bash view; Win32 \\\\?\\ and unprefixed MAX_PATH encodings fail). leak_table_matches_matrix=True. SUCCESS:TST-0205 long-path visibility across pwsh7, Git Bash and WSL: POSIX parity on this host, Git Bash MSYS extended-prefix and MAX_PATH leaks planted and enumerated",
   "artifacts": [
     {
       "bytes": 5882,
@@ -33,12 +34,12 @@
       "sha256": "4c034f3503251fc57eb2420d889120254d327b25c5fc78601fa64dae5e593df2"
     },
     {
-      "bytes": 3840,
+      "bytes": 4622,
       "eol": "LF",
       "exists": true,
       "path": "command-center/p2-wave/probes/TST-0205/probe1_short_path_control.py",
       "role": "supporting",
-      "sha256": "75440a044afbf347b57ae94000616930f3bc0a523dc2a5a4595969779638f6b5"
+      "sha256": "6d83ddd4c9d281878eeced73eae2b27e4c829855e4d5de5d5d5e7e356684fdf0"
     },
     {
       "bytes": 5031,
@@ -48,6 +49,13 @@
       "role": "supporting",
       "sha256": "38a9f0ea529400230cb090289ca02570f17ef7df0552bde202241fc99c1af768"
     }
+  ],
+  "cloud_ok": false,
+  "completion_detail": "SUCCESS:TST-0205 long-path visibility across pwsh7, Git Bash and WSL: POSIX parity on this host, Git Bash MSYS extended-prefix and MAX_PATH leaks planted and enumerated",
+  "control_ids": [
+    "NC-SCHEMA-GARBAGE",
+    "NC-MSYS-EXTENDED",
+    "NC-MAX-PATH-UNPREFIXED"
   ],
   "defects": [],
   "downstream_consumers": [
@@ -117,10 +125,437 @@
       "verdict": "CONFIRMED"
     }
   ],
+  "host": {
+    "bash": "/usr/bin/bash",
+    "dash": "/usr/bin/dash",
+    "git_bash": null,
+    "hostname": "cursor",
+    "is_wsl": false,
+    "name_max": 255,
+    "path_max": 4096,
+    "pwsh": null,
+    "python": "3.12.3",
+    "release": "6.12.94+",
+    "system": "linux",
+    "win32_max_path": 260,
+    "wsl_interop": false
+  },
+  "leak_mismatches": [],
+  "leak_table": [
+    {
+      "id": "git-bash-msys-extended-prefix",
+      "matches_matrix": true,
+      "measured": true,
+      "measured_operations": [
+        "stat",
+        "read",
+        "write",
+        "delete"
+      ],
+      "operations": [
+        "stat",
+        "read",
+        "write",
+        "delete"
+      ],
+      "path_class": "win32-extended-length",
+      "reason": "MSYS path conversion does not map the Win32 \\\\?\\ extended-length prefix, so a long path created via that prefix (pwsh7) is not addressable from Git Bash.",
+      "shell": "git-bash"
+    },
+    {
+      "id": "git-bash-max-path-unprefixed",
+      "matches_matrix": true,
+      "measured": true,
+      "measured_operations": [
+        "create",
+        "stat",
+        "read",
+        "write",
+        "delete"
+      ],
+      "operations": [
+        "create",
+        "stat",
+        "read",
+        "write",
+        "delete"
+      ],
+      "path_class": "win32-unprefixed-over-260",
+      "reason": "Git Bash/MSYS Win32 paths longer than MAX_PATH=260 without a \\\\?\\ prefix fail to open. Affected operations: create, stat, read, write, delete.",
+      "shell": "git-bash"
+    }
+  ],
+  "leak_table_matches_matrix": true,
+  "live_worktree": true,
+  "long_path": {
+    "all_ops_ok": true,
+    "all_three_visible": true,
+    "exceeds_win32_max_path": true,
+    "path_nchars": 270,
+    "visible": {
+      "git-bash": true,
+      "pwsh7": true,
+      "wsl": true
+    }
+  },
   "manifest_registration": {
     "entry_id": "TST-0205",
     "manifest_path": "command-center/p2-wave/probes/TST-0205/UNIT-ARTIFACT-MANIFEST.json",
     "registered": true
+  },
+  "matrix": {
+    "long": [
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "create",
+        "path_nchars": 276,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "stat",
+        "path_nchars": 270,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "read",
+        "path_nchars": 270,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "write",
+        "path_nchars": 270,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "delete",
+        "path_nchars": 276,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "create",
+        "path_nchars": 278,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "stat",
+        "path_nchars": 270,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "read",
+        "path_nchars": 270,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "write",
+        "path_nchars": 270,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "delete",
+        "path_nchars": 278,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "create",
+        "path_nchars": 270,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "stat",
+        "path_nchars": 270,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "read",
+        "path_nchars": 270,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "write",
+        "path_nchars": 270,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "delete",
+        "path_nchars": 270,
+        "shell": "wsl"
+      }
+    ],
+    "short": [
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "create",
+        "path_nchars": 39,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "stat",
+        "path_nchars": 33,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "read",
+        "path_nchars": 33,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "write",
+        "path_nchars": 33,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "cpython-posix",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "delete",
+        "path_nchars": 39,
+        "shell": "pwsh7"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "create",
+        "path_nchars": 41,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "stat",
+        "path_nchars": 33,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "read",
+        "path_nchars": 33,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "write",
+        "path_nchars": 33,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": false,
+        "executor": "/usr/bin/dash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "delete",
+        "path_nchars": 41,
+        "shell": "git-bash"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "create",
+        "path_nchars": 33,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "stat",
+        "path_nchars": 33,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "read",
+        "path_nchars": 33,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "write",
+        "path_nchars": 33,
+        "shell": "wsl"
+      },
+      {
+        "binary_present": true,
+        "executor": "/usr/bin/bash",
+        "exit_code": 0,
+        "leak_id": null,
+        "ok": true,
+        "op": "delete",
+        "path_nchars": 33,
+        "shell": "wsl"
+      }
+    ]
+  },
+  "matrix_compact": {
+    "long": {
+      "git-bash": {
+        "create": true,
+        "delete": true,
+        "read": true,
+        "stat": true,
+        "write": true
+      },
+      "pwsh7": {
+        "create": true,
+        "delete": true,
+        "read": true,
+        "stat": true,
+        "write": true
+      },
+      "wsl": {
+        "create": true,
+        "delete": true,
+        "read": true,
+        "stat": true,
+        "write": true
+      }
+    },
+    "short": {
+      "git-bash": {
+        "create": true,
+        "delete": true,
+        "read": true,
+        "stat": true,
+        "write": true
+      },
+      "pwsh7": {
+        "create": true,
+        "delete": true,
+        "read": true,
+        "stat": true,
+        "write": true
+      },
+      "wsl": {
+        "create": true,
+        "delete": true,
+        "read": true,
+        "stat": true,
+        "write": true
+      }
+    }
   },
   "min_bytes_threshold": 2048,
   "negative_controls": [
@@ -152,12 +587,107 @@
       "silent_on_good_state": true
     }
   ],
+  "observations": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0205/probe1_short_path_control.py",
+      "measured": true,
+      "method": "test-run",
+      "name": "short_all_three_visible"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0205/matrix.py",
+      "measured": 270,
+      "method": "test-run",
+      "name": "long_path_nchars"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0205/probe2_leak_table.py",
+      "measured": true,
+      "method": "test-run",
+      "name": "leak_table_matches_matrix"
+    }
+  ],
+  "operations": [
+    "create",
+    "stat",
+    "read",
+    "write",
+    "delete"
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+  "parity_on_posix": true,
+  "planted_leaks": {
+    "detector_control": {
+      "discriminates": true,
+      "extended_fails": true,
+      "extended_leak_ids": [
+        "git-bash-msys-extended-prefix"
+      ],
+      "posix_long_visible_from_git_bash": true,
+      "unprefixed_leak_ids": [
+        "git-bash-max-path-unprefixed"
+      ],
+      "unprefixed_over_max_fails": true
+    },
+    "extended_cells": {
+      "delete": {
+        "exit_code": 2,
+        "leak_id": "git-bash-msys-extended-prefix",
+        "ok": false
+      },
+      "read": {
+        "exit_code": 2,
+        "leak_id": "git-bash-msys-extended-prefix",
+        "ok": false
+      },
+      "stat": {
+        "exit_code": 2,
+        "leak_id": "git-bash-msys-extended-prefix",
+        "ok": false
+      },
+      "write": {
+        "exit_code": 2,
+        "leak_id": "git-bash-msys-extended-prefix",
+        "ok": false
+      }
+    },
+    "extended_nchars": 276,
+    "unprefixed_cells": {
+      "create": {
+        "exit_code": 2,
+        "leak_id": "git-bash-max-path-unprefixed",
+        "ok": false
+      },
+      "delete": {
+        "exit_code": 2,
+        "leak_id": "git-bash-max-path-unprefixed",
+        "ok": false
+      },
+      "read": {
+        "exit_code": 2,
+        "leak_id": "git-bash-max-path-unprefixed",
+        "ok": false
+      },
+      "stat": {
+        "exit_code": 2,
+        "leak_id": "git-bash-max-path-unprefixed",
+        "ok": false
+      },
+      "write": {
+        "exit_code": 2,
+        "leak_id": "git-bash-max-path-unprefixed",
+        "ok": false
+      }
+    },
+    "unprefixed_nchars": 272
+  },
   "produced_by": {
     "execution_substrate": "local-serialized",
     "model": "opus",
     "role": "portability-tester",
     "vendor": "anthropic"
   },
+  "question": "Is a long path created in one shell visible and writable from the other two, or is the difference documented as an abstraction leak? PASS requires either parity or an explicit documented leak with the affected operations enumerated.",
   "report": {
     "answer": "On this Linux host a long POSIX path (>260 chars, measured 270 chars) created in the WSL/bash view is visible and writable from the pwsh7 view and the Git Bash view: short-path both-states control all_three_visible=True; long-path all_three_visible=True; POSIX parity=True. pwsh binary present=None; Git Bash bash.exe present=None. The difference versus Windows is documented as two Git Bash/MSYS abstraction leaks with operations enumerated: git-bash:create, git-bash:delete, git-bash:read, git-bash:stat, git-bash:write. Planted detector control discriminates (POSIX long still works in the Git Bash view; Win32 \\\\?\\ and unprefixed MAX_PATH encodings fail). leak_table_matches_matrix=True. SUCCESS:TST-0205 long-path visibility across pwsh7, Git Bash and WSL: POSIX parity on this host, Git Bash MSYS extended-prefix and MAX_PATH leaks planted and enumerated",
     "cloud_ok": false,
@@ -171,13 +701,13 @@
       "bash": "/usr/bin/bash",
       "dash": "/usr/bin/dash",
       "git_bash": null,
-      "hostname": "p2-ovh-rbx-c",
+      "hostname": "cursor",
       "is_wsl": false,
       "name_max": 255,
       "path_max": 4096,
       "pwsh": null,
       "python": "3.12.3",
-      "release": "6.8.0-136-generic",
+      "release": "6.12.94+",
       "system": "linux",
       "win32_max_path": 260,
       "wsl_interop": false
@@ -707,6 +1237,7 @@
     },
     "verdict": "PASS"
   },
+  "report_kind": "portability_report",
   "residual_unknowns": [
     {
       "claim": "Native pwsh7 and Git Bash bash.exe were not present on this Linux host; pwsh7 cells used CPython POSIX file APIs and git-bash cells used dash after the MSYS codec.",
@@ -727,6 +1258,21 @@
   },
   "schema_version": 1,
   "sentinel": "SUCCESS:TST-0205 long-path visibility across pwsh7, Git Bash and WSL: POSIX parity on this host, Git Bash MSYS extended-prefix and MAX_PATH leaks planted and enumerated",
+  "shells": [
+    "pwsh7",
+    "git-bash",
+    "wsl"
+  ],
+  "short_path_control": {
+    "all_ops_ok": true,
+    "all_three_visible": true,
+    "path_nchars": 33,
+    "visible": {
+      "git-bash": true,
+      "pwsh7": true,
+      "wsl": true
+    }
+  },
   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0205 (_USER-PROMPTS.md:11017 Phase 10 layer 29; rules/common/windows-shell.md)",
   "state": "SUCCESS",
   "tests": [
@@ -750,8 +1296,9 @@
     }
   ],
   "timestamps": {
-    "ended_at": "2026-08-25T01:12:08Z",
-    "started_at": "2026-08-25T01:12:08Z"
+    "ended_at": "2026-09-02T10:16:08Z",
+    "started_at": "2026-09-02T10:16:08Z"
   },
-  "unit_id": "TST-0205"
+  "unit_id": "TST-0205",
+  "verdict": "PASS"
 }

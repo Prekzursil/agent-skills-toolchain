@@ -229,9 +229,197 @@ class PackResult(PackReport):
 
 
 def pack(stage: Path, dest: Path | None = None, **kwargs: Any) -> PackReport:
+    if "allowlist" in kwargs:
+        return pack_allowlisted(Path(stage), None if dest is None else Path(dest), kwargs["allowlist"])
     dest_path = Path(dest) if dest is not None else Path(kwargs.get("output") or "plugin-pack.tar")
     report = pack_staging(Path(stage), dest_path, kwargs.get("doc"))
     return PackReport(report)
+
+
+# ----------------------------------------------------------------- TST-0207
+# Allowlist-only zip packer: every file under the tree is either named by an
+# allowlist glob or reported as an extra; a single extra, or an uncompressed
+# payload over the declared ceiling, refuses the pack and emits no archive.
+
+
+class PackError(ValueError):
+    """Allowlist configuration refused before any file is examined."""
+
+
+class AllowlistPackReport(PackReport):
+    """Result of :func:`pack_allowlisted`; ``ok`` only when nothing was left out."""
+
+    def __init__(self, data: dict[str, Any]) -> None:
+        super().__init__(data)
+        self.reasons = list(data.get("reasons") or [])
+        self.extra_paths = list(data.get("extra_paths") or [])
+        self.ceiling_exceeded = bool(data.get("ceiling_exceeded"))
+        self.uncompressed_bytes = int(data.get("uncompressed_bytes") or 0)
+        self.size_ceiling_bytes = int(data.get("size_ceiling_bytes") or 0)
+        self.mode = str(data.get("mode") or "")
+
+
+_UNBOUNDED_GLOBS = {"**", "*", "**/*", "./**", "**/**"}
+
+
+def _allow_glob_to_re(pattern: str) -> "re.Pattern[str]":
+    import re
+
+    parts = pattern.replace("\\", "/").strip("/").split("/")
+    out: list[str] = []
+    for idx, part in enumerate(parts):
+        if part == "**":
+            # zero or more whole directories
+            out.append("(?:[^/]+/)*" if idx < len(parts) - 1 else "(?:[^/]+/)*[^/]+")
+            continue
+        seg = ""
+        for ch in part:
+            if ch == "*":
+                seg += "[^/]*"
+            elif ch == "?":
+                seg += "[^/]"
+            else:
+                seg += re.escape(ch)
+        out.append(seg + ("/" if idx < len(parts) - 1 else ""))
+    return re.compile("^" + "".join(out) + "$")
+
+
+def allowlisted(rel: str, globs: list[str]) -> bool:
+    """True when the posix-relative path ``rel`` is named by one of ``globs``."""
+    posix = str(rel).replace("\\", "/")
+    while posix.startswith("./"):
+        posix = posix[2:]
+    posix = posix.lstrip("/")
+    return any(_allow_glob_to_re(g).match(posix) for g in globs)
+
+
+def validate_allowlist_config(allowlist: Any) -> dict[str, Any]:
+    if not isinstance(allowlist, dict):
+        raise PackError("allowlist config must be an object")
+    mode = str(allowlist.get("mode") or "").lower()
+    if mode != "allowlist":
+        raise PackError(
+            f"allowlist config mode={mode or 'missing'!r} refused: only mode='allowlist' packs; "
+            "a denylist ships every file it forgot to name"
+        )
+    globs = allowlist.get("globs")
+    if not isinstance(globs, list) or not globs or not all(isinstance(g, str) and g.strip() for g in globs):
+        raise PackError("allowlist globs must be a non-empty list of strings")
+    for g in globs:
+        norm = g.replace("\\", "/").strip().strip("/")
+        if norm in _UNBOUNDED_GLOBS:
+            raise PackError(f"unbounded glob {g!r} refused: the allowlist would become a denylist")
+        if ".." in norm.split("/") or g.startswith("/"):
+            raise PackError(f"allowlist glob {g!r} escapes the staging root")
+    ceiling = allowlist.get("size_ceiling_bytes")
+    if not isinstance(ceiling, int) or isinstance(ceiling, bool) or ceiling <= 0:
+        raise PackError("size_ceiling_bytes must be a positive integer")
+    on_exceed = str(allowlist.get("on_ceiling_exceeded") or "fail")
+    if on_exceed != "fail":
+        raise PackError(f"on_ceiling_exceeded={on_exceed!r} refused: only 'fail' is a gate")
+    return {"mode": mode, "globs": list(globs), "size_ceiling_bytes": int(ceiling), "on_ceiling_exceeded": on_exceed}
+
+
+def _tree_files(root: Path) -> list[tuple[str, Path]]:
+    rows: list[tuple[str, Path]] = []
+    for path in root.rglob("*"):
+        if path.is_dir() and not path.is_symlink():
+            continue
+        rows.append((path.relative_to(root).as_posix(), path))
+    rows.sort(key=lambda r: r[0])
+    return rows
+
+
+def pack_allowlisted(root: Path, dest: Path | None, allowlist: Any) -> AllowlistPackReport:
+    cfg = validate_allowlist_config(allowlist)
+    root = Path(root)
+    selected: list[tuple[str, Path]] = []
+    extras: list[dict[str, Any]] = []
+    for rel, path in _tree_files(root):
+        if allowlisted(rel, cfg["globs"]):
+            selected.append((rel, path))
+        else:
+            extras.append({"path": rel, "bytes": int(path.lstat().st_size)})
+    uncompressed = sum(int(path.stat().st_size) for _rel, path in selected)
+    ceiling_exceeded = uncompressed > cfg["size_ceiling_bytes"]
+    reasons: list[str] = []
+    if extras:
+        named = ", ".join(row["path"] for row in extras[:12])
+        reasons.append(f"non-allowlisted paths present ({len(extras)}): {named}")
+    if ceiling_exceeded:
+        reasons.append(
+            f"size ceiling exceeded: uncompressed {uncompressed} > {cfg['size_ceiling_bytes']} bytes"
+        )
+    ok = not reasons
+    members = [rel for rel, _ in selected]
+    archive: str | None = None
+    digest = ""
+    size = 0
+    if ok and dest is not None:
+        import io
+        import zipfile
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=COMPRESSION_LEVEL) as zf:
+            for rel, path in selected:
+                info = zipfile.ZipInfo(rel, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o644 << 16
+                zf.writestr(info, path.read_bytes())
+        data = buf.getvalue()
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(data)
+        archive = str(dest)
+        digest = hashlib.sha256(data).hexdigest()
+        size = len(data)
+    return AllowlistPackReport(
+        {
+            "ok": ok,
+            "mode": cfg["mode"],
+            "policy": "allowlist",
+            "members": members,
+            "member_count": len(members),
+            "extras": [row["path"] for row in extras],
+            "extra_paths": extras,
+            "reasons": reasons,
+            "uncompressed_bytes": uncompressed,
+            "size_ceiling_bytes": cfg["size_ceiling_bytes"],
+            "ceiling_exceeded": ceiling_exceeded,
+            "on_ceiling_exceeded": cfg["on_ceiling_exceeded"],
+            "archive": archive,
+            "sha256": digest,
+            "size": size,
+            "refused": not ok,
+            "message": "; ".join(reasons),
+        }
+    )
+
+
+def independent_zip_members(zip_path: Path) -> list[dict[str, Any]]:
+    """Archive listing straight from the zip central directory (not the pack report)."""
+    import zipfile
+
+    with zipfile.ZipFile(Path(zip_path)) as zf:
+        return [
+            {
+                "path": info.filename,
+                "uncompressed_bytes": int(info.file_size),
+                "compressed_bytes": int(info.compress_size),
+            }
+            for info in zf.infolist()
+        ]
+
+
+def independent_allowlist_expansion(root: Path, globs: list[str]) -> list[str]:
+    """Expand ``globs`` with pathlib's own matcher -- independent of :func:`allowlisted`."""
+    root = Path(root)
+    found: set[str] = set()
+    for pattern in globs:
+        for path in root.glob(pattern):
+            if path.is_file():
+                found.add(path.relative_to(root).as_posix())
+    return sorted(found)
 
 
 def pack_repository(

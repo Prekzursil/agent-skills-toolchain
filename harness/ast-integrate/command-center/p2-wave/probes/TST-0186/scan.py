@@ -29,9 +29,52 @@ CLEAN_FIXTURE = HERE / "fixtures" / "file_sites.py"
 
 COMMIT_DASH_M = re.compile(r"\bgit(?:\s+|['\"+])commit\b.*\s-m\b", re.DOTALL)
 COMMIT_M_JOINED = re.compile(r"commit['\"\s]+-m\b")
-BODY_INLINE = re.compile(r"--body(?!-file)\b")
-PROMPT_INLINE = re.compile(r"--prompt(?!-file)\b")
+# A hit needs the prose ON the command line: the flag followed by an inline
+# value in the same string/template.  A bare "--body" / "--prompt" constant is
+# a flag *name* (argparse definition, argv element whose value travels as its
+# own argv entry) and carries no prose; "--prompt-file", "--prompt-stdin",
+# "--prompt-ref", "--body-file" are different flags.
+BODY_INLINE = re.compile(r"--body(?![\w-])(?:=|\s+)(?!-)\S")
+PROMPT_INLINE = re.compile(r"--prompt(?![\w-])(?:=|\s+)(?!-)\S")
 BASH_C_INTERP = re.compile(r"bash\s+-c\s+.*\{(?:message|body|prompt|prose|payload)\}")
+
+# Exclusions for the tools/ sweep (the scanner's own allow-list, not the
+# probe's).  Tests and fixtures are planted or exercising code -- other units
+# keep their both-states mutants there -- and vendored third-party trees are
+# not this repo's command construction.
+EXCLUDED_DIR_PARTS = {
+    "tests",
+    "test",
+    "fixtures",
+    "fixture",
+    "testdata",
+    "node_modules",
+    "vendor",
+    "third_party",
+    "__pycache__",
+    ".git",
+}
+EXCLUDED_FILE_RE = re.compile(r"^(?:test_.*|.*_test|conftest)\.py$")
+# Third-party framework carried whole (own LICENSE, package.json, CHANGELOG).
+VENDORED_ROOTS = [REPO / "tools" / "editor" / "metaswarm"]
+
+
+def is_excluded(path: Path) -> str | None:
+    """Return the exclusion reason for *path*, or None when it must be scanned."""
+    resolved = path.resolve()
+    for root in VENDORED_ROOTS:
+        try:
+            resolved.relative_to(root.resolve())
+        except ValueError:
+            continue
+        return f"vendored:{_rel(root)}"
+    rel_parts = resolved.relative_to(REPO.resolve()).parts if resolved.is_relative_to(REPO.resolve()) else resolved.parts
+    for part in rel_parts[:-1]:
+        if part in EXCLUDED_DIR_PARTS:
+            return f"dir:{part}"
+    if EXCLUDED_FILE_RE.match(resolved.name):
+        return "test-module"
+    return None
 
 
 def _strings_from_python(text: str) -> list[tuple[int, str]]:
@@ -134,17 +177,32 @@ def scan_production() -> dict:
     for path in PRODUCTION_PATHS:
         findings.extend(scan_file(path))
     extra_tools = REPO / "tools"
-    for path in extra_tools.rglob("*"):
+    production = {p.resolve() for p in PRODUCTION_PATHS if p.is_file()}
+    excluded: dict[str, int] = {}
+    scanned = 0
+    for path in sorted(extra_tools.rglob("*")):
         if path.suffix.lower() not in {".py", ".js", ".mjs", ".sh"}:
             continue
-        if path.resolve() in {p.resolve() for p in PRODUCTION_PATHS if p.is_file()}:
+        if path.resolve() in production:
             continue
+        reason = is_excluded(path)
+        if reason is not None:
+            excluded[reason] = excluded.get(reason, 0) + 1
+            continue
+        scanned += 1
         findings.extend(scan_file(path))
     return {
         "findings": findings,
         "n": len(findings),
         "ok": len(findings) == 0,
         "roots": [_rel(p) for p in PRODUCTION_PATHS] + ["tools/"],
+        "tools_files_scanned": scanned,
+        "excluded": dict(sorted(excluded.items())),
+        "exclusion_rules": {
+            "dir_parts": sorted(EXCLUDED_DIR_PARTS),
+            "file_re": EXCLUDED_FILE_RE.pattern,
+            "vendored_roots": [_rel(p) for p in VENDORED_ROOTS],
+        },
     }
 
 

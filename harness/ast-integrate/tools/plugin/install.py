@@ -20,6 +20,7 @@ from plugin.errors import (
 )
 from plugin.payload import census_tree
 from plugin.payload import payload_digest as _payload_digest
+from plugin.permission_diff import WIDEN, compute_delta
 from plugin.placement import place_payload_files
 
 # Re-exported so ADV-0030 can monkeypatch install.payload_digest.
@@ -77,9 +78,13 @@ def install_from_handoff(handoff: dict[str, Any], dest_root: Path) -> dict[str, 
             raise ProjectionError(f"projection dest escapes dest_root: {dest}")
     old_perms = _existing_permissions(dest_root)
     new_perms = {str(p) for p in (doc.get("declared_permissions") or [])}
-    if old_perms and new_perms - old_perms and not (old_perms - new_perms):
+    gate = _permission_gate(old_perms, new_perms)
+    if gate["halt"]:
         raise PermissionWideningBlocked(
-            f"permissions widen installed={sorted(old_perms)} candidate={sorted(new_perms)}"
+            gate["added"],
+            installed=gate["installed"],
+            candidate=gate["candidate"],
+            rendered_diff=gate["rendered_diff"],
         )
     dest_root.mkdir(parents=True, exist_ok=True)
     placed = place_payload_files(dest_root, projection, payload)
@@ -92,7 +97,60 @@ def install_from_handoff(handoff: dict[str, Any], dest_root: Path) -> dict[str, 
         "placed": placed,
         "dest_root": str(dest_root),
         "digest": live,
+        "permission_gate": gate,
         "ok": True,
+    }
+
+
+def _permission_gate(old_perms: set[str], new_perms: set[str]) -> dict[str, Any]:
+    """Decide the update's permission verdict before a single file is placed.
+
+    First install: nothing to compare. Otherwise the lattice
+    (:func:`plugin.permission_diff.compute_delta`) classifies the candidate as
+    ``unchanged`` / ``narrow`` (proceed silently) or ``widen`` (halt; every added
+    permission is named in ``rendered_diff``). A mixed delta -- some added, some
+    removed -- still adds capability, so it halts as a widening too.
+    """
+    installed = sorted(old_perms)
+    candidate = sorted(new_perms)
+    if not old_perms:
+        return {
+            "verdict": "first-install",
+            "halt": False,
+            "warn": False,
+            "added": [],
+            "removed": [],
+            "installed": installed,
+            "candidate": candidate,
+            "rendered_diff": "",
+        }
+    delta = compute_delta(installed, candidate)
+    added = sorted(delta.added)
+    removed = sorted(delta.removed)
+    verdict = delta.verdict
+    if added and verdict != WIDEN:
+        verdict = WIDEN
+    halt = verdict == WIDEN
+    rendered = ""
+    if halt:
+        rendered = (
+            "permissions widen: "
+            + " ".join(f"+{name}" for name in added)
+            + (" " + " ".join(f"-{name}" for name in removed) if removed else "")
+            + f" (installed={installed} candidate={candidate})"
+        )
+    elif removed:
+        rendered = "permissions narrow: " + " ".join(f"-{name}" for name in removed)
+    return {
+        "verdict": verdict,
+        "halt": halt,
+        "warn": False,
+        "added": added,
+        "removed": removed,
+        "installed": installed,
+        "candidate": candidate,
+        "rendered_diff": rendered,
+        "methods_agree": delta.methods_agree,
     }
 
 

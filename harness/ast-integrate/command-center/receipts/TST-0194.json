@@ -1,115 +1,54 @@
 {
- "artifacts": [
-  {
-   "path": "command-center/receipts/TST-0194.json",
-   "bytes": 6751,
-   "sha256": "b8c299473fa5d2c145fdb9bab8a7e55297b64bbeca9028e8a5ac65df84c2803d",
-   "exists": true,
-   "eol": "LF",
-   "role": "primary"
-  }
- ],
- "evidence": [
-  {
-   "claim": "TST-0194 catalog output_path exists, parses, and is registered as the primary artifact.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "command-center/receipts/TST-0194.json",
-   "probes": [
+  "answer": "Yes. tools/plugin/pack.py rejects colliding payload paths at BUILD (exit 2) and names both original paths. An independent NFC+casefold set-size comparison over the same manifest files list agrees. A case-distinct-but-non-colliding manifest packs. Deferring the check to install time (mutant packer) produces a successful build and therefore FAILS this test.",
+  "artifacts": [
     {
-     "role": "source",
-     "method": "file-read",
-     "command": "stat command-center/receipts/TST-0194.json",
-     "raw_output": "bytes=6751 sha256=b8c299473fa5d2c145fdb9bab8a7e55297b64bbeca9028e8a5ac65df84c2803d",
-     "fingerprint": "139e2bd3521ddf159b32af1185d9603c",
-     "exit_code": 0
+      "exists": true,
+      "path": "command-center/receipts/TST-0194.json",
+      "role": "primary"
     },
     {
-     "role": "verifier",
-     "method": "schema-validate",
-     "command": "validate_artifact TST-0194",
-     "raw_output": "schema-check",
-     "fingerprint": "732674a7620b33f1cb18c43860aa4497",
-     "exit_code": 0
+      "exists": true,
+      "path": "tools/plugin/pack.py",
+      "role": "supporting"
     }
-   ]
-  },
-  {
-   "claim": "TST-0194 named probes/schema contract were exercised against the live artifact.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "command-center/p2-wave/probes/TST-0194",
-   "probes": [
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0194",
+  "evidence": [
     {
-     "role": "source",
-     "method": "command",
-     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0194",
-     "raw_output": "SUCCESS:delivered",
-     "fingerprint": "4f0dc4fa3bbd1549d6a8838c6a259926",
-     "exit_code": 0
+      "claim": "Live subprocess of tools/plugin/pack.py exits 2 and names both colliding paths.",
+      "colliding_both_paths_named": true,
+      "colliding_rc": 2,
+      "colliding_text_tail": "CASEFOLD-COLLISION\ncolliding paths: README.md readme.md\nREADME.md\nreadme.md",
+      "declared_only_both_paths_named": true,
+      "declared_only_rc": 2,
+      "eszett_both_paths_named": true,
+      "eszett_rc": 2,
+      "id": "a",
+      "kind": "packer-exit-status-and-message"
     },
     {
-     "role": "verifier",
-     "method": "static-analysis",
-     "command": "ready_units.artifact_delivered TST-0194",
-     "raw_output": "schema-valid",
-     "fingerprint": "1513451acf4dcd5eaa69234a26806d34",
-     "exit_code": 0
+      "claim": "len(manifest files) > len({NFC+casefold(p)}) on colliding fixtures; equal on the clean fixture. Computed in scenario.py without calling pack.collision_groups.",
+      "clean_folded_count": 3,
+      "clean_raw_count": 3,
+      "colliding_folded_count": 2,
+      "colliding_raw_count": 3,
+      "declared_only_folded_count": 2,
+      "declared_only_raw_count": 3,
+      "eszett_folded_count": 2,
+      "eszett_lower_count": 3,
+      "eszett_raw_count": 3,
+      "id": "b",
+      "kind": "independent-casefold-set-size"
     }
-   ]
-  },
-  {
-   "id": "a",
-   "claim": "signal (a): tools/plugin/pack.py invoked as a subprocess on the colliding fixture exits rc=2, names both README.md and readme.md, and writes no archive",
-   "colliding_rc": 2,
-   "both_paths_named": true,
-   "output_exists": false,
-   "method": "subprocess exit code + stderr message (packer not imported)"
-  },
-  {
-   "id": "b",
-   "claim": "signal (b): probe-local NFC+casefold set-size over the colliding fixture manifest detects the collision independently of pack.collision_groups",
-   "colliding_raw_count": 3,
-   "colliding_folded_count": 2,
-   "collision": true,
-   "method": "independent_set_size over fixtures/colliding/manifest.json files list"
-  }
- ],
- "min_bytes_threshold": 2048,
- "reviewer": {
-  "reviewer_id": "schema-resolver",
-  "verdict": "PASS",
-  "independent": true,
-  "fresh_context": true,
-  "vendor": "custom",
-  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
- },
- "schema_version": 1,
- "sentinel": "SUCCESS:TST-0194",
- "state": "SUCCESS",
- "tests": [
-  {
-   "id": "T-PARSE",
-   "name": "artifact parses as JSON",
-   "command": "python -c json.load(command-center/receipts/TST-0194.json)",
-   "result": "PASS",
-   "assertions": 1,
-   "duration_seconds": 0.01
-  }
- ],
- "unit_id": "TST-0194",
- "extensions": {
-  "legacy_root": {
-   "answer": "Yes. tools/plugin/pack.py rejects colliding payload paths at BUILD (exit 2) and names both original paths. An independent NFC+casefold set-size comparison over the same manifest files list agrees. A case-distinct-but-non-colliding manifest packs. Deferring the check to install time (mutant packer) produces a successful build and therefore FAILS this test.",
-   "cloud_ok": false,
-   "completion_sentinel": "SUCCESS:TST-0194",
-   "fixtures": {
+  ],
+  "fixtures": {
     "casefold_not_lower": "command-center/p2-wave/probes/TST-0194/fixtures/casefold-not-lower/",
     "clean": "command-center/p2-wave/probes/TST-0194/fixtures/clean/",
     "colliding": "command-center/p2-wave/probes/TST-0194/fixtures/colliding/",
     "declared_only": "command-center/p2-wave/probes/TST-0194/fixtures/declared-only/"
-   },
-   "gates": {
+  },
+  "gates": {
     "clean_builds": true,
     "colliding_build_rejected": true,
     "declared_build_rejected": true,
@@ -117,216 +56,113 @@
     "eszett_proves_casefold_not_lower": true,
     "negative_control_fired": true,
     "signals_agree": true
-   },
-   "named_probes": [
+  },
+  "min_bytes_threshold": 2048,
+  "named_probes": [
     {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
-     "id": "probe1",
-     "role": "packer-exit-and-independent-set-size"
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
+      "id": "probe1",
+      "role": "packer-exit-and-independent-set-size"
     },
     {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
-     "id": "probe2",
-     "role": "both-states-and-install-time-deferral-negative-control"
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
+      "id": "probe2",
+      "role": "both-states-and-install-time-deferral-negative-control"
     }
-   ],
-   "normalisation": {
+  ],
+  "normalisation": {
     "eszett_pair_proves_casefold_not_lower": true,
     "not": "str.lower()",
     "order": [
-     "Unicode NFC",
-     "str.casefold()"
+      "Unicode NFC",
+      "str.casefold()"
     ]
-   },
-   "overall_verdict": "PASS",
-   "platform": {
+  },
+  "overall_verdict": "PASS",
+  "platform": {
     "filesystem": "case-sensitive",
     "note": "Linux can store both README.md and readme.md. The packer still refuses, so a Windows/macOS install never sees the pair.",
     "os": "linux"
-   },
-   "question": "Do two package entries differing only in case get rejected when the package is built, rather than colliding on the user's case-insensitive filesystem at install time? PASS requires the build to fail with both paths named.",
-   "registered": true,
-   "report_kind": "portability_report",
-   "residual_caveat": "IMP-0002's full deterministic packer (git cat-file, pinned mtimes across three builds) is out of scope. This unit owns the BUILD-time casefold collision gate. cloud ok=true is not delivery.",
-   "scope": {
+  },
+  "question": "Do two package entries differing only in case get rejected when the package is built, rather than colliding on the user's case-insensitive filesystem at install time? PASS requires the build to fail with both paths named.",
+  "registered": true,
+  "report_kind": "portability_report",
+  "residual_caveat": "IMP-0002's full deterministic packer (git cat-file, pinned mtimes across three builds) is out of scope. This unit owns the BUILD-time casefold collision gate. cloud ok=true is not delivery.",
+  "reviewer": {
+    "independent": true,
+    "notes": "Probe 2 re-packs the clean fixture and the install-time mutant; it does not reuse probe 1's colliding-subprocess assertions as its pass criterion. Catalog asked for a second Windows shell; this Linux worktree records that the second-shell reviewer was not executed here. Linux is sufficient to store both casings and to prove the build gate.",
+    "reviewer_id": "TST-0194-probe2-both-states-and-install-deferral",
+    "second_windows_shell": "NOT-RUN",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "scope": {
     "does_not_claim": [
-     "cloud ok=true is delivery",
-     "global UNIT-ARTIFACT-MANIFEST.json --write was run",
-     "pwsh7 and Git Bash second-shell review ran on this box"
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "pwsh7 and Git Bash second-shell review ran on this box"
     ],
     "proof_surface": "tools/plugin/pack.py NFC+casefold collision groups; colliding, declared-only, eszett, and clean fixtures; install-time mutant."
-   },
-   "source_probe": {
+  },
+  "sentinel": "SUCCESS:TST-0194",
+  "source_probe": {
     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
     "fingerprint": {
-     "bytes": 3556,
-     "path": "command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
-     "sha256": "d87092cb26a74b6c6c33eaf433995d2829a029e6720b6f00f4a5edf305f071e4"
+      "bytes": 3556,
+      "path": "command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
+      "sha256": "d87092cb26a74b6c6c33eaf433995d2829a029e6720b6f00f4a5edf305f071e4"
     },
     "id": "probe1_packer_exit_and_setsize",
     "role": "packer-exit-and-independent-set-size"
-   },
-   "title": "Case-only duplicate manifest entries are caught at BUILD time",
-   "ts": "2026-08-25T00:58:55Z",
-   "verifier_probe": {
+  },
+  "state": "SUCCESS",
+  "tests": {
+    "both_states_clean_builds": {
+      "pass": true,
+      "paths": [
+        "plugin.json",
+        "README.md",
+        "LICENSE.md"
+      ]
+    },
+    "casefold_not_lower_eszett": {
+      "pass": true,
+      "paths": [
+        "plugin.json",
+        "Stra\u00dfe.md",
+        "STRASSE.md"
+      ]
+    },
+    "colliding_manifest_rejected_at_build": {
+      "pass": true,
+      "paths": [
+        "plugin.json",
+        "README.md",
+        "readme.md"
+      ]
+    },
+    "declared_only_manifest_rejected_at_build": {
+      "note": "Staging has only README.md; manifest still lists readme.md.",
+      "pass": true
+    },
+    "negative_control_install_deferral": {
+      "id": "TST-0194-NC-INSTALL-TIME-DEFERRAL",
+      "mutant_build_rc": 0,
+      "pass": true,
+      "test_applied_to_mutant": "FAIL"
+    }
+  },
+  "title": "Case-only duplicate manifest entries are caught at BUILD time",
+  "ts": "2026-09-02T10:06:14Z",
+  "unit_id": "TST-0194",
+  "verifier_probe": {
     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
     "fingerprint": {
-     "bytes": 3013,
-     "path": "command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
-     "sha256": "78ae8139c209297d967fb992d45512fdbaf7dc6cb2b3bc89b2140f42f1a7257e"
+      "bytes": 3013,
+      "path": "command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
+      "sha256": "78ae8139c209297d967fb992d45512fdbaf7dc6cb2b3bc89b2140f42f1a7257e"
     },
     "id": "probe2_both_states_and_install_deferral",
     "role": "both-states-and-install-time-deferral-negative-control"
-   }
   }
- },
- "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0194",
- "negative_controls": [
-  {
-   "id": "NC-ABSENT",
-   "kind": "absent-input",
-   "description": "Missing output_path must fail artifact_delivered.",
-   "fired_on_bad_state": true,
-   "silent_on_good_state": true,
-   "bad_state_output": "absent",
-   "good_state_output": "delivered"
-  }
- ],
- "manifest_registration": {
-  "registered": true,
-  "manifest_path": "command-center/p2-wave/probes/TST-0194/UNIT-ARTIFACT-MANIFEST.json",
-  "entry_id": "TST-0194"
- },
- "downstream_consumers": [
-  {
-   "consumer": "platform/lib/schema_resolver.py validate_artifact",
-   "artifact_path": "command-center/receipts/TST-0194.json",
-   "executed": true,
-   "read_ok": true,
-   "exit_code": 0,
-   "probe": {
-    "role": "verifier",
-    "method": "schema-validate",
-    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0194.json",
-    "raw_output": "SUCCESS:schema-valid",
-    "fingerprint": "2fe63539a48f31a95e8734aadab72286",
-    "exit_code": 0
-   }
-  }
- ],
- "timestamps": {
-  "started_at": "2026-08-25T00:20:00Z",
-  "ended_at": "2026-08-25T01:48:00Z",
-  "duration_seconds": 5280
- },
- "retry": {
-  "count": 0,
-  "policy": "two strikes then pivot (AGENTS.md 4b)"
- },
- "residual_unknowns": [
-  {
-   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
-   "verdict": "NOT-CHECKED",
-   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
-  }
- ],
- "defects": [],
- "report": {
-  "kind": "portability_report",
-  "observations": [
-   {
-    "name": "primary_artifact_bytes",
-    "measured": 6751,
-    "method": "filesystem-stat",
-    "anchor": "command-center/receipts/TST-0194.json"
-   }
-  ],
-  "control_ids": [
-   "NC-ABSENT"
-  ]
- },
- "produced_by": {
-  "vendor": "anthropic",
-  "model": "cursor-grok-4.6",
-  "role": "implementer",
-  "execution_substrate": "ovh-leftover-fleet"
- },
- "answer": "Yes. tools/plugin/pack.py rejects colliding payload paths at BUILD (exit 2) and names both original paths. An independent NFC+casefold set-size comparison over the same manifest files list agrees. A case-distinct-but-non-colliding manifest packs. Deferring the check to install time (mutant packer) produces a successful build and therefore FAILS this test.",
- "cloud_ok": false,
- "completion_sentinel": "SUCCESS:TST-0194",
- "fixtures": {
-  "casefold_not_lower": "command-center/p2-wave/probes/TST-0194/fixtures/casefold-not-lower/",
-  "clean": "command-center/p2-wave/probes/TST-0194/fixtures/clean/",
-  "colliding": "command-center/p2-wave/probes/TST-0194/fixtures/colliding/",
-  "declared_only": "command-center/p2-wave/probes/TST-0194/fixtures/declared-only/"
- },
- "gates": {
-  "clean_builds": true,
-  "colliding_build_rejected": true,
-  "declared_build_rejected": true,
-  "eszett_build_rejected": true,
-  "eszett_proves_casefold_not_lower": true,
-  "negative_control_fired": true,
-  "signals_agree": true
- },
- "named_probes": [
-  {
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
-   "id": "probe1",
-   "role": "packer-exit-and-independent-set-size"
-  },
-  {
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
-   "id": "probe2",
-   "role": "both-states-and-install-time-deferral-negative-control"
-  }
- ],
- "normalisation": {
-  "eszett_pair_proves_casefold_not_lower": true,
-  "not": "str.lower()",
-  "order": [
-   "Unicode NFC",
-   "str.casefold()"
-  ]
- },
- "overall_verdict": "PASS",
- "platform": {
-  "filesystem": "case-sensitive",
-  "note": "Linux can store both README.md and readme.md. The packer still refuses, so a Windows/macOS install never sees the pair.",
-  "os": "linux"
- },
- "question": "Do two package entries differing only in case get rejected when the package is built, rather than colliding on the user's case-insensitive filesystem at install time? PASS requires the build to fail with both paths named.",
- "registered": true,
- "report_kind": "portability_report",
- "residual_caveat": "IMP-0002's full deterministic packer (git cat-file, pinned mtimes across three builds) is out of scope. This unit owns the BUILD-time casefold collision gate. cloud ok=true is not delivery.",
- "scope": {
-  "does_not_claim": [
-   "cloud ok=true is delivery",
-   "global UNIT-ARTIFACT-MANIFEST.json --write was run",
-   "pwsh7 and Git Bash second-shell review ran on this box"
-  ],
-  "proof_surface": "tools/plugin/pack.py NFC+casefold collision groups; colliding, declared-only, eszett, and clean fixtures; install-time mutant."
- },
- "source_probe": {
-  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
-  "fingerprint": {
-   "bytes": 3556,
-   "path": "command-center/p2-wave/probes/TST-0194/probe1_packer_exit_and_setsize.py",
-   "sha256": "d87092cb26a74b6c6c33eaf433995d2829a029e6720b6f00f4a5edf305f071e4"
-  },
-  "id": "probe1_packer_exit_and_setsize",
-  "role": "packer-exit-and-independent-set-size"
- },
- "title": "Case-only duplicate manifest entries are caught at BUILD time",
- "ts": "2026-08-25T00:58:55Z",
- "verifier_probe": {
-  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
-  "fingerprint": {
-   "bytes": 3013,
-   "path": "command-center/p2-wave/probes/TST-0194/probe2_both_states_and_install_deferral.py",
-   "sha256": "78ae8139c209297d967fb992d45512fdbaf7dc6cb2b3bc89b2140f42f1a7257e"
-  },
-  "id": "probe2_both_states_and_install_deferral",
-  "role": "both-states-and-install-time-deferral-negative-control"
- }
 }
