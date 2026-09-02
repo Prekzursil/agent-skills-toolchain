@@ -337,9 +337,89 @@ def test_policy_optional_sections_default_when_missing():
     minimal = policy()
     minimal.pop("retired")
     minimal.pop("escalation")
+    minimal.pop("notify")
     normalised = hygiene.validate_policy(minimal)
     assert normalised["retired"] == []
     assert normalised["escalation"]["stopActiveAtCritical"] is False
+    assert normalised["escalation"]["maxStopsPerRun"] == 3
+    assert normalised["escalation"]["crashLoopKills"] == 2
+    assert normalised["integration"]["politeStopSeconds"] == 0
+    assert normalised["notify"]["digestCooldownSeconds"] == 43_200
+
+
+@pytest.mark.parametrize(
+    "section",
+    [
+        "pressure",
+        "pressure.elevated",
+        "pressure.critical",
+        "idle",
+        "protected",
+        "browsers",
+        "runtimes.grok",
+        "orphans",
+        "mcp",
+        "mcp.sameOwnerDuplicate",
+        "mcp.singletonDuplicate",
+        "mcp.overBudget",
+        "wsl",
+        "wsl.idleShutdown",
+        "escalation",
+        "integration",
+        "ledger",
+        "notify",
+    ],
+)
+def test_policy_rejects_unknown_keys_in_every_section(section):
+    # Found by the prune lens: a typo such as `orphanHandlr` used to be accepted
+    # silently and disabled reaper delegation. Every section is now closed.
+    bad = policy(**{f"{section}.typo": 1})
+    with pytest.raises(hygiene.PolicyError, match="unknown key"):
+        hygiene.validate_policy(bad)
+
+
+def test_policy_rejects_unknown_key_in_a_retired_entry():
+    bad = policy(retired=[{"id": "x", "matchAll": ["a"], "typo": 1}])
+    with pytest.raises(hygiene.PolicyError, match="unknown key"):
+        hygiene.validate_policy(bad)
+
+
+@pytest.mark.parametrize(
+    "section", ["pressure", "idle", "protected", "runtimes", "mcp", "wsl"]
+)
+def test_policy_missing_required_section_is_a_policy_error_not_a_traceback(section):
+    bad = policy()
+    bad.pop(section)
+    with pytest.raises(hygiene.PolicyError, match=section):
+        hygiene.validate_policy(bad)
+
+
+def test_policy_legacy_per_rule_graceful_and_interval_keys_are_rejected():
+    for dotted in (
+        "runtimes.grok.gracefulSeconds",
+        "orphans.gracefulSeconds",
+        "mcp.gracefulSeconds",
+    ):
+        with pytest.raises(hygiene.PolicyError, match="unknown key"):
+            hygiene.validate_policy(policy(**{dotted: 5}))
+    with pytest.raises(hygiene.PolicyError, match="unknown key"):
+        hygiene.validate_policy(policy(intervalSeconds=300))
+
+
+def test_policy_commit_headroom_and_budget_knobs_validate():
+    normalised = hygiene.validate_policy(policy())
+    assert normalised["pressure"]["critical"]["headroom"] == 3 * GIB
+    assert normalised["pressure"]["elevated"]["headroom"] == 8 * GIB
+    with pytest.raises(hygiene.PolicyError, match="commitHeadroomBelow"):
+        hygiene.validate_policy(
+            policy(**{"pressure.critical.commitHeadroomBelow": 9 * GIB})
+        )
+    with pytest.raises(hygiene.PolicyError, match="maxStopsPerRun"):
+        hygiene.validate_policy(policy(**{"escalation.maxStopsPerRun": 0}))
+    with pytest.raises(hygiene.PolicyError, match="resumeHint"):
+        hygiene.validate_policy(policy(**{"runtimes.grok.resumeHint": 5}))
+    with pytest.raises(hygiene.PolicyError, match="wsl.action"):
+        hygiene.validate_policy(policy(**{"wsl.action": "nuke"}))
 
 
 def test_load_policy_reads_file(tmp_path):
@@ -716,7 +796,8 @@ def test_session_age_stops_idle_stale_cli_session():
     assert decisions[0].min_tier == "normal"
     assert decisions[0].detail["runtime"] == "cursor-agent"
     assert decisions[0].detail["age_seconds"] == 30 * 3600
-    assert decisions[0].graceful_seconds == 20
+    assert decisions[0].graceful_seconds == 0  # polite stop is off by default
+    assert "agent --resume" in decisions[0].detail["resume_hint"]
 
 
 def test_session_age_active_session_is_only_reported():
@@ -1371,10 +1452,11 @@ class FakeActuator:
             for member in tree
         ]
 
-    def wsl_shutdown(self):
+    def wsl_shutdown(self, *, distros=(), action="terminate"):
         self.wsl_calls += 1
+        self.wsl_args = (list(distros), action)
         return hygiene.StopResult(
-            pid=0, created_unix=0, outcome="ok", detail="wsl --shutdown"
+            pid=0, created_unix=0, outcome="ok", detail=f"wsl --{action}"
         )
 
     def run_reaper(self, *, apply):
@@ -1476,13 +1558,21 @@ def test_apply_plan_skips_the_reaper_when_nothing_is_delegated(tmp_path):
     assert actuator.reaper_calls == []
 
 
-def test_apply_plan_uses_the_decision_graceful_seconds(tmp_path):
-    plan = observe(engine(), grok_with_bridge(), 1)
+def test_apply_plan_uses_the_global_polite_stop_window(tmp_path):
+    plan = observe(
+        engine(policy(**{"integration.politeStopSeconds": 7})), grok_with_bridge(), 1
+    )
     actuator = FakeActuator()
     hygiene.apply_plan(
         plan, actuator, hygiene.Ledger(tmp_path / "l.jsonl"), apply=True, run_id="r"
     )
-    assert actuator.stopped == [([300], 5)]
+    assert actuator.stopped == [([300], 7)]
+    plan = observe(engine(), grok_with_bridge(), 1)
+    actuator = FakeActuator()
+    hygiene.apply_plan(
+        plan, actuator, hygiene.Ledger(tmp_path / "l2.jsonl"), apply=True, run_id="r"
+    )
+    assert actuator.stopped == [([300], 0)]
 
 
 # -------------------------------------------------------------------- cli
@@ -1684,6 +1774,407 @@ def test_real_registry_validates_with_the_shipped_fleet_supervisor():
     fleet.control.validate_registry(config)
 
 
+# ------------------------------------------------- research-driven guards
+
+
+def test_tier_critical_is_driven_by_commit_headroom_not_ratio():
+    # 67.7 GB committed on 31.6 GB physical is this box's chronic baseline
+    # (2.14x); with 12 GB of headroom left it is elevated (by free RAM), not a
+    # permanent emergency. Squeeze the commit LIMIT and the same box is critical.
+    roomy = observe(
+        engine(),
+        [proc(10, 1)],
+        1,
+        free=5 * GIB,
+        physical=31_600_000_000,
+        commit=67_700_000_000,
+        commit_limit=80_000_000_000,
+    )
+    assert roomy.tier == "elevated"
+    assert roomy.metrics["commit_headroom_bytes"] == 80_000_000_000 - 67_700_000_000
+    tight = observe(
+        engine(),
+        [proc(10, 1)],
+        1,
+        free=5 * GIB,
+        physical=31_600_000_000,
+        commit=67_700_000_000,
+        commit_limit=70_000_000_000,
+    )
+    assert tight.tier == "critical"
+    # A missing commit limit (0) disables the headroom leg rather than tripping it.
+    unknown = observe(engine(), [proc(10, 1)], 1, commit_limit=0)
+    assert unknown.tier == "normal"
+    assert unknown.metrics["commit_headroom_bytes"] is None
+
+
+def test_runtime_without_a_resume_hint_omits_the_field():
+    pol = policy()
+    pol["runtimes"]["grok"].pop("resumeHint")
+    procs = [
+        proc(
+            900, 1, cmd="node C:\\x\\grok-cli\\dist\\index.js", created=ago(5 * 86_400)
+        )
+    ]
+    plan = observe(engine(pol), procs, 4)
+    assert "resume_hint" not in by_rule(plan, "session-age")[0].detail
+
+
+def test_rss_hard_on_an_ide_owned_agent_is_reported_never_stopped():
+    # Prune-lens finding: session-age respected IDE ownership but rss did not.
+    procs = [
+        proc(
+            700,
+            1,
+            name="Cursor.exe",
+            exe=CURSOR_IDE_EXE,
+            cmd="Cursor",
+            created=ago(40 * 3600),
+        ),
+        cursor_root(ppid=700, created=ago(1200), private=4 * GIB),
+    ]
+    plan = observe(engine(), procs, 4)
+    hard = by_rule(plan, "rss-hard")
+    assert len(hard) == 1
+    assert hard[0].action == "report"
+    assert hard[0].detail["owned_by"] == "cursor.exe"
+    assert "resume_hint" in hard[0].detail
+    assert kill_pids(plan) == set()
+
+
+def snap_with_connections(procs, connections, **kw):
+    payload = snap(procs, **kw)
+    payload["connections"] = [
+        {"pid": pid, "remote": remote} for pid, remote in connections
+    ]
+    return payload
+
+
+def observe_connected(eng, procs, rounds, connections, *, end=NOW):
+    plan = None
+    for index in range(rounds):
+        taken = end - (rounds - 1 - index) * STEP
+        plan = eng.evaluate(
+            hygiene.parse_snapshot(
+                snap_with_connections(procs, connections, taken=taken)
+            )
+        )
+    return plan
+
+
+def test_network_veto_defers_an_idle_orphan_with_a_live_remote_socket_then_expires():
+    eng = engine()
+    remote = [(400, "52.10.20.30:443")]
+    plan = observe_connected(eng, [orphan_node()], 4, remote)
+    vetoed = by_rule(plan, "orphan")
+    assert [d.action for d in vetoed] == ["report"]
+    assert vetoed[0].detail["network_veto"] is True
+    assert vetoed[0].detail["deferrals"] == 1
+    for extra in (1, 2):
+        plan = eng.evaluate(
+            hygiene.parse_snapshot(
+                snap_with_connections([orphan_node()], remote, taken=NOW + extra * STEP)
+            )
+        )
+        assert [d.action for d in by_rule(plan, "orphan")] == ["report"]
+    # networkVetoMaxCycles=3 exhausted: a half-open keep-alive cannot shield a leak.
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(
+            snap_with_connections([orphan_node()], remote, taken=NOW + 3 * STEP)
+        )
+    )
+    assert [d.action for d in by_rule(plan, "orphan")] == ["stop"]
+
+
+def test_network_veto_ignores_loopback_and_can_be_disabled():
+    plan = observe_connected(
+        engine(), [orphan_node()], 4, [(400, "127.0.0.1:8765"), (400, "[::1]:8812")]
+    )
+    assert [d.action for d in by_rule(plan, "orphan")] == ["stop"]
+    eng = engine(policy(**{"idle.networkVeto": False}))
+    plan = observe_connected(eng, [orphan_node()], 4, [(400, "52.10.20.30:443")])
+    assert [d.action for d in by_rule(plan, "orphan")] == ["stop"]
+
+
+def test_network_veto_applies_to_session_age_stops_too():
+    eng = engine()
+    procs = [terminal(), cursor_root()]
+    plan = observe_connected(eng, procs, 4, [(600, "20.30.40.50:443")])
+    decisions = by_rule(plan, "session-age")
+    assert [d.action for d in decisions] == ["report"]
+    assert decisions[0].detail["network_veto"] is True
+
+
+def test_snapshot_connections_and_wsl_gate_fields_validate():
+    payload = snap([proc(10, 1)])
+    payload["connections"] = [
+        {"pid": 10, "remote": "1.2.3.4:443"},
+        {"pid": 10, "remote": "::1"},
+    ]
+    payload["wsl"] = {
+        "available": True,
+        "running_distros": ["Ubuntu"],
+        "docker_desktop_running": True,
+        "client_count": 2,
+    }
+    snapshot = hygiene.parse_snapshot(payload)
+    assert snapshot.networked == {10}
+    assert snapshot.docker_desktop_running is True
+    assert snapshot.wsl_client_count == 2
+    bad = snap([proc(10, 1)])
+    bad["connections"] = [{"pid": 10, "remote": 5}]
+    with pytest.raises(hygiene.SnapshotError, match="remote"):
+        hygiene.parse_snapshot(bad)
+    bad = snap([proc(10, 1)])
+    bad["wsl"] = {
+        "available": True,
+        "running_distros": [],
+        "docker_desktop_running": "yes",
+    }
+    with pytest.raises(hygiene.SnapshotError, match="docker_desktop_running"):
+        hygiene.parse_snapshot(bad)
+    bad = snap([proc(10, 1)])
+    bad["wsl"] = {"available": True, "running_distros": [], "client_count": -1}
+    with pytest.raises(hygiene.SnapshotError, match="client_count"):
+        hygiene.parse_snapshot(bad)
+    assert hygiene._is_loopback("localhost:80") is True
+    assert hygiene._is_loopback("fe80::1") is False
+
+
+def wsl_engine():
+    return engine(policy(**{"wsl.idleShutdown.observations": 3}))
+
+
+def wsl_snapshot(taken, **wsl_fields):
+    payload = snap([vmmem()], taken=taken, free=3 * GIB, wsl_running=("Ubuntu",))
+    payload["wsl"].update(wsl_fields)
+    return hygiene.parse_snapshot(payload)
+
+
+def test_wsl_idle_shutdown_is_blocked_while_docker_desktop_or_a_client_is_alive():
+    eng = wsl_engine()
+    for index in range(4):
+        plan = eng.evaluate(
+            wsl_snapshot(NOW + index * STEP, docker_desktop_running=True)
+        )
+    blocked = by_rule(plan, "wsl-idle")
+    assert [d.action for d in blocked] == ["report"]
+    assert blocked[0].detail["blocked_by"] == "docker-desktop"
+    assert plan.wsl_shutdown is False
+    eng = wsl_engine()
+    for index in range(4):
+        plan = eng.evaluate(wsl_snapshot(NOW + index * STEP, client_count=2))
+    assert by_rule(plan, "wsl-idle")[0].detail["blocked_by"] == "wsl.exe clients=2"
+
+
+def test_wsl_docker_distros_are_excluded_and_the_action_is_per_distro_terminate():
+    eng = wsl_engine()
+    plan = observe(
+        eng,
+        [vmmem()],
+        4,
+        wsl_running=("docker-desktop", "docker-desktop-data"),
+        free=3 * GIB,
+    )
+    assert by_rule(plan, "wsl-idle") == []
+    eng = wsl_engine()
+    plan = observe(
+        eng, [vmmem()], 4, wsl_running=("docker-desktop", "Ubuntu"), free=3 * GIB
+    )
+    shutdown = by_rule(plan, "wsl-idle")[0]
+    assert shutdown.action == "wsl-shutdown"
+    assert shutdown.detail["distros"] == ["Ubuntu"]
+    assert shutdown.detail["action"] == "terminate"
+
+
+def test_apply_plan_passes_distros_and_action_to_the_actuator(tmp_path):
+    plan = mixed_plan()
+    actuator = FakeActuator()
+    hygiene.apply_plan(
+        plan, actuator, hygiene.Ledger(tmp_path / "l.jsonl"), apply=True, run_id="r"
+    )
+    assert actuator.wsl_args == (["Ubuntu"], "terminate")
+
+
+def test_apply_plan_stop_budget_defers_the_rest_and_ledgers_it(tmp_path):
+    plan = mixed_plan(free=8 * GIB)  # retired 300 + orphan 400 executable at normal
+    actuator = FakeActuator()
+    pol = hygiene.validate_policy(policy(**{"escalation.maxStopsPerRun": 1}))
+    ledger = hygiene.Ledger(tmp_path / "l.jsonl")
+    summary = hygiene.apply_plan(
+        plan, actuator, ledger, apply=True, run_id="r", policy=pol, state={}
+    )
+    killed = {pid for pids, _ in actuator.stopped for pid in pids}
+    assert killed == {300}  # retired outranks orphan; the orphan waits for the next run
+    assert summary["stopped"] == 1
+    assert summary["budget_deferred"] == 1
+    rows = ledger_rows(tmp_path / "l.jsonl")
+    assert [r["pid"] for r in rows if r["result"] == "deferred-budget"] == [400]
+
+
+def test_apply_plan_crash_loop_breaker_stops_killing_a_respawning_component(tmp_path):
+    pol = hygiene.validate_policy(policy())
+    state: dict = {}
+    for run in range(3):
+        plan = observe(engine(), grok_with_bridge(), 1, end=NOW + run * STEP)
+        actuator = FakeActuator()
+        ledger = hygiene.Ledger(tmp_path / f"l{run}.jsonl")
+        summary = hygiene.apply_plan(
+            plan,
+            actuator,
+            ledger,
+            apply=True,
+            run_id=f"r{run}",
+            policy=pol,
+            state=state,
+        )
+        rows = ledger_rows(tmp_path / f"l{run}.jsonl")
+        if run < 2:
+            assert actuator.stopped == [([300], 0)]
+            assert summary["crash_loop"] == 0
+        else:
+            # Third sighting inside 24 h: the spawner is the bug; report, do not kill.
+            assert actuator.stopped == []
+            assert summary["crash_loop"] == 1
+            assert [r["result"] for r in rows if r["rule"] == "retired"] == [
+                "crash-loop"
+            ]
+    assert len(next(iter(state["kills"].values()))) == 2
+
+
+def test_apply_plan_crash_loop_window_expires(tmp_path):
+    pol = hygiene.validate_policy(policy(**{"escalation.crashLoopWindowSeconds": 100}))
+    state: dict = {}
+    for run in range(3):
+        plan = observe(engine(), grok_with_bridge(), 1, end=NOW + run * 1000)
+        actuator = FakeActuator()
+        hygiene.apply_plan(
+            plan,
+            actuator,
+            hygiene.Ledger(tmp_path / f"l{run}.jsonl"),
+            apply=True,
+            run_id=f"r{run}",
+            policy=pol,
+            state=state,
+        )
+        assert actuator.stopped == [([300], 0)]
+
+
+def test_apply_plan_dedupes_unchanged_report_rows_with_an_hourly_keepalive(tmp_path):
+    pol = hygiene.validate_policy(policy())
+    state: dict = {}
+    eng = engine()
+    ledger = hygiene.Ledger(tmp_path / "l.jsonl")
+    procs = [terminal(), cursor_root(created=ago(1200), private=2 * GIB, cpu=1.0)]
+    for run in range(4):
+        # keep the session ACTIVE so rss-soft stays a report every run
+        procs[1] = cursor_root(created=ago(1200), private=2 * GIB, cpu=1.0 + run)
+        plan = eng.evaluate(hygiene.parse_snapshot(snap(procs, taken=NOW + run * STEP)))
+        hygiene.apply_plan(
+            plan,
+            FakeActuator(),
+            ledger,
+            apply=False,
+            run_id=f"r{run}",
+            policy=pol,
+            state=state,
+        )
+    rows = [r for r in ledger_rows(tmp_path / "l.jsonl") if r["rule"] == "rss-soft"]
+    assert len(rows) == 1  # first sight only within the keepalive window
+    plan = eng.evaluate(hygiene.parse_snapshot(snap(procs, taken=NOW + 4000)))
+    hygiene.apply_plan(
+        plan,
+        FakeActuator(),
+        ledger,
+        apply=False,
+        run_id="late",
+        policy=pol,
+        state=state,
+    )
+    rows = [r for r in ledger_rows(tmp_path / "l.jsonl") if r["rule"] == "rss-soft"]
+    assert len(rows) == 2  # keepalive after an hour
+
+
+def test_ledger_rotates_through_n_generations(tmp_path):
+    path = tmp_path / "ledger.jsonl"
+    ledger = hygiene.Ledger(path, max_bytes=150, generations=3)
+    for index in range(20):
+        ledger.append({"schema": hygiene.SCHEMA_LEDGER, "n": index, "pad": "x" * 100})
+    assert path.exists()
+    assert (tmp_path / "ledger.jsonl.1").exists()
+    assert (tmp_path / "ledger.jsonl.3").exists()
+    assert not (tmp_path / "ledger.jsonl.4").exists()
+
+
+def test_cli_run_writes_heartbeat_and_digest_only_on_new_kill_kinds(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        hygiene, "build_actuator", lambda policy_obj, **kwargs: FakeActuator()
+    )
+    files = cli_files(tmp_path, grok_with_bridge())
+    digest = tmp_path / "BACKGROUND-DIGEST.md"
+    heartbeat = tmp_path / "heartbeat.json"
+    assert (
+        run_cli(
+            files, "--apply", "--digest", str(digest), "--heartbeat", str(heartbeat)
+        )
+        == 0
+    )
+    beat = json.loads(heartbeat.read_text(encoding="utf-8"))
+    assert beat["schema"] == "process-hygiene-heartbeat-v1"
+    assert beat["apply"] is True and beat["tier"] == "normal"
+    lines = digest.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1
+    assert "[process-hygiene] stopped 1 tree(s) [retired]" in lines[0]
+    assert "| PROPOSE:" in lines[0]
+    # Same kind again inside the cooldown: no second line (estate anti-spam).
+    write(files["snapshot"], snap(grok_with_bridge(), taken=NOW + STEP))
+    assert (
+        run_cli(
+            files, "--apply", "--digest", str(digest), "--heartbeat", str(heartbeat)
+        )
+        == 0
+    )
+    assert len(digest.read_text(encoding="utf-8").splitlines()) == 1
+
+
+def test_digest_line_rules():
+    state: dict = {}
+    plan = observe(engine(), grok_with_bridge(), 1)
+    ok = {"stopped": 1, "failed": 0, "exit_code": 0, "run_id": "r"}
+    assert (
+        hygiene.digest_line(plan, ok, state, apply=False, cooldown=100, stamp="s")
+        is None
+    )
+    line = hygiene.digest_line(plan, ok, state, apply=True, cooldown=100, stamp="s")
+    assert line.startswith("[s] [process-hygiene] stopped 1 tree(s) [retired]")
+    assert (
+        hygiene.digest_line(plan, ok, state, apply=True, cooldown=100, stamp="s")
+        is None
+    )
+    failing = {"stopped": 0, "failed": 1, "exit_code": 2, "run_id": "r"}
+    line = hygiene.digest_line(
+        plan, failing, state, apply=True, cooldown=100, stamp="s"
+    )
+    assert line.startswith("[s] [process-hygiene] ACTION_REQUIRED:")
+    # Cooldown elapsed: the signature resets and the same kind is reported again.
+    later = observe(engine(), grok_with_bridge(), 1, end=NOW + 1000)
+    assert (
+        hygiene.digest_line(later, ok, state, apply=True, cooldown=100, stamp="s")
+        is not None
+    )
+    calm = observe(engine(), [proc(10, 1)], 1, end=NOW + 2000)
+    nothing = {"stopped": 0, "failed": 0, "exit_code": 0, "run_id": "r"}
+    assert (
+        hygiene.digest_line(calm, nothing, {}, apply=True, cooldown=100, stamp="s")
+        is None
+    )
+    hot = observe(engine(), [proc(10, 1)], 1, end=NOW + 3000, free=1 * GIB)
+    line = hygiene.digest_line(hot, nothing, {}, apply=True, cooldown=100, stamp="s")
+    assert "tier=critical" in line
+
+
 # ------------------------------------------------------- coverage corners
 
 
@@ -1802,7 +2293,7 @@ def test_port_helpers_cover_their_branches():
 
 def test_apply_plan_records_a_failed_wsl_shutdown(tmp_path):
     class WslFail(FakeActuator):
-        def wsl_shutdown(self):
+        def wsl_shutdown(self, *, distros=(), action="terminate"):
             self.wsl_calls += 1
             return hygiene.StopResult(
                 pid=0, created_unix=0, outcome="failed", detail=""

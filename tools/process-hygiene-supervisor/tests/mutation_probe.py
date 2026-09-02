@@ -116,16 +116,52 @@ MUTATIONS = [
         "            if False:\n                protected.append(pid)",
     ),
     (
-        "commit-ratio no longer escalates to critical",
+        "commit-ratio leg dropped from the pressure tiers",
         "hygiene.py",
-        '            or ratio > pressure["critical"]["ratio"]',
-        "            or False",
+        '                or ratio > legs["ratio"]',
+        "                or False",
     ),
     (
         "ledger stops redacting credential flags",
         "hygiene.py",
         '    text = _SECRET_FLAG_RE.sub(r"\\1[REDACTED]", text)',
         "    text = text",
+    ),
+    (
+        "commit-headroom leg dropped (allocation-failure proximity ignored)",
+        "hygiene.py",
+        '                or (headroom is not None and headroom < legs["headroom"])',
+        "                or False",
+    ),
+    (
+        "network veto never applies (a session awaiting a model reply is reaped)",
+        "hygiene.py",
+        "        if not any(member.pid in snapshot.networked for member in tree):",
+        "        if True:",
+    ),
+    (
+        "crash-loop breaker disabled (a respawning retired component is killed forever)",
+        "hygiene.py",
+        "    return len(recent) >= kills",
+        "    return False",
+    ),
+    (
+        "stop budget ignored (one snapshot can trigger a kill storm)",
+        "hygiene.py",
+        "            and (stopped + failed) >= max_stops",
+        "            and False",
+    ),
+    (
+        "WSL shutdown while Docker Desktop is running",
+        "hygiene.py",
+        "        if snapshot.docker_desktop_running:",
+        "        if False:",
+    ),
+    (
+        "ownership carve-out dropped (an IDE-owned agent is a stale session)",
+        "hygiene.py",
+        '        if kind in ("ide", "runtime"):',
+        "        if False:",
     ),
 ]
 

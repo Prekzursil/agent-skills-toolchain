@@ -2,29 +2,36 @@
   "schema": "process-hygiene-policy-v1",
   "_comment": [
     "Copy to %USERPROFILE%\\.agent-guard\\process-hygiene\\policy.json and review the",
-    "protected lists before enabling -Apply. Every byte figure is exact bytes.",
+    "protected lists before enabling -Apply. Every byte figure is exact bytes. Every",
+    "section is a CLOSED schema: an unknown or misspelled key fails validation.",
     "Tiers: normal (routine hygiene only) < elevated < critical; each rule names the",
     "lowest tier at which it may STOP a process. Below that tier it only reports.",
-    "Thresholds are calibrated on the 02.09.2026 04:50 EEST measurement of the",
-    "owner's 31.6 GB box: 3.5 GB free / 67.7 GB committed = elevated by RAM, critical",
-    "by commit ratio (2.14x)."
+    "Pressure legs: free physical RAM, commit charge / physical RAM, and COMMIT",
+    "HEADROOM (commit limit - commit charge, the quantity whose exhaustion fails",
+    "allocations). Calibrated on the 02.09.2026 04:50 EEST measurement of the owner's",
+    "31.6 GB box (3.5 GB free / 67.7 GB committed = 2.14x): free RAM makes it",
+    "elevated; the ratio leg for critical is 2.5x on purpose - 2.0x sits BELOW this",
+    "box's chronic baseline and would make critical a permanent standing state."
   ],
-  "intervalSeconds": 300,
   "pressure": {
     "elevated": {
       "freeBytesBelow": 4294967296,
-      "commitRatioAbove": 1.75
+      "commitRatioAbove": 1.75,
+      "commitHeadroomBelow": 8589934592
     },
     "critical": {
       "freeBytesBelow": 2147483648,
-      "commitRatioAbove": 2.0
+      "commitRatioAbove": 2.5,
+      "commitHeadroomBelow": 3221225472
     },
     "deescalateObservations": 2
   },
   "idle": {
     "cpuSeconds": 0.1,
     "ioBytes": 0,
-    "observations": 3
+    "observations": 3,
+    "networkVeto": true,
+    "networkVetoMaxCycles": 3
   },
   "protected": {
     "executablePatterns": [
@@ -46,7 +53,8 @@
       "vmmem",
       "wslservice.exe",
       "wslhost.exe",
-      "wslrelay.exe"
+      "wslrelay.exe",
+      "docker desktop.exe"
     ],
     "commandLineTokens": [
       "tools/auth2api",
@@ -76,23 +84,23 @@
       "executablePattern": "/cursor-agent/versions/[^/]+/node\\.exe$",
       "maxSessionAgeSeconds": 86400,
       "softPrivateBytes": 1610612736,
-      "hardPrivateBytes": 3221225472,
-      "gracefulSeconds": 20,
-      "orphanHandler": "cursor-orphan-reaper"
+      "hardPrivateBytes": 2684354560,
+      "orphanHandler": "cursor-orphan-reaper",
+      "resumeHint": "chat is checkpointed in ~/.cursor/chats; resume with `agent --resume <chatId>` (or `agent ls` to pick); only an interrupted turn is lost"
     },
     "claude-code": {
       "executablePattern": "/claude(?:\\.exe)?$",
-      "maxSessionAgeSeconds": 172800,
+      "maxSessionAgeSeconds": 86400,
       "softPrivateBytes": 2147483648,
       "hardPrivateBytes": 4294967296,
-      "gracefulSeconds": 20
+      "resumeHint": "transcript is appended live to ~/.claude/projects/<cwd>/<id>.jsonl; resume with `claude --resume <id>` or `claude -c` in the same folder; set DISABLE_AUTOUPDATER=1 before relaunch (the updater is the dominant leak)"
     },
     "codex": {
       "executablePattern": "/codex(?:-[a-z0-9_.-]+)?(?:\\.exe)?$",
-      "maxSessionAgeSeconds": 172800,
-      "softPrivateBytes": 2147483648,
-      "hardPrivateBytes": 4294967296,
-      "gracefulSeconds": 20
+      "maxSessionAgeSeconds": 86400,
+      "softPrivateBytes": 1610612736,
+      "hardPrivateBytes": 3221225472,
+      "resumeHint": "rollout is written live to ~/.codex/sessions/<date>/rollout-*.jsonl; resume with `codex resume --last --all` or `codex resume <uuid>`"
     },
     "grok": {
       "executablePattern": "/grok(?:\\.exe)?$",
@@ -100,23 +108,23 @@
         "grok-cli"
       ],
       "maxSessionAgeSeconds": 86400,
-      "softPrivateBytes": 1610612736,
-      "hardPrivateBytes": 3221225472,
-      "gracefulSeconds": 20
+      "softPrivateBytes": 1073741824,
+      "hardPrivateBytes": 2147483648,
+      "resumeHint": "session lives under ~/.grok/sessions; resume with `grok --resume <uuid>` or `grok -c` in the same folder"
     },
     "goose": {
       "executablePattern": "/goosed?(?:\\.exe)?$",
       "maxSessionAgeSeconds": 86400,
-      "softPrivateBytes": 1610612736,
-      "hardPrivateBytes": 3221225472,
-      "gracefulSeconds": 20
+      "softPrivateBytes": 1073741824,
+      "hardPrivateBytes": 2147483648,
+      "resumeHint": "sessions are in %APPDATA%\\Block\\goose\\data\\sessions\\sessions.db; resume with `goose session -r --name <name>` (`goose session list`)"
     },
     "fabric": {
       "executablePattern": "/fabric(?:\\.exe)?$",
       "maxSessionAgeSeconds": 43200,
-      "softPrivateBytes": 1073741824,
-      "hardPrivateBytes": 2147483648,
-      "gracefulSeconds": 10
+      "softPrivateBytes": 536870912,
+      "hardPrivateBytes": 1073741824,
+      "resumeHint": "fabric is one-shot; continue with `fabric --session <name>`"
     }
   },
   "orphans": {
@@ -132,8 +140,7 @@
       "uvx.exe",
       "deno.exe",
       "bun.exe"
-    ],
-    "gracefulSeconds": 10
+    ]
   },
   "retired": [
     {
@@ -142,13 +149,11 @@
         "agentbridge",
         "bridge-server"
       ],
-      "gracefulSeconds": 5,
-      "remediation": "AgentBridge was retired 2026-07-27 (CLAUDE.md: its daemon does not run and its tools are gone). The parent_chain in this record names the launcher; remove the agentbridge MCP entry from that launcher's config - expected C:/Users/Prekzursil/.grok/config.toml ([mcp_servers.agentbridge]) or the Grok plugin list - so it stops respawning. Killing the instance alone only buys the next crash-loop cycle."
+      "remediation": "AgentBridge was retired 2026-07-27 (CLAUDE.md: its daemon does not run and its tools are gone). The parent_chain in this record names the launcher; remove the agentbridge MCP entry from that launcher's config - expected C:/Users/Prekzursil/.grok/config.toml ([mcp_servers.agentbridge]) or the Grok plugin list - so it stops respawning. Killing the instance alone only buys the next crash-loop cycle; after crashLoopKills kills in a day the supervisor stops killing it and reports crash-loop instead."
     }
   ],
   "mcp": {
     "enabled": true,
-    "gracefulSeconds": 10,
     "sameOwnerDuplicate": {
       "minTier": "elevated"
     },
@@ -166,22 +171,36 @@
       "vmmem"
     ],
     "reportPrivateBytesAbove": 2147483648,
+    "excludeDistros": [
+      "docker-desktop",
+      "docker-desktop-data"
+    ],
+    "action": "terminate",
     "idleShutdown": {
       "minTier": "elevated",
       "observations": 6
     }
   },
   "escalation": {
-    "stopActiveAtCritical": false
+    "stopActiveAtCritical": false,
+    "maxStopsPerRun": 3,
+    "crashLoopKills": 2,
+    "crashLoopWindowSeconds": 86400
   },
   "integration": {
     "powershell": "powershell.exe",
     "reaperPath": "C:/Users/Prekzursil/.agents/scripts/agentic-perfection/cursor-orphan-reaper.ps1",
     "reaperStateFile": "C:/Users/Prekzursil/.agent-guard/resource-guard/state/cursor-orphan-reaper.state.json",
     "reaperEvidenceRoot": "C:/Users/Prekzursil/.agent-guard/resource-guard/evidence",
-    "wslExe": "wsl.exe"
+    "wslExe": "wsl.exe",
+    "politeStopSeconds": 0
   },
   "ledger": {
-    "maxBytes": 20971520
+    "maxBytes": 10485760,
+    "generations": 5,
+    "reportKeepaliveSeconds": 3600
+  },
+  "notify": {
+    "digestCooldownSeconds": 43200
   }
 }

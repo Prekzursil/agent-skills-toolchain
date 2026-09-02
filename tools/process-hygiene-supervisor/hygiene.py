@@ -44,6 +44,7 @@ import json
 import pathlib
 import re
 import sys
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -143,9 +144,43 @@ def _tier(section: dict[str, Any], key: str, label: str, default: str) -> str:
     return value
 
 
-_POLICY_KEYS = {
+def _closed(section: dict[str, Any], allowed: set[str], label: str) -> None:
+    unknown = {key for key in section if not str(key).startswith("_")} - allowed
+    if unknown:
+        raise PolicyError(f"{label}: unknown key {sorted(unknown)[0]!r}")
+
+
+def _section(
+    parent: dict[str, Any], key: str, label: str, *, required: bool = True
+) -> dict[str, Any]:
+    value = parent.get(key)
+    if value is None:
+        if required:
+            raise PolicyError(f"{label} section is required")
+        return {}
+    return _require_mapping(value, label)
+
+
+def _opt_str(section: dict[str, Any], key: str, label: str, default: str) -> str:
+    value = section.get(key, default)
+    if not isinstance(value, str):
+        raise PolicyError(f"{label}.{key} must be a string")
+    return value
+
+
+def _tier_thresholds(section: dict[str, Any], label: str) -> dict[str, float]:
+    _closed(
+        section, {"freeBytesBelow", "commitRatioAbove", "commitHeadroomBelow"}, label
+    )
+    return {
+        "free": _pos_int(section, "freeBytesBelow", label),
+        "ratio": _pos_num(section, "commitRatioAbove", label),
+        "headroom": _pos_int(section, "commitHeadroomBelow", label),
+    }
+
+
+_TOP_KEYS = {
     "schema",
-    "intervalSeconds",
     "pressure",
     "idle",
     "protected",
@@ -158,30 +193,40 @@ _POLICY_KEYS = {
     "escalation",
     "integration",
     "ledger",
+    "notify",
+}
+_RUNTIME_KEYS = {
+    "executablePattern",
+    "commandLineTokens",
+    "maxSessionAgeSeconds",
+    "softPrivateBytes",
+    "hardPrivateBytes",
+    "orphanHandler",
+    "resumeHint",
 }
 
 
 def validate_policy(raw: Any) -> dict[str, Any]:
-    """Return a normalised, fully-defaulted policy or raise ``PolicyError``."""
+    """Return a normalised, fully-defaulted policy or raise ``PolicyError``.
+
+    Every section is a CLOSED schema (unknown keys are rejected) and every
+    required section is checked explicitly, so a typo can never silently
+    disable a safety rule and a missing block never escapes as a KeyError.
+    """
     policy = _require_mapping(raw, "policy")
     if policy.get("schema") != SCHEMA_POLICY:
         raise PolicyError(f"policy schema must be {SCHEMA_POLICY}")
-    unknown = {key for key in policy if not key.startswith("_")} - _POLICY_KEYS
-    if unknown:
-        raise PolicyError(f"policy: unknown key {sorted(unknown)[0]!r}")
+    _closed(policy, _TOP_KEYS, "policy")
 
-    pressure = _require_mapping(policy["pressure"], "pressure")
-    elevated = _require_mapping(pressure.get("elevated"), "pressure.elevated")
-    critical = _require_mapping(pressure.get("critical"), "pressure.critical")
+    pressure = _section(policy, "pressure", "pressure")
+    _closed(pressure, {"elevated", "critical", "deescalateObservations"}, "pressure")
     tiers = {
-        "elevated": {
-            "free": _pos_int(elevated, "freeBytesBelow", "pressure.elevated"),
-            "ratio": _pos_num(elevated, "commitRatioAbove", "pressure.elevated"),
-        },
-        "critical": {
-            "free": _pos_int(critical, "freeBytesBelow", "pressure.critical"),
-            "ratio": _pos_num(critical, "commitRatioAbove", "pressure.critical"),
-        },
+        "elevated": _tier_thresholds(
+            _section(pressure, "elevated", "pressure.elevated"), "pressure.elevated"
+        ),
+        "critical": _tier_thresholds(
+            _section(pressure, "critical", "pressure.critical"), "pressure.critical"
+        ),
         "deescalate": _pos_int(pressure, "deescalateObservations", "pressure"),
     }
     if tiers["deescalate"] < 1:
@@ -190,17 +235,39 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         raise PolicyError("pressure.critical.freeBytesBelow must be <= elevated")
     if tiers["critical"]["ratio"] < tiers["elevated"]["ratio"]:
         raise PolicyError("pressure.critical.commitRatioAbove must be >= elevated")
+    if tiers["critical"]["headroom"] > tiers["elevated"]["headroom"]:
+        raise PolicyError("pressure.critical.commitHeadroomBelow must be <= elevated")
 
-    idle = _require_mapping(policy["idle"], "idle")
+    idle = _section(policy, "idle", "idle")
+    _closed(
+        idle,
+        {
+            "cpuSeconds",
+            "ioBytes",
+            "observations",
+            "networkVeto",
+            "networkVetoMaxCycles",
+        },
+        "idle",
+    )
     idle_norm = {
         "cpu": _pos_num(idle, "cpuSeconds", "idle"),
         "io": _pos_int(idle, "ioBytes", "idle"),
         "observations": _pos_int(idle, "observations", "idle"),
+        "networkVeto": _bool(idle, "networkVeto", "idle", True),
+        "networkVetoMaxCycles": _pos_int(
+            {"networkVetoMaxCycles": idle.get("networkVetoMaxCycles", 3)},
+            "networkVetoMaxCycles",
+            "idle",
+        ),
     }
     if idle_norm["observations"] < 1:
         raise PolicyError("idle.observations must be >= 1")
 
-    protected = _require_mapping(policy["protected"], "protected")
+    protected = _section(policy, "protected", "protected")
+    _closed(
+        protected, {"executablePatterns", "names", "commandLineTokens"}, "protected"
+    )
     protected_norm = {
         "exe": [
             _compile(pattern, "protected.executablePatterns")
@@ -215,17 +282,19 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         ],
     }
 
-    browsers = _require_mapping(policy["browsers"], "browsers")
+    browsers = _section(policy, "browsers", "browsers")
+    _closed(browsers, {"names", "reportPrivateBytesAbove"}, "browsers")
     browsers_norm = {
         "names": [name.lower() for name in _string_list(browsers, "names", "browsers")],
         "report": _pos_int(browsers, "reportPrivateBytesAbove", "browsers"),
     }
 
-    runtimes_raw = _require_mapping(policy["runtimes"], "runtimes")
+    runtimes_raw = _section(policy, "runtimes", "runtimes")
     runtimes: dict[str, dict[str, Any]] = {}
     for name, spec in runtimes_raw.items():
         label = f"runtimes.{name}"
         spec = _require_mapping(spec, label)
+        _closed(spec, _RUNTIME_KEYS, label)
         pattern = spec.get("executablePattern")
         tokens = _string_list(spec, "commandLineTokens", label)
         if pattern is None and not tokens:
@@ -234,23 +303,24 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         hard = _pos_int(spec, "hardPrivateBytes", label)
         if hard < soft:
             raise PolicyError(f"{label}.softPrivateBytes must be <= hardPrivateBytes")
+        handler = spec.get("orphanHandler")
+        if handler not in (None, "cursor-orphan-reaper"):
+            raise PolicyError(f"{label}.orphanHandler is unsupported")
         runtimes[name] = {
             "exe": _compile(pattern, f"{label}.executablePattern") if pattern else None,
             "tokens": [_norm(token) for token in tokens],
             "maxAge": _pos_int(spec, "maxSessionAgeSeconds", label),
             "soft": soft,
             "hard": hard,
-            "graceful": _pos_int(spec, "gracefulSeconds", label),
-            "orphanHandler": spec.get("orphanHandler"),
+            "orphanHandler": handler,
+            "resumeHint": _opt_str(spec, "resumeHint", label, ""),
         }
-        if runtimes[name]["orphanHandler"] not in (None, "cursor-orphan-reaper"):
-            raise PolicyError(f"{label}.orphanHandler is unsupported")
 
-    orphans = _require_mapping(policy["orphans"], "orphans")
+    orphans = _section(policy, "orphans", "orphans")
+    _closed(orphans, {"minAgeSeconds", "names"}, "orphans")
     orphans_norm = {
         "minAge": _pos_int(orphans, "minAgeSeconds", "orphans"),
         "names": [name.lower() for name in _string_list(orphans, "names", "orphans")],
-        "graceful": _pos_int(orphans, "gracefulSeconds", "orphans"),
     }
 
     retired_raw = policy.get("retired", [])
@@ -260,6 +330,7 @@ def validate_policy(raw: Any) -> dict[str, Any]:
     for index, entry in enumerate(retired_raw):
         label = f"retired[{index}]"
         entry = _require_mapping(entry, label)
+        _closed(entry, {"id", "matchAll", "remediation"}, label)
         identifier = entry.get("id")
         match_all = entry.get("matchAll")
         if not isinstance(identifier, str) or not identifier:
@@ -274,83 +345,159 @@ def validate_policy(raw: Any) -> dict[str, Any]:
             {
                 "id": identifier,
                 "tokens": [_norm(token) for token in match_all],
-                "graceful": _pos_int(entry, "gracefulSeconds", label),
-                "remediation": str(entry.get("remediation", "")),
+                "remediation": _opt_str(entry, "remediation", label, ""),
             }
         )
 
-    mcp = _require_mapping(policy["mcp"], "mcp")
+    mcp = _section(policy, "mcp", "mcp")
+    _closed(
+        mcp,
+        {"enabled", "sameOwnerDuplicate", "singletonDuplicate", "overBudget"},
+        "mcp",
+    )
+    same_owner = _section(mcp, "sameOwnerDuplicate", "mcp.sameOwnerDuplicate")
+    _closed(same_owner, {"minTier"}, "mcp.sameOwnerDuplicate")
+    singleton = _section(mcp, "singletonDuplicate", "mcp.singletonDuplicate")
+    _closed(singleton, {"minTier", "graceSeconds"}, "mcp.singletonDuplicate")
+    over_budget = _section(mcp, "overBudget", "mcp.overBudget")
+    _closed(over_budget, {"minTier"}, "mcp.overBudget")
     mcp_norm = {
         "enabled": _bool(mcp, "enabled", "mcp", True),
-        "graceful": _pos_int(mcp, "gracefulSeconds", "mcp"),
-        "sameOwner": _tier(
-            _require_mapping(mcp["sameOwnerDuplicate"], "mcp.sameOwnerDuplicate"),
-            "minTier",
-            "mcp.sameOwnerDuplicate",
-            "elevated",
-        ),
+        "sameOwner": _tier(same_owner, "minTier", "mcp.sameOwnerDuplicate", "elevated"),
         "singletonTier": _tier(
-            _require_mapping(mcp["singletonDuplicate"], "mcp.singletonDuplicate"),
-            "minTier",
-            "mcp.singletonDuplicate",
-            "elevated",
+            singleton, "minTier", "mcp.singletonDuplicate", "elevated"
         ),
-        "singletonGrace": _pos_int(
-            _require_mapping(mcp["singletonDuplicate"], "mcp.singletonDuplicate"),
-            "graceSeconds",
-            "mcp.singletonDuplicate",
-        ),
-        "overBudget": _tier(
-            _require_mapping(mcp["overBudget"], "mcp.overBudget"),
-            "minTier",
-            "mcp.overBudget",
-            "critical",
-        ),
+        "singletonGrace": _pos_int(singleton, "graceSeconds", "mcp.singletonDuplicate"),
+        "overBudget": _tier(over_budget, "minTier", "mcp.overBudget", "critical"),
     }
 
-    wsl = _require_mapping(policy["wsl"], "wsl")
-    unknown_wsl = set(wsl) - {"vmmemNames", "reportPrivateBytesAbove", "idleShutdown"}
-    if unknown_wsl:
-        raise PolicyError(f"wsl: unknown key {sorted(unknown_wsl)[0]!r}")
-    idle_shutdown = _require_mapping(wsl["idleShutdown"], "wsl.idleShutdown")
+    wsl = _section(policy, "wsl", "wsl")
+    _closed(
+        wsl,
+        {
+            "vmmemNames",
+            "reportPrivateBytesAbove",
+            "idleShutdown",
+            "excludeDistros",
+            "action",
+        },
+        "wsl",
+    )
+    idle_shutdown = _section(wsl, "idleShutdown", "wsl.idleShutdown")
+    _closed(idle_shutdown, {"minTier", "observations"}, "wsl.idleShutdown")
+    wsl_action = _opt_str(wsl, "action", "wsl", "terminate")
+    if wsl_action not in ("terminate", "shutdown"):
+        raise PolicyError("wsl.action must be terminate or shutdown")
     wsl_norm = {
         "names": [name.lower() for name in _string_list(wsl, "vmmemNames", "wsl")],
         "report": _pos_int(wsl, "reportPrivateBytesAbove", "wsl"),
         "tier": _tier(idle_shutdown, "minTier", "wsl.idleShutdown", "elevated"),
         "observations": _pos_int(idle_shutdown, "observations", "wsl.idleShutdown"),
+        "excludeDistros": [
+            name.lower() for name in _string_list(wsl, "excludeDistros", "wsl")
+        ],
+        "action": wsl_action,
     }
     if wsl_norm["observations"] < 1:
         raise PolicyError("wsl.idleShutdown.observations must be >= 1")
 
-    escalation = _require_mapping(policy.get("escalation", {}), "escalation")
+    escalation = _section(policy, "escalation", "escalation", required=False)
+    _closed(
+        escalation,
+        {
+            "stopActiveAtCritical",
+            "maxStopsPerRun",
+            "crashLoopKills",
+            "crashLoopWindowSeconds",
+        },
+        "escalation",
+    )
     escalation_norm = {
         "stopActiveAtCritical": _bool(
             escalation, "stopActiveAtCritical", "escalation", False
-        )
+        ),
+        "maxStopsPerRun": _pos_int(
+            {"maxStopsPerRun": escalation.get("maxStopsPerRun", 3)},
+            "maxStopsPerRun",
+            "escalation",
+        ),
+        "crashLoopKills": _pos_int(
+            {"crashLoopKills": escalation.get("crashLoopKills", 2)},
+            "crashLoopKills",
+            "escalation",
+        ),
+        "crashLoopWindowSeconds": _pos_int(
+            {
+                "crashLoopWindowSeconds": escalation.get(
+                    "crashLoopWindowSeconds", 86_400
+                )
+            },
+            "crashLoopWindowSeconds",
+            "escalation",
+        ),
     }
+    if escalation_norm["maxStopsPerRun"] < 1:
+        raise PolicyError("escalation.maxStopsPerRun must be >= 1")
 
-    integration = _require_mapping(policy.get("integration", {}), "integration")
+    integration = _section(policy, "integration", "integration", required=False)
+    _closed(
+        integration,
+        {
+            "powershell",
+            "reaperPath",
+            "reaperStateFile",
+            "reaperEvidenceRoot",
+            "wslExe",
+            "politeStopSeconds",
+        },
+        "integration",
+    )
     powershell = integration.get("powershell", "powershell.exe")
     if not isinstance(powershell, str) or not powershell:
         raise PolicyError("integration.powershell must be a string")
     integration_norm = {
         "powershell": powershell,
-        "reaperPath": str(integration.get("reaperPath", "")),
-        "reaperStateFile": str(integration.get("reaperStateFile", "")),
-        "reaperEvidenceRoot": str(integration.get("reaperEvidenceRoot", "")),
-        "wslExe": str(integration.get("wslExe", "wsl.exe")),
+        "reaperPath": _opt_str(integration, "reaperPath", "integration", ""),
+        "reaperStateFile": _opt_str(integration, "reaperStateFile", "integration", ""),
+        "reaperEvidenceRoot": _opt_str(
+            integration, "reaperEvidenceRoot", "integration", ""
+        ),
+        "wslExe": _opt_str(integration, "wslExe", "integration", "wsl.exe"),
+        "politeStopSeconds": _pos_int(
+            {"politeStopSeconds": integration.get("politeStopSeconds", 0)},
+            "politeStopSeconds",
+            "integration",
+        ),
     }
 
-    ledger = _require_mapping(policy.get("ledger", {}), "ledger")
+    ledger = _section(policy, "ledger", "ledger", required=False)
+    _closed(ledger, {"maxBytes", "generations", "reportKeepaliveSeconds"}, "ledger")
     ledger_norm = {
         "maxBytes": _pos_int(
-            {"maxBytes": ledger.get("maxBytes", 20 * 1024 * 1024)}, "maxBytes", "ledger"
+            {"maxBytes": ledger.get("maxBytes", 10 * 1024 * 1024)}, "maxBytes", "ledger"
+        ),
+        "generations": _pos_int(
+            {"generations": ledger.get("generations", 5)}, "generations", "ledger"
+        ),
+        "reportKeepaliveSeconds": _pos_int(
+            {"reportKeepaliveSeconds": ledger.get("reportKeepaliveSeconds", 3600)},
+            "reportKeepaliveSeconds",
+            "ledger",
+        ),
+    }
+
+    notify = _section(policy, "notify", "notify", required=False)
+    _closed(notify, {"digestCooldownSeconds"}, "notify")
+    notify_norm = {
+        "digestCooldownSeconds": _pos_int(
+            {"digestCooldownSeconds": notify.get("digestCooldownSeconds", 43_200)},
+            "digestCooldownSeconds",
+            "notify",
         )
     }
 
     return {
         "schema": SCHEMA_POLICY,
-        "intervalSeconds": _pos_int(policy, "intervalSeconds", "policy"),
         "pressure": tiers,
         "idle": idle_norm,
         "protected": protected_norm,
@@ -363,6 +510,7 @@ def validate_policy(raw: Any) -> dict[str, Any]:
         "escalation": escalation_norm,
         "integration": integration_norm,
         "ledger": ledger_norm,
+        "notify": notify_norm,
     }
 
 
@@ -412,6 +560,9 @@ class Snapshot:
     listeners: dict[int, int]
     supervisor_pids: set[int]
     processes: list[ProcRow]
+    networked: set[int] = field(default_factory=set)
+    docker_desktop_running: bool = False
+    wsl_client_count: int = 0
     by_pid: dict[int, ProcRow] = field(default_factory=dict)
     children: dict[int, list[int]] = field(default_factory=dict)
 
@@ -462,6 +613,26 @@ def parse_snapshot(raw: Any) -> Snapshot:
         not isinstance(item, str) for item in running
     ):
         raise SnapshotError("wsl.running_distros must be a list of strings")
+    docker_running = wsl.get("docker_desktop_running", False)
+    if not isinstance(docker_running, bool):
+        raise SnapshotError("wsl.docker_desktop_running must be a boolean")
+    client_count = wsl.get("client_count", 0)
+    if (
+        not isinstance(client_count, int)
+        or isinstance(client_count, bool)
+        or client_count < 0
+    ):
+        raise SnapshotError("wsl.client_count must be a non-negative integer")
+
+    networked: set[int] = set()
+    for index, entry in enumerate(raw.get("connections", [])):
+        entry = _require_mapping_snapshot(entry, f"connections[{index}]")
+        remote = entry.get("remote")
+        if not isinstance(remote, str):
+            raise SnapshotError(f"connections[{index}].remote must be a string")
+        pid = _int(entry, "pid", f"connections[{index}]", minimum=0)
+        if not _is_loopback(remote):
+            networked.add(pid)
 
     listeners: dict[int, int] = {}
     for index, entry in enumerate(raw.get("listeners", [])):
@@ -515,6 +686,9 @@ def parse_snapshot(raw: Any) -> Snapshot:
         listeners=listeners,
         supervisor_pids=supervisor_pids,
         processes=processes,
+        networked=networked,
+        docker_desktop_running=docker_running,
+        wsl_client_count=client_count,
     )
     for proc in processes:
         if proc.pid in snapshot.by_pid:
@@ -529,6 +703,16 @@ def _require_mapping_snapshot(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SnapshotError(f"snapshot {label} must be a mapping")
     return value
+
+
+def _is_loopback(remote: str) -> bool:
+    """True for a `host:port` / `[v6]:port` endpoint on the local machine."""
+    host = remote.strip()
+    if host.startswith("["):
+        host = host[1:].split("]", 1)[0]
+    elif host.count(":") == 1:
+        host = host.rsplit(":", 1)[0]
+    return host.startswith("127.") or host in {"::1", "0.0.0.0", "::", "localhost"}
 
 
 def load_snapshot(path: pathlib.Path | str) -> Snapshot:
@@ -647,6 +831,10 @@ class Engine:
         }
         self.state.setdefault("observations", {})
         self.state.setdefault("tier", {"current": "normal", "calm_streak": 0})
+        # One polite-stop window for every rule (0 = force immediately). Windows
+        # has no cooperative stop for windowless console processes anyway; see
+        # hygiene_actuate for what "polite" can and cannot mean here.
+        self._polite = policy["integration"]["politeStopSeconds"]
         if policy["mcp"]["enabled"] and registry is None:
             raise PolicyError("registry is required when mcp is enabled")
 
@@ -772,29 +960,61 @@ class Engine:
                 "metrics_known": proc.metrics_known,
                 "first_seen": first_seen,
                 "last_seen": snapshot.taken_unix,
+                "network_deferrals": int(prior.get("network_deferrals", 0))
+                if prior
+                else 0,
             }
         self.state["observations"] = current
+
+    def _network_veto(self, proc: ProcRow, tree, snapshot: Snapshot) -> bool:
+        """Defer an otherwise-idle stop while the tree holds a live remote socket.
+
+        Zero CPU and zero disk I/O also describe a session waiting on a slow
+        model response; an ESTABLISHED connection to a non-loopback endpoint is
+        the cheap second signal. The veto is bounded (``networkVetoMaxCycles``)
+        so a half-open keep-alive cannot shield a leak forever.
+        """
+        if not self.policy["idle"]["networkVeto"]:
+            return False
+        if not any(member.pid in snapshot.networked for member in tree):
+            return False
+        entry = self.state["observations"][_key(proc)]
+        if entry["network_deferrals"] >= self.policy["idle"]["networkVetoMaxCycles"]:
+            return False
+        entry["network_deferrals"] += 1
+        return True
 
     def _confirmed_idle(self, proc: ProcRow, observations: int) -> bool:
         return proc.metrics_known and self._idle_streak(proc) >= observations
 
     # -- tier ------------------------------------------------------------
 
-    def _raw_tier(self, snapshot: Snapshot) -> tuple[str, float]:
+    def _raw_tier(self, snapshot: Snapshot) -> tuple[str, float, int | None]:
         ratio = snapshot.commit_total_bytes / snapshot.physical_bytes
+        # Commit headroom (limit - charge) is the quantity whose exhaustion makes
+        # allocations fail; the ratio to PHYSICAL RAM only says how far the box
+        # lives on its pagefile. A box whose chronic baseline is 2.14x would sit
+        # at "critical" forever on ratio alone, so headroom carries that leg.
+        headroom = (
+            snapshot.commit_limit_bytes - snapshot.commit_total_bytes
+            if snapshot.commit_limit_bytes > 0
+            else None
+        )
         pressure = self.policy["pressure"]
+
+        def crossed(legs: dict[str, float]) -> bool:
+            return (
+                snapshot.free_bytes < legs["free"]
+                or ratio > legs["ratio"]
+                or (headroom is not None and headroom < legs["headroom"])
+            )
+
         tier = "normal"
-        if (
-            snapshot.free_bytes < pressure["elevated"]["free"]
-            or ratio > pressure["elevated"]["ratio"]
-        ):
+        if crossed(pressure["elevated"]):
             tier = "elevated"
-        if (
-            snapshot.free_bytes < pressure["critical"]["free"]
-            or ratio > pressure["critical"]["ratio"]
-        ):
+        if crossed(pressure["critical"]):
             tier = "critical"
-        return tier, ratio
+        return tier, ratio, headroom
 
     def _effective_tier(self, raw_tier: str) -> str:
         state = self.state["tier"]
@@ -817,7 +1037,7 @@ class Engine:
         if snapshot.taken_unix <= self.state.get("last_run_unix", 0):
             raise SnapshotError("snapshot taken_unix must be after the last run")
         self._update_observations(snapshot)
-        raw_tier, ratio = self._raw_tier(snapshot)
+        raw_tier, ratio, headroom = self._raw_tier(snapshot)
         tier = self._effective_tier(raw_tier)
 
         metrics: dict[str, Any] = {
@@ -826,6 +1046,7 @@ class Engine:
             "commit_total_bytes": snapshot.commit_total_bytes,
             "commit_limit_bytes": snapshot.commit_limit_bytes,
             "commit_ratio": ratio,
+            "commit_headroom_bytes": headroom,
             "compressed_bytes": snapshot.compressed_bytes,
             "process_count": len(snapshot.processes),
         }
@@ -936,7 +1157,7 @@ class Engine:
                         min_tier="normal",
                         root=proc,
                         tree=tree,
-                        graceful_seconds=entry["graceful"],
+                        graceful_seconds=self._polite,
                         detail={
                             "id": entry["id"],
                             "remediation": entry["remediation"],
@@ -962,7 +1183,7 @@ class Engine:
         names = set(self.policy["orphans"]["names"])
         min_age = self.policy["orphans"]["minAge"]
         observations = self.policy["idle"]["observations"]
-        graceful = self.policy["orphans"]["graceful"]
+        graceful = self._polite
         for proc in snapshot.processes:
             if proc.pid in claimed or proc.pid in delegate_pids:
                 continue
@@ -1013,6 +1234,13 @@ class Engine:
             server = self._server_for(proc, singleton_members)
             if server is not None:
                 detail["mcp_server"] = server
+            if self._network_veto(proc, tree, snapshot):
+                detail["network_veto"] = True
+                detail["deferrals"] = self.state["observations"][_key(proc)][
+                    "network_deferrals"
+                ]
+                self._add_report("orphan", proc, tier, graceful, detail, decisions)
+                continue
             self._commit_stop(
                 "orphan",
                 proc,
@@ -1072,13 +1300,18 @@ class Engine:
                 spec,
                 private,
                 kind,
+                owner,
                 tier,
-                observations,
-                stop_active,
                 snapshot,
                 decisions,
                 claimed,
             )
+
+    def _session_detail(self, runtime, spec, **fields) -> dict[str, Any]:
+        detail = {"runtime": runtime, **fields}
+        if spec["resumeHint"]:
+            detail["resume_hint"] = spec["resumeHint"]
+        return detail
 
     def _maybe_session_age(
         self,
@@ -1097,18 +1330,16 @@ class Engine:
     ) -> None:
         if age <= spec["maxAge"] or proc.pid in claimed:
             return
-        detail = {"runtime": runtime, "age_seconds": age}
+        detail = self._session_detail(runtime, spec, age_seconds=age)
         if kind in ("ide", "runtime"):
             detail["owned_by"] = owner
-            self._add_report(
-                "session-age", proc, tier, spec["graceful"], detail, decisions
-            )
+            self._add_report("session-age", proc, tier, self._polite, detail, decisions)
             return
         self._stop_or_report(
             "session-age",
             proc,
             "normal",
-            spec["graceful"],
+            self._polite,
             detail,
             snapshot,
             decisions,
@@ -1124,9 +1355,8 @@ class Engine:
         spec,
         private,
         kind,
+        owner,
         tier,
-        observations,
-        stop_active,
         snapshot,
         decisions,
         claimed,
@@ -1139,12 +1369,19 @@ class Engine:
             rule, min_tier = "rss-soft", "elevated"
         else:
             return
-        detail = {"runtime": runtime, "private_bytes": private}
+        detail = self._session_detail(runtime, spec, private_bytes=private)
+        if kind in ("ide", "runtime"):
+            # An IDE-hosted or peer-runtime-owned agent is that host's tool, never
+            # a stale session: report the ceiling breach, do not stop it (the same
+            # ownership rule session-age already applies).
+            detail["owned_by"] = owner
+            self._add_report(rule, proc, tier, self._polite, detail, decisions)
+            return
         self._stop_or_report(
             rule,
             proc,
             min_tier,
-            spec["graceful"],
+            self._polite,
             detail,
             snapshot,
             decisions,
@@ -1219,6 +1456,16 @@ class Engine:
             return
         observations = self.policy["idle"]["observations"]
         if self._all_idle(tree, observations):
+            if self._network_veto(proc, tree, snapshot):
+                vetoed = dict(
+                    detail,
+                    network_veto=True,
+                    deferrals=self.state["observations"][_key(proc)][
+                        "network_deferrals"
+                    ],
+                )
+                self._add_report(rule, proc, tier, graceful, vetoed, decisions)
+                return
             self._commit_stop(
                 rule,
                 proc,
@@ -1278,7 +1525,7 @@ class Engine:
             servers, records
         )
         self._mcp_singletons(snapshot, tier, decisions, claimed, singleton_members)
-        graceful = self.policy["mcp"]["graceful"]
+        graceful = self._polite
         for name, server in servers.items():
             if server.get("processMatch"):
                 continue
@@ -1326,7 +1573,7 @@ class Engine:
                         min_tier=min_tier,
                         root=snapshot.by_pid[min(pids)],
                         tree=[],
-                        graceful_seconds=grace,
+                        graceful_seconds=self._polite,
                         detail={
                             "server": name,
                             "port": port,
@@ -1346,12 +1593,15 @@ class Engine:
                 tree, protected = self._claimable_tree(proc, snapshot, claimed)
                 if not tree:
                     continue
+                # The warm-up grace decides eligibility; it is NOT the stop window
+                # (a bug the prune lens caught: 600 s was being passed as the
+                # graceful-stop timeout).
                 self._commit_stop(
                     "mcp-singleton-duplicate",
                     proc,
                     min_tier,
-                    grace,
-                    {"server": name, "port_owner": keeper},
+                    self._polite,
+                    {"server": name, "port_owner": keeper, "grace_seconds": grace},
                     tree,
                     protected,
                     decisions,
@@ -1443,13 +1693,14 @@ class Engine:
     def _rule_wsl(self, snapshot, tier, decisions) -> bool:
         if not snapshot.wsl_available:
             return False
-        names = set(self.policy["wsl"]["names"])
+        wsl = self.policy["wsl"]
+        names = set(wsl["names"])
         vmmem = next(
             (proc for proc in snapshot.processes if proc.name.lower() in names), None
         )
         if vmmem is None:
             return False
-        if vmmem.private_bytes > self.policy["wsl"]["report"]:
+        if vmmem.private_bytes > wsl["report"]:
             self._add_report(
                 "wsl-report",
                 vmmem,
@@ -1458,24 +1709,49 @@ class Engine:
                 {"private_bytes": vmmem.private_bytes, "running": snapshot.wsl_running},
                 decisions,
             )
-        if not snapshot.wsl_running:
+        # Docker Desktop keeps its own distros Running forever; they are never a
+        # reason (nor a target) for an idle shutdown.
+        candidates = [
+            name
+            for name in snapshot.wsl_running
+            if name.lower() not in set(wsl["excludeDistros"])
+        ]
+        if not candidates:
             return False
-        if not self._confirmed_idle(vmmem, self.policy["wsl"]["observations"]):
+        if not self._confirmed_idle(vmmem, wsl["observations"]):
             return False
+        detail: dict[str, Any] = {
+            "running": snapshot.wsl_running,
+            "distros": candidates,
+            "action": wsl["action"],
+            "private_bytes": vmmem.private_bytes,
+        }
+        # A running Docker Desktop or any live wsl.exe client (VS Code Remote-WSL,
+        # an attached terminal) does not survive a shutdown - sourced from the
+        # vscode-remote-release and Docker Desktop trackers - so the idle
+        # shutdown is only ever taken when nobody is attached.
+        blocker = None
+        if snapshot.docker_desktop_running:
+            blocker = "docker-desktop"
+        elif snapshot.wsl_client_count > 0:
+            blocker = f"wsl.exe clients={snapshot.wsl_client_count}"
+        if blocker is not None:
+            detail["blocked_by"] = blocker
+            self._add_report("wsl-idle", vmmem, tier, 0, detail, decisions)
+            return False
+        detail["reason"] = (
+            "idle WSL VM with no attached client; the guest is stopped and "
+            "restarts on demand, autoMemoryReclaim bounds it on the next start"
+        )
         decisions.append(
             Decision(
                 rule="wsl-idle",
                 action="wsl-shutdown",
-                min_tier=self.policy["wsl"]["tier"],
+                min_tier=wsl["tier"],
                 root=vmmem,
                 tree=[],
                 graceful_seconds=0,
-                detail={
-                    "running": snapshot.wsl_running,
-                    "private_bytes": vmmem.private_bytes,
-                    "reason": "idle WSL VM; wsl --shutdown reclaims it and "
-                    "autoMemoryReclaim keeps the footprint bounded on next start",
-                },
+                detail=detail,
             )
         )
         return True
@@ -1501,8 +1777,13 @@ class Engine:
                     "browser": name,
                     "process_count": len(procs),
                     "private_bytes": total,
-                    "proposal": "enable Memory Saver / sleeping tabs so idle tabs "
-                    "release working set instead of holding commit",
+                    "proposal": "keep every tab; make the browser DISCARD idle ones "
+                    "(the only lever that returns commit): set the enterprise policy "
+                    "TotalMemoryLimitMb (HKLM\\SOFTWARE\\Policies\\Google\\Chrome and "
+                    "\\Microsoft\\Edge), Chrome HighEfficiencyModeEnabled=1 + "
+                    "MemorySaverModeSavings=2 (Memory Saver Maximum), Edge "
+                    "SleepingTabsEnabled=1 + SleepingTabsTimeout=300 + "
+                    "EfficiencyModeEnabled=1; never trim working sets, never kill",
                 },
                 decisions,
             )
@@ -1539,9 +1820,28 @@ class StopResult:
 
 
 class Ledger:
-    def __init__(self, path: pathlib.Path | str, *, max_bytes: int = 20 * 1024 * 1024):
+    def __init__(
+        self,
+        path: pathlib.Path | str,
+        *,
+        max_bytes: int = 10 * 1024 * 1024,
+        generations: int = 5,
+    ):
         self.path = pathlib.Path(path)
         self.max_bytes = max_bytes
+        self.generations = max(1, generations)
+
+    def _rotate(self) -> None:
+        # ledger.jsonl -> .1 -> .2 ... -> .N (oldest dropped), kubelet-style.
+        for index in range(self.generations, 0, -1):
+            source = (
+                self.path
+                if index == 1
+                else self.path.with_name(f"{self.path.name}.{index - 1}")
+            )
+            if source.exists():
+                target = self.path.with_name(f"{self.path.name}.{index}")
+                source.replace(target)
 
     def append(self, record: dict[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -1550,7 +1850,7 @@ class Ledger:
         if self.path.exists() and (
             self.path.stat().st_size + len(line.encode("utf-8")) > self.max_bytes
         ):
-            self.path.replace(self.path.with_name(self.path.name + ".1"))
+            self._rotate()
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(line)
 
@@ -1600,6 +1900,43 @@ def record_for(
 # ------------------------------------------------------------------ apply
 
 
+def _stop_row(ledger, member, decision, plan, result, reason, run_id, ts) -> None:
+    ledger.append(
+        record_for(
+            member,
+            rule=decision.rule,
+            action="stop",
+            tier=plan.tier,
+            result=result,
+            reason=reason,
+            run_id=run_id,
+            ts=ts,
+            extra=decision.detail,
+        )
+    )
+
+
+def _report_due(state, decision, ts, keepalive) -> bool:
+    """Dedupe unchanged report rows: first sight, then at most once per keepalive."""
+    if state is None or keepalive is None:
+        return True
+    reported = state.setdefault("reported", {})
+    key = f"{decision.rule}|{decision.root.pid}|{decision.root.created_unix}"
+    last = reported.get(key)
+    if last is not None and ts - last < keepalive:
+        return False
+    reported[key] = ts
+    return True
+
+
+def _crash_looping(history, sha, ts, kills, window) -> bool:
+    if history is None or kills is None:
+        return False
+    recent = [t for t in history.get(sha, []) if ts - t < window]
+    history[sha] = recent
+    return len(recent) >= kills
+
+
 def apply_plan(
     plan: Plan,
     actuator: Any,
@@ -1607,25 +1944,49 @@ def apply_plan(
     *,
     apply: bool,
     run_id: str,
+    policy: dict[str, Any] | None = None,
+    state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Actuate (or dry-run) a plan and write every decision to the ledger.
+
+    Guards borrowed from earlyoom / oomd / kubelet (see the design doc):
+    * a per-run STOP BUDGET (``escalation.maxStopsPerRun``) so one snapshot never
+      triggers a kill storm; the remainder is ledgered as ``deferred-budget``;
+    * a CRASH-LOOP BREAKER: a command line stopped ``crashLoopKills`` times inside
+      ``crashLoopWindowSeconds`` (as of run start) is reported, not killed again -
+      the spawner is the bug, not the instance;
+    * report-row dedupe so the ledger keeps kills instead of aging them out.
+    """
     ts = plan.taken_unix
-    stopped = failed = deferred = dry_run = 0
+    escalation = (policy or {}).get("escalation", {})
+    max_stops = escalation.get("maxStopsPerRun")
+    kills_limit = escalation.get("crashLoopKills")
+    window = escalation.get("crashLoopWindowSeconds", 86_400)
+    keepalive = (policy or {}).get("ledger", {}).get("reportKeepaliveSeconds")
+    history = state.setdefault("kills", {}) if state is not None else None
+    history_at_start = (
+        {sha: list(times) for sha, times in history.items()}
+        if history is not None
+        else None
+    )
+    stopped = failed = deferred = dry_run = budgeted = looping = 0
     exit_bad = False
     for decision in plan.decisions:
         if decision.action not in TERMINAL_ACTIONS:
-            ledger.append(
-                record_for(
-                    decision.root,
-                    rule=decision.rule,
-                    action=decision.action,
-                    tier=plan.tier,
-                    result="report",
-                    reason=decision.rule,
-                    run_id=run_id,
-                    ts=ts,
-                    extra=decision.detail,
+            if _report_due(state, decision, ts, keepalive):
+                ledger.append(
+                    record_for(
+                        decision.root,
+                        rule=decision.rule,
+                        action=decision.action,
+                        tier=plan.tier,
+                        result="report",
+                        reason=decision.rule,
+                        run_id=run_id,
+                        ts=ts,
+                        extra=decision.detail,
+                    )
                 )
-            )
             continue
         gate_ok = tier_at_least(plan.tier, decision.min_tier)
         if not apply:
@@ -1637,7 +1998,10 @@ def apply_plan(
         if decision.action == "wsl-shutdown":
             result = planned
             if planned is None:
-                result = actuator.wsl_shutdown().outcome
+                result = actuator.wsl_shutdown(
+                    distros=decision.detail.get("distros", []),
+                    action=decision.detail.get("action", "terminate"),
+                ).outcome
                 if result == "failed":
                     exit_bad = True
             ledger.append(
@@ -1655,6 +2019,43 @@ def apply_plan(
                 }
             )
             continue
+        sha = hashlib.sha256(decision.root.command_line.encode("utf-8")).hexdigest()[
+            :16
+        ]
+        if planned is None and _crash_looping(
+            history_at_start, sha, ts, kills_limit, window
+        ):
+            looping += 1
+            for member in decision.tree:
+                _stop_row(
+                    ledger,
+                    member,
+                    decision,
+                    plan,
+                    "crash-loop",
+                    "stopped repeatedly within the window; fix the spawner",
+                    run_id,
+                    ts,
+                )
+            continue
+        if (
+            planned is None
+            and max_stops is not None
+            and (stopped + failed) >= max_stops
+        ):
+            budgeted += 1
+            for member in decision.tree:
+                _stop_row(
+                    ledger,
+                    member,
+                    decision,
+                    plan,
+                    "deferred-budget",
+                    f"stop budget {max_stops} per run reached",
+                    run_id,
+                    ts,
+                )
+            continue
         if planned is None:
             results = actuator.stop_tree(
                 decision.tree, graceful_seconds=decision.graceful_seconds
@@ -1662,19 +2063,18 @@ def apply_plan(
             any_failed = False
             for member, outcome in zip(decision.tree, results):
                 any_failed = any_failed or outcome.outcome == "failed"
-                ledger.append(
-                    record_for(
-                        member,
-                        rule=decision.rule,
-                        action="stop",
-                        tier=plan.tier,
-                        result=outcome.outcome,
-                        reason=outcome.detail or decision.rule,
-                        run_id=run_id,
-                        ts=ts,
-                        extra=decision.detail,
-                    )
+                _stop_row(
+                    ledger,
+                    member,
+                    decision,
+                    plan,
+                    outcome.outcome,
+                    outcome.detail or decision.rule,
+                    run_id,
+                    ts,
                 )
+            if history is not None:
+                history.setdefault(sha, []).append(ts)
             if any_failed:
                 failed += 1
                 exit_bad = True
@@ -1682,23 +2082,22 @@ def apply_plan(
                 stopped += 1
         else:
             for member in decision.tree:
-                ledger.append(
-                    record_for(
-                        member,
-                        rule=decision.rule,
-                        action="stop",
-                        tier=plan.tier,
-                        result=planned,
-                        reason=decision.rule,
-                        run_id=run_id,
-                        ts=ts,
-                        extra=decision.detail,
-                    )
+                _stop_row(
+                    ledger, member, decision, plan, planned, decision.rule, run_id, ts
                 )
     if plan.delegate_reaper:
         exit_bad = (
             _delegate_reaper(plan, actuator, ledger, apply, run_id, ts) or exit_bad
         )
+    summary = {
+        "stopped": stopped,
+        "failed": failed,
+        "deferred": deferred,
+        "dry_run": dry_run,
+        "budget_deferred": budgeted,
+        "crash_loop": looping,
+        "exit_code": 2 if exit_bad else 0,
+    }
     ledger.append(
         {
             "schema": SCHEMA_LEDGER,
@@ -1712,21 +2111,12 @@ def apply_plan(
                 "tier": plan.tier,
                 "raw_tier": plan.raw_tier,
                 "apply": apply,
-                "stopped": stopped,
-                "failed": failed,
-                "deferred": deferred,
-                "dry_run": dry_run,
+                **{k: v for k, v in summary.items() if k != "exit_code"},
                 "metrics": plan.metrics,
             },
         }
     )
-    return {
-        "stopped": stopped,
-        "failed": failed,
-        "deferred": deferred,
-        "dry_run": dry_run,
-        "exit_code": 2 if exit_bad else 0,
-    }
+    return summary
 
 
 def _delegate_reaper(plan, actuator, ledger, apply, run_id, ts) -> bool:
@@ -1807,21 +2197,131 @@ def _reaper_available(args, policy: dict[str, Any]) -> bool:
     return bool(path) and pathlib.Path(path).is_file()
 
 
+def write_heartbeat(
+    path: pathlib.Path, plan: Plan, *, run_id: str, apply: bool
+) -> None:
+    """One small file the SessionStart hook can check for staleness / mode."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": "process-hygiene-heartbeat-v1",
+        "ts": plan.taken_unix,
+        "run_id": run_id,
+        "tier": plan.tier,
+        "apply": apply,
+        "script_sha256": hashlib.sha256(
+            pathlib.Path(__file__).read_bytes()
+        ).hexdigest()[:16],
+    }
+    path.write_text(
+        json.dumps(payload, ensure_ascii=True, indent=2) + "\n", encoding="utf-8"
+    )
+
+
+def digest_line(
+    plan: Plan,
+    summary: dict[str, Any],
+    state: dict[str, Any],
+    *,
+    apply: bool,
+    cooldown: int,
+    stamp: str,
+) -> str | None:
+    """Return one BACKGROUND-DIGEST line, or None under the estate's anti-spam rule.
+
+    A line is due only in --apply runs, and only when a NEW rule kind stopped
+    something since the last line, when a failure first appears, or when the tier
+    first reaches critical; the accumulated signature resets after ``cooldown``.
+    Report/deferred/dry-run outcomes never produce a line (that is what the
+    ledger and ``explain`` are for).
+    """
+    if not apply:
+        return None
+    digest = state.setdefault("digest", {"signature": [], "last_unix": 0})
+    if plan.taken_unix - int(digest.get("last_unix", 0)) >= cooldown:
+        digest["signature"] = []
+    stopped_rules = (
+        sorted(
+            {
+                d.rule
+                for d in plan.decisions
+                if d.action == "stop" and tier_at_least(plan.tier, d.min_tier)
+            }
+        )
+        if summary["stopped"] or summary["failed"]
+        else []
+    )
+    flags = []
+    if summary["failed"] or summary["exit_code"]:
+        flags.append("fail")
+    if plan.tier == "critical":
+        flags.append("critical")
+    signature = sorted(set(stopped_rules) | set(flags))
+    new_parts = [part for part in signature if part not in set(digest["signature"])]
+    if not new_parts:
+        return None
+    digest["signature"] = sorted(set(digest["signature"]) | set(signature))
+    digest["last_unix"] = plan.taken_unix
+    body = (
+        f"stopped {summary['stopped']} tree(s) [{', '.join(stopped_rules) or 'none'}] "
+        f"failed={summary['failed']} tier={plan.tier}"
+    )
+    if "fail" in flags:
+        body = "ACTION_REQUIRED: " + body
+    return (
+        f"[{stamp}] [process-hygiene] {body} | PROPOSE: read the ledger rows for "
+        f"run {summary.get('run_id', '')} and the resume_hint of any stopped session"
+    )
+
+
 def _cmd_run(args) -> int:
     engine, snapshot, policy = _build_engine(args, need_registry=True)
     plan = engine.evaluate(snapshot, reaper_available=_reaper_available(args, policy))
     run_id = f"{snapshot.taken_unix}-{plan.tier}"
-    ledger = Ledger(pathlib.Path(args.ledger), max_bytes=policy["ledger"]["maxBytes"])
+    ledger = Ledger(
+        pathlib.Path(args.ledger),
+        max_bytes=policy["ledger"]["maxBytes"],
+        generations=policy["ledger"]["generations"],
+    )
     actuator = build_actuator(policy, run_id=run_id) if args.apply else None
-    summary = apply_plan(plan, actuator, ledger, apply=args.apply, run_id=run_id)
+    summary = apply_plan(
+        plan,
+        actuator,
+        ledger,
+        apply=args.apply,
+        run_id=run_id,
+        policy=policy,
+        state=engine.state,
+    )
+    summary["run_id"] = run_id
+    if args.digest:
+        line = digest_line(
+            plan,
+            summary,
+            engine.state,
+            apply=args.apply,
+            cooldown=policy["notify"]["digestCooldownSeconds"],
+            stamp=time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(snapshot.taken_unix)),
+        )
+        if line:
+            digest_path = pathlib.Path(args.digest)
+            digest_path.parent.mkdir(parents=True, exist_ok=True)
+            with digest_path.open("a", encoding="utf-8") as handle:
+                handle.write(line + "\n")
     pathlib.Path(args.state).write_text(
         json.dumps(engine.state, ensure_ascii=True, indent=2) + "\n", encoding="utf-8"
     )
+    heartbeat = (
+        pathlib.Path(args.heartbeat)
+        if args.heartbeat
+        else pathlib.Path(args.state).with_name("heartbeat.json")
+    )
+    write_heartbeat(heartbeat, plan, run_id=run_id, apply=args.apply)
     print(
         "SUCCESS:process-hygiene "
         f"tier={plan.tier} apply={str(args.apply).lower()} "
         f"stopped={summary['stopped']} failed={summary['failed']} "
         f"deferred={summary['deferred']} dry_run={summary['dry_run']} "
+        f"budget_deferred={summary['budget_deferred']} crash_loop={summary['crash_loop']} "
         f"delegate_reaper={str(plan.delegate_reaper).lower()}"
     )
     return summary["exit_code"]
@@ -1867,6 +2367,10 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--ledger", required=True)
     run.add_argument("--apply", action="store_true")
     run.add_argument("--reaper-available", choices=["yes", "no"], default=None)
+    run.add_argument("--digest", default=None, help="BACKGROUND-DIGEST.md to append to")
+    run.add_argument(
+        "--heartbeat", default=None, help="heartbeat.json path (default: beside state)"
+    )
     run.set_defaults(func=_cmd_run)
 
     explain = sub.add_parser("explain", help="print the plan as JSON; write nothing")
