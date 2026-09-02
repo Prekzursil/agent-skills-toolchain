@@ -18,8 +18,8 @@
 | 3 | Alternative: the MCP sampling primitive (and why it is not enough alone) | DONE - deprecated upstream 2026-07-28 |
 | 4 | Hosting: how `tools/mcp/mcp-http-host` should host it once, not per session | DONE |
 | 5 | Tool surface specification | DONE |
-| 6 | Error taxonomy with truthful degradation | pending |
-| 7 | Eval-harness spec (capability, regression, pass@k, fake endpoints for CI) | pending |
+| 6 | Error taxonomy with truthful degradation | DONE |
+| 7 | Eval-harness spec (capability, regression, pass@k, fake endpoints for CI) | DONE |
 | 8 | Per-find rubric table | pending |
 | 9 | Open questions and what this lens did NOT verify | pending |
 
@@ -494,3 +494,168 @@ brief calls the "general integration layer": one process, two faces, one registr
 Lock check: this face must never be configured as a Cursor BYOK base URL or a Claude `ANTHROPIC_BASE_URL`;
 `deny_callers` cannot be enforced on an anonymous `/v1` client, so the `/v1` face **omits** any
 `cursor/*` and `openrouter/*` entries entirely (they are MCP-face only, where `clientInfo` is known).
+
+---
+
+## 6. Error taxonomy with truthful degradation
+
+Governing spec fact: **input-validation errors are Tool Execution Errors (`isError: true` in the result),
+not JSON-RPC protocol errors, so the model can self-correct** (SEP-1303). [FACT, Tier A, 2025-11-25
+changelog minor change 5] Protocol errors are reserved for malformed JSON-RPC and unknown tool names.
+Every error the hub returns therefore has the shape
+`{isError: true, structuredContent: {error: {class, retryable, detail, model, backend_status, hint}}}`
+plus a one-line human `text`. **No error class is ever converted into a fake success.**
+
+| Class | Trigger | `retryable` | Degradation offered (never silent) | Ledger `status` |
+|-------|---------|-------------|-------------------------------------|-----------------|
+| `UNKNOWN_MODEL` | `model` not in registry, or `enabled: false` | no | lists 5 nearest registry ids | `rejected` |
+| `CALLER_DENIED` | registry `deny_callers` matches `clientInfo.name` (the OpenRouter / auth2api lock rows) | no | names the lock; suggests an allowed model with the same tags | `rejected` |
+| `INVALID_MESSAGES` | schema violation; unbalanced `tool_calls`/`role: tool`; `profile` and leading system message both present | no | exact index + rule violated | `rejected` |
+| `PROFILE_NOT_FOUND` | `profile` path not under `.agents/skills` or missing | no | nearest skill paths | `rejected` |
+| `REFUSED_SECRET_IN_PROMPT` | pre-send scanner hit, `allow_redacted_send: false` | no (caller must decide) | kinds + message indexes; explains `allow_redacted_send` | `refused` |
+| `REFUSED_PRIVATE_TO_THIRD_PARTY` | `content_class: private` -> `data_class: third_party` without `private_ok` | no | lists `local` models that fit (`fits_local_vram: true`) | `refused` |
+| `UNSUPPORTED_CAPABILITY` | request uses `tools` / `tool_choice` / `response_schema` / image parts the manifest marks `false` | no | names the field; for `response_schema` offers `prompted` mode explicitly | `rejected` |
+| `CAPABILITY_UNKNOWN` | manifest says `"unknown"` for the field used | yes (after eval) | proceeds **only** if caller set `allow_unknown_capability: true`; result then carries `capability_probe: {field, observed}` and the ledger records it so the registry can be updated | `ok` or `provider_error` |
+| `BUDGET_EXCEEDED` | ledger `spent_today_usd + estimate > daily_usd_cap` (or `cost_basis: unknown_price` and `require_priced: true`) | after midnight UTC | shows spend, cap, and cheapest alternative model; **never silently downgrades the model** | `rejected` |
+| `BACKEND_AUTH` | 401/403 from provider | no | names the `credentialName` (not the value); reminds that credentials are never rotated automatically | `provider_error` |
+| `BACKEND_RATE_LIMIT` | 429 | yes, honours `Retry-After` up to `timeout_s` | at most 2 retries with jitter, then surfaces the 429 | `provider_error` |
+| `BACKEND_UNAVAILABLE` | connect refused / DNS / 5xx / Ollama model not pulled (404 from `:11434`) | yes | for `local` backends, says whether the daemon or the model is missing (`ollama pull` hint); **no automatic failover to another model** - the caller chose the model | `provider_error` |
+| `BACKEND_MALFORMED` | non-JSON body, missing `choices`, tool_call arguments not JSON | no | returns `raw_excerpt` (redacted, 500 chars) | `provider_error` |
+| `TIMEOUT_PARTIAL` | `timeout_s` hit after first token | no | **returns the partial text** with `partial: true`, `finish_reason: "timeout_partial"`, tokens so far | `partial` |
+| `TIMEOUT_NO_OUTPUT` | `timeout_s` hit before first token | yes | reports `ttfb_ms: null`; suggests a smaller `max_tokens` or a local model | `provider_error` |
+| `RESULT_SPOOLED` (not an error) | output > `max_result_chars` | - | `truncated: true`, `result_id`, `remaining_chars` (section 5.6) | `ok` |
+| `IDEMPOTENT_REPLAY` (not an error) | same `idempotency_key` within 10 min | - | returns the stored result, `idempotent_replay: true`, **no spend** | `replay` |
+
+### 6.1 What "truthful degradation" rules out (trade-offs stated, per the lock)
+
+| Tempting shortcut | Why it is refused here | What is offered instead |
+|-------------------|------------------------|-------------------------|
+| Auto-failover `hf/glm-5.3` -> `ollama/qwen2.5-7b` on 5xx | The caller's tool call named a model; answering from a different one is a silent lie about provenance and quality | `BACKEND_UNAVAILABLE` names the alternative; the *caller* re-invokes |
+| Silently dropping `tools` for a backend that lacks them | The model then answers in prose and the harness thinks no tool was needed | `UNSUPPORTED_CAPABILITY` |
+| Reporting `prompted` structured output as `native` | Downstream code trusts the schema guarantee it does not have | `structured_mode` always present |
+| Masking secrets by default and sending | Leaks transcript shape to a third party without the caller knowing | refuse-by-default, opt-in mask |
+| Returning `cost_usd: 0.0` when the price is unknown | Ledger totals become fiction; `BUDGET_EXCEEDED` never fires | `cost_basis: unknown_price`, `cost_usd: null` |
+| Retrying forever on 429 | Burns the daily cap on one call | 2 retries, then surface |
+
+### 6.2 Health degradation at the hub level
+
+`/healthz` marks a backend `degraded` after `consecutive_failures >= 3` within 10 min (the same
+`failureThreshold: 3 / failureWindowSeconds: 600` numbers `.agents/agents.json` already uses for
+supervision - [FACT, Tier A, `agents.json` "supervision" block]). `inference_models` shows the flag; the
+hub still forwards calls to a degraded backend (the lock forbids removing the feature to buy
+reliability) but prefixes the result `text` with a one-line warning and sets `backend_status: degraded`.
+
+---
+
+## 7. Eval-harness spec
+
+### 7.1 Principles
+
+1. **Everything runs in CI without a network and without money.** Fake endpoints (7.2) stand in for
+   every backend. Live runs are a separate, opt-in tier.
+2. **pytest only.** The repo's CI is per-package `pytest --cov ... --cov-fail-under=100` with no
+   repo-wide autodiscovery; ruff is pinned at 0.15.17. [FACT, Tier A, `.github/workflows/quality.yml`
+   lines 11-18, 295-334; `AGENTS.md` Cursor Cloud notes] A dedicated eval framework
+   ([inspect_ai](https://github.com/UKGovernmentBEIS/inspect_ai), MIT, 2,683 stars, pushed 2026-09-02;
+   [promptfoo](https://github.com/promptfoo/promptfoo), MIT, 24,738 stars, pushed 2026-09-02 - [FACT,
+   Tier A metadata]) would be a second runtime with its own provider adapters; **not adopted**, named
+   for the record. Trade-off: we forgo their dashboards and keep one test runner.
+3. **The suite must be wired into `quality.yml` explicitly.** Grep this run found **no** `mcp-http-host`
+   step in `quality.yml`, so its 52 tests appear to run only locally. [FACT, Tier A, grep this run;
+   INFERENCE that they are not in CI - UNVERIFIED against the workflow's full step list] The new
+   `inference-hub` suite must not inherit that gap.
+
+### 7.2 Fake endpoints for CI
+
+**House precedent (Tier A):** `tools/mcp/mcp-http-host/_fake_mcp_server.py` (minimal stdio MCP fixture)
+and `_fake_streamable_http_daemon.py` (sessions, `-32600`, JSON/SSE, GET stream, `--restart-every`,
+`--mode sse`) - 12 tests pin the daemon's contract. The eval harness follows the same pattern with a
+**stdlib `_fake_openai_v1.py`** (~250 lines) rather than an external mock:
+
+| Fake | Behaviour it must reproduce | Why |
+|------|-----------------------------|-----|
+| `--profile openai` | `/v1/chat/completions` JSON + SSE (`data:` chunks, `[DONE]`), `usage` incl. `prompt_tokens_details.cached_tokens`, `tool_calls` with string `arguments`, `response_format: json_schema` honoured | the general case |
+| `--profile ollama` | as above but **rejects `tool_choice`** and image URLs, accepts base64 images, returns `usage` only with `stream_options.include_usage`, 404 for an unpulled model | mirrors the sourced Ollama matrix (section 5.3) exactly, so `UNSUPPORTED_CAPABILITY` paths are exercised against a truthful fake |
+| `--profile hf-router` | Bearer required (401 otherwise), `X-HF-Bill-To` echoed, **no cost field**, provider-dependent `json_schema` (configurable) | the `glm53_chat` replacement path |
+| `--profile auth2api` | Bearer optional, 36 fixed model ids, refuses when `clientInfo.name` is Cursor **only via the hub's deny list** (the fake itself is oblivious - that proves the check is in the hub) | the lock row |
+| Fault injection flags | `--rate-limit-every N` (429 + `Retry-After`), `--fail-every N` (503), `--slow-first-token S`, `--hang-after-tokens N` (partial-timeout path), `--malformed` (non-JSON / missing `choices`), `--echo-secret` (regurgitates an injected `sk-...`), `--restart-every S` (borrowed from the daemon fixture) | every row of the section 6 table needs a deterministic trigger |
+
+Alternative considered: [Stoplight Prism](https://github.com/stoplightio/prism) (Apache-2.0, 5,022
+stars, pushed 2026-08-26) mocking [openai/openai-openapi](https://github.com/openai/openai-openapi)
+(MIT, 2,495 stars, pushed 2026-09-01). [FACT, Tier A metadata] Rejected as *the* CI fake because it
+needs Node in the Python lane and cannot express the Ollama capability gaps or the fault flags; useful
+as an occasional **schema-conformance oracle** for the `/v1` face (does our face satisfy the official
+OpenAPI?), which is a different question. [RECOMMENDATION; Prism's ability to validate against that
+spec is Tier B, UNVERIFIED this run]
+
+### 7.3 Eval tiers
+
+| Tier | Runs where | Network | Money | Gate |
+|------|-----------|---------|-------|------|
+| T0 unit | CI, every push | none | none | 100 % line+branch (house rule) |
+| T1 contract (fake endpoints) | CI, every push | loopback only | none | all rows of section 6 hit at least once; pass@1 = 1.0 (deterministic) |
+| T2 local live | on-box, nightly / on demand | `127.0.0.1:11434` (Ollama), `:1234` (LM Studio) | none | pass@3 >= 0.9 on the capability set for `ollama/qwen2.5-7b`; RAM check before run (`nvidia-smi` free >= 5 GiB; 6,141 MiB card - [FACT, local-models-audit]) |
+| T3 hosted live | on-box, weekly, opt-in `INFERENCE_HUB_LIVE=1` | real providers | capped: `daily_usd_cap` per model applies to the eval caller too | pass@3 >= 0.8 per model; failure updates the registry capability row rather than blocking |
+
+### 7.4 Capability evals (turn `"unknown"` into `true|false`)
+
+Run per registry model in T2/T3; each is a small fixed prompt set with a deterministic checker.
+
+| Probe | Prompt set | Checker | Registry field written |
+|-------|-----------|---------|------------------------|
+| `tools_roundtrip` | 5 prompts that require exactly one call to a `get_weather`-style stub | `tool_calls[0].name == expected` and arguments parse as JSON with the required key | `capabilities.tools` |
+| `tool_choice_required` | 3 prompts answerable without tools, `tool_choice: required` | a call is emitted anyway | `capabilities.tool_choice` |
+| `json_schema_native` | 5 prompts with a 4-field schema, `response_format: json_schema` | validates; fallback run in `prompted` mode to measure the delta | `capabilities.json_schema` |
+| `vision_base64` / `vision_url` | 2 tiny PNGs (a red square, a "7") | answer contains the colour / digit | `capabilities.vision_*` |
+| `usage_reported` | any prompt | `usage` present and non-zero | `capabilities.usage` |
+| `reasoning_effort` | same prompt at `low` vs `high` | request accepted (200) at both; completion tokens differ | `capabilities.reasoning_effort` |
+| `context_probe` | 8k / 32k / 128k filler + needle | needle recovered | `capabilities.max_context` |
+| `tool_call_id_roundtrip` | tool call -> `role: tool` reply -> final answer | final text references the tool result | (regression guard for hosted-model-agents/tool-loop.md "Tool-call IDs must round-trip") |
+
+### 7.5 Regression evals (protect the hub, not the model)
+
+Deterministic against the fakes, so pass@1 must be 1.0:
+
+- **Redaction:** 12 seeded secrets across message positions (system, user, tool result, nested JSON
+  string) -> `REFUSED_SECRET_IN_PROMPT` with correct indexes; with `allow_redacted_send` the fake receives
+  masked text (asserted by inspecting the fake's request log); `--echo-secret` -> `echo_masked: 1`.
+- **Private class:** `content_class: private` x every `data_class` -> correct refuse/allow matrix.
+- **Ledger:** one line per call including every error class; never contains any prompt substring
+  (property test: sample 200 random prompts, assert none appear in the ledger file); rotation at the
+  day boundary; `spent_today_usd` arithmetic; `BUDGET_EXCEEDED` fires at the cap and not one cent early.
+- **Chunking:** 60k-char reply -> `truncated: true` + `inference_fetch` pages reassemble byte-identical.
+- **Timeouts:** `--hang-after-tokens 40` -> `TIMEOUT_PARTIAL` with 40 tokens; `--slow-first-token 999` ->
+  `TIMEOUT_NO_OUTPUT`.
+- **Shared-host invariant:** 8 concurrent clients -> `inflight` never exceeds `max_inflight` per model,
+  `requests_served == 8`, one process (the same CONTROL-style test the mcp-http-host suite already has
+  for N stdio spawns -> N pids). [FACT for the precedent, Tier A README "Proof"]
+- **Lenient session ids:** unknown `Mcp-Session-Id` -> accepted as fresh, not `-32600` (section 4.3);
+  `--restart-every 5` from the daemon fixture pattern -> zero client-visible failures.
+- **Origin check:** disallowed `Origin` -> 403 (spec).
+- **Denied callers:** `clientInfo.name = "cursor"` + `cursor/*` model -> `CALLER_DENIED`; `/v1` face ->
+  `cursor/*` and `openrouter/*` absent from `GET /v1/models`.
+- **Deprecation parity:** a replay of `glm53_chat`-shaped calls (`user_prompt`, `system_prompt`) through a
+  thin compatibility shim returns equivalent results - **blocked until the unpushed
+  `tools/mcp/glm53-space` is pushed** (section 0.3), because there is no executable oracle otherwise.
+
+### 7.6 pass@k: definition and targets
+
+Use the **unbiased estimator** from Chen et al. 2021, *Evaluating Large Language Models Trained on Code*
+(arXiv:2107.03374, §2.1): generate n >= k samples, count c correct,
+pass@k = 1 - C(n-c, k) / C(n, k). [FACT, Tier A, https://arxiv.org/abs/2107.03374] For stochastic tiers
+set `temperature` to the model's default and n = 5, report pass@1 and pass@3; for the deterministic
+fake tiers pass@1 with n = 1 is the gate and anything below 1.0 is a bug in the hub, not in a model.
+
+| Suite | k | Target | On miss |
+|-------|---|--------|---------|
+| T1 contract | 1 | 1.00 | CI red |
+| T2 local capability | 3 | >= 0.90 | registry row flipped to `false` with `as_of`; not CI red |
+| T3 hosted capability | 3 | >= 0.80 | same; plus ledger line tagged `eval` so spend is visible |
+| Redaction / ledger / chunking regressions | 1 | 1.00 | CI red |
+
+### 7.7 What the evals deliberately do not measure
+
+Model *quality* (is GLM-5.3 a good coder?) is out of scope: that is the caller's judgment and the
+hosted-model-agents "pressure evals" already cover the doctrine. This harness measures **whether the hub
+told the truth** about capability, cost, and failure - which is the property that was missing from
+`glm53_chat` and from every upstream candidate in section 2.
