@@ -91,6 +91,12 @@ MUTATIONS = [
         "        if not self._identity_matches(member, identity):",
         "        if False:",
     ),
+    (
+        "actuator skips graceful stop and goes straight to /F",
+        "hygiene_actuate.py",
+        "        if graceful_seconds > 0:",
+        "        if False:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
