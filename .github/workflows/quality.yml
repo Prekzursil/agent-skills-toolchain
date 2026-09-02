@@ -1751,15 +1751,35 @@ jobs:
             --lockfile=package-lock.json
             --lockfile=tools/mcp/hacktricks-mcp-server/package-lock.json
             --lockfile=browser-bridge/chrome-bridge-mcp/package-lock.json
+            --lockfile=tools/editor/ralph-orchestrator/vendor/package-lock.json
       # browser-bridge/chrome-bridge-mcp/package-lock.json landed 2026-08-28 (779df004) and was
       # never added here, so this gate stayed green on 2026-09-01 while Dependabot held four
       # open alerts against it (hono < 4.12.34, GHSA-8j4g-w8fx-2239 / -54fx-42gc-7vw4 /
       # -f23p-vx2j-j53r / -79qm-7rj5-m7r9). A required check that does not read a lockfile
-      # cannot fail on it. The fourth tracked lockfile,
-      # tools/editor/ralph-orchestrator/vendor/package-lock.json, is DELIBERATELY not listed:
-      # it is a vendored upstream snapshot (ruff.toml: "not our code"), `npm audit` on it
-      # reports 17 findings (1 critical, 10 high, 5 moderate, 1 low), and GitHub's dependency
-      # graph skips vendor/ paths so Dependabot never surfaces them. Listing it would block
-      # every merge on code this repo cannot patch without diverging from upstream; the fix
-      # is to re-vendor a newer ralph-orchestrator, recorded as an owner decision in
-      # RECONCILE-STATE_2026-09-01.md.
+      # cannot fail on it.
+      #
+      # The fourth --lockfile, tools/editor/ralph-orchestrator/vendor/package-lock.json, was
+      # DELIBERATELY unlisted until 2026-09-01 on the reasoning that it is a vendored upstream
+      # snapshot this repo "cannot patch without diverging from upstream", and that the fix was
+      # to re-vendor a newer ralph-orchestrator. Both halves were measured and REFUTED on
+      # 2026-09-01 (kept here rather than deleted, per house style):
+      #   * `npm audit --package-lock-only` on the vendored lockfile: 17 findings (1 critical,
+      #     10 high, 5 moderate, 1 low). On upstream's own v2.10.1 lockfile (latest release,
+      #     2026-06-23): 22 findings (1 critical, 13 high, 7 moderate, 1 low). On upstream
+      #     main @ edc2b326 (2026-08-25): the same 22. Re-vendoring does not fix the findings;
+      #     it adds five.
+      #   * `npm audit fix --package-lock-only` + `npm update tsx --package-lock-only` on the
+      #     vendored lockfile: 17 -> 4 npm-audit findings, all four being ONE dev-only chain
+      #     (drizzle-kit -> deprecated @esbuild-kit -> esbuild 0.18.20, GHSA-67mh-4wv8-2f99)
+      #     with no non-breaking fix; the three package.json files are byte-identical before
+      #     and after, so the divergence from upstream is confined to resolved versions inside
+      #     declared semver ranges. The vendored suites pass on the result (backend 178/178 via
+      #     tsx --test, dashboard 144/144 via vitest, `npm run build` clean).
+      # The lockfile was already patched in place once before (83732eaa, 2026-04-04, picomatch),
+      # so this is the second in-place fix, not a new precedent. The one residual carries a
+      # reasoned, dated ignore in osv-scanner.toml; everything else reached clean-zero by
+      # upgrade. Scanning it here is what stops the next five months of silent drift: GitHub's
+      # dependency graph skips vendor/ paths, so this gate is the ONLY thing that reads it.
+      # Same-day proof, pinned osv-scanner 2.5.1: with this line and the unfixed lockfile the
+      # gate exits 1 ("14 packages affected by 37 known vulnerabilities, 1 Critical 23 High");
+      # with the fixed lockfile it exits 0 ("No issues found", 1 filtered).
