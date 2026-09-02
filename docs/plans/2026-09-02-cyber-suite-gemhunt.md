@@ -90,10 +90,10 @@ per the owner's model directive.
 |---|------|-------|--------|
 | L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | running |
 | L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | bc-3e781288 | running |
-| L3 | Purple-team / adversary emulation / BAS / detection validation | — | QUEUED (reframe defensive) |
-| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | QUEUED (reframe defensive) |
-| L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | running |
-| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | — | QUEUED |
+| L3 | Purple-team / adversary emulation / BAS / detection validation | — | QUEUED (next slot) |
+| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | bc-4fc1542a | running on `cursor-grok-4.6-xhigh` (highest block-risk; serves "0-day") |
+| L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | DONE |
+| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | running |
 | L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | DONE |
 | L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | running on `cursor-grok-4.6-xhigh` (Claude blocked bc-1358f975; owner directive) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | running |
