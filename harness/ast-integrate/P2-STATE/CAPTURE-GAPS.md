@@ -28,6 +28,8 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | AUD-0016 | `probes/AUD-0016/fixtures/estate/project/.claude/settings.local.json` | never captured (b3-p03-AUD-r) | `.claude/` local settings ignored | open |
 | AUD-0018 | `probes/AUD-0018/fixtures/trees/src/rules/nested-repo/{.git,secret.md}` | nested `.git` uncommittable; probe2 controls need it (b3-p03-AUD-r) | embedded-repo exclusion | open |
 | AUD-0023 | `probes/AUD-0023/fixtures/known-advisory/package-lock.json` | root `.gitignore:2`; write_receipts SUPPORTING row; artifact regen works, receipts cannot be rewritten (b3-p03-AUD-r) | toolchain ignore rule | open |
+| BLD-0002, BLD-0041 | `probes/BLD-0002/fixtures/scratch/`, `probes/BLD-0041/fixtures/scratch/` (4 fixture files) | nothing generates them (b3-p06-BLD) | `scratch` = ExtraExcludeDirs — these fixtures were real inputs under an excluded name | open |
+| IMP-0157 | `tools/workflow_foundry/candidate_registry.json` (manifest row sha d21f100f…, 2194 B) | never in git; unit is green on its original receipt — do NOT regenerate it (b4-p07-IMP) | not captured | open (non-blocking) |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006

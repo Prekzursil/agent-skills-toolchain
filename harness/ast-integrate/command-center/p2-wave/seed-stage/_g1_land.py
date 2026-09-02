@@ -44,7 +44,7 @@ def _expand_braces(text: str) -> str:
 
 def extract(report: str) -> tuple[list[str], dict[str, str]]:
     paths: list[str] = []
-    report = _expand_braces(report)
+    report = _expand_braces(report).replace("harness/ast-integrate/", "")
     for m in PATH_RE.finditer(report):
         p = m.group(1).rstrip(".,;:)")
         if p not in paths:

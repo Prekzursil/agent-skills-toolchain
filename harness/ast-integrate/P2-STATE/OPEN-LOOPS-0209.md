@@ -59,3 +59,11 @@ or the environment is provided (ENV). Rows appended by the orchestrator from wri
 | AUD-0029 | CONFLICT | probe2 compiles live files under 3.10/3.11/3.12; 17 remaining failures are other units' deliberately-broken fixtures (REL-0019, WFA-0147, RES-0163, detector_control) (b3-p03-AUD-r) | owner: exclusion list |
 | AUD-0044 | ENV | fetches `quality.yml` from the private origin repo unauthenticated → 404 (b3-p03-AUD-r) | token or offline mode |
 | env note | — | box now has python3.10, python3.11, python3.12-venv (sudo apt, b3-p03-AUD-r); AUD-0043/AUD-0029 need them — record for the final-census host | — |
+| BLD-0004, BLD-0029 | FINGERPRINT (regen last) | live censuses (undocumented receipts 892→805; NOT-CHECKED harvest 207→212) (b3-p06-BLD) | final mirror |
+| BLD-0010 | CONFLICT (out of scope) | static census finds 13 non-cp1252 console literals in 7 files outside BLD scope (vendored ralph-orchestrator, monitorcore, taskwatch_monitor, triage-router, workspace-hooks tests) (b3-p06-BLD) | owners ASCII-ize or census exclusion |
+| BLD-0021, BLD-0026 | PROBE-SIDE (nested-vs-flat family) | probes read receipt fields top-level; emitters write under `$.report` / `extensions` (b3-p06-BLD) | probe owner |
+| BLD-0039, BLD-0047 | CONFLICT (V-FIELDS family with ADV-0009/AUD-0046/TST-0076) | probes expect bare `cc-validate` NOT to flag V-FIELDS; hardened `validate.py` flags unresolved fields in bare mode (b3-p06-BLD) | owner: probe or CLI default |
+| BLD-0042 | PROBE-SIDE | helper `census.collect_decls` cannot parse positional-only params (`taskwatch_monitor/hooks/posttool.py:52`) (b3-p06-BLD) | probe owner |
+| BLD-0044 | ENV | `unshare -n` not permitted (same as TST-0225/IMP-0057) (b3-p06-BLD) | host with user namespaces |
+| IMP-0175 | CONFLICT | probe2 wants `compat_map.load_components/load_licence_matrix` → 2-tuples + `compose_pair`; REL-0013 (3 files) consumes `load_components()` as a plain list (majority) (b4-p07-IMP) | owner adjudicates |
+| IMP-0137 | PROBE-SIDE | probe2 wants exactly `[net-allowlist.mjs]` among allowlist files; `tools/lib/env_allowlist.py` + `net_allowlist.py` exist and may have importers (b4-p07-IMP) | check importers before deleting (re-batched) |
