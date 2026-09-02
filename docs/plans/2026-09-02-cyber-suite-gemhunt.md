@@ -282,4 +282,14 @@ answers may spawn new directions.)
 
 ### Decisions (filled as answered)
 
-*(G1 asked; awaiting owner)*
+- **G1 — Ambition: D (everything at once, full program, all waves in parallel now).** Owner
+  overrode the rails-first recommendation. Honest flag recorded + reconciled: building active
+  tooling in parallel with (not strictly before) the rails opens a window where active tools
+  exist without enforcement, so the reconciliation is — **all active/offensive lanes ship
+  DEFAULT-OFF and their *enablement* is gated on the harness rails (L13 R1-R7) landing green**;
+  the rails are themselves one of the parallel waves, prioritized. That keeps "everything at
+  once" while closing the iatrogenic window. EVPI consequence: D pre-answers most per-wave
+  yes/no questions (G3/G5/G7-G12 = "yes, all, now"), so the grill compresses to the questions
+  D did NOT answer — chiefly **G2 the dual-use/safety boundary** (the mandated explicit call);
+  delivery/model-routing/licensing get sensible defaults applied (build now on this branch;
+  grok for safeguard-blocked offensive lenses; wrap-don't-vendor for AGPL/CC-BY-SA/DRL).
