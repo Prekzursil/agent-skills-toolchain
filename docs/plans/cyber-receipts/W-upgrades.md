@@ -48,12 +48,13 @@ Measured with `diff -rq .agents/skills/<name>/ skills/<name>/` before editing.
 
 ### 4. NEW `native-fuzz` skill
 
-- `SKILL.md` frontmatter is name+description only: UNKNOWN - not yet measured
-- `agents/openai.yaml` with quoted `display_name` / `short_description` / `default_prompt`: UNKNOWN - not yet measured
-- `go test -fuzz` discipline promoted from `.agents/library/skills/golang-testing`: UNKNOWN - not yet measured
-- ASan/UBSan/MSan build discipline promoted from `.agents/library/skills/cpp-testing`: UNKNOWN - not yet measured
-- libFuzzer/LibAFL preferred over AFL++ v5 (AGPL) with wrap-don't-vendor note: UNKNOWN - not yet measured
-- Dual-write parity (`.agents/skills/native-fuzz` == `skills/native-fuzz`): UNKNOWN - not yet measured
+- `SKILL.md` frontmatter is name+description only: YES — PyYAML parse confirms keys == {name, description}, name == `native-fuzz`
+- `agents/openai.yaml` with quoted `display_name` / `short_description` / `default_prompt`: YES — all three present under `interface:`, quoted strings, PyYAML-valid
+- `go test -fuzz` discipline promoted from `.agents/library/skills/golang-testing`: YES — FuzzXxx seed/property example, testdata/fuzz regression discipline, -race, replay; Related cites the library source
+- ASan/UBSan/MSan build discipline promoted from `.agents/library/skills/cpp-testing`: YES — sanitizer table (ASan/UBSan/MSan/TSan), ASan+UBSan combined vs MSan/TSan separate builds, symbolizer/`*_OPTIONS` discipline; Related cites the library source
+- libFuzzer/LibAFL preferred over AFL++ v5 (AGPL) with wrap-don't-vendor note: YES — Engine choice section: libFuzzer/LibAFL/honggfuzz permissive defaults; AFL++ v5 AGPL flagged, external-tool-only, wrap-don't-vendor, ties to G17
+- Dual-write parity (`.agents/skills/native-fuzz` == `skills/native-fuzz`): YES — `diff -rq` PARITY OK; both roots have `SKILL.md` + `agents/openai.yaml`
+- Markdown-only skill (no scripts) → no ruff/pytest required per wave rule "otherwise the skill is the artifact": YES
 
 ## Validation
 
