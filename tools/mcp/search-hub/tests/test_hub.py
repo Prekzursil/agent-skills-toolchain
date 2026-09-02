@@ -300,3 +300,39 @@ def test_search_usage_includes_selfhosted_capability_lattice(hub_env):
     assert states <= set(adapters.LATTICE)
     assert states == {"probed"}  # fake backend answers /docs healthy
     assert server._children == {}
+
+
+def test_onions_category_blocked_when_flag_off(hub_env):
+    """Envelope: the onions category must be UNREACHABLE with ENABLE_ONIONS unset."""
+    server, cap, _rot = hub_env
+    assert server.onions_enabled is False  # default off (no ENABLE_ONIONS in env)
+    server.dispatch(
+        _call(70, "searxng_web_search", {"query": "ahmia", "categories": "onions"})
+    )
+    reply = cap.wait(1)[0]
+    result = reply["result"]
+    assert result["isError"] is True
+    payload = json.loads(result["content"][0]["text"])
+    assert "ENABLE_ONIONS=1" in payload["envelope"]
+    # Refused at the hub: no SearXNG child was spawned to serve the onion query.
+    assert ("searxng", "keyless") not in server._children
+
+
+def test_onions_category_forwarded_when_flag_on(hub_env):
+    server, cap, _rot = hub_env
+    server.onions_enabled = True  # simulate ENABLE_ONIONS=1
+    server.dispatch(
+        _call(71, "searxng_web_search", {"query": "ahmia", "categories": "onions"})
+    )
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["backend"] == "searxng"
+    assert payload["arguments"]["categories"] == "onions"
+
+
+def test_ordinary_searxng_search_unaffected_by_onions_gate(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(_call(72, "searxng_web_search", {"query": "python"}))
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["backend"] == "searxng"  # non-onion search still works, flag off

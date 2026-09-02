@@ -45,6 +45,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
 import accounts  # noqa: E402
 import adapters  # noqa: E402
+import onions  # noqa: E402
 import providers  # noqa: E402
 import rotation  # noqa: E402
 import usage  # noqa: E402
@@ -311,6 +312,9 @@ class SearchHub:
             name: ad for ad in self.adapters for name in ad.tool_names()
         }
         self.adapter_tools = [d for ad in self.adapters for d in ad.tool_defs()]
+        # Onion lane (Ahmia index via SearXNG) is default OFF; the flag only gates
+        # whether the onions category / ahmia engine is forwarded (§ onions.py).
+        self.onions_enabled = onions.flag_enabled(self.environ)
         self._children: dict[tuple[str, str], ProviderKeyChild] = {}
         self.all_tools = (
             self.tools + self.adapter_tools + self.account_tools + [_usage_tool_def()]
@@ -430,6 +434,16 @@ class SearchHub:
     def _handle_provider(self, msg: dict, mid, name: str) -> None:
         """Route a provider tool through the rotator (active key, rotate-retry)."""
         route = self.routes[name]
+        if route.platform == "searxng":
+            block = onions.guard(
+                name,
+                (msg.get("params") or {}).get("arguments") or {},
+                self.onions_enabled,
+            )
+            if block is not None:
+                # Refuse at the hub -- no child spawned, no query forwarded.
+                self._tool_result(mid, {"envelope": block}, is_error=True)
+                return
 
         def forward(key_name: str, request: dict) -> dict:
             req = dict(request)
