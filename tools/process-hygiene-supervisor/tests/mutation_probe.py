@@ -121,6 +121,12 @@ MUTATIONS = [
         '            or ratio > pressure["critical"]["ratio"]',
         "            or False",
     ),
+    (
+        "ledger stops redacting credential flags",
+        "hygiene.py",
+        '    text = _SECRET_FLAG_RE.sub(r"\\1[REDACTED]", text)',
+        "    text = text",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}

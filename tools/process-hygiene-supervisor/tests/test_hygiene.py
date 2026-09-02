@@ -1285,6 +1285,41 @@ def test_ledger_redacts_secrets_and_rotates(tmp_path):
     assert path.stat().st_size < 400
 
 
+def test_ledger_redacts_flag_carried_secrets_without_a_known_prefix(tmp_path):
+    # Found by the autoresearch mutation loop: the only redaction test used a
+    # github_pat_ value that the literal-prefix regex ALSO catches, so breaking
+    # the --flag=value redaction stayed green. A plain password must not leak.
+    ledger = hygiene.Ledger(tmp_path / "l.jsonl", max_bytes=10_000)
+    secret = "Zq9vT2hunter2ManyRandomChars"
+    row = hygiene.parse_snapshot(
+        snap(
+            [
+                proc(
+                    10,
+                    1,
+                    cmd=f"python srv.py --password={secret} --api-key {secret}X --port 80",
+                )
+            ]
+        )
+    ).by_pid[10]
+    ledger.append(
+        hygiene.record_for(
+            row,
+            rule="orphan",
+            action="report",
+            tier="normal",
+            result="dry-run",
+            reason="",
+            run_id="r",
+            ts=1,
+        )
+    )
+    text = (tmp_path / "l.jsonl").read_text(encoding="utf-8")
+    assert secret not in text
+    assert text.count("[REDACTED]") == 2
+    assert "--port 80" in text
+
+
 def test_ledger_truncates_long_command_lines(tmp_path):
     ledger = hygiene.Ledger(tmp_path / "l.jsonl", max_bytes=10_000)
     row = hygiene.parse_snapshot(snap([proc(10, 1, cmd="x" * 2000)])).by_pid[10]
