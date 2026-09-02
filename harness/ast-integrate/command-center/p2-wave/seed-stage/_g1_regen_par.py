@@ -125,9 +125,42 @@ def one(uid: str, regen: bool) -> dict:
     return rec
 
 
+def warm_pyc_cache() -> None:
+    """02.09 gem (native lens, measured 3x less CPU/unit): the container image zeroed every
+    source mtime, so CPython treats all shipped stdlib/dist-packages .pyc as stale and
+    recompiles on EVERY interpreter start (each unit spawns >=3). A PYTHONPYCACHEPREFIX with
+    a one-off compileall (7 s) removes that; -B/PYTHONDONTWRITEBYTECODE only stop writing,
+    reads from the prefix still happen. Nothing lands in the tree. Set G1_NO_PYC_WARM=1 to skip.
+    """
+    if os.environ.get("G1_NO_PYC_WARM") or os.name == "nt":
+        return
+    prefix = Path(os.environ.setdefault("PYTHONPYCACHEPREFIX", "/dev/shm/g1-pyc" if Path("/dev/shm").is_dir() else "/tmp/g1-pyc"))
+    stamp = prefix / ".g1-warm"
+    if stamp.is_file():
+        return
+    import sysconfig
+
+    roots = [sysconfig.get_path("stdlib"), sysconfig.get_path("purelib"), sysconfig.get_path("platlib")]
+    try:
+        import site
+
+        roots.append(site.getusersitepackages())
+    except Exception:  # noqa: BLE001
+        pass
+    roots = [r for r in dict.fromkeys(roots) if r and Path(r).is_dir()]
+    prefix.mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    subprocess.run([sys.executable, "-m", "compileall", "-q", "-j", "4", *roots],
+                   env={**os.environ, "PYTHONDONTWRITEBYTECODE": ""}, check=False,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    stamp.write_text(f"{datetime.now(timezone.utc).isoformat()} roots={roots}\n", encoding="utf-8")
+    print(f"PYC-WARM {prefix} {time.time() - t0:.1f}s", flush=True)
+
+
 def main() -> int:
     name = sys.argv[2]
     regen = "--no-regen" not in sys.argv[3:]
+    warm_pyc_cache()
     out = MON / "repair-claude" / f"{name}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     # 02.09 council guard: --placeholder=trace logs every generated _NS module a probe

@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -107,19 +108,32 @@ def run_cmd(cmd: str) -> tuple[int, str]:
     wrapper = REPO / "command-center" / "p2-wave" / "seed-stage" / "g1_python.py"
     if wrapper.is_file() and "python3" in cmd:
         cmd = cmd.replace("python3", f"{sys.executable} {wrapper.as_posix()}", 1)
+    # 02.09: run the probe in its own session so a timeout kills the whole process group.
+    # `sh -c 'VAR=x python ...'` keeps dash as a middle process; killing only it left the
+    # Python probe alive as an orphan (measured: still writing receipts 9 min after rc=124).
+    p = subprocess.Popen(
+        cmd,
+        cwd=str(REPO),
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=env,
+        start_new_session=True,
+    )
     try:
-        p = subprocess.run(
-            cmd,
-            cwd=str(REPO),
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=180,
-            env=env,
-        )
+        out, err = p.communicate(timeout=180)
     except subprocess.TimeoutExpired:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            p.kill()
+        try:
+            p.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            pass
         return 124, "TIMEOUT"
-    text = ((p.stdout or "") + (p.stderr or "")).strip()
+    text = ((out or "") + (err or "")).strip()
     return p.returncode, text[-4000:]
 
 
