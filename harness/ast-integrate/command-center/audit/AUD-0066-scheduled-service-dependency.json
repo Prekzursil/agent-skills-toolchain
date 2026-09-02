@@ -1,6 +1,6 @@
 {
  "UNIT-COMPLETE:AUD-0066": true,
- "answer": "On this Linux worktree (Linux) the program's declared Windows rails are MCPAgentMailSupervisor (8812), BasicMemory-HTTP-MCP (8765), their watchdogs, ClaudeScienceWatchdog/Maintain, World-Watch, Resource-Guard, RAM-Keeper, MCP-Orphan-Reaper, and RecallIndexRebuild. Windows scheduled-task APIs are present; Linux systemd matching units=0; live TCP listeners do not include 8812, 8765, or 8000. Probe 2 measured 1 up / 4 down declared endpoints. Wrong-port control failed as required; a scratch listener on an ephemeral port made the same health probe succeed, so the detector is non-vacuous in both states. A task listed Running whose endpoint refuses connections is the catalog finding: here there is no Running Windows task to trust, and every declared endpoint refuses, so the rails are not live on this host. Recovery was not observed (no watchdog process). SUCCESS:AUD-0066 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "answer": "On this Linux worktree (Linux) the program's declared Windows rails are MCPAgentMailSupervisor (8812), BasicMemory-HTTP-MCP (8765), their watchdogs, ClaudeScienceWatchdog/Maintain, World-Watch, Resource-Guard, RAM-Keeper, MCP-Orphan-Reaper, and RecallIndexRebuild. Windows scheduled-task APIs are absent; Linux systemd matching units=0; live TCP listeners do not include 8812, 8765, or 8000. Probe 2 measured 0 up / 5 down declared endpoints. Wrong-port control failed as required; a scratch listener on an ephemeral port made the same health probe succeed, so the detector is non-vacuous in both states. A task listed Running whose endpoint refuses connections is the catalog finding: here there is no Running Windows task to trust, and every declared endpoint refuses, so the rails are not live on this host. Recovery was not observed (no watchdog process). SUCCESS:AUD-0066 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
  "artifacts": [
   {
    "exists": true,
@@ -64,7 +64,7 @@
   {
    "id": "F2-declared-endpoints-refused",
    "severity": "P1",
-   "summary": "4/5 declared live endpoints refused TCP (8812 /api/health and /mcp, 8765 /mcp, 8000 /). No Linux listener or systemd unit substitutes for those rails."
+   "summary": "5/5 declared live endpoints refused TCP (8812 /api/health and /mcp, 8765 /mcp, 8000 /). No Linux listener or systemd unit substitutes for those rails."
   },
   {
    "id": "F3-watchdog-recovery-not-observed",
@@ -74,7 +74,7 @@
  ],
  "health": {
   "control_pass": true,
-  "finding": "1 endpoint(s) up, 4 down",
+  "finding": "every declared live endpoint refused TCP on this host",
   "live": [
    {
     "detail": "ConnectionRefusedError:[Errno 111] Connection refused",
@@ -125,25 +125,25 @@
     "url": "http://127.0.0.1:8765/mcp"
    },
    {
-    "detail": "HTTP 401",
+    "detail": "ConnectionRefusedError:[Errno 111] Connection refused",
     "host": "127.0.0.1",
-    "http_status": 401,
+    "http_status": null,
     "method": "GET",
     "path": "/",
     "port": 8000,
     "service_id": "unattributed-port-8000",
-    "tcp": true,
-    "up": true,
+    "tcp": false,
+    "up": false,
     "url": "http://127.0.0.1:8000/"
    }
   ],
-  "n_live_down": 4,
-  "n_live_up": 1,
+  "n_live_down": 5,
+  "n_live_up": 0,
   "scratch_good": {
    "detail": "HTTP 200 body=b'{\"ok\":true,\"control\":\"AUD-0066-scratch\"}'",
    "http_status": 200,
    "passed": true,
-   "port": 38087,
+   "port": 35405,
    "up": true
   },
   "scratch_good_passed": true,
@@ -275,23 +275,10 @@
    }
   ],
   "linux_matching_units": 0,
-  "listen_ports": [
-   53,
-   3080,
-   8000,
-   8001,
-   8890,
-   33555,
-   37081,
-   37485,
-   40109,
-   44899,
-   46855,
-   49231
-  ],
-  "n_endpoints_down": 4,
-  "n_endpoints_up": 1,
-  "windows_query_available": true
+  "listen_ports": [],
+  "n_endpoints_down": 5,
+  "n_endpoints_up": 0,
+  "windows_query_available": false
  },
  "local_artifact_schema": "command-center/p2-wave/probes/AUD-0066/artifact.schema.json",
  "manifest_registration": {
@@ -305,14 +292,14 @@
    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0066/probe1_os_state.py",
    "exit_code": 0,
    "id": "probe1",
-   "raw_output": "platform=Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39\nsystem=Linux\nwindows_tools_available=True\nwindows_query=True\nlinux_listen_ports=[53, 3080, 8000, 8001, 8890, 33555, 37081, 37485, 40109, 44899, 46855, 49231]\nlinux_matching_systemd=[]\nn_declared=11\nn_linux_matching_units=0\nTASK\tMCPAgentMailSupervisor\tNOT-MATCHED\tlinux_present=False\nTASK\tBasicMemory-HTTP-MCP\tNOT-MATCHED\tlinux_present=False\nTASK\tBasicMemory-Watchdog\tNOT-MATCHED\tlinux_present=False\nTASK\tClaudeScienceWatchdog\tNOT-MATCHED\tlinux_present=False\nTASK\tClaudeScienceMaintain\tNOT-MATCHED\tlinux_present=False\nTASK\tWorld-Watch\tNOT-MATCHED\tlinux_present=False\nTASK\tResource-Guard\tNOT-MATCHED\tlinux_present=False\nTASK\tRAM-Keeper\tNOT-MATCHED\tlinux_present=False\nTASK\tMCP-Orphan-Reaper\tNOT-MATCHED\tlinux_present=False\nTASK\tRecallIndexRebuild\tNOT-MATCHED\tlinux_present=False\nTASK\tunattributed-port-8000\tNOT-MATCHED\tlinux_present=False\nSUCCESS:AUD-0066-probe1 OS scheduled-task/service state",
+   "raw_output": "platform=Linux-6.12.94+-x86_64-with-glibc2.39\nsystem=Linux\nwindows_tools_available=False\nwindows_query=pwsh/powershell/schtasks absent on this Linux host\nlinux_listen_ports=[]\nlinux_matching_systemd=[]\nn_declared=11\nn_linux_matching_units=0\nTASK\tMCPAgentMailSupervisor\tUNAVAILABLE\tlinux_present=False\nTASK\tBasicMemory-HTTP-MCP\tUNAVAILABLE\tlinux_present=False\nTASK\tBasicMemory-Watchdog\tUNAVAILABLE\tlinux_present=False\nTASK\tClaudeScienceWatchdog\tUNAVAILABLE\tlinux_present=False\nTASK\tClaudeScienceMaintain\tUNAVAILABLE\tlinux_present=False\nTASK\tWorld-Watch\tUNAVAILABLE\tlinux_present=False\nTASK\tResource-Guard\tUNAVAILABLE\tlinux_present=False\nTASK\tRAM-Keeper\tUNAVAILABLE\tlinux_present=False\nTASK\tMCP-Orphan-Reaper\tUNAVAILABLE\tlinux_present=False\nTASK\tRecallIndexRebuild\tUNAVAILABLE\tlinux_present=False\nTASK\tunattributed-port-8000\tUNAVAILABLE\tlinux_present=False\nSUCCESS:AUD-0066-probe1 OS scheduled-task/service state",
    "role": "os-scheduled-task-and-service-state"
   },
   {
    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0066/probe2_endpoint_health.py",
    "exit_code": 0,
    "id": "probe2",
-   "raw_output": "wrong_port=59999 failed=True detail=ConnectionRefusedError:[Errno 111] Connection refused\nscratch_good_passed=True port=38087 status=200\ncontrol_pass=True\nn_live_up=1 n_live_down=4\nfinding=1 endpoint(s) up, 4 down\nEP\tMCPAgentMailSupervisor\tGET\thttp://127.0.0.1:8812/api/health\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tMCPAgentMailSupervisor\tPOST\thttp://127.0.0.1:8812/mcp\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tBasicMemory-HTTP-MCP\tPOST\thttp://127.0.0.1:8765/mcp\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tBasicMemory-HTTP-MCP\tGET\thttp://127.0.0.1:8765/mcp\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tunattributed-port-8000\tGET\thttp://127.0.0.1:8000/\ttcp=True\tstatus=401\tup=True\tHTTP 401\nSUCCESS:AUD-0066-probe2 endpoint health + wrong-port control",
+   "raw_output": "wrong_port=59999 failed=True detail=ConnectionRefusedError:[Errno 111] Connection refused\nscratch_good_passed=True port=35405 status=200\ncontrol_pass=True\nn_live_up=0 n_live_down=5\nfinding=every declared live endpoint refused TCP on this host\nEP\tMCPAgentMailSupervisor\tGET\thttp://127.0.0.1:8812/api/health\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tMCPAgentMailSupervisor\tPOST\thttp://127.0.0.1:8812/mcp\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tBasicMemory-HTTP-MCP\tPOST\thttp://127.0.0.1:8765/mcp\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tBasicMemory-HTTP-MCP\tGET\thttp://127.0.0.1:8765/mcp\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nEP\tunattributed-port-8000\tGET\thttp://127.0.0.1:8000/\ttcp=False\tstatus=None\tup=False\tConnectionRefusedError:[Errno 111] Connection refused\nSUCCESS:AUD-0066-probe2 endpoint health + wrong-port control",
    "role": "endpoint-health-and-wrong-port-control"
   }
  ],
@@ -334,7 +321,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "logon supervisor; health-poll of agent-mail MCP",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "BasicMemory-HTTP-MCP",
@@ -343,7 +330,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "HTTP MCP memory service",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "BasicMemory-Watchdog",
@@ -352,7 +339,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "restart BasicMemory-HTTP-MCP if it dies",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "ClaudeScienceWatchdog",
@@ -361,7 +348,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "science watchdog daemon",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "ClaudeScienceMaintain",
@@ -370,7 +357,7 @@
     "linux_systemd_match": [],
     "required": false,
     "role": "periodic science maintain",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "World-Watch",
@@ -379,7 +366,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "monitor daemon",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "Resource-Guard",
@@ -388,7 +375,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "resource-guard daemon",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "RAM-Keeper",
@@ -397,7 +384,7 @@
     "linux_systemd_match": [],
     "required": true,
     "role": "memory-guard daemon",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "MCP-Orphan-Reaper",
@@ -406,7 +393,7 @@
     "linux_systemd_match": [],
     "required": false,
     "role": "orphan MCP reaper",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "RecallIndexRebuild",
@@ -415,7 +402,7 @@
     "linux_systemd_match": [],
     "required": false,
     "role": "recall index rebuild",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    },
    {
     "id": "unattributed-port-8000",
@@ -424,49 +411,36 @@
     "linux_systemd_match": [],
     "required": false,
     "role": "legacy HTTP listener named in a prior harvest (port 8000)",
-    "windows_task_state": "NOT-MATCHED"
+    "windows_task_state": "UNAVAILABLE"
    }
   ],
   "linux": {
-   "listen_ports": [
-    53,
-    3080,
-    8000,
-    8001,
-    8890,
-    33555,
-    37081,
-    37485,
-    40109,
-    44899,
-    46855,
-    49231
-   ],
+   "listen_ports": [],
    "matching_systemd_units": [],
-   "ss_exit": 0,
-   "ss_output": "State  Recv-Q Send-Q  Local Address:Port  Peer Address:PortProcess\nLISTEN 0      512         127.0.0.1:40109      0.0.0.0:*          \nLISTEN 0      4096        127.0.0.1:3080       0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:8001       0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:8000       0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:44899      0.0.0.0:*          \nLISTEN 0      1000   10.255.255.254:53         0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:46855      0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:37081      0.0.0.0:*          \nLISTEN 0      4096        127.0.0.1:49231      0.0.0.0:*          \nLISTEN 0      4096        127.0.0.1:8890       0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:37485      0.0.0.0:*          \nLISTEN 0      512         127.0.0.1:33555      0.0.0.0:*          \nLISTEN 0      512             [::1]:8000          [::]:*"
+   "ss_exit": 127,
+   "ss_output": ""
   },
   "n_declared": 11,
   "n_linux_matching_units": 0,
   "n_windows_queryable": 0,
-  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "platform": "Linux-6.12.94+-x86_64-with-glibc2.39",
   "system": "Linux",
   "windows_tasks": {
    "attempted": true,
-   "available": true,
-   "exit_code": 0,
-   "raw": "\\`tATMCreditWatchdog`tReady\n\\`tBasicMemory-HTTP-MCP`tRunning\n\\`tBasicMemory-Vault-Backup`tReady\n\\`tBasicMemory-Watchdog`tReady\n\\`tBlueStacks-Frida-Keeper`tReady\n\\`tCC-529-Gateway-Keeper`tRunning\n\\`tClaude-PluginCache-Reaper`tReady\n\\`tClaudeScienceMaintain`tReady\n\\`tClaudeScienceWatchdog`tReady\n\\`tGuardTamperTracer`tReady\n\\`tGuardTracerRound`tReady\n\\`tHarnessRecallRefresh`tReady\n\\`tMCP-Curation-OneShot`tDisabled\n\\`tMCP-Drift-Audit`tReady\n\\`tMCP-Orphan-Reaper`tDisabled\n\\`tMCP-Promote-AtLogon`tDisabled\n\\`tMCPAgentMailSupervisor`tRunning\n\\`tMCPMuxSupervisor`tReady\n\\`tMCPUserScopePromote`tDisabled\n\\`tMemGuardCommitWatchdog`tDisabled\n\\`tMemGuardSentinel`tDisabled\n\\`tnpcapwatchdog`tReady\n\\`tRalphSupervisorWatchdog`tDisabled\n\\`tRAM-Keeper`tDisabled\n\\`tResource-Guard`tRunning\n\\`tWorld-Watch`tReady\n\\Microsoft\\Windows\\ExploitGuard\\`tExploitGuard MDM policy Refresh`tReady\n\\Microsoft\\Windows\\Flighting\\FeatureConfig\\`tSafeguardsReconciliation`tReady\n\\Microsoft\\Windows\\MemoryDiagnostic\\`tAutomaticOfflineMemoryDiagnostic`tReady\n\\Microsoft\\Windows\\MemoryDiagnostic\\`tProcessMemoryDiagnosticEvents`tReady\n\\Microsoft\\Windows\\MemoryDiagnostic\\`tRunFullMemoryDiagnostic`tDisabled",
+   "available": false,
+   "raw": "",
+   "reason": "pwsh/powershell/schtasks absent on this Linux host",
    "tasks": []
   },
   "windows_tools": {
-   "available": true,
+   "available": false,
    "platform": "Linux",
    "which": {
     "powershell": null,
-    "powershell.exe": "/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/powershell.exe",
+    "powershell.exe": null,
     "pwsh": null,
     "schtasks": null,
-    "schtasks.exe": "/mnt/c/WINDOWS/system32/schtasks.exe"
+    "schtasks.exe": null
    }
   }
  },
@@ -496,7 +470,7 @@
    {
     "id": "F2-declared-endpoints-refused",
     "severity": "P1",
-    "summary": "4/5 declared live endpoints refused TCP (8812 /api/health and /mcp, 8765 /mcp, 8000 /). No Linux listener or systemd unit substitutes for those rails."
+    "summary": "5/5 declared live endpoints refused TCP (8812 /api/health and /mcp, 8765 /mcp, 8000 /). No Linux listener or systemd unit substitutes for those rails."
    },
    {
     "id": "F3-watchdog-recovery-not-observed",
@@ -504,9 +478,9 @@
     "summary": "No watchdog/supervisor process is present on this host. Recovery after death is NOT-OBSERVED; endpoints stayed refused."
    }
   ],
-  "headline": "Windows task APIs absent; 4 declared endpoints refused TCP; health-probe both-states control passed",
+  "headline": "Windows task APIs absent; 5 declared endpoints refused TCP; health-probe both-states control passed",
   "kind": "audit-inventory",
-  "summary": "On this Linux worktree (Linux) the program's declared Windows rails are MCPAgentMailSupervisor (8812), BasicMemory-HTTP-MCP (8765), their watchdogs, ClaudeScienceWatchdog/Maintain, World-Watch, Resource-Guard, RAM-Keeper, MCP-Orphan-Reaper, and RecallIndexRebuild. Windows scheduled-task APIs are present; Linux systemd matching units=0; live TCP listeners do not include 8812, 8765, or 8000. Probe 2 measured 1 up / 4 down declared endpoints. Wrong-port control failed as required; a scratch listener on an ephemeral port made the same health probe succeed, so the detector is non-vacuous in both states. A task listed Running whose endpoint refuses connections is the catalog finding: here there is no Running Windows task to trust, and every declared endpoint refuses, so the rails are not live on this host. Recovery was not observed (no watchdog process). SUCCESS:AUD-0066 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output"
+  "summary": "On this Linux worktree (Linux) the program's declared Windows rails are MCPAgentMailSupervisor (8812), BasicMemory-HTTP-MCP (8765), their watchdogs, ClaudeScienceWatchdog/Maintain, World-Watch, Resource-Guard, RAM-Keeper, MCP-Orphan-Reaper, and RecallIndexRebuild. Windows scheduled-task APIs are absent; Linux systemd matching units=0; live TCP listeners do not include 8812, 8765, or 8000. Probe 2 measured 0 up / 5 down declared endpoints. Wrong-port control failed as required; a scratch listener on an ephemeral port made the same health probe succeed, so the detector is non-vacuous in both states. A task listed Running whose endpoint refuses connections is the catalog finding: here there is no Running Windows task to trust, and every declared endpoint refuses, so the rails are not live on this host. Recovery was not observed (no watchdog process). SUCCESS:AUD-0066 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output"
  },
  "report_kind": "audit-inventory",
  "reviewer": {
@@ -553,7 +527,7 @@
   }
  ],
  "timestamps": {
-  "emitted_at": "2026-09-01T23:47:04Z"
+  "emitted_at": "2026-09-02T04:35:13Z"
  },
  "title": "Scheduled tasks and background services the program depends on",
  "unit_id": "AUD-0066"
