@@ -1,4 +1,4 @@
-# search-hub — rotating keyed search with a keyless SearXNG fallback
+# search-hub — rotating keyed search + a keyless SearXNG and self-hosted lane
 
 `search-hub` fronts Exa, Tavily, Firecrawl, and SearXNG **stdio** search MCP
 servers behind ONE MCP registration and keeps every tool under its ORIGINAL
@@ -9,6 +9,14 @@ when every keyed provider is cooling after hard exhaustion.
 The fallback is an always-eligible `searxng_web_search` tool, not automatic
 cross-provider argument translation: callers choose it when keyed tools are
 unavailable.
+
+A third lane is **keyless, self-hosted search+extract** (`selfhosted_search` /
+`selfhosted_extract`) — an **in-process HTTP adapter** (no child spawned) that
+fronts a self-hosted TrailSearch daemon so the estate can stop depending on
+Tavily. It reports a **capability lattice** and **degrades truthfully** (a down
+daemon returns an `isError`, never a fabricated hit). See
+[Self-hosted, key-free lane](#self-hosted-key-free-lane-selfhosted_) and the
+decision record [`docs/plans/2026-09-02-search-stack-reunion.md`](../../../docs/plans/2026-09-02-search-stack-reunion.md).
 
 It is modelled on the sibling `cloud-hub` lazy multiplexer, with one key
 difference: search calls are routed **per-key** and forwarded **synchronously**
@@ -103,6 +111,33 @@ fallback is **safe-inert**, never a hard dependency.
 
 ---
 
+## Self-hosted, key-free lane (`selfhosted_*`)
+
+The keyless lane replaces Tavily (closed, cloud-only) with a backend you run
+yourself. It is an **in-process HTTP adapter** (`adapters.py`) — it spawns **no**
+child and adds **no** new import beyond `urllib` (already loaded), so it costs the
+running hub ~0 RAM at rest. The heavy daemon it talks to is started **on demand**.
+
+- **Tools:** `selfhosted_search` → `POST /tavily/search`, `selfhosted_extract` →
+  `POST /tavily/extract`. Tavily-shaped args (`query`, `max_results`, `topic`,
+  `include_answer`, …); names are prefixed `selfhosted_` so they never collide
+  with the keyed `tavily_*` provider.
+- **Backend:** TrailSearch (`jianjungki/tavily-open`, MIT) at `TRAILSEARCH_URL`
+  (or `SELFHOSTED_SEARCH_URL`), default `http://127.0.0.1:8794`. The base URL is
+  **config, not a secret**. Bring it up with the minimal profile in
+  [`deploy/`](deploy/README.md).
+- **Capability lattice (never fake a result):** every tool resolves to one of
+  `native | probed | declared | emulated | absent`. `tools/list` and the default
+  `search_usage` do **zero** network; `search_usage {"provider":"selfhosted",
+  "probe":true}` does one health GET to upgrade to `probed`/`absent`. A
+  `tools/call` always hits the backend and returns a truthful `isError` (no
+  fabricated hits) when it is down — **safe-inert** like SearXNG.
+- **Swappable backend:** the adapter is backend-agnostic. TrailSearch is `native`
+  (its routes *are* the Tavily contract); a fastCRW / OrioSearch / Sicry /
+  OSSInsight subclass would be `emulated`, same interface and honesty contract.
+
+---
+
 ## Tools
 
 - **Provider tools (passthrough, original names):** whatever each server
@@ -117,12 +152,17 @@ fallback is **safe-inert**, never a hard dependency.
   (from the shared `_shared/accounts.py`). Each "account" is **one API key**;
   these give you the multi-key store + labels + a **manual** switch/cycle.
   SearXNG intentionally has no `sx_account_*` tools.
+- **Self-hosted tools (keyless, HTTP-backed):** `selfhosted_search`,
+  `selfhosted_extract` — Tavily-shaped, served in-process from `TRAILSEARCH_URL`
+  (no child). See the lane section above.
 - **`search_usage` (hub-native, on-demand):** per stored key, reports
   `label + remaining` (Firecrawl remaining credits; Tavily plan+paygo headroom)
-  plus cooldown/health. Exa reports `"error-driven (no balance API)"`; SearXNG
-  reports `"none (keyless; never cooled)"`. Pass
-  `provider="exa"|"tavily"|"firecrawl"|"searxng"` to narrow, or omit for all.
-  Read-only; never spawns a search child.
+  plus cooldown/health, **plus** the self-hosted lane's capability lattice. Exa
+  reports `"error-driven (no balance API)"`; SearXNG reports `"none (keyless;
+  never cooled)"`. Pass
+  `provider="exa"|"tavily"|"firecrawl"|"searxng"|"selfhosted"` to narrow, or omit
+  for all; `probe=true` does one health GET per self-hosted backend. Read-only;
+  never spawns a search child.
 
 `python hub.py --print-plan` prints the exposed tool counts; `--refresh [ids…]`
 re-enumerates the provider servers to regenerate `caches/*.json`.
@@ -207,6 +247,14 @@ numbered-backup seeding, the `env_for` account resolver, and the hub's
 list/route/usage/switch paths against a fake backend. The keyless regression
 also cools every fake keyed account before proving SearXNG still serves search.
 
+The self-hosted lane is covered by `tests/test_adapters.py` + hub integration
+tests against a stdlib **fake TrailSearch backend**
+(`tests/fake_trailsearch_backend.py`): the capability lattice states
+(native/probed/declared/emulated/absent), Tavily-shaped request translation,
+truthful degradation when the daemon is down (an `isError`, never fake hits), and
+one end-to-end case over a real loopback socket using the default `urllib` caller.
+`python deploy/smoke_selfhosted_no_docker.py` runs the same path standalone.
+
 **Needs live services (manual, not in CI):** actually reaching
 Exa/Tavily/Firecrawl/SearXNG, real `search_usage` balances, and observing a real
 402→rotate in production. Use `python hub.py --refresh` to regenerate
@@ -215,12 +263,16 @@ Exa/Tavily/Firecrawl/SearXNG, real `search_usage` balances, and observing a real
 ## Files
 
 - `hub.py` — JSON-RPC stdio server; per-(provider, key) lazy children + per-call
-  routing; `--refresh` / `--print-plan` modes.
+  routing; the in-process self-hosted adapter lane; `--refresh` / `--print-plan`.
 - `providers.py` — the 4 provider specs (stdio cmd + env/config + usage URL) and
   the exhaustion-signal classifier.
+- `adapters.py` — the self-hosted adapter interface (capability lattice + probe +
+  truthful-degradation `handle_call`) and `TrailSearchAdapter` (keyless, HTTP).
 - `rotation.py` — per-key health, `pick_active`, `mark_exhausted`, the
   rotate-retry wrapper, and numbered-backup seeding.
 - `usage.py` — stdlib `urllib` calls to the keyed providers' usage endpoints.
 - `caches/*.json` — committed tool enumerations (regenerate with `--refresh`).
+- `deploy/` — compose + run scripts for the minimal self-hosted profile, a
+  Docker-free smoke, and the deploy README.
 - `../_shared/accounts.py` — the shared multi-account store (one additive
   read-only helper, `env_for`, was added for per-key resolution).
