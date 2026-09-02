@@ -211,3 +211,20 @@ assets do not auto-enter scope, and a banner is a candidate, not CVE proof.
 
 **Rollback.** Delete the entry from `mcp.servers` and `mcp-cursor-parked-31.json`, restore the
 pinned counts (40/34), re-run the validator + `python -m pytest -q .agents/tests`.
+
+## 2026-09-02 — cyber-suite SSOT: darknet FULL search + github-security + mitre-attack-mcp (enabled); five host-gated DEFAULT-OFF
+
+**What changed.** On `cursor/cyber-suite-full-program` (grill G2=C / G6 full darknet search):
+
+Enabled (npx, keyless core, tools/list captured live this VM 2026-09-02, no keys set):
+- `darknet-mcp-server@0.1.1` — 66 tools, serverInfo `darknet-mcp` 0.1.0. FULL surface including `tor_search_onion` / `tor_fetch_onion` / `intelx_*` / `stealer_domain|email|ip`. Not a clearnet allowlist. Optional keys by env NAME only; Tor SOCKS via `TOR_SOCKS_HOST`/`TOR_SOCKS_PORT`.
+- `github-security-mcp@0.1.0` — 39 tools, serverInfo 0.1.0. Optional `GITHUB_TOKEN`.
+- `mitre-attack-mcp@1.0.1` — 29 tools, serverInfo 1.0.0. Optional `ATTACK_DOMAIN`.
+
+Each enabled Claude-target server also landed in `.agents/mcp-cursor-parked-31.json` (33 -> 36 definitions). `test_cursor_attach_all_dry_run_projects_the_full_safe_surface` pins attached=44 / noncore=38.
+
+DEFAULT-OFF host-gated (enabled: false, not parked — they are not in the Cursor attach-all generated set): `proxy-mcp`, `jadx-mcp`, `apktool-mcp`, `cloud-audit`, `rsigma` (`rsigma mcp serve`; no npm package), `trivy` (`trivy mcp`). Enablement waits on rails R1–R7 green (G3).
+
+**Envelope.** darknet is CTI lookup (including onion indexes and stealer-log *queries*). It is not a stealer/C2 kit (H2). Owner-ops H1: no third-party attacks. Active DAST (`proxy-mcp`) stays off until rails.
+
+**Rollback.** Delete the nine `mcp.servers` entries added here; drop the three parked companions; restore attached=41 / 33 parked / 35 noncore.
