@@ -29,6 +29,7 @@ LANE_MODULES: tuple[str, ...] = (
     "lane_repo_health",  # bestofjs v2 + deps.dev + OpenSSF Scorecard (keyless, default ON)
     "lane_wiki",  # Wikipedia + Wayback + Hacker News grounding (keyless, default ON)
     "lane_answer",  # Vane answer engine (opt-in: ENABLE_VANE=1 / VANE_URL; 0 RAM idle)
+    "lane_keyed",  # 12 paid search APIs; opt-in per vendor (ENABLE_KEYED_<V>=1 AND key)
 )
 
 
