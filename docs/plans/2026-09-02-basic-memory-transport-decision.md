@@ -195,11 +195,25 @@ binds `:8765`, never starts or kills the daemon, never touches semantic search.
 The `--stdio` shim is Cursor's MCP *client adapter*, not a stdio spawn of
 basic-memory.
 
-## 7. Proposal (b): session-healing reverse proxy owning `:8765` - NOT DONE
+## 7. Proposal (b): session-healing reverse proxy owning `:8765` - BUILT, NOT DEPLOYED
 
-Status: **proposal only.** It changes who binds `:8765`, so it needs the
-owner's explicit approval before anything below is executed. Nothing in this PR
-implements or deploys it.
+Status when this record was written (PR #305): **proposal only**; nothing in that
+PR implemented or deployed it.
+
+> **UPDATE (follow-up lane, owner-approved as a build):** the proxy is now built in
+> `tools/mcp/mcp-http-host/bm_session_proxy.py` with 26 tests against the fake
+> daemon, plus the Windows deploy assets (launcher, scheduled tasks, proxy
+> watchdog, `move_daemon_port.py` for the exact daemon edit, and the runbook with
+> cutover and rollback) in `tools/mcp/mcp-http-host/deploy/`. **Deployment - moving
+> the daemon off `:8765` so the proxy owns that port - remains a separate
+> owner-approved step**, for the reason below: it changes who binds `:8765`. The
+> shipped design (a) from section 3 is untouched; the proxy is additive. Two
+> details of the build differ from the sketch below and are recorded in the
+> runbook: the dead-port window is answered with a clean `503` + `Retry-After` for
+> every request (no discovery cache in the proxy - the client transport survives a
+> `503`, and the bridge keeps its cache), and the tasks are named
+> `BasicMemory-SessionProxy` / `BasicMemory-SessionProxy-Watchdog` so they sit
+> beside the daemon's own pair rather than under the lane's `McpHttpHost-<Port>`.
 
 ### Design
 
