@@ -1,6 +1,6 @@
 # Gem-hunt 2026-09-02 / hosted models / lens 11: prune and consolidate
 
-Status: IN PROGRESS (sections land in separate commits; each is pushed as soon as it is
+Status: COMPLETE 2026-09-02 (sections landed in separate commits; each was pushed as soon as it was
 written because runs on this platform have died near the 12-minute mark).
 Lens: inventory the overlapping model-access wrappers and lanes in this estate and propose
 the leanest end state that preserves every capability (no feature removed to buy simplicity).
@@ -258,3 +258,40 @@ Stop rules (RECOMMENDATION): abort M4 if `hosted-inference` cannot reproduce a `
 answer for GLM-5.3 (capability loss, L7); abort M6 if `/v1/models` on auth2api is absent or
 returns fewer than the current 36 ids (capability loss); never run M5/M6 while a `cursor-agent`
 process is alive (G-36 is about process count, and these steps launch CLIs for receipts).
+
+## 7. Finds and rubric table
+
+Scoring: value and effort on 1-5 (5 = highest value / most effort); `value x effort` is written
+as `V/E` so a high-value low-effort find reads 5/1. Novelty-for-us: NEW (nothing in the
+dedup-set does it), EXTENDS (builds on a dedup-set item), CONFIRMS (already true, now cited).
+NATIVE = adopt a vendor mechanism as-is; BUILD = write code in this repo; DATA = registry/config only.
+
+| # | name | what | why THIS estate | how to build or adopt | source | V/E | novelty-for-us | NATIVE-vs-BUILD |
+|---|---|---|---|---|---|---|---|---|
+| F1 | glm53-space is an orphan on the SSOT remote | Registry, merge script and a live test pin an adapter whose source dir exists on none of 55 remote refs (measured 2026-09-02). | SSOT-WIRE says the remote is the SSOT; the executed checkout is running bytes the remote does not hold. Deprecating it costs nothing on GitHub. | Treat as evidence for M7; tarball the local copy first. | this repo: `.agents/agents.json`, `merge_generated_cursor_mcp.py:143`, `test_mcp_control_plane_live.py:216,660`, `CLAUDE.md` SSOT-WIRE (A, corroborated) | 4/1 | NEW | DATA |
+| F2 | `hosted-inference` MCP with `upstream`+`model` parameters | The general integration layer the owner asked for, as a *replacement* of `glm53-space` in the same registry slot. | Keeps Cursor at "core six + one"; catalogue-neutral; fits 512 MiB/6 GiB caps; honours `hosted-model-agents` rule "an inference URL is not Hub MCP". | Lift two constants out of `glm53_core.py` into tool params validated against R1. | `hosted-model-agents/SKILL.md` rules 2-4 (A); `agents.json` policy caps (A) | 5/2 | EXTENDS (2) | BUILD (small) |
+| F3 | `upstreams` table in the ONE registry | Write each upstream once; generate every CLI dialect from it. | L2 forbids a resident gateway; a data table is the non-resident equivalent. Reuses the closed-schema and credential-name-only conventions already tested. | Add table + tests (M1); generator (M2). | `AGENTS.md` closed-schema rule (A); Goose/Grok/Codex/Fabric vendor docs (A/B) | 5/2 | NEW | DATA + BUILD (generator) |
+| F4 | Grok `[endpoints] models_base_url` collapses 36 blocks to 1 | Grok fetches the model list from `{base_url}/models` and lets partial `[model.*]` overrides inherit `base_url`. | The `[model."cursor-*"]` blocks are the largest hand-copied table in the estate. | M6, gated on M0 proving `/v1/models` on auth2api. | https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md ; https://docs.x.ai/build/settings/reference (A, corroborated) | 4/1 | NEW | NATIVE |
+| F5 | Codex needs Responses API since Feb 2026 | `wire_api = "chat"` removed; a leftover `chat` provider bricks *all* Codex commands. | `codex-cursor` only works if auth2api speaks `/v1/responses`; otherwise it is a dead wrapper, and any stale block would break `codex` outright. | M0 probe; generator refuses Codex output for chat-only upstreams. | https://github.com/openai/codex/blob/main/codex-rs/model-provider-info/src/lib.rs:64,94 (A); https://github.com/openai/codex/issues/41816 (B) | 5/1 | NEW | NATIVE (constraint) |
+| F6 | Goose provider JSON is already the end state | Declarative `custom_providers/<name>.json` with `engine: openai`. | `goose-cursor-proxy` needs no consolidation, only to be *generated* from F3 so its model list cannot drift from auth2api's. | Generator emits the JSON; nothing else changes. | https://block-goose.mintlify.app/api/providers/custom (A) | 3/1 | CONFIRMS (3) | NATIVE |
+| F7 | No official Cursor `/v1` chat API exists | Cursor docs: Cloud Agents API "are not a standalone model-inference or chat-completions API". | The L3 retirement trigger has not fired; auth2api stays. Anything that assumes a Cursor `/v1/chat/completions` is speculative. | Re-check the same URL at each gem-hunt; no build. | https://cursor.com/docs/api (A); https://forum.cursor.com/t/openai-compatible-v1-chat-completions-for-cloud-api/164522 (C) | 4/1 | CONFIRMS (3) | n/a |
+| F8 | Delete `openai_proxy.py` | The HF router is natively OpenAI-compatible with `:provider` model suffixes. | Removes a process and a hop; every consumer supports `env_key`, so the proxy's token-hiding role is redundant. | M7. | https://huggingface.co/docs/inference-providers/index (A) | 3/1 | EXTENDS (2) | DELETE |
+| F9 | One wrapper family + `ai-mode` switchboard | `<cli>-on-<upstream>` generated scripts; old names become shims. | Preserves C2/C3; keeps G-32 process-local by construction; 0 MB idle. | M5. | G-32 text in `hosted-model-agents/SKILL.md` (A); `session-catalog.md:876` (A) | 4/2 | EXTENDS (dedup 3) | BUILD (shell) |
+| F10 | Local-runtime residency settings | Ollama default keep-alive 5 min and up to 3 co-resident models; LM Studio JIT + 60-min TTL + Auto-Evict. | Box is below G-4; a stray 3-model Ollama residency could be >20 GB. | `OLLAMA_MAX_LOADED_MODELS=1` and a short `OLLAMA_KEEP_ALIVE` on the registry row; record LM Studio Auto-Evict=ON. | https://docs.ollama.com/faq ; https://lmstudio.ai/docs/developer/core/ttl-and-auto-evict (A) | 3/1 | NEW | NATIVE (settings) |
+| F11 | Grok `requirements.toml` as a fail-closed pin | Five-layer config; `~/.grok/requirements.toml` cannot be overridden by `config.toml` or env. | A place to pin "default model = native xAI" so Cursor quota stays opt-in even if `config.toml` drifts (matches the estate's opt-in stance). | One-line pin; optional. | https://docs.x.ai/build/enterprise (A) | 2/1 | NEW | NATIVE |
+| F12 | Fabric has a fixed vendor set | Custom endpoints go through a pre-named vendor's `<VENDOR>_API_BASE_URL`; there is no free-form vendor. | `fabric-cursor` must reuse a slot (OpenAI or "LM Studio") per process; the generator must not try to add a vendor. | Generator emits `.env` lines + `-V`; document which slot is borrowed. | https://github.com/danielmiessler/Fabric/blob/main/README.md (B); issue #883 (B) | 2/1 | NEW | NATIVE (constraint) |
+
+## 8. Ten-line summary
+
+1. Measured: `tools/mcp/glm53-space` exists on none of the 55 remote refs; only the registry entry, the merge script's attach set and one live test pin it (F1).
+2. No official Cursor `/v1/chat/completions` exists (cursor.com/docs/api), so the auth2api retirement trigger has not fired and `:8317` stays the only Cursor bridge (F7, L3).
+3. Every consumer already has a native custom-endpoint mechanism: Goose provider JSON, Grok `[model.*]`/`[endpoints]`, Fabric `<VENDOR>_API_BASE_URL`, Codex `[model_providers.*]` (F4, F6, F12).
+4. Codex removed Chat Completions in Feb 2026 (Responses only) - `codex-cursor` is only alive if auth2api serves `/v1/responses`; probe first (F5, M0).
+5. Leanest end state: one `upstreams` table in `.agents/agents.json` (data, 0 MB) from which every CLI dialect is generated (F3, R1).
+6. `glm53-space` becomes `hosted-inference` (tool `chat(upstream, model, ...)`) in the *same* registry slot, so Cursor stays at "core six + one" and the server count stays 42 (F2, R2).
+7. All `*-cursor`/`ai-mode`/`grok-mode` scripts become one generated `<cli>-on-<upstream>` family plus the `ai-mode` switchboard; old names stay as shims (F9, R3).
+8. Grok's 36 `[model."cursor-*"]` blocks collapse to one `[endpoints]` block gated on `/v1/models` existing; `openai_proxy.py` is deleted because the HF router is already OpenAI-compatible (F4, F8).
+9. RAM/latency: no consolidation adds a process or a hop; two remove one; local runtimes get residency caps (Ollama 3 co-resident by default) because the box is below its 8 GB-free target (F10).
+10. Migration M0-M7 is probe -> data -> dry-run -> side-by-side -> swap -> delete, each step with a receipt and a two-line rollback; nothing is removed before its replacement passes an `E2E_OK` receipt (L7).
+
+Status: COMPLETE 2026-09-02. Discovery only; no code changed.
