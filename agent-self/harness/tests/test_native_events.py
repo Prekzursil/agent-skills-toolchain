@@ -32,16 +32,99 @@ NEW_EVENTS = (
     "TeammateIdle",
 )
 
-# The subset that renders inject as native additionalContext (ConfigChange is
-# deliberately excluded — a config-drift sentinel is a systemMessage).
-CONTEXT_NEW_EVENTS = (
+# The subset that renders inject as native additionalContext. Only
+# PostToolUseFailure qualifies: it is the one new name with an
+# additionalContext-bearing member in the host's hookSpecificOutput output
+# union. See NO_CONTEXT_NEW_EVENTS for the rest.
+CONTEXT_NEW_EVENTS = ("PostToolUseFailure",)
+
+# Events that FIRE but whose inject MUST render as systemMessage, because the
+# host's hookSpecificOutput union either has no member for them at all
+# (PostCompact/TaskCompleted/TaskCreated/TeammateIdle -> validation failure ->
+# the whole hook payload is discarded as plainText) or has a member that does
+# not carry additionalContext (PermissionDenied -> {hookEventName, retry?} ->
+# the key is silently stripped). ConfigChange was already a systemMessage.
+NO_CONTEXT_NEW_EVENTS = (
     "PostCompact",
     "TaskCompleted",
     "TaskCreated",
     "TeammateIdle",
-    "PostToolUseFailure",
     "PermissionDenied",
+    "ConfigChange",
 )
+
+# Replica of the claude hookSpecificOutput output union, keyed by the
+# `hookEventName` literal -> the set of sibling keys that member accepts.
+# Transcribed 2026-07-27 from the installed claude 2.1.220 binary (the
+# `HuE()` object's `hookSpecificOutput: v.union([...])`). Anything not a key
+# here has NO union member, so the host rejects the whole payload.
+HOST_HOOK_SPECIFIC_OUTPUT_UNION: dict[str, set[str]] = {
+    "PreToolUse": {
+        "permissionDecision",
+        "permissionDecisionReason",
+        "updatedInput",
+        "additionalContext",
+    },
+    "UserPromptSubmit": {
+        "additionalContext",
+        "sessionTitle",
+        "suppressOriginalPrompt",
+    },
+    "UserPromptExpansion": {"additionalContext"},
+    "SessionStart": {
+        "additionalContext",
+        "initialUserMessage",
+        "sessionTitle",
+        "watchPaths",
+        "reloadSkills",
+    },
+    "Setup": {"additionalContext"},
+    "SubagentStart": {"additionalContext"},
+    "PostToolUse": {
+        "additionalContext",
+        "updatedToolOutput",
+        "updatedMCPToolOutput",
+    },
+    "PostToolUseFailure": {"additionalContext"},
+    "PostToolBatch": {"additionalContext"},
+    "Stop": {"additionalContext"},
+    "SubagentStop": {"additionalContext"},
+    "PermissionDenied": {"retry"},
+    "Notification": {"additionalContext"},
+    "PermissionRequest": {"decision"},
+    "Elicitation": {"action", "content"},
+    "ElicitationResult": {"action", "content"},
+    "CwdChanged": {"watchPaths"},
+    "FileChanged": {"watchPaths"},
+    "WorktreeCreate": {"worktreePath"},
+    "MessageDisplay": {"displayContent"},
+}
+
+
+def assert_host_accepts(rendered: dict, event_name: str) -> None:
+    """Fail if the host would reject or silently strip this hook output.
+
+    Mirrors claude's `_ip()`: the payload is validated against the
+    hookSpecificOutput union, and a miss makes `K2o()` return a
+    validationError so the ENTIRE output degrades to plainText.
+    """
+    block = rendered.get("hookSpecificOutput")
+    if block is None:
+        return
+    name = block.get("hookEventName")
+    assert name is not None, f"{event_name}: hookSpecificOutput without hookEventName"
+    assert name in HOST_HOOK_SPECIFIC_OUTPUT_UNION, (
+        f"{event_name}: hookEventName={name!r} matches NO member of the host's "
+        "hookSpecificOutput union -> validationError -> the whole hook output "
+        "is discarded as plainText"
+    )
+    allowed = HOST_HOOK_SPECIFIC_OUTPUT_UNION[name]
+    extra = set(block) - {"hookEventName"} - allowed
+    assert not extra, (
+        f"{event_name}: hookSpecificOutput carries {sorted(extra)}, which the "
+        f"{name} member does not accept (allowed: {sorted(allowed)}) -> the "
+        "host strips it and the context never reaches the model"
+    )
 
 
 # --------------------------------------------------------------------------
@@ -242,11 +325,19 @@ def test_explicit_agent_id_still_beats_task_alias():
 # --------------------------------------------------------------------------
 
 
-def test_context_events_contains_the_six_inject_events():
+def test_context_events_only_holds_names_the_host_union_accepts():
     for name in CONTEXT_NEW_EVENTS:
         assert name in _CONTEXT_EVENTS, name
-    # ConfigChange is deliberately NOT a context event.
-    assert "ConfigChange" not in _CONTEXT_EVENTS
+    # Every context event must have an additionalContext-bearing union member.
+    for name in _CONTEXT_EVENTS:
+        assert "additionalContext" in HOST_HOOK_SPECIFIC_OUTPUT_UNION.get(
+            name, set()
+        ), (
+            f"{name} is in _CONTEXT_EVENTS but the host union cannot carry "
+            "additionalContext for it"
+        )
+    for name in NO_CONTEXT_NEW_EVENTS:
+        assert name not in _CONTEXT_EVENTS, name
 
 
 def test_inject_renders_additional_context_for_new_context_events():
@@ -263,6 +354,40 @@ def test_inject_renders_additional_context_for_new_context_events():
                 }
             }
             assert "suppressOutput" not in json.dumps(rendered)
+            assert_host_accepts(rendered, name)
+
+
+def test_inject_never_emits_hook_specific_output_the_host_would_discard():
+    # REGRESSION (wu-06 F1): PostCompact/TaskCompleted/TaskCreated/TeammateIdle
+    # have NO member in the host's hookSpecificOutput union, and
+    # PermissionDenied's member is {hookEventName, retry?} only. Emitting
+    # additionalContext for any of them loses the injected context — for the
+    # first four it also discards the ENTIRE hook output as plainText.
+    injected = HookResult.success(
+        action="inject", additional_context=["OBSERVED: native event"]
+    )
+    for provider in ("claude", "codex"):
+        for name in NO_CONTEXT_NEW_EVENTS:
+            rendered = render_output(injected, provider=provider, event_name=name)
+            assert_host_accepts(rendered, name)
+            assert rendered == {"systemMessage": "OBSERVED: native event"}, (
+                f"{name}/{provider} rendered {rendered!r}"
+            )
+
+
+def test_every_rendered_hook_specific_output_survives_the_host_union():
+    # Blanket guard across every event the harness registers, for both actions
+    # that can emit hookSpecificOutput.
+    for action, kwargs in (
+        ("inject", {"additional_context": ["ctx"]}),
+        ("block", {"reason_code": "policy_block"}),
+    ):
+        result = HookResult.success(action=action, **kwargs)
+        for provider in ("claude", "codex"):
+            for name in EVENTS:
+                assert_host_accepts(
+                    render_output(result, provider=provider, event_name=name), name
+                )
 
 
 def test_config_change_inject_renders_as_system_message():
@@ -271,6 +396,46 @@ def test_config_change_inject_renders_as_system_message():
     )
     rendered = render_output(injected, provider="claude", event_name="ConfigChange")
     assert rendered == {"systemMessage": "CONFIG DRIFT detected"}
+
+
+# --------------------------------------------------------------------------
+# adapters.py: turn identity (wu-06 F2/F6).
+# --------------------------------------------------------------------------
+
+
+def test_turn_id_falls_back_to_the_hosts_prompt_id():
+    # REGRESSION (wu-06 F2/F6): the claude base hook payload has no turn_id —
+    # it names the turn `prompt_id`. Reading turn_id alone left turn_id "" on
+    # every claude event, and an empty turn DISABLES the turn filter in
+    # ledger._receipts / _has_legacy_verification / last_mutation_seq. Measured
+    # 2026-07-27 on the live ledger: 112076/112076 claude tool_result records
+    # had turn_id == "" vs 16970/16971 populated for codex.
+    event = normalize_event(
+        {
+            "session_id": "s1",
+            "transcript_path": "C:/tmp/t.jsonl",
+            "cwd": "C:/repo",
+            "prompt_id": "prompt-abc",
+            "permission_mode": "default",
+        },
+        provider="claude",
+        event_name="PostToolUse",
+    )
+    assert event.turn_id == "prompt-abc"
+
+
+def test_explicit_turn_id_still_beats_prompt_id():
+    event = normalize_event(
+        {"turn_id": "turn-1", "prompt_id": "prompt-abc"},
+        provider="codex",
+        event_name="PostToolUse",
+    )
+    assert event.turn_id == "turn-1"
+
+
+def test_turn_id_stays_empty_when_neither_key_is_present():
+    event = normalize_event({}, provider="claude", event_name="PostToolUse")
+    assert event.turn_id == ""
 
 
 # --------------------------------------------------------------------------

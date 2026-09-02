@@ -156,7 +156,16 @@ def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
 
 def build_hooks(provider: str) -> dict[str, list[dict[str, Any]]]:
     provider_name = str(provider).lower()
-    if provider_name not in {"claude", "codex"}:
+    # `grok` accepted so this gate agrees with adapters.SUPPORTED_PROVIDERS (live
+    # tree 2026-08-08, ported 2026-09-02). NOTE the two sets govern DIFFERENT axes
+    # and are not required to stay equal forever: SUPPORTED_PROVIDERS is the
+    # RUNTIME set (whose events we process), this is the GENERATION set (whose
+    # config we can emit). install.py writes only the claude and codex documents;
+    # Grok's hook file is `~/.grok/hooks/imported-from-claude.json`, produced by
+    # Grok's OWN importer, not by this function. So nothing calls
+    # build_hooks("grok") today — this is a consistency fix for a LATENT trap, not
+    # a live install path. Do not infer that the harness installs Grok's config.
+    if provider_name not in {"claude", "codex", "grok"}:
         raise ValueError(f"unsupported provider: {provider_name}")
     dispatcher = (Path(__file__).resolve().parent / "dispatcher.py").as_posix()
     result: dict[str, list[dict[str, Any]]] = {}
@@ -177,6 +186,17 @@ def build_hooks(provider: str) -> dict[str, list[dict[str, Any]]]:
         if event_name not in _NO_MATCHER:
             # (a) Claude hand-narrows the PreToolUse dispatcher matcher to the
             # gated tool set; every other event (and all of codex) keeps ".*".
+            #
+            # grok DELIBERATELY keeps ".*" — a measured decision, not an accidental
+            # inheritance of the codex path. _CLAUDE_PRETOOLUSE_MATCHER enumerates
+            # CLAUDE tool names, and Grok's tool names are different. Measured
+            # 2026-08-08 against the shipped grok.exe: the Claude matcher matches
+            # 1 of 13 real Grok tool names (`Agent`) and MISSES run_terminal_command,
+            # search_replace, write_file, create_file, delete_file, read_file,
+            # list_dir, grep, glob, web_search, web_fetch, todo_write. Narrowing
+            # grok would make the destructive-command guard blind to every Grok
+            # shell command and every Grok file write. If grok is ever narrowed, it
+            # needs its OWN matcher built from Grok tool names, never this constant.
             if provider_name == "claude" and event_name == "PreToolUse":
                 group["matcher"] = _CLAUDE_PRETOOLUSE_MATCHER
             else:
@@ -184,6 +204,14 @@ def build_hooks(provider: str) -> dict[str, list[dict[str, Any]]]:
         result[event_name] = [group]
     # Claude alone carries the live settings.json hand-edits; codex output is
     # unchanged (byte-identical to the pre-fix block).
+    #
+    # grok gets NONE of them, deliberately. Two of the four hand-edits register
+    # WorktreeCreate / WorktreeRemove, and Grok's hook-event list (measured
+    # 2026-08-08 from grok.exe: SessionStart, UserPromptSubmit, PreToolUse,
+    # PostToolUse, PostToolUseFailure, PermissionDenied, Stop, StopFailure,
+    # Notification, SubagentStart, SubagentStop, PreCompact, PostCompact,
+    # SessionEnd) contains neither — Grok would log "ignoring unknown event".
+    # The other two point into ~/.claude/hooks/ at Claude-only tooling.
     if provider_name == "claude":
         _apply_claude_hand_edits(result)
     return result

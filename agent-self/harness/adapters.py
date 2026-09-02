@@ -8,26 +8,54 @@ except ImportError:  # pragma: no cover - direct-script import
     from models import AgentEnvelope, HookEvent, HookResult, ToolEnvelope
 
 
-SUPPORTED_PROVIDERS = {"claude", "codex"}
+# `grok` (xAI Grok CLI) added on the live tree 2026-08-07, ported 2026-09-02. Its
+# hooks were previously registered with `--provider claude`, so every Grok turn was
+# attributed to claude in the ledger. Adding it to the argparse `choices` alone is
+# NOT sufficient: this set is the second gate — normalize_event/render_output raise
+# on a non-member and dispatcher.main() swallows that ValueError
+# (`except Exception: return 0`), so a half-fix makes every Grok hook a SILENT
+# no-op instead of a mislabelled record. Both gates move together.
+SUPPORTED_PROVIDERS = {"claude", "codex", "grok"}
 _CONTEXT_EVENTS = {
     "SessionStart",
     "SubagentStart",
     "UserPromptSubmit",
     "PreToolUse",
     "PostToolUse",
-    # Post-cutoff native events whose handlers inject context. Registering them
-    # here makes an inject render as native additionalContext (not a bare
-    # systemMessage) so the PostCompact re-anchor, the Agent-Teams lifecycle
-    # watchers (TaskCompleted/TaskCreated/TeammateIdle) and the failure channel
-    # (PostToolUseFailure/PermissionDenied) surface their context in-band.
-    # ConfigChange is intentionally NOT here: a config-drift sentinel is a
-    # system-level notice, so its inject renders as systemMessage.
+    # PostToolUseFailure IS a member of the host's hookSpecificOutput union and
+    # does accept additionalContext, so the failure channel stays in-band.
+    "PostToolUseFailure",
+}
+
+# Events that FIRE as hook inputs but have NO additionalContext-bearing member
+# in the host's hookSpecificOutput output union, so an inject rendered as
+# {"hookSpecificOutput": {"hookEventName": <name>, "additionalContext": ...}}
+# is rejected instead of injected. Verified 2026-07-27 against the installed
+# claude 2.1.220 binary: its output union has literals for PreToolUse,
+# UserPromptSubmit, UserPromptExpansion, SessionStart, Setup, SubagentStart,
+# PostToolUse, PostToolUseFailure, PostToolBatch, Stop, SubagentStop,
+# PermissionDenied, Notification, PermissionRequest, Elicitation,
+# ElicitationResult, CwdChanged, FileChanged, WorktreeCreate and MessageDisplay
+# — and nothing else:
+#   * PostCompact / TaskCompleted / TaskCreated / TeammateIdle have no member at
+#     all, so the union fails to parse, the validator returns a validationError
+#     and the host degrades the ENTIRE hook payload to plainText + a non-blocking
+#     hook error. The context is not injected; the whole output is discarded.
+#   * PermissionDenied's member is {hookEventName, retry?: boolean} only — the
+#     object is non-strict, so additionalContext is silently STRIPPED (the host
+#     logs "unrecognized keys (ignored): hookSpecificOutput.additionalContext").
+# Both failure shapes lose the context, so these render as systemMessage, which
+# every provider surfaces. ConfigChange was already excluded for the same
+# reason (a config-drift sentinel is a system-level notice). The replica of the
+# union that pins this lives in tests/test_native_events.py
+# (HOST_HOOK_SPECIFIC_OUTPUT_UNION).
+_NO_NATIVE_CONTEXT_EVENTS = {
     "PostCompact",
     "TaskCompleted",
     "TaskCreated",
     "TeammateIdle",
-    "PostToolUseFailure",
     "PermissionDenied",
+    "ConfigChange",
 }
 
 # Native events that carry an agent/teammate identity in their payload. Their
@@ -133,7 +161,19 @@ def normalize_event(
         provider=provider_name,
         event=str(event_name or reported_event),
         session_id=str(data.get("session_id") or "unknown"),
-        turn_id=str(data.get("turn_id") or ""),
+        # `turn_id` is NOT part of the claude base hook payload: its builder emits
+        # {session_id, transcript_path, cwd, prompt_id, permission_mode, agent_id,
+        # agent_type, effort} and names the turn `prompt_id` (only MessageDisplay
+        # carries a literal turn_id). Reading turn_id alone left it "" on every
+        # claude event, and an empty turn DISABLES the turn filter in
+        # ledger._receipts / _has_legacy_verification / last_mutation_seq —
+        # measured 2026-07-27 on the live ledger, 112076/112076 claude tool_result
+        # records had turn_id == "" against 16970/16971 populated for codex, i.e.
+        # turn scoping was 100% inert on claude. prompt_id is the provider's
+        # canonical turn identity, so it is the fallback; codex keeps winning with
+        # its own turn_id. models.HookEvent.evidence_turn_id still covers the case
+        # where neither key is present (session-derived token).
+        turn_id=str(_first_present(data, ("turn_id", "prompt_id", "promptId")) or ""),
         cwd=str(data.get("cwd") or "."),
         permission_mode=str(data.get("permission_mode") or "default"),
         tool=ToolEnvelope(
@@ -225,6 +265,10 @@ def render_output(
         return {"decision": "block", "reason": result.continuation or message}
 
     if result.action == "inject" and message:
+        if event_name in _NO_NATIVE_CONTEXT_EVENTS:
+            # Never emit hookSpecificOutput for an event the host's output union
+            # cannot carry it on — the payload would be dropped, not injected.
+            return {"systemMessage": message}
         if event_name in _CONTEXT_EVENTS:
             return {
                 "hookSpecificOutput": {
@@ -232,7 +276,25 @@ def render_output(
                     "additionalContext": message,
                 }
             }
-        if event_name in {"Stop", "SubagentStop"} and provider_name == "claude":
+        # grok rides the claude branch, NOT the codex fallthrough. Two reasons,
+        # both measured against the shipped grok.exe (2026-08-07):
+        #   1. Grok's command-hook output vocabulary is {additionalContext,
+        #      decision, continue, stopReason, hookSpecificOutput} —
+        #      `systemMessage` is absent, so the codex fallthrough below would be
+        #      parsed and then DROPPED. Its own docs give the Stop example
+        #      verbatim: {"hookSpecificOutput":{"hookEventName":"Stop",
+        #      "additionalContext":"..."}}.
+        #   2. Grok's hooks were already registered as `--provider claude`, so this
+        #      keeps the emitted wire bytes byte-identical to what Grok has been
+        #      receiving all along. The provider rename is an ATTRIBUTION fix; it
+        #      must not silently change Grok's runtime behaviour.
+        # Caveat (grok-only): on Grok an additionalContext on Stop is "non-error
+        # feedback" that keeps the agent working and counts toward its
+        # 8-continuation cap, whereas on claude it is inert injected context.
+        if event_name in {"Stop", "SubagentStop"} and provider_name in {
+            "claude",
+            "grok",
+        }:
             return {
                 "hookSpecificOutput": {
                     "hookEventName": event_name,
