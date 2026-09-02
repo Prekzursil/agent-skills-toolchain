@@ -46,9 +46,7 @@ def test_context7_and_firecrawl_are_remote_http_not_per_session_npx() -> None:
         server = servers[name]
         assert server["transport"] == "http"
         assert server["url"] == url
-        assert server["headers"] == {
-            "Authorization": f"Bearer ${{{env_name}}}"
-        }
+        assert server["headers"] == {"Authorization": f"Bearer ${{{env_name}}}"}
         assert env_name in server["requiredEnv"]
         assert server["x_codex"]["bearer_token_env_var"] == env_name
         assert "command" not in server
