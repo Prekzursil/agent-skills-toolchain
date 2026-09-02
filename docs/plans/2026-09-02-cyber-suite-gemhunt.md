@@ -93,7 +93,7 @@ per the owner's model directive.
 | L3 | Purple-team / adversary emulation / BAS / detection validation | bc-85a95fe0 | DONE on `cursor-grok-4.6-xhigh` |
 | L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | bc-4fc1542a | DONE on `cursor-grok-4.6-xhigh` |
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | DONE |
-| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | running |
+| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | DONE |
 | L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | DONE |
 | L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | DONE on `cursor-grok-4.6-xhigh` (Claude bc-1358f975 blocked; grok delivered full coverage) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | DONE |
@@ -129,6 +129,139 @@ the blue half of purple"). Pure red-team/0-day-**exploitation** capability beyon
 inventory is a policy boundary — if the owner wants that lane, it needs admin cyber-safeguard
 verification via the Cursor enterprise dashboard (linked above); this run stays within policy.
 
+## SYNTHESIS — consolidated decision-queue (all 14 lenses in; 2026-09-02)
+
+All 14 lenses returned (10 on Claude, 4 offense-leaning on `cursor-grok-4.6-xhigh` after
+Claude's cyber safeguard blocked the dense-offensive prompts). This is the tiered
+adopt/enable/borrow/skip queue. **A gem-hunt is discovery, not a build** — nothing below is
+adopted until the owner steers. Every item is gated by the anti-overfit anchor
+(ENABLE-native > BORROW-technique > in-process lane (0 RAM) > stdio MCP child > daemon) and
+the authorized/defensive posture (live exploitation/C2/payload-gen is owner-hard-banned; its
+only in-doctrine home is purple/emulation in a lab range).
+
+### Cross-lens convergence (highest confidence — a find two+ lenses hit independently)
+
+1. **ENABLE-not-build dominates** (L1, L6, L7, L8, L9, L10, L12, L13, L14). The estate already
+   owns deep capability that is merely unwired / unrouted / unenforced:
+   - `cve-mcp` (41 tools, ~3 routed) + `osint-mcp-server` (37 tools, ~10 routed) are **~65%
+     dark** (L12, L6) — the `vt_*` IOC tools exist but no skill/route calls them.
+   - **5+ more security MCPs sit in the fleet files but not the `.agents/agents.json` SSOT**
+     (L12, L8): `github-security` (39 tools, same badchars author), `proxy-mcp` (mitmproxy
+     DAST, built in-repo + 44 tests), `jadx`/`apktool` (mobile RE the KB already routes to),
+     `cloud-audit` — each a copy-the-cve-mcp-block registration away (the exact G-11 recipe).
+   - The **ROE/authorization doctrine is prose** (`security-mcp-routing.md`); nothing on the
+     hook bus enforces a target-in-scope gate, kill-switch, or evidence ledger (L13).
+   - **Corpora gaps** are cheap one-liners into `sec-corpora-update`/`secsearch`: SecLists,
+     Exploit-DB (L1); attack-stix-data, misp-galaxy, misp-warninglists, signature-base,
+     CTID adversary-emulation-library, control-validation-compass (L3, L5, L6).
+2. **Blue-team is the single biggest capability gap** (L2, L5, L11): no detection loop, thin
+   DFIR (memory+disk only), no SOC skills.
+3. **The owner-hard-banned live kill-chain (C2, payload-gen, cred-attack) has one lawful home:
+   purple/emulation + detection-validation** (L1 + L3).
+4. **The reflexive gold gem** (L14): turn the lens inward — scan the estate's OWN 47 MCP + 374
+   skills with `mcp-scan`, and make the existing `llm-security` guidance *executable* with
+   garak/promptfoo. "Scan what you install, attack what you ship." (2026 research: ~26% of
+   agent skills carry a vuln; live weaponized-skill campaigns exist.)
+
+### TIER-0 — just-do-it (reversible, ENABLE-native, 0 new daemon)
+
+- **Route the dark tools:** add the `vt_*` (osint) reputation row + the unrouted `cve-mcp`
+  tools (`osv_batch` SBOM-scan, `cve_report`, `ghsa_*`, `m365_*`, `dns_email_security`) to
+  `security-mcp-routing.md`; add an `ioc`/`attack` capability to the deep-research router
+  mirroring `vuln`. (L6, L12)
+- **Wire the 5 orphaned security MCPs into the SSOT** via the G-11 recipe: `github-security`
+  (enabled), `proxy-mcp` (default-off DAST), `jadx`+`apktool` (host-gated mobile RE),
+  `cloud-audit` (verify surface first). (L12, L8)
+- **Corpus one-liners** (disk only, ripgrep-able): SecLists, Exploit-DB/searchsploit,
+  attack-stix-data, misp-galaxy, misp-warninglists, signature-base, CTID
+  adversary-emulation-library + micro-plans, control-validation-compass, sysmon-modular,
+  LOLDrivers. (L1, L3, L5, L6, L2)
+- **Sanitizer + native-fuzz skill:** ASan/UBSan/MSan build discipline; promote `go test -fuzz`
+  from the library into the live skill root. (L4)
+- **Self-defense scan (the reflexive gem):** `uvx mcp-scan@latest scan` over `.agents/` (static
+  scan only, not the proxy daemon). (L14)
+
+### TIER-0.5 — wire-now new MCPs (keyless stdio, the badchars-trio pattern)
+
+- **darknet-mcp-server** (badchars, MIT, keyless core) — dark-web/breach/ransomware + abuse.ch
+  (ThreatFox/URLhaus/MalwareBazaar)/OTX/GreyNoise/AbuseIPDB CTI, **clearnet allowlist only**
+  (route around the onion/stealer/intelx tools per the deep-research policy + owner-ops ban).
+  Completes the cve/osint trident. (L10, L6)
+- **rsigma** (`rsigma mcp serve`, MIT, single Rust binary) — Sigma write→lint→test→convert; the
+  detection-as-code gap. (L10, L2)
+- **trivy-mcp** (MIT, rides the trivy binary) — container/IaC/K8s/SBOM/secret scan; blue cloud
+  gap. (L10, L7)
+- **mitre-attack-mcp** (MHaggis, Apache-2.0) — STIX-backed ATT&CK graph + Navigator layers,
+  offline against the attack-stix-data corpus. (L6)
+
+### Top gems — new skills (pure Markdown, ride the skill bus)
+
+- **Blue-team detection loop skill:** rsigma + sigma-cli authoring, Zircolite/Hayabusa test
+  oracles, Cisco Talos **EvidenceForge** synthetic labelled logs, EVTX-ATTACK-SAMPLES/
+  attack_data backtest with expected-hit manifests, a detection-as-code CI gate mirroring the
+  existing quality gates, ATT&CK coverage via DeTT&CT/navlayers. (L2)
+- **DFIR skills** (skill-wraps-a-CLI, 0 daemon): Chainsaw + Hayabusa (EVTX/Sigma), dissect
+  (one pip covers most artifacts), EZ Tools/KAPE, Plaso timeline, Velociraptor **offline
+  collector**, a network-forensics MCP (Zeek/Suricata/tshark), varc + container-explorer +
+  the Invictus/cloudgrep cloud-log kit, an email/phishing triage skill. (L5)
+- **Purple-emulation skill:** ART runner (Invoke-Atomic on a range VM) + the existing
+  `claim-verify-gate` as the "did the detection fire?" loop + Navigator/DeTT&CT coverage
+  ledger; Stratus Red Team for owner cloud; CALDERA on the range (REST, not a fleet MCP). (L3)
+- **0-day/vuln-research:** a Naptime-style `vuln-research-loop` skill over the existing RE MCPs
+  (ghidra/ida/binja/angr/qiling/frida) + ClusterFuzzLite (CI) + Atheris (Python/MCP surface) +
+  CASR (crash triage) + OSS-Fuzz-Gen (LLM harness synthesis) + Jackalope/TinyInst (Windows
+  closed-source) + a batch patch-diff→variant pipeline over ghidriff/bindiff. (L4)
+- **Adopt OSS skill packs:** `UnitOneAI/SecuritySkills` (MIT, blue/SOC drop-in), HEARTH (130+
+  threat-hunt hypotheses), aws-samples cloud-IR `ai-playbooks/`, `ljagiello/ctf-skills`
+  (non-crypto lanes on the existing RE bus). (L11)
+- **cti-lookup skill:** borrow `cti-expert`'s defang/refang + STIX 2.1 export + report skeleton
+  (don't install the 67-command orchestrator). (L6)
+- **AD trident on the hexstrike host** (ENABLE, the MCP already drives them): NetExec + Certipy
+  (AD CS ESC1-17, 0% covered today) + Impacket + kerbrute, each paired with a detection
+  corpus; Adalanche (single-binary attack-path, avoids the BloodHound/Neo4j daemon). (L9)
+
+### Harness rails — NON-NEGOTIABLE before any active tool (all BORROW/ENABLE existing hooks)
+
+L13: the estate ships the primitives but hasn't wired them. **R1** target-in-scope argument
+gate (clone `hooks/file-scope/`), **R2** dry-run-default kill-switch (arm `hooks/ulysses/`),
+**R3** deny-by-default on the routing doc's dangerous-tool list, **R4** security-action evidence
+ledger (borrow `tools/event-ledger/`), **R5** taint-scan tool output for injection (extend
+`hooks/memory-guard/`), **R6** outbound secret/PII redaction (reuse `llm-security` functions),
+**R7** schema-hash TOFU preflight. Cross-lens: L14's `mcp-scan` + `agentscan`/`skill-scanner`
+(L11) are the supply-chain half of the same rail.
+
+### Upgrades to existing skills
+
+Trail of Bits scanner-driven review loop (static-analysis + differential + variant + mutation)
+into `code-security`/`security-review` — **CC-BY-SA, attribute** (L11); YARA rules-as-code CI
+(yara-forge/yaraQA) into `malware-analysis-triage`/`capa-triage` (L2, L6); Anthropic
+`defending-code-reference-harness` /threat-model→/vuln-scan→/triage→/patch into
+`security-threat-model` (L11); Certipy+Locksmith AD CS find-and-fix (L9).
+
+### Cloud/K8s (L7) — mostly wire-now
+
+Prowler MCP (keyless Hub) + Trivy (above) + Steampipe/Powerpipe MCP posture; kubescape (native
+MCP); stratus-red-team (purple, above); cloudfox (non-destructive attack-path); trufflehog
+(verified secrets) + Syft (SBOM) upgrade the CI gitleaks/osv-scanner.
+
+### SKIP / defer (anti-overfit or policy)
+
+Self-hosted TIPs (MISP/OpenCTI/Yeti — multi-GB daemons, nothing to federate); always-on
+daemons (Timesketch/Arkime/GRR/Neo4j/persistent-BloodHound/Falco/OpenAEV/VECTR-as-service);
+Tengu/CyberStrike as a 2nd orchestrator OS; live C2/payload-gen (Sliver/Metasploit-run —
+hard-banned, purple-emulation only); CodeQL on private CI (license); AFL++ v5 as default engine
+(AGPL — prefer LibAFL/libFuzzer). Offensive lenses needed grok because Claude's cyber safeguard
+blocks dense-offensive prompts; a pure red-team/0-day-**exploitation** lane beyond tool
+inventory needs admin cyber-safeguard verification via the Cursor enterprise dashboard.
+
+### Owner steer (the build wave is yours to pick)
+
+Recommended first wave = **TIER-0 + TIER-0.5 + the harness rails** (all ENABLE/BORROW, 0 new
+daemon, immediately closes the "unwired capability" and "no safety rail" gaps), then the
+blue-team detection loop + DFIR skills (the biggest capability hole), then purple + 0-day as
+their own waves. Say which tier(s) to build and I'll run it with the same disjoint-ownership
+subagent model as the search-stack waves.
+
 ## Decisions log (filled as the owner steers)
 
-*(empty — awaiting lens returns + synthesis; a gem-hunt is discovery, not a build)*
+*(empty — synthesis above is the discovery deliverable; awaiting the owner's build-wave pick)*
