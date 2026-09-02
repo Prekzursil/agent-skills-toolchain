@@ -194,3 +194,64 @@ export function invokeArgv(argv, { timeout = 30000 } = {}) {
   }
   return { status: res.status, stdout: res.stdout, stderr: res.stderr };
 }
+
+// --- TST-0189: file creation through the fs API, never through a shell ---------
+// A document that contains PowerShell here-string terminator tokens or heredoc markers
+// cannot be inlined into a shell file-creation command without the shell closing the
+// literal early and parsing the remainder as commands. The write API takes the bytes as
+// a Buffer and lands them verbatim; nothing about the payload ever reaches an argv or a
+// shell parser.
+import { realpathSync as _tst0189RealpathSync } from 'node:fs';
+import { fileURLToPath as _tst0189FileURLToPath } from 'node:url';
+
+export async function writeFileViaApi(dest, data) {
+  const target = path.resolve(String(dest));
+  const buf = Buffer.isBuffer(data) ? data : Buffer.from(String(data ?? ''), 'utf8');
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.writeFile(target, buf);
+  return {
+    dest: target,
+    bytes: buf.length,
+    sha256: crypto.createHash('sha256').update(buf).digest('hex'),
+    route: 'fs.writeFile',
+    shell: false
+  };
+}
+
+async function readStdinBytes() {
+  const chunks = [];
+  for await (const chunk of process.stdin) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks);
+}
+
+/** CLI: `node codex-invocation.mjs write <dest>` — payload bytes on stdin, JSON meta on stdout. */
+export async function cliMain(argv) {
+  const [verb, dest] = argv;
+  if (verb !== 'write' || !dest) {
+    process.stderr.write('usage: node codex-invocation.mjs write <dest>   (payload bytes on stdin)\n');
+    return 2;
+  }
+  const meta = await writeFileViaApi(dest, await readStdinBytes());
+  process.stdout.write(JSON.stringify(meta) + '\n');
+  return 0;
+}
+
+function isMainModule() {
+  try {
+    if (!process.argv[1]) return false;
+    return _tst0189RealpathSync(path.resolve(process.argv[1])) ===
+      _tst0189RealpathSync(_tst0189FileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
+  cliMain(process.argv.slice(2)).then(
+    (code) => { process.exitCode = code; },
+    (err) => {
+      process.stderr.write(`${(err && err.stack) || err}\n`);
+      process.exitCode = 1;
+    }
+  );
+}

@@ -1,4 +1,7 @@
-"""Path-set casefold collisions and case-insensitive zip extract (IMP-0022)."""
+"""Casefold collisions: path sets + case-insensitive zip extract (IMP-0022), JSON key
+linting (IMP-0009), and JSON documents whose sibling keys collide under a
+case-insensitive parser (TST-0180: validator REJECT, independent key-set-size signal,
+emitter refusal)."""
 from __future__ import annotations
 
 import json
@@ -180,65 +183,182 @@ def lint_text(text: str) -> dict:
     return {"parse_ok": True, "findings": findings}
 
 
-def iter_document_keysets(text: str) -> list[str]:
-    keys: list[str] = []
+# --- TST-0180: JSON documents whose keys collide under a case-insensitive parser ---
 
-    def walk(node: object, prefix: str) -> None:
-        if isinstance(node, dict):
-            for k, v in node.items():
-                keys.append(str(k) if prefix == "$" else f"{prefix}.{k}")
-                walk(v, f"{prefix}.{k}")
-        elif isinstance(node, list):
-            for i, v in enumerate(node):
-                walk(v, f"{prefix}[{i}]")
 
+@dataclass
+class KeySet:
+    """The raw sibling keys of one JSON object, plus their casefolded projection."""
+
+    path: str
+    raw_keys: list[str]
+
+    @property
+    def unique_raw_size(self) -> int:
+        return len(set(self.raw_keys))
+
+    @property
+    def casefolded_size(self) -> int:
+        return len({k.casefold() for k in self.raw_keys})
+
+    @property
+    def collides(self) -> bool:
+        return self.unique_raw_size > self.casefolded_size
+
+    def colliding_groups(self) -> list[list[str]]:
+        groups: dict[str, list[str]] = defaultdict(list)
+        for key in self.raw_keys:
+            if key not in groups[key.casefold()]:
+                groups[key.casefold()].append(key)
+        return [members for _fold, members in sorted(groups.items()) if len(members) > 1]
+
+
+def _walk_keysets(node: object, loc: str, out: list[KeySet]) -> None:
+    if _is_pairs(node):
+        out.append(KeySet(path=loc, raw_keys=[str(k) for k, _v in node]))  # type: ignore[union-attr]
+        for key, value in node:  # type: ignore[union-attr]
+            _walk_keysets(value, f"{loc}.{key}", out)
+        return
+    if isinstance(node, list) and not _is_pairs(node):
+        for i, item in enumerate(node):
+            _walk_keysets(item, f"{loc}[{i}]", out)
+
+
+def iter_document_keysets(text: str) -> list[KeySet]:
+    """One :class:`KeySet` per JSON object in document order; ``[]`` when unparseable.
+
+    Parsed with ``object_pairs_hook`` so exact duplicates survive to the key bag.
+    An empty object still yields a (size-0) key set so callers see every object.
+    """
     try:
-        tree = json.loads(text, object_pairs_hook=lambda pairs: dict(pairs))
+        tree = json.loads(text, object_pairs_hook=_pairs_hook)
     except json.JSONDecodeError:
-        return keys
-    walk(tree, "$")
-    # also collect raw object keys only (collision is on sibling keys)
-    def walk_keys(node: object) -> None:
-        if isinstance(node, dict):
-            keys.extend(str(k) for k in node.keys())
-            for v in node.values():
-                walk_keys(v)
-        elif isinstance(node, list):
-            for v in node:
-                walk_keys(v)
-
-    walk_keys(tree)
-    return keys
+        return []
+    out: list[KeySet] = []
+    if tree == []:  # `{}` and `[]` both parse to [] under the pairs hook
+        out.append(KeySet(path="$", raw_keys=[]))
+        return out
+    _walk_keysets(tree, "$", out)
+    return out
 
 
-class _DocResult:
-    def __init__(self, accepted: bool, reason: str) -> None:
-        self.accepted = accepted
-        self.reason = reason
+def independent_signal(keysets: Iterable[KeySet]) -> dict:
+    """Signal (b): raw vs casefolded key-set sizes, independent of the validator verdict."""
+    sets = list(keysets)
+    worst = max(sets, key=lambda ks: ks.unique_raw_size - ks.casefolded_size, default=None)
+    if worst is None:
+        return {
+            "any_case_collision": False,
+            "sizes_differ": False,
+            "worst_path": None,
+            "worst_raw_keyset_size": 0,
+            "worst_casefolded_keyset_size": 0,
+            "keysets": 0,
+        }
+    return {
+        "any_case_collision": any(ks.collides for ks in sets),
+        "sizes_differ": worst.unique_raw_size != worst.casefolded_size,
+        "worst_path": worst.path,
+        "worst_raw_keyset_size": worst.unique_raw_size,
+        "worst_casefolded_keyset_size": worst.casefolded_size,
+        "keysets": len(sets),
+    }
 
 
-def validate_document(text: str) -> _DocResult:
-    keys = iter_document_keysets(text)
-    # sibling casefold collisions on object keys
-    hits = find_casefold_collisions([k for k in keys if "." not in k or True])
-    # Prefer object-key collisions from lint_text
-    lint = lint_text(text)
-    fired = bool(lint.get("findings"))
-    if not lint.get("parse_ok"):
-        return _DocResult(False, lint.get("error") or "parse")
-    if fired:
-        return _DocResult(False, "casefold-collision")
-    return _DocResult(True, "ok")
+@dataclass
+class DocumentVerdict:
+    accepted: bool
+    reason: str
+    collisions: list[dict]
+
+
+def _describe(ks: KeySet) -> str:
+    groups = "; ".join(" vs ".join(repr(k) for k in g) for g in ks.colliding_groups())
+    return f"case-collision at {ks.path}: {groups}"
+
+
+def validate_document(text: str) -> DocumentVerdict:
+    """REJECT a document whose sibling keys collide under casefold (or repeat exactly)."""
+    try:
+        json.loads(text, object_pairs_hook=_pairs_hook)
+    except json.JSONDecodeError as exc:
+        return DocumentVerdict(False, f"parse-error: {exc}", [])
+    keysets = iter_document_keysets(text)
+    hits = [ks for ks in keysets if ks.collides]
+    dups = [ks for ks in keysets if len(ks.raw_keys) != ks.unique_raw_size]
+    if hits:
+        reason = "; ".join(_describe(ks) for ks in hits)
+        return DocumentVerdict(
+            False,
+            reason,
+            [{"path": ks.path, "keys": g} for ks in hits for g in ks.colliding_groups()],
+        )
+    if dups:
+        repeated = sorted(
+            {k for ks in dups for k in ks.raw_keys if ks.raw_keys.count(k) > 1}
+        )
+        return DocumentVerdict(
+            False,
+            "duplicate-key at " + ", ".join(ks.path for ks in dups) + f": {repeated}",
+            [{"path": ks.path, "keys": repeated} for ks in dups],
+        )
+    return DocumentVerdict(True, "ok", [])
+
+
+def casefold_last_wins(text: str) -> dict:
+    """What a naive case-insensitive parser would keep: casefolded keys, last value wins."""
+
+    def fold(node: object) -> object:
+        if _is_pairs(node):
+            folded: dict = {}
+            for key, value in node:  # type: ignore[union-attr]
+                folded[str(key).casefold()] = fold(value)
+            return folded
+        if isinstance(node, list):
+            return [fold(item) for item in node]
+        return node
+
+    tree = json.loads(text, object_pairs_hook=_pairs_hook)
+    if tree == []:
+        return {}
+    result = fold(tree)
+    return result if isinstance(result, dict) else {"$": result}
+
+
+def _check_mapping(node: object, loc: str) -> None:
+    if isinstance(node, dict):
+        ks = KeySet(path=loc, raw_keys=[str(k) for k in node.keys()])
+        if ks.collides:
+            raise CaseCollisionError(f"emitter-refused: {_describe(ks)}")
+        for key, value in node.items():
+            _check_mapping(value, f"{loc}.{key}")
+    elif isinstance(node, (list, tuple)):
+        for i, item in enumerate(node):
+            _check_mapping(item, f"{loc}[{i}]")
+
+
+def emit_document(mapping: dict, *, indent: int | None = 2) -> str:
+    """Serialize ``mapping``; refuse (``CaseCollisionError``) before ``dumps`` on a collision."""
+    _check_mapping(mapping, "$")
+    text = json.dumps(mapping, indent=indent, ensure_ascii=False) + "\n"
+    verdict = validate_document(text)
+    if not verdict.accepted:  # belt-and-braces: never let a colliding document out
+        raise CaseCollisionError(f"emitter-refused: {verdict.reason}")
+    return text
 
 
 __all__ = [
     "CaseCollisionError",
     "DEFAULT_TARGETS",
+    "DocumentVerdict",
     "KIND_CASE",
     "KIND_DUP",
+    "KeySet",
     "find_casefold_collisions",
     "extract_zip_case_insensitive",
     "both_signals",
+    "casefold_last_wins",
+    "emit_document",
     "independent_signal",
     "iter_document_keysets",
     "validate_document",
