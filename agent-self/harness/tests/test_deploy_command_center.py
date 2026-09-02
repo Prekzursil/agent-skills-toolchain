@@ -99,6 +99,12 @@ def test_a_deployed_catalog_location_is_producible_by_some_deploy_target(monkeyp
     looks."""
     monkeypatch.delenv("HARNESS_LIVE_AGENTS_DIR", raising=False)
     monkeypatch.delenv("HARNESS_LIVE_HOOKS_DIR", raising=False)
+    if not I._default_source("command-center").is_dir():
+        # This is a REPO-layout invariant: "the checkout can produce the deployed
+        # catalog". In the deployed harness-at-root layout (~/.agents/harness)
+        # install.py's source root resolves to a sibling that does not exist, so
+        # there is nothing to deploy FROM and the property is not testable there.
+        pytest.skip("no repo-side command-center source beside this install.py")
     deployed = _deployed_candidates(monkeypatch)
     assert deployed, "the module declares no deployed layout at all"
 
