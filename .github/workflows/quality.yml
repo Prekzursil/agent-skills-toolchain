@@ -1739,7 +1739,18 @@ jobs:
           echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
           "$RUNNER_TEMP/gitleaks" version
-          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 .
+          # HEAD-scoped on purpose. `gitleaks git` defaults to `git log --all`, and
+          # `fetch-depth: 0` above fetches EVERY remote branch, so the default scanned
+          # refs that are not ancestors of this PR at all. Measured 02.09.2026: the same
+          # PR range was clean (20 commits, 307 KB, 0 leaks) while the default scan
+          # reported 1434 commits / 1.10 GB / 820 leaks -- all of them inside the frozen
+          # P2 capture on handoff/cloud-agent-2026-09-02 + p2/loop-to-green-2026-09-02,
+          # so every open PR went red for content it does not carry. `--full-history HEAD`
+          # is exactly the claim the comment above makes: everything an ancestor of the
+          # merge revision, nothing else. Re-measured on main @ 5fa34fd with 8.30.1:
+          # 950 commits, ~219 MB, "no leaks found", exit 0, 17s.
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 \
+            --log-opts="--full-history HEAD" .
 
   deps:
     name: gate-deps (osv-scanner)

@@ -103,9 +103,10 @@ backend fan-out those hubs spawn is de-duplicated from per-session to once.
 
 ## Proof (the stdlib fallback is a PROVEN proof-of-concept)
 
-- **52 tests pass** (`python -m pytest tests/`) — 24 for the stdlib host (96–99% line
-  coverage), 16 for the apply tool (incl. the `--transport sse` path), 12 pinning the
-  fake Streamable-HTTP daemon below. Includes a CONTROL test asserting the status quo:
+- **101 tests pass** (`python -m pytest tests/`) — 24 for the stdlib host (96–99% line
+  coverage), 16 for the apply tool (incl. the `--transport sse` path), 16 pinning the
+  fake Streamable-HTTP daemon below, 26 for the Basic Memory session proxy, 19 for its
+  deploy assets. Includes a CONTROL test asserting the status quo:
   **N direct stdio spawns → N distinct pids**.
   (The mcp-proxy *transport* is proven separately by this session's live handshake;
   the supervisor's reap / `-Status` / `-DryRun` were verified on-box — see RESCOPE.md.)
@@ -179,9 +180,11 @@ supervisor's `/healthz` status probe reads. In every case the differentiated par
 | `mcp_http_host.py` | the **stdlib fallback** stdio→HTTP host (run it, or `import build_server`) |
 | `apply_registration.py` | apply-when-closed `~/.mcp.json` stdio→{http,sse} editor (`--transport`, dry-run/apply/revert) |
 | `smoke_stdio.py` | drive any stdio MCP command through the wrapper (serverInfo + tool count) |
+| `bm_session_proxy.py` | **the Basic Memory session-healing reverse proxy** (built; deployment is an owner step — see `deploy/README.md`): owns the client-facing port, maps each client `Mcp-Session-Id` to one upstream session, re-initializes with the client's own params and replays once on 404 / `-32600 Session not found`, streams JSON/SSE via `read1`, keeps GET streams open across upstream restarts, relays DELETE, answers the dead-port window with `503` + `Retry-After`, adopts unknown client ids after its own restart, `/healthz`, JSONL restart log |
+| `deploy/` | Windows assets for the proxy: `bm-session-proxy.ps1` launcher + `bm-session-proxy-watchdog.ps1` (style of the daemon's own pair), `Register-BmSessionProxyTasks.ps1`, `move_daemon_port.py` (the exact reversible daemon edit), and the runbook `README.md` (staging, cutover, rollback) |
 | `_fake_mcp_server.py` | minimal stdio MCP server used as the deterministic test fixture |
-| `_fake_streamable_http_daemon.py` | the same fixture behind the MCP Python SDK's Streamable-HTTP session semantics (sessions, 404 + `-32600 Session not found` on a stale id, `restart()`, refused window, JSON/SSE, GET stream) — the stand-in for the Basic Memory `:8765` daemon |
-| `tests/` | 52 tests: HTTP handshake, shared-child invariant, apply-tool round-trip incl. `--transport sse`, fake-daemon contract |
+| `_fake_streamable_http_daemon.py` | the same fixture behind the MCP Python SDK's Streamable-HTTP session semantics (sessions, 404 + `-32600 Session not found` on a stale id, `restart()`, refused window, JSON/SSE, GET stream, plus proxy-rehearsal knobs: in-band `-32600` on a 200, forced mid-heal losses, slow SSE preludes) — the stand-in for the Basic Memory `:8765` daemon |
+| `tests/` | 101 tests: HTTP handshake, shared-child invariant, apply-tool round-trip incl. `--transport sse`, fake-daemon contract (16), the session proxy (26, incl. tracemalloc flatness over restart/refused/recover cycles), the port mover (8) and the deploy assets (11) |
 
 ## Basic Memory (`:8765`): the shared daemon that restarts under you
 
@@ -192,14 +195,23 @@ Cursor's does not (stale `mcp-session-id` → `-32600 Session not found`; stale
 the deploy/rollback steps are in
 [`docs/plans/2026-09-02-basic-memory-transport-decision.md`](../../../docs/plans/2026-09-02-basic-memory-transport-decision.md):
 
-- **Chosen (shipped):** a registry-declared per-session stdio shim for Cursor,
+- **Chosen (shipped, PR #305):** a registry-declared per-session stdio shim for Cursor,
   `.agents/scripts/bm_cursor_http_session.py`, rendered by
   `merge_generated_cursor_mcp.py` from `x_cursor.stdio_bridge` and tested against
-  `_fake_streamable_http_daemon.py` here.
-- **Proposed (needs owner approval, not built):** a session-healing reverse proxy in
-  *this* lane that owns `:8765` with the daemon moved behind it — uniform healing
-  for Cursor, Claude and Codex with one process and no client config change, at the
-  price of changing who binds `:8765`.
+  `_fake_streamable_http_daemon.py` here. It stays intact; the proxy is additive.
+- **Built as the approved follow-up lane (deployment still an owner step):** the
+  session-healing reverse proxy `bm_session_proxy.py` in *this* lane — one always-on
+  stdlib process that owns `:8765` with the daemon moved to an internal `:8766`, so
+  Cursor, Claude and Codex are healed uniformly with no client config change.
+  `deploy/README.md` carries the exact daemon edits, staging on a spare port, the
+  cutover order, the proxy watchdog and the rollback; nothing deploys by itself.
+
+```powershell
+# Run the proxy locally in front of the fake restarting daemon (two terminals):
+python _fake_streamable_http_daemon.py --port 8799 --mode sse --restart-every 20
+python bm_session_proxy.py --port 8798 --upstream http://127.0.0.1:8799/mcp --restart-log $env:TEMP\bm-proxy.jsonl
+# then point any client (or bm_cursor_http_session.py --health --url http://127.0.0.1:8798/mcp) at :8798
+```
 
 Rehearse a client against a restarting daemon without touching the real one:
 `python _fake_streamable_http_daemon.py --port 8799 --mode sse --restart-every 20`.
