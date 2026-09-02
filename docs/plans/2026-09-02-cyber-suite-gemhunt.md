@@ -1,0 +1,103 @@
+# Cyber suite gem-hunt — blue / red / purple / 0-day (2026-09-02)
+
+**Status: GEM-HUNT IN PROGRESS — discovery + decide, NOT a build.** Audit trail for an
+extensive multi-lens sweep to find the skills / tools / MCPs / harness upgrades the estate
+is *missing* for a full-spectrum cyber capability: blue (defense/detection/DFIR), red
+(offense/exploitation), purple (adversary emulation / detection validation), "100% on all
+edges", and 0-day / vulnerability research where lawful. Per the `gem-hunt` skill this is
+discovery -> a tiered decision-queue the owner steers; nothing is adopted until steered.
+
+**Owner ask (2026-09-02 08:22 UTC):** "fix and write this as well: osint-mcp-server as well
+as /deep-research /gem-hunt /research-ops /research-workflow /multi-ai-mingle to find new
+skills upgrade existing ones harness, tools, mcps, and so that we are missing to have full
+suite for cyber blue,red,purple, 100% on all edges and 0 day if possible".
+
+**Concrete part already done:** `osint-mcp-server` wired ENABLED into `.agents/agents.json`
+(commit `0f05b259`), exactly like `cve-mcp` (G-11, commit `c5c80157`) — see
+`.provenance/.agents/agents.json.md`.
+
+**Rail notes (honest):**
+- **gem-hunt** is the method here (breadth-first lens fan-out -> synthesize -> decide).
+- **deep-research** discipline is applied *inside* each lens: cite, grade confidence,
+  flag post-cutoff / secondary sources as lower-confidence.
+- **research-ops** is a thin router that points at deep-research; nothing to run separately.
+- **research-workflow** is the Bolt UX *usability-testing* DIY kit — WRONG LANE for cyber;
+  not used. Flagging the misfire rather than forcing it.
+- **multi-ai-mingle** live channel (`mcp_agent_mail` on `127.0.0.1:8812`) and the Codex
+  fan-out rail are **not reachable from this cloud VM** (no `agent-mail` / `codex` MCP in the
+  runtime catalog; both are the owner's Windows-local always-on rails). The fan-out is done
+  with the Cursor Task tool — which is the gem-hunt fan-out mechanism anyway — so "mingle"
+  degrades cleanly to independent subagent lenses.
+
+**Anti-overfit anchor (gates every adopt):** prefer ENABLE-native > BORROW-technique > new
+in-process adapter (0 RAM) > new stdio child > new daemon. Ride the existing hook/skill/MCP
+bus. No 2nd orchestration runtime, vector-DB/KG memory daemon, LiteLLM, LangGraph, or
+duplicate SaaS. Passive/lab/authorized-only framing: this is the owner's own estate; no live
+exploitation from the hunt, discovered assets do not auto-enter scope, and a banner is a
+candidate, not proof (hacktricks `security-mcp-routing.md` envelope).
+
+---
+
+## GROUND — the dedup-set (what already exists; lenses must NOT re-propose these)
+
+Measured 2026-09-02 from `.agents/skills/` (374 skills), `tools/mcp/`, and the
+`.agents/agents.json` MCP registry (47 servers).
+
+### Already BUILT — security MCP servers (registry, enabled)
+`hexstrike-ai` (offensive multi-tool harness), `cve-mcp` (NVD/KEV/EPSS/OSV/GHSA/CIRCL — 41
+tools), `osint-mcp-server` (passive recon — 37 tools), `semgrep` (SAST), `ghidra-mcp`,
+`ida-pro-mcp`, `binary-ninja-mcp`, `frida-mcp`, `cheatengine`. Vendored under `tools/mcp/`:
+`hacktricks-mcp-server`, `reverse-engineering-mcp-bundle`.
+
+### Already BUILT — security / RE skills (partial list, the dedup-set)
+- **Offense / pentest:** `hexstrike-ai-*` (setup/mcp/authorized-engagement), `cyberstrike`,
+  `security-bounty-hunter`, `hacktricks` (+`-api`), `gtfobins-lookup`, `lolbin-lookup`,
+  `security-kb-lookup`, `secsearch`, `sec-corpora-update`.
+- **AppSec / SAST:** `code-security`, `security-best-practices`, `security-review`,
+  `security-scan`, `security-threat-model`, `security-ownership-map`, `llm-security`, `semgrep`.
+- **RE / malware:** `reverse-engineering-toolkit`, `re-ensure`, `re-triage-preflight`,
+  `malware-analysis-triage`, `capa-triage`, `ghidra-*` (bridge/mcp/automation-recipes),
+  `ida-*` (pro-mcp/multi-mcp/decompiler-cleanup/apply-callee-type), `binary-ninja(-mcp/-diff)`,
+  `radare2`, `angr` (symbolic execution), `qiling-emulation`, `frida(-mcp)`, `x64dbg`,
+  `windbg-preview` (+cookbook), `ret-sync`, `bindiff`, `binexport`, `peutils`, `imhex`,
+  `010-editor`, `dump-to-signature-workflow`, `trail-of-bits-re`.
+- **DFIR (thin):** `volatility-3` (memory), `offline-linux-disk-surgery` (disk). No network
+  forensics, no live-response, no cloud/host triage, no timeline.
+- **Crypto:** `crypto-ctf`.
+
+### Candidate GAPS the sweep should hunt (not yet in the estate)
+Blue-team detection engineering (Sigma/YARA authoring, SIEM/EDR, log analytics) · DFIR beyond
+memory+disk (network/pcap, cloud, host triage, timelining, live response) · threat
+intelligence / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK mapping) · purple-team /
+adversary emulation (Atomic Red Team, Caldera, BAS, detection validation) · fuzzing /
+0-day vuln-research harness (AFL++/libFuzzer/honggfuzz, coverage-guided, patch-diff at scale,
+crash triage/exploitability) · cloud / container / k8s / IaC security (Prowler, Trivy,
+kube-hunter, Checkov) · network / web appsec (Nuclei, ZAP/Burp automation, API security) ·
+active-directory / identity attack+defend · offensive/defensive MCP servers in the wild ·
+security skills in the wild · native-capability audit of the existing stack · safe-execution /
+ROE / evidence-chain harness rails · a wildcard cross-domain cyber gem.
+
+---
+
+## Lens plan (fan-out) — status filled as each returns
+
+| # | Lens | Agent | Status |
+|---|------|-------|--------|
+| L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | — | launching |
+| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | — | launching |
+| L3 | Purple-team / adversary emulation / BAS / detection validation | — | launching |
+| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | launching |
+| L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | — | launching |
+| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | — | launching |
+| L7 | Cloud / container / k8s / IaC security | — | launching |
+| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | — | launching |
+| L9 | Active Directory / identity attack + defend | — | launching |
+| L10 | Cyber MCP servers in the wild (offensive + defensive) | — | launching |
+| L11 | Cyber skills in the wild (OSS agent/Claude skills) | — | launching |
+| L12 | Native-capability audit of the existing stack (ENABLE, not build) | — | launching |
+| L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | — | launching |
+| L14 | Wildcard / cross-domain cyber gem | — | launching |
+
+## Decisions log (filled as the owner steers)
+
+*(empty — awaiting lens returns + synthesis; a gem-hunt is discovery, not a build)*
