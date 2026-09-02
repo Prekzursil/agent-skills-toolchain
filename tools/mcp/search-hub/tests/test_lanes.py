@@ -21,9 +21,18 @@ def _uninstall(*names: str) -> None:
         sys.modules.pop(name, None)
 
 
-def test_registry_starts_empty_and_builds_nothing():
-    assert lanes.LANE_MODULES == ()
+def test_registry_lists_only_lanes_that_import_and_build_cleanly():
     built, degraded = lanes.extra_adapters({})
+    assert degraded == {}, degraded
+    platforms = {ad.platform for ad in built}
+    # Every registered lane is default-ON and keyless, so an empty environment
+    # wires all of them; a lane that is opt-in must not appear here.
+    assert platforms == {"repohealth"}
+
+
+def test_every_registered_lane_can_be_killed_to_nothing():
+    kill = {"ENABLE_REPO_HEALTH": "0"}
+    built, degraded = lanes.extra_adapters(kill)
     assert built == [] and degraded == {}
 
 

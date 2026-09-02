@@ -718,7 +718,10 @@ def _cmd_print_plan() -> int:
     self_hosted = adapters.wired_adapters(os.environ) + extra
     adapter_tools = [d for ad in self_hosted for d in ad.tool_defs()]
     for ad in self_hosted:
-        per_provider[ad.platform] = len(ad.tool_names())
+        # Several adapters may share one platform bucket (a lane = many services).
+        per_provider[ad.platform] = per_provider.get(ad.platform, 0) + len(
+            ad.tool_names()
+        )
     summary = {
         "provider_tools": len(tools),
         "self_hosted_tools": len(adapter_tools),

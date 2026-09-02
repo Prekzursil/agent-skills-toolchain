@@ -25,7 +25,9 @@ from typing import Any
 #: Lane modules the hub wires, in listing order. Append a module here only once it
 #: exists on the branch and its own tests are green; a name listed here that does
 #: not import is reported as degraded, on purpose.
-LANE_MODULES: tuple[str, ...] = ()
+LANE_MODULES: tuple[str, ...] = (
+    "lane_repo_health",  # bestofjs v2 + deps.dev + OpenSSF Scorecard (keyless, default ON)
+)
 
 
 def build_lane(module_name: str, environ) -> list[Any]:
