@@ -1,0 +1,82 @@
+# Minimal self-hosted, KEY-FREE search backend for search-hub's selfhosted_* lane.
+#
+# This brings up TrailSearch (github jianjungki/tavily-open, MIT) -- the daemon
+# behind the hub's keyless `selfhosted_search` / `selfhosted_extract` tools. It
+# is intentionally the SMALLEST useful profile for a memory-starved box:
+#
+#   * app only by default -- it REUSES the estate's existing SearXNG at
+#     host.docker.internal:8890 (already run for tools/search-expansion), so the
+#     marginal cost is just the one app container (~270-320 MB).
+#   * no Redis, no Reader, no Browserless -- CACHE disabled, backfill=local,
+#     http_first extraction (SearXNG + trafilatura/httpx only).
+#   * add `--profile bundled` ONLY on a box with no existing SearXNG; it starts a
+#     local SearXNG pinned to UWSGI_WORKERS=1 (~150 MB idle instead of ~500/core).
+#
+# TrailSearch is NOT vendored here (separate MIT repo); the run scripts clone it
+# to $TRAILSEARCH_SRC and this file builds from that context. See deploy/README.md.
+#
+# Ports: app published on 8794 (search-hub's TRAILSEARCH_URL default). The
+# bundled SearXNG stays on the container network only (not published) to avoid
+# clashing with the estate SearXNG on 8890.
+
+name: selfhosted-search
+
+services:
+  app:
+    build:
+      context: ${TRAILSEARCH_SRC:-./trailsearch-src}
+    container_name: selfhosted-search-app
+    ports:
+      - "127.0.0.1:${SELFHOSTED_SEARCH_PORT:-8794}:3000"
+    environment:
+      # Keyless routing: local SQLite index first, then SearXNG. NO Brave/vendor.
+      SEARCH_PROVIDER: router
+      SEARCH_ROUTE_PROVIDERS: local,searxng
+      EXTERNAL_SEARCH_ENABLED: "false"
+      # Reuse the estate SearXNG by default; the `bundled` profile overrides this.
+      SEARXNG_URL: ${SEARXNG_URL:-http://host.docker.internal:8890}
+      # Local reuse index on; Redis cache off (fewer daemons, less RAM).
+      LOCAL_INDEX_ENABLED: "true"
+      LOCAL_INDEX_PATH: /app/data/trailsearch.sqlite3
+      CACHE_ENABLED: "false"
+      BACKFILL_ENABLED: "true"
+      BACKFILL_QUEUE_BACKEND: local
+      # Cheapest extraction: HTTP/trafilatura only -- no Reader, no browser.
+      CRAWL_EXTRACTION_STRATEGY: http_first
+      READER_ENABLED: "false"
+      BROWSER_LOCAL_FALLBACK_ENABLED: "false"
+      API_HOST: 0.0.0.0
+      API_PORT: "3000"
+    volumes:
+      - selfhosted_search_data:/app/data
+    extra_hosts:
+      # Let the container reach a SearXNG running on the Docker host (Linux).
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    # Cap the app so a runaway crawl cannot starve a 31.6 GB box.
+    mem_limit: ${SELFHOSTED_SEARCH_MEM_LIMIT:-768m}
+
+  # Only started with `--profile bundled` (box has no existing SearXNG).
+  searxng:
+    image: ${SEARXNG_IMAGE:-searxng/searxng:latest}
+    container_name: selfhosted-search-searxng
+    profiles:
+      - bundled
+    environment:
+      # One worker keeps idle RAM near ~150 MB instead of ~500 MB/core.
+      UWSGI_WORKERS: "1"
+      UWSGI_THREADS: "4"
+      SEARXNG_BASE_URL: http://localhost:8080/
+    volumes:
+      - ./searxng-min:/etc/searxng:rw
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    restart: unless-stopped
+    mem_limit: ${SEARXNG_MEM_LIMIT:-384m}
+
+volumes:
+  selfhosted_search_data:
