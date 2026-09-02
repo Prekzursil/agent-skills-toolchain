@@ -27,8 +27,25 @@ def canonicalize(obj: Any) -> str:
     return json.dumps(obj, sort_keys=True, separators=(",", ":"), default=str)
 
 
-def two_state_valid(good: Any, broken: Any) -> bool:
-    return canonicalize(good) != canonicalize(broken)
+_UNSET: Any = object()
+
+
+def two_state_valid(good_or_state: Any, broken: Any = _UNSET) -> Any:
+    """Two forms share this name.
+
+    ``two_state_valid(good, broken) -> bool``: the two outputs differ once
+    canonicalised (the detector measured something).
+
+    ``two_state_valid(state) -> dict``: a known-good control *detector* for
+    ``run_two_state``: SILENT on ``"good"``, FIRES on ``"broken"``. The scanner
+    plants it beside an inert stub to prove the scan itself is two-stated.
+    """
+    if broken is _UNSET:
+        state = good_or_state
+        if state not in ("good", "broken"):
+            raise ValueError(f"state must be 'good' or 'broken', got {state!r}")
+        return {"fired": state == "broken", "payload": state}
+    return canonicalize(good_or_state) != canonicalize(broken)
 
 
 def inert_stub(_state: str) -> dict[str, Any]:
@@ -45,14 +62,36 @@ class TwoStateRecord:
     broken: Any = None
     has_known_broken_fixture: bool = True
 
+    @property
+    def differs(self) -> bool:
+        """True only for the credited verdict: silent on good, fires on broken."""
+        return self.verdict == VERDICT_DIFFERS
+
+    @property
+    def silent_in_both(self) -> bool:
+        """True when the detector stayed silent on both states (measures nothing)."""
+        return self.verdict == VERDICT_SILENT_BOTH
+
+    @property
+    def good_output(self) -> Any:
+        return self.good
+
+    @property
+    def broken_output(self) -> Any:
+        return self.broken
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "detector_id": self.detector_id,
             "verdict": self.verdict,
             "valid": self.valid,
+            "differs": self.differs,
+            "silent_in_both": self.silent_in_both,
             "reason": self.reason,
             "good": self.good,
             "broken": self.broken,
+            "good_output": self.good,
+            "broken_output": self.broken,
             "has_known_broken_fixture": self.has_known_broken_fixture,
         }
 

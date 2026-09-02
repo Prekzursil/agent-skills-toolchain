@@ -32,7 +32,8 @@ without evidence. They have separate checklists.
 - [ ] `python -m pytest agent-self/harness/tests/test_register_gate.py -q` green.
 - [ ] `ruff check .` and `ruff format --check .` at the CI pin (`ruff==0.15.17`), checked
       against the **LF blob** read through the one helper --
-      `python tools/measure-guard/blobread.py <path>`, i.e. `git cat-file -p <rev>:<path>` --
+      `python tools/measure-guard/blobread.py <path>`, i.e. `git cat-file -p <rev>:<path>`
+      (equivalent recipe: `git show <rev>:<path>`, byte-identical to cat-file) --
       not the CRLF working tree. **Not `git archive`:** on this box it applies export-time
       EOL conversion and hands back the CRLF checkout form, the OPPOSITE of the blob
       (measured 2026-08-15 on `command-center/receipt_validate.py`: archive 8,412 B / 205

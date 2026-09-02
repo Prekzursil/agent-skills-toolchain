@@ -64,6 +64,7 @@ def enumerator_control(root: Path | None = None) -> dict:
         missing = [i for i in PLANTED_IDS if i not in found]
         return {
             "fired": not missing,
+            "planted_ids": list(PLANTED_IDS),
             "found_planted": found,
             "missing_planted": missing,
             "known_present_run_first": known_first,
@@ -74,6 +75,7 @@ def enumerator_control(root: Path | None = None) -> dict:
     missing = [i for i in PLANTED_IDS if i not in found]
     return {
         "fired": bool(found),
+        "planted_ids": list(PLANTED_IDS),
         "found_planted": found,
         "missing_planted": missing,
         "known_present_run_first": known_first,
@@ -81,8 +83,18 @@ def enumerator_control(root: Path | None = None) -> dict:
     }
 
 
+def is_fixture_root(root: Path) -> bool:
+    """True when ``root`` is one of this package's fixture trees (or the fixtures dir)."""
+    root = Path(root).resolve()
+    return root == FIXTURES.resolve() or FIXTURES.resolve() in root.parents
+
+
 def enumerate_detectors(repo: Path, skip_self_fixtures: bool = False) -> list[Detector]:
     _ensure_planted()
+    if is_fixture_root(Path(repo)):
+        # A fixture tree declares its own detectors; the live-tree entries below
+        # belong to the repo, not to the fixture under test.
+        return _scan(Path(repo))
     live = [
         Detector("REACH-1", "validator_rule", "tools/detector_control/enumerate.py"),
         Detector("HOOK-1", "hook_check", "tools/detector_control/fixtures/planted/hook_check.py"),

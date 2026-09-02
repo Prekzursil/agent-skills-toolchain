@@ -1,325 +1,70 @@
 {
- "artifacts": [
-  {
-   "path": "command-center/receipts/TST-0030.json",
-   "bytes": 10646,
-   "sha256": "5dd13aab5e84e4694e52bd6b05180b65e211c60d4b6f4091f31c752e369b1538",
-   "exists": true,
-   "eol": "LF",
-   "role": "primary"
-  }
- ],
- "evidence": [
-  {
-   "claim": "TST-0030 catalog output_path exists, parses, and is registered as the primary artifact.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "command-center/receipts/TST-0030.json",
-   "probes": [
-    {
-     "role": "source",
-     "method": "file-read",
-     "command": "stat command-center/receipts/TST-0030.json",
-     "raw_output": "bytes=10646 sha256=5dd13aab5e84e4694e52bd6b05180b65e211c60d4b6f4091f31c752e369b1538",
-     "fingerprint": "6852cbd92224473cb44521c9b5ed75e1",
-     "exit_code": 0
-    },
-    {
-     "role": "verifier",
-     "method": "schema-validate",
-     "command": "validate_artifact TST-0030",
-     "raw_output": "schema-check",
-     "fingerprint": "4edd06fb135e391076fcc6d20fdc3656",
-     "exit_code": 0
-    }
-   ]
-  },
-  {
-   "claim": "TST-0030 named probes/schema contract were exercised against the live artifact.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "command-center/p2-wave/probes/TST-0030",
-   "probes": [
-    {
-     "role": "source",
-     "method": "command",
-     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0030",
-     "raw_output": "SUCCESS:delivered",
-     "fingerprint": "7559eddca9c246b5ff81172ac17db3a6",
-     "exit_code": 0
-    },
-    {
-     "role": "verifier",
-     "method": "static-analysis",
-     "command": "ready_units.artifact_delivered TST-0030",
-     "raw_output": "schema-valid",
-     "fingerprint": "a0655fec634459fcebb69d7f2fcb63c7",
-     "exit_code": 0
-    }
-   ]
-  }
- ],
- "manifest_registration": {
-  "registered": true,
-  "manifest_path": "command-center/p2-wave/probes/TST-0030/UNIT-ARTIFACT-MANIFEST.json",
-  "entry_id": "TST-0030"
- },
- "min_bytes_threshold": 2048,
- "negative_controls": [
-  {
-   "id": "NC-ABSENT",
-   "kind": "absent-input",
-   "description": "Missing output_path must fail artifact_delivered.",
-   "fired_on_bad_state": true,
-   "silent_on_good_state": true,
-   "bad_state_output": "absent",
-   "good_state_output": "delivered"
-  }
- ],
- "report": {
-  "kind": "test-receipt",
-  "observations": [
-   {
-    "anchor": "command-center/receipts/TST-0030.json:freeze_sample.quiescent",
-    "measured": "FROZEN",
-    "method": "capture_tree on planted fixture with no mid_hook",
-    "name": "quiescent_label"
-   },
-   {
-    "anchor": "command-center/receipts/TST-0030.json:freeze_sample.mutated",
-    "measured": "SAMPLED",
-    "method": "capture_tree with mid_hook rewrite of subjects/b.json",
-    "name": "mutated_label"
-   }
-  ],
-  "control_ids": [
-   "test_mutation_during_capture_forces_the_sampled_label",
-   "test_quiescent_capture_earns_the_frozen_label"
-  ]
- },
- "retry": {
-  "count": 0,
-  "policy": "two strikes then pivot (AGENTS.md 4b)"
- },
- "reviewer": {
-  "reviewer_id": "schema-resolver",
-  "verdict": "PASS",
-  "independent": true,
-  "fresh_context": true,
-  "vendor": "custom",
-  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
- },
- "schema_version": 1,
- "sentinel": "SUCCESS:TST-0030",
- "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0030",
- "state": "SUCCESS",
- "tests": [
-  {
-   "id": "T-PARSE",
-   "name": "artifact parses as JSON",
-   "command": "python -c json.load(command-center/receipts/TST-0030.json)",
-   "result": "PASS",
-   "assertions": 1,
-   "duration_seconds": 0.01
-  },
-  {
-   "id": "test_mutation_during_capture_forces_the_sampled_label",
-   "name": "a tree mutated between capture start and end is labeled sampled, never baseline-eligible; probe1 re-derives the mutated capture live and compares",
-   "command": "python -B command-center/p2-wave/probes/TST-0030/probe1_mutation_sampled.py",
-   "result": "PASS",
-   "assertions": 6,
-   "duration_seconds": 0.4
-  }
- ],
- "timestamps": {
-  "started_at": "2026-08-25T00:20:00Z",
-  "ended_at": "2026-08-25T01:48:00Z",
-  "duration_seconds": 5280
- },
- "unit_id": "TST-0030",
- "extensions": {
-  "legacy_root": {
-   "adv_rebuild_circle": false,
-   "answer": "The capture tool in tools/command-center/freeze_sample.py hashes the tree at start and at end. A quiescent fixture earns label=FROZEN with start_tree_hash=569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11 equal to end_tree_hash and is baseline_eligible. A planted mid-capture rewrite of subjects/b.json plus an added subjects/c.json earns label=SAMPLED, enumerates those paths, sets anchoring=SAMPLED-AT-TIME, and as_baseline raises BaselineRefused so the mutated capture cannot be called a baseline. A live re-hash of tools/command-center/freeze_sample.py on this worktree was FROZEN. SUCCESS:TST-0030",
-   "cloud_ok": false,
-   "completion_sentinel": "SUCCESS:TST-0030",
-   "dependency_note": "TST-0023 (pinned-SHA baseline schema) is not delivered on this tree. TST-0030 ships the freeze-versus-sample labeller that such a capture must use; it does not claim TST-0023 delivered.",
-   "freeze_sample": {
-    "live_product_file": {
-     "anchoring": "SHA-ANCHORED",
-     "as_baseline_refused": null,
-     "baseline": null,
-     "baseline_eligible": true,
-     "baseline_refused": false,
-     "changed_path_names": [],
-     "changed_paths": [],
-     "end_tree_hash": "a3d77da71142cbb90442ed7af8a5ff2c8665fd4bae75a143b3cfb06fee6debad",
-     "ended_at": "2026-08-25T01:04:22Z",
-     "hashes_equal": true,
-     "label": "FROZEN",
-     "refused_code": null,
-     "refused_reason": null,
-     "sampled_at": null,
-     "snapshot": {
-      "file_count": 1,
-      "files": {
-       "freeze_sample.py": {
-        "bytes": 7756,
-        "sha256": "2af9084fcdbfd5783856747effefab26402cad2925fa8ab774c8b5f07802717d"
-       }
-      },
-      "tree_hash": "a3d77da71142cbb90442ed7af8a5ff2c8665fd4bae75a143b3cfb06fee6debad"
-     },
-     "start_tree_hash": "a3d77da71142cbb90442ed7af8a5ff2c8665fd4bae75a143b3cfb06fee6debad",
-     "started_at": "2026-08-25T01:04:22Z"
-    },
-    "mutated": {
-     "anchoring": "SAMPLED-AT-TIME",
-     "as_baseline_refused": true,
-     "baseline": null,
-     "baseline_eligible": false,
-     "baseline_refused": true,
-     "changed_path_names": [
-      "subjects/b.json",
-      "subjects/c.json"
-     ],
-     "changed_paths": [
-      {
-       "end_sha256": "54d75dd795b025d0ae4dc5dbd983ef589d1ff1519e3e72bdae7e58f5d3733b47",
-       "kind": "modified",
-       "path": "subjects/b.json",
-       "start_sha256": "30011abcb7c87c29d7081004dca8eaf53fcd02c309e49177ac7a999afc28e907"
-      },
-      {
-       "end_sha256": "847a9b004c7ce93d2c7570de53ec369d6f49fd49a4ff784146e8da4b9657aa7e",
-       "kind": "added",
-       "path": "subjects/c.json",
-       "start_sha256": null
-      }
-     ],
-     "end_tree_hash": "408d68d1e8e32682cb3779b9ba30ac2f1e8247ab601f77bf72ef85d7d4bc81c6",
-     "ended_at": "2026-08-25T01:04:22Z",
-     "hashes_equal": false,
-     "label": "SAMPLED",
-     "refused_code": "SAMPLED-NOT-BASELINE",
-     "refused_reason": "start_tree_hash != end_tree_hash; capture is a timestamped sample, not a baseline",
-     "sampled_at": "2026-08-25T01:04:22Z",
-     "snapshot": {
-      "file_count": 4,
-      "files": {
-       "counts.txt": {
-        "bytes": 8,
-        "sha256": "3bd55a7a71b8350a709eb2103e783836cdb04a72749f6c05c6173d696bf7ef0c"
-       },
-       "subjects/a.json": {
-        "bytes": 17,
-        "sha256": "b3e9140368f39c540e61daa034ff924316a517cfbb9cca72a2b3505badeb07a7"
-       },
-       "subjects/b.json": {
-        "bytes": 18,
-        "sha256": "54d75dd795b025d0ae4dc5dbd983ef589d1ff1519e3e72bdae7e58f5d3733b47"
-       },
-       "subjects/c.json": {
-        "bytes": 17,
-        "sha256": "847a9b004c7ce93d2c7570de53ec369d6f49fd49a4ff784146e8da4b9657aa7e"
-       }
-      },
-      "tree_hash": "408d68d1e8e32682cb3779b9ba30ac2f1e8247ab601f77bf72ef85d7d4bc81c6"
-     },
-     "start_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
-     "started_at": "2026-08-25T01:04:22Z"
-    },
-    "quiescent": {
-     "anchoring": "SHA-ANCHORED",
-     "as_baseline_refused": null,
-     "baseline": true,
-     "baseline_eligible": true,
-     "baseline_refused": false,
-     "changed_path_names": [],
-     "changed_paths": [],
-     "end_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
-     "ended_at": "2026-08-25T01:04:22Z",
-     "hashes_equal": true,
-     "label": "FROZEN",
-     "refused_code": null,
-     "refused_reason": null,
-     "sampled_at": null,
-     "snapshot": {
-      "file_count": 3,
-      "files": {
-       "counts.txt": {
-        "bytes": 8,
-        "sha256": "3bd55a7a71b8350a709eb2103e783836cdb04a72749f6c05c6173d696bf7ef0c"
-       },
-       "subjects/a.json": {
-        "bytes": 17,
-        "sha256": "b3e9140368f39c540e61daa034ff924316a517cfbb9cca72a2b3505badeb07a7"
-       },
-       "subjects/b.json": {
-        "bytes": 17,
-        "sha256": "30011abcb7c87c29d7081004dca8eaf53fcd02c309e49177ac7a999afc28e907"
-       }
-      },
-      "tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11"
-     },
-     "start_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
-     "started_at": "2026-08-25T01:04:22Z"
-    }
-   },
-   "named_probes": [
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0030/probe1_mutation_sampled.py",
-     "id": "probe1",
-     "role": "mutation-forces-sampled"
-    },
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0030/probe2_quiescent_frozen.py",
-     "id": "probe2",
-     "role": "quiescent-earns-frozen"
-    }
-   ],
-   "question": "Measured on this program: the tree was NOT frozen during baseline capture - concurrent sibling agents mutated it mid-snapshot, so every working-tree number was a timestamped sample. Target: the capture tool re-hashes the tree at start and end and labels the artifact FROZEN or SAMPLED accordingly, refusing to call a mutated capture a baseline.",
-   "report_kind": "test-receipt",
-   "required_fix": null,
-   "title": "Freeze-versus-sample labelling: detect concurrent mutation during a snapshot"
-  }
- },
- "downstream_consumers": [
-  {
-   "consumer": "platform/lib/schema_resolver.py validate_artifact",
-   "artifact_path": "command-center/receipts/TST-0030.json",
-   "executed": true,
-   "read_ok": true,
-   "exit_code": 0,
-   "probe": {
-    "role": "verifier",
-    "method": "schema-validate",
-    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0030.json",
-    "raw_output": "SUCCESS:schema-valid",
-    "fingerprint": "3d56eb7905507a3eafab41122c536cd5",
-    "exit_code": 0
-   }
-  }
- ],
- "residual_unknowns": [
-  {
-   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
-   "verdict": "NOT-CHECKED",
-   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
-  }
- ],
- "defects": [],
- "produced_by": {
-  "vendor": "anthropic",
-  "model": "cursor-grok-4.6",
-  "role": "implementer",
-  "execution_substrate": "ovh-leftover-fleet"
- },
  "adv_rebuild_circle": false,
  "answer": "The capture tool in tools/command-center/freeze_sample.py hashes the tree at start and at end. A quiescent fixture earns label=FROZEN with start_tree_hash=569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11 equal to end_tree_hash and is baseline_eligible. A planted mid-capture rewrite of subjects/b.json plus an added subjects/c.json earns label=SAMPLED, enumerates those paths, sets anchoring=SAMPLED-AT-TIME, and as_baseline raises BaselineRefused so the mutated capture cannot be called a baseline. A live re-hash of tools/command-center/freeze_sample.py on this worktree was FROZEN. SUCCESS:TST-0030",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0030.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/test-receipt.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/command-center/freeze_sample.py",
+   "role": "supporting"
+  }
+ ],
  "cloud_ok": false,
  "completion_sentinel": "SUCCESS:TST-0030",
  "dependency_note": "TST-0023 (pinned-SHA baseline schema) is not delivered on this tree. TST-0030 ships the freeze-versus-sample labeller that such a capture must use; it does not claim TST-0023 delivered.",
+ "evidence": [
+  {
+   "anchor": "tools/command-center/freeze_sample.py:165",
+   "claim": "Start and end tree hashes decide FROZEN vs SAMPLED.",
+   "line": 165,
+   "path": "tools/command-center/freeze_sample.py",
+   "snippet": "label = LABEL_FROZEN if frozen else LABEL_SAMPLED",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/command-center/freeze_sample.py:204",
+   "claim": "A SAMPLED capture cannot be promoted to a baseline.",
+   "line": 204,
+   "path": "tools/command-center/freeze_sample.py",
+   "snippet": "raise BaselineRefused(",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0030/scenario.py:38",
+   "claim": "Planted mutation rewrites subjects/b.json and adds subjects/c.json.",
+   "line": 38,
+   "path": "command-center/p2-wave/probes/TST-0030/scenario.py",
+   "snippet": "mutate_mid_capture",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/receipts/TST-0030.json:freeze_sample.mutated",
+   "changed_path_names": [
+    "subjects/b.json",
+    "subjects/c.json"
+   ],
+   "claim": "Mutated capture start_tree_hash differs from end_tree_hash (569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11 != 408d68d1e8e32682cb3779b9ba30ac2f1e8247ab601f77bf72ef85d7d4bc81c6) and changed_path_names=['subjects/b.json', 'subjects/c.json'].",
+   "end_tree_hash": "408d68d1e8e32682cb3779b9ba30ac2f1e8247ab601f77bf72ef85d7d4bc81c6",
+   "start_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/receipts/TST-0030.json:freeze_sample.quiescent",
+   "claim": "Quiescent capture hashes match (569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11) and label=FROZEN.",
+   "end_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
+   "start_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
+   "verdict": "CONFIRMED"
+  }
+ ],
  "freeze_sample": {
   "live_product_file": {
    "anchoring": "SHA-ANCHORED",
@@ -330,7 +75,7 @@
    "changed_path_names": [],
    "changed_paths": [],
    "end_tree_hash": "a3d77da71142cbb90442ed7af8a5ff2c8665fd4bae75a143b3cfb06fee6debad",
-   "ended_at": "2026-08-25T01:04:22Z",
+   "ended_at": "2026-09-02T05:42:44Z",
    "hashes_equal": true,
    "label": "FROZEN",
    "refused_code": null,
@@ -347,7 +92,7 @@
     "tree_hash": "a3d77da71142cbb90442ed7af8a5ff2c8665fd4bae75a143b3cfb06fee6debad"
    },
    "start_tree_hash": "a3d77da71142cbb90442ed7af8a5ff2c8665fd4bae75a143b3cfb06fee6debad",
-   "started_at": "2026-08-25T01:04:22Z"
+   "started_at": "2026-09-02T05:42:44Z"
   },
   "mutated": {
    "anchoring": "SAMPLED-AT-TIME",
@@ -374,12 +119,12 @@
     }
    ],
    "end_tree_hash": "408d68d1e8e32682cb3779b9ba30ac2f1e8247ab601f77bf72ef85d7d4bc81c6",
-   "ended_at": "2026-08-25T01:04:22Z",
+   "ended_at": "2026-09-02T05:42:44Z",
    "hashes_equal": false,
    "label": "SAMPLED",
    "refused_code": "SAMPLED-NOT-BASELINE",
    "refused_reason": "start_tree_hash != end_tree_hash; capture is a timestamped sample, not a baseline",
-   "sampled_at": "2026-08-25T01:04:22Z",
+   "sampled_at": "2026-09-02T05:42:44Z",
    "snapshot": {
     "file_count": 4,
     "files": {
@@ -403,7 +148,7 @@
     "tree_hash": "408d68d1e8e32682cb3779b9ba30ac2f1e8247ab601f77bf72ef85d7d4bc81c6"
    },
    "start_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
-   "started_at": "2026-08-25T01:04:22Z"
+   "started_at": "2026-09-02T05:42:44Z"
   },
   "quiescent": {
    "anchoring": "SHA-ANCHORED",
@@ -414,7 +159,7 @@
    "changed_path_names": [],
    "changed_paths": [],
    "end_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
-   "ended_at": "2026-08-25T01:04:22Z",
+   "ended_at": "2026-09-02T05:42:44Z",
    "hashes_equal": true,
    "label": "FROZEN",
    "refused_code": null,
@@ -439,9 +184,15 @@
     "tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11"
    },
    "start_tree_hash": "569b4f4f5e3ad3f3af55fe39864df8a8e65d74d52012007432fd5d02315eba11",
-   "started_at": "2026-08-25T01:04:22Z"
+   "started_at": "2026-09-02T05:42:44Z"
   }
  },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/TST-0030/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
  "named_probes": [
   {
    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0030/probe1_mutation_sampled.py",
@@ -454,8 +205,72 @@
    "role": "quiescent-earns-frozen"
   }
  ],
+ "negative_controls": [
+  {
+   "description": "A capture that stored only the start hash would still claim FROZEN after the planted rewrite. The live tool records a different end hash and refuses baseline.",
+   "fired_on_bad_state": true,
+   "id": "start-only-hasher",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
  "question": "Measured on this program: the tree was NOT frozen during baseline capture - concurrent sibling agents mutated it mid-snapshot, so every working-tree number was a timestamped sample. Target: the capture tool re-hashes the tree at start and end and labels the artifact FROZEN or SAMPLED accordingly, refusing to call a mutated capture a baseline.",
+ "report": {
+  "control_ids": [
+   "test_mutation_during_capture_forces_the_sampled_label",
+   "test_quiescent_capture_earns_the_frozen_label"
+  ],
+  "kind": "test-receipt",
+  "observations": [
+   {
+    "anchor": "command-center/receipts/TST-0030.json:freeze_sample.quiescent",
+    "measured": "FROZEN",
+    "method": "capture_tree on planted fixture with no mid_hook",
+    "name": "quiescent_label"
+   },
+   {
+    "anchor": "command-center/receipts/TST-0030.json:freeze_sample.mutated",
+    "measured": "SAMPLED",
+    "method": "capture_tree with mid_hook rewrite of subjects/b.json",
+    "name": "mutated_label"
+   }
+  ]
+ },
  "report_kind": "test-receipt",
  "required_fix": null,
- "title": "Freeze-versus-sample labelling: detect concurrent mutation during a snapshot"
+ "retry": {
+  "count": 0,
+  "policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum, re-run only with a changed hypothesis recorded first"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Mechanical reviewer: re-run the quiescent fixture and the live product-file hash. Catalog also names a cross-vendor refuter and a Windows-shell specialist who are not in this headless worker. No ADV rebuild.",
+  "reviewer_id": "TST-0030-probe2-quiescent-frozen",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0030",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0030",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0030/probe1_mutation_sampled.py",
+   "id": "test_mutation_during_capture_forces_the_sampled_label",
+   "name": "Planted rewrite mid-capture labels SAMPLED and enumerates paths",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0030/probe2_quiescent_frozen.py",
+   "id": "test_quiescent_capture_earns_the_frozen_label",
+   "name": "No mutation: start hash equals end hash and baseline is allowed",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-09-02T05:42:44Z",
+  "started_at": "2026-09-02T05:42:44Z"
+ },
+ "title": "Freeze-versus-sample labelling: detect concurrent mutation during a snapshot",
+ "unit_id": "TST-0030"
 }

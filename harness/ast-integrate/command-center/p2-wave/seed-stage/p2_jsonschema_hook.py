@@ -832,10 +832,15 @@ def install() -> None:
                     if _local_schema_uri(str(url)):
                         doc = _retrieve_contents(str(url))
                         if method_name == "resolve_from_url":
-                            try:
-                                sample = orig_m.__doc__ or ""
-                            except Exception:
-                                sample = ""
+                            # resolve_from_url receives the full ref (with its
+                            # "#/$defs/..." fragment); returning the whole
+                            # document here would make every fragment ref
+                            # resolve to a constraint-free $defs container and
+                            # accept garbage. Descend into the fragment.
+                            fragment = str(url).split("#", 1)[1] if "#" in str(url) else ""
+                            resolve_fragment = getattr(self, "resolve_fragment", None)
+                            if fragment and resolve_fragment is not None:
+                                return resolve_fragment(doc, fragment)
                             return doc
                         return doc
                     return orig_m(self, url)
