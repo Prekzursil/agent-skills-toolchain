@@ -118,9 +118,13 @@ get there, and they are stated here so the next pass does not have to recover th
   otherwise `absent`. In the survival split, the same-path count is always credited to "same path"
   and a relocation adds only its increment.
 
-Signal 5 found an exact landing commit for **10 of the 17** branches and every one was a clean
-merge whose result matched a real commit on `main`; all 10 squash patch-id hits resolve to commits
-that are ancestors of `main`. Signal 6 is what turns "27 residue paths" on the supervisor branch
+Signal 5 found an exact landing commit for **9 of the 17** branches and every one was a clean
+merge whose result matched a real commit on `main`; all 9 squash patch-id hits resolve to commits
+that are ancestors of `main`. The three contained branches it did *not* pin exactly
+(`chore/hygiene-academic-skills-20260825`, `ci/execute-never-run-dualwrite-steps`,
+`lane-cigreen/dual-write-gates`) landed inside commits that also carried other work, so the
+merge-result tree matches on every path the branch touched (17/17, 2/2, 2/2) but not on the whole
+tree; the tree signal and, for the second, patch-id carry them. Signal 6 is what turns "27 residue paths" on the supervisor branch
 into "10 absent, 16 landed-then-edited, 1 pure deletion".
 
 ### 2a. Limits of this measurement, stated up front
