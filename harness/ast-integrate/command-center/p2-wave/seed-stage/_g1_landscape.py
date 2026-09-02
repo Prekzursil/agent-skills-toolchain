@@ -13,23 +13,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-MON = Path("/mnt/c/Users/Prekzursil/source/ast-integrate/command-center/p2-wave/ovh-monitor")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _g1_paths import latest_rows  # noqa: E402  (02.09: Linux-native path fallback)
 
-latest = {}
-for src in [MON / "g1-local-full.jsonl", MON / "g1-fails-rerun.jsonl",
-            *sorted((MON / "repair-claude").glob("*.jsonl"), key=lambda p: p.stat().st_mtime)]:
-    if not src.is_file():
-        continue
-    for line in src.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            rec = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if rec.get("id"):
-            latest[rec["id"]] = rec
+latest = latest_rows()
 
 EXC_RE = re.compile(r"^\s*([A-Za-z_]+(?:Error|Exception|Exit|Interrupt|Warning))\b:?\s*(.*)$")
 PROBE_FAIL_RE = re.compile(r"FAILED:[A-Z]{2,5}-\d{4}(?:-probe\d)?\s+(.*)$")

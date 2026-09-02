@@ -132,3 +132,41 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
   (`wsl.exe bash -lc 'pgrep -af g1_remeasure'`); then `_g1_rsync.sh`; then measure with
   G1_WORKERS<=8.
 - Fail-closed: green ONLY at full-census 2007/2007 + independent recount + 12-ID spot-check.
+
+## Cloud orchestrator 02.09 (cloud-p2-orchestrator-0209, started 02.09 06:21 EEST, native Linux)
+- **Where:** repo `Prekzursil/agent-skills-toolchain`, branch `p2/loop-to-green-2026-09-02` (from
+  `handoff/cloud-agent-2026-09-02` @ f3a650220). The captured tree `harness/ast-integrate/` IS the
+  workspace: no WSL, no rsync mirror, no Windows copy-back. Box: 8 vCPU, 47 GB RAM, Python 3.12.3.
+- **Environment (recorded so it is reproducible):** `pip install --break-system-packages jsonschema
+  referencing` (4.26.0); `p2_jsonschema_hook.py` + `sitecustomize_jsonschema.py` + `p2g1.pth` copied
+  into the user site exactly as `_g1_boot.sh` does (`python3 -c 'import p2_jsonschema_hook'` → HOOK-OK).
+- **Path adaptation (step 1):** new `seed-stage/_g1_paths.py` resolves ROOT/WIN/MON/LOG/CATALOG:
+  `AST_INTEGRATE_ROOT` → Windows mirror layout when `/mnt/c/...` exists → else the repo tree the file
+  lives in (`WIN == ROOT`, `NATIVE=True`). `_g1_remaining_fails.py`, `_g1_cluster_members.py`,
+  `_g1_landscape.py`, `_g1_regen_par.py` now import it (owner's WSL flow unchanged when the mirror
+  exists). `_g1_regen_par.py` additionally: `ALL` ids-file = whole catalog (a census as a wave),
+  copy-back is a no-op when native, rows carry `ts`/`secs`/`cls` (same taxonomy as
+  `g1_remeasure_all.one`). `_g1_sync_measure.sh` is not needed natively (its two halves are: edit in
+  place, then `_g1_regen_par.py <ids> <wave> --no-regen`).
+- **Overlay ordering fix:** in a git checkout every jsonl carries the checkout mtime, so the mtime
+  sort in the overlay tools was arbitrary (measured: 692 fails by mtime order vs 668 by chronology —
+  24 units flipped). `_g1_paths.overlay_sources()` now pins the legacy waves in ledger order
+  (mod-pass1 → timeout-pass1 → batch6-predicate → wave-regen-listget → wave-regen-full →
+  wave-regen-0209), then cloud waves `w0902-NN-*` by name.
+- **Baseline reproduced (step 1, disk-verified):**
+  - overlay WITHOUT `wave-regen-0209.jsonl` = **893 fails**, set-identical to
+    `repair-claude/ids-remaining-0209.txt` (diff 0) — the 02:28 takeover figure.
+  - `wave-regen-0209.jsonl` is COMPLETE in the capture (893 rows, 893 unique ids: 225 ok / 668 fail;
+    the owner-side respawn loop finished before the 05:40 capture) → current overlay = **668 fails**
+    (`python3 seed-stage/_g1_remaining_fails.py` → `total=2007 fails=668`).
+  - Native single-unit measure works and reproduces landscape signatures byte-for-byte (IMP-0033
+    `'tuple' object has no attribute 'get'`, ADV-0103 `CouncilSpecBuilder ... spec_id`, TST-0013
+    `Result ... rejection_reason`); ~1.1–2.6 s per unit natively (vs ~40 s/unit under WSL).
+  - Smoke wave `w0902-00-smoke` (5 ids, 5 workers): 2 ok / 3 fail, rows + log lines landed.
+- **Commands (step 1):** `cd harness/ast-integrate/command-center/p2-wave/seed-stage && python3
+  _g1_paths.py && python3 _g1_remaining_fails.py /tmp/ids.txt`; single unit: `cd harness/ast-integrate
+  && python3 command-center/p2-wave/_measure_one_delivered.py <ID>`; wave: `G1_WORKERS=8 python3
+  command-center/p2-wave/seed-stage/_g1_regen_par.py <ids|ALL> <w0902-NN-name> [--no-regen]`.
+- **Parallelism:** sanctioned here (cloud VM, 47 GB free); 8 workers. Every repaired unit is
+  re-measured by a wave row before it counts. Green stays fail-closed: full native census 2007/2007
+  + independent recount + 12-ID spot-check.

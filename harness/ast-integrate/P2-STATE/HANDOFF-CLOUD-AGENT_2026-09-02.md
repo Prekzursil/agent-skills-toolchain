@@ -8,6 +8,18 @@
 
 ## WORKER CLAIM (coordination — read this before touching the repo)
 
+- **Active worker (P2 loop-to-green orchestrator):** `cloud-p2-orchestrator-0209` (Cursor cloud
+  agent, Fable 5.1), started 02.09 06:21 EEST on branch `p2/loop-to-green-2026-09-02` (from
+  `handoff/cloud-agent-2026-09-02` @ `f3a650220`). Holds `harness/ast-integrate/**` (P2 repair
+  edits, `command-center/p2-wave/seed-stage/*`, `ovh-monitor/repair-claude/w0902-*.jsonl`, the
+  append-only repair log) and `harness/ast-integrate/P2-STATE/*`. Commits + pushes after every
+  green step; a claim older than 20 min without a new push is stale.
+- **Claim refreshed:** 02.09 06:31 EEST — step 1 (native measurement established, 893 overlay
+  reproduced). Next: native full census (`w0902-01-census-native`, 8 workers).
+- Stage-1 capture claim below (worker-B) is superseded: the capture landed on the handoff branch.
+
+### Stage-1 claim (historical, `stage1-worker-B`)
+
 - **Active worker:** `stage1-worker-B` (Cursor subagent, Fable 5.1), started 02.09 03:05 EEST.
 - **Claim refreshed:** 02.09 03:50 EEST — holds `scripts/sync-from-live.ps1`, `harness/**`,
   `.gitignore`, `scripts/test_sync_from_live.py` and the `handoff/cloud-agent-2026-09-02` branch

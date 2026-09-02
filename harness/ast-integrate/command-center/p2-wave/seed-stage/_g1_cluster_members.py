@@ -5,27 +5,16 @@ Usage: python3 _g1_cluster_members.py "<substring>" [n_tail_chars]
 Reads latest-state from g1-local-full.jsonl, then overlays every
 repair-claude/*.jsonl so already-repaired units are excluded.
 """
-import json
 import sys
 from pathlib import Path
 
-MON = Path("/mnt/c/Users/Prekzursil/source/ast-integrate/command-center/p2-wave/ovh-monitor")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _g1_paths import latest_rows  # noqa: E402  (02.09: Linux-native path fallback)
+
 needle = sys.argv[1]
 ntail = int(sys.argv[2]) if len(sys.argv) > 2 else 900
 
-latest = {}
-for src in [MON / "g1-local-full.jsonl", MON / "g1-fails-rerun.jsonl", *sorted((MON / "repair-claude").glob("*.jsonl"), key=lambda p: p.stat().st_mtime)]:
-    if not src.is_file():
-        continue
-    for line in src.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            rec = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        latest[rec.get("id")] = rec
+latest = latest_rows()
 
 members = []
 for uid, rec in sorted(latest.items()):
