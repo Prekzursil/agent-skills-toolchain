@@ -56,7 +56,7 @@ def build_receipt() -> dict:
         ),
         "answer": (
             "The reported confidence is a histogram-calibrated mapping from "
-            "reciprocal-rank-fusion margin, not the raw RRF score. On this "
+            "the fused stage score, not the raw fused score. On this "
             f"labelled corpus (n={prod['n']}) every occupied reliability bin "
             f"has |observed_accuracy - predicted_confidence| <= 0.15, Brier="
             f"{prod['brier']:.6f}. The 0.9 band is occupied. A sign-flipped "
@@ -67,13 +67,14 @@ def build_receipt() -> dict:
         "cloud_ok": False,
         "computed_at": now,
         "fusion": {
-            "method": "reciprocal-rank-fusion",
-            "formula": "score(d) = w_det/(k+rank_det(d)) + w_sem/(k+rank_sem(d))",
+            "method": "weighted-linear-fusion-of-stage-scores (tools/router/fusion.py linear_fuse)",
+            "formula": "fused(d) = clip01(w_det*det(d) + w_sem*sem(d)); confidence = histogram_calibrate(fused)",
+            "rank_list_fusion": "reciprocal-rank-fusion, k=60 (fusion.fuse_rankings) for ordering candidates",
             "k": 60,
             "production_weights": mutation["production_weights"],
             "deterministic_stage": (
-                "keyword/glob/cwd-prefix/tool-verb (IMP-0389 matcher kinds; "
-                "IMP-0389 receipt absent on this worktree)"
+                "keyword/glob/cwd-prefix/tool-verb role hits "
+                "(tools/router/stages.py deterministic_score; IMP-0389 matcher kinds)"
             ),
             "semantic_stage": {
                 "method": SEMANTIC_METHOD,
@@ -177,10 +178,6 @@ def build_receipt() -> dict:
             {"path": "tools/router/fusion.py", "role": "implementation"},
             {"path": "tools/router/stages.py", "role": "implementation"},
             {"path": "tools/router/corpus.py", "role": "implementation"},
-            {
-                "path": "tools/router/fixtures/capability-index.json",
-                "role": "fixture",
-            },
             {
                 "path": "tools/router/fixtures/labelled-queries.json",
                 "role": "fixture",

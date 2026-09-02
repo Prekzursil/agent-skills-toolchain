@@ -24,7 +24,6 @@ SUPPORTING = [
     "tools/router/fusion.py",
     "tools/router/stages.py",
     "tools/router/corpus.py",
-    "tools/router/fixtures/capability-index.json",
     "tools/router/fixtures/labelled-queries.json",
     "tools/router/tests/test_fusion.py",
     "command-center/p2-wave/probes/IMP-0391/probe1_calibration.py",

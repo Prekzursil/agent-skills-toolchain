@@ -45,6 +45,50 @@ if str(ROOT) not in sys.path:
 from router.route import route_query  # noqa: E402
 
 
+EXAMPLE_INDEX = "command-center/p2-wave/probes/IMP-0403/fixtures/capability-index.json"
+
+# Every example below is a complete command an owner can paste from the repo
+# root.  A reviewer running ONLY these must see exit 0 and a JSON object on
+# stdout; two of them route to a capability, one is a terminal no-fit.
+ROUTE_EXAMPLES: tuple[tuple[str, str], ...] = (
+    (
+        "python3 tools/ast.py route "
+        '--query "lint a Python module for unused imports" '
+        f"--index {EXAMPLE_INDEX}",
+        "SELECTED: skill.python-lint; runners-up disclosed under near_misses",
+    ),
+    (
+        "python3 tools/ast.py route "
+        '--query "summarize this PDF document for an owner briefing" '
+        f"--index {EXAMPLE_INDEX} --cwd .",
+        "SELECTED: skill.pdf-summarize; --cwd is recorded, never used to inject",
+    ),
+    (
+        "python3 tools/ast.py route "
+        '--query "what is the weather in Paris tomorrow" '
+        f"--index {EXAMPLE_INDEX}",
+        "NO-CAPABILITY-FITS: terminal refusal; closest rejected candidates disclosed",
+    ),
+)
+
+
+def route_epilog() -> str:
+    lines = [
+        "examples (run from the repository root; stdout is one JSON object):",
+    ]
+    for cmd, note in ROUTE_EXAMPLES:
+        lines.append(f"  {cmd}")
+        lines.append(f"      # {note}")
+    lines.append("")
+    lines.append(
+        "output keys: verdict (SELECTED | NO-CAPABILITY-FITS, always terminal), "
+        "selected, confidence, near_misses[*].cutoff_reason, explanation, "
+        "injection_performed=false, injected=[], session_started=false. "
+        "Capability bodies are never printed."
+    )
+    return "\n".join(lines)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ast")
     parser.add_argument("--version", action="version", version="ast 0.1.0")
@@ -53,6 +97,8 @@ def build_parser() -> argparse.ArgumentParser:
         "route",
         help="route a query against a capability index",
         description="Route a query without injecting anything. Undocumented flags are rejected.",
+        epilog=route_epilog(),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     route.add_argument("--query", required=True, help="natural-language query")
     route.add_argument("--index", default="capability-index.json", help="capability index path")
