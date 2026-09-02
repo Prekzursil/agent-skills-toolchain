@@ -333,7 +333,128 @@ the endpoint" (L7).
 
 ## 3. Proposed `.agents/models.json` schema
 
-_(pending)_
+### 3.1 Placement decision: separate file, not a block in `agents.json`  **[REC]**
+- `agents.json` is validated by `mcp_control_plane.validate_registry`, which fails closed on
+  shape it does not recognise, and is consumed by three merge scripts plus `sync_shared_state.ps1`
+  (`lastSync`, `lastSyncSourceHash` at top level). Adding a `models` block would (a) widen the
+  blast radius of every models edit to the MCP fleet, (b) force the MCP validator to learn a
+  second domain, and (c) change `lastSyncSourceHash` on every model tweak. **[INFER]**
+- **[REC]** New sibling file `.agents/models.json` with its own `schemaVersion: 1`, its own
+  validator module `.agents/scripts/models_control_plane.py` (mirrors `mcp_control_plane.py`),
+  and *one* cross-reference: the inference MCP server entry in `agents.json` (section 5) declares
+  `"x_models": {"registry": ".agents/models.json"}` so `sync_shared_state.ps1` can hash both.
+- Provenance (why an endpoint exists, who asked) goes to `.provenance/.agents/models.json.md`
+  per the AGENTS.md rule "never add a manifest key merely to carry provenance". Tier A.
+
+### 3.2 Top-level shape (JSON Schema 2020-12, abridged; full draft in 3.4)
+```jsonc
+{
+  "schemaVersion": 1,
+  "policy": {                       // defaults every endpoint inherits (same idiom as mcp.policy)
+    "healthProbe": {"kind": "models-list", "timeoutMs": 8000, "intervalSec": 900},
+    "capabilityProbe": {"enabled": true, "ttlHours": 168},
+    "budget": {"currency": "USD", "monthlyCapUsd": 0, "onExceeded": "disable"},
+    "allowLocalhostHttp": true,     // http:// only for 127.0.0.1/localhost/[::1] (mirrors gemini-cli validateBaseUrl)
+    "targets": ["codex","grok","goose","fabric","opencode","aider","inference-mcp"]
+  },
+  "endpoints":  { "<endpoint-id>": Endpoint },    // where tokens come from
+  "models":     { "<model-id>":    Model    },    // what runs there
+  "aliases":    { "<alias>": "<model-id>" },      // estate-wide names: "fast", "cheap-extract", "cursor-default"
+  "locks":      [ Lock ]                          // machine-readable copies of L1-L7 the validator enforces
+}
+```
+
+### 3.3 `Endpoint` object
+| Field | Type | Rule / rationale |
+|---|---|---|
+| `kind` | enum `hf-router \| hf-endpoint \| hf-space \| openrouter \| ollama \| lmstudio \| llamacpp \| modal \| runpod \| lightning \| azure-foundry \| cursor-auth2api \| generic-openai` | drives probe strategy + materializer eligibility |
+| `baseUrl` | string (uri) | MUST end in `/v1` for OpenAI-compatible kinds (Fabric/Aider/Goose sharp edges, section 2); `https://` required unless host is loopback (`policy.allowLocalhostHttp`) |
+| `auth` | object `{ "scheme": "bearer\|header\|none", "env": "NAME", "headerName"?: "x-api-key", "localJsonPath"?: "/hf/token", "altEnv"?: ["HF_TOKEN"] }` | `env` MUST match `^[A-Z][A-Z0-9_]*$`; the value NEVER appears (reuse `LITERAL_SECRET_RE` + `is_credential_name`); `localJsonPath` is a JSON Pointer into `~/.agents/local.json` for the launch-time resolver; `altEnv` feeds Grok's `env_key` array |
+| `wire` | object `{ "chat_completions": Cap, "responses": Cap, "messages": Cap, "gradio": Cap }` | `Cap` = section 3.5 lattice value |
+| `features` | object `{ "tools": Cap, "json_schema": Cap, "json_object": Cap, "vision": Cap, "streaming": Cap, "reasoning": Cap, "stateful": Cap }` | per-endpoint; a `Model` may override downward only (a model cannot claim more than its endpoint) |
+| `cost` | object `{ "mode": "per-token\|subscription\|free\|gpu-hour", "inputUsdPerM"?: n, "outputUsdPerM"?: n, "gpuUsdPerHour"?: n, "quota"?: {"unit": "requests\|tokens\|credits", "readEndpoint"?: "GET /v1/key"} }` | OpenRouter exposes `GET /api/v1/key` limits (Tier A repo skill); auth2api is `subscription` (Cursor quota); local is `free` (RAM is the real cost - see `resource`) |
+| `resource` | object `{ "ramBytes"?: n, "vramBytes"?: n, "exception"?: "text>=20 chars" }` | local endpoints only; mirrors `maxPrivateBytes`+`resourceException` idiom; box has 31.6 GB and is memory-starved (task brief) - the validator sums `ramBytes` of `enabled` local endpoints and warns above a `policy.localRamBudgetBytes` |
+| `health` | object `{ "kind": "models-list\|chat-ping\|http-head\|none", "path"?: "/models", "expectStatus"?: 200, "timeoutMs"?: n }` | `models-list` = `GET {baseUrl}/models` (Fabric, Grok and Goose all rely on it) |
+| `targets` | object `{ "<runtime>": "native\|fallback\|unsupported\|excluded" }` | explicit per runtime; validator fills `excluded` + reason when a lock or a wire gap forbids (e.g. Codex for a chat-only endpoint) |
+| `tags` | string[] nonempty | reuse the estate vocabulary: `approved`, `owner-requested`, `hosted-inference`, `local`, `sidecar`, `default-off` |
+| `enabled` | bool (default true) | |
+| `singletonKey` | string | e.g. all Cursor-bridge endpoints share `cursor-bridge` so at most one is materialized (L3 + G-36) |
+| `retiresWhen` | string | free text tied to a lock, e.g. `"official Cursor /v1 GA + 7 days"` for `cursor-auth2api` (L3) |
+| `x_codex`, `x_grok`, `x_goose`, `x_fabric`, `x_opencode`, `x_aider` | closed objects | runtime-specific knobs that have no estate meaning (`request_max_retries`, `api_backend`, `timeout_seconds`, `edit_format`...). Closed schema each, as `x_codex`/`x_cursor` are today |
+
+### 3.4 `Model` object
+```jsonc
+"models": {
+  "glm-5.3@hf-router": {
+    "endpoint": "hf-router",
+    "remoteId": "zai-org/GLM-5.3",          // exact id sent on the wire
+    "displayName": "GLM 5.3 (HF router)",
+    "contextWindow": 131072, "maxOutput": 8192,
+    "features": {"tools": "probed", "json_schema": "declared", "vision": "absent"},   // downward overrides only
+    "cost": {"inputUsdPerM": 0.0, "outputUsdPerM": 0.0},                               // per-model price if the endpoint bills per model
+    "roles": ["cheap-extract","learner"],    // maps to hosted-model-agents profiles.md packs, by name only
+    "tags": ["approved","owner-requested"]
+  }
+}
+```
+- `model-id` convention `<slug>@<endpoint-id>` keeps the same checkpoint on two endpoints distinct
+  (`qwen3-8b@ollama` vs `qwen3-8b@lmstudio`), which the RAM budget and the eval harness (lens 08)
+  both need. Materializers slugify `@` to `-` for runtimes that dislike it (OpenCode: no dots;
+  Grok: quoted keys fine; Codex: provider id only, model id separate).
+- `aliases` are the only names skills/prompts may reference (L5: prompts live in `.agents/skills`
+  and must not hardcode a checkpoint - that was the qwen-space mistake).
+
+### 3.5 The capability lattice (the part the glm53-space adapter lacked)
+```
+                 native
+                /      \
+           probed      declared
+                \      /
+                emulated
+                   |
+                 absent
+```
+| Value | Meaning | Who may set it |
+|---|---|---|
+| `native` | vendor documents it AND the estate has exercised it | validator upgrades `probed`->`native` after N=3 successful probes over 7 days |
+| `probed` | the estate's probe (section 7) succeeded at least once; carries `{at, version}` | probe job only |
+| `declared` | vendor docs say yes; never exercised here | human, with a URL in `.provenance` |
+| `emulated` | the inference MCP (section 5) can fake it (e.g. `json_schema` via post-validation + retry; `tools` via prompt-format ReAct) | inference MCP capability table only |
+| `absent` | known not to work, or wire returned 404/400 | probe job or human |
+- Materializers consult the lattice with a **floor**: Codex requires `wire.responses >= probed`;
+  Fabric requires `wire.responses >= probed` OR sets `disableResponsesAPI` (global tradeoff,
+  surfaced in the dry-run report); Goose/Grok/OpenCode/Aider require `wire.chat_completions >=
+  declared`; the inference MCP accepts anything `>= emulated` and reports the level in its
+  tool result so the calling agent knows what it got.
+- Storing `probed` with a timestamp (not a boolean) is what lets `evals.md` in
+  `hosted-model-agents` and lens 08's harness read the same file instead of a second ledger.
+
+### 3.6 `Lock` object - the estate locks as data the validator enforces
+```jsonc
+"locks": [
+  {"id":"L1","rule":"openrouter-sidecar-only","assert":"endpoints[kind=openrouter].targets.cursor == 'excluded' && targets.claude == 'excluded' && no endpoint kind=openrouter has x_mcp"},
+  {"id":"L2","rule":"no-gateway-runtime","assert":"no endpoint.baseUrl host matches /litellm|langgraph/ and no endpoint.kind == 'gateway'"},
+  {"id":"L3","rule":"single-cursor-bridge","assert":"count(endpoints[kind=cursor-auth2api && enabled]) <= 1 && baseUrl == 'http://127.0.0.1:8317/v1' && retiresWhen present"},
+  {"id":"L4","rule":"owned-ports","assert":"no new endpoint.baseUrl port in {8765,8812,8317} unless kind == cursor-auth2api"},
+  {"id":"L6","rule":"never-rotate","assert":"materializers never write a credential value; resolver is read-only on local.json"}
+]
+```
+L5 and L7 are process locks, not data; they are enforced by the test plan (section 7) and the
+dry-run report format (every exclusion carries a reason and the alternative route).
+
+### 3.7 Seed content (what the file holds on day one) **[REC]**
+| endpoint-id | kind | baseUrl | auth.env | wire.responses | first targets |
+|---|---|---|---|---|---|
+| `hf-router` | hf-router | `https://router.huggingface.co/v1` | `HUGGINGFACE_TOKEN` (alt `HF_TOKEN`) | `declared`-> probe | grok, goose, opencode, aider, inference-mcp; codex after probe |
+| `openrouter` | openrouter | `https://openrouter.ai/api/v1` | `OPENROUTER_API_KEY` | `native` | codex (non-default profile), grok, goose, aider; **cursor/claude excluded (L1)** |
+| `cursor-auth2api` | cursor-auth2api | `http://127.0.0.1:8317/v1` | `AUTH2API_TOKEN` or `none` (UNVERIFIED which) | probe | goose (`goose-cursor-proxy` exists), grok (`cursor-grok-4.6` exists), fabric/claude/codex wrappers exist; `retiresWhen: "Cursor /v1 GA + 7d"` |
+| `ollama` | ollama | `http://127.0.0.1:11434/v1` | none | `native` (>=0.13.3, non-stateful) | all; `resource.ramBytes` per model |
+| `lmstudio` | lmstudio | `http://127.0.0.1:1234/v1` | none | `native` (>=0.3.29, stateful) | all |
+| `llamacpp` | llamacpp | `http://127.0.0.1:<port>/v1` | none | `absent` -> Fabric needs `disableResponsesAPI`; Codex excluded with reason | grok, goose, opencode, aider, inference-mcp |
+| `azure-foundry-*` | azure-foundry | per deployment | `AZURE_OPENAI_API_KEY` | `native` (+`api-version`) | codex (`query_params`), grok, goose |
+| `hf-space-*`, `modal-*`, `runpod-*`, `lightning-*` | per deploy | per deploy | per deploy | probe | added by the deploy recipe, default `enabled: false` until probed |
+The `hf-router` + model `glm-5.3@hf-router` row is the literal replacement for glm53-space's
+hardcoded pair (section 6).
 
 ## 4. Materializers (per runtime) and idempotent merge semantics
 
