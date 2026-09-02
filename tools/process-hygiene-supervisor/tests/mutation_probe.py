@@ -109,6 +109,12 @@ MUTATIONS = [
         "            if owned_port is not None:",
         "            if False:",
     ),
+    (
+        "protected members pulled into kill trees",
+        "hygiene.py",
+        "            if self._is_protected(proc, snapshot):\n                protected.append(pid)",
+        "            if False:\n                protected.append(pid)",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
