@@ -179,17 +179,174 @@ Quarterly is FINRA's floor and many firms review monthly (Notice 15-46). For thi
 eval run per class; the cost of *not* reviewing is that `cursor-*` quota keeps going to a model that a cheaper local
 one now matches. Keep the cadence a parameter. `[REC]`
 
-## 3. Pharmacy: formulary + therapeutic substitution
+## 3. Pharmacy: formulary, generic substitution (AB-rating), therapeutic interchange, step therapy
 
-_(pending)_
+### Mechanism (sourced)
 
-## 4. Aviation: dispatch reliability + MEL/ETOPS
+- **FDA Orange Book therapeutic-equivalence (TE) codes.** A-rated products (AB, AA, AN, AO, AP, AT) are
+  therapeutically equivalent and may be substituted at the pharmacy counter without going back to the prescriber;
+  B-rated products (BC, BD, ..., BX) are **not** and need prescriber authorisation. **AB is relative to a reference
+  product**: a generic rated AB1 substitutes only for the AB1 reference, not for an AB2 one. Bioequivalence is shown
+  with the 80-125% confidence-interval criterion. `[FACT]` Tier B (three secondary sources agree; primary is the
+  FDA Orange Book preface), checked 2026-09-02:
+  <https://www.assyro.com/blog/therapeutic-equivalence-guide>,
+  <https://medcraveonline.com/MOJBB/fdarsquos-orange-book-and-ab-ratings-of-pharmaceutical-drug-products-a-guide-to-community-pharmacist.html>,
+  <https://www.elsevier.support/ckpharma/answer/what-are-orange-book-therapeutic-equivalence-ratings-in-the-drug-product-information>.
+  Primary: <https://www.fda.gov/drugs/development-approval-process-drugs/orange-book-preface> (Tier A, not
+  re-fetched this run).
+- **ASHP formulary-system guideline.** *Generic substitution* of FDA-bioequivalent products "does not require review
+  or approval by the P&T committee". *Therapeutic interchange* is "the authorized exchange of therapeutic
+  alternatives in accordance with previously established and approved written guidelines, policies, or protocols" for
+  products **with different chemical structures** expected to give the same outcome; the pharmacist may swap
+  "without having to contact the prescriber", the protocol should be built into the EHR, and **a process must exist
+  for the prescriber to opt out**. `[FACT]` Tier A (professional-society guideline, draft text checked
+  2026-09-02):
+  <https://www.ashp.org/-/media/assets/policy-guidelines/docs/draft-guidelines/draft-pharmacy-therapeutics-committee-and-formulary-system.pdf>.
+- **Utilisation management**: *step therapy* (formulary product first; escalate on documented failure), *prior
+  authorisation* (decision within 14 days, 24 h expedited), and **non-formulary exceptions** granted when the patient
+  has "tried and failed" formulary products or is "previously stable on" a medication (continuity). `[FACT]` Tier B
+  (industry best-practice checklist, 2019, checked 2026-09-02):
+  <https://www.nationalforum.org/wp-content/uploads/2019/06/PT-Committee-Best-Practices-Checklist-June-19-v2.pdf>.
 
-_(pending)_
+### Exact analogue for choosing a model endpoint
 
-## 5. Power grid: unit commitment + reserves
+| Pharmacy | Model routing in this estate |
+|---|---|
+| Formulary with tiers | Allowed endpoints per task class in tiers: T1 local (`ollama`/`lms`/llama-server), T2 HF Endpoint or OpenRouter (CLI/Codex only), T3 Cursor quota via `:8317` |
+| Generic substitution (A-rated) | **Same checkpoint, different provider** (an open-weights model on HF vs OpenRouter vs local) - swappable by the wrapper without asking |
+| B-rated "same ingredient, different dosage form" | **Same weights, different quantisation/serving stack** (Q4 GGUF vs bf16 vLLM). Not automatically equivalent; treat as B until the estate's evals say otherwise |
+| AB1 vs AB2 | Equivalence is **per task class**: a local model may be AB for `cheap-classify` and B for `agentic-tools` |
+| Therapeutic interchange (different molecule) | **Different model family** for the same class (Claude -> GPT -> Qwen) under a *written* protocol in the skill, with an owner **opt-out pin** |
+| Step therapy | Try T1/T2 first, escalate to T3 on documented failure (the `openrouter-routing` T0/T1 idea, made a class-level rule) |
+| Prior authorisation | Human-in-the-loop before a **background** job may burn T3 quota; time-boxed |
+| "Tried and failed" / "stable on" exception | **Grandfathering**: a workflow stable on a model is not force-switched by a formulary update. This is "never remove a feature to buy reliability" in P&T language |
+| 80-125% bioequivalence margin | An explicit **equivalence margin on the estate's own eval scores** (dedup item (1) `evals.md`) before an endpoint is rated substitutable |
 
-_(pending)_
+`[INFER]` The non-obvious borrow is the **AB1/AB2 relativity**: interchangeability is a property of the (class,
+reference) pair, not of the model. Most "model router" designs rate models globally.
+
+### How it rides the existing bus
+
+- The `routes.json` from s1 gets an `equivalence` field per (class, endpoint): `A` (auto-swap), `B` (owner must
+  approve), `NR` (no alternative exists). Derived from `evals.md` runs; written by a skill, read by wrappers. `[REC]`
+- Interchange protocols are prose in the skill (the SSOT), e.g. "for `red-team-report`, interchange Claude ->
+  local Qwen is A only when tool-call CCR >= 0.97 over 50 samples". `[REC]`
+- Prior-authorisation gate = one check in the existing hook path (`cursor-hooks/`) or wrapper: `invocation=background
+  and tier=T3 and no --authorized flag -> refuse with the PA message`. `[REC]`
+- Grandfathering = `pinned_until` (date) on a class row; the s2 review job may not touch pinned rows. `[REC]`
+
+### Tradeoff
+
+A strict formulary cuts cost but loses off-formulary capability. Keep a **non-formulary request log** (owner asks, gets
+it, the request is recorded) instead of a hard block; the log is the input to the next P&T (= s2 review). `[REC]`
+
+## 4. Aviation: MEL deferral categories, dispatch release, dispatch reliability
+
+### Mechanism (sourced)
+
+- **14 CFR 121.628 (inoperable instruments and equipment).** An airline may fly with inoperative equipment only if
+  an approved **Minimum Equipment List** exists, the crew has "direct access at all times prior to flight" to it,
+  **records identify the inoperative items**, and operations respect the MEL's conditions and limitations. Some items
+  may **never** be deferred: those "essential for safe operations under all operating conditions", those an
+  airworthiness directive requires, and those required for specific operations. `[FACT]` Tier A (eCFR via LII,
+  checked 2026-09-02): <https://www.law.cornell.edu/cfr/text/14/121.628>.
+- **Repair (rectification) categories.** Category A: interval stated in the MEL item itself; B: 3 consecutive
+  calendar days; C: 10 days; D: 120 days (day of discovery excluded). `[FACT]` Tier A (FAA MMEL Policy Letter
+  PL-25 rev 21, checked 2026-09-02): <https://www.wildingair.com/wp-content/uploads/forms/pl-025%20rev%2021.pdf>;
+  corroborated by <https://www.aviationhunt.com/mmel-vs-mel-definitive-guide/> (Tier B), which also notes the
+  MEL column "Number required for dispatch" and the **"AR - as required by operating rule"** flag: whether an item
+  may be inoperative depends on the *route* (ETOPS, RVSM, night, overwater), and that operating under an MEL "constitutes
+  a degradation of certified system redundancy" bounded by time limits derived from safety analysis.
+- **Dispatch reliability** (industry KPI) = share of scheduled departures that leave without a technical delay
+  beyond a threshold (commonly 15 min) or cancellation. `[FACT]` Tier C / **UNVERIFIED URL** this run (standard
+  industry definition; the search surfaced it but no single citable page was retained).
+
+### Exact analogue for choosing a model endpoint
+
+| Aviation | Model routing in this estate |
+|---|---|
+| Aircraft | Endpoint (a `cursor-*` id via `:8317`, an HF Endpoint, a local server) |
+| MEL item | A **capability**: `tool_calls`, `json_mode`, `vision`, `>=128k context`, `streaming`, `system-prompt adherence`, `stop sequences` |
+| Never-deferrable items | For `agentic-tools`: `tool_calls` well-formedness. For `long-context-read`: no silent truncation. If inoperative, the endpoint is **grounded for that class** |
+| Repair category A/B/C/D | How long an endpoint may keep serving a class with that capability degraded before it must be fixed or swapped: e.g. `streaming` broken = D (cosmetic, 120 d); `json_mode` flaky = C (10 d); tool-call CCR below `warn` = B (3 d); context truncation = A ("before next flight") |
+| "AR - as required by operating rule" | Requirements depend on the **mission**: an unattended background run (no human "alternate airport" nearby; the ETOPS case) needs more operative capabilities than an interactive session where the owner can intervene |
+| Dispatch release | A **pre-flight hook**: MEL status of the chosen endpoint, fuel (quota headroom), a named alternate (fallback endpoint), weather (provider status). Go / no-go with a reason |
+| Records of inoperative items | `state/mcp-supervisor.json` already records quarantine; add `deferred: [{capability, category, expires}]` |
+| Dispatch reliability | **% of agent runs that start within N s without a provider-caused delay/cancel**, per endpoint. One number; the s2 review reads it |
+
+`[INFER]` The MEL is the industry's formal answer to "never remove a feature to buy reliability": you *fly* with the
+broken item, **deferred, placarded, time-boxed**, instead of grounding the fleet or pretending it works. Software
+circuit breakers have the "open/closed" states but no repair clock; the repair categories are the missing piece.
+
+### How it rides the existing bus
+
+- MEL table (capability -> category, per class) is prose + a small JSON block in the routing skill. `[REC]`
+- Dispatch release is a hook body in `.agents/scripts/cursor-hooks/` (the estate already runs `shell-guard.ps1`
+  and `bm-session-liveness.ps1` there) or the first step of `ai-mode` / `*-cursor` wrappers. It reads two files and
+  prints one line. `[REC]`
+- Expiry of a deferred item is checked by the same `mcp_fleet_supervisor.py --report` run that already exists. `[REC]`
+
+### Tradeoff
+
+Discipline cost: someone (a skill) has to record the deferral and the clock. Benefit: no silent degradation for weeks,
+and no over-reaction to a one-off. `[REC]`
+
+## 5. Power grid: security-constrained unit commitment, reserves sized to the worst single contingency
+
+### Mechanism (sourced)
+
+- **SCUC + economic dispatch.** PJM's day-ahead market "clears ... using least-cost security constrained resource
+  commitment and dispatch that simultaneously optimizes energy and reserves"; a *dispatch run* decides what runs and a
+  separate *pricing run* sets locational prices. Demand-side "Curtailment Service Providers" bid demand *reductions*
+  into the same optimisation. `[FACT]` Tier A (PJM Manual 11 v136, 2025-10-01, checked 2026-09-02):
+  <https://www.pjm.com/-/media/DotCom/documents/manuals/archive/m11/m11v136-energy-and-ancillary-services-market-operations-10-01-2025.pdf>.
+- **Resource constraints** in SCUC: capacity limits, **ramp-rate limits, minimum run time, minimum down time**,
+  startup / no-load / incremental costs; system constraints: power balance, reserve requirement, transmission under
+  the NERC **N-1** standard. Large ISOs solve it as MILP (PJM since 2004). `[FACT]` Tier A (DOE/OSTI review,
+  checked 2026-09-02): <https://www.osti.gov/servlets/purl/1899996>.
+- **Soft constraints with penalty prices.** PJM's transmission-constraint penalty is $30,000/MWh in the day-ahead
+  dispatch run and $2,000/MWh in the pricing run; reserve shortage is priced on a two-step **Operating Reserve Demand
+  Curve** ($850/MWh for the Largest-Single-Contingency step, $300/MWh for an extra 190 MW buffer). `[FACT]` Tier B
+  (academic working paper citing PJM 2025, checked 2026-09-02):
+  <https://www.fawolak.org/pdf/market_clearing_penalty_parameters.pdf>.
+- **NERC BAL-002-3**: carry enough **contingency reserve to recover within 15 minutes** from a sudden loss up to the
+  **Most Severe Single Contingency (MSSC)**; 90-minute restoration period; PJM implements it as 10-minute *primary
+  reserve* (synchronised + non-synchronised) sized to the largest contingency plus a buffer. `[FACT]` Tier A/B
+  (PJM Manual 12 and the Independent Market Monitor's 2021 report, checked 2026-09-02):
+  <https://www.pjm.com/-/media/DotCom/documents/manuals/m12.pdf>,
+  <https://www.monitoringanalytics.com/reports/PJM_State_of_the_Market/2021/2021q2-som-pjm-sec10.pdf>.
+
+### Exact analogue for choosing a model endpoint
+
+| Grid | Model routing in this estate |
+|---|---|
+| Unit commitment (what is *on*) vs dispatch (how much each gets) | **Two decisions, two cadences**: daily "which local model is loaded in RAM / which HF Endpoint is warm / is `auth2api` up" vs per-request "which committed endpoint gets this call" |
+| Startup cost, min run time, min down time | On a 31.6 GB, memory-starved box a local model load *is* a startup cost; **do not thrash** `ollama`/`lms` load-unload; commit one local model per day-part and leave it |
+| Ramp-rate limit | Concurrency ramp per provider (rate limits and 429s) |
+| Transmission constraint (N-1) | RAM ceiling: at most one heavy local runtime + one `cursor-agent` (the existing G-36 rule) |
+| MSSC | **Loss of the Cursor path (`:8317` / quota exhausted)** is the largest single contingency for this estate |
+| 15-minute contingency reserve sized to MSSC | Always keep one endpoint that can take the Cursor classes' load **within minutes without human action**: a warm local server or a CLI-side OpenRouter route with spend headroom, sized to the interactive classes only |
+| ORDC (reserve value rises as headroom shrinks) | **Quota headroom curve**: as Cursor quota headroom drops, background classes are priced out first |
+| Curtailment Service Providers | Background jobs (`background-digest`, monitors) **declare themselves curtailable** and are shed first |
+| Penalty price vs hard constraint | Estate locks stay **hard** (like N-1); softer preferences (prefer local for `cheap-classify`) get a **penalty weight** so the router degrades rather than fails |
+
+`[INFER]` The grid's key discipline is that the reserve is *sized to a named contingency*, not to a vague "have a
+fallback". Naming the MSSC (Cursor path loss) makes the reserve requirement computable: how many interactive requests
+per hour must the reserve absorb, and for how long (90-minute restoration).
+
+### How it rides the existing bus
+
+- Daily commitment = a 10-line `state/commitment-<date>.json` written by a skill run at session start (which local
+  model, which endpoint warm). Wrappers read it to avoid loading a second local model. `[REC]`
+- Reserve check = one line in the s4 dispatch-release hook: "is the MSSC reserve endpoint healthy and within
+  headroom?". `[REC]`
+- Curtailment = a `priority` field on invocations (the same field the wildcard's water-rights borrow uses); the
+  wrapper refuses T3 for low priority when headroom < threshold. `[REC]`
+
+### Tradeoff
+
+Reserves cost money or RAM (a warm HF Endpoint bills per hour; a loaded local model holds RAM). Make the reserve level
+an explicit knob with the outage cost stated next to it, per the owner's "present tradeoffs" rule. `[REC]`
 
 ## 6. Wildcard: the find the other lenses would miss
 
