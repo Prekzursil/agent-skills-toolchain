@@ -130,9 +130,33 @@ def pair_signals(left: str, right: str) -> dict[str, Any]:
     }
 
 
-def signals_are_mechanically_different(xor_pairs: list[tuple[str, str]]) -> bool:
-    hits = [pair_signals(a, b) for a, b in xor_pairs]
-    return any(h["signal_a_hit"] != h["signal_b_hit"] for h in hits)
+def signals_are_mechanically_different(xor_pairs: list[tuple[str, str]]) -> dict[str, Any]:
+    """Report whether signal A and signal B disagree on at least one XOR pair.
+
+    Returns a dict (not a bare bool) so callers can publish the evidence:
+    ``mechanically_different`` is True iff some pair is hit by exactly one signal,
+    ``xor_count`` counts those pairs, ``pairs`` is the number examined and
+    ``per_pair`` carries each pair's raw signal verdicts.
+    """
+    per_pair: list[dict[str, Any]] = []
+    for left, right in xor_pairs:
+        info = pair_signals(left, right)
+        per_pair.append(
+            {
+                "left": left,
+                "right": right,
+                "signal_a_hit": info["signal_a_hit"],
+                "signal_b_hit": info["signal_b_hit"],
+                "xor": info["signal_a_hit"] != info["signal_b_hit"],
+            }
+        )
+    xor_count = sum(1 for row in per_pair if row["xor"])
+    return {
+        "mechanically_different": xor_count > 0,
+        "xor_count": xor_count,
+        "pairs": len(per_pair),
+        "per_pair": per_pair,
+    }
 
 
 def evaluate_labeled(texts: list[str], class_ids: list[str]) -> dict[str, Any]:
