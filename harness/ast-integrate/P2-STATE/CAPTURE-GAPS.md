@@ -36,6 +36,8 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | IMP-0305 | `tools/council/vote/near_certain_v1.json` (emit_receipt.py reads it; nothing in the tree writes it) | b4-p10-IMP | data fixture excluded | open |
 | IMP-0386 | `schema/capability-record.schema.json` (SCHEMA_ROOT_REL named by the receipt's schema_input_path; nothing generates it) | b4-p11-IMP | schema dir excluded | open |
 | CNF-0178 | `probes/CNF-0178/published/packages/demo.echo/1.0.0/` (dir carried a planted `.git/HEAD`, so git dropped the whole package) | b4-p04-CNF | nested-repo marker | **repaired**: package.json + commands/echo.py reconstructed from the unit's own spec; harness plants the markers at run time |
+| IMP-0437 | `.github/workflows/quality.yml` (only `plugin-repro.yml` captured) | b4-p12-IMP; same file as ADV-0016/TST-0016/CNF-0024 | `.github/` excluded | open |
+| IMP-0449 | `probes/AUD-0064/_validate_out.json`, `probes/IMP-0433/_measure_out.json` (harvested run outputs) | b4-p12-IMP | `_*_out.json` run outputs excluded | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
