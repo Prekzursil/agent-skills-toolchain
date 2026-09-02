@@ -89,7 +89,7 @@ per the owner's model directive.
 | # | Lens | Agent | Status |
 |---|------|-------|--------|
 | L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | DONE |
-| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | bc-3e781288 | running |
+| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | bc-3e781288 | DONE |
 | L3 | Purple-team / adversary emulation / BAS / detection validation | bc-85a95fe0 | DONE on `cursor-grok-4.6-xhigh` |
 | L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | bc-4fc1542a | DONE on `cursor-grok-4.6-xhigh` |
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | DONE |
