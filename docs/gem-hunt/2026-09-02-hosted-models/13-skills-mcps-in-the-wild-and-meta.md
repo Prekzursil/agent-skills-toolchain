@@ -215,7 +215,134 @@ Scores are 0-3 per axis (3 = best). Maintenance = release/commit recency and bus
 
 **RECOMMENDATION (ranking outcome):** adopt W5 as a gate (it is a CLI, not a runtime, so `[LOCK-NO-2ND-RUNTIME]` is untouched), *read* W6 and the three catalogs of section 5 as feeds, copy the design of W4 into an estate script, and treat W2 as a negative example when designing the `glm53-space` replacement.
 
-## 8. Meta loop design `[pending]`
+## 8. Meta loop design
+
+Everything in this section is **RECOMMENDATION** unless tagged otherwise. It is a design, not code; nothing was built in this run.
+
+### 8.1 Design principles (each traced to a fact above)
+
+1. **No new daemon.** Three timers already exist in sanctioned shapes: Claude hooks (`SessionStart`, `PreToolUse`, `PostToolUseFailure`, `Stop`), the `mcp.supervision` contract in the registry, and Windows Scheduled Tasks (`register-tasks.ps1` precedent). The loop is three scripts invoked by those, plus one sidecar JSON. (2.2, 2.3)
+2. **Fail-open, inject-only, read-only by default.** Copy `mcp-liveness`'s contract verbatim: any error -> exit 0, emit nothing; never block a tool call; write-back is a separate, flagged command. (2.2, 2.4)
+3. **Hysteresis is policy, not a constant.** `failureThreshold: 3` / `failureWindowSeconds: 600` from `mcp.supervision`, corroborated by llm-health-monitor's `confirmationRuns` advice. (2.1, 6.2)
+4. **Claim and observation are separate columns.** Vendor feed / catalog says X; our probe saw Y; the score uses both and flags the gap. (6.3)
+5. **The registry stays SSOT; feeds are ingested, never authoritative.** models.dev / OpenRouter / HF router / MCP Registry know nothing about `auth2api :8317`, `ollama`, `lms`, or the 33 local stdio servers. (5, `[LOCK-BRIDGE]`, `[LOCK-PORTS]`)
+6. **Closed schemas.** No new keys on `mcp.servers.*` entries for scores; a sidecar file carries them and `.provenance/` carries the why. (2.4)
+7. **Locks are inputs to the state machine.** An endpoint whose *only* path would violate a lock (e.g. OpenRouter as Cursor BYOK) is unreachable by construction, not merely discouraged. (1.3)
+
+### 8.2 Scheduled catalog sync
+
+**What runs:** one stdlib-Python script, working title `command-center/ssot/catalog_sync.py` (sits beside `ssot_drift_gate.py`; not created in this run).
+
+**When:** a third Scheduled Task in the `register-tasks.ps1` style (`MultipleInstances IgnoreNew` + `Global\` mutex), daily at a quiet hour, plus an opportunistic run from the `SessionStart` heartbeat *only if* the last successful sync is older than 7 days (the same "staleness -> nudge" shape `fresh-verify` uses). No run at all if the box is above the `totalIdlePrivateBytes` budget - the sync is a nice-to-have.
+
+**Feeds and caching (all `GET`, all cached with `ETag`/`If-Modified-Since`, all kept as last-known-good on failure):**
+
+| Feed | Key | Purpose | Lock check |
+|---|---|---|---|
+| `https://models.dev/api.json` | none | provider base URLs + env var names + model limits/prices; spine for the general integration layer | clean |
+| `https://openrouter.ai/api/v1/models` | none | `expiration_date` (deprecations), `supported_parameters`, health fields for the *sidecar* only | `[LOCK-OR]` clean: read-only, never wired as MCP/BYOK |
+| `https://router.huggingface.co/v1/models` | existing HF token by name (`HUGGINGFACE_TOKEN`, already required by `glm53-space`) | per-provider `status`, `supports_tools`, `supports_structured_output`, latency, throughput, price | clean; `[LOCK-CREDS]` clean (no rotation) |
+| `https://registry.modelcontextprotocol.io/v0.1/servers?updated_since=<last>&version=latest` | none | upstream version moves and deletions for the public-package subset of the 42 servers | clean |
+| Vendor status feeds (6.1) for providers actually referenced by enabled endpoints | none | claim column | clean |
+| `http://127.0.0.1:8317/v1/models` | none (loopback) | the 36 `cursor-*` ids as observed, so a Cursor-side model rename is caught | `[LOCK-BRIDGE]`/`[LOCK-PORTS]` clean: read-only on an owned port |
+| `http://127.0.0.1:11434/v1/models` (ollama), LM Studio `/v1/models` when up | none | local model inventory | clean |
+
+**Output:** `state/catalog/<feed>.json` (raw, last-known-good) + `state/catalog/index.json` (normalised: `endpoint_id -> {base_url, auth_env, models[], claims{tools,structured,ctx,price}, source, fetched_at, etag}`) under the estate's state root (the same root `event-ledger` uses, `~/.claude/`, or `command-center/ssot/state/` - owner's choice; **not** in `.agents/agents.json`). The **diff against the previous index is the product**: new models, vanished models, `expiration_date` set, `status != live`, version bump upstream, and "our entry references a URL no feed knows" (a decommissioned host such as `api-inference.huggingface.co`, 3.2).
+
+**Consumers of the index (no new code in them):** `hooks/capability-catalog/inject.py` reads `catalog.json` today; a generated section appended from `index.json` puts "which hosted models actually work right now" in front of the model at SessionStart. `opencode` can be pointed at a synced models.dev copy via `OPENCODE_MODELS_PATH` (5). Fabric/Goose keep reading `.agents/skills` unchanged (`[LOCK-SSOT]`).
+
+### 8.3 Capability re-probe ladder
+
+Probes are ordered by cost; a run stops at the first rung that answers the question being asked. Every rung is idempotent and read-only except L4, which spends one token.
+
+| Rung | Probe | Applies to | Cost | Source of the pattern |
+|---|---|---|---|---|
+| L0 | Static: entry `enabled`, `requiredEnv` names present in `.agents/local.json`, `command` path exists, `url` parses, no `[LOCK]` violated | all 42 | zero | registry (2.1) |
+| L1 | JSON-RPC `initialize`; assert `capabilities.tools` present (`serves_tools`); classify `up / dead-listening / down / inconclusive` | http + stdio MCP servers | ~1 s | `mcp-liveness` (2.2) |
+| L2 | `tools/list`; **hash the tool names+descriptions**; compare to pinned hash -> `unchanged / changed (rug-pull candidate) / shrunk` | MCP servers | ~1 s | `mcp.policy.healthProbe.kind = mcp-tools-list` (2.1) + mcp-scan rug-pull pinning (7.1) |
+| L3 | `GET /v1/models`; compare id set to registry/index; for HF router also read `providers[].status`/`supports_*` | OpenAI-compatible endpoints: HF router, `auth2api :8317`, ollama, lms, any models.dev `api` URL | zero tokens | 5, 6.3 |
+| L4 | 1-output-token `chat/completions`; variants `tools=[noop]` and `response_format=json_schema` **only when the claim column says supported and the claim has never been observed** | OpenAI-compatible endpoints, one model per endpoint per run | 1 token each | llm-health-monitor (6.2), HF `supports_tools` (5) |
+| L5 | `mcp-scan --local-only --json` over the client configs that `mcp-canonical-sync` writes | all MCP servers | CPU only; no network with `--local-only` | 7.1 |
+
+**Cadence:** L0-L2 every `SessionStart` for servers tagged `shared`/`http` and for whatever the session's `capability-catalog` names (cheap, already half-done by `mcp-liveness`); L3 daily with the catalog sync; L4 weekly or on demand when the score's `claim_gap` is non-zero; L5 weekly and on any L2 `changed`. **Never** probe on every tool call - `mcp-liveness`'s 60 s throttle is the floor.
+
+**Budget rule:** a probe run must finish inside `mcp.policy.startupTimeoutMs` (30 s) per endpoint and must respect `totalIdlePrivateBytes`; stdio servers are probed by *spawning* them, so the run is serialized and skipped when the box is memory-starved (the brief: 31.6 GB, chronically starved).
+
+### 8.4 Capability score per endpoint
+
+A 0-100 integer plus a state, stored per endpoint in a sidecar `capability-scores.json` (never in `agents.json`; the `_meta`-style reverse-DNS namespace `dev.prekzursil.ast/capability` is the label to use if the estate ever exports to a sub-registry, 7.2).
+
+```
+score = 40 * availability_30d          # fraction of L1/L3 probes that were `up` in the trailing 30 days
+      + 20 * capability_match          # fraction of claimed capabilities (tools, structured, ctx>=needed, modalities) observed true in L4
+      + 15 * latency_health            # 1.0 if p50 <= 1.5x own 30-day baseline; linear to 0 at >= 3x (llm-health-monitor's ratio idea)
+      + 10 * freshness                 # 1.0 if last successful probe <= 24h; 0.5 <= 7d; 0 otherwise
+      + 10 * security                  # 1.0 if L5 clean AND L2 hash unchanged since approval; 0.5 if changed-but-reviewed; 0 if open finding
+      +  5 * claim_agreement           # 1.0 when vendor/catalog claim and our observation agree; 0 when they disagree (the gap flag)
+```
+
+Weights are a starting point (INFERENCE); the *inputs* are what matter and each maps to a probe rung above. Cost is deliberately **not** in the score - it is a routing preference, and folding it in would let a cheap dead endpoint outrank a pricey live one.
+
+**States derived from score + events, with hysteresis:**
+
+| State | Enter when | Leave when | Effect |
+|---|---|---|---|
+| `live` | default | - | listed in capability-catalog injection |
+| `degraded` | score < 60 **or** `claim_agreement = 0` | score >= 70 for 2 consecutive daily runs | still listed, with a one-line caveat in the heartbeat banner |
+| `quarantined` (session) | `mcp.supervision.failureThreshold` (3) failures inside `failureWindowSeconds` (600) - the existing contract | session end (`quarantineScope: session`) | not offered this session; `event-ledger` note written |
+| `deprecation-candidate` | `quarantined` in >= 3 distinct sessions within 14 days, **or** upstream `expiration_date` set / registry entry deleted / host decommissioned (8.2 diff) | owner decision | opens a gem-hunt lens (8.5); nothing disabled yet |
+| `retired` | owner approves after verify (8.5) | never automatically | `enabled: false`, tag `retired`, `.provenance/.agents/agents.json.md` gains the why + replacement id; entry is **kept** (`[LOCK-TRADEOFF]`: no silent feature removal, history preserved) |
+
+### 8.5 The failure -> gem -> verify -> retire loop for hosted models
+
+```
+        PostToolUseFailure (existing hook: post:mcp-health-check)
+                 |  writes {endpoint, error class, ts} to event-ledger  (existing ledger.py)
+                 v
+   [FAILURE]  supervision counter: 3 in 600s  -> quarantined(session)  (existing contract, enforcement TBV)
+                 |  heartbeat banner names it at Stop/SessionStart      (existing heartbeat.py)
+                 v
+   catalog_sync daily run (8.2) + probe ladder (8.3) confirm across sessions/days
+                 |  score falls, state -> deprecation-candidate; diff shows if upstream also deprecated
+                 v
+   [GEM]      gem-hunt lens opened with the dedup-set = everything still live in the index
+                 |  candidates ranked with the section-7 rubric; models.dev/HF/OR index supplies the shortlist
+                 v
+   [VERIFY]   hosted-model-agents/evals.md run against the candidate (dedup-set item 1 owns this)
+                 |  L4 probes must observe every claimed capability the retiring endpoint provided
+                 |  ssot_drift_gate.py must pass first (loop runs from the executed checkout only)
+                 v
+   [RETIRE]   owner-approved, flagged write-back: enabled:false + tag retired + .provenance note
+                 |  mcp-canonical-sync / mcp-defaults propagate to ~/.mcp.json and client configs (existing)
+                 |  capability-catalog entry rewritten to name the replacement
+                 v
+              scores sidecar keeps the retired row for 90 days so a resurrection is measurable
+```
+
+Stop rules (per `AGENTS.md`): the loop never disables, deletes, rotates (`[LOCK-CREDS]`), or opens ports; every transition past `quarantined` is a proposal in the heartbeat banner + a ledger event until a human runs the write-back command.
+
+### 8.6 Worked example: retiring `glm53-space` (the owner's stated decision)
+
+- L0: entry is `enabled: true`, `hosted-inference`, needs `HUGGINGFACE_TOKEN`. L1/L2: it is stdio, so a probe spawns `uv run --locked ... mcp_server.py` (RAM cost) and hashes its single tool `glm53_chat`. L3 against `router.huggingface.co/v1/models` tells us whether `zai-org/GLM-5.3` still lists `status: live` providers and their `supports_tools` - the *upstream* half of the decision. The vendor feed for Zhipu does not exist (6.1), so L3/L4 are the only truth.
+- State today (INFERENCE from the brief): `deprecation-candidate` by owner decision, not by failure. The loop still applies: the **gem** step is this gem-hunt; the **verify** step is `hosted-model-agents/evals.md` against the general integration layer; the **retire** step keeps the entry with `enabled:false` and a `.provenance` note pointing at the replacement.
+- What the replacement should *not* be: another single-tool relay (W2 pattern). What it should be: one MCP server (or one skill + CLI) that reads `state/catalog/index.json` and exposes `list_endpoints`, `chat(endpoint_id, ...)`, `probe(endpoint_id)`; the model id and base URL come from the index, the secret comes by name from `.agents/local.json`. That is the "general integration layer" the owner asked for, and it is what makes the score self-feeding: every real `chat` call is an L4 observation for free.
+
+### 8.7 Tradeoffs presented, not decided (`[LOCK-TRADEOFF]`)
+
+| Choice | Option A | Option B | What you give up |
+|---|---|---|---|
+| Where the score lives | sidecar JSON in state root | `_meta`-style block inside `agents.json` | B breaks the closed-schema rule and churns a file 42 consumers read; A needs a second file to open |
+| L4 token spend | weekly, one model per endpoint | never (L3 only) | B never verifies `supports_tools` claims; HF router already publishes them, so B is acceptable for HF but not for `auth2api`/ollama |
+| Probing stdio servers | spawn each weekly | rely on L2 at SessionStart only | A costs RAM on a starved box; B misses servers no session opened |
+| mcp-scan mode | `--local-only` | cloud Guardrails | B is more accurate but ships 42 servers' tool descriptions off-box |
+| Deprecation authority | human approves every retire | auto-retire after N days | B is simpler; violates the spirit of `[LOCK-TRADEOFF]` and can retire a paused-but-wanted endpoint |
+
+### 8.8 Verify-before-trust list (things this lens could not confirm from the repo)
+
+1. Whether anything on the Windows box enforces `mcp.supervision` today (no in-repo consumer, 2.1). If nothing does, 8.5's `[FAILURE]` stage is a hook+ledger write only until the supervisor exists.
+2. What `post:mcp-health-check` (`hooks/hooks.json`, `PostToolUseFailure`) actually does - its script is referenced via `${CLAUDE_PLUGIN_ROOT}/scripts/hooks/...`, i.e. it lives in the installed plugin, not this repo.
+3. Where `mcp_doctor` lives (referenced by `mcp-liveness` as the source of `_mcp_handshake_ok`); if it already does L1/L2 for all 42 servers, the probe script is a thin wrapper around it.
+4. Licences and commit cadence of W4 (`llm-health-monitor`) and W3's repo before any code is copied rather than re-derived.
 
 ## 9. Rubric table `[pending]`
 
