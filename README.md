@@ -32,7 +32,7 @@ claude mcp get codex          # expect: Connected
 
 | Surface | Count | Description |
 |---------|-------|-------------|
-| `skills/` | 354 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
+| `skills/` | 372 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
 | `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
 | `tools/mcp/` | 24 | MCP server projects (workstation bundle, cloud-hub, search-hub, hexstrike-ai, etc.) |
 | `tools/web/` | 0 | Empty since the 2026-08-09 ChatGPT-web retirement; reserved surface |
@@ -158,7 +158,7 @@ Reusable code extracted before the delete lives in [`tools/lib/`](tools/lib/READ
 
 This repo is the working home for four kinds of agent assets plus the docs and validation needed to keep them bounded:
 
-- `skills/` for installable, validated skills (354 shared + 35 Claude-only)
+- `skills/` for installable, validated skills (372 shared + 35 Claude-only)
 - `tools/mcp/` for MCP-native contracts, adapters, and promoted tool projects
 - `tools/editor/` for editor-local tools such as VS Code extensions plus vendored host-local agent frameworks
 - `tools/web/` for browser- or web-mediated tool projects with explicit session boundaries

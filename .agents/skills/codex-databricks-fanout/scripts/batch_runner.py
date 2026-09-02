@@ -1,4 +1,6 @@
 # Databricks notebook source
+from __future__ import annotations
+
 import os, json
 dbutils.widgets.text("batch_json", "/dbfs/tmp/codex-batch/batch.json")
 dbutils.widgets.text("result_dir", "/dbfs/tmp/codex-batch/results")
@@ -14,8 +16,6 @@ os.environ["RESULT_DIR"] = dbutils.widgets.get("result_dir")
 os.environ["BATCH_STAGGER_S"] = dbutils.widgets.get("stagger_s")
 os.environ["BUNDLE_TGZ"] = dbutils.widgets.get("bundle_tgz")
 _AUTH = dbutils.secrets.get(scope=dbutils.widgets.get("scope"), key="auth_json")
-
-from __future__ import annotations
 
 import concurrent.futures as cf
 import json

@@ -330,7 +330,7 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
         "metric": "capture_discipline",
         "owner": "prekzursil",
         "deadline": "2026-09-01",
-        "fire_rate": "fires at most once per session, only when a canonical edit occurred and no basic-memory write did",
+        "fire_rate": "fires at most once per session when any file mutation occurred and no basic-memory write did; Stop also spools a session note",
     },
     "cleanup_after_work": {
         "metric": "cleanup_backlog_surfaced",
@@ -390,6 +390,167 @@ def _session_hash(event: Any) -> str:
     return hashlib.sha256(
         str(getattr(event, "session_id", "") or "").encode("utf-8", "replace")
     ).hexdigest()[:16]
+
+
+# Basic-memory write tools whose invocation means the change rationale WAS
+# captured this session. Module-level so BOTH the LedgerModule PostToolUse stamp
+# and the ClaimWarningModule nudge read one list (they must not drift apart).
+_BM_WRITE_TOOL_NAMES = (
+    "basic-memory__write_note",
+    "basic-memory__edit_note",
+    "basic-memory__canvas",
+    "basic-memory__create_memory_project",
+)
+
+# Mirrors ledger.py _UNIDENTIFIED_SESSION_IDS. adapters.py defaults a MISSING
+# session_id to the literal "unknown", which is TRUTHY, so a guard that rejects
+# only "" folds every unidentified session onto the single constant digest
+# sha256("unknown")[:16] == b23a6a8439c0dde5 and leaks one session's flags into
+# the next (the goal-bleed failure class).
+_UNIDENTIFIED_SESSIONS = frozenset({"", "unknown"})
+
+
+def _session_carrier_dir(event: Any) -> Optional[Path]:
+    """Directory holding this session's sticky flags, or None when the session
+    cannot be isolated (unidentified -> a shared slot would be a leak, not
+    isolation)."""
+    if str(getattr(event, "session_id", "") or "") in _UNIDENTIFIED_SESSIONS:
+        return None
+    return default_state_root() / "session-flags" / _session_hash(event)
+
+
+def _session_carrier_live(event: Any) -> bool:
+    """Whether the sticky per-session carrier is usable AND has recorded anything
+    this session.
+
+    False means: unidentified session, an unwritable state root, or a session that
+    began before this code was deployed. Callers must then read EVERY fact they
+    need from the bounded ledger window instead - never one fact from each
+    carrier, because a session-scoped FIRE paired with a project-scoped
+    SUPPRESSION lets a sibling session silence this one."""
+    try:
+        directory = _session_carrier_dir(event)
+        return bool(
+            directory is not None
+            and directory.is_dir()
+            and any(directory.glob("*.json"))
+        )
+    except Exception:
+        return False
+
+
+def _session_flag(event: Any, name: str, *, set_it: bool = False) -> bool:
+    """Sticky per-SESSION boolean, persisted the moment the fact occurs.
+
+    WHY (measured 2026-08-07 over ~/.agents/state/harness/ledger - 336 shards,
+    271,720 rows): the bounded `ledger.replay(cwd, limit=120)` window is NOT a
+    session proxy. 147 of 173 canonical-tree mutations already carry >=120 later
+    events in their own project shard (85.0%), so by the time Stop fires the fact
+    has been evicted; and the trailing-120 window spans a median of 30.4 minutes
+    while a session runs for hours. A flag written at the instant the fact happens
+    survives the whole session regardless of traffic.
+
+    Fail-open to False (no flag -> no nag, the safe direction for an advisory)."""
+    directory = _session_carrier_dir(event)
+    if directory is None:
+        return False
+    path = directory / f"{name}.json"
+    if set_it:
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(path, {"set": True})
+        except OSError:
+            return False
+        return True
+    try:
+        payload = read_json(path, {})
+    except Exception:
+        return False
+    return bool(isinstance(payload, dict) and payload.get("set"))
+
+
+def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
+    """Best-effort CLI flush of a Stop-spooled session note. Fail-open.
+
+    Under pytest this is a no-op unless HARNESS_BM_FLUSH_IN_TEST=1 so tests cannot
+    write into the live D:/basic-memory vault. Production tries `basic-memory`
+    if present and never raises.
+    """
+    if not isinstance(payload, dict):
+        return False
+    if (
+        os.environ.get("PYTEST_CURRENT_TEST")
+        and os.environ.get("HARNESS_BM_FLUSH_IN_TEST", "").strip() != "1"
+    ):
+        return False
+    title = str(payload.get("title") or "").strip()
+    body = str(payload.get("body") or "").strip()
+    if not title or not body:
+        return False
+    if contains_secret(title) or contains_secret(body):
+        return False
+    exe = os.environ.get("BASIC_MEMORY_CLI") or "basic-memory"
+    try:
+        import shutil
+        import subprocess
+
+        resolved = shutil.which(exe) if exe == "basic-memory" else exe
+        if not resolved:
+            return False
+        proc = subprocess.run(
+            [
+                resolved,
+                "tool",
+                "write-note",
+                "--title",
+                title[:200],
+                "--content",
+                body[:4000],
+            ],
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+        return proc.returncode == 0
+    except Exception:
+        return False
+
+
+def _write_session_spool(event: HookEvent) -> Optional[Path]:
+    """Persist a once-per-session capture note. Does not require the CLI."""
+    path = default_state_root() / "bm-spool" / f"{_session_hash(event)}.json"
+    prior = read_json(path, {})
+    if isinstance(prior, dict) and prior.get("title"):
+        return path
+    cwd = redact_text(str(getattr(event, "cwd", "") or ""), max_chars=180)
+    session = redact_text(str(getattr(event, "session_id", "") or ""), max_chars=80)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    workspace = Path(str(getattr(event, "cwd", "") or "workspace")).name or "workspace"
+    payload = {
+        "title": f"Session capture {stamp} {workspace}"[:200],
+        "body": (
+            "Auto-captured by harness Stop hook (untrusted historical context).\n"
+            f"- cwd: {cwd}\n"
+            f"- session: {session}\n"
+            "- this session mutated files and did not call write_note.\n"
+            "Query live vault to confirm. Model write_note remains extra, not a substitute."
+        )[:2000],
+        "flushed": False,
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_json(path, payload)
+    except OSError:
+        return None
+    try:
+        if _flush_spool_to_vault(payload):
+            payload["flushed"] = True
+            atomic_write_json(path, payload)
+    except Exception:
+        pass
+    return path
 
 
 def _shadow_should_sample(event: Any) -> bool:
@@ -649,29 +810,55 @@ def _repo_root() -> Path:
     )
 
 
-def _under(target: str, root: Path) -> bool:
+def _under(target: str, root: Path, base: Optional[str] = None) -> bool:
     """True when normalized `target` is `root` or lives beneath it. Case/sep-insensitive
     (Windows). Never resolves symlinks (so ~/.claude/skills -> skills.daily still matches
-    the literal the agent typed). Fail-closed to False on any error."""
+    the literal the agent typed). Fail-closed to False on any error.
+
+    A RELATIVE `target` is resolved against `base` -- the SESSION cwd the hook event
+    carries -- and NEVER against the hook process's own cwd. A tool's relative
+    `file_path` is interpreted by the agent runtime relative to the session cwd; the
+    hook/test process's cwd is an unrelated implementation detail. Resolving against
+    it made this classifier answer differently for the SAME tool call depending on
+    where the process happened to be started: with cwd == ~/.agents/harness a plain
+    `Write notes.md` classified as tree 'harness' and fired the deployed-copy guard,
+    while the identical call from any other cwd classified as None. (Measured
+    2026-08-07: it is why `test_secret_guard_ignores_destructive_patterns_in_tool_content`
+    [Write]/[Edit] failed on a bare `pytest` run inside the harness dir but passed via
+    check_no_regression.py, which runs pytest from the .agents parent.) With no base a
+    relative target cannot be attributed to any tree -> False (fail-closed: never
+    invent a tree membership from ambient process state)."""
     try:
-        t = os.path.normcase(os.path.normpath(os.path.abspath(str(target))))
+        t = str(target)
+        if not t:
+            return False
+        if not os.path.isabs(t):
+            if not base:
+                return False
+            t = os.path.join(str(base), t)
+        t = os.path.normcase(os.path.normpath(os.path.abspath(t)))
         r = os.path.normcase(os.path.normpath(str(root)))
         return bool(t) and (t == r or t.startswith(r + os.sep))
     except Exception:
         return False
 
 
-def _canonical_tree(path: str) -> Optional[str]:
+def _canonical_tree(path: str, base: Optional[str] = None) -> Optional[str]:
     """Classify an edit target. Returns 'harness'|'skills'|'hooks'|'codex_profiles'
     (a DEPLOYED copy), 'repo' (the git source-of-truth checkout), or None (neither).
     Deployed trees are checked FIRST; repo is the fallthrough (they are disjoint in
-    production, but the order makes the intent explicit)."""
+    production, but the order makes the intent explicit).
+
+    `base` is the SESSION cwd used to resolve a relative `path` (see _under); callers
+    holding a HookEvent MUST pass `event.cwd`. Without it a relative path is
+    unclassifiable and returns None rather than being resolved against the process
+    cwd."""
     if not path:
         return None
     for name, root in _live_trees().items():
-        if _under(path, root):
+        if _under(path, root, base):
             return name
-    if _under(path, _repo_root()):
+    if _under(path, _repo_root(), base):
         return "repo"
     return None
 
@@ -927,7 +1114,9 @@ class SecretGuardModule:
         target = _edit_target(event.tool.input)
         if not target:
             return HookResult.success()
-        tree = _canonical_tree(target)
+        # event.cwd is the SESSION cwd -- the base a relative file_path is resolved
+        # against. Never let the hook process's own cwd decide tree membership.
+        tree = _canonical_tree(target, getattr(event, "cwd", "") or "")
         # Fire ONLY for the DEPLOYED trees. 'repo' edits are the CORRECT action
         # (never nag them); None = an ordinary file (e.g. ~/.claude/settings.json,
         # which is hand-maintained and NOT under ~/.claude/hooks/, or an unrelated
@@ -1292,6 +1481,11 @@ class LedgerModule:
         except Exception:
             pass
         try:
+            if any(t in str(event.tool.name or "") for t in _BM_WRITE_TOOL_NAMES):
+                _session_flag(event, "bm_write", set_it=True)
+        except Exception:
+            pass
+        try:
             return self._injection_tripwire(event)
         except Exception:
             return HookResult.success()
@@ -1385,7 +1579,23 @@ class LedgerModule:
         # detection after the fact. A short alnum token ('harness'|'skills'|'hooks'|
         # 'repo') survives redaction unchanged. Absent when the edit is not canonical
         # (keeps non-canonical mutation events byte-identical, so existing tests hold).
-        canonical = _canonical_tree(path)
+        canonical = _canonical_tree(path, getattr(event, "cwd", "") or "")
+        try:
+            _session_flag(event, "any_mutation", set_it=True)
+        except Exception:
+            pass
+        if canonical:
+            # Same fact, second carrier: the ledger row below is project-scoped and
+            # gets evicted from the bounded replay window, so the Stop-time nudge
+            # also needs the session-scoped, sticky _session_flag copy of "a
+            # canonical edit happened", written at the instant it is classified.
+            # F3: its own try/except - the sole caller wraps _append_mutation in a
+            # bare `except Exception: pass`, so an unguarded raise here would
+            # silently DISCARD the ledger mutation row below.
+            try:
+                _session_flag(event, "canonical_edit", set_it=True)
+            except Exception:
+                pass
         self.ledger.append(
             event.cwd,
             "mutation",
@@ -1858,6 +2068,12 @@ def _clamp01(value: Any, default: float = 0.5) -> float:
 # rebuild loops); any unparseable value falls back to the default.
 _RECALL_INDEX_SCHEMA_VERSION = 2
 _RECALL_INDEX_MAX_AGE_DAYS = 30.0
+_DIGEST_FILENAME = "recall-digest.json"
+_SLIM_DIGEST_MAX_BYTES = 262144
+_DIGEST_INJECT_LIMIT = 8
+_DIGEST_EXCLUDED_PARTS = frozenset(
+    {".git", ".hf", ".models", "compaction-checkpoints", "node_modules"}
+)
 
 
 def _recall_index_age_limit_days() -> float:
@@ -1892,6 +2108,57 @@ def _recall_index_is_servable(data: dict[str, Any]) -> bool:
     return age_days <= limit
 
 
+def _digest_path_excluded(value: str) -> bool:
+    if not value:
+        return False
+    return any(
+        part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/")
+    )
+
+
+def _notes_are_keyword_free(notes: list[Any]) -> bool:
+    for item in notes[:16]:
+        if not isinstance(item, dict):
+            continue
+        keywords = item.get("keywords")
+        if isinstance(keywords, list) and keywords:
+            return False
+    return True
+
+
+def _filter_digest_notes(notes: list[Any], *, limit: int) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for item in notes:
+        if not isinstance(item, dict):
+            continue
+        if _digest_path_excluded(str(item.get("path") or "")):
+            continue
+        if _digest_path_excluded(str(item.get("permalink") or "")):
+            continue
+        out.append(item)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _read_slim_digest_file(path: Path, *, limit: int) -> list[dict[str, Any]]:
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return []
+    if size <= 0 or size > _SLIM_DIGEST_MAX_BYTES:
+        return []
+    data = read_json(path, {})
+    if not isinstance(data, dict) or not _recall_index_is_servable(
+        cast(dict[str, Any], data)
+    ):
+        return []
+    notes = data.get("notes")
+    if not isinstance(notes, list) or not _notes_are_keyword_free(notes):
+        return []
+    return _filter_digest_notes(notes, limit=limit)
+
+
 class RecallModule:
     name = "bounded_recall"
 
@@ -1902,6 +2169,7 @@ class RecallModule:
         max_results: int = 3,
         ledger: EventLedger | None = None,
         state_root: Path | str | None = None,
+        vault_root: Path | str | None = None,
     ):
         shared = default_state_root() / "recall-index.json"
         legacy = (
@@ -1919,6 +2187,18 @@ class RecallModule:
         self.max_results = max(1, min(int(max_results), 5))
         self.ledger = ledger
         self.state_root = Path(state_root or default_state_root())
+        # Recorded for provenance only. The SessionStart / first-prompt digest is
+        # read from the slim `recall-digest.json` sidecar (built by recall_index.py
+        # --from-index); this module NEVER walks the vault -- pinned by
+        # test_recall_vault_digest_never_rglobs_vault_markdown. Owner rule
+        # (memory-map Q3/Q4, 2026-08-28): never SessionStart-rglob the vault, never
+        # load the full keyword index into SessionStart.
+        vault = vault_root or os.environ.get("BASIC_MEMORY_VAULT") or "D:/basic-memory"
+        self.vault_root = Path(vault)
+        digest_env = os.environ.get("AGENT_HARNESS_RECALL_DIGEST")
+        self.digest_path = (
+            Path(digest_env) if digest_env else (self.state_root / _DIGEST_FILENAME)
+        )
 
     def _notes(self) -> list[dict[str, Any]]:
         for path in self.index_paths:
@@ -1934,19 +2214,107 @@ class RecallModule:
         return []
 
     def run(self, event: HookEvent) -> HookResult:
+        # Hard READ gate (cross-AI): inject a slim digest on SessionStart AND on
+        # the first UserPromptSubmit. Grok ignores SessionStart stdout, so the
+        # first prompt is the portable path. Never rglob the vault. Fail-open
+        # (no inject) if recall-digest.json / slim index is missing.
+        # SessionStart also retries an unflushed Stop spool (hook-owned WRITE).
+        try:
+            self._retry_spool_flush(event)
+        except Exception:
+            pass
+        try:
+            digest = self._session_vault_digest(event)
+        except Exception:
+            digest = HookResult.success()
+        if event.event == "SessionStart":
+            return digest
         if event.event != "UserPromptSubmit" or len(event.prompt.strip()) < 40:
-            return HookResult.success()
+            return digest if digest.action == "inject" else HookResult.success()
         prompt_tokens = _tokens(event.prompt)
         if len(prompt_tokens) < 4:
-            return HookResult.success()
+            return digest if digest.action == "inject" else HookResult.success()
         recall = self._composite_recall(event, prompt_tokens)
         try:
             prior = self._stigmergic_prior(event, prompt_tokens)
         except Exception:
             prior = HookResult.success()
-        if recall.action == "inject":
-            return _merge_results([recall, prior])
+        if (
+            recall.action == "inject"
+            or digest.action == "inject"
+            or prior.action == "inject"
+        ):
+            return _merge_results([digest, recall, prior])
         return prior
+
+    def _vault_digest_marker(self, event: HookEvent) -> Path:
+        # Separate markers: SessionStart stdout may be dropped (Grok) while the
+        # hook still runs and would otherwise mute the portable first-prompt path.
+        kind = "ss" if event.event == "SessionStart" else "up"
+        return (
+            self.state_root / "bm-vault-digest" / f"{_session_hash(event)}-{kind}.json"
+        )
+
+    def _retry_spool_flush(self, event: HookEvent) -> None:
+        if event.event != "SessionStart":
+            return
+        directory = default_state_root() / "bm-spool"
+        if not directory.is_dir():
+            return
+        for path in directory.glob("*.json"):
+            payload = read_json(path, {})
+            if not isinstance(payload, dict) or payload.get("flushed"):
+                continue
+            if _flush_spool_to_vault(payload):
+                payload["flushed"] = True
+                atomic_write_json(path, payload)
+
+    def _session_digest_notes(self) -> list[dict[str, Any]]:
+        # SessionStart MUST NOT rglob the vault and MUST NOT load the huge
+        # keyword index. Prefer the slim sidecar; fall back to a size-capped
+        # keyword-free index document (test fixtures / already-slim indexes).
+        digest_path = Path(
+            getattr(self, "digest_path", self.state_root / _DIGEST_FILENAME)
+        )
+        loaded = _read_slim_digest_file(digest_path, limit=16)
+        if loaded:
+            return loaded
+        for path in self.index_paths:
+            loaded = _read_slim_digest_file(path, limit=_DIGEST_INJECT_LIMIT)
+            if loaded:
+                return loaded
+        return []
+
+    def _session_vault_digest(self, event: HookEvent) -> HookResult:
+        if event.event not in {"SessionStart", "UserPromptSubmit"}:
+            return HookResult.success()
+        marker = self._vault_digest_marker(event)
+        prior = read_json(marker, {})
+        if isinstance(prior, dict) and prior.get("injected"):
+            return HookResult.success()
+        notes = self._session_digest_notes()
+        if not notes:
+            return HookResult.success()
+        lines = [
+            "BASIC-MEMORY VAULT DIGEST (auto-injected; UNTRUSTED historical context; query live MCP to confirm):"
+        ]
+        for note in notes[:_DIGEST_INJECT_LIMIT]:
+            title = redact_text(str(note.get("title") or "Untitled"), max_chars=120)
+            rel = str(note.get("path") or note.get("permalink") or "")
+            rel = rel.replace("\\", "/")
+            if "basic-memory/" in rel:
+                rel = rel.split("basic-memory/", 1)[-1]
+            lines.append(f"- {title} | {redact_text(rel, max_chars=180)}")
+        try:
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(marker, {"injected": True})
+        except OSError:
+            pass
+        return HookResult.success(
+            action="inject",
+            reason_code="bm_vault_digest",
+            additional_context=["\n".join(lines)[:2400]],
+        )
 
     def _composite_recall(
         self, event: HookEvent, prompt_tokens: set[str]
@@ -2616,51 +2984,82 @@ class ClaimWarningModule:
 
     # Basic-memory write tools whose presence in the ledger means the change
     # rationale WAS captured this session. Substring match over the tool name.
-    _BM_WRITE_TOOLS = (
-        "basic-memory__write_note",
-        "basic-memory__edit_note",
-        "basic-memory__canvas",
-        "basic-memory__create_memory_project",
-    )
+    _BM_WRITE_TOOLS = _BM_WRITE_TOOL_NAMES
 
     def _basic_memory_nudge(self, event: HookEvent) -> HookResult:
         # Fires once per session when a canonical config file was edited but no
-        # basic-memory write happened. Derives both facts from the bounded, project-
-        # scoped ledger replay window (the only "session" proxy the ledger exposes;
-        # sessions share one cwd). If the ledger can't answer -> stay silent (fail-open
-        # toward NO nag, the safe direction for an advisory).
-        try:
-            events = self.ledger.replay(event.cwd, limit=120)
-        except Exception:
+        # basic-memory write happened. PRIMARY carrier is the sticky per-session
+        # _session_flag stamped at PostToolUse; the bounded ledger replay window is
+        # a FALLBACK used only when that carrier is unavailable.
+        #
+        # MEASURED 2026-08-07 over ~/.agents/state/harness/ledger (336 shards,
+        # 271,720 rows): the bounded window is not a session proxy. 147 of 173
+        # canonical-tree mutations (85.0%) already carry >=120 later events in their
+        # own project shard, and the trailing-120 window spans a median of 30.4
+        # minutes against a multi-hour session. Worse, ZERO of the 271,720 rows
+        # carry a session_id, so the window is PROJECT-keyed and shared by every
+        # session with the same cwd: 36 of 173 canonical edits (20.8%) have a
+        # basic-memory write inside their next 120 events, and on an OR form that
+        # write silences the nudge even when it belongs to a DIFFERENT session.
+        #
+        # Hence the carriers are never MIXED. Reading the FIRE from the sticky flag
+        # while reading the SUPPRESSION from the project-scoped ledger is strictly
+        # worse than either alone: it makes the gate session-scoped in the firing
+        # direction and cross-session in the muting direction, so a sibling session
+        # can mute this one. Both facts come from the flags, or both from the
+        # ledger. If the ledger cannot answer on the fallback path -> stay silent
+        # (fail-open toward NO nag, the safe direction for an advisory).
+        sticky = _session_carrier_live(event)
+        if sticky:
+            mutated = _session_flag(event, "any_mutation") or _session_flag(
+                event, "canonical_edit"
+            )
+            wrote_bm = _session_flag(event, "bm_write")
+        else:
+            try:
+                events = self.ledger.replay(event.cwd, limit=120)
+            except Exception:
+                return HookResult.success()
+            mutated = any(e.get("kind") == "mutation" for e in events)
+            wrote_bm = any(
+                e.get("kind") == "tool_result"
+                and any(t in str(e.get("tool") or "") for t in self._BM_WRITE_TOOLS)
+                for e in events
+            )
+        if not mutated:
             return HookResult.success()
-        edited_canonical = any(
-            e.get("kind") == "mutation" and e.get("canonical_tree") for e in events
-        )
-        if not edited_canonical:
-            return HookResult.success()
-        wrote_bm = any(
-            e.get("kind") == "tool_result"
-            and any(t in str(e.get("tool") or "") for t in self._BM_WRITE_TOOLS)
-            for e in events
-        )
         if wrote_bm:
             return HookResult.success()
-        # Once-per-session cooldown (gentle): nag at most once. Reuses the module-level
-        # _session_hash + default_state_root + read_json/atomic_write_json.
+        try:
+            _write_session_spool(event)
+        except Exception:
+            pass
+        # Once-per-session cooldown (gentle): nag at most once, on the SAME carrier
+        # the two facts above came from. The marker file is retained for the
+        # fallback path because an unidentified session cannot hold a flag and would
+        # otherwise lose its cooldown and nag at every Stop.
         marker = (
             default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
         )
-        if isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
+        already = isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
             "nudged"
-        ):
+        )
+        if sticky:
+            # F1: a session that fired on the FALLBACK carrier and only LATER made
+            # its own canonical edit flips to the sticky carrier mid-life. Reading
+            # only the flag would lose the cooldown and nag a second time, so the
+            # sticky read ORs in the marker. The two facts above still come from ONE
+            # carrier; only the once-per-session cap spans both.
+            already = _session_flag(event, "nudged") or already
+        if already:
             return HookResult.success()
         raw = HookResult.success(
             action="inject",
             reason_code="basic_memory_nudge",
             additional_context=[
-                "CAPTURE THE WHY: you edited a canonical config/harness/skill/hook file this "
-                "session but wrote nothing to basic-memory. Before finishing, capture the change "
-                "rationale with mcp__basic-memory__write_note so the decision survives compaction "
+                "AUTO-CAPTURED: this session mutated files and did not call write_note. "
+                "A session note was spooled by the Stop hook (vault CLI flush is best-effort). "
+                "Enrich with mcp__basic-memory__write_note if the rationale is load-bearing "
                 "(AGENTS.md section 8)."
             ],
         )
@@ -2668,13 +3067,16 @@ class ClaimWarningModule:
         # Only record the cooldown when the gate actually surfaced (advise/enforce);
         # in shadow it returns allow, so we don't burn the one-shot before it's promoted.
         if staged.action != "allow":
-            try:
-                (default_state_root() / "basic-memory-nudge").mkdir(
-                    parents=True, exist_ok=True
-                )
-                atomic_write_json(marker, {"nudged": True})
-            except OSError:
-                pass
+            if sticky:
+                _session_flag(event, "nudged", set_it=True)
+            else:
+                try:
+                    (default_state_root() / "basic-memory-nudge").mkdir(
+                        parents=True, exist_ok=True
+                    )
+                    atomic_write_json(marker, {"nudged": True})
+                except OSError:
+                    pass
         return staged
 
 
@@ -2992,15 +3394,17 @@ def _scaffold_gate_enabled(gate_name: str) -> bool:
     return not (env and os.environ.get(env, "").strip().lower() in _OFF_VALUES)
 
 
-def _scaffold_artifact_label(target: str) -> Optional[str]:
+def _scaffold_artifact_label(target: str, base: Optional[str] = None) -> Optional[str]:
     """Classify a write target as a canonical harness/skill/MCP/hook artifact (RFC
     §1.4.1) or None. Deployed trees (harness/skills/hooks/codex_profiles) via
     _canonical_tree; a 'repo' edit is narrowed to ci/harness, skills, the canonical MCP
-    manifest, or a hooks dir. Fail-closed to None on any error (never over-fires)."""
+    manifest, or a hooks dir. Fail-closed to None on any error (never over-fires).
+
+    `base` is the SESSION cwd for resolving a relative `target` (see _under)."""
     if not target:
         return None
     try:
-        tree = _canonical_tree(target)
+        tree = _canonical_tree(target, base)
         if tree in {"harness", "skills", "hooks", "codex_profiles"}:
             return tree
         if tree == "repo":
@@ -3213,7 +3617,7 @@ class EnforcementScaffoldModule:
         if self._is_doc_path(target):
             self._mark_doc_seen(event)
             return HookResult.success()
-        label = _scaffold_artifact_label(target)
+        label = _scaffold_artifact_label(target, getattr(event, "cwd", "") or "")
         if label is None:
             return HookResult.success()
         state = self._state(event)

@@ -1619,11 +1619,37 @@ jobs:
       # false-positives are suppressed inline with a greppable `# nosemgrep: <rule-id> -- reason`.
       # opengrep binary is pinned; the rules are opengrep/semgrep-compatible (verified locally
       # with semgrep CE 1.166.0). Excludes mirror the local verification command in the ruleset README.
-      - name: gate-sast opengrep (curated in-repo ruleset)
+      #
+      # INSTALL AND SCAN ARE TWO STEPS ON PURPOSE. Recorded in
+      # command-center/ci/orchestrator-flake-note.md: run 31632302523 @ 86dde6c1 reported
+      # `failure  gate-sast (opengrep)` from `curl: (56) Connection died, tried 5 times` in the
+      # INSTALL half. opengrep never ran and zero files were scanned, yet at job level that is
+      # INDISTINGUISHABLE from a real finding -- the orchestrator read the job verdict and was one
+      # sentence from concluding that a just-landed `# nosemgrep` waiver had not worked. The only
+      # tell was 40 lines down in the log. Split, the failing STEP NAME says which half broke.
+      #
+      # `--retry-all-errors` is the flag that matters: the `tried 5 times` text came from curl's
+      # OWN internal retry of a connection reset mid-transfer, which plain `--retry` does not cover.
+      #
+      # `test -s` catches the empty-file case (and `curl -f` already turns an HTTP error into no
+      # file at all). It does NOT catch a truncated-but-non-empty download; that would still
+      # surface in the scan half. Running the binary itself (`opengrep --version`) would close
+      # that gap and is the next increment -- not done here because this change is verified by
+      # forcing both failure states, and an unverified flag guess would undercut that.
+      #
+      # DELIBERATELY NOT ADDED: `continue-on-error`, `|| true`, or any masking of a failed
+      # install. A security gate that cannot run must fail -- loudly as infrastructure, never
+      # silently as success. Both step names keep the `gate-sast` marker, so the bidirectional
+      # charter check in .quality/charter_check.sh maps them to the same declared slug.
+      - name: gate-sast opengrep install (infrastructure failure, not a finding)
         run: |
-          curl -fsSL -o /usr/local/bin/opengrep \
+          curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
+            -o /usr/local/bin/opengrep \
             https://github.com/opengrep/opengrep/releases/download/v1.23.0/opengrep_manylinux_x86
           chmod +x /usr/local/bin/opengrep
+          test -s /usr/local/bin/opengrep
+      - name: gate-sast opengrep scan (curated in-repo ruleset)
+        run: |
           opengrep scan --config .quality/opengrep --error \
             --exclude node_modules --exclude .venv --exclude vendor \
             --exclude dist --exclude out --exclude build .
@@ -1724,3 +1750,36 @@ jobs:
             --config=osv-scanner.toml
             --lockfile=package-lock.json
             --lockfile=tools/mcp/hacktricks-mcp-server/package-lock.json
+            --lockfile=browser-bridge/chrome-bridge-mcp/package-lock.json
+            --lockfile=tools/editor/ralph-orchestrator/vendor/package-lock.json
+      # browser-bridge/chrome-bridge-mcp/package-lock.json landed 2026-08-28 (779df004) and was
+      # never added here, so this gate stayed green on 2026-09-01 while Dependabot held four
+      # open alerts against it (hono < 4.12.34, GHSA-8j4g-w8fx-2239 / -54fx-42gc-7vw4 /
+      # -f23p-vx2j-j53r / -79qm-7rj5-m7r9). A required check that does not read a lockfile
+      # cannot fail on it.
+      #
+      # The fourth --lockfile, tools/editor/ralph-orchestrator/vendor/package-lock.json, was
+      # DELIBERATELY unlisted until 2026-09-01 on the reasoning that it is a vendored upstream
+      # snapshot this repo "cannot patch without diverging from upstream", and that the fix was
+      # to re-vendor a newer ralph-orchestrator. Both halves were measured and REFUTED on
+      # 2026-09-01 (kept here rather than deleted, per house style):
+      #   * `npm audit --package-lock-only` on the vendored lockfile: 17 findings (1 critical,
+      #     10 high, 5 moderate, 1 low). On upstream's own v2.10.1 lockfile (latest release,
+      #     2026-06-23): 22 findings (1 critical, 13 high, 7 moderate, 1 low). On upstream
+      #     main @ edc2b326 (2026-08-25): the same 22. Re-vendoring does not fix the findings;
+      #     it adds five.
+      #   * `npm audit fix --package-lock-only` + `npm update tsx --package-lock-only` on the
+      #     vendored lockfile: 17 -> 4 npm-audit findings, all four being ONE dev-only chain
+      #     (drizzle-kit -> deprecated @esbuild-kit -> esbuild 0.18.20, GHSA-67mh-4wv8-2f99)
+      #     with no non-breaking fix; the three package.json files are byte-identical before
+      #     and after, so the divergence from upstream is confined to resolved versions inside
+      #     declared semver ranges. The vendored suites pass on the result (backend 178/178 via
+      #     tsx --test, dashboard 144/144 via vitest, `npm run build` clean).
+      # The lockfile was already patched in place once before (83732eaa, 2026-04-04, picomatch),
+      # so this is the second in-place fix, not a new precedent. The one residual carries a
+      # reasoned, dated ignore in osv-scanner.toml; everything else reached clean-zero by
+      # upgrade. Scanning it here is what stops the next five months of silent drift: GitHub's
+      # dependency graph skips vendor/ paths, so this gate is the ONLY thing that reads it.
+      # Same-day proof, pinned osv-scanner 2.5.1: with this line and the unfixed lockfile the
+      # gate exits 1 ("14 packages affected by 37 known vulnerabilities, 1 Critical 23 High");
+      # with the fixed lockfile it exits 0 ("No issues found", 1 filtered).

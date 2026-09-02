@@ -3,12 +3,14 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import heapq
+import json
 import re
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -248,6 +250,189 @@ def _is_failure_head(
     return False
 
 
+DIGEST_SIDECAR_NAME = "recall-digest.json"
+DIGEST_MAX_NOTES = 16
+DIGEST_SUMMARY_CHARS = 200
+_DIGEST_EXCLUDED_PARTS = {
+    ".git",
+    ".hf",
+    ".models",
+    "compaction-checkpoints",
+    "node_modules",
+}
+_NOTES_ARRAY_RE = re.compile(r'"notes"\s*:\s*\[')
+_HEADER_BUILT_AT_RE = re.compile(r'"built_at"\s*:\s*"([^"]+)"')
+_HEADER_SCHEMA_RE = re.compile(r'"schema_version"\s*:\s*(\d+)')
+
+
+def _digest_path_excluded(value: str) -> bool:
+    if not value:
+        return False
+    return any(
+        part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/")
+    )
+
+
+def _slim_note(note: dict[str, Any]) -> dict[str, Any] | None:
+    if not isinstance(note, dict):
+        return None
+    path = str(note.get("path") or "")
+    permalink = str(note.get("permalink") or "")
+    if _digest_path_excluded(path) or _digest_path_excluded(permalink):
+        return None
+    try:
+        mtime = float(note.get("mtime") or 0.0)
+    except (TypeError, ValueError):
+        mtime = 0.0
+    try:
+        importance = float(note.get("importance") or 0.0)
+    except (TypeError, ValueError):
+        importance = 0.0
+    return {
+        "title": redact_text(
+            str(note.get("title") or "Untitled"), redact_paths=True, max_chars=180
+        ),
+        "path": redact_text(path, redact_paths=True, max_chars=300),
+        "permalink": redact_text(permalink, redact_paths=True, max_chars=240),
+        "mtime": mtime,
+        "importance": _clamp01(importance),
+        "summary": redact_text(
+            str(note.get("summary") or ""),
+            redact_paths=True,
+            max_chars=DIGEST_SUMMARY_CHARS,
+        ),
+    }
+
+
+def _select_digest_notes(
+    notes: Iterable[dict[str, Any]], limit: int = DIGEST_MAX_NOTES
+) -> list[dict[str, Any]]:
+    def gen() -> Iterable[dict[str, Any]]:
+        for raw in notes:
+            item = _slim_note(raw)
+            if item is not None:
+                yield item
+
+    return heapq.nlargest(limit, gen(), key=lambda n: (n["importance"], n["mtime"]))
+
+
+def _peek_index_header(path: Path) -> tuple[int | None, str]:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            head = handle.read(4096)
+    except OSError:
+        return None, ""
+    schema = None
+    match = _HEADER_SCHEMA_RE.search(head)
+    if match:
+        try:
+            schema = int(match.group(1))
+        except ValueError:
+            schema = None
+    built = ""
+    match = _HEADER_BUILT_AT_RE.search(head)
+    if match:
+        built = match.group(1)
+    return schema, built
+
+
+def iter_index_notes(path: Path | str) -> Iterable[dict[str, Any]]:
+    """Yield each notes[] object without retaining keyword arrays.
+
+    Streams the file in chunks. Peak extra RAM is one note object (keywords
+    dropped immediately). Fail-open: corrupt or oversized objects end iteration.
+    """
+    decoder = json.JSONDecoder()
+    source = Path(path)
+    with source.open("r", encoding="utf-8") as handle:
+        buf = ""
+        in_array = False
+        while True:
+            chunk = handle.read(65536)
+            if chunk:
+                buf += chunk
+            elif not buf:
+                return
+            if not in_array:
+                match = _NOTES_ARRAY_RE.search(buf)
+                if not match:
+                    if not chunk:
+                        return
+                    buf = buf[-128:]
+                    continue
+                buf = buf[match.end() :]
+                in_array = True
+            progressed = False
+            while True:
+                buf = buf.lstrip()
+                if buf.startswith("]"):
+                    return
+                if buf.startswith(","):
+                    buf = buf[1:]
+                    progressed = True
+                    continue
+                if not buf.startswith("{"):
+                    break
+                try:
+                    obj, end = decoder.raw_decode(buf)
+                except json.JSONDecodeError:
+                    break
+                buf = buf[end:]
+                progressed = True
+                if isinstance(obj, dict):
+                    obj.pop("keywords", None)
+                    yield obj
+            if not chunk and not progressed:
+                return
+            if len(buf) > 12_000_000:
+                return
+
+
+def _write_digest(
+    digest_path: Path,
+    *,
+    schema_version: int,
+    built_at: str,
+    notes: list[dict[str, Any]],
+) -> None:
+    atomic_write_json(
+        digest_path,
+        {
+            "schema_version": schema_version,
+            "built_at": built_at,
+            "notes": notes,
+        },
+    )
+
+
+def build_digest_from_index(
+    index_path: Path | str, digest_path: Path | str | None = None
+) -> int:
+    """Build the slim SessionStart sidecar from an existing full index.
+
+    Never walks the vault. Missing/unreadable index → empty digest (fail-open).
+    """
+    source = Path(index_path)
+    target = Path(digest_path) if digest_path else source.with_name(DIGEST_SIDECAR_NAME)
+    schema_version = SCHEMA_VERSION
+    built_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    selected: list[dict[str, Any]] = []
+    try:
+        if source.is_file():
+            header_schema, header_built = _peek_index_header(source)
+            if header_schema is not None:
+                schema_version = header_schema
+            if header_built:
+                built_at = header_built
+            selected = _select_digest_notes(iter_index_notes(source))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        selected = []
+    _write_digest(
+        target, schema_version=schema_version, built_at=built_at, notes=selected
+    )
+    return len(selected)
+
+
 def build_index(vault: Path | str, target: Path | str) -> int:
     vault_path = Path(vault).resolve()
     target_path = Path(target)
@@ -333,6 +518,15 @@ def build_index(vault: Path | str, target: Path | str) -> int:
         "notes": notes,
     }
     atomic_write_json(target_path, document)
+    try:
+        _write_digest(
+            target_path.with_name(DIGEST_SIDECAR_NAME),
+            schema_version=SCHEMA_VERSION,
+            built_at=str(document["built_at"]),
+            notes=_select_digest_notes(notes),
+        )
+    except OSError:
+        pass
     return len(notes)
 
 
@@ -344,8 +538,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--target", default=str(default_state_root() / "recall-index.json")
     )
+    parser.add_argument(
+        "--from-index",
+        default="",
+        help="Build slim recall-digest.json from an existing index (no vault scan)",
+    )
+    parser.add_argument(
+        "--digest-target",
+        default="",
+        help="Override digest output path (used with --from-index)",
+    )
     args = parser.parse_args(argv)
     try:
+        if args.from_index:
+            digest_target = args.digest_target or str(
+                Path(args.from_index).with_name(DIGEST_SIDECAR_NAME)
+            )
+            count = build_digest_from_index(args.from_index, digest_target)
+            print(f"SUCCESS:recall-digest notes={count}")
+            return 0
         count = build_index(args.vault, args.target)
     except Exception as exc:
         print(f"FAILED:recall-index {type(exc).__name__}")

@@ -161,8 +161,9 @@ with a valid always-on `sale.tsv` row for that mapid.
 - `sub_819E20` fires during the Special Stages menu rebuild, so **attach + navigate triggers it**
   — a probe that never opens Special Stages sees 0 calls.
 - HARD BOUNDARY: if a mapid has no local StageData/assets on device, no hook makes it playable —
-  that needs a content bake (tbcml, out of scope). Heavenly Tower 7000 has local assets, which
-  is why it is the chosen first target.
+  that needs a content bake (tbcml, out of scope; canonical home is Codeberg
+  `codeberg.org/fieryhenry/tbcml` via source install — GitHub repo ARCHIVED, PyPI 1.1.0 stale).
+  Heavenly Tower 7000 has local assets, which is why it is the chosen first target.
 
 ### Offsets table (module `libnative-lib.so`, RVA == file offset)
 

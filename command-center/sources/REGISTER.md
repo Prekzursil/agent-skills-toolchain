@@ -230,7 +230,10 @@ R-A03 scope ruling — starting any of them before step 4 is how the 50× de-sco
 
 ## 6. UNANSWERED OWNER QUESTIONS — send as ONE batch, do not ask piecemeal
 
-The owner asked explicitly not to be interrupted piecemeal. **27 open questions.**
+The owner asked explicitly not to be interrupted piecemeal. **27 open questions** as listed 2026-08-11,
+**+ 16 intaken 2026-09-01 from PR #288 = 43 rows below.** Per-row live state is `WORK-UNIT-CATALOG.json`
+`owner_questions[]` (rendered to `OWNER-DECISIONS.md`), which records OQ-3/OQ-4 as ANSWERED by owner statement
+(2026-08-10) and OQ-1/OQ-2/OQ-8 by delegated default (2026-08-11); the rows here are kept as listed, not rewritten.
 
 **From `32-OWNER-DECISIONS.md` (Q1, Q2, Q4, Q5, Q7, Q8 are reported ANSWERED; 19 remain):**
 
@@ -268,6 +271,40 @@ The owner asked explicitly not to be interrupted piecemeal. **27 open questions.
 | OQ-6 | **`Diag 1.txt` credentials** — quarantine where, and do you want the blast-radius trace (what indexes that directory) before or after? *Rotation is yours; I will not touch it* | R-B08 |
 | OQ-7 | **Program B renumbering** — the prompt and the backlog disagree on B3/B4/B5. Prompt wins by §0 authority order; confirm so it can be renumbered ONCE and never re-litigated | R-B07 |
 | OQ-8 | **Enroll the monitor cockpit program into the unified contract, at what priority?** It was never in scope, so it stays invisible until you say so | R-M18 |
+
+**Intaken 2026-09-01 from PR #288 — `docs/plans/2026-08-20-four-surface-grill-decision-queue.md` §4, G-1..G-16 (16, all OPEN):**
+
+That document is a `grill-me-extensive` decision queue over four surfaces (`/deep-research`, `/e2e-testing`,
+`/workflow-authoring`, ultracode) whose §5 "Resolved Decisions" ledger is empty. It merged as `ab19ef5a` still
+reading "Status: OPEN — questions unanswered", which made it a second queue competing with this register instead
+of feeding it (`RECONCILE-STATE_2026-09-01.md` §4, §6b item 3). Each of its sixteen questions is one row below,
+intaken as asked and **not answered**; the source's own recommendation is carried as attribution ("source
+recommends") because the owner takes questions in one batch with options and a recommendation, and it stays the
+source's, never this register's. The G-id is the join key back to the source (its §6 now points here). Ids
+continue after `OQ-10`: `OQ-9`/`OQ-10` were created directly in `WORK-UNIT-CATALOG.json` on 2026-08-11 by
+`command-center/answer_owner_questions.py` and never appeared in this file, so `OQ-11` is the first
+collision-free id. None of the sixteen is wired as an `owner_gate`: the source gates a *tranche*, not any row in
+§1, and `sources/overlay.json` encodes only edges the register itself asserts. Line numbers cite the source at
+`ab19ef5a`; its §§1-5 are unchanged since, so they resolve in the working tree too.
+
+| # | question | register id |
+|---|---|---|
+| OQ-11 | **G-1 — What is this tranche FOR?** (a) pragmatic thin-slice build on the four surfaces; (b) formal Program-A resumption (authority packet first, then Phase 0); (c) BOTH — a minimal authority mini-packet (the source's SQ-1..3 = OQ-5, the R-M18 receipt-id fix, OQ-6) gating a thin-slice build wave. Source recommends (c); trade-off: 2-3 owner answers before any code. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:104-108` @ `ab19ef5a` | R-A13, R-A07, R-A08, R-A11, R-M06 |
+| OQ-12 | **G-2 — What counts as "executable" and "e2e" for R-A08/R-A11?** (a) WfDSL definition + conformance = done; (b) Claude `.js` runtime under `workflows/` + a runtime-asserted run = done; (c) two-tier: definition-conformance floor now (EE-1), runtime bar for "flagship" only. Source recommends (c); trade-off: two definitions of done need clean labelling in this register. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:109-113` @ `ab19ef5a` | R-A08, R-A11 |
+| OQ-13 | **G-3 — deep-research product surface:** `.js` workflow under `workflows/` (DR-1), the WfDSL `bp-res-01..06` cascade (DR-4), or both with one SSOT? Source recommends DR-1 first (invokable value now; the `rtv-pdr.js` pattern exists) and DR-4 deferred until G-2 (OQ-12) settles. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:116-118` @ `ab19ef5a` | R-A13 |
+| OQ-14 | **G-4 — Include DR-5?** Export and wire the orphan `academic`/`claims`/`calibration` modules of `research_harness` into plan -> grade -> render (S-M). Source recommends YES — cheapest real product step; dead-but-tested code is pure downside. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:119-120` @ `ab19ef5a` | R-A13 |
+| OQ-15 | **G-5 — Include DR-3?** The contradiction + favourable/unfavourable quota gate in grading/report (spec `:11260-11278`, TST-0319; M). Source recommends YES after DR-5 — the spec's most distinctive demand and the acceptance-bar candidate for R-A13. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:121-122` @ `ab19ef5a` | R-A13 |
+| OQ-16 | **G-6 — e2e skill hygiene (EE-6):** retire, relabel, or leave the vendored Playwright `e2e-testing` skill? Source recommends relabel + author a harness-native `workflow-e2e` skill — keep the Playwright prose for real web UIs (mcp-manager, taskwatch) and stop it masquerading as the harness answer. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:123-125` @ `ab19ef5a` | R-A11, R-A08 (e2e clause) |
+| OQ-17 | **G-7 — Which e2e floor ships first:** EE-1 (CI blueprint definition gate: wfdsl catalog/schema tests as the floor), EE-2 (skill smoke matrix over every skill with `scripts/`), or EE-3 (MCP server contract matrix)? Source recommends EE-1 then EE-2 — S efforts, both-states-friendly, and EE-1 is a hard prerequisite for grading any blueprint work. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:126-128` @ `ab19ef5a` | R-A11, R-A08 |
+| OQ-18 | **G-8 — Does the 6-gate CI charter GROW** (EE-1/EE-3 as gate 7+) **or stay closed** with opt-in extras like TG-2? Source recommends opt-in first, promote after 2 weeks green — the charter is deliberately closed and silent-pass risk is what this repo red-teams hardest. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:129-131` @ `ab19ef5a` | R-A11, R-A08 |
+| OQ-19 | **G-9 — Blueprint promotion (WF-1): how many flagships to `.js` under `workflows/`, and which?** Source recommends 2 — one research-family (pairs with DR-1) + one council/gate-family; enough to prove the pattern, small enough to gate properly. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:132-134` @ `ab19ef5a` | R-A08 |
+| OQ-20 | **G-10 — Foundry: ship the thin verbs now (WF-2, discover + translate) or defer all foundry until OQ-5?** Source recommends defer WF-2, and do WF-3 (vendor the host-only 08/09/10 spec artifacts into `command-center/`, ending the R-A26 dual-tree blindness) and WF-5 (kill the `workflow-foundry` name trap) immediately — bookkeeping, not scope-ruled build. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:135-137` @ `ab19ef5a` | R-A07, R-A26, R-A05 (OQ-5) |
+| OQ-21 | **G-11 — Monitor lane: include WF-4 in this tranche?** Wire `WfmonSource` into the unified cockpit — fixes the R-M05 count skew and is the first live R-M06 gate (S). Source recommends YES — the named first step on R-M06's live gates, and ultracode observability multiplies every other fan-out. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:138-140` @ `ab19ef5a` | R-M05, R-M06 |
+| OQ-22 | **G-12 — Order of the build wave once gated?** Source recommends: SQ-2 (the R-M18 receipt `unit_id` fix) -> WF-3/WF-5/EE-6 (bookkeeping) -> EE-1/EE-2 (floor) -> DR-5 -> DR-1 -> WF-1 -> WF-4 -> DR-3, deferring DR-2/DR-6/EE-4/EE-5/WF-2/WF-6. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:143-144` @ `ab19ef5a` | R-A13, R-A07, R-A08, R-A11, R-M06, R-M18, R-A26 |
+| OQ-23 | **G-13 — Where do these answers get recorded?** (a) the source document only; (b) also as `owner_questions[]` entries in `WORK-UNIT-CATALOG.json` per the canonical shape. Source recommends (b) — the consistency contract demands it; the document alone is not the register. This intake creates the `owner_questions[]` rows; it does not decide where the decision of record lives. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:145-147` @ `ab19ef5a` | — (register process: §0 consistency contract; `WORK-UNIT-CATALOG.json` `owner_questions[]`) |
+| OQ-24 | **G-14 — Execution vehicle for the build wave:** ad-hoc PRs, or a governed ultracode run using `workflow-authoring/templates/governed-run-orchestrator.md` with DOD rows per slice? Source recommends the governed run — it dogfoods the very surface being built; trade-off: setup cost. Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:148-150` @ `ab19ef5a` | R-M06, R-A07 |
+| OQ-25 | **G-15 — Effort ceiling for this tranche:** S/M only, or admit the L items (DR-2 `ResearchConfig` + JSON schema for a subset of the ~23 spec knobs; EE-4 fixture-backed agent-run replay)? Source recommends S/M + at most one L (DR-2, since R-A13 is the only IN-FLIGHT item). Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:151-152` @ `ab19ef5a` | R-A13, R-A11 |
+| OQ-26 | **G-16 — OQ-6 security quarantine (SQ-3): precondition for the whole tranche, or a parallel track?** Source recommends precondition — owner-cheap, and this register's critical path (§5 step 1) already names it first. Rotation stays the owner's (AGENTS.md §9). Source: PR #288 `docs/plans/2026-08-20-four-surface-grill-decision-queue.md:153-154` @ `ab19ef5a` | R-B08 (OQ-6) |
 
 **NOT-CHECKED (surfaced, not folded into a pass):** the brief states an "agentify" question and a
 "dependency" question are already answered. **Neither appears anywhere in `32-OWNER-DECISIONS.md`

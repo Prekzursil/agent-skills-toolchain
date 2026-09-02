@@ -221,7 +221,53 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
         assert (hook["timeout"], hook["statusMessage"]) == (timeout, status)
 
 
-def _run_cli(tmp_path, payload, *, event="PreToolUse", state="state"):
+def test_grok_build_hooks_keeps_broad_matcher_and_no_claude_hand_edits():
+    # Pins the two DELIBERATE branch decisions taken when grok was accepted by
+    # build_hooks on the live tree (2026-08-08; ported in the 2026-09-02 reunion).
+    # Both are safety decisions, so they get a test rather than only a comment.
+    grok = build_hooks("grok")
+    claude = build_hooks("claude")
+    codex = build_hooks("codex")
+
+    # (1) grok must NOT inherit the claude-narrowed PreToolUse matcher. That
+    # constant enumerates CLAUDE tool names; measured against the shipped
+    # grok.exe it matches 1 of 13 real Grok tool names and misses Grok's shell
+    # tool entirely, so narrowing grok would make the destructive-command guard
+    # blind to every Grok shell command.
+    import re as _re
+
+    grok_pre = next(
+        g for g in grok["PreToolUse"] if "dispatcher.py" in g["hooks"][0]["command"]
+    )
+    claude_pre = next(
+        g for g in claude["PreToolUse"] if "dispatcher.py" in g["hooks"][0]["command"]
+    )
+    assert grok_pre["matcher"] == ".*"
+    assert grok_pre["matcher"] != claude_pre["matcher"]
+    for grok_tool in ("run_terminal_command", "search_replace", "write_file"):
+        assert _re.fullmatch(grok_pre["matcher"], grok_tool), (
+            f"{grok_tool} must reach the dispatcher on grok"
+        )
+        assert not _re.fullmatch(claude_pre["matcher"], grok_tool), (
+            f"{grok_tool} is missed by the claude matcher -- that is WHY grok "
+            f"keeps '.*'; if this now matches, re-derive the decision"
+        )
+
+    # (2) grok gets none of the claude-only hand-edits: the worktree events do
+    # not exist on grok, and the other two point at ~/.claude/hooks tooling.
+    assert tuple(grok) == EVENTS
+    assert "WorktreeCreate" not in grok and "WorktreeRemove" not in grok
+    for groups in grok.values():
+        assert len(groups) == 1
+        assert len(groups[0]["hooks"]) == 1
+    assert tuple(grok) == tuple(codex)
+
+    # (3) the generated command still carries the right provider.
+    for event_name in EVENTS:
+        assert "--provider grok" in grok[event_name][0]["hooks"][0]["command"]
+
+
+def _run_cli(tmp_path, payload, *, event="PreToolUse", state="state", provider="codex"):
     """Drive the dispatcher CLI over real stdin and return (completed, terminals)."""
     script = Path(__file__).resolve().parents[1] / "dispatcher.py"
     root = tmp_path / state
@@ -230,7 +276,7 @@ def _run_cli(tmp_path, payload, *, event="PreToolUse", state="state"):
             sys.executable,
             str(script),
             "--provider",
-            "codex",
+            provider,
             "--event",
             event,
             "--state-root",
@@ -294,6 +340,21 @@ def test_cli_parsable_payload_still_records_success(tmp_path, payload):
     assert [r["terminal"] for r in records] == ["SUCCESS:hook-pretooluse"]
     assert records[0]["reason_code"] == "ok"
     assert records[0]["failed_modules"] == []
+
+
+def test_cli_accepts_grok_and_attributes_the_terminal_record_to_it(tmp_path):
+    # The argparse `choices` gate and adapters.SUPPORTED_PROVIDERS must move
+    # together (see test_contract): before the live fix, `--provider grok` was
+    # rejected by argparse (rc 2) and Grok's hooks ran as `--provider claude`, so
+    # every Grok turn was attributed to claude. One real process, end to end.
+    completed, records = _run_cli(
+        tmp_path, '{"session_id": "g", "tool_name": "Bash"}', provider="grok"
+    )
+
+    assert completed.returncode == 0
+    assert "suppressOutput" not in completed.stdout
+    assert [r["terminal"] for r in records] == ["SUCCESS:hook-pretooluse"]
+    assert records[0]["provider"] == "grok"
 
 
 def test_dispatch_transport_error_is_named_in_the_terminal_record(tmp_path):

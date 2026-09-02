@@ -7,12 +7,28 @@
 # (1 critical `tar` 9.2, 4 high, 1 medium, 1 low) in the agentify-desktop lockfile — that tree has
 # since been RETIRED — all fixable by non-breaking upgrades, none introduced by any open PR.
 #
-# SCOPE deliberately matches what `gate-deps` actually scans (see quality.yml):
+# SCOPE deliberately matches the first-party lockfiles `gate-deps` scans (see quality.yml):
 #     --lockfile=package-lock.json
 #     --lockfile=tools/mcp/hacktricks-mcp-server/package-lock.json
-# tools/editor/ralph-orchestrator/vendor/package-lock.json is EXCLUDED on purpose — it is a
-# vendored third-party tree and the gate does not scan it. Adding it here would generate PRs for
-# a tree we do not gate, and dependabot-auto-merge.yml would then squash-merge them unreviewed.
+#     --lockfile=browser-bridge/chrome-bridge-mcp/package-lock.json
+# tools/editor/ralph-orchestrator/vendor/package-lock.json is scanned by gate-deps as of
+# 2026-09-01 but is STILL not listed here, for two reasons that are different from the old one
+# ("the gate does not scan it" -- no longer true):
+#   1. It is a vendored upstream snapshot. Its freshness is an explicit re-vendor / re-audit
+#      action recorded in tools/editor/ralph-orchestrator/README.md, not a weekly bump stream;
+#      routine minor/patch PRs against it would silently walk the lockfile away from the
+#      pinned upstream commit with no one deciding to.
+#   2. Its test suites (backend tsx --test, dashboard vitest) do not run in CI, so a
+#      Dependabot PR against it would reach dependabot-auto-merge.yml with only the CVE gate
+#      behind it -- exactly the half-gated auto-merge this file warns about above.
+# Consequence to know: when a new advisory lands on that lockfile, gate-deps goes red on every
+# branch and NO fix PR opens by itself (GitHub's dependency graph skips vendor/ paths, so the
+# repo-wide SECURITY updates described in the NOTE below never fire for it either). The fix is
+# manual and small: `cd tools/editor/ralph-orchestrator/vendor && npm audit fix
+# --package-lock-only`, run `npm ci && npm test && npm run build` there, commit the lockfile.
+# If that manual step proves too slow in practice, the alternative is to add an npm entry for
+# /tools/editor/ralph-orchestrator/vendor here AND wire its two test suites into
+# gate-tests-coverage in the same change -- never one without the other.
 #
 # NOTE on why the hacktricks entry is not optional. Omitting a directory here does NOT stop
 # Dependabot opening PRs against it — SECURITY updates are repo-wide and ignore this file (PR #267
@@ -57,6 +73,27 @@ updates:
       prefix-development: "chore(deps-dev)"
     groups:
       npm-hacktricks-minor-patch:
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  # browser-bridge/chrome-bridge-mcp landed 2026-08-28 without an entry here. Per the NOTE
+  # above, that meant Dependabot still raised ALERTS against its lockfile (four hono
+  # advisories on 2026-09-01) but never opened the one-line fix PR -- so the alerts sat open
+  # while the patch (hono 4.12.34) was already published. With this entry, a security
+  # advisory produces a PR, dependabot-auto-merge.yml turns on auto-merge, and the required
+  # `quality` checks (gate-deps now reads this lockfile too) decide whether it lands.
+  - package-ecosystem: npm
+    directory: /browser-bridge/chrome-bridge-mcp
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "fix(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      npm-chrome-bridge-minor-patch:
         update-types: [minor, patch]
     labels: [dependencies]
 

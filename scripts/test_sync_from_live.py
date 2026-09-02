@@ -635,3 +635,137 @@ def test_prune_removes_a_genuinely_orphaned_repo_file(env):
     run_sync(env.root, env.home, "-Prune")
     assert not orphan.exists(), "-Prune failed to remove a genuinely orphaned file"
     assert env.repo("rules", "kept.md").exists()
+
+
+# --------------------------------------------------------------------------- agents-root mapping
+#
+# The 2026-08-27 capture (PR #290, reconciled 2026-09-01) added a SIXTH mapping: the loose
+# audit/decision docs sitting DIRECTLY in ~/.agents (HARNESS-AUDIT_*.md, CONSOLIDATED-GEM-
+# DECISIONS_*.md, ...). Five of them reached the repo only through manual captures; every later
+# edit was orphaned -- the same architectural hole this script exists to close, one level up.
+# The mapping is scoped with TopLevelOnly + Filter='*.md' because its live root CONTAINS the
+# skills mapping's live root plus logs\, backups\ and secrets\ trees. Each test below pins one
+# consequence of that scope; none depends on the -Drift verdict, so they also run on a
+# case-sensitive filesystem where the planted CASE-MISMATCH self-control cannot pass.
+
+
+def test_agents_root_captures_only_top_level_markdown(env):
+    """The walk for agents-root must be NON-recursive and *.md-only.
+
+    An unscoped recursive walk of ~/.agents would process the ~18,000 skills files a second
+    time and pull logs\\, backups\\ and secrets\\ toward a PUBLIC repo."""
+    write(env.home / ".agents/HARNESS-AUDIT_2026-08-27.md", "audit\n")
+    write(env.home / ".agents/agents.json", "{}\n")  # wrong extension
+    write(env.home / ".agents/logs/notes.md", "log\n")  # nested: not top-level
+    write(env.home / ".agents/secrets/token.md", "SECRET\n")  # nested: never
+    write(env.live("skills", "s/SKILL.md"), "skill\n")  # owned by the skills mapping
+    doc = report(env.root, env.home)
+    labels = [a["label"] for a in doc["areas"]]
+    assert "agents-root" in labels, f"no agents-root area in report: {labels}"
+    assert (env.root / ".agents/HARNESS-AUDIT_2026-08-27.md").read_bytes() == b"audit\n"
+    for leaked in (
+        ".agents/agents.json",
+        ".agents/logs/notes.md",
+        ".agents/secrets/token.md",
+    ):
+        assert not (env.root / leaked).exists(), (
+            f"agents-root swept {leaked} into the repo"
+        )
+    # The skills file is captured exactly once, by its own mapping -- agents-root must not
+    # re-walk it under a second area label.
+    hits = [f for f in doc["findings"] if f["repoPath"] == ".agents/skills/s/SKILL.md"]
+    assert [f["area"] for f in hits] == ["skills"], hits
+    area = next(a for a in doc["areas"] if a["label"] == "agents-root")
+    assert area["filesSeen"] == 1, (
+        f"agents-root walked more than the one top-level .md: {area}"
+    )
+
+
+def test_agents_root_prune_is_scoped_to_the_files_it_captures(env):
+    """-Prune for agents-root must judge ONLY top-level *.md under repo/.agents.
+
+    The repo keeps whole subtrees there that NO mapping captures (.agents/harness,
+    .agents/library, .agents/scripts, ...). An unscoped recursive prune finds no live
+    counterpart for any of them and deletes them all. WORST CASE -- DATA LOSS."""
+    kept_tree = write(env.root / ".agents/harness/dispatcher.py", "unmapped subtree\n")
+    kept_lib = write(env.root / ".agents/library/pack/README.md", "unmapped subtree\n")
+    kept_json = write(env.root / ".agents/agents.json", "not markdown\n")
+    orphan = write(env.root / ".agents/orphan.md", "live no longer has this\n")
+    write(env.home / ".agents/kept.md", "kept\n")
+    run_sync(env.root, env.home, "-Prune")
+    for kept in (kept_tree, kept_lib, kept_json):
+        assert kept.exists(), f"agents-root prune escaped its scope and deleted {kept}"
+    # Positive control: a prune loop that never fires would also pass the guard above.
+    assert not orphan.exists(), (
+        "a genuinely orphaned top-level .md under .agents was not pruned"
+    )
+    assert (env.root / ".agents/kept.md").exists()
+
+
+def test_runtime_state_and_export_blobs_are_excluded(env):
+    """Live-only runtime artifacts must be neither copied nor reported.
+
+    Hook 'state' dirs (recall-gate indices, per-session caches) churn every session;
+    '.last-run' / '.shown-*' are throttle and UI-reminder markers; '*.zip' are packaging blobs
+    dropped next to skills; ~/.agents/session-catalog.md is a 378 KB machine-generated file
+    whose staging crashed a daemon on 2026-08-27. Every one is already in .gitignore, so a
+    sync that carried them would only ever produce untracked noise and phantom DRIFT."""
+    write(env.live("hooks", "recall-gate/state/tree_index.json"), "{}\n")
+    write(env.live("hooks", "recall-gate/.last-run"), "1\n")
+    write(env.live("hooks", "recall-gate/.shown-2026-08-27"), "1\n")
+    write(env.live("skills", "s/export.zip"), b"PK\x03\x04junk")
+    write(env.home / ".agents/session-catalog.md", "generated\n")
+    write(env.live("hooks", "recall-gate/check.py"), "real\n")  # positive control
+    write(env.home / ".agents/README.md", "kept\n")  # positive control
+    doc = report(env.root, env.home)
+    assert env.repo("hooks", "recall-gate/check.py").exists(), (
+        "a real hook file was excluded"
+    )
+    assert (env.root / ".agents/README.md").exists(), "a real root doc was excluded"
+    for junk in (
+        "hooks/recall-gate/state/tree_index.json",
+        "hooks/recall-gate/.last-run",
+        "hooks/recall-gate/.shown-2026-08-27",
+        ".agents/skills/s/export.zip",
+        ".agents/session-catalog.md",
+    ):
+        assert not (env.root / junk).exists(), f"{junk} was synced into the repo"
+        assert finding_for(doc, junk) is None, (
+            f"{junk} produced a finding: {finding_for(doc, junk)}"
+        )
+    assert doc["totals"]["excluded"] >= 5, doc["totals"]
+
+
+def test_quality_zero_audit_script_hold_is_retired(env):
+    """The audit_quality_zero_platform.py hold covered a GENUINE bidirectional divergence.
+
+    RESOLUTIONS-2026-08-28 row 8 chose the live copy (already the merge of both yaml
+    fallbacks) and dual-wrote it; both repo copies are byte-identical to that snapshot. Per
+    the hold list's own rule ("remove an entry once its merge has been deployed to live") the
+    entry is gone, so a future live edit must flow into the repo again rather than being HELD
+    forever behind a resolved divergence."""
+    rel = "quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py"
+    write(env.live("skills", rel), "live edit after the 2026-08-28 reconcile\n")
+    write(env.repo("skills", rel), "older repo copy\n")
+    doc = report(env.root, env.home)
+    f = finding_for(doc, rel)
+    assert f is not None and f["status"] == "CHANGED", f
+    assert env.repo("skills", rel).read_bytes() == (
+        b"live edit after the 2026-08-28 reconcile\n"
+    )
+    # Control: the remaining skills hold is still enforced by the same run shape.
+    write(env.live("skills", "multi-agent-quickstart/SKILL.md"), "live\n")
+    write(env.repo("skills", "multi-agent-quickstart/SKILL.md"), "REPO AUTHORITATIVE\n")
+    doc2 = report(env.root, env.home)
+    held = finding_for(doc2, "multi-agent-quickstart/SKILL.md")
+    assert held is not None and held["status"] == "HELD", held
+
+
+def test_commit_hint_names_the_agents_root_capture(env):
+    """The scoped `git add` hint is the operator's checklist; a mapping the hint omits is a
+    mapping whose captures never get committed -- the orphaning this entry was added to end."""
+    write(env.home / ".agents/NOTE.md", "n\n")
+    p = run_sync(env.root, env.home)
+    assert "'.agents/*.md'" in p.stdout, (
+        f"commit hint does not name the agents-root capture:\n{p.stdout[-1500:]}"
+    )

@@ -50,7 +50,8 @@ skills/crypto-ctf/RsaCtfTool/
 mitm_mcp_traffic.db
 
 # profile-capture hook runtime state. CARRIES RAW OWNER PII (date of birth, phone numbers)
-# copied verbatim out of session text. This repo is PUBLIC — never commit these.
+# copied verbatim out of session text. Repo is PRIVATE-ONLY (see SECURITY.md) but these
+# dumps are still excluded — they are not the allowed browser-profiles cookie trees.
 hooks/profile-capture/capture-queue.jsonl
 hooks/profile-capture/seen.txt
 
@@ -70,7 +71,7 @@ hooks/profile-capture/seen.txt
 # Hook runtime state directories. Written by a running hook, never source.
 # recall-gate/state/tree_index.json was measured to copy a summary line verbatim out of
 # the scanned tree -- on 2026-08-08 that included a "BEGIN PRIVATE KEY" header lifted from
-# a test fixture. This repo is PUBLIC; hook state is a capture surface, not an artifact.
+# a test fixture. Repo is PRIVATE-ONLY (see SECURITY.md); hook state is still excluded.
 hooks/*/state/
 
 # agent probe outputs — regenerable; the probe SCRIPTS are kept as provenance
@@ -201,6 +202,38 @@ platform/**/_build_*.py
 # tracked platform/plugin/PACKAGE-MEASUREMENT.json.
 platform/plugin/dist/
 
+# --- union from live .agents gitignore (2026-08-28 ssot reconcile) ---
+# Conservative subset only. Live ~/.agents/.gitignore is copied to .agents/.gitignore.
+# Omitted from root: rules/ (would hide platform rules/), *credential* (matches
+# tracked toolchain paths like hooks/deny-credential-reads/), *token*.json (too broad).
+local.json
+secrets/
+secure-evidence/
+*.token
+*.pem
+*.key
+# browser-profiles/ is INTENTIONALLY tracked (owner 28.08.2026; live login
+# cookies in a PRIVATE repo). Do not add a blanket ignore for that tree.
+# TrustTokenKeyCommitments/ is ignored inside browser-profiles/.gitignore
+# (Chrome Privacy Sandbox component data, not owner cookies).
+generated/
+logs/
+tmp/
+state/
+backups/
+deploy-backups/
+.sonar/
+
+# .agents/session-catalog.md is the line .agents/session-catalog.POINTER.md says exists here
+# and did not: "excluded from version control twice: by ... sync-from-live.ps1 and by a
+# .agents/session-catalog.md line in the toolchain repo's .gitignore." The 2026-08-28 fold
+# committed the 367 KB machine-generated catalog anyway; untracked 2026-09-01 (the live
+# file is untouched -- this only removes the blob from the index). Its sibling
+# index-ai-sessions.state.json (873 KB of mtimes and per-session records that the indexer
+# rewrites on every run) is the same class: runtime state, which .agents/.gitignore already
+# refuses under state/. Together they were 1.2 MB of churn-prone bytes in every clone.
+.agents/session-catalog.md
+.agents/scripts/*.state.json
 # harness/ast-integrate -- the P2 (G-1) repair tree captured 2026-09-02 by the `ast-integrate`
 # mapping in scripts/sync-from-live.ps1, so the 2007-unit measurement can run in a cloud Linux
 # worker from the repo. The append-only repair log and the wave logs under it ARE the P2 audit

@@ -40,6 +40,16 @@ Auto transcribe before clip selection. API_KEY=sk-proj-abcdefghijklmnopqrstuvwxy
     assert "transcribe" in note["keywords"]
     assert "sk-proj" not in json.dumps(data)
     assert "[REDACTED]" in note["summary"]
+    # The build also writes the slim SessionStart sidecar next to the index:
+    # keyword-free, cache paths excluded, secrets redacted (live tree Q3/Q4,
+    # ported 2026-09-02).
+    digest = json.loads((tmp_path / "recall-digest.json").read_text(encoding="utf-8"))
+    assert digest["schema_version"] == data["schema_version"]
+    assert digest["built_at"] == data["built_at"]
+    assert "keywords" not in digest["notes"][0]
+    assert digest["notes"][0]["title"] == "Reframe transcript decision"
+    assert all(".hf" not in note.get("path", "") for note in digest["notes"])
+    assert "sk-proj" not in json.dumps(digest)
 
 
 def test_builder_never_copies_metadata_secrets_into_keywords_or_paths(tmp_path):
@@ -322,3 +332,217 @@ def test_guard_is_not_over_broad_for_a_name_prefixed_sibling(tmp_path):
 
     assert count == 1
     assert json.loads(target.read_text(encoding="utf-8"))["schema_version"] == 2
+
+
+# --- slim SessionStart digest sidecar (live tree Q3/Q4, ported 2026-09-02) -------
+#
+# `recall-digest.json` is what RecallModule reads on SessionStart / the first
+# prompt instead of the multi-MB keyword index. It can be (re)built from an
+# existing index without touching the vault: `--from-index` streams the notes[]
+# array, drops every `keywords` list before it is retained, and keeps the top
+# DIGEST_MAX_NOTES by (importance, mtime).
+
+
+def _index_document(notes, **header):
+    document = {
+        "schema_version": 2,
+        "built_at": "2026-09-01T00:00:00+00:00",
+        "vault_hash": "0" * 64,
+        "notes": notes,
+    }
+    document.update(header)
+    return document
+
+
+def _note(i, *, importance, mtime, path=None, keywords=None, **extra):
+    note = {
+        "title": f"Note {i}",
+        "path": path or f"notes/note-{i}.md",
+        "permalink": f"notes/note-{i}",
+        "summary": f"summary {i}",
+        "mtime": mtime,
+        "importance": importance,
+        "keywords": keywords if keywords is not None else [f"kw{i}", "shared"],
+    }
+    note.update(extra)
+    return note
+
+
+def test_iter_index_notes_streams_objects_and_drops_keywords(tmp_path):
+    index = tmp_path / "recall-index.json"
+    notes = [_note(i, importance=0.5, mtime=float(i)) for i in range(5)]
+    index.write_text(json.dumps(_index_document(notes)), encoding="utf-8")
+
+    seen = list(R.iter_index_notes(index))
+
+    assert [n["title"] for n in seen] == [f"Note {i}" for i in range(5)]
+    assert all("keywords" not in n for n in seen)
+    assert seen[0]["permalink"] == "notes/note-0"
+
+
+def test_iter_index_notes_survives_large_multi_chunk_documents(tmp_path):
+    # The reader works in 64 KiB chunks; a note whose JSON spans a chunk boundary
+    # must still decode whole.
+    index = tmp_path / "recall-index.json"
+    notes = [
+        _note(i, importance=0.5, mtime=1.0, summary="x" * 3000, keywords=["k"] * 400)
+        for i in range(60)
+    ]
+    index.write_text(json.dumps(_index_document(notes)), encoding="utf-8")
+    assert index.stat().st_size > 65536 * 2
+
+    seen = list(R.iter_index_notes(index))
+
+    assert len(seen) == 60
+    assert all("keywords" not in n for n in seen)
+    assert all(len(n["summary"]) == 3000 for n in seen)
+
+
+def test_iter_index_notes_is_fail_open_on_truncated_or_alien_documents(tmp_path):
+    truncated = tmp_path / "truncated.json"
+    body = json.dumps(_index_document([_note(0, importance=0.5, mtime=1.0)]))
+    truncated.write_text(body[: len(body) // 2], encoding="utf-8")
+    assert list(R.iter_index_notes(truncated)) == []
+
+    no_notes = tmp_path / "no-notes.json"
+    no_notes.write_text(json.dumps({"schema_version": 2}), encoding="utf-8")
+    assert list(R.iter_index_notes(no_notes)) == []
+
+    empty = tmp_path / "empty.json"
+    empty.write_text("", encoding="utf-8")
+    assert list(R.iter_index_notes(empty)) == []
+
+    # A non-object element inside notes[] ends iteration instead of raising.
+    alien = tmp_path / "alien.json"
+    alien.write_text(
+        json.dumps({"notes": [{"title": "ok", "path": "a.md"}, 42, {"title": "x"}]}),
+        encoding="utf-8",
+    )
+    assert [n["title"] for n in R.iter_index_notes(alien)] == ["ok"]
+
+
+def test_build_digest_from_index_keeps_top_notes_by_importance_then_mtime(tmp_path):
+    index = tmp_path / "recall-index.json"
+    notes = [_note(i, importance=i / 100, mtime=1000.0 - i) for i in range(40)]
+    # Two notes tie on importance; the fresher mtime wins the tie.
+    notes.append(_note(90, importance=0.39, mtime=5.0))
+    notes.append(_note(91, importance=0.39, mtime=9.0))
+    # Cache/scratch paths never reach the digest, whatever their score.
+    notes.append(_note(92, importance=1.0, mtime=99.0, path=".hf/model/README.md"))
+    notes.append(
+        _note(93, importance=1.0, mtime=99.0, path="compaction-checkpoints/x.md")
+    )
+    index.write_text(json.dumps(_index_document(notes)), encoding="utf-8")
+
+    count = R.build_digest_from_index(index)
+
+    digest_path = tmp_path / R.DIGEST_SIDECAR_NAME
+    digest = json.loads(digest_path.read_text(encoding="utf-8"))
+    assert count == R.DIGEST_MAX_NOTES == len(digest["notes"])
+    titles = [n["title"] for n in digest["notes"]]
+    assert titles[0] == "Note 39"
+    assert "Note 92" not in titles and "Note 93" not in titles
+    # Tie on importance 0.39 (Note 39 is 0.39 too): fresher mtime ranks first.
+    assert titles.index("Note 91") < titles.index("Note 90")
+    assert all("keywords" not in n for n in digest["notes"])
+    # Header provenance is copied from the source index, not re-stamped.
+    assert digest["schema_version"] == 2
+    assert digest["built_at"] == "2026-09-01T00:00:00+00:00"
+    # Note bodies are slim: bounded summary, redacted fields, clamped importance.
+    for note in digest["notes"]:
+        assert set(note) == {
+            "title",
+            "path",
+            "permalink",
+            "mtime",
+            "importance",
+            "summary",
+        }
+        assert 0.0 <= note["importance"] <= 1.0
+        assert len(note["summary"]) <= R.DIGEST_SUMMARY_CHARS
+
+
+def test_build_digest_from_index_redacts_secrets_and_tolerates_garbage_notes(
+    tmp_path,
+):
+    index = tmp_path / "recall-index.json"
+    notes = [
+        _note(
+            0,
+            importance="not-a-float",
+            mtime="not-a-float",
+            summary="API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",
+        ),
+        {"title": "no path", "importance": 0.2},
+        # A non-object element ENDS the stream (fail-open, see
+        # test_iter_index_notes_is_fail_open_on_truncated_or_alien_documents), so
+        # it sits last here: everything before it must still be digested.
+        "not-a-note",
+    ]
+    index.write_text(json.dumps(_index_document(notes)), encoding="utf-8")
+
+    count = R.build_digest_from_index(index, tmp_path / "out" / "digest.json")
+
+    digest = json.loads((tmp_path / "out" / "digest.json").read_text(encoding="utf-8"))
+    assert count == 2
+    serialized = json.dumps(digest)
+    assert "sk-proj" not in serialized
+    assert "[REDACTED]" in serialized
+    # Unparseable numeric fields degrade to 0, never raise; a note with no path
+    # still lands (path is redacted to "" rather than dropped).
+    assert {n["mtime"] for n in digest["notes"]} == {0.0}
+    assert {n["title"] for n in digest["notes"]} == {"Note 0", "no path"}
+
+
+def test_build_digest_from_index_writes_an_empty_digest_when_the_index_is_missing(
+    tmp_path,
+):
+    missing = tmp_path / "nope" / "recall-index.json"
+    count = R.build_digest_from_index(missing, tmp_path / "digest.json")
+    digest = json.loads((tmp_path / "digest.json").read_text(encoding="utf-8"))
+    assert count == 0
+    assert digest["notes"] == []
+    assert digest["schema_version"] == R.SCHEMA_VERSION
+    assert digest["built_at"]  # stamped now, since there is no header to copy
+
+
+def test_build_digest_from_index_never_walks_the_vault(tmp_path, monkeypatch):
+    index = tmp_path / "recall-index.json"
+    index.write_text(
+        json.dumps(_index_document([_note(0, importance=0.5, mtime=1.0)])),
+        encoding="utf-8",
+    )
+
+    def explode(self, *args, **kwargs):
+        raise AssertionError("--from-index must not walk any directory")
+
+    monkeypatch.setattr(R.Path, "rglob", explode)
+    assert R.build_digest_from_index(index) == 1
+
+
+def test_cli_from_index_builds_the_digest_without_a_vault(tmp_path, capsys):
+    index = tmp_path / "recall-index.json"
+    index.write_text(
+        json.dumps(_index_document([_note(0, importance=0.5, mtime=1.0)])),
+        encoding="utf-8",
+    )
+
+    rc = R.main(["--from-index", str(index)])
+
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "SUCCESS:recall-digest notes=1" in out
+    assert (tmp_path / R.DIGEST_SIDECAR_NAME).is_file()
+
+
+def test_cli_from_index_honours_digest_target(tmp_path, capsys):
+    index = tmp_path / "recall-index.json"
+    index.write_text(json.dumps(_index_document([])), encoding="utf-8")
+    target = tmp_path / "elsewhere" / "slim.json"
+
+    rc = R.main(["--from-index", str(index), "--digest-target", str(target)])
+
+    assert rc == 0
+    assert "SUCCESS:recall-digest notes=0" in capsys.readouterr().out
+    assert json.loads(target.read_text(encoding="utf-8"))["notes"] == []
+    assert not (tmp_path / R.DIGEST_SIDECAR_NAME).exists()

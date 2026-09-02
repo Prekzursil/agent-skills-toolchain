@@ -24,7 +24,7 @@ SAST/secret-scanned, but are not a 100%-coverage target.
 | 3 | tests-coverage | pytest + pytest-cov (branch, `--cov-fail-under=100`) · node `--test` | Strict 100% line+branch coverage for the shipped Python packages, plus the node workspace tests (root + `tools/agentspec-js`). Reasoned `# pragma: no cover -- <reason>` only. |
 | 4 | sast | opengrep 1.23.0 (CI) / semgrep CE 1.166.0 (local) | Static security analysis using the curated in-repo ruleset under `.quality/opengrep/` (NOT `--config auto`). Clean-zero lock: 0 findings, no baseline. |
 | 5 | secrets | gitleaks | Secret scanning with the committed `.gitleaks.toml` allowlist (owner-intentional private-env store + reasoned doc/fixture placeholders). Gate on 0. |
-| 6 | deps | osv-scanner 2.x | Known-CVE scan of the committed npm lockfile (root). Reasoned per-CVE ignores only in `osv-scanner.toml`; no baseline. Gate on 0. |
+| 6 | deps | osv-scanner 2.x | Known-CVE scan of every committed npm lockfile (root, hacktricks-mcp-server, chrome-bridge-mcp, and the vendored ralph-orchestrator tree). Reasoned per-CVE ignores only in `osv-scanner.toml`; no baseline. Gate on 0. |
 
 <!-- END GATES -->
 

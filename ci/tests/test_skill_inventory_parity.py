@@ -57,7 +57,12 @@ DUAL_WRITE = REPO_ROOT / "ci" / "check_skill_dual_write.py"
 BASELINE = REPO_ROOT / "ci" / "skill-inventory-baseline.txt"
 
 #: Measured at HEAD on 2026-08-14 by BOTH enumerations, on both surfaces.
-MEASURED_CANONICAL_ONLY = (
+#: The asymmetry the 2026-08-28 SSOT fold (15905d35) RECONCILED. Kept as the
+#: historical record the real-repo controls below used to pin: 11 canonical-only
+#: + 3 projection-only + 1 manifest-canonical-only = the "measured 15". Every one
+#: of these is now symmetric across both roots, and ci/skill-inventory-baseline.txt
+#: (shrink-only) correspondingly holds zero pins.
+RECONCILED_CANONICAL_ONLY = (
     "claim-verify-gate",
     "codex-audit",
     "codex-brainstorm",
@@ -70,13 +75,13 @@ MEASURED_CANONICAL_ONLY = (
     "codex-triage",
     "qdx-rush",
 )
-MEASURED_PROJECTION_ONLY = (
+RECONCILED_PROJECTION_ONLY = (
     "harness-module-authoring",
     "patent-fto-search",
     "social-corpus-extraction",
 )
-#: Directory in both roots, SKILL.md only in the canonical one.
-MEASURED_PARTIAL = ("microsoft-foundry",)
+#: Directory in both roots, SKILL.md was only in the canonical one.
+RECONCILED_PARTIAL = ("microsoft-foundry",)
 #: Asset-only in BOTH roots: symmetric on both surfaces, must stay silent.
 MEASURED_SYMMETRIC_ASSET_ONLY = "crcp-health"
 
@@ -426,39 +431,66 @@ def test_real_repo_is_green_with_the_committed_baseline() -> None:
 
 
 def _real_repo_unpinned() -> dict[str, object]:
+    """The live tree with the baseline ignored.
+
+    Until 2026-08-28 this was the RED state (15 violations). The SSOT fold made
+    both roots symmetric, so the unpinned run is now GREEN and identical to the
+    pinned one — asserted below rather than assumed, because a tree that drifts
+    back into asymmetry must fail here first.
+    """
     result = run_gate("--repo", str(REPO_ROOT), "--no-baseline", "--json")
-    assert result.returncode == gate.EXIT_VIOLATION, result.stdout + result.stderr
+    assert result.returncode == gate.EXIT_OK, result.stdout + result.stderr
     return json.loads(result.stdout)
 
 
-def test_real_repo_without_pins_reports_the_measured_15() -> None:
-    """The RED state, measured against the live tree rather than a fixture."""
+def test_real_repo_without_pins_reports_zero_asymmetry() -> None:
+    """The measured state of the live tree, with nothing grandfathered.
+
+    Replaces ``test_real_repo_without_pins_reports_the_measured_15``: the 15 it
+    pinned (``RECONCILED_*`` above) are all symmetric since 15905d35, and the
+    shrink-only baseline carries zero pins to match.
+    """
     payload = _real_repo_unpinned()
     asymmetric = payload["summary"]["asymmetric"]
-    assert asymmetric[gate.KIND_CANONICAL_ONLY] == sorted(MEASURED_CANONICAL_ONLY)
-    assert asymmetric[gate.KIND_PROJECTION_ONLY] == sorted(MEASURED_PROJECTION_ONLY)
-    assert asymmetric[gate.KIND_MANIFEST_CANONICAL_ONLY] == sorted(MEASURED_PARTIAL)
+    assert asymmetric[gate.KIND_CANONICAL_ONLY] == []
+    assert asymmetric[gate.KIND_PROJECTION_ONLY] == []
+    assert asymmetric[gate.KIND_MANIFEST_CANONICAL_ONLY] == []
     assert asymmetric[gate.KIND_MANIFEST_PROJECTION_ONLY] == []
-    assert len(payload["violations"]) == 15
+    assert payload["violations"] == []
+    assert payload["summary"]["pinned"] == 0
+    assert payload["summary"]["canonical_dirs"] == payload["summary"]["projection_dirs"]
+
+    # The baseline file itself agrees: comments only, no grandfathered skill.
+    pins = [
+        line
+        for line in BASELINE.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert pins == []
 
 
-def test_the_two_surfaces_reconcile_to_the_plans_twelve() -> None:
-    """Settles which reading of "the set of skills" the plan section measured.
+def test_every_reconciled_skill_is_now_symmetric() -> None:
+    """The plan's 12 + 3 reconciled to zero, and stays zero.
 
-    The plan recorded 12 canonical-only + 3 projection-only.  On the DIRECTORY
-    surface alone this repo shows 11 + 3, which is what made a first pass call
-    the plan stale.  Adding the manifest-surface row reproduces the plan's 12
-    exactly, so the plan was measuring loadable skills and was never stale.
+    History: the plan recorded 12 canonical-only + 3 projection-only. On the
+    DIRECTORY surface alone the pre-fold repo showed 11 + 3; adding the
+    manifest-surface row (microsoft-foundry) reproduced the plan's 12 exactly, so
+    the plan was measuring loadable skills and was never stale. All 15 are now
+    present on both surfaces of both roots, checked by name so a regression names
+    the skill rather than a count.
     """
-    asymmetric = _real_repo_unpinned()["summary"]["asymmetric"]
-    canonical_side = sorted(
-        asymmetric[gate.KIND_CANONICAL_ONLY]
-        + asymmetric[gate.KIND_MANIFEST_CANONICAL_ONLY]
-    )
-    assert len(canonical_side) == 12
-    assert "microsoft-foundry" in canonical_side
+    for root in (gate.CANONICAL_ROOT, gate.PROJECTION_ROOT):
+        inventory = gate.inventory_from_worktree(REPO_ROOT, root)
+        for name in (
+            *RECONCILED_CANONICAL_ONLY,
+            *RECONCILED_PROJECTION_ONLY,
+            *RECONCILED_PARTIAL,
+        ):
+            assert name in inventory.dirs, f"{root}: {name} directory missing"
+            assert name in inventory.manifests, f"{root}: {name} SKILL.md missing"
 
-    # And the independent SKILL.md-only measurement agrees with that union.
+    # And the independent SKILL.md-only measurement agrees: no canonical-side
+    # manifest is missing from the projection, and vice versa.
     canonical = {
         p.parent.name
         for p in (REPO_ROOT / gate.CANONICAL_ROOT).glob(f"*/{gate.MANIFEST}")
@@ -467,7 +499,10 @@ def test_the_two_surfaces_reconcile_to_the_plans_twelve() -> None:
         p.parent.name
         for p in (REPO_ROOT / gate.PROJECTION_ROOT).glob(f"*/{gate.MANIFEST}")
     }
-    assert sorted(canonical - projection) == canonical_side
+    assert canonical == projection, (
+        f"canonical-only={sorted(canonical - projection)} "
+        f"projection-only={sorted(projection - canonical)}"
+    )
 
 
 def test_an_asset_only_directory_in_both_roots_stays_silent_in_the_real_repo() -> None:
@@ -485,9 +520,13 @@ def test_dual_write_strict_parity_is_blind_to_that_asymmetry() -> None:
     """H1 vs H2 control -- see this module's docstring.
 
     ``--base HEAD --head HEAD`` is an empty range, which is the point: the
-    neighbour gate's verdict is a function of the RANGE, so it reports OK on a
-    tree holding 15 asymmetric skills.  This is not a defect in it; it is the
-    measurement that shows an inventory arm is a different check.
+    neighbour gate's verdict is a function of the RANGE, so it reports OK
+    regardless of what the tree holds.  When this control was written the tree
+    held 15 asymmetric skills and the inventory arm reported them while the range
+    arm said OK — the measurement that shows an inventory arm is a different
+    check.  Since 15905d35 the tree is symmetric, so both arms now agree on OK;
+    the blindness itself is still proven on a constructed asymmetric tree by the
+    fixture tests above.  Here we pin that the two arms agree on the live tree.
     """
     result = subprocess.run(
         [
@@ -508,5 +547,5 @@ def test_dual_write_strict_parity_is_blind_to_that_asymmetry() -> None:
     assert "OK:" in result.stdout
 
     inventory = run_gate("--repo", str(REPO_ROOT), "--no-baseline")
-    assert inventory.returncode == gate.EXIT_VIOLATION
-    assert "violations=15" in inventory.stdout
+    assert inventory.returncode == gate.EXIT_OK, inventory.stdout + inventory.stderr
+    assert f"SUCCESS:{gate.MARKER}" in inventory.stdout

@@ -11,6 +11,16 @@ from pathlib import Path
 from typing import Any, cast
 
 try:
+    import fcntl
+except ImportError:  # pragma: no cover
+    fcntl = None  # type: ignore[assignment]
+
+try:
+    import msvcrt
+except ImportError:  # pragma: no cover
+    msvcrt = None  # type: ignore[assignment]
+
+try:
     from .redaction import redact_text
     from .storage import atomic_write_json, atomic_write_text, read_json
 except ImportError:  # pragma: no cover
@@ -259,15 +269,73 @@ def _token_in(command: str, token: str) -> bool:
     )
 
 
+# Tool names that actually EXECUTE a command. A receipt is proof-of-execution,
+# so ONLY an executing tool may mint one: `tool_name` is authority, the payload
+# is merely where the argv lives. Before this gate the tool name was discarded
+# and ANY payload carrying command/cmd/script/argv (or a bare string) minted an
+# authoritative receipt — classify_receipt("WebSearch", "pytest status",
+# "success") and ("mcp__tasks__create", {"command": "pytest", ...}) both
+# returned test/pass without anything ever running. Fail-CLOSED: an unrecognized
+# tool yields no receipt (the claim gate then asks for real proof) rather than a
+# fabricated green.
+_COMMAND_TOOL_NAMES = frozenset(
+    {
+        "bash",
+        "bashoutput",
+        "cmd",
+        "container.exec",
+        "exec",
+        "execute",
+        "execute_command",
+        "executecommand",
+        "fish",
+        "local_shell",
+        "powershell",
+        "pwsh",
+        "run",
+        "run_command",
+        "run_terminal_cmd",
+        "runcommand",
+        "sh",
+        "shell",
+        "shell_command",
+        "shellcommand",
+        "terminal",
+        "zsh",
+    }
+)
+_COMMAND_TOOL_HINT = re.compile(
+    r"(?:^|[^a-z])(?:bash|shell|pwsh|powershell|terminal|exec|command)(?:[^a-z]|$)"
+)
+
+
+def _is_command_tool(tool_name: str) -> bool:
+    """True only for tools that RUN a command (so may mint a typed receipt)."""
+    name = str(tool_name or "").strip().lower()
+    if not name:
+        return False
+    if name in _COMMAND_TOOL_NAMES:
+        return True
+    # MCP tools arrive namespaced (mcp__server__tool): judge the leaf verb, so
+    # mcp__x__run_command counts and mcp__tasks__create does not.
+    leaf = name.rsplit("__", 1)[-1]
+    if leaf in _COMMAND_TOOL_NAMES:
+        return True
+    return _COMMAND_TOOL_HINT.search(leaf) is not None
+
+
 def _receipt_command(tool_name: str, tool_input: Any) -> str:
     """Extract a runnable argv/command string, or '' for non-command tools.
 
-    ``tool_name`` is part of the SI-1 signature and is accepted verbatim; the
-    command is resolved from the input payload (Bash/PowerShell carry it under
-    ``command``; a bare string input IS the command; write/read tools carry no
-    command and yield '' so they never mint a receipt).
+    ``tool_name`` is part of the SI-1 signature and is the AUTHORITY for whether
+    anything ran: a non-executing tool yields '' regardless of its payload. For
+    an executing tool the command is resolved from the input payload
+    (Bash/PowerShell carry it under ``command``; a bare string input IS the
+    command; write/read tools carry no command and yield '' so they never mint a
+    receipt).
     """
-    _ = tool_name
+    if not _is_command_tool(tool_name):
+        return ""
     if isinstance(tool_input, str):
         return tool_input.strip()
     if isinstance(tool_input, dict):
@@ -300,8 +368,67 @@ def _is_health_command(lower: str) -> bool:
     )
 
 
+# Read-only / display heads whose ARGUMENTS must never pick the receipt class:
+# the signature scan matches a token anywhere in the string, so `echo test` and
+# `cat test.log` classified as "test" and minted a green test receipt.
+_NON_EXECUTING_HEADS = frozenset(
+    {
+        "bat",
+        "cat",
+        "dir",
+        "echo",
+        "env",
+        "find",
+        "grep",
+        "head",
+        "less",
+        "ls",
+        "more",
+        "printenv",
+        "printf",
+        "rg",
+        "tail",
+        "type",
+        "where",
+        "which",
+    }
+)
+# Informational invocations: the verifier binary is present but nothing was
+# verified (`pytest --version`, `pytest --collect-only`). Case-sensitive so the
+# version flag -V is not confused with pytest's verbose -v.
+_INFORMATIONAL_FLAG = re.compile(
+    r"(?:^|\s)(?:--version|-V|--help|--usage|-h|--collect-only|--co|--dry-run"
+    r"|--dry_run|--list-tests)(?:[\s=]|$)"
+)
+# Exit-code laundering: `cmd || true`, `cmd | tee log`. The shell reports 0 no
+# matter what the verifier did, so the exit code carries no verdict.
+_EXIT_LAUNDERED = re.compile(
+    r"\|\|\s*(?::|true|exit\s+0)|;\s*(?:true|exit\s+0)\s*$|\|\s*tee\b"
+)
+# "the suite ran zero tests" — exit 0 here proves nothing was verified.
+_NO_TESTS_RAN = re.compile(
+    r"no test files|no tests? (?:ran|were run|found|to run|executed)"
+    r"|collected 0 items|0 tests? ran|tests:\s+0 total",
+    re.I,
+)
+_TEST_FAMILY = frozenset({"test", "e2e", "coverage"})
+
+
+def _command_head(lower: str) -> str:
+    for part in lower.split():
+        token = part.strip("\"'`(")
+        if not token or "=" in token:
+            continue
+        return token.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    return ""
+
+
 def _classify_command(command: str) -> str | None:
     lower = command.lower()
+    if _command_head(lower) in _NON_EXECUTING_HEADS:
+        return None
+    if _INFORMATIONAL_FLAG.search(command):
+        return None
     if _is_health_command(lower):
         return "health"
     for receipt_class, tokens in _RECEIPT_SIGNATURES:
@@ -346,28 +473,49 @@ def _sum_matches(pattern: re.Pattern[str], text: str) -> int:
     return total
 
 
-def _parse_counts(result: Any) -> tuple[int, int]:
-    text = _result_text(result)
+def _parse_counts(result: Any, text: str | None = None) -> tuple[int, int]:
+    if text is None:
+        text = _result_text(result)
     return _sum_matches(_COUNT_PASSED, text), _sum_matches(_COUNT_FAILED, text)
 
 
-def _receipt_status(result: Any, passed: int, failed: int) -> str:
+def _receipt_status(
+    result: Any,
+    passed: int,
+    failed: int,
+    *,
+    receipt_class: str = "",
+    command: str = "",
+    text: str | None = None,
+) -> str:
     if failed > 0:
         return "fail"
+    if text is None:
+        text = _result_text(result)
+    # A test-family run that executed zero tests is not proof of anything, even
+    # though the runner exits 0 (`go test ./...` -> "[no test files]").
+    if receipt_class in _TEST_FAMILY and passed == 0 and _NO_TESTS_RAN.search(text):
+        return "unknown"
     exit_code = _exit_code(result)
-    if exit_code is not None:
+    # `pytest … || true` always exits 0; the code is not a verdict, so fall
+    # through to the parsed counts instead of minting a green.
+    if exit_code is not None and not _EXIT_LAUNDERED.search(command):
         return "pass" if exit_code == 0 else "fail"
     if passed > 0:
         return "pass"
-    text = _result_text(result)
-    positive = re.search(
-        r"\b(?:success|succeeded|healthy|ready|ok|pass(?:ed)?)\b", text, re.I
-    )
-    negative = re.search(
-        r"\b(?:fail(?:ed|ure)?|error|traceback|exception)\b", text, re.I
-    )
-    if positive and not negative:
-        return "pass"
+    # Prose is only ever the PRIMARY signal for a health probe (curl prints
+    # "status: healthy" and no counts). For every other class, inferring a pass
+    # from the word "success" appearing in arbitrary output was how prose alone
+    # minted an authoritative test receipt.
+    if receipt_class == "health":
+        positive = re.search(
+            r"\b(?:success|succeeded|healthy|ready|ok|pass(?:ed)?)\b", text, re.I
+        )
+        negative = re.search(
+            r"\b(?:fail(?:ed|ure)?|error|traceback|exception)\b", text, re.I
+        )
+        if positive and not negative:
+            return "pass"
     return "unknown"
 
 
@@ -391,10 +539,20 @@ def classify_receipt(
     receipt_class = _classify_command(command)
     if receipt_class is None:
         return None
-    passed, failed = _parse_counts(tool_result)
+    # Materialize the (possibly multi-MB) result text ONCE and share it with the
+    # status pass; it used to be rendered twice per classification.
+    text = _result_text(tool_result)
+    passed, failed = _parse_counts(tool_result, text)
     return Receipt(
         receipt_class=receipt_class,
-        status=_receipt_status(tool_result, passed, failed),
+        status=_receipt_status(
+            tool_result,
+            passed,
+            failed,
+            receipt_class=receipt_class,
+            command=command,
+            text=text,
+        ),
         passed=passed,
         failed=failed,
         fingerprint=argv_fingerprint(command),
@@ -432,37 +590,74 @@ class _FileLock:
     def __init__(self, path: Path, timeout: float = 10.0):
         self.path = path
         self.timeout = timeout
-        self.fd: int | None = None
+        self.handle = None
+
+    def _ensure_lock_file(self) -> None:
+        assert self.handle is not None
+        self.handle.seek(0, os.SEEK_END)
+        if self.handle.tell() == 0:
+            self.handle.write(b"0")
+            self.handle.flush()
+        self.handle.seek(0)
+
+    def _acquire(self) -> None:
+        assert self.handle is not None
+        if os.name == "nt" and msvcrt is not None:
+            self.handle.seek(0)
+            msvcrt.locking(self.handle.fileno(), msvcrt.LK_NBLCK, 1)
+            return
+        if fcntl is not None:
+            fcntl.flock(self.handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return
+        raise OSError("no file-lock backend available")
+
+    def _release(self) -> None:
+        if self.handle is None:
+            return
+        try:
+            if os.name == "nt" and msvcrt is not None:
+                self.handle.seek(0)
+                msvcrt.locking(self.handle.fileno(), msvcrt.LK_UNLCK, 1)
+            elif fcntl is not None:
+                fcntl.flock(self.handle.fileno(), fcntl.LOCK_UN)
+        except (OSError, ValueError):
+            pass
 
     def __enter__(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.handle = self.path.open("a+b")
+        try:
+            self._ensure_lock_file()
+        except BaseException:
+            try:
+                self.handle.close()
+            except (OSError, ValueError):
+                pass
+            self.handle = None
+            raise
         deadline = time.monotonic() + self.timeout
         while True:
             try:
-                self.fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-                os.write(self.fd, str(os.getpid()).encode("ascii"))
+                self._acquire()
                 return self
-            except (FileExistsError, PermissionError):
-                try:
-                    if time.time() - self.path.stat().st_mtime > 30:
-                        self.path.unlink(missing_ok=True)
-                        continue
-                except OSError:
-                    pass
+            except OSError as exc:
                 if time.monotonic() >= deadline:
-                    raise TimeoutError("ledger lock unavailable")
-                time.sleep(0.01)
+                    try:
+                        self.handle.close()
+                    except (OSError, ValueError):
+                        pass
+                    self.handle = None
+                    raise TimeoutError("ledger lock unavailable") from exc
+                time.sleep(0.005)
 
     def __exit__(self, *_args):
-        if self.fd is not None:
+        self._release()
+        if self.handle is not None:
             try:
-                os.close(self.fd)
-            except OSError:
+                self.handle.close()
+            except (OSError, ValueError):
                 pass
-        try:
-            self.path.unlink(missing_ok=True)
-        except OSError:
-            pass
+            self.handle = None
 
 
 # --- goal_short distillation (DISPLAY-ONLY; never read by goal-reinjection) ------
@@ -1130,7 +1325,12 @@ class EventLedger:
         for item in self._scan_events(cwd):
             if item.get("kind") != "tool_result":
                 continue
-            if turn_id and item.get("turn_id") not in {"", turn_id}:
+            # EVIDENCE is matched STRICTLY: unlike the mutation floor (where a
+            # blank turn stays a wildcard so unattributed writes still
+            # invalidate), an unattributed receipt must not substantiate some
+            # other turn's claim. Asymmetric on purpose — both directions
+            # fail closed.
+            if turn_id and str(item.get("turn_id") or "") != turn_id:
                 continue
             receipt = _receipt_from_event(item)
             if receipt is not None:
@@ -1145,23 +1345,30 @@ class EventLedger:
         *,
         min_seq: int | None = None,
     ) -> bool:
-        """True when a status=='pass' receipt in one of required_classes has a seq
-        strictly greater than the turn's last mutation (and than min_seq, when
-        given). ANY-of over required_classes — one fresh pass substantiates,
-        matching the has_verification any-green shim. The strict seq>floor rule is
-        the stale-green killer (SI-1 freshness rule)."""
+        """True when the LATEST fresh receipt of some required class passed.
+
+        Fresh means seq strictly greater than the last mutation in this cwd (and
+        than min_seq, when given) — the stale-green killer (SI-1 freshness rule).
+        ANY-of over required_classes — one fresh passing class substantiates,
+        matching the has_verification any-green shim — but only the newest
+        receipt PER CLASS is consulted, so a later failing rerun revokes an
+        earlier green instead of being outvoted by it. The mutation floor is
+        cwd-wide, not turn-scoped: a write from another turn/session changed the
+        same tree, so it invalidates the receipt too."""
         required = {name for name in (required_classes or ()) if name}
         if not required:
             return False
-        floor = self.last_mutation_seq(cwd, turn_id)
+        floor = self.last_mutation_seq(cwd)
         if min_seq is not None:
             floor = max(floor, _as_int(min_seq))
-        return any(
-            receipt.receipt_class in required
-            and receipt.status == "pass"
-            and receipt.seq > floor
-            for receipt in self._receipts(cwd, turn_id)
-        )
+        latest: dict[str, Receipt] = {}
+        for receipt in self._receipts(cwd, turn_id):
+            if receipt.receipt_class not in required or receipt.seq <= floor:
+                continue
+            current = latest.get(receipt.receipt_class)
+            if current is None or receipt.seq >= current.seq:
+                latest[receipt.receipt_class] = receipt
+        return any(receipt.status == "pass" for receipt in latest.values())
 
     def receipt_for_fingerprint(self, cwd: str, fingerprint: str) -> Receipt | None:
         """Most-recent typed receipt whose argv-fingerprint matches (repro-gate)."""
@@ -1213,10 +1420,18 @@ class EventLedger:
         # Pre-receipt behavior, kept verbatim: any tool_result flagged
         # verified==True (no typed receipt fields). Ledgers written before the
         # modules.py receipt-stamping lane lands still satisfy the done-gate.
+        # The "no typed receipt fields" half is now ENFORCED, not just
+        # documented: an event from the receipt lane is judged by its receipt
+        # (has_fresh_receipt) alone. Otherwise the coarse verified flag — which
+        # the caller stamps on every event — overrode the very stale-green and
+        # fail-revokes-pass rules it sits beside (a receipt_status=="fail" event
+        # still answered True here).
         for item in reversed(self.replay(cwd, limit=60)):
             if item.get("kind") != "tool_result":
                 continue
             if turn_id and item.get("turn_id") not in {"", turn_id}:
+                continue
+            if any(key.startswith("receipt_") for key in item):
                 continue
             if item.get("verified") is True:
                 return True

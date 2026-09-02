@@ -1,6 +1,7 @@
 # git-hygiene — no local work is left abandoned or unpushed
 
-A **Stop** hook (`check.py`) plus an on-demand survey (`scripts/repo-sweep.ps1`) that answer
+A **SessionStart** hook (`check.py`; it ran at **Stop** until the 2026-08-27 rebalance, see
+Registration) plus an on-demand survey (`scripts/repo-sweep.ps1`) that answer
 the owner's ask directly: *"always make sure no local gits are left abandoned and that harness
 improvements aren't left stale or abandoned and are always committed and pushed to the toolchain
 repo."*
@@ -48,7 +49,7 @@ and let them dominate the report.
 
 ## Behavior
 - **INJECTS** `hookSpecificOutput.additionalContext`; **never blocks** (AGENTS.md §6). There is
-  no code path that returns exit 2 — blocking a Stop on uncommitted work would be maddening.
+  no code path that returns exit 2 — blocking a session on uncommitted work would be maddening.
 - Silent when nothing you own is at risk. Bounded to ≤16 lines; says how many rows it suppressed.
 - **Fail-open**: any exception, malformed stdin, or missing git → silent exit 0.
 - **Budgeted** (`GIT_HYGIENE_BUDGET`, default 8s; measured 3.7s warm / 5.6s cold). If the budget
@@ -79,16 +80,22 @@ strings legitimately contain the text `git push`). Per-repo reads run via
 `ForEach-Object -Parallel -ThrottleLimit 8` — 133s serial → ~7s.
 
 ## Registration (settings.json — a human runs this; deploy is out of scope)
-This hook runs **in-process** via `_dispatch/dispatch.py` + `_dispatch/manifest.json`, like the
-other Stop scanners. Add to the `Stop` event's `checks` array in `manifest.json`:
+This hook runs **in-process** via `_dispatch/dispatch.py` + `_dispatch/manifest.json`. It is
+registered in the `SessionStart` event's `checks` array in `manifest.json`:
 ```json
 { "name": "git-hygiene", "script": "git-hygiene/check.py",
   "args": [], "emits": true, "isolate": null, "side_effect": "none",
-  "slow": true, "timeout": 20 }
+  "slow": true, "timeout": 30 }
 ```
-`slow: true` matches `wire-check` (the existing slow Stop check); the 20s timeout covers the 8s
-budget plus git spawn overhead. It emits the standard `hookSpecificOutput.additionalContext`
-envelope the dispatcher aggregates.
+`slow: true` matches `wire-check`, the other slow advisory check. Both were **moved from Stop to
+SessionStart on 2026-08-27** (CONSOLIDATED-GEM-DECISIONS TIER-0 #2 / WAVE-ABCD-EXECUTION A(c)):
+Stop's 35s ceiling was oversubscribed by 9 checks whose budgets summed 144s and the tail gates
+(journey-coverage, dark-surface) were starved. Once per session is the right cadence for a check
+that already self-throttles to one scan per 15 min. The 30s budget leaves 5s of collection
+headroom under the SessionStart ceiling, which was raised 20 -> 35 in lockstep (manifest
+`settings_timeout` and the settings.json dispatch entry); a budget above the enforced ceiling is
+inert, see the manifest's `timeout_rationale`. It emits the standard
+`hookSpecificOutput.additionalContext` envelope the dispatcher aggregates.
 
 ## Files
 ```
