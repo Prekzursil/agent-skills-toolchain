@@ -14,7 +14,7 @@
   edits, `command-center/p2-wave/seed-stage/*`, `ovh-monitor/repair-claude/w0902-*.jsonl`, the
   append-only repair log) and `harness/ast-integrate/P2-STATE/*`. Commits + pushes after every
   green step; a claim older than 20 min without a new push is stale.
-- **Claim refreshed:** 02.09 12:50 EEST (09:50 UTC) — step 9 (nine landings, +75 units; 10 writers in flight: s01, rs2, rs4, b4-p11b/p18/p19/p21/p23/p24/p25). Previous: step 8 (five landings, +36 units; 10 writers in flight: c1, b4-p04/p09/p11/p12/p15/p16/p17, rs2, rs3). Previous: step 7: b3-p09/p10-CNF landed (15/40), rule change recorded (emitters are
+- **Claim refreshed:** 02.09 13:00 EEST (10:00 UTC) — step 10 (four more landings, +26; 10 writers in flight). Previous: step 9 (nine landings, +75 units; 10 writers in flight: s01, rs2, rs4, b4-p11b/p18/p19/p21/p23/p24/p25). Previous: step 8 (five landings, +36 units; 10 writers in flight: c1, b4-p04/p09/p11/p12/p15/p16/p17, rs2, rs3). Previous: step 7: b3-p09/p10-CNF landed (15/40), rule change recorded (emitters are
   implementation → repairable to the probe's reading), `_g1_paths` mirror-precedence fix. Active writers: b4-p08/p09/p10/p11/p12-IMP,
   b4-p04-CNF, b4-p15-RES, c1-TOPLEVEL (class), phase3-regen, w-council-rs. Trees under active edit: `tools/**`, `command-center/lib/**`,
   `probes/*/emit*.py` + regenerated artifacts; the orchestrator commits per verified batch.
