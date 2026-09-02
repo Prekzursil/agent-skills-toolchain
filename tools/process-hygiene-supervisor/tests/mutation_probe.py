@@ -85,6 +85,12 @@ MUTATIONS = [
         "            if proc.pid in claimed or proc.pid in delegate_pids:",
         "            if proc.pid in claimed:",
     ),
+    (
+        "actuator kills without identity revalidation",
+        "hygiene_actuate.py",
+        "        if not self._identity_matches(member, identity):",
+        "        if False:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
