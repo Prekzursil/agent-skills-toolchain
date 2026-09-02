@@ -15,6 +15,8 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | TST-0022 | `.agents/skills/claim-verify-gate/scripts/claim_gate.py`, `.../test_claim_gate.py` | `ModuleNotFoundError: No module named 'test_claim_gate'` (p42-TST) | `.agents/` of the live checkout not captured. Candidate source: toolchain root `/workspace/.agents/skills/claim-verify-gate/scripts/` | open |
 | TST-0025 | `tools/router/shadow_catalog.json` | `emit_receipt` `pin_state` needs it; `load_catalog` only falls back (p42-TST). Also location-bound fingerprint (see OPEN-LOOPS) | > 5 MB `MaxFileBytes` or generated | open |
 | IMP-0333 | `tools/council/tests/test_oxford.py` | probe2 `can't open file`; the receipt already equals the live numbers and the manifest row matches (w7) | test file never captured (no copy anywhere on the box) | open |
+| TST-0055 | `command-center/blueprints/engineering/engine.py` | `FileNotFoundError`; no copy on the box, absent from git (p44-TST) | not captured | open |
+| TST-0068 | `hooks/_dispatch/manifest.json` | capture holds a 123-byte `not_the_deployed_copy` stub; the real 14063-byte manifest exists at the toolchain root `/workspace/hooks/_dispatch/manifest.json` (p44-TST) | live tree carried a stub copy; candidate source at the toolchain root (owner to confirm) | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
