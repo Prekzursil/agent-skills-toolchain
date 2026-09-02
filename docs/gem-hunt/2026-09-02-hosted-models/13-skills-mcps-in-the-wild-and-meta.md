@@ -163,7 +163,7 @@ Two independent signal families exist; the best OSS tools combine them and treat
 
 | Provider family | Machine-readable feed | Source |
 |---|---|---|
-| Anthropic (Claude) | Atlassian Statuspage: `https://status.claude.com/api/v2/summary.json` (components + unresolved incidents + maintenances) and `/api/v2/status.json` (rollup `indicator` in `none|minor|major|critical`). Live read 2026-09-02: `{"status":{"indicator":"none","description":"All Systems Operational"}}` | `[TA corroborated 2026-09-02] https://status.anthropic.com/api/v2/` + direct GET |
+| Anthropic (Claude) | Atlassian Statuspage: `https://status.claude.com/api/v2/summary.json` (components + unresolved incidents + maintenances) and `/api/v2/status.json` (rollup `indicator` in `none` / `minor` / `major` / `critical`). Live read 2026-09-02: `{"status":{"indicator":"none","description":"All Systems Operational"}}` | `[TA corroborated 2026-09-02] https://status.anthropic.com/api/v2/` + direct GET |
 | OpenAI | `https://status.openai.com/api/v2/summary.json` - Statuspage-shaped (`page.id`, `status.indicator`); **live read 2026-09-02: HTTP 200, `indicator: none`**. It went 404 for hours during a status-site migration on 2025-02-27, so treat a 404 as *unknown*, not *down* | `[TA corroborated 2026-09-02] direct GET` + `[TC 2025-02-28] https://community.openai.com/t/is-the-status-url-still-up-https-status-openai-com-api-v2-summary-json/1131389` |
 | Groq, Cohere, DeepSeek, Replicate, Moonshot, MiniMax, SiliconFlow | Statuspage `summary.json` | `[TB UNVERIFIED 2026-09-02] https://github.com/3389ro/ai-status-monitor` (feed-format table in README) |
 | Google Gemini / Vertex | Google Cloud `incidents.json` | same |
