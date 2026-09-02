@@ -114,11 +114,69 @@ and, borrowing LLMRouterBench's yardsticks [S19][S20]: report **PerfGain(P) = qu
 
 ## 4. The autoresearch loop over the registry routing policy
 
-[pending]
+**The object under optimization is ONE file** (Karpathy's "one editable file" rule [S22][S23]): a routing-policy document, proposed as `.agents/routing-policy.json` next to `agents.json` (same closed-schema discipline the AGENTS.md conventions demand; provenance goes to `.provenance/`, never into the manifest). It maps `task_class -> {primary, escalate_to, floors, exponents, spend_share}` and points at registry entries **by name** - it never holds URLs or secrets. The eval runner + registry are read-only to the loop. `REC`
+
+**Metric** = `policy_score(P)` from Section 3, printed by one command (`python tools/endpoint-eval/score_policy.py --policy .agents/routing-policy.json --trials 4 --window 72h`), which also prints every axis the gate tracks. **Fixed measurement budget per variant** (Karpathy: 5-min wall clock, 10-min kill [S22]): here **spend-bounded, not time-bounded** - each variant may consume at most `cap/40` USD of OpenRouter/HF spend and at most `N` Cursor quota units, then the runner stops sampling and reports `insufficient` for anything below n=4. A variant that hits the budget before finishing is a **CRASH**, not a discard. `REC`
+
+**Loop (the house `autoresearch` skill's contract [disk], instantiated):**
+
+```
+0  RESUME CHECK  - if .autoresearch/log.tsv exists: print best-vs-baseline, ask resume/fresh
+1  BASELINE      - variant #0 = current policy, no edit; also compute BestSingle under the cap  (both logged)
+2  THINK         - one hypothesis, one variable: e.g. "route extract-json to <cheap OR endpoint> instead of cursor-*"
+3  COMMIT FIRST  - edit routing-policy.json; git add; git commit -m "autoresearch #N: <hypothesis>"
+4  MEASURE       - run score_policy.py; if the chain fails or the spend budget trips -> CRASH
+5  COMPARE       - every tracked axis >= baseline (policy_score, per-class quality floors, spend <= cap, p95 <= budget)
+                  and policy_score improved by > noise margin (CI non-overlap, Section 3)
+6  DECIDE        - KEEP (advance) | DISCARD (log row FIRST, then git reset --hard HEAD~1) | CRASH (same reset, status=crash)
+7  LOG           - append row before any reset
+```
+
+**`.autoresearch/log.tsv` semantics (columns are the contract; the file is untracked, `.autoresearch/` git-ignored per the skill):**
+
+| column | meaning | rule |
+|---|---|---|
+| `variant` | integer, #0 = baseline | monotonic |
+| `sha` | short commit of the policy variant | exists even for discards (reflog-recoverable) |
+| `status` | `keep` / `discard` / `crash` / `insufficient` | `insufficient` = budget or n<4 stopped the measure; counts as neither keep nor discard and does not advance the plateau counter |
+| `policy_score` | 6 decimals | 0.000000 on crash (Karpathy convention [S22]) |
+| `spend_usd` | actual spend this variant, provider-reported where available (OpenRouter `usage.cost` [S30]) | must be <= per-variant budget or status=crash |
+| `spend_cum_usd` | running total this run | the loop **stops** (not discards) when `spend_cum >= run_cap` |
+| `quota_units` | Cursor `:8317` / free-tier requests consumed | tracked as its own soft axis (Karpathy's `peak_vram` analogue [S22]) |
+| `perf_gain` / `cost_save` | vs BestSingle (LLMRouterBench yardsticks [S19]) | informational per row; gate only on policy_score + floors |
+| `p95_worst_ms` | worst per-class p95 under this policy | must be <= class budget |
+| `n_trials` | trials per task actually completed | < 4 => status=insufficient |
+| `hypothesis` | one line | free text |
+
+**Guardrails (mandatory; the skill's three plus four that are specific to spend and to endpoints):**
+
+1. *3 discards in a row* -> stop and write a short review before the next variant (skill). 2. *Best unchanged for ~8 variants* -> plateau: invert the assumption (e.g. if "cheaper primary" kept failing floors, try "same primary, cheaper escalation") (skill). 3. *Anchor drift* -> `fresh-context-verify` on the baseline number, do not re-implement (skill).
+4. **Spend guard (hard):** per-variant budget and run cap live in the policy file, are read not typed, and the runner refuses to start if `openrouter-routing`'s daily+monthly caps are not set on the key (that skill's checklist [disk]). The loop may not raise a cap. `REC`
+5. **Sunset guard:** any registry entry with `sunset_on` set (the `:8317` bridge, lock 3) may be *primary* only if the policy also names a non-sunset `escalate_to`; a variant that routes a class *exclusively* to a sunset entry is an automatic discard. `REC`
+6. **Availability guard (Goodhart on quota):** a variant that scores higher only because a rate-limited endpoint returned fewer, faster errors is caught by requiring `n_trials >= 4` per task and treating HTTP 429/5xx as `insufficient`, never as "fast". `REC` (motivated by LLMRouterBench's retry-to-10-then-zero handling for OpenRouter failures [S19])
+7. **Simplicity tiebreak (Karpathy [S22]):** equal score with a simpler policy (fewer classes overridden, fewer exponents changed) = KEEP; a +0.001 score bought by a per-class special case = DISCARD. Written into the review step, not automated.
+8. **No feature removal (lock 7):** the loop may reorder endpoints per class and change floors/exponents/spend shares; it may not delete a registry entry or a task class. A variant that "improves" by dropping `long-doc` from the weighted sum is a schema violation, caught by the closed policy schema. `REC`
+
+**Termination:** target `policy_score` or max variants or run cap; wrap-up re-runs the metric on the best SHA and reports baseline-vs-best per axis, kept/discarded/crash counts, and the PerfGain/CostSave vs BestSingle. If PerfGain <= 0 and CostSave <= 0 after the run, the honest recommendation is **"route everything to BestSingle"** - LLMRouterBench shows that even commercial routers can land below that baseline [S19][S20]. `FACT` -> `REC`
+
+**Why THIS estate (INFER):** the owner already runs 15+ agent runtimes over ~40 model ids through three or four bridges, with a memory-starved box and an OpenRouter cap; the routing decisions are currently encoded by hand in wrappers (`ai-mode`, `grok-mode`, goose `GOOSE_PROVIDER`, grok `config.toml`). A single policy file that those wrappers *read* (the same "consume the SSOT" move Fabric/Goose already make for skills, lock 5) is the smallest object that makes routing measurable and therefore optimizable; the loop then never touches a wrapper. Tradeoff to present, not hide: wrappers reading a policy file add one indirection and one failure mode (missing/invalid file -> fall back to today's hardcoded default, loudly).
 
 ## 5. CI with fakes vs live keys - what runs where
 
-[pending]
+The repo already has a **shadow** `routing-benchmark` workflow: pytest self-test, pinned embedding model health check, regression bar pinned to the base branch on PRs, and a 5-run `hooks/harness-bench/gate.py` probe [disk: `.github/workflows/routing-benchmark.yml`]. The endpoint suite should be a **second job in that same workflow**, not a new workflow. `REC`
+
+| Layer | Runs in CI (no keys, deterministic) | Needs live keys (opt-in, local or scheduled) |
+|---|---|---|
+| **Graders** (2.1 AST matcher, 2.2 jsonschema, 2.3 needle scorer, 2.4 percentile math, 2.5 cost arithmetic, 2.6 code-pass refusal signals, Section 3 score, Section 4 compare/decide) | **All of it**, against recorded fixtures: a `FakeEndpoint` that replays canned OpenAI-wire responses (incl. a bridge that strips `tool_calls`, a stringified-arguments blob, a `refusal` field, a 429 storm). Golden-file tests for `log.tsv` rows and the keep/discard/crash/insufficient decision table. Mirrors how `deep-research`'s harness tests run ("pure logic, fake provider responses, no live network" [disk]). | - |
+| **Fixture freshness** | A test that the recorded wire fixtures still parse under the current OpenAI-compatible schema the registry declares | Re-recording fixtures (needs keys; run by hand, commit the recording with a `recorded_at`) |
+| **Registry integrity** | Every `routing-policy.json` entry names an existing `agents.json` server; every `sunset_on` primary has a non-sunset escalation; no URL/secret leaked into the policy (schema-closed) | - |
+| **Latency / cost / long-context / refusal on real endpoints** | - (a GitHub runner's p95 is not our p95; a CI run's spend is unbounded) | Local, single-process, streams JSONL per task to `~/.endpoint-eval/runs/<ts>/` so a 12-minute death loses one task. Spend-capped by the policy's per-run cap; secrets resolved from env by *name* from `.agents/local.json` (lock 6). Optional weekly scheduled job **only** for key-free endpoints (local ollama/lms on the box, not CI). |
+| **Model-graded axes** (2.6 ambiguous refusals; any rubric grade) | Grader *prompt* linted as a skill file under `.agents/skills/` (lock 5); a fake grader returns fixed verdicts to test the majority-of-3 logic | Live: graders drawn from a *different* provider than the endpoint under test; verdicts cached by content hash so re-runs are free (`content-hash-cache-pattern` [disk]) |
+| **Autoresearch loop itself** | Dry-run mode: fake scorer with a seeded random walk proves commit-before-measure, log-before-revert, reflog recoverability, and the guardrail triggers (3-discard stop, 8-plateau, spend stop) on a throwaway git repo in `tmp_path` | A real run is a human-initiated, capped, local session (the skill's Phase 1 confirmation stays) |
+
+**What must never be in CI:** any live call through `:8317` (it is a Cursor-quota bridge and a port the owner owns - lock 3/4), any OpenRouter key (lock 1 - CI would be an uncapped spender), any credential rotation (lock 6). `REC`
+
+**Prior-art anchors for the split:** inspect_ai scores from logs offline and supports multi-model grader voting [S33][S37]; promptfoo's model-graded assertions default to `temperature=0` and document judge-injection safety [S38][S39] - both are *ideas* to copy into the ~600-line Python runner, not runtimes to adopt (lock 2). `FACT` -> `REC`
 
 ## 6. Per-find rubric table
 
