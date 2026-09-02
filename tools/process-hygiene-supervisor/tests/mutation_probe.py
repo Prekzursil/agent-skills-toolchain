@@ -97,6 +97,12 @@ MUTATIONS = [
         "        if graceful_seconds > 0:",
         "        if False:",
     ),
+    (
+        "singleton grace dropped (a warming relaunch is killed)",
+        "hygiene.py",
+        "                if snapshot.taken_unix - proc.created_unix <= grace:",
+        "                if False:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
