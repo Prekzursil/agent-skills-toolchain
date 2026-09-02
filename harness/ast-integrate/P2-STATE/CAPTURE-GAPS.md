@@ -18,6 +18,10 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | TST-0055 | `command-center/blueprints/engineering/engine.py` | `FileNotFoundError`; no copy on the box, absent from git (p44-TST) | not captured | open |
 | TST-0068 | `hooks/_dispatch/manifest.json` | capture holds a 123-byte `not_the_deployed_copy` stub; the real 14063-byte manifest exists at the toolchain root `/workspace/hooks/_dispatch/manifest.json` (p44-TST) | live tree carried a stub copy; candidate source at the toolchain root (owner to confirm) | open |
 | IMP-0067 | `.claude-plugin/marketplace.schema.json` | referenced by 3 tools, nothing writes it (b3-p13-IMP) | not captured (the capture's `.claude-plugin/` holds marketplace.json, plugin.json, plugin.schema.json only) | open |
+| AUD-0045 | `.agents/skills/claim-verify-gate/scripts/claim_gate.py` | same family as TST-0022 (b3-p04-AUD) | `.agents/` never captured; candidate source at the toolchain root | open |
+| AUD-0047 | `.github/workflows/*.yml` (12 gates listed in `fixtures/live_gates.json`; capture holds only `plugin-repro.yml`) | (b3-p04-AUD) | same family as ADV-0016/TST-0016; candidate source `/workspace/.github/workflows/` | open |
+| AUD-0080 | `probes/AUD-0080/fixtures/merge/local.json` | manifest pins its sha; `.gitignore:203` ignores any `local.json` (b3-p04-AUD) | toolchain `.gitignore` rule, not a capture rule — owner: negate the rule for this fixture | open |
+| AUD-0081 | `probes/AUD-0081/fixtures/untrusted-clone/` (3 md + a `.git` file marker) | nested-repo marker never captured (b3-p04-AUD) | embedded-repo exclusion | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
