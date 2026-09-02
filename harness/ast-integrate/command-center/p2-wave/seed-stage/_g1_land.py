@@ -31,8 +31,20 @@ PATH_RE = re.compile(r"(?<![\w/])((?:tools|platform|lib|council|marketplace|plug
 MARKERS = ("# g1-surface: " + "generated", "# g1-mod: " + "real-surface")
 
 
+def _expand_braces(text: str) -> str:
+    """`a/{x,y}.json` -> `a/x.json a/y.json` (writers use shell-style groups in FILES lines)."""
+    pat = re.compile(r"([\w./+\-]*)\{([^{}]+)\}([\w./+\-]*)")
+    while True:
+        m = pat.search(text)
+        if not m:
+            return text
+        pre, body, post = m.group(1), m.group(2), m.group(3)
+        text = text[: m.start()] + " ".join(f"{pre}{part.strip()}{post}" for part in body.split(",")) + text[m.end():]
+
+
 def extract(report: str) -> tuple[list[str], dict[str, str]]:
     paths: list[str] = []
+    report = _expand_braces(report)
     for m in PATH_RE.finditer(report):
         p = m.group(1).rstrip(".,;:)")
         if p not in paths:
@@ -85,7 +97,9 @@ def main() -> int:
     units = sorted(set(claims) | expect_ok)
     sync_paths = ok_paths + [f"command-center/p2-wave/probes/{u}" for u in units] + ["command-center/p2-wave/seed-stage", "command-center/p2-wave/_measure_one_delivered.py", "platform/schema", "platform/registry"]
     env = {**os.environ, "G1_MIRROR": str(mirror)}
-    subprocess.run([sys.executable, str(Path(__file__).with_name("_g1_mirror_sync.py")), "--paths", *sync_paths],
+    # FULL sync (2-10 s): a selected-path sync left a stale root shim in the mirror once and produced
+    # false disagreements (router/__init__.py, 02.09 08:35). Cheap enough to always do.
+    subprocess.run([sys.executable, str(Path(__file__).with_name("_g1_mirror_sync.py"))],
                    check=False, env=env, stdout=subprocess.DEVNULL)
     # remove root twins in the mirror that the record no longer has (sync never deletes)
     for rel in paths:

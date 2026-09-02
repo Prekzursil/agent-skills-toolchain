@@ -85,9 +85,11 @@ def apply_overrides(
     excluded: list[dict[str, Any]] = []
     pinned: list[str] = []
     scored: list[dict[str, Any]] = []
+    layers: dict[str, str] = {}
     for cap in named:
         cid = str(cap.get("capability_id") or cap.get("id") or "")
         layer = classify(cid, overlay)
+        layers[cid] = layer
         if layer in {"owner.ban", "project.ban"}:
             excluded.append({"capability_id": cid, "layer": layer, "reason": layer})
             continue
@@ -102,6 +104,12 @@ def apply_overrides(
     used = 0.0
     for cap in scored:
         cid = str(cap.get("capability_id") or cap.get("id") or "")
+        score = float(cap.get("score") or 0.0)
+        if score <= 0.0:
+            # router.score admits only positive evidence; a zero score is the
+            # sibling-project view of another project's pin and must not leak.
+            excluded.append({"capability_id": cid, "layer": "router.score", "reason": "no-score"})
+            continue
         cost = float(cap.get("token_cost") or cap.get("cost") or 0.0)
         if used + cost <= budget or budget >= 10000:
             admitted.append(cid)
@@ -116,5 +124,6 @@ def apply_overrides(
         "project_id": overlay.project_key,
         "project_key": overlay.project_key,
         "session_key": ["project", overlay.project_key],
-        "layers": [row["layer"] for row in PRECEDENCE_TABLE],
+        "layers": layers,
+        "precedence_layers": [row["layer"] for row in PRECEDENCE_TABLE],
     }

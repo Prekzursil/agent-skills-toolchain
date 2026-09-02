@@ -1,83 +1,109 @@
+"""Pinned regex-unigram tokenizer for injected capability blocks (TST-0240).
+
+The router must *measure* the tokens of the block it actually injects instead
+of estimating ``len(text) // 4``. This module is that measurement: a GPT-2
+style pre-tokenizer expressed as a Unicode regex. Every regex piece counts as
+one token; any byte span the regex does not cover (for example a bare
+underscore, which is ``\\w`` but neither a letter nor a digit) is kept as its
+own token so the count never silently drops text.
+
+The tokenizer identity is pinned (``TOKENIZER_PIN``) so receipts can record
+which counting rule produced a number and detect a swap later.
+"""
+
 from __future__ import annotations
 
-# g1-surface: generated
+import re
+from typing import Iterator
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
+TOKENIZER_ID = "router-gpt2-regex-unigram"
+TOKENIZER_VERSION = "v1"
+TOKENIZER_PIN = f"{TOKENIZER_ID}/{TOKENIZER_VERSION}"
+TOKENIZER_MODULE = "tools/router/tokens.py"
 
-
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __iter__(self):
-        return iter(())
-
-    def __len__(self) -> int:
-        return 0
-
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
-        )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
+# GPT-2 pre-tokenizer, restricted to the ``re`` module's Unicode classes:
+#   contractions | optional-space + letters | optional-space + digits |
+#   optional-space + punctuation run | whitespace not followed by non-space |
+#   whitespace run.
+TOKEN_PATTERN = (
+    r"'(?:[sdmt]|ll|ve|re)"
+    r"| ?[^\W\d_]+"
+    r"| ?\d+"
+    r"| ?[^\s\w]+"
+    r"|\s+(?!\S)"
+    r"|\s+"
+)
+TOKENIZER_SPEC = (
+    "Unicode regex unigram: '(?:[sdmt]|ll|ve|re)| ?[^\\W\\d_]+| ?\\d+| ?[^\\s\\w]+"
+    "|\\s+(?!\\S)|\\s+ with unmatched gaps kept as their own tokens. "
+    "Each piece counts as 1. Not len(text)//4."
+)
+_TOKEN_RE = re.compile(TOKEN_PATTERN, re.UNICODE)
 
 
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
+def iter_tokens(text: str) -> Iterator[str]:
+    """Yield every token of ``text`` in order, including uncovered gaps.
 
-__surface__ = 'router.tokens'
+    ``text`` must be a ``str``; bytes are rejected because the count would
+    depend on the encoding rather than on the injected block.
+    """
+    if not isinstance(text, str):
+        raise TypeError(f"count_tokens expects str, got {type(text).__name__}")
+    pos = 0
+    for match in _TOKEN_RE.finditer(text):
+        start, end = match.span()
+        if start > pos:
+            # A span the pattern cannot describe (e.g. "_") is still content.
+            yield text[pos:start]
+        if end > start:
+            yield match.group(0)
+        pos = end
+    if pos < len(text):
+        yield text[pos:]
 
-def count_tokens(*args, **kwargs):
-    return _call('count_tokens', *args, **kwargs)
 
-__all__ = ['count_tokens']
+def tokenize(text: str) -> list[str]:
+    """Return the token pieces of ``text``; ``"".join(pieces) == text``."""
+    return list(iter_tokens(text))
 
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
 
+def count_tokens(text: str) -> int:
+    """Measured token count of ``text`` under the pinned tokenizer.
+
+    Deterministic and stable: the same block always yields the same count.
+    """
+    return sum(1 for _ in iter_tokens(text))
+
+
+def chars_div_4(text: str) -> int:
+    """The naive estimate the measurement is *not* allowed to collapse onto."""
+    if not isinstance(text, str):
+        raise TypeError(f"chars_div_4 expects str, got {type(text).__name__}")
+    return len(text) // 4
+
+
+def tokenizer_pin() -> dict[str, object]:
+    """Identity record embedded in injection results and receipts."""
+    return {
+        "id": TOKENIZER_ID,
+        "version": TOKENIZER_VERSION,
+        "pin": TOKENIZER_PIN,
+        "module": TOKENIZER_MODULE,
+        "spec": TOKENIZER_SPEC,
+        "not_chars_div_4": True,
+    }
+
+
+__all__ = [
+    "TOKENIZER_ID",
+    "TOKENIZER_MODULE",
+    "TOKENIZER_PIN",
+    "TOKENIZER_SPEC",
+    "TOKENIZER_VERSION",
+    "TOKEN_PATTERN",
+    "chars_div_4",
+    "count_tokens",
+    "iter_tokens",
+    "tokenize",
+    "tokenizer_pin",
+]

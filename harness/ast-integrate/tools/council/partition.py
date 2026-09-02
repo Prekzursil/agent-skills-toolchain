@@ -90,6 +90,27 @@ def search_seat(seat_id: str, needle: str, artifacts: Iterable[Artifact]) -> Sea
     )
 
 
+REDACTED_PARAPHRASE = "Moderator paraphrase: [REDACTED:information-partition]"
+
+
+def paraphrase_privileged(private_body: str, withheld_canary: str) -> str:
+    """Return the moderator's paraphrase of privileged material.
+
+    A real moderator restates the substance of the privileged round in their
+    own words for every seat. The canary token is stripped (it is an opaque
+    string nobody would repeat), so a token search on the paraphrase stays
+    silent, while the withheld facts it conveys remain readable. This is the
+    leakage channel canary-only detectors miss.
+    """
+    substance = private_body.replace(withheld_canary, "").strip()
+    substance = " ".join(substance.split())
+    if not substance:
+        return REDACTED_PARAPHRASE
+    if substance.endswith("."):
+        substance = substance[:-1]
+    return f"Moderator paraphrase: {substance}; the closed vendor bid stands as tabled."
+
+
 def run_fixture(mode: str) -> FixtureRound:
     withheld = mint_canary("WITHHELD", WITHHELD_NONCE)
     allowed = mint_canary("ALLOWED", ALLOWED_NONCE)
@@ -114,7 +135,7 @@ def run_fixture(mode: str) -> FixtureRound:
         ),
         Artifact(
             "moderator/paraphrase.txt",
-            "Moderator paraphrase: [REDACTED:information-partition]",
+            paraphrase_privileged(private_body, withheld),
             "moderator_paraphrase",
             ALL_SEATS,
         ),

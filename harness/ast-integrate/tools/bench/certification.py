@@ -1,86 +1,120 @@
+"""Certification gate for tournament winners: it consumes the CORRECTED verdict (TST-0299).
+
+A candidate is certified only when its Holm family-wise rejection flag is set.  The raw
+per-comparison WINNER flag (``uncorrected_significant``) is never the gate's input, because
+in a family of forty comparisons at ``alpha = 0.05`` roughly two of those flags are set by
+chance alone.
+
+consume="corrected" (default, live gate): Holm family-wise rejection.
+consume="uncorrected" (the named mutant): the raw per-comparison WINNER flag.
+
+The named mutant: gate body identical except it consumes uncorrected.  It exists so the test
+"a lucky uncorrected-only winner must not be certified" has something to go red on.
+"""
+
 from __future__ import annotations
 
-# g1-surface: generated
+from typing import Any, Mapping, Sequence
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
+CONSUME_CORRECTED = "corrected"
+CONSUME_UNCORRECTED = "uncorrected"
+SOURCE_FIELD: dict[str, str] = {
+    CONSUME_CORRECTED: "holm_rejected",
+    CONSUME_UNCORRECTED: "uncorrected_significant",
+}
+REQUIRED_ROW_FIELDS: tuple[str, ...] = (
+    "id",
+    "holm_rejected",
+    "uncorrected_significant",
+)
 
 
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
+class GateError(ValueError):
+    """Raised for an unknown consume mode or a malformed comparison row."""
 
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
 
-    def __bool__(self) -> bool:
-        return True
+def _validate_rows(rows: Sequence[Mapping[str, Any]]) -> list[Mapping[str, Any]]:
+    out: list[Mapping[str, Any]] = []
+    seen: set[str] = set()
+    for idx, row in enumerate(rows):
+        if not isinstance(row, Mapping):
+            raise GateError(f"comparison row {idx} is not a mapping")
+        missing = [f for f in REQUIRED_ROW_FIELDS if f not in row]
+        if missing:
+            raise GateError(f"comparison row {idx} lacks {missing}")
+        for flag in ("holm_rejected", "uncorrected_significant"):
+            if not isinstance(row[flag], bool):
+                raise GateError(
+                    f"comparison row {idx}: {flag} must be a bool, got {row[flag]!r}"
+                )
+        cid = str(row["id"])
+        if cid in seen:
+            raise GateError(f"duplicate comparison id {cid!r}")
+        seen.add(cid)
+        out.append(row)
+    return out
 
-    def __iter__(self):
-        return iter(())
 
-    def __len__(self) -> int:
-        return 0
+def certification_gate(
+    rows: Sequence[Mapping[str, Any]],
+    consume: str = CONSUME_CORRECTED,
+) -> dict[str, Any]:
+    """Decide certification for every comparison row from one named verdict field.
 
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
+    ``consume`` selects the field: ``"corrected"`` reads ``holm_rejected`` (the live gate),
+    ``"uncorrected"`` reads ``uncorrected_significant`` (the mutant).  Each decision records
+    the field it read so a reviewer can see what the gate actually consumed.
+    """
+    if consume not in SOURCE_FIELD:
+        raise GateError(
+            f"unknown consume mode {consume!r}; expected one of {sorted(SOURCE_FIELD)}"
         )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
+    field = SOURCE_FIELD[consume]
+    checked = _validate_rows(rows)
+    decisions: list[dict[str, Any]] = []
+    certified: list[str] = []
+    refused: list[str] = []
+    for row in checked:
+        cid = str(row["id"])
+        verdict = bool(row[field])
+        decisions.append(
+            {"id": cid, "certified": verdict, "field": field, "source": field}
+        )
+        (certified if verdict else refused).append(cid)
+    return {
+        "consume": consume,
+        "source": field,
+        "field": field,
+        "family_size": len(checked),
+        "certified_ids": certified,
+        "certified_count": len(certified),
+        "refused_ids": refused,
+        "decisions": decisions,
+        "mutant": consume != CONSUME_CORRECTED,
+    }
 
 
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
+def mutant_reads_uncorrected(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """The named mutant: gate body identical except it consumes uncorrected."""
+    return certification_gate(rows, consume=CONSUME_UNCORRECTED)
 
-__surface__ = 'bench.certification'
 
-def certification_gate(*args, **kwargs):
-    return _call('certification_gate', *args, **kwargs)
+def lucky_uncorrected_only(rows: Sequence[Mapping[str, Any]]) -> list[str]:
+    """Ids flagged by the raw WINNER field that Holm does not certify: the chance winners."""
+    return [
+        str(r["id"])
+        for r in _validate_rows(rows)
+        if r["uncorrected_significant"] and not r["holm_rejected"]
+    ]
 
-def mutant_reads_uncorrected(*args, **kwargs):
-    return _call('mutant_reads_uncorrected', *args, **kwargs)
 
-__all__ = ['certification_gate', 'mutant_reads_uncorrected']
-
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
-
+__all__ = [
+    "CONSUME_CORRECTED",
+    "CONSUME_UNCORRECTED",
+    "GateError",
+    "REQUIRED_ROW_FIELDS",
+    "SOURCE_FIELD",
+    "certification_gate",
+    "lucky_uncorrected_only",
+    "mutant_reads_uncorrected",
+]

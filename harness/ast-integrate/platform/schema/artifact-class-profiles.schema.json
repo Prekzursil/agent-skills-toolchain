@@ -4228,7 +4228,7 @@
       ]
     },
     "owner-question-closure": {
-      "$comment": "Logical artifact class declared by 1 unit(s) as command-center/schema/owner-question-closure.schema.json (e.g. BLD-0017).",
+      "$comment": "Logical artifact class declared by 1 unit(s) as command-center/schema/owner-question-closure.schema.json (e.g. BLD-0017). The closure_table clause is the class's own content contract: every catalog owner_question and packet question must appear as a row carrying its id and a verdict, so a receipt without the table is not a closure at all.",
       "allOf": [
         {
           "$ref": "file:///C:/Users/Prekzursil/source/ast-integrate/platform/schema/receipt.schema.json#/$defs/generic_report"
@@ -4246,8 +4246,70 @@
               }
             }
           }
+        },
+        {
+          "$comment": "closure_table lives at the receipt root as written; the P2 jsonschema hook relocates non-core root keys to extensions.legacy_root before validating, so both homes are accepted and a receipt with the table in neither is rejected.",
+          "anyOf": [
+            {
+              "required": [
+                "closure_table"
+              ],
+              "properties": {
+                "closure_table": {
+                  "$ref": "#/$defs/owner-question-closure-table"
+                }
+              }
+            },
+            {
+              "required": [
+                "extensions"
+              ],
+              "properties": {
+                "extensions": {
+                  "type": "object",
+                  "required": [
+                    "legacy_root"
+                  ],
+                  "properties": {
+                    "legacy_root": {
+                      "type": "object",
+                      "required": [
+                        "closure_table"
+                      ],
+                      "properties": {
+                        "closure_table": {
+                          "$ref": "#/$defs/owner-question-closure-table"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
         }
       ]
+    },
+    "owner-question-closure-table": {
+      "$comment": "One row per owner question (catalog owner_question or packet question): the question id and the closure verdict are the minimum a closure row must carry.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "verdict"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verdict": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
     },
     "pack-contract": {
       "$comment": "Fragment class: 1 unit(s) declare command-center/schema/foundry-artifact.schema.json#/$defs/pack-contract.",
