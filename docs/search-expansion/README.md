@@ -20,6 +20,7 @@ COVERAGE — measured vs. asserted:
 | 5. RRF rank fusion | MEASURED — 88 tests; 100% line+branch on the two pure modules `rank_fusion.py` + `searxng_config.py` (`searxng_regional.py` I/O shell excluded — lint+types only); 21/21 mutations killed on each (2026-07-24 figures; current figures in §7) |
 | 6. Multilingual query strategy | Doctrine — `multilingual-search` skill |
 | 7. Wave 1 (2026-09-02): snippet carry, diversity, default-mix flips | MEASURED for the pure modules (191 tests, 100% line+branch, 53/53 + 24/24 + 8/8 mutations killed) and for the upstream evidence behind the flips; **NOT applied live** — the flip block is rendered and parsed only, see §7 |
+| 8. Wave 2 (2026-09-02): cross-encoder rerank stage, gated behind an eval | MEASURED — 124 tests, 100% line+branch on `rerank.py` + `eval_rerank.py`, 55/55 + 148/148 mutations killed; lift measured on BEIR SciFact with a real ONNX run: **-0.074 nDCG@10 on SERP-length snippets, +0.026 on full abstracts** — the stage ships DEFAULT OFF and the numbers say keep it off, see §8 |
 
 **Final state of the owner's instance: UNCHANGED.** The config change was applied, measured,
 and reverted. `D:\searxng\settings.yml` is byte-identical to as-found
@@ -250,3 +251,33 @@ then a suspension; the entry exists because the approved plan calls for it and b
 SearXNG fails it truthfully at ~0 latency. A personal key in the spec's `extra` tuple is the
 only thing that makes it contribute results. `enabled_specs()` and therefore `query_plan`
 routing exclude it.
+
+## 8. Rerank stage — 2026-09-02 (measured; ships DEFAULT OFF, and the numbers say keep it off)
+
+Plan inventory item C / Wave 2 ("ONNX MiniLM rerank stage, gated behind a 30-50 query eval;
+ships only if it lifts"), landed in `tools/search-expansion/` as `rerank.py`,
+`eval_rerank.py`, `test_rerank.py` and `eval/`. Same discipline as §7: this was built on a
+cloud VM that **cannot reach the owner's SearXNG**, so the eval's first stage is a stand-in,
+and everything below says which side of the measured/asserted line it sits on. The package
+README's "Rerank stage (optional, default OFF)" section carries the API and the full table;
+`tools/search-expansion/eval/README.md` carries provenance, license and reproduction.
+
+| What | State |
+|---|---|
+| The stage: cross-encoder over `title + " " + snippet` for the top 30 fused results, tail untouched; backends `onnx` / `fastembed` / `flashrank` imported lazily and probed in that order; gates `RERANK_ENABLED` (default OFF), `RERANK_MODEL_DIR`, `RERANK_ALLOW_DOWNLOAD` (default never); every failure path is identity with the reason in the result | MEASURED as code — stdlib at import; 124 tests with every backend faked via `sys.modules`; **100% line + branch** on `rerank.py` and `eval_rerank.py`; mutation-check **55/55 and 148/148** killed |
+| Lift on SERP-length input: BEIR SciFact, all 300 test claims, stdlib BM25 top-30 as first stage, passages clipped to 300 chars, `Xenova/ms-marco-MiniLM-L-6-v2` int8 on onnxruntime 1.29.0 CPU | MEASURED — nDCG@10 **0.6588 -> 0.5846 (-0.0742)**, recall@5 0.7126 -> 0.6522; 59 queries improved / 84 worsened / 157 unchanged; 74 ms per query (p50 67) on 8 vCPU |
+| Lift on whole documents: same 300 claims, full abstracts (mean 1,590 chars) | MEASURED — nDCG@10 **0.6588 -> 0.6845 (+0.0256)**, recall@5 0.7126 -> 0.7337; 66 / 46 / 188; 398 ms per query. Reproduces the published BEIR pair for SciFact (BM25 0.665 -> BM25+CE 0.688), which is the check that the pipeline is right and the snippet result is real |
+| Break-even passage length (300 / 600 / 1000 / full chars) | MEASURED — lift -0.074 / -0.023 / +0.008 / +0.026: roughly 800-900 characters, well above `rank_fusion`'s 500-char snippet cap |
+| Committed fixture `eval/scifact-50q-top30-300c.jsonl.gz` (first 50 claims by sorted qid, top-30, 300 chars, 217 KB gzipped; claims CC BY 4.0, abstracts ODC-By 1.0) + three result files | MEASURED on it: 0.6334 -> 0.5306 (-0.1028); 5 / 15 / 30. Rebuildable byte-for-byte (`build-beir`, zero gzip MTIME, ASCII rows); `eval/` totals 292 KB |
+| Decision under the plan's rule (`RERANK_ENABLED=1` only if nDCG@10 lift >= +0.02) | **Leave `RERANK_ENABLED` unset.** The plan's own "medium confidence on lift for SERP snippets" resolves to *negative* lift. Worth revisiting only for a path that feeds page text (e.g. after a `read_url` extraction), re-measured on that input — the +0.026 there costs ~0.4 s per 30 candidates on CPU |
+| Against the estate's real fused output (SearXNG + Exa + Tavily snippets) | **NOT MEASURED** — unreachable from here. `eval_rerank.py run <set.jsonl>` takes any set in the documented JSONL shape, so a labelled sample of real SERPs is a one-command re-measure |
+| `fastembed` and `flashrank` backends against real packages | **NOT MEASURED** — faked in tests only; `auto` falls through to them when `onnxruntime`/`tokenizers` are absent |
+
+Two things worth keeping. First, the result is a property of the *input*, not the model:
+the same weights that beat BM25 on abstracts lose to it on snippets, because a 300-char
+snippet gives the cross-encoder less evidence than the first stage used to rank the whole
+document. Any future "add a reranker" proposal should say what text it will read. Second,
+the mutation run turned up an equivalent mutant of the kind §7 recorded: flashrank's scorer
+defaulted a passage the ranker dropped to `0.0`, and no default value could be told from
+another by a test, so the code was restructured (map scores back by id; a dropped passage
+raises, and the stage reports identity with the reason) rather than pinned.
