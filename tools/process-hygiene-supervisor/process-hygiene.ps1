@@ -1,0 +1,172 @@
+#requires -Version 5.1
+<#
+.SYNOPSIS
+    Thin snapshot-gatherer + launcher for the process-hygiene decision engine.
+
+.DESCRIPTION
+    This script does NO decision-making. It samples the Windows process table and
+    memory/WSL/listener signals into the JSON snapshot schema that hygiene.py
+    validates, then shells to `hygiene.py run`, which decides and (with -Apply)
+    actuates through hygiene_actuate.WindowsActuator. All rules, thresholds and
+    the audit ledger live in Python and are unit-tested; this file only actuates
+    the OS-specific data collection - the same Python-decides / PowerShell-
+    gathers split that tools/mcp/mcp-host-supervisor uses.
+
+    Fail-open: every path is wrapped so the scheduled task can only exit 0/2, and
+    a sampling error degrades a signal rather than crashing the run.
+
+    DEFAULT IS REPORT-ONLY. Pass -Apply (the install task adds it only when the
+    owner opts in) to allow graceful-stop-then-kill. Report-only writes the same
+    ledger with result=dry-run so a dry-run week is auditable before any kill.
+
+.PARAMETER Apply         Allow the engine to stop processes / shut WSL down.
+.PARAMETER Python        Python interpreter. Default C:\Python314\python.exe.
+.PARAMETER Root          Protected runtime root for policy/state/ledger.
+.PARAMETER ProcessSnapshotFile  TEST override: use this snapshot instead of sampling.
+.PARAMETER EmitSnapshotOnly     TEST: write the sampled snapshot to -SnapshotOut and exit.
+#>
+[CmdletBinding()]
+param(
+    [switch]$Apply,
+    [string]$Python = 'C:\Python314\python.exe',
+    [string]$ToolDir = $PSScriptRoot,
+    [string]$Root = 'C:\Users\Prekzursil\.agent-guard\process-hygiene',
+    [string]$PolicyFile = '',
+    [string]$StateFile = '',
+    [string]$LedgerFile = '',
+    [string]$ReaperAvailable = '',
+    [string]$ProcessSnapshotFile = '',
+    [string]$SnapshotOut = '',
+    [switch]$EmitSnapshotOnly
+)
+
+$ErrorActionPreference = 'Stop'
+if (-not $PolicyFile) { $PolicyFile = Join-Path $Root 'policy.json' }
+if (-not $StateFile) { $StateFile = Join-Path $Root 'state\process-hygiene.state.json' }
+if (-not $LedgerFile) { $LedgerFile = Join-Path $Root 'ledger\process-hygiene.jsonl' }
+
+function Convert-ToUnix([object]$Value) {
+    if ($Value -is [datetime]) { return [DateTimeOffset]$Value | ForEach-Object { $_.ToUnixTimeSeconds() } }
+    $parsed = [DateTimeOffset]::MinValue
+    if ([DateTimeOffset]::TryParse([string]$Value, [ref]$parsed)) { return $parsed.ToUnixTimeSeconds() }
+    return 0L
+}
+
+function Get-HygieneSnapshot {
+    # Build the snapshot object matching hygiene.py's SCHEMA_SNAPSHOT.
+    $cim = @(Get-CimInstance Win32_Process -ErrorAction Stop)
+    $metrics = @{}
+    foreach ($p in Get-Process -ErrorAction SilentlyContinue) { $metrics[[int]$p.Id] = $p }
+
+    $processes = foreach ($process in $cim) {
+        $id = [int]$process.ProcessId
+        $metric = $metrics[$id]
+        $io = $null
+        if ($null -ne $process.ReadTransferCount -and $null -ne $process.WriteTransferCount) {
+            $io = [long]$process.ReadTransferCount + [long]$process.WriteTransferCount
+        }
+        $cpu = $null
+        if ($metric -and $null -ne $metric.CPU) { $cpu = [double]$metric.CPU }
+        [ordered]@{
+            pid               = $id
+            ppid              = [int]$process.ParentProcessId
+            name              = [string]$process.Name
+            executable        = [string]$process.ExecutablePath
+            command_line      = [string]$process.CommandLine
+            created_unix      = [long](Convert-ToUnix $process.CreationDate)
+            cpu_seconds       = $cpu
+            io_bytes          = $io
+            working_set_bytes = if ($metric) { [long]$metric.WorkingSet64 } else { 0L }
+            private_bytes     = if ($metric) { [long]$metric.PrivateMemorySize64 } else { 0L }
+        }
+    }
+
+    $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+    $physical = [long]$os.TotalVisibleMemorySize * 1KB
+    $free = [long]$os.FreePhysicalMemory * 1KB
+    $commitTotal = ([long]$os.TotalVirtualMemorySize - [long]$os.FreeVirtualMemory) * 1KB
+    $commitLimit = [long]$os.TotalVirtualMemorySize * 1KB
+    try {
+        $committed = (Get-Counter '\Memory\Committed Bytes' -ErrorAction Stop).CounterSamples[0].CookedValue
+        $limit = (Get-Counter '\Memory\Commit Limit' -ErrorAction Stop).CounterSamples[0].CookedValue
+        if ($committed -gt 0) { $commitTotal = [long]$committed }
+        if ($limit -gt 0) { $commitLimit = [long]$limit }
+    } catch { }
+
+    $compressed = $null
+    $mc = Get-Process -Name 'Memory Compression' -ErrorAction SilentlyContinue
+    if ($mc) { $compressed = [long]($mc | Measure-Object WorkingSet64 -Sum).Sum }
+
+    $running = @()
+    $wslAvailable = $false
+    try {
+        $wslList = & wsl.exe -l --running --quiet 2>$null
+        $wslAvailable = ($LASTEXITCODE -eq 0)
+        if ($wslList) {
+            $running = @($wslList | ForEach-Object { ($_ -replace '\0', '').Trim() } | Where-Object { $_ })
+        }
+    } catch { }
+
+    $listeners = @()
+    try {
+        foreach ($conn in (Get-NetTCPConnection -State Listen -ErrorAction Stop)) {
+            $listeners += [ordered]@{ port = [int]$conn.LocalPort; pid = [int]$conn.OwningProcess }
+        }
+    } catch { }
+
+    return [ordered]@{
+        schema          = 'process-hygiene-snapshot-v1'
+        taken_unix      = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        host            = [ordered]@{
+            physical_bytes     = $physical
+            free_bytes         = $free
+            commit_total_bytes = $commitTotal
+            commit_limit_bytes = $commitLimit
+            compressed_bytes   = $compressed
+        }
+        wsl             = [ordered]@{ available = $wslAvailable; running_distros = $running }
+        listeners       = $listeners
+        supervisor_pids = @([int]$PID)
+        processes       = @($processes)
+    }
+}
+
+try {
+    New-Item -ItemType Directory -Force -Path $Root, (Split-Path -Parent $StateFile), (Split-Path -Parent $LedgerFile) | Out-Null
+
+    if ($ProcessSnapshotFile) {
+        $snapshotPath = $ProcessSnapshotFile
+    }
+    else {
+        $snapshot = Get-HygieneSnapshot
+        $snapshotPath = if ($SnapshotOut) { $SnapshotOut } else { Join-Path $env:TEMP ("process-hygiene-{0}.json" -f [guid]::NewGuid().ToString('N')) }
+        $snapshot | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $snapshotPath -Encoding utf8
+    }
+
+    if ($EmitSnapshotOnly) {
+        Write-Output "SUCCESS:process-hygiene-snapshot-emit $snapshotPath"
+        exit 0
+    }
+
+    $pyArgs = @(
+        (Join-Path $ToolDir 'hygiene.py'), 'run',
+        '--snapshot', $snapshotPath,
+        '--policy', $PolicyFile,
+        '--state', $StateFile,
+        '--ledger', $LedgerFile
+    )
+    if ($Apply) { $pyArgs += '--apply' }
+    if ($ReaperAvailable) { $pyArgs += @('--reaper-available', $ReaperAvailable) }
+
+    $output = & $Python @pyArgs
+    $code = $LASTEXITCODE
+    Write-Output ($output | Select-Object -Last 1)
+    if (-not $ProcessSnapshotFile -and -not $SnapshotOut -and (Test-Path -LiteralPath $snapshotPath)) {
+        Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+    }
+    exit $code
+}
+catch {
+    Write-Output "FAILED:process-hygiene launcher failed closed; no action taken; reason=$($_.Exception.Message)"
+    exit 2
+}
