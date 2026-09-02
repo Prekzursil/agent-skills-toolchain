@@ -223,7 +223,7 @@ Enabled (npx, keyless core, tools/list captured live this VM 2026-09-02, no keys
 
 Each enabled Claude-target server also landed in `.agents/mcp-cursor-parked-31.json` (33 -> 36 definitions). `test_cursor_attach_all_dry_run_projects_the_full_safe_surface` pins attached=44 / noncore=38.
 
-DEFAULT-OFF host-gated (enabled: false, not parked — they are not in the Cursor attach-all generated set): `proxy-mcp`, `jadx-mcp`, `apktool-mcp`, `cloud-audit`, `rsigma` (`rsigma mcp serve`; no npm package), `trivy` (`trivy mcp`). Enablement waits on rails R1–R7 green (G3).
+DEFAULT-OFF host-gated (enabled: false, not parked — they are not in the Cursor attach-all generated set): `proxy-mcp`, `jadx-mcp`, `apktool-mcp`, `cloud-audit`, `rsigma` (`rsigma mcp serve`; no npm package), `trivy` (`trivy mcp`), `prowler-mcp` (`uvx prowler-mcp`; PyPI 0.5.0; W-cloud 2026-09-02). Enablement waits on rails R1–R7 green (G3). No kubescape MCP (no packaged server; CLI wrap only).
 
 **Envelope.** darknet is CTI lookup (including onion indexes and stealer-log *queries*). It is not a stealer/C2 kit (H2). Owner-ops H1: no third-party attacks. Active DAST (`proxy-mcp`) stays off until rails.
 
