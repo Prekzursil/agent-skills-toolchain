@@ -1,0 +1,35 @@
+# Deploy to %USERPROFILE%\.wslconfig  (i.e. C:\Users\Prekzursil\.wslconfig)
+# then run `wsl --shutdown` once so the new limits take effect on next start.
+#
+# WHY: on 02.09.2026 04:50 EEST vmmemWSL held 1.1 GB with NO workload inside it.
+# WSL2's default memory ceiling is 50% of RAM (~15.8 GB on this 31.6 GB box) and
+# it does not return freed guest memory to Windows on its own. The cap below
+# bounds the guest, and autoMemoryReclaim hands cache back to Windows while WSL
+# keeps running - so the process-hygiene supervisor's `wsl --shutdown` is only a
+# last resort, not the routine reclaim path.
+#
+# Tune `memory` to the largest guest workload you actually run. 8GB leaves ample
+# headroom for the AI runtimes + browsers on the Windows side; drop to 4GB if WSL
+# is only used for light tooling.
+
+[wsl2]
+# Hard cap on the WSL2 guest VM (vmmemWSL) RAM.
+memory=8GB
+
+# Return unused guest cache to Windows automatically. "gradual" is the least
+# disruptive; "dropcache" is more aggressive if pressure is chronic.
+autoMemoryReclaim=gradual
+
+# Bound the swap file so a runaway guest cannot balloon commit charge on C:.
+swap=8GB
+
+# Cap guest processors so a WSL build cannot starve the Windows-side agents.
+processors=4
+
+# Reclaim the sparse VHD space freed by autoMemoryReclaim.
+sparseVhd=true
+
+[experimental]
+# Some builds expose autoMemoryReclaim under [experimental]; setting it in both
+# is harmless and covers older/newer WSL releases.
+autoMemoryReclaim=gradual
