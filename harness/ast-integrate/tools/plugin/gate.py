@@ -1,96 +1,135 @@
+"""Act gate for divergence decision packets (IMP-0036).
+
+A packet's *recommendation* is advisory: it can name an action but can never
+authorise one.  For a ``DIVERGED`` file -- both copies carry lines the other
+lacks -- any action needs a *recorded owner decision* on the packet, and the
+requested action must be the recorded choice.  One-sided classes (``REPO-AHEAD``,
+``LIVE-AHEAD``, ``IDENTICAL*``) lose nothing whichever side wins, so a known
+action passes without a decision.
+
+The gate never mutates the packet it inspects.
+"""
 from __future__ import annotations
 
-# g1-surface: generated
-
-from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any
 
+from plugin.drift import CLASSES, DIVERGED
 
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
+REFUSE_NO_DECISION = "REFUSE-NO-RECORDED-DECISION"
+REFUSE_DECISION_MISMATCH = "REFUSE-DECISION-MISMATCH"
+REFUSE_UNKNOWN_ACTION = "REFUSE-UNKNOWN-ACTION"
+REFUSE_UNKNOWN_CLASSIFICATION = "REFUSE-UNKNOWN-CLASSIFICATION"
 
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
+TAKE_LIVE = "TAKE-LIVE"
+TAKE_REPO = "TAKE-REPO"
+KEEP_BOTH = "KEEP-BOTH"
+NO_OP = "NO-OP"
+ACTIONS: tuple[str, ...] = (TAKE_LIVE, TAKE_REPO, KEEP_BOTH, NO_OP)
 
-    def __bool__(self) -> bool:
-        return True
+RECORDED = "RECORDED"
+UNRECORDED = "UNRECORDED"
+DECISION_KIND = "recorded-owner-decision"
 
-    def __iter__(self):
-        return iter(())
+AUTHORISED_BY_DECISION = "recorded-owner-decision"
+AUTHORISED_BY_CLASS = "one-sided-classification"
 
-    def __len__(self) -> int:
-        return 0
 
-    def __hash__(self) -> int:
-        return hash(self._name)
+def _decision(packet: dict[str, Any]) -> dict[str, Any]:
+    decision = packet.get("decision")
+    return decision if isinstance(decision, dict) else {}
 
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
+
+def has_recorded_decision(packet: dict[str, Any]) -> bool:
+    """True when the packet carries an owner decision with ``status == RECORDED``.
+
+    Only the ``decision`` block counts.  The ``recommendation`` block is never
+    consulted, whatever action it names.
+    """
+    decision = _decision(packet)
+    return decision.get("kind") == DECISION_KIND and decision.get("status") == RECORDED
+
+
+def recorded_choice(packet: dict[str, Any]) -> str | None:
+    """Return the recorded owner choice, or ``None`` when nothing is recorded."""
+    if not has_recorded_decision(packet):
+        return None
+    choice = _decision(packet).get("choice")
+    return str(choice) if choice is not None else None
+
+
+def _verdict(
+    packet: dict[str, Any],
+    action: str,
+    *,
+    ok: bool,
+    reason: str | None,
+    authorised_by: str | None,
+) -> dict[str, Any]:
+    return {
+        "ok": ok,
+        "refused": not ok,
+        "reason": reason,
+        "action": action,
+        "path": packet.get("path"),
+        "classification": packet.get("classification"),
+        "authorised_by": authorised_by,
+        "recorded_choice": recorded_choice(packet),
+        "recommendation_consulted": False,
+    }
+
+
+def act(packet: dict[str, Any], action: str) -> dict[str, Any]:
+    """Decide whether ``action`` may be applied to the file ``packet`` describes.
+
+    Returns a verdict dict with ``ok``/``refused`` (always complementary),
+    ``reason`` (``None`` when allowed, else one of the ``REFUSE_*`` codes),
+    the echoed ``action``, ``path`` and ``classification``, ``authorised_by``
+    and the ``recorded_choice`` that was honoured.
+
+    * unknown action -> ``REFUSE_UNKNOWN_ACTION``;
+    * classification outside :data:`plugin.drift.CLASSES` ->
+      ``REFUSE_UNKNOWN_CLASSIFICATION`` (nothing is known about the loss);
+    * ``DIVERGED`` without a recorded decision -> ``REFUSE_NO_DECISION``;
+    * ``DIVERGED`` with a recorded decision naming a different action ->
+      ``REFUSE_DECISION_MISMATCH``;
+    * ``DIVERGED`` with a matching recorded decision -> allowed;
+    * any other class -> allowed on the strength of the classification alone.
+    """
+    action = str(action)
+    if action not in ACTIONS:
+        return _verdict(packet, action, ok=False, reason=REFUSE_UNKNOWN_ACTION, authorised_by=None)
+    klass = packet.get("classification")
+    if klass not in CLASSES:
+        return _verdict(
+            packet, action, ok=False, reason=REFUSE_UNKNOWN_CLASSIFICATION, authorised_by=None
         )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
+    if klass != DIVERGED:
+        return _verdict(packet, action, ok=True, reason=None, authorised_by=AUTHORISED_BY_CLASS)
+    if not has_recorded_decision(packet):
+        return _verdict(packet, action, ok=False, reason=REFUSE_NO_DECISION, authorised_by=None)
+    if recorded_choice(packet) != action:
+        return _verdict(
+            packet, action, ok=False, reason=REFUSE_DECISION_MISMATCH, authorised_by=None
+        )
+    return _verdict(packet, action, ok=True, reason=None, authorised_by=AUTHORISED_BY_DECISION)
 
 
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
-
-__surface__ = 'plugin.gate'
-
-REFUSE_NO_DECISION = "REFUSE_NO_DECISION"
-
-
-def act(packet, action=None, *args, **kwargs):
-    if action is None and args:
-        action = args[0]
-    status = ""
-    if isinstance(packet, dict):
-        status = str((packet.get("decision") or {}).get("status") or "")
-        klass = str(packet.get("classification") or "")
-    else:
-        klass = ""
-    if klass == "DIVERGED" and status != "RECORDED":
-        return {"refused": True, "reason": REFUSE_NO_DECISION, "ok": False, "action": action}
-    return {"ok": True, "refused": False, "reason": None, "action": action}
-
-__all__ = ['REFUSE_NO_DECISION', 'act']
-
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
-
+__all__ = [
+    "ACTIONS",
+    "AUTHORISED_BY_CLASS",
+    "AUTHORISED_BY_DECISION",
+    "DECISION_KIND",
+    "KEEP_BOTH",
+    "NO_OP",
+    "RECORDED",
+    "REFUSE_DECISION_MISMATCH",
+    "REFUSE_NO_DECISION",
+    "REFUSE_UNKNOWN_ACTION",
+    "REFUSE_UNKNOWN_CLASSIFICATION",
+    "TAKE_LIVE",
+    "TAKE_REPO",
+    "UNRECORDED",
+    "act",
+    "has_recorded_decision",
+    "recorded_choice",
+]

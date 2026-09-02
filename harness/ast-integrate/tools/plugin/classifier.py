@@ -1,101 +1,93 @@
+"""Divergence classes for live-versus-repo rules files (IMP-0036).
+
+The production classifier is two-directional: a file is ``DIVERGED`` only when
+*both* sides carry lines the other lacks (see :func:`plugin.drift.classify_pair`).
+This module re-exports the class names used by decision packets and adds:
+
+* :func:`unique_lines` -- the two unique-line sets a packet must carry;
+* :func:`classify_texts` -- the two-directional verdict over text;
+* :func:`one_directional_repo_extra` -- the deliberately broken *mutant* that
+  only looks at what the repo has and live lacks.  It can never say
+  ``DIVERGED``; the probes use it to show that a one-directional differ
+  silently misfiles every genuinely diverged file as ``REPO-AHEAD``.
+"""
 from __future__ import annotations
 
-# g1-surface: generated
+from plugin.drift import (
+    CLASSES,
+    DIVERGED,
+    IDENTICAL,
+    IDENTICAL_MODULO_EOL,
+    LIVE_AHEAD,
+    REPO_AHEAD,
+    classify_pair,
+)
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
-
-
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __iter__(self):
-        return iter(())
-
-    def __len__(self) -> int:
-        return 0
-
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
-        )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
+ONE_DIRECTIONAL_CLASSES = (IDENTICAL, IDENTICAL_MODULO_EOL, REPO_AHEAD, LIVE_AHEAD)
 
 
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
-
-__surface__ = 'plugin.classifier'
-
-DIVERGED = "DIVERGED"
-
-LIVE_AHEAD = "LIVE-AHEAD"
-
-REPO_AHEAD = "REPO-AHEAD"
+def _as_text(value: str | bytes | bytearray | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", errors="surrogateescape")
+    return str(value)
 
 
-def one_directional_repo_extra(repo_text, live_text=None, *args, **kwargs):
-    """Mutant: ignore live-only lines so a two-sided diverge looks REPO-AHEAD."""
-    if live_text is None and args:
-        live_text = args[0]
-    repo_set = set((repo_text or "").splitlines())
-    live_set = set((live_text or "").splitlines())
-    only_repo = repo_set - live_set
-    only_live = live_set - repo_set
-    if only_repo:
+def _norm_eol(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def _lines(text: str) -> list[str]:
+    return _norm_eol(text).split("\n")
+
+
+def unique_lines(repo_text: str | bytes | None, live_text: str | bytes | None) -> tuple[set[str], set[str]]:
+    """Return ``(repo_only, live_only)`` line sets after end-of-line normalisation."""
+    repo = set(_lines(_as_text(repo_text)))
+    live = set(_lines(_as_text(live_text)))
+    return repo - live, live - repo
+
+
+def classify_texts(repo_text: str | bytes | None, live_text: str | bytes | None) -> str:
+    """Two-directional verdict for a text pair (one of :data:`CLASSES`)."""
+    repo = _as_text(repo_text).encode("utf-8", errors="surrogateescape")
+    live = _as_text(live_text).encode("utf-8", errors="surrogateescape")
+    return classify_pair(repo, live)
+
+
+def one_directional_repo_extra(repo_text: str | bytes | None, live_text: str | bytes | None) -> str:
+    """MUTANT classifier: decide from the repo-extra lines alone.
+
+    Only the lines present in the repo copy and absent from the live copy are
+    consulted.  When there are any, the file is filed as ``REPO-AHEAD``; when
+    there are none but the copies still differ, live must hold the extra
+    lines, so ``LIVE-AHEAD``.  Because the live-only set is never intersected
+    with the repo-only set, a file where *both* sides changed is misfiled as
+    ``REPO-AHEAD`` -- exactly the "size wins" behaviour the two-directional
+    packet exists to refuse.  Returns one of :data:`ONE_DIRECTIONAL_CLASSES`.
+    """
+    repo = _as_text(repo_text)
+    live = _as_text(live_text)
+    if repo == live:
+        return IDENTICAL
+    if _norm_eol(repo) == _norm_eol(live):
+        return IDENTICAL_MODULO_EOL
+    repo_only, _live_only = unique_lines(repo, live)
+    if repo_only:
         return REPO_AHEAD
-    if only_live:
-        return LIVE_AHEAD
-    return "IDENTICAL"
+    return LIVE_AHEAD
 
-__all__ = ['DIVERGED', 'LIVE_AHEAD', 'REPO_AHEAD', 'one_directional_repo_extra']
 
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
-
+__all__ = [
+    "CLASSES",
+    "DIVERGED",
+    "IDENTICAL",
+    "IDENTICAL_MODULO_EOL",
+    "LIVE_AHEAD",
+    "ONE_DIRECTIONAL_CLASSES",
+    "REPO_AHEAD",
+    "classify_texts",
+    "one_directional_repo_extra",
+    "unique_lines",
+]

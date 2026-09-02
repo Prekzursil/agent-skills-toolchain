@@ -1,78 +1,22 @@
+"""Test-support package for :mod:`plugin`.
+
+Submodules are imported explicitly by the probes that need them
+(``plugin.tests.harness``, ``plugin.tests.test_pack_determinism``,
+``plugin.tests.test_divergence_packet`` ...).  Nothing is imported here on
+purpose: loading one suite must never drag every other suite -- and its
+fixtures -- into an unrelated probe's import graph.
+"""
 from __future__ import annotations
 
-# g1-surface: generated
+from pathlib import Path
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
+PACKAGE_DIR = Path(__file__).resolve().parent
 
 
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __iter__(self):
-        return iter(())
-
-    def __len__(self) -> int:
-        return 0
-
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
-        )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
+def discover_test_modules(package_dir: Path | str | None = None) -> list[str]:
+    """Return the sorted module names of every ``test_*.py`` suite in the package."""
+    root = Path(package_dir) if package_dir is not None else PACKAGE_DIR
+    return sorted(p.stem for p in root.glob("test_*.py") if p.is_file())
 
 
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
-
-__surface__ = 'tools.plugin.tests'
-
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
-
+__all__ = ["PACKAGE_DIR", "discover_test_modules"]

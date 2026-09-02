@@ -1,107 +1,136 @@
+"""Divergence-packet unit tests imported by IMP-0036 probe2.
+
+Each test builds its own two-directional pair inline, so the suite does not
+depend on the probe fixtures.  Tests raise ``AssertionError`` on failure and
+return a small dict of what they observed, like the other ``plugin.tests``
+suites.
+"""
 from __future__ import annotations
 
-# g1-surface: generated
+import copy
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
+from plugin.classifier import DIVERGED, REPO_AHEAD, classify_texts, unique_lines
+from plugin.gate import (
+    REFUSE_DECISION_MISMATCH,
+    REFUSE_NO_DECISION,
+    act,
+    has_recorded_decision,
+)
+from plugin.independent_differ import unique_line_sets_via_hash
+from plugin.packet import emit_packet, packet_has_both_unique_sets, record_decision
 
+SHARED = ("# rules/common/example.md", "", "- keep receipts", "- never guess")
+REPO_ONLY = ("- repo added: cite the commit", "- repo added: run the gate")
+LIVE_ONLY = ("- live added: owner note", "- live added: local override")
 
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __iter__(self):
-        return iter(())
-
-    def __len__(self) -> int:
-        return 0
-
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
-        )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
+REPO_TEXT = "\n".join(SHARED + REPO_ONLY) + "\n"
+LIVE_TEXT = "\n".join(SHARED + LIVE_ONLY) + "\n"
+PATH = "rules/common/example.md"
 
 
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
-
-__surface__ = 'plugin.tests.test_divergence_packet'
-
-def test_packet_contains_both_unique_sets(*args, **kwargs):
-    from plugin.packet import emit_packet, packet_has_both_unique_sets
-
-    pkt = emit_packet(path="rules/x.md", repo_text="shared\nrepo-only\n", live_text="shared\nlive-only\n")
-    assert packet_has_both_unique_sets(pkt)
+def _diverged_packet() -> dict:
+    return emit_packet(path=PATH, repo_text=REPO_TEXT, live_text=LIVE_TEXT)
 
 
-def test_recommendation_is_advisory_not_decision(*args, **kwargs):
-    from plugin.packet import emit_packet
+def test_packet_contains_both_unique_sets() -> dict:
+    """A DIVERGED packet carries the repo-only AND the live-only line sets.
 
-    pkt = emit_packet(path="rules/x.md", repo_text="shared\nrepo-only\n", live_text="shared\nlive-only\n")
-    assert pkt["recommendation"]["kind"] == "advisory"
-    assert pkt["recommendation"]["may_authorize_act"] is False
-    assert pkt["recommendation"]["kind"] != pkt["decision"]["kind"]
+    Both sets are cross-checked against two mechanically different differs:
+    the classifier's str-set differ and the blake2s line-hash differ.
+    """
+    pkt = _diverged_packet()
+    if pkt["classification"] != DIVERGED:
+        raise AssertionError(f"expected DIVERGED got {pkt['classification']}")
+    if not packet_has_both_unique_sets(pkt):
+        raise AssertionError("DIVERGED packet lacks a unique-line set")
+    pkt_ru, pkt_lu = set(pkt["repo_unique_lines"]), set(pkt["live_unique_lines"])
+    if pkt_ru != set(REPO_ONLY) or pkt_lu != set(LIVE_ONLY):
+        raise AssertionError(f"unique sets wrong: repo={sorted(pkt_ru)} live={sorted(pkt_lu)}")
+    cls_ru, cls_lu = unique_lines(REPO_TEXT, LIVE_TEXT)
+    hash_ru, hash_lu = unique_line_sets_via_hash(REPO_TEXT, LIVE_TEXT)
+    if (cls_ru, cls_lu) != (pkt_ru, pkt_lu) or (hash_ru, hash_lu) != (pkt_ru, pkt_lu):
+        raise AssertionError("packet differ disagrees with independent differs")
+    if pkt_ru & pkt_lu:
+        raise AssertionError("a line cannot be unique to both sides")
+    # Order inside the packet is first-seen file order, not sorted.
+    if pkt["repo_unique_lines"] != list(REPO_ONLY) or pkt["live_unique_lines"] != list(LIVE_ONLY):
+        raise AssertionError("unique lines not in first-seen order")
+    # Same shared text with one side unchanged is one-sided, never DIVERGED.
+    one_sided = emit_packet(path=PATH, repo_text=REPO_TEXT, live_text="\n".join(SHARED) + "\n")
+    if one_sided["classification"] != REPO_AHEAD or packet_has_both_unique_sets(one_sided):
+        raise AssertionError("one-sided pair reported as two-sided")
+    return {
+        "classification": pkt["classification"],
+        "repo_unique": sorted(pkt_ru),
+        "live_unique": sorted(pkt_lu),
+        "ok": True,
+    }
 
 
-def test_refuse_act_without_recorded_decision(*args, **kwargs):
-    from plugin.gate import REFUSE_NO_DECISION, act
-    from plugin.packet import emit_packet, record_decision
+def test_refuse_act_without_recorded_decision() -> dict:
+    """Acting on DIVERGED is refused until an owner decision is recorded.
 
-    pkt = emit_packet(path="rules/x.md", repo_text="shared\nrepo-only\n", live_text="shared\nlive-only\n")
-    denied = act(pkt, "TAKE-LIVE")
-    assert denied["refused"] is True
-    assert denied["reason"] == REFUSE_NO_DECISION
-    allowed = act(record_decision(pkt, "KEEP-BOTH"), "KEEP-BOTH")
-    assert allowed["ok"] is True
+    Recording ``KEEP-BOTH`` then allows exactly ``KEEP-BOTH``; a different
+    action is still refused, and recording never mutates the source packet.
+    """
+    pkt = _diverged_packet()
+    before = copy.deepcopy(pkt)
+    if has_recorded_decision(pkt) or pkt["decision"]["status"] != "UNRECORDED":
+        raise AssertionError("fresh packet already carries a recorded decision")
+    for action in ("TAKE-LIVE", "TAKE-REPO", "KEEP-BOTH", "NO-OP"):
+        denied = act(pkt, action)
+        if denied["refused"] is not True or denied["ok"] is not False:
+            raise AssertionError(f"{action} on DIVERGED was not refused")
+        if denied["reason"] != REFUSE_NO_DECISION:
+            raise AssertionError(f"wrong refusal reason {denied['reason']!r}")
+    recorded = record_decision(pkt, "KEEP-BOTH")
+    if not has_recorded_decision(recorded):
+        raise AssertionError("record_decision did not record")
+    allowed = act(recorded, "KEEP-BOTH")
+    if allowed["ok"] is not True or allowed["refused"] is not False or allowed["reason"] is not None:
+        raise AssertionError("recorded decision not honoured")
+    if allowed["recorded_choice"] != "KEEP-BOTH":
+        raise AssertionError("verdict does not cite the recorded choice")
+    mismatch = act(recorded, "TAKE-LIVE")
+    if mismatch["refused"] is not True or mismatch["reason"] != REFUSE_DECISION_MISMATCH:
+        raise AssertionError("action other than the recorded choice was allowed")
+    if pkt != before:
+        raise AssertionError("record_decision/act mutated the source packet")
+    return {"refused_without_decision": 4, "allowed_after_record": 1, "ok": True}
 
-__all__ = ['test_packet_contains_both_unique_sets', 'test_recommendation_is_advisory_not_decision', 'test_refuse_act_without_recorded_decision']
 
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
+def test_recommendation_is_advisory_not_decision() -> dict:
+    """The recommendation block is advisory and distinguishable from a decision.
 
+    Even a recommendation that names the requested action authorises nothing:
+    the gate ignores it and still demands a recorded decision.
+    """
+    pkt = _diverged_packet()
+    rec, dec = pkt["recommendation"], pkt["decision"]
+    if rec["kind"] != "advisory" or rec["may_authorize_act"] is not False:
+        raise AssertionError("recommendation is not advisory")
+    if rec["action"] != "HOLD-FOR-RECORDED-DECISION":
+        raise AssertionError(f"DIVERGED auto-resolved to {rec['action']!r}")
+    if rec["kind"] == dec["kind"] or dec["status"] != "UNRECORDED":
+        raise AssertionError("recommendation and decision are not distinguishable")
+    if pkt["mtime_is_authorship_signal"] is not False or pkt["size_is_authorship_signal"] is not False:
+        raise AssertionError("mtime/size used as an authorship signal")
+    if pkt["facts"]["used_as_authorship"] is not False:
+        raise AssertionError("facts used as authorship")
+    suggestive = copy.deepcopy(pkt)
+    suggestive["recommendation"]["action"] = "TAKE-LIVE"
+    denied = act(suggestive, "TAKE-LIVE")
+    if denied["refused"] is not True or denied["reason"] != REFUSE_NO_DECISION:
+        raise AssertionError("a recommendation authorised an act")
+    if denied["recommendation_consulted"] is not False:
+        raise AssertionError("gate consulted the recommendation")
+    if classify_texts(REPO_TEXT, LIVE_TEXT) != DIVERGED:
+        raise AssertionError("classifier and packet disagree")
+    return {"recommendation_kind": rec["kind"], "decision_status": dec["status"], "ok": True}
+
+
+__all__ = [
+    "test_packet_contains_both_unique_sets",
+    "test_recommendation_is_advisory_not_decision",
+    "test_refuse_act_without_recorded_decision",
+]
