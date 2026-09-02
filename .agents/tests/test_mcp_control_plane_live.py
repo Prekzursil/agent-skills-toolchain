@@ -206,7 +206,7 @@ def test_cursor_safe_default_attaches_core_plus_owner_requested_adapters() -> No
     generated = {
         "context7": {"command": "npx", "args": ["@upstash/context7-mcp"]},
         "docker": {"command": "uvx", "args": ["docker-mcp"]},
-        "glm53-space": {"command": "python.exe", "args": ["mcp_server.py"]},
+        "inference-hub": {"command": "python.exe", "args": ["inference_hub_stdio.py"]},
         "linkedin": {"command": "python.exe", "args": ["server.py"]},
         "sonarqube": {"command": "docker", "args": ["run", "mcp/sonarqube"]},
     }
@@ -214,10 +214,35 @@ def test_cursor_safe_default_attaches_core_plus_owner_requested_adapters() -> No
     merged = cursor.merge_cursor_mcp_servers({}, generated)
 
     assert cursor.CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS == (
-        CURSOR_CORE_APPROVED | {"glm53-space"}
+        CURSOR_CORE_APPROVED | {"inference-hub"}
     )
     assert cursor.CURSOR_DEFAULT_APPROVED_SERVERS == CURSOR_CORE_APPROVED
-    assert set(merged) == {"context7", "glm53-space"}
+    assert set(merged) == {"context7", "inference-hub"}
+
+
+def test_cursor_merge_drops_the_deleted_glm53_space_lane_from_a_stale_live_file() -> (
+    None
+):
+    """D1 (2026-09-02): glm53-space was hard-deleted; a leftover live definition
+    must never be adopted, in either attachment mode, and inference-hub holds the
+    owner-requested default slot it used to occupy."""
+    cursor = load_script("merge_generated_cursor_mcp")
+    live = {
+        "glm53-space": {"command": "uv.exe", "args": ["run", "mcp_server.py"]},
+        "inference-hub": {"command": "stale.exe", "args": []},
+    }
+    generated = {
+        "inference-hub": {"command": "python.exe", "args": ["inference_hub_stdio.py"]},
+    }
+
+    default_merge = cursor.merge_cursor_mcp_servers(live, generated)
+    attach_all = cursor.merge_cursor_mcp_servers(live, generated, attach_all_safe=True)
+
+    assert "glm53-space" in cursor.CURSOR_RETIRED_SERVERS
+    assert "glm53-space" not in default_merge
+    assert "glm53-space" not in attach_all
+    assert default_merge["inference-hub"] == generated["inference-hub"]
+    assert attach_all["inference-hub"] == generated["inference-hub"]
 
 
 def test_cursor_attach_all_safe_projects_every_safe_definition() -> None:
@@ -391,11 +416,11 @@ def test_cursor_approval_gate_accepts_owner_requested_default_adapter(
     cursor = load_script("merge_generated_cursor_mcp")
     store = write_approvals(
         tmp_path / "mcp-approvals.json",
-        approval_ids(*sorted(CURSOR_CORE_APPROVED | {"glm53-space"})),
+        approval_ids(*sorted(CURSOR_CORE_APPROVED | {"inference-hub"})),
     )
 
     assert cursor.load_safe_default_approvals(store) == (
-        CURSOR_CORE_APPROVED | {"glm53-space"}
+        CURSOR_CORE_APPROVED | {"inference-hub"}
     )
 
 
@@ -623,8 +648,9 @@ def test_live_cursor_attach_all_covers_parked_catalog_core_and_owner_adapters() 
     assert set(parked) <= set(generated)
     assert CURSOR_CORE_APPROVED <= set(generated)
     assert len(generated) == len(parked) + len(CURSOR_CORE_APPROVED) + 2
-    assert "glm53-space" in generated
-    assert "glm53-space" not in parked
+    assert "inference-hub" in generated
+    assert "inference-hub" not in parked
+    assert "glm53-space" not in generated
     assert "linkedin" in generated
     assert "linkedin" not in parked
     assert set(attach_all) == set(generated)
@@ -648,19 +674,27 @@ def test_linkedin_is_projected_but_never_core_or_default_attached() -> None:
     assert "unapproved" in config["mcp"]["servers"]["linkedin"]["tags"]
 
 
-def test_glm53_uses_locked_absolute_uv_and_is_owner_requested_default() -> None:
+def test_inference_hub_uses_the_stdio_shim_and_is_owner_requested_default() -> None:
+    """Successor of the retired test_glm53_uses_locked_absolute_uv_...: the
+    inference-hub stdio shim (lazy start + session healing) holds the
+    owner-requested default adapter slot, declares only the inference token
+    NAME (D7), and the deleted lane is absent from the registry (D1)."""
     cursor = load_script("merge_generated_cursor_mcp")
     config = live_registry()
 
     generated = cursor.build_managed_servers_from_agents(config)
-    entry = generated["glm53-space"]
+    entry = generated["inference-hub"]
 
-    assert entry["command"] == r"C:\Users\Prekzursil\.local\bin\uv.exe"
-    assert entry["args"][:2] == ["run", "--locked"]
-    assert "glm53-space" in cursor.CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS
-    assert "glm53-space" not in cursor.CURSOR_DEFAULT_APPROVED_SERVERS
-    assert "owner-requested" in config["mcp"]["servers"]["glm53-space"]["tags"]
-    assert entry["env"]["HUGGINGFACE_TOKEN"] == "${env:HUGGINGFACE_TOKEN}"
+    assert entry["command"] == r"C:\Python314\python.exe"
+    assert entry["args"][0].endswith("inference_hub_stdio.py")
+    assert "--stdio" in entry["args"]
+    assert "inference-hub" in cursor.CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS
+    assert "inference-hub" not in cursor.CURSOR_DEFAULT_APPROVED_SERVERS
+    assert "owner-requested" in config["mcp"]["servers"]["inference-hub"]["tags"]
+    assert entry["env"] == {
+        "HUGGINGFACE_TOKEN_INFERENCE": "${env:HUGGINGFACE_TOKEN_INFERENCE}"
+    }
+    assert "glm53-space" not in config["mcp"]["servers"]
     assert "default-off" in config["mcp"]["servers"]["linkedin"]["tags"]
 
 

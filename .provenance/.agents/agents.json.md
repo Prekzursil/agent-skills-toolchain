@@ -43,10 +43,24 @@ live + the `x_cursor` block above; the three-way merge had no conflicting hunk
   `mcp_control_plane.REMOTE_REQUIRED_SERVERS` (http transport + `remote-required` tag
   required; http may not declare `command`/`args`; credential-bearing http must be
   https) and by `tests/test_cursor_remote_transport_policy.py`.
-- **`glm53-space`** (`owner-requested`, `approved`): on-demand GLM 5.3 adapter via
-  Hugging Face's OpenAI-compatible router, `uv run --locked` from the toolchain checkout.
-  Cursor attaches it by default (`CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS`) but it is not
-  one of the core six the owner keeps runtime-approved.
+- **`inference-hub`** (`owner-requested`, `approved`, `hosted-inference`, `shared`): the
+  registry-driven successor of `glm53-space` (hosted-models hunt, D1 = hard delete,
+  2026-09-02). One resident process on `127.0.0.1:8901` (`tools/mcp/inference-hub/`)
+  with an MCP face and an OpenAI `/v1` face, reading `.agents/models.json`; the registry
+  entry is the thin stdio shim `.agents/scripts/inference_hub_stdio.py`, which lazy-starts
+  the hub on first use and bridges with the same session healing as the basic-memory
+  shim, and the hub idle-exits after 10 min (0 RAM when unused). It took glm53-space's
+  Cursor safe-default slot (`CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS`) and is not one of
+  the core six. Declares only the inference-scoped token NAME
+  `HUGGINGFACE_TOKEN_INFERENCE` (D7); the Hub MCP keeps `HUGGINGFACE_TOKEN`. Targets
+  `claude` + `codex`; Cursor mounts it through the Claude projection.
+  The `glm53-space` row was REMOVED here rather than tombstoned (owner decision D1 = B):
+  its code was never on a remote ref, so the archive branch
+  `archive/glm53-space-2026-09` carries the last registry state and the owner adds the
+  box copy (`OWNER-CLICKS.md`); the capability survives as model `glm-5.3` on endpoint
+  `hf-router` in `.agents/models.json` (L7), and the name is in
+  `merge_generated_cursor_mcp.CURSOR_RETIRED_SERVERS` so a stale live definition is
+  dropped by every merge.
 - **`linkedin`** (`default-off`, `unapproved`, `own-feed-write`): self-serve LinkedIn MCP
   restored from the recovered private-repo source; owner OIDC identity plus own-feed
   post create/delete only. Rendered for Claude and Cursor, never default-attached in
