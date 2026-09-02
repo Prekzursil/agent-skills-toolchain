@@ -1,0 +1,84 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "serverInfo": {
+      "name": "corroborate",
+      "version": "0.1.0"
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "corroborate_claim",
+        "title": "Corroborate a claim",
+        "description": "Given a factual/news claim, returns how INDEPENDENTLY it is being reported. Use before relying on a current-event claim. Output: verdict (CONFIRMED = 2+ independent origins | SINGLE_SOURCE | UNCORROBORATED), count of independent story origins (wire/syndication echoes collapse to one), per-source evidence (outlet, domain, url, date), confidence 0-1, coverage flag, honest caveats. Measures REPORTING corroboration, not truth — no stance detection, so a distorted claim about a real event may still show coverage; verify specifics against the returned sources. Keyless, read-only, deterministic; if all sources are unreachable it errors rather than returning a false negative.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "claim": {
+              "type": "string",
+              "description": "The claim to check, as a plain declarative sentence"
+            },
+            "window_days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90,
+              "description": "Lookback window in days (default 7)"
+            },
+            "max_sources": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "description": "Max evidence sources returned (default 8)"
+            }
+          },
+          "required": [
+            "claim"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "find_sources",
+        "title": "Find sources",
+        "description": "Multi-engine news/source search (Google News, GDELT, Hacker News) for a query: a deduped list of {outlet, domain, url, date}. Use when you want raw coverage to judge yourself, not a scored verdict — the cheaper primitive under corroborate_claim. Keyless, read-only.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Search query or claim"
+            },
+            "window_days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90
+            },
+            "max_sources": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      }
+    ]
+  }
+}

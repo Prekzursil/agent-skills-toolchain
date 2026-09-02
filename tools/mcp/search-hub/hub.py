@@ -581,13 +581,16 @@ def _usage_tool_def() -> dict:
         "name": "search_usage",
         "description": (
             "On-demand per-key usage + rotation health for the search providers "
-            "(Exa/Tavily/Firecrawl/SearXNG), plus the self-hosted lane's capability "
-            "lattice. Reports each stored key's label, remaining credits/allowance "
-            "(Firecrawl remainingCredits; Tavily plan+paygo headroom), and cooldown "
-            "state. Exa reports 'error-driven (no balance API)'; SearXNG reports "
+            "(Exa/Tavily/Firecrawl/SearXNG, plus whichever gated providers are "
+            "wired: Parallel/grep.app/corroborate/open-webSearch/LDR), plus the "
+            "self-hosted lane's capability lattice. Reports each stored key's "
+            "label, remaining credits/allowance (Firecrawl remainingCredits; Tavily "
+            "plan+paygo headroom), and cooldown state. Exa reports 'error-driven "
+            "(no balance API)'; SearXNG and every keyless gated provider report "
             "keyless and never cooled. The self-hosted section reports each tool's "
             "state (native|probed|declared|emulated|absent). Pass "
-            "provider='exa'|'tavily'|'firecrawl'|'searxng'|'selfhosted'|'github'|"
+            "provider='exa'|'tavily'|'firecrawl'|'searxng'|'parallel'|'grepapp'|"
+            "'corroborate'|'openwebsearch'|'ldr'|'selfhosted'|'github'|"
             "'read_url' to narrow, or "
             "omit for all; probe=true does ONE health GET per self-hosted backend. "
             "Read-only; does not spawn a search child."
@@ -598,7 +601,8 @@ def _usage_tool_def() -> dict:
                 "provider": {
                     "type": "string",
                     "description": (
-                        "exa | tavily | firecrawl | searxng | selfhosted | github | "
+                        "exa | tavily | firecrawl | searxng | parallel | grepapp | "
+                        "corroborate | openwebsearch | ldr | selfhosted | github | "
                         "read_url; empty = all"
                     ),
                 },
@@ -684,7 +688,10 @@ def _safe_terminate(proc: subprocess.Popen) -> None:
 
 
 def _cmd_refresh(which: list[str]) -> int:
-    specs = providers.default_providers()
+    # Naming a provider is explicit operator intent: an OPT-IN cache can be
+    # (re)generated without switching it on. A bare --refresh touches only what
+    # the current environment actually wires.
+    specs = providers.all_providers() if which else providers.enabled_providers()
     if which:
         specs = [s for s in specs if s.platform in which]
     rc = 0
@@ -700,7 +707,7 @@ def _cmd_refresh(which: list[str]) -> int:
 
 
 def _cmd_print_plan() -> int:
-    specs = providers.default_providers()
+    specs = providers.enabled_providers()
     tools, routes, degraded = build_routes(specs, CACHE_DIR)
     account_tool_count = sum(not s.keyless for s in specs) * len(accounts.ACCOUNT_OPS)
     per_provider: dict[str, int] = {s.platform: 0 for s in specs}
@@ -735,7 +742,7 @@ def main(argv: list[str]) -> int:
         return _cmd_refresh(argv[1:])
     if argv and argv[0] == "--print-plan":
         return _cmd_print_plan()
-    return SearchHub(providers.default_providers()).run()
+    return SearchHub(providers.enabled_providers()).run()
 
 
 if __name__ == "__main__":
