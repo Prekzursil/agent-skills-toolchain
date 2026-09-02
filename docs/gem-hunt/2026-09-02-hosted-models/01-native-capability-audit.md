@@ -297,11 +297,12 @@ Hugging Face and local-server consumption view, 18 the rubric, 19 the summary.
 - **[fact]** Any OpenAI-compatible endpoint: `OPENAI_API_BASE=<endpoint>` + `OPENAI_API_KEY` and
   `aider --model openai/<model-name>`; unknown models trigger a warning, not a refusal.
   [A, 2026-09] https://aider.chat/docs/llms/openai-compat.html
-- **[fact]** Ollama and LM Studio have dedicated pages (`OLLAMA_API_BASE` + `--model
-  ollama_chat/<m>`; `LM_STUDIO_API_BASE` + `LM_STUDIO_API_KEY` + `--model lm_studio/<m>`), and
-  per-model tuning goes in `.aider.model.settings.yml` / `.aider.model.metadata.json`.
-  [A, UNVERIFIED in-run (pages not fetched this run), 2026-09] https://aider.chat/docs/llms/ollama.html ,
-  https://aider.chat/docs/llms/lm-studio.html , https://aider.chat/docs/config/adv-model-settings.html
+- **[fact]** LM Studio: `LM_STUDIO_API_BASE=http://localhost:1234/v1` plus a *non-empty dummy*
+  `LM_STUDIO_API_KEY` (an empty Bearer token fails), then `aider --model lm_studio/<model>`.
+  [A, 2026-09] https://aider.chat/docs/llms/lm-studio.html . Ollama: `OLLAMA_API_BASE` +
+  `--model ollama_chat/<m>`; per-model tuning in `.aider.model.settings.yml` /
+  `.aider.model.metadata.json`. [A, UNVERIFIED in-run (pages not fetched), 2026-09]
+  https://aider.chat/docs/llms/ollama.html , https://aider.chat/docs/config/adv-model-settings.html
 - **[fact]** Aider is not an MCP client; no sampling. It embeds the `litellm` Python *library*
   for model routing. **[inference]** The estate lock forbids a LiteLLM *proxy/runtime*; the
   vendored library inside aider is pre-existing and not a new orchestration runtime, but it is
@@ -338,8 +339,9 @@ Hugging Face and local-server consumption view, 18 the rubric, 19 the summary.
   https://lmstudio.ai/docs/developer/anthropic-compat , https://lmstudio.ai/blog/claudecode ,
   https://lmstudio.ai/docs/integrations/claude-code
 - **[fact]** Consumers with zero code: Claude Code (Messages), Goose/OpenCode/Aider/Fabric/Grok
-  (OpenAI), Codex (only if `/v1/responses` is served - LM Studio ships a Codex integration page,
-  so likely yes) [B, UNVERIFIED, 2026-09].
+  (OpenAI), and Codex via the OpenAI-compatible `POST /v1/responses` endpoint (`codex --oss`, or
+  `codex --oss -m <model>`; default pulls `openai/gpt-oss-20b`). [A, 2026-09]
+  https://lmstudio.ai/docs/integrations/codex
 - **[inference]** On the 31.6 GB, GPU-less Windows box this is CPU inference; keep context
   >= 25-32k as both vendors advise, which caps usable models at small MoE/8B-class. Tradeoff, not
   a blocker.
@@ -390,7 +392,7 @@ Legend: **E** = ENABLE, native, zero code | **L** = native door exists but estat
 | Codex CLI | E `[model_providers.<id>] base_url, env_key, wire_api="responses"` (Responses API required; ids `openai/ollama/lmstudio` reserved) | X | E `[profiles.<n>] model_provider, model`; `model_catalog_json` | X (built-ins only) | no (elicitation yes) | `~/.codex/config.toml` (user level only) |
 | Cursor IDE | **L** Settings->Models: OpenAI key + "Override OpenAI Base URL" + "Add Model" (chat/agent only) | **L** Anthropic key toggle (no base URL) | L custom model names | X | no | GUI settings (no file documented) |
 | Cursor agent CLI | X (`CURSOR_API_KEY` only; provider fixed by account) | X | X | X | no | none |
-| Grok CLI | E `[model."<id>"] base_url, env_key, api_backend="chat_completions"|"responses"` | E `api_backend="messages"` | E full per-model table (`context_window`, `extra_headers`, `reasoning_effort`, ...) | E `[endpoints] models_base_url` / `GROK_MODELS_BASE_URL` -> `{base}/models` | UNVERIFIED | `~/.grok/config.toml` (`$GROK_HOME`), managed + requirements.toml |
+| Grok CLI | E `[model."<id>"] base_url, env_key, api_backend="chat_completions"` or `"responses"` | E `api_backend="messages"` | E full per-model table (`context_window`, `extra_headers`, `reasoning_effort`, ...) | E `[endpoints] models_base_url` / `GROK_MODELS_BASE_URL` -> `{base}/models` | UNVERIFIED | `~/.grok/config.toml` (`$GROK_HOME`), managed + requirements.toml |
 | Goose 1.47 | E `OPENAI_HOST`, `OPENAI_BASE_PATH`, `OPENAI_API_KEY`; or `custom_providers/<id>.json` `engine:"openai"` | E `custom_providers/<id>.json` `engine:"anthropic"` | E `models[{name, context_limit}]` per provider file | X | no | `~/.config/goose/config.yaml` + `~/.config/goose/custom_providers/*.json` |
 | Fabric 1.4.470 | E `OPENAI_API_BASE_URL` + `OPENAI_API_KEY`; `LM_STUDIO_API_URL` (needs `/v1`) | X | E `DEFAULT_VENDOR`, `DEFAULT_MODEL`, `DEFAULT_MODEL_CONTEXT_LENGTH` | X | n/a | `~/.config/fabric/.env` via `fabric --setup` |
 | Agy (Antigravity CLI) | X | X | X | X | UNVERIFIED | keyring / shared Antigravity settings |
@@ -399,7 +401,7 @@ Legend: **E** = ENABLE, native, zero code | **L** = native door exists but estat
 | Aider 0.86 | E `OPENAI_API_BASE` + `OPENAI_API_KEY` + `--model openai/<m>`; `LM_STUDIO_API_BASE` + `LM_STUDIO_API_KEY` + `lm_studio/<m>`; `OLLAMA_API_BASE` + `ollama_chat/<m>` | X (via embedded litellm lib only for Anthropic cloud) | E `.aider.model.settings.yml`, `.aider.model.metadata.json` | X | n/a | `.aider.conf.yml`, `.env`, env |
 | Ralph | inherits backend | inherits backend | E per-hat `backend`, `-- <args>` | X | n/a | `~/.ralph/config.yml`, `ralph.yml` |
 | LM Studio (server) | serves `/v1/chat/completions`, `/v1/responses`, `/v1/models` | serves `/v1/messages` (>= 0.4.1) | n/a (server) | n/a | n/a | `lms server start --port 1234`; API token optional |
-| Ollama (server) | serves `/v1/chat/completions`, `/v1/responses` (0.13.3+), `/v1/models` | serves `/v1/messages` (>= 0.14.0) | n/a (server) | `ollama launch claude|codex|opencode|droid --config` writes client configs | n/a | `OLLAMA_HOST`, `OLLAMA_CONTEXT_LENGTH` |
+| Ollama (server) | serves `/v1/chat/completions`, `/v1/responses` (0.13.3+), `/v1/models` | serves `/v1/messages` (>= 0.14.0) | n/a (server) | `ollama launch {claude, codex, opencode, droid} --config` writes client configs | n/a | `OLLAMA_HOST`, `OLLAMA_CONTEXT_LENGTH` |
 
 **[fact]** No installed runtime supports MCP sampling; only VS Code Copilot does in the community
 matrix. [B, corroborated, 2026-09] https://github.com/apify/mcp-client-capabilities/ ,
