@@ -7,12 +7,19 @@ catalog) and a rsync mirror at ``~/p2-g1`` (where probes execute). On the cloud
 Linux worker the checked-out ``harness/ast-integrate`` tree IS the workspace:
 there is no mirror, no rsync, and the ovh-monitor ledger lives in the same tree.
 
+Two roles, as in the owner's layout:
+  * ``WIN``  = the state of record (catalog, ovh-monitor ledgers, the files git tracks).
+  * ``ROOT`` = where probes EXECUTE. Probes write receipts, fixtures, ``deps/``, scratch
+    git repos into their own dirs and even into ``tools/`` fixtures (measured 02.09: one
+    in-tree census dirtied 3,311 paths). Executing in a mirror keeps that out of git.
+
 Resolution order (each tool imports ``ROOT``/``WIN``/``MON``/``LOG`` from here):
-  1. ``AST_INTEGRATE_ROOT`` env, when set and it holds the catalog.
-  2. The Windows mirror layout, when ``/mnt/c/...`` exists (owner's box).
-  3. The tree this file lives in (``seed-stage`` -> ``p2-wave`` -> ``command-center``
-     -> repo root).
-``WIN == ROOT`` on Linux, so copy-back steps become no-ops.
+  1. ``AST_INTEGRATE_ROOT`` env (holding the catalog) -> ROOT; WIN = this repo tree.
+  2. Windows layout when ``/mnt/c/...`` exists: WIN = Windows tree, ROOT = ``~/p2-g1``.
+  3. Native Linux: WIN = the repo tree this file lives in; ROOT = ``$G1_MIRROR``
+     (default ``~/p2-g1``) when that mirror holds the catalog, else the repo tree itself
+     (in-tree execution; only for one-off probes -- never for a census).
+``COPY_BACK`` is true whenever ROOT != WIN (regen results flow mirror -> record).
 """
 from __future__ import annotations
 
@@ -22,36 +29,44 @@ from pathlib import Path
 _HERE = Path(__file__).resolve()
 _REPO_FROM_FILE = _HERE.parents[3]
 _WIN_LEGACY = Path("/mnt/c/Users/Prekzursil/source/ast-integrate")
-_MIRROR_LEGACY = Path.home() / "p2-g1"
+_MIRROR = Path(os.environ.get("G1_MIRROR") or (Path.home() / "p2-g1"))
 
 
 def _has_catalog(p: Path) -> bool:
     return (p / "command-center" / "WORK-UNIT-CATALOG.json").is_file()
 
 
-def _resolve_root() -> Path:
-    env = os.environ.get("AST_INTEGRATE_ROOT")
-    if env and _has_catalog(Path(env)):
-        return Path(env).resolve()
-    if _WIN_LEGACY.is_dir() and _has_catalog(_MIRROR_LEGACY):
-        return _MIRROR_LEGACY
+def _resolve_win() -> Path:
+    if _WIN_LEGACY.is_dir() and _has_catalog(_WIN_LEGACY):
+        return _WIN_LEGACY
     return _REPO_FROM_FILE
 
 
-def _resolve_win(root: Path) -> Path:
-    if _WIN_LEGACY.is_dir() and _has_catalog(_WIN_LEGACY) and root != _REPO_FROM_FILE:
-        return _WIN_LEGACY
-    return root
+def _resolve_root(win: Path) -> Path:
+    env = os.environ.get("AST_INTEGRATE_ROOT")
+    if env and _has_catalog(Path(env)):
+        return Path(env).resolve()
+    if _has_catalog(_MIRROR):
+        return _MIRROR
+    return win
 
 
-ROOT: Path = _resolve_root()
-WIN: Path = _resolve_win(ROOT)
+WIN: Path = _resolve_win()
+ROOT: Path = _resolve_root(WIN)
 MON: Path = WIN / "command-center" / "p2-wave" / "ovh-monitor"
 REPAIR: Path = MON / "repair-claude"
 LOG: Path = MON / "g1-repair-claude_2026-08-27.log"
 CATALOG: Path = WIN / "command-center" / "WORK-UNIT-CATALOG.json"
 MEASURE: Path = ROOT / "command-center" / "p2-wave" / "_measure_one_delivered.py"
-NATIVE: bool = WIN == ROOT
+NATIVE: bool = WIN == _REPO_FROM_FILE          # state of record is the git tree (cloud)
+COPY_BACK: bool = ROOT != WIN                  # regen results must flow back to the record
+MIRROR: Path = _MIRROR
+
+# Directory names probes create at run time; the capture excluded them (CAPTURE-EXCLUSIONS.md
+# ExtraExcludeDirs) and git must never sweep them in (they are also .gitignore'd).
+SCRATCH_DIR_NAMES: tuple[str, ...] = (
+    "deps", ".bin", "toolchains", "wheels", "_work", "work", "_scratch", "scratch", "_tmp", "tmp", ".cache",
+)
 
 
 # Legacy waves in the order they ran (ledger P2-REPAIR-PROGRESS_2026-08-27.md). In a git
@@ -107,4 +122,4 @@ def latest_rows() -> dict[str, dict]:
 
 
 if __name__ == "__main__":
-    print(f"ROOT={ROOT}\nWIN={WIN}\nMON={MON}\nNATIVE={NATIVE}\ncatalog={CATALOG.is_file()}")
+    print(f"ROOT={ROOT}\nWIN={WIN}\nMON={MON}\nNATIVE={NATIVE}\nCOPY_BACK={COPY_BACK}\ncatalog={CATALOG.is_file()}")

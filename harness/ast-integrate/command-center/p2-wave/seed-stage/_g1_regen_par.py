@@ -28,7 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _g1_paths import CATALOG as _CATALOG_PATH  # noqa: E402
-from _g1_paths import LOG, MON, NATIVE, ROOT, WIN  # noqa: E402
+from _g1_paths import COPY_BACK, LOG, MON, ROOT, WIN  # noqa: E402
 
 MEAS = ROOT / "command-center" / "p2-wave" / "_measure_one_delivered.py"
 WORKERS = int(os.environ.get("G1_WORKERS", "6"))
@@ -50,7 +50,7 @@ def run(cmd: list[str], cwd: Path, timeout: int = 420) -> tuple[int, str]:
 
 
 def copy_back(uid: str) -> list[str]:
-    if NATIVE:
+    if not COPY_BACK:
         return []
     copied = []
     unit = UNITS.get(uid) or {}
