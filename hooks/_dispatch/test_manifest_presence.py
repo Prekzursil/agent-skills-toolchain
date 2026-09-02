@@ -3,9 +3,11 @@
 
 Guards against a manifest rebuild silently DROPPING the gate A6 wired in. Reads
 the sibling ``manifest.json`` and asserts ``dark-surface`` appears under
-``events.Stop.checks`` (mirroring the already-live ``wire-check`` /
-``journey-coverage`` entries), that every Stop check names an existing script,
-and that the manifest stays structurally sane.
+``events.Stop.checks`` (mirroring the already-live ``journey-coverage`` entry;
+``wire-check`` was live there too until the 2026-08-27 Stop rebalance moved it
+to ``events.SessionStart`` -- see ``REBALANCED_TO_SESSIONSTART`` below), that
+every Stop check names an existing script, and that the manifest stays
+structurally sane.
 
 SCOPE CORRECTION (2026-07-25). This file previously also listed
 ``test-tamper-guard`` in ``WIRED_BY_A6`` and asserted it under
@@ -101,8 +103,8 @@ def test_wired_gate_entries_shape():
             "emits": True,
             # NOT "none". The shadow gate appends a JSONL record to
             # ~/.agents/state/harness/shadow/shadow-<day>.jsonl (check.py:115-145),
-            # whereas the three neighbouring side_effect="none" Stop checks
-            # (wire-check, honest-signal, journey-coverage) write nothing at all.
+            # whereas the neighbouring side_effect="none" Stop checks
+            # (honest-signal, journey-coverage) write nothing at all.
             "side_effect": "shadow-sink",
             "isolate": None,
         },
@@ -187,9 +189,72 @@ def test_journey_coverage_producer_is_wired():
 
 
 def test_a6_did_not_touch_already_live_gates():
-    """wire-check + journey-coverage were already live — they must remain present."""
-    names = set(_stop_check_names())
-    assert {"wire-check", "journey-coverage"}.issubset(names)
+    """wire-check + journey-coverage were already live — they must remain registered.
+
+    Until 2026-08-27 both sat under ``events.Stop``. The wave A-c rebalance (below) moved
+    wire-check to ``events.SessionStart``; journey-coverage is one of the two Stop tail gates
+    that rebalance exists to un-starve, so it stays exactly where it was.
+    """
+    assert "journey-coverage" in _stop_check_names()
+    assert "wire-check" in _sessionstart_check_names()
+
+
+# 2026-08-27 wave A-c, CONSOLIDATED-GEM-DECISIONS TIER-0 #2 (REC: ADOPT) executed as
+# WAVE-ABCD-EXECUTION row A(c) DONE -- both records are tracked at .agents/*.md. The two
+# measured-slow advisory checks were DEMOTED from Stop (35s ceiling, 9 checks whose budgets
+# summed 144s, tail gates starved) to SessionStart, whose ceiling was raised 20 -> 35 IN
+# LOCKSTEP with the settings.json dispatch entry so the moved budgets stay reachable. The
+# repo manifest carried the pre-rebalance layout until PR #290 was reconciled (2026-09-01).
+REBALANCED_TO_SESSIONSTART = {"wire-check": 25, "git-hygiene": 30}
+STOP_TAIL_GATES = ("journey-coverage", "dark-surface")
+
+
+def _sessionstart_check_names() -> list[str]:
+    return [c.get("name") for c in _manifest()["events"]["SessionStart"]["checks"]]
+
+
+def test_stop_rebalance_moved_slow_advisory_checks_to_sessionstart():
+    """The rebalance is a MOVE, not a drop and not a duplicate.
+
+    Each demoted check must be registered under SessionStart with the budget it had at Stop
+    (``slow``, inject-only), and must be gone from Stop -- a copy left behind would put the
+    oversubscription straight back. The two tail gates the move protects must still be at
+    Stop, or the rebalance removed the cost and threw away the benefit.
+    """
+    start = {c["name"]: c for c in _manifest()["events"]["SessionStart"]["checks"]}
+    stop_names = set(_stop_check_names())
+    for name, budget in REBALANCED_TO_SESSIONSTART.items():
+        assert name in start, f"{name} missing from events.SessionStart.checks"
+        assert name not in stop_names, f"{name} still registered at Stop after the move"
+        entry = start[name]
+        assert entry["script"] == f"{name}/check.py"
+        assert entry["timeout"] == budget, f"{name}.timeout={entry['timeout']!r}"
+        assert entry["emits"] is True and entry["slow"] is True, entry
+    for gate in STOP_TAIL_GATES:
+        assert gate in stop_names, (
+            f"tail gate {gate} left Stop; the rebalance was for it"
+        )
+
+
+def test_every_check_budget_fits_its_event_ceiling():
+    """A per-check budget above its event's ``settings_timeout`` is INERT, not generous.
+
+    dispatch.py:360-372 joins each check with an absolute deadline of start+timeout inside
+    ONE dispatcher command that the vendor cancels at the event ceiling, so an over-ceiling
+    budget holds run() past the cancellation point and every check on the event loses its
+    output together (git-hygiene's own ``timeout_rationale``; hook_predeploy_gate L2). This
+    is the invariant the rebalance had to preserve when it moved 25s and 30s budgets onto an
+    event whose ceiling was 20s -- hence the lockstep raise to 35.
+    """
+    events = _manifest()["events"]
+    over = [
+        f"{event}/{c.get('name')}: {c.get('timeout')}s > {spec['settings_timeout']}s"
+        for event, spec in events.items()
+        for c in spec.get("checks", [])
+        if isinstance(c.get("timeout"), (int, float))
+        and c["timeout"] > spec["settings_timeout"]
+    ]
+    assert not over, "check budgets above their event ceiling:\n" + "\n".join(over)
 
 
 def _posttooluse_checks() -> list[dict]:

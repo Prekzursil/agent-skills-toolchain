@@ -43,8 +43,8 @@ the manifest.
 
 | Event | Checks dispatched (this repo) |
 |-------|-------------------------------|
-| `SessionStart` | bg-registry/reconcile · memory-spool/flush_check · heartbeat · open-loops/resurface · background-digest/reader |
-| `Stop` | bg-registry/done_marker · heartbeat · wire-check · honest-signal · stub-ledger/report · todo-surfacer |
+| `SessionStart` | bg-registry/reconcile · memory-spool/flush_check · heartbeat · open-loops/resurface · background-digest/reader · wire-check · git-hygiene (both moved here from `Stop` on 2026-08-27; SessionStart ceiling raised 20 -> 35 in lockstep) |
+| `Stop` | bg-registry/done_marker · heartbeat · honest-signal · stub-ledger/report · todo-surfacer · journey-coverage · dark-surface |
 | `PostToolUse` | memory-spool/flush_check · tool-result-sentinel · stub-ledger/record |
 | `PreToolUse` | bg-registry/register · memory-spool/spool · dup-guard |
 
@@ -59,7 +59,7 @@ PreToolUse-dispatcher consolidation is queued in OPEN-THREADS).
 |------|----------|------------------------|
 | `bg-registry/` | PreToolUse(Task) · SessionStart · Stop | Write-ahead NDJSON per `Task`/longrun spawn `{id,kind,cmd,pid,artifact,scope,ts,status}`; SessionStart reconciler checks pid-liveness + artifact and injects "ORPHANED BG WORK …". Fixes restart-killed-agent silent loss. |
 | `memory-spool/` | PreToolUse + PostToolUse(`write_note`/`edit_note`) · SessionStart | Spools every intended basic-memory write to a local file FIRST; SessionStart read-back-verifies it flushed, re-flushes/alerts if not. The true fix for the 4h silent-memory-loss. |
-| `wire-check/` | Stop | Builds a static reference graph over the session diff; flags any session-added symbol/component/route/handler referenced 0× ("dead button / built-but-not-wired") and `*_v2/_new/_copy` with no live v1. The anti-slop keystone. |
+| `wire-check/` | SessionStart (Stop until 2026-08-27) | Builds a static reference graph over the session diff; flags any session-added symbol/component/route/handler referenced 0× ("dead button / built-but-not-wired") and `*_v2/_new/_copy` with no live v1. The anti-slop keystone. |
 | `_shared/` | (library) | `projid.py` resolves a **canonical project root** (not cwd drift) so every ledger is keyed consistently; `projid_migrate.py` migrates legacy cwd-keyed state. |
 
 ### Verification / anti-slop / boundary (Tier 2 just-do-its)
