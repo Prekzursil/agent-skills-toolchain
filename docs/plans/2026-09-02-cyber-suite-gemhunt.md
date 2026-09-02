@@ -262,6 +262,24 @@ blue-team detection loop + DFIR skills (the biggest capability hole), then purpl
 their own waves. Say which tier(s) to build and I'll run it with the same disjoint-ownership
 subagent model as the search-stack waves.
 
-## Decisions log (filled as the owner steers)
+## GRILL (grill-me-extensive) — decision log
 
-*(empty — synthesis above is the discovery deliverable; awaiting the owner's build-wave pick)*
+**Modes:** prioritization + scope-change + red-team. SCOUT/DIVERGE/STRUCTURE were done by the
+14-lens gem-hunt above; this grill is FOUNDATION-FIRST -> one question at a time (each with a
+recommended answer + trade-off) -> CONVERGE into this authoritative log, which becomes the
+input to the build. A grill is not a build. Dual-use boundary calls (what active/offensive
+capability, if any, gets built) are the owner's explicit decision, framed honestly, before any
+wave touches them.
+
+Question queue (foundation first, then scope/safety, then per-wave, then delivery/process):
+G1 ambition tier · G2 dual-use/safety boundary · G3 harness-rails-first gate · G4 delivery
+(branch/build-now) · G5 TIER-0 ENABLE scope · G6 wire-now MCP set + keys · G7 blue-team wave ·
+G8 DFIR wave · G9 purple/range + consent · G10 0-day/vuln-research wave · G11 AD trident ·
+G12 cloud/k8s · G13 reflexive self-scan (mcp-scan/garak) · G14 upgrades to existing skills ·
+G15 corpus adds · G16 model routing (grok for safeguard-blocked lenses) · G17 licensing posture
+(AGPL/CC-BY-SA/DRL) · G18 verification/eval + estate-ops handoff. (Count is a guide; "Other"
+answers may spawn new directions.)
+
+### Decisions (filled as answered)
+
+*(G1 asked; awaiting owner)*
