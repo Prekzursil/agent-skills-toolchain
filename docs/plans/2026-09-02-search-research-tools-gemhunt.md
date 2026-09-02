@@ -237,6 +237,11 @@ commit-starved box.
   pre-#313 full-history gitleaks scan and need `main` merged in (#314 also fails
   `gate-published-commands`); #312 needs `ruff format` on one test file — those three
   are other branches, so their fixes wait for the owner's explicit go-ahead.
+  **Subagent model (owner, 07:53 UTC): Claude Fable 5.1 thinking-max for every
+  subagent.** The nine builders were launched with `inherit`, which resolves to the
+  parent run's own `claude-fable-5-1-thinking-max`; later launches pin the slug
+  explicitly. (No separate "1M" slug is exposed to this run — the pinned slug is the
+  max-reasoning variant that is available.)
 
 ---
 
