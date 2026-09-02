@@ -4,7 +4,7 @@
 - Mode: discovery only (research + findings). No code changed. No PR.
 - Branch: `gemhunt/hosted-models-13-skills-mcps-in-the-wild-and-meta` (cut from `origin/main` at `5fa34fda1`).
 - Author: Cursor cloud agent (Claude), 2026-09-02.
-- Status: IN PROGRESS - sections are pushed as they land; a section marked `[pending]` has not been written yet.
+- Status: COMPLETE for this run (all 10 sections written); later commits on this branch only refine citations.
 
 ## 0. How to read this file
 
@@ -344,6 +344,34 @@ Stop rules (per `AGENTS.md`): the loop never disables, deletes, rotates (`[LOCK-
 3. Where `mcp_doctor` lives (referenced by `mcp-liveness` as the source of `_mcp_handshake_ok`); if it already does L1/L2 for all 42 servers, the probe script is a thin wrapper around it.
 4. Licences and commit cadence of W4 (`llm-health-monitor`) and W3's repo before any code is copied rather than re-derived.
 
-## 9. Rubric table `[pending]`
+## 9. Rubric table
 
-## 10. Ten-line summary `[pending]`
+Columns per the brief. `value x effort` is 1-5 for each (5 = high value / 5 = high effort) written as `V/E`. `novelty-for-us` = new to this estate (checked against the dedup set and section 2). `NATIVE-vs-BUILD`: NATIVE = adopt the thing; BUILD = write estate code inspired by it; READ = consume as a feed only.
+
+| # | name | what | why THIS estate | how to build or adopt | source | value x effort | novelty-for-us | NATIVE-vs-BUILD |
+|---|---|---|---|---|---|---|---|---|
+| W1 | `huggingface/hf-mcp-server` Server Card + `PROXY_TOOLS_CSV` | Official HF MCP; remote card at `/mcp/server-card` with ETag; CSV-driven extra tools | We already run HF Hub MCP as doctrine; the *card+ETag* is a free L1 probe for remote MCPs and the CSV pattern is precedent for a data-driven tool list | Add `GET /mcp/server-card` + ETag compare to the L1 rung for `remote` servers that publish one | `[TA corroborated 2026-09-02] https://github.com/huggingface/hf-mcp-server` | 3/1 | medium (server known; probe pattern new) | NATIVE (server) + BUILD (probe rung) |
+| W2 | `pyroprompts/any-chat-completions-mcp` | One-tool env-configured OpenAI-compatible relay, MIT, last seen updated 2025-07 | It is `glm53-space` generalised by env vars - proves the pattern's ceiling; the owner's replacement must be registry-driven instead | Do **not** adopt; reuse its tool schema/env contract as the reference when writing the registry-driven layer (8.6) | `[TA corroborated 2026-09-02] https://github.com/pyroprompts/any-chat-completions-mcp` | 2/1 | low | neither (negative example) |
+| W3 | `openrouterteam/skills` `openrouter-models` | Vendor skill documenting keyless `GET /api/v1/models`, `expiration_date`, `supported_parameters`, 30-min health fields | Deprecation + capability + health for the sidecar's OpenRouter models without any key or MCP - inside `[LOCK-OR]` | Feed row in `catalog_sync.py` (8.2); never wire as MCP/BYOK | `[TA corroborated 2026-09-02] https://github.com/openrouterteam/skills/blob/main/skills/openrouter-models/SKILL.md` | 3/1 | medium | READ |
+| W4 | `yejinai/llm-health-monitor` design | 1-token probes + simultaneous Statuspage read; claim-vs-reality gap as a signal; `confirmationRuns`, `degradedLatencyRatio` | Gives the estate the *shape* of L4 and the `claim_agreement` / `latency_health` score inputs; a resident monitor itself is wrong for a starved box | Re-derive as functions inside the probe script; do not run the service | `[TA UNVERIFIED 2026-09-02] https://github.com/yejinai/llm-health-monitor` | 4/2 | high | BUILD |
+| W5 | `mcp-scan` / `snyk/agent-scan` `--local-only` | Apache-2.0 CLI scanning MCP configs + skills for injection/poisoning/rug-pull via tool-description hashes | Security gate for 42 servers **and** the L2 drift hash for free; CLI, so no second runtime | Weekly Scheduled Task + on any L2 `changed`; `--json` into the ledger | `[TA corroborated 2026-09-02] https://github.com/invariantlabs-ai/mcp-scan/blob/608b50b0/README.md` | 4/1 | high | NATIVE |
+| W6 | Official MCP Registry `updated_since` sync | `GET /v0.1/servers?updated_since=&version=latest` with deletions included; `server.json` 2025-12-11; `_meta` namespace | Upstream deletions/version moves for the public subset of the 42 become deprecation-candidate signals automatically | Feed row (8.2); cross-reference by npm/pypi identifier | `[TA corroborated 2026-09-02] https://modelcontextprotocol.io/registry/registry-aggregators` | 3/1 | high | READ |
+| W7 | models.dev `api.json` as spine | Keyless provider table with OpenAI-compatible `api` URL + `env` var names; opencode consumes it via `OPENCODE_MODELS_PATH` | The general integration layer needs exactly base-URL + env-name per provider; also lets installed opencode share the synced copy | Feed row (8.2); point opencode at the synced file | `[TA corroborated 2026-09-02] https://github.com/anomalyco/models.dev/` | 4/1 | medium | READ |
+| W8 | HF router `/v1/models` per-provider capability flags | `providers[].status/supports_tools/supports_structured_output/latency/throughput/price` | The only truth source for GLM/Zhipu-backed models (no vendor status feed); feeds `capability_match` directly | Feed row (8.2) using the existing HF token by name | `[TA corroborated 2026-09-02] https://huggingface.co/docs/inference-providers/hub-api` | 4/1 | medium | READ |
+| M1 | Probe ladder L0-L5 riding `mcp-liveness` | Cost-ordered re-probe: static -> initialize -> tools/list hash -> /v1/models -> 1-token -> mcp-scan | Extends an existing keystone hook instead of adding a daemon; respects `startupTimeoutMs`, `totalIdlePrivateBytes` | Extend `hooks/mcp-liveness` with an `all` mode + a daily task; ~200 lines stdlib | 2.2, 8.3 | 5/2 | high | BUILD |
+| M2 | Capability score sidecar + states | 0-100 score, `live/degraded/quarantined/deprecation-candidate/retired` with hysteresis from `mcp.supervision` | Turns the registry's dormant supervisor contract into something visible via heartbeat + capability-catalog | Sidecar JSON; generated block into `capability-catalog/catalog.json`; `.provenance` on retire | 2.1, 8.4 | 5/2 | high | BUILD |
+| M3 | `catalog_sync.py` Scheduled Task | Daily ETag-cached pull of 6-7 feeds, normalised index, diff as product | Registry `lastSync` is 11 weeks stale; sync-on-start + last-known-good is the OpenClaw/opencode precedent | Third task in `register-tasks.ps1` style; stdlib only | 2.3, 5, 8.2 | 4/2 | high | BUILD |
+| M4 | Registry-driven hosted-model MCP (glm53-space successor) | One server: `list_endpoints`, `chat(endpoint_id)`, `probe(endpoint_id)` reading the synced index; secrets by name | The owner's stated replacement; makes every real call an L4 observation | New `tools/mcp/hosted-models/`; schema borrowed from W2; evals from `hosted-model-agents` | 8.6, 4.1 | 5/3 | medium (owner already decided the *what*) | BUILD |
+
+## 10. Ten-line summary
+
+1. Nothing in the wild does catalog sync + capability probing + registry write-back together; every OSS find covers one leg, so the meta loop is a small BUILD, not an adoption.
+2. The registry already declares the supervisor: `mcp.policy.healthProbe = tools/list` and `mcp.supervision` (3 failures / 600 s -> session quarantine, 6 GiB idle budget) - but no code in this repo consumes them (verify off-repo).
+3. `hooks/mcp-liveness` already implements the right liveness definition (JSON-RPC `initialize` + `capabilities.tools`, fail-open, throttled); the probe ladder extends it rather than replacing it.
+4. Three keyless-or-existing-key catalogs are enough: models.dev `api.json` (base URLs + env names), OpenRouter `/api/v1/models` (deprecations + 30-min health; read-only keeps `[LOCK-OR]`), HF router `/v1/models` (per-provider `status`/`supports_tools`; the only truth for GLM/Zhipu, which has no status feed).
+5. The official MCP Registry's `updated_since` (deletions included) turns upstream retirements of public servers into deprecation-candidate signals for free.
+6. `mcp-scan --local-only` (Apache-2.0, Snyk-maintained) is both the security gate and the L2 drift hash; run weekly as a CLI, never as a runtime.
+7. `pyroprompts/any-chat-completions-mcp` is `glm53-space` with env vars; its ceiling (one process per model, no catalog/health) is the argument for a registry-driven successor exposing `list_endpoints / chat / probe`.
+8. Capability score = availability, capability-match, latency-vs-own-baseline, freshness, security, claim-agreement; cost deliberately excluded; stored in a sidecar, never in `agents.json` (closed-schema rule).
+9. Failure -> gem -> verify -> retire rides `PostToolUseFailure` + `event-ledger` -> supervision quarantine -> daily sync confirms -> gem-hunt lens -> `hosted-model-agents/evals.md` -> owner-approved `enabled:false` + `.provenance` note; entries are kept, never deleted.
+10. Scheduling reuses the `register-tasks.ps1` Windows Scheduled Task pattern (mutex + IgnoreNew); no daemon, no LiteLLM/LangGraph, no new ports, no credential rotation, no OpenRouter MCP.
