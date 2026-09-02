@@ -41,11 +41,11 @@ Sections are appended as research lands; each section is committed and pushed on
 - [x] 3. Inference Endpoints (dedicated)
 - [x] 4. Spaces as inference hosts (Gradio MCP, /v1 Spaces, ZeroGPU, sleep/wake, owner recipe)
 - [x] 5. Official Hugging Face MCP server
-- [ ] 6. HF token scopes
-- [ ] 7. Decision table: router vs endpoint vs space vs local
-- [ ] 8. Stale claims in the current `hosted-model-agents` skill
-- [ ] 9. Rubric table
-- [ ] 10. Ten-line summary
+- [x] 6. HF token scopes
+- [x] 7. Decision table: router vs endpoint vs space vs local
+- [x] 8. Stale claims in the current `hosted-model-agents` skill
+- [x] 9. Rubric table
+- [x] 10. Ten-line summary
 
 ## 2. `router.huggingface.co/v1` (Inference Providers)
 
@@ -415,3 +415,122 @@ Cheap tool-capable workhorses on the same sheet: `openai/gpt-oss-120b` on deepin
   `targets: [claude]`, `x_codex.bearer_token_env_var: HUGGINGFACE_TOKEN`) is consistent with the
   README; the only correction is that `?login` (OAuth) and `Authorization: Bearer` are alternatives,
   and Codex's bearer path does not need `?login`.
+
+## 6. HF token scopes
+
+- `[fact][A][corr][f:2026-09-02]` Three token roles: `fine-grained` (per-resource, recommended for
+  production, shareable inside an org without exposing the account), `read` (read public + private
+  repos the user can read; HF's own text says this is enough "when downloading private models or
+  doing inference"), `write` (adds push). Best practice: one token per app/machine; leaked tokens
+  can be invalidated by anyone via `POST https://huggingface.co/api/credentials/revoke` (always 202,
+  owner emailed). Source: <https://huggingface.co/docs/hub/security-tokens>.
+- `[fact][A][corr][f:2026-09-02]` The router-specific permission is the fine-grained checkbox
+  **"Make calls to Inference Providers"** (named identically in the Providers index, the Codex,
+  Claude Code and Responses guides). Sources:
+  <https://huggingface.co/docs/inference-providers/index>,
+  <https://huggingface.co/docs/inference-providers/integrations/codex>,
+  <https://huggingface.co/docs/inference-providers/guides/responses-api>.
+- `[fact][A][corr][f:2026-09-02]` OAuth (Space "Sign in with HF") scopes are a separate vocabulary:
+  `openid`, `profile`, `email`, `read-billing`, `read-repos`, `gated-repos`, `write-repos`,
+  `manage-repos`, `inference-api` ("Make inference requests to Inference Providers on behalf of the
+  user"), `jobs`, `webhooks`, `write-discussions`. Source:
+  <https://github.com/huggingface/hub-docs/blob/main/docs/hub/oauth.md> (rendered
+  <https://huggingface.co/docs/hub/oauth>).
+- `[fact][A][corr][f:2026-09-02]` Team/Enterprise orgs can require admin approval of fine-grained
+  tokens (Pending -> approved/denied, `403` when denied), revoke org access permanently, or reject
+  classic read/write tokens (`403`). CI can avoid stored tokens entirely via **Trusted Publishers**
+  (OIDC -> short-lived Hub token, repo- or user-scoped). Source:
+  <https://huggingface.co/docs/hub/security-tokens>.
+- `[fact][A][corr][f:2026-09-02]` Routing security: HF states it does not store request/response
+  bodies, keeps debug logs up to 30 days without user data or tokens, TLS in transit, Hub is SOC2
+  Type 2; provider-side policies apply downstream. Source:
+  <https://huggingface.co/docs/inference-providers/security>.
+- `[infer]` The estate's single `HUGGINGFACE_TOKEN` name (in `.agents/local.json`, referenced by
+  `agents.json` for both `huggingface` MCP and `glm53-space`) is doing at least three jobs today: Hub
+  MCP (read/search/Spaces CRUD), router inference (needs the "Make calls to Inference Providers"
+  permission), and private-Space Bearer auth. HF's own best practice is one token per usage. This
+  is not a rotation (forbidden by the locks); it is a **split by name** the owner may choose to do
+  later - e.g. a fine-grained inference-only token for wrappers, keeping the current token for Hub
+  ops. Present as trade-off: blast radius vs one more secret to keep in `.agents/local.json`.
+- `[rec]` Whatever token the router wrappers use, it must carry "Make calls to Inference Providers";
+  a classic `read` token works per HF text but cannot be narrowed, so the general integration layer
+  should fail with a clear message on 401/403 rather than fall back to another surface.
+
+## 7. Decision table - router vs Endpoint vs Space vs local
+
+All rows are for a chat model that must emit OpenAI `tool_calls` to a **local** harness (the
+skill's hard rule 3). "Measured" = read from `/v1/models` or probed on 2026-09-02; "documented" =
+HF docs; "open" = neither.
+
+| Surface | When to use | Latency | Cost | Capability | Ops burden |
+|---|---|---|---|---|---|
+| **Router `/v1`** (`router.huggingface.co/v1`) | Model is in `/v1/models` or has a live `inferenceProviderMapping`; need tools/JSON; want zero fixed cost | Measured TTFT 200-1700 ms by provider (GLM-5.3: together 196 ms, fireworks 537 ms, baseten 634 ms, zai-org 1410 ms, novita 1721 ms); 22-1039 tok/s | Pass-through per-token; GLM-5.3 $1.40/$4.40 per M; GLM-5.3-Flash from $0.075/$0.25; gpt-oss-120b from $0.037/$0.17; $2/month PRO credits then PAYG | `tools` broadly; `response_format` only where `supports_structured_output` (fireworks/baseten/deepinfra for GLM/Qwen); Responses API beta incl. remote MCP + `reasoning.effort`; no Hub file access | None; must honour 401/429; pin provider for schemas |
+| **Inference Endpoint** (dedicated) | Private checkpoint not on router AND sustained hourly load AND client can wait/hold | Documented: cold start "a few minutes", 503 or `X-Scale-Up-Timeout` hold; warm = provider-class | L4 $0.80/h, L40S $1.80/h, A100 $2.50/h; scale-to-zero idle 1 h default; scaled-to-zero still counts against quota | Full control of engine (TGI/vLLM), template, quantisation; standard `/v1` | Highest: quota, autoscaling, card on file |
+| **Space - ZeroGPU** (owner's private Heretic recipe) | Private/abliterated checkpoint; bursty, low volume; PRO account | Open (no HF wake-latency figure); per-call GPU budget 60 s default; queue priority tied to remaining quota | $0 to 40 min/day GPU (PRO), then $6/GPU-h; 10 ZeroGPU Spaces cap | Any Gradio 4+/PyTorch 2.8+ app; you own `/v1` shim, template fixes (`xhigh` alias, dict `arguments`); Bearer auth for private | Medium: keep `@spaces.GPU` only on `generate`; 48 GB (large) / 96 GB (xlarge) VRAM |
+| **Space - paid GPU** | Need always-warm private model without Endpoint quota dance | Wake on visit if sleep set (open latency); warm otherwise | Same per-hour as Endpoints (L40S $1.80/h), billed per minute while Running; sleep stops billing | Same as ZeroGPU without 60-s budget | Medium |
+| **Space - Gradio MCP** | Expose *one* narrow side-effect-free app tool to agents | Same as underlying Space | Same as underlying Space | Streamable HTTP MCP at `/gradio_api/mcp/`; Bearer for private/ZeroGPU quota | Low, but tool-catalogue cost on every turn (`mcp-fleet-curation`) |
+| **Local** (llama.cpp / LM Studio / Ollama on the 31.6 GB, no-GPU Windows box) | Offline, private, small models only | CPU-bound; a 27B model in 4-bit needs ~16 GB RAM and is impractical on a memory-starved host | $0 | Full control; OpenAI `/v1` on localhost | RAM contention with the agent fleet (G-36) |
+
+- `[rec]` Default for **any model that appears in `/v1/models` or has a live provider mapping**:
+  router, with `:fastest` for interactive, `:cheapest` for bulk, an explicit
+  `:<provider>` whenever `response_format` is attached. Endpoint only for private checkpoints under
+  sustained load. ZeroGPU Space for private checkpoints under bursty load (today's Heretic recipe),
+  re-evaluated against the featherless route (4.4). Local only when the box is otherwise idle.
+
+## 8. Stale or incomplete statements in the current `hosted-model-agents` skill
+
+Checked against `skills/hosted-model-agents/{SKILL.md, environments.md, tool-loop.md, evals.md,
+recipes/hf-space-openai.md}` on branch `live-capture/2026-09-02` (`valid_as_of: 2026-08-29`).
+
+| # | Skill text (paraphrased) | Status now | Evidence |
+|---|---|---|---|
+| S1 | Environments table lists Hub MCP, Space Gradio UI, Space `/v1`, Endpoints/TGI/vLLM, Jobs. **The router (`router.huggingface.co/v1`, Inference Providers) is absent** from the HF section. | **Stale/missing.** The router is the cheapest, lowest-ops HF runtime and the one `glm53-space` already uses. | Section 2; `agents.json` `glm53-space` description |
+| S2 | "Optional `mcp_server=True` on Gradio 6+" | **Inaccurate version.** Gradio MCP mode is documented for Gradio 4+ (`gradio[mcp]`); the owner's Spaces run 6.26.0. | Gradio guide (4.3); Space card `sdk_version: 6.26.0` |
+| S3 | "Private Spaces need Bearer token" | Still true; add that ZeroGPU quota is **the caller's** (Bearer decides whose 40 min is spent) and that Gradio MCP mode accepts the same header. | ZeroGPU doc; Gradio guide |
+| S4 | Recipe: "Qwen3.8-27B Heretic-ARA, ZeroGPU" as the private Space checkpoint, implied to require self-hosting | **Possibly superseded.** `heretic-org/Qwen3.8-27B-heretic-ara` is `warm` on featherless-ai via the router. Tool-calling on that route UNVERIFIED. | Section 4.4 |
+| S5 | ZeroGPU implicitly described as A10G-class (`zero-a10g` still the requested hardware id on the owner's Space) | **Stale hardware.** ZeroGPU is now RTX Pro 6000 Blackwell, 48 GB `large` / 96 GB `xlarge`; PyTorch 2.8+ only; `torch.compile` unsupported. | ZeroGPU doc (4.1) |
+| S6 | No statement of ZeroGPU quotas, per-call duration, or credit overage | **Missing.** PRO 40 min/day, 60-s default budget, $1/10 min overage, 10-Space cap. | ZeroGPU doc |
+| S7 | Endpoints row says "Dedicated GPU, OpenAI `/v1`" only | **Missing** scale-to-zero semantics (1 h idle, 503 vs `X-Scale-Up-Timeout`, quota counted while scaled to zero) and prices. | Section 3 |
+| S8 | "Hub MCP lists Hub operations, not `read_file` on the owner's disk" | Still true, but **incomplete**: the official server now also exposes Jobs, dynamic Space tools, a sandbox (`?bouquet=openai`) and a SEP-2640 **skills** surface. The layer boundary the skill draws has moved. | Section 5 |
+| S9 | `agents.json` `huggingface` URL `https://huggingface.co/mcp?login` for Claude, bearer for Codex | Consistent; note `?login` is OAuth and unnecessary when a Bearer header is sent. | README (5) |
+| S10 | Tool loop: "Streaming: SSE `data:` chunks then `[DONE]`" | Still true for `/v1/chat/completions`; **missing** that `/v1/responses` (beta) exists with event streaming, `reasoning.effort`, `response_format`, and remote MCP tool execution *on the router side* - which is exactly the "remote executes tools" pattern the skill's rule 3 forbids and must be explicitly opted out of. | Responses guide |
+| S11 | No mention of provider-pinning suffixes or of `/v1/models` capability flags | **Missing.** `:fastest`/`:cheapest`/`:preferred`/`:<provider>`; `supports_tools`, `supports_structured_output`, pricing, TTFT in `/v1/models`. | Section 2.2-2.3 |
+| S12 | No mention of Hub rate-limit tiers | **Missing.** PRO 2,500 API / 12,000 resolvers / 400 pages per 5 min; IETF `RateLimit` headers. | Section 2.7 |
+| S13 | "Cursor Max / Claude Max ... G-32 ... Do not conflate with HF" | Still right, and now sharper: HF publishes first-party Claude Code and Codex guides that **repoint `ANTHROPIC_BASE_URL` / add a Codex `model_providers.huggingface`**. The estate lock forbids `ANTHROPIC_BASE_URL` for OpenRouter; the same reasoning (Claude Code identity/quotas must not be silently swapped) applies to HF. Codex's per-profile provider (`codex --profile huggingface`) is process-local and does not touch the Cursor bridge, so it is lock-compatible **as a sidecar**, mirroring the OpenRouter posture. | Section 2.8; integration guides |
+| S14 | `glm53-space` registered in `agents.json` as a stdio MCP with one tool | Owner has decided to deprecate; this lens confirms the replacement should be a router client with policy suffixes and `/v1/models`-driven capability checks, not another MCP. The public Space `Prekzursil/GLM-5.3` that fronts the same idea is in `RUNTIME_ERROR` (wrong hardware). | Sections 2.4, 4.1 |
+| S15 | Spaces hardware price list (if any copy exists in recipes) | H100 / 8x H100 Spaces hardware **removed December 2025**. | Spaces GPU doc |
+
+## 9. Rubric table
+
+Columns: name | what | why THIS estate | how to build or adopt | source | value x effort | novelty-for-us | NATIVE-vs-BUILD.
+
+| Name | What | Why THIS estate | How to build or adopt | Source | Value x effort | Novelty-for-us | NATIVE-vs-BUILD |
+|---|---|---|---|---|---|---|---|
+| F1 `/v1/models` as the provider table | Public JSON with per-provider price, ctx, tools, structured-output, TTFT, tok/s for 136 chat models | Replaces any hand-kept provider table in the glm53 successor; lets wrappers refuse `response_format` on providers that report `false` | Cache the payload (TTL hours) in the general integration layer; select by policy; log `provider` chosen | <https://huggingface.co/docs/inference-providers/hub-api>; measured | High x Low | New (skill has no mention) | NATIVE (HF publishes it) |
+| F2 Policy suffixes `:fastest` / `:cheapest` / `:preferred` / `:<provider>` | Server-side routing knob in the model id | Zero-code routing for Goose/Fabric/aider profiles that read `.agents/skills`; `:preferred` order set once at `hf.co/settings/inference-providers` | Document in skill; expose as a wrapper flag; pin provider when schema attached | <https://huggingface.co/docs/inference-providers/index> | High x Low | New | NATIVE |
+| F3 Heretic-ARA on featherless via router | `heretic-org/Qwen3.8-27B-heretic-ara` is `warm`/`live` on featherless-ai | Could demote the private ZeroGPU Space to fallback; removes 60-s budget and quota | 5-line probe with `tools` + `tool_choice: required`; compare template behaviour with the Space | Hub API probe (4.4) | High x Low (probe) / Medium (adopt) | New | NATIVE, UNVERIFIED for tools |
+| F4 Responses API beta on router | `/v1/responses` with event streaming, `reasoning.effort`, `response_format`, remote MCP | Codex requires `wire_api = "responses"`; also the one place where HF would execute tools remotely - must be opted out to keep rule 3 | Use for Codex sidecar; forbid `type: mcp` tools in estate wrappers | <https://huggingface.co/docs/inference-providers/guides/responses-api> | Medium x Low | New | NATIVE |
+| F5 Codex `model_providers.huggingface` profile | First-party Codex config for router (`base_url`, `env_key = HF_TOKEN`, `wire_api = responses`, `X-HF-Bill-To`) | Process-local sidecar like the OpenRouter posture; does not touch auth2api :8317 or Cursor BYOK | Add `~/.codex/huggingface.config.toml`; keep spend on HF credits | <https://huggingface.co/docs/inference-providers/integrations/codex> | Medium x Low | New | NATIVE |
+| F6 `hf claude` extension / `ANTHROPIC_BASE_URL` swap | First-party Claude Code repoint to router | **Lock-adjacent**: the OpenRouter lock forbids `ANTHROPIC_BASE_URL`; treat HF the same unless the owner explicitly widens the lock | Do not adopt; record as trade-off (open models in Claude Code UX vs identity/quota confusion) | <https://huggingface.co/docs/inference-providers/integrations/claude-code> | Low x Low | New | NATIVE (rejected by lock) |
+| F7 `X-HF-Bill-To` + org spending limits | Header-level billing attribution and provider disable list | Only if the owner creates a Team org; single user gets $2 PRO credits | Note only | <https://huggingface.co/docs/inference-providers/pricing> | Low x Low | Minor | NATIVE |
+| F8 ZeroGPU 2026 facts | Blackwell 48/96 GB, 40 min/day PRO, 60-s call budget, $1/10 min overage, PyTorch 2.8+, no `torch.compile` | Owner's private recipe runs on it; skill text is stale (A10G-era) | Update recipe + evals; add `duration=` to `generate` | <https://huggingface.co/docs/hub/spaces-zerogpu> | Medium x Low | Correction | NATIVE |
+| F9 Fix `Prekzursil/GLM-5.3` Space hardware | Public Space in `RUNTIME_ERROR` (ZeroGPU requested, no GPU function) | It is a router client; wrong hardware; visible failure on the owner's public profile | Owner action: set hardware `cpu-basic` (Space settings); no code change | Space API probe (4.1) | Medium x Trivial | Bug-find | NATIVE (settings) |
+| F10 Endpoint scale-to-zero contract | 1 h idle, 503 vs `X-Scale-Up-Timeout`, quota counted while at zero | Only matters if a private checkpoint moves off ZeroGPU | Document in environments.md Endpoints row | <https://huggingface.co/docs/inference-endpoints/guides/autoscaling> | Low x Low | Correction | NATIVE |
+| F11 Hub `RateLimit` headers + `huggingface_hub >= 1.2.0` retry | IETF draft headers, exact-sleep retry in SDK | Hub MCP + `hf models ls` + router share one token; a burst from the fleet can 429 the Hub API bucket (2,500/5 min PRO) | Prefer `huggingface_hub` for Hub calls; surface `RateLimit` in wrapper logs | <https://huggingface.co/docs/hub/rate-limits> | Medium x Low | New | NATIVE |
+| F12 Official HF MCP skills surface (SEP-2640) | `skills/list` etc. from `hf://buckets/huggingface/skills` over HTTP | **Lock check**: a second prompt SSOT visible to Claude Code/Cursor; `.agents/skills` is the ONE SSOT | Keep the `huggingface` MCP mounted but document that its skills are advisory and never copied into `.agents/skills` without review | <https://github.com/evalstate/hf-mcp-server> | Medium x Low | New risk | NATIVE (needs a rule) |
+| F13 Gradio MCP header auth (`gr.Header`, Bearer) | Private/ZeroGPU Space tools callable as MCP with caller-quota semantics | Only for narrow non-chat tools per fleet-curation | Not now | Gradio guide | Low x Low | Minor | NATIVE |
+| F14 Token split by usage (not rotation) | Fine-grained "Make calls to Inference Providers" token for wrappers; keep current token for Hub | Blast-radius reduction without rotating anything | Owner creates one additional token; new name in `.agents/local.json` | <https://huggingface.co/docs/hub/security-tokens> | Medium x Low | New | NATIVE |
+| F15 General HF integration layer (glm53 successor) | ~100-line OpenAI-SDK client: model + policy suffix, `/v1/models` cache, capability gate, 401/429 handling, no MCP | Owner has decided to deprecate `glm53-space`; this is the shape that satisfies rules 2-3 of the skill and the locks | BUILD in `tools/` (process-local wrapper), register **nothing** new in `agents.json` | Sections 2, 7 | High x Medium | Planned replacement | BUILD (thin) |
+
+## 10. Ten-line summary
+
+1. `router.huggingface.co/v1` is the HF runtime the skill omits: OpenAI-compatible, chat-only, 14 chat providers, no markup, $2/month PRO credits then pay-as-you-go [A, corr].
+2. Model-id suffixes `:fastest` (default) / `:cheapest` / `:preferred` / `:<provider>` do routing server-side; `:zai-org` is just the author-as-provider case [A, corr].
+3. Public `GET /v1/models` (136 models) publishes per-provider price, context, `supports_tools`, `supports_structured_output`, TTFT and tok/s - a ready-made provider table [A, measured 2026-09-02].
+4. Measured GLM-5.3: $1.40/$4.40 per M on novita/together/baseten; structured output only on fireworks-ai and baseten; author `zai-org` reports none; together is fastest (196 ms TTFT, 140 tok/s) [measured].
+5. `heretic-org/Qwen3.8-27B-heretic-ara` is `warm` on featherless-ai via the router, so the private ZeroGPU Heretic Space may be demotable to fallback; tool-calling on that route is UNVERIFIED [A probe + infer].
+6. ZeroGPU is now RTX Pro 6000 Blackwell (48/96 GB), PRO 40 GPU-min/day, 60-s per-call budget, $1/10 min overage, PyTorch 2.8+, 10-Space cap; the skill's A10G-era framing is stale [A, corr].
+7. The owner's public Space `Prekzursil/GLM-5.3` is in `RUNTIME_ERROR` ("No @spaces.GPU function") because a router client requested ZeroGPU; fix is `cpu-basic` hardware [measured].
+8. Dedicated Endpoints: L40S $1.80/h, scale-to-zero after 1 h idle, 503 unless `X-Scale-Up-Timeout`, scaled-to-zero still consumes quota - reserved for private checkpoints under sustained load [A, corr].
+9. Official HF MCP (v0.4.15, streamable HTTP) now carries Jobs/Space/sandbox tools and a SEP-2640 skills surface - a second prompt SSOT that the `.agents/skills` lock must explicitly subordinate [A, corr + infer].
+10. HF ships first-party Codex (`wire_api = responses`, lock-compatible sidecar) and Claude Code (`ANTHROPIC_BASE_URL` swap, lock-adjacent, do not adopt) router guides; the glm53 successor should be a thin process-local `/v1` client with policy suffixes and a `/v1/models` capability gate, registering no new MCP [A + rec].
