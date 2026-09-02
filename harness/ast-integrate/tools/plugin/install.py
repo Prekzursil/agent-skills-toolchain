@@ -115,7 +115,7 @@ def plugin_root(dest_root: Path, name: str) -> Path:
 
 
 def apply_install(prefix: Path, handoff: dict[str, Any]) -> dict[str, Any]:
-    """Digest-only installer. Signature sidecars are never consulted."""
+    """Digest-only installer. Signing sidecars are never consulted."""
     from plugin.payload import blob_identity, sha256_hex, unpack_package
 
     if not isinstance(handoff, dict):

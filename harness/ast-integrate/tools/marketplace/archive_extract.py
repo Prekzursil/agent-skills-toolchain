@@ -133,6 +133,11 @@ def extract_import_archive(blob: bytes, dest: Path) -> ExtractReport:
             members = list(_iter_zip(blob))
         else:
             members = list(_iter_tar(blob))
+        # Pre-write containment pass: every member is normalised and contained
+        # before a single byte lands, so a hostile member late in the archive
+        # cannot leave earlier members half-extracted. _write_bytes re-asserts.
+        for name, _payload, _kind in members:
+            assert_contained_after_normalize(dest, name)
         for name, payload, _kind in members:
             written.append(_write_bytes(dest, name, payload))
         return ExtractReport(ok=True, written=sorted(set(written)))

@@ -1,4 +1,4 @@
-"""Install handoff document helpers. Digest only; no signature API."""
+"""Install handoff document helpers. Digest only; no signing/verification API."""
 from __future__ import annotations
 
 from pathlib import Path

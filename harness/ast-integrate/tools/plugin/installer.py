@@ -48,7 +48,7 @@ import re
 import shutil
 import tarfile
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from plugin import errors as _errors
 from plugin.payload import payload_digest as _tree_digest
@@ -308,7 +308,11 @@ def _rmdir_if_empty(path: Path) -> None:
 # --------------------------------------------------------------------------- stages
 
 
-def _safe_extract(blob: Path, extract_root: Path) -> list[str]:
+def _safe_extract(
+    blob: Path,
+    extract_root: Path,
+    on_extract: Callable[[str, int], None] | None = None,
+) -> list[str]:
     """Extract ``blob`` into ``extract_root`` and return the regular-file member paths.
 
     Members are vetted before a single byte is written: only regular files and
@@ -317,6 +321,11 @@ def _safe_extract(blob: Path, extract_root: Path) -> list[str]:
     capped.  Extraction then runs under ``filter="data"`` as a second,
     independent guard; a filter refusal is surfaced as ``UnsafeArchiveError``.
     Nothing in the archive is executed.
+
+    ``on_extract``, when given, is an observer called once per extracted
+    regular-file member with ``(relative_path, declared_size)`` after the
+    archive has landed; it lets ingest-bound callers meter what was written
+    without changing the vetting or the extraction itself.
     """
     if not hasattr(tarfile, "data_filter"):
         raise UnsafeArchiveError("this Python's tarfile has no data filter; refusing to extract")
@@ -325,6 +334,7 @@ def _safe_extract(blob: Path, extract_root: Path) -> list[str]:
     except (tarfile.TarError, EOFError, OSError) as exc:
         raise UnsafeArchiveError(f"payload is not a readable tar archive: {exc}") from exc
     files: list[str] = []
+    sizes: list[tuple[str, int]] = []
     total = 0
     with archive:
         members = archive.getmembers()
@@ -348,11 +358,15 @@ def _safe_extract(blob: Path, extract_root: Path) -> list[str]:
             if total > MAX_TOTAL_BYTES:
                 raise UnsafeArchiveError(f"archive exceeds {MAX_TOTAL_BYTES} bytes of payload")
             files.append(rel)
+            sizes.append((rel, int(member.size)))
         extract_root.mkdir(parents=True, exist_ok=True)
         try:
             archive.extractall(path=extract_root, members=members, filter="data")
         except tarfile.FilterError as exc:
             raise UnsafeArchiveError(f"{type(exc).__name__}: {exc}") from exc
+    if on_extract is not None:
+        for rel, size in sizes:
+            on_extract(rel, size)
     return sorted(files)
 
 

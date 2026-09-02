@@ -1,4 +1,4 @@
-"""Rollback helper. Digest is re-checked; no signature API."""
+"""Rollback helper. Digest is re-checked; no signing/verification API."""
 from __future__ import annotations
 
 from pathlib import Path

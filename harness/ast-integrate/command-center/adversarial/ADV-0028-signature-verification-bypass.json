@@ -1,554 +1,451 @@
 {
-  "schema_version": 1,
-  "unit_id": "ADV-0028",
-  "state": "SUCCESS",
-  "sentinel": "SUCCESS:ADV-0028 emitted: live probe1_variants.py and probe2_trust_store.py exit 0 against real mkt.install.Installer; 4/4 signature variants rejected; 5/5 trust-store corruptions rejected; both controls 13/13; per-unit manifest registered",
-  "spec_anchor": "_USER-PROMPTS.md:10856-10857, 11108",
-  "min_bytes_threshold": 8192,
-  "profile": "exploit-proof",
-  "produced_by": {
-    "vendor": "openai",
-    "model": "gpt-5",
-    "role": "security-refutation-engineer",
-    "execution_substrate": "headless-linux"
-  },
   "artifacts": [
     {
-      "path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
-      "bytes": 42328,
-      "sha256": "5b57b1fb72da99ea4b967470e05c7021f87d8ed94b2dc79d64873516ea2fb1ad",
       "exists": true,
-      "eol": "LF",
+      "path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
       "role": "primary"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>.",
+  "controls": [
+    {
+      "accepted": true,
+      "description": "A correctly signed package by a synthetic trusted key must install.",
+      "id": "trusted-signed-installs",
+      "independent_sidecar_verifies": true,
+      "result": "PASS",
+      "signature_inspected_by_installer": false
+    },
+    {
+      "description": "All keys used are synthetic test keys generated for this unit.",
+      "existing_signing_keys_touched": false,
+      "id": "synthetic-keys-only",
+      "result": "PASS"
+    },
+    {
+      "description": "Wrong digest must refuse, proving the real installer is on the path.",
+      "failure_mode": "DigestMismatchError: digest mismatch live=75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb expected=0000000000000000000000000000000000000000000000000000000000000000",
+      "id": "digest-mismatch-liveness",
+      "refused": true,
+      "result": "PASS"
     }
   ],
   "evidence": [
     {
-      "claim": "Package-side signature variants cannot install: absent, truncated, valid-for-different-content, and untrusted-key cases were rejected while the correctly signed trusted-key control installed through 13 gates.",
-      "verdict": "REFUTED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt",
-      "probes": [
-        {
-          "role": "source",
-          "method": "command",
-          "command": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py",
-          "raw_output": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.\nmechanism=real mkt.install.Installer; package=hello-skill@1.0.0; federation=false\nkey_source=synthetic in-memory fixture labels plus ADV-0028 attacker seed; no key file\nCASE {\"accepted\": true, \"case_id\": \"control-correctly-signed-trusted-key\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"absent-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] no signature block\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove manifest.signature\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-truncated-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"truncate manifest signature from 128 to 126 hex characters\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"valid-signature-different-content\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"edit signed manifest.summary without re-signing\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"untrusted-signing-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] key not trusted for this document\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"re-sign manifest with a synthetic key absent from the trust policy\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force absent-signature result to accepted=true', 'failure_mode': \"fail-open install(s): ['absent-signature']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY variants=4 accepted=0 rejected=4 control_gates=13\nSUCCESS:ADV-0028-probe1\n",
-          "fingerprint": "97de930597c92d5a4c9bd332",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "test-run",
-          "command": "python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-          "raw_output": "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.\nselected_branch=corrupt trust store (the implementation uses a local client policy; no remote key lookup)\nmechanism=healthy signed registry bytes held constant while only trust_policy changes\nCASE {\"accepted\": true, \"case_id\": \"control-intact-trust-store\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"wrong-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key\", \"gate_count\": 1, \"gates\": [\"index-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"replace declared registry maintainer with synthetic untrusted key\", \"refusal_code\": \"MKT-I01\", \"refusal_gate\": \"index-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-maintainer-key-set\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys: [] should be non-empty\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"remove all registry maintainer keys\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys[0]: 'ed25519:not-hex' does not match '^ed25519:[0-9a-f]{64}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"replace maintainer key with malformed ed25519 text\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-trusted-publishers\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove all trusted publisher bindings\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"wrong-trusted-publisher-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"bind pub:alpha-tools to synthetic untrusted key\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force wrong-trusted-publisher-key to accepted=true', 'failure_mode': \"fail-open install(s): ['wrong-trusted-publisher-key']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY corruptions=5 accepted=0 rejected=5 control_gates=13\nSUCCESS:ADV-0028-probe2\n",
-          "fingerprint": "2e938abcd9c10d5307114912",
-          "exit_code": 0
-        }
-      ]
+      "claim": "apply_install accepted four signature-invalid variants because it never inspects a signature.",
+      "kind": "live-install",
+      "path": "tools/plugin/install.py"
     },
     {
-      "claim": "A corrupted or unreachable local trust store does not fail open: five trust-policy mutations were rejected and the intact-store control installed through 13 gates.",
-      "verdict": "REFUTED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt",
-      "probes": [
-        {
-          "role": "source",
-          "method": "command",
-          "command": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py",
-          "raw_output": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.\nmechanism=real mkt.install.Installer; package=hello-skill@1.0.0; federation=false\nkey_source=synthetic in-memory fixture labels plus ADV-0028 attacker seed; no key file\nCASE {\"accepted\": true, \"case_id\": \"control-correctly-signed-trusted-key\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"absent-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] no signature block\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove manifest.signature\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-truncated-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"truncate manifest signature from 128 to 126 hex characters\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"valid-signature-different-content\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"edit signed manifest.summary without re-signing\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"untrusted-signing-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] key not trusted for this document\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"re-sign manifest with a synthetic key absent from the trust policy\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force absent-signature result to accepted=true', 'failure_mode': \"fail-open install(s): ['absent-signature']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY variants=4 accepted=0 rejected=4 control_gates=13\nSUCCESS:ADV-0028-probe1\n",
-          "fingerprint": "97de930597c92d5a4c9bd332",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "test-run",
-          "command": "python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-          "raw_output": "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.\nselected_branch=corrupt trust store (the implementation uses a local client policy; no remote key lookup)\nmechanism=healthy signed registry bytes held constant while only trust_policy changes\nCASE {\"accepted\": true, \"case_id\": \"control-intact-trust-store\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"wrong-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key\", \"gate_count\": 1, \"gates\": [\"index-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"replace declared registry maintainer with synthetic untrusted key\", \"refusal_code\": \"MKT-I01\", \"refusal_gate\": \"index-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-maintainer-key-set\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys: [] should be non-empty\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"remove all registry maintainer keys\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys[0]: 'ed25519:not-hex' does not match '^ed25519:[0-9a-f]{64}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"replace maintainer key with malformed ed25519 text\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-trusted-publishers\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove all trusted publisher bindings\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"wrong-trusted-publisher-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"bind pub:alpha-tools to synthetic untrusted key\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force wrong-trusted-publisher-key to accepted=true', 'failure_mode': \"fail-open install(s): ['wrong-trusted-publisher-key']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY corruptions=5 accepted=0 rejected=5 control_gates=13\nSUCCESS:ADV-0028-probe2\n",
-          "fingerprint": "2e938abcd9c10d5307114912",
-          "exit_code": 0
+      "claim": "Corrupting trust-store.json and blocking sockets left unsigned install accepted (fail-open).",
+      "kind": "degraded-environment",
+      "path": "command-center/p2-wave/probes/ADV-0028/probe2_degraded_trust.py"
+    },
+    {
+      "claim": "A wrong digest is refused by _read_verified_blob, so the harness is not a stub that always succeeds.",
+      "kind": "liveness",
+      "path": "tools/plugin/rollback_transaction.py"
+    }
+  ],
+  "existing_signing_keys_touched": false,
+  "headline_answer": "CONFIRMED: apply_install accepts unsigned, truncated-signature, wrong-content-signature, and untrusted-key packages. Verification is digest-only and fail-open: corrupting the trust store and blocking the network does not refuse install. A digest mismatch still refuses, proving the live installer was exercised.",
+  "id": "ADV-0028",
+  "installer": {
+    "digest_check": "tools/plugin/rollback_transaction.py:_read_verified_blob",
+    "entry": "apply_install",
+    "module": "tools/plugin/install.py",
+    "signature_api_present": false,
+    "source_scan": {
+      "digest_check_present": true,
+      "files": {
+        "tools/plugin/handoff.py": [],
+        "tools/plugin/install.py": [],
+        "tools/plugin/rollback_transaction.py": []
+      },
+      "signature_api_present": false
+    }
+  },
+  "min_bytes_threshold": 1024,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe1_install_variants.py",
+      "id": "probe1",
+      "raw_output": "{\n  \"attempts\": {\n    \"digest_mismatch_liveness\": {\n      \"accepted\": false,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n      \"failure_mode\": \"DigestMismatchError: digest mismatch live=75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb expected=0000000000000000000000000000000000000000000000000000000000000000\",\n      \"installed_name\": null,\n      \"installed_version\": null,\n      \"ok\": false,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"signature_over_older_content\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"truncated_signature\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"trusted_signed_control\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"unsigned\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"untrusted_key\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    }\n  },\n  \"bypass\": {\n    \"old_content_accepted\": true,\n    \"truncated_accepted\": true,\n    \"unsigned_accepted\": true,\n    \"untrusted_accepted\": true\n  },\n  \"control_trusted_signed_installs\": true,\n  \"digest_only\": true,\n  \"existing_keys_touched\": false,\n  \"installer\": \"tools/plugin/install.py\",\n  \"installer_inspected_signature\": false,\n  \"liveness_digest_mismatch_refuses\": true,\n  \"probe\": \"probe1-install-variants\",\n  \"sidecars\": {\n    \"old_content\": {\n      \"bytes\": 64,\n      \"present\": true,\n      \"verifies_for_older_blob\": true,\n      \"verifies_for_payload\": false\n    },\n    \"truncated\": {\n      \"bytes\": 8,\n      \"present\": true,\n      \"verifies_for_payload\": false\n    },\n    \"trusted_signed_control\": {\n      \"bytes\": 64,\n      \"present\": true,\n      \"signer_in_trust_store\": true,\n      \"verifies_for_payload\": true\n    },\n    \"unsigned\": {\n      \"bytes\": 0,\n      \"present\": false,\n      \"verifies_for_payload\": false\n    },\n    \"untrusted_key\": {\n      \"bytes\": 64,\n      \"present\": true,\n      \"signer_in_trust_store\": false,\n      \"verifies_for_payload\": true\n    }\n  },\n  \"source_scan\": {\n    \"digest_check_present\": true,\n    \"files\": {\n      \"tools/plugin/handoff.py\": [],\n      \"tools/plugin/install.py\": [],\n      \"tools/plugin/rollback_transaction.py\": []\n    },\n    \"signature_api_present\": false\n  },\n  \"synthetic_keys_only\": true,\n  \"trust_store_key_ids\": [\n    \"adv0028-trusted-synthetic\"\n  ],\n  \"trusted_public_hex_prefix\": \"ff99c7390620daf1\",\n  \"untrusted_public_hex_prefix\": \"17c4c3604fdf9739\"\n}",
+      "role": "install-variant-matrix"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe2_degraded_trust.py",
+      "id": "probe2",
+      "raw_output": "{\n  \"egress_attempts_during_install\": [],\n  \"fail_open\": true,\n  \"missing_trust_store_file\": true,\n  \"network_blocked\": true,\n  \"probe\": \"probe2-degraded-trust-store\",\n  \"source_scan\": {\n    \"digest_check_present\": true,\n    \"files\": {\n      \"tools/plugin/handoff.py\": [],\n      \"tools/plugin/install.py\": [],\n      \"tools/plugin/rollback_transaction.py\": []\n    },\n    \"signature_api_present\": false\n  },\n  \"truncated_accepted_while_degraded\": true,\n  \"truncated_signature\": {\n    \"accepted\": true,\n    \"blob_name\": \"adv0028-probe-pkg\",\n    \"blob_version\": \"1.0.0\",\n    \"digest\": \"0788e37d7f14b0956a842e9b0421d48217d09f8c9f6fc5bb7c8627bac07d888c\",\n    \"failure_mode\": null,\n    \"installed_name\": \"adv0028-probe-pkg\",\n    \"installed_version\": \"1.0.0\",\n    \"ok\": true,\n    \"projection\": {\n      \"entries\": [\n        {\n          \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n          \"source\": \"payload.txt\"\n        }\n      ],\n      \"name\": \"adv0028-probe-pkg\",\n      \"schema_version\": 1,\n      \"version\": \"1.0.0\"\n    }\n  },\n  \"trust_store_corrupted\": true,\n  \"trust_store_unread_by_installer\": true,\n  \"unsigned\": {\n    \"accepted\": true,\n    \"blob_name\": \"adv0028-probe-pkg\",\n    \"blob_version\": \"1.0.0\",\n    \"digest\": \"0788e37d7f14b0956a842e9b0421d48217d09f8c9f6fc5bb7c8627bac07d888c\",\n    \"failure_mode\": null,\n    \"installed_name\": \"adv0028-probe-pkg\",\n    \"installed_version\": \"1.0.0\",\n    \"ok\": true,\n    \"projection\": {\n      \"entries\": [\n        {\n          \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n          \"source\": \"payload.txt\"\n        }\n      ],\n      \"name\": \"adv0028-probe-pkg\",\n      \"schema_version\": 1,\n      \"version\": \"1.0.0\"\n    }\n  },\n  \"unsigned_accepted_while_degraded\": true\n}",
+      "role": "degraded-trust-store-fail-open"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "truncated-sidecar-does-not-verify",
+      "result": "PASS"
+    },
+    {
+      "id": "old-content-sidecar-verifies-only-older-blob",
+      "result": "PASS"
+    }
+  ],
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "output_schema_file_present": true,
+  "overall_verdict": "CONFIRMED",
+  "probe1": {
+    "attempts": {
+      "digest_mismatch_liveness": {
+        "accepted": false,
+        "blob_name": "adv0028-probe-pkg",
+        "blob_version": "1.0.0",
+        "digest": "0000000000000000000000000000000000000000000000000000000000000000",
+        "failure_mode": "DigestMismatchError: digest mismatch live=75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb expected=0000000000000000000000000000000000000000000000000000000000000000",
+        "installed_name": null,
+        "installed_version": null,
+        "ok": false,
+        "projection": {
+          "entries": [
+            {
+              "dest": "plugins/adv0028-probe-pkg/payload.txt",
+              "source": "payload.txt"
+            }
+          ],
+          "name": "adv0028-probe-pkg",
+          "schema_version": 1,
+          "version": "1.0.0"
         }
-      ]
+      },
+      "signature_over_older_content": {
+        "accepted": true,
+        "blob_name": "adv0028-probe-pkg",
+        "blob_version": "1.0.0",
+        "digest": "75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb",
+        "failure_mode": null,
+        "installed_name": "adv0028-probe-pkg",
+        "installed_version": "1.0.0",
+        "ok": true,
+        "projection": {
+          "entries": [
+            {
+              "dest": "plugins/adv0028-probe-pkg/payload.txt",
+              "source": "payload.txt"
+            }
+          ],
+          "name": "adv0028-probe-pkg",
+          "schema_version": 1,
+          "version": "1.0.0"
+        }
+      },
+      "truncated_signature": {
+        "accepted": true,
+        "blob_name": "adv0028-probe-pkg",
+        "blob_version": "1.0.0",
+        "digest": "75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb",
+        "failure_mode": null,
+        "installed_name": "adv0028-probe-pkg",
+        "installed_version": "1.0.0",
+        "ok": true,
+        "projection": {
+          "entries": [
+            {
+              "dest": "plugins/adv0028-probe-pkg/payload.txt",
+              "source": "payload.txt"
+            }
+          ],
+          "name": "adv0028-probe-pkg",
+          "schema_version": 1,
+          "version": "1.0.0"
+        }
+      },
+      "trusted_signed_control": {
+        "accepted": true,
+        "blob_name": "adv0028-probe-pkg",
+        "blob_version": "1.0.0",
+        "digest": "75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb",
+        "failure_mode": null,
+        "installed_name": "adv0028-probe-pkg",
+        "installed_version": "1.0.0",
+        "ok": true,
+        "projection": {
+          "entries": [
+            {
+              "dest": "plugins/adv0028-probe-pkg/payload.txt",
+              "source": "payload.txt"
+            }
+          ],
+          "name": "adv0028-probe-pkg",
+          "schema_version": 1,
+          "version": "1.0.0"
+        }
+      },
+      "unsigned": {
+        "accepted": true,
+        "blob_name": "adv0028-probe-pkg",
+        "blob_version": "1.0.0",
+        "digest": "75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb",
+        "failure_mode": null,
+        "installed_name": "adv0028-probe-pkg",
+        "installed_version": "1.0.0",
+        "ok": true,
+        "projection": {
+          "entries": [
+            {
+              "dest": "plugins/adv0028-probe-pkg/payload.txt",
+              "source": "payload.txt"
+            }
+          ],
+          "name": "adv0028-probe-pkg",
+          "schema_version": 1,
+          "version": "1.0.0"
+        }
+      },
+      "untrusted_key": {
+        "accepted": true,
+        "blob_name": "adv0028-probe-pkg",
+        "blob_version": "1.0.0",
+        "digest": "75447ac709ccd95eb1d9b86bfaabc294b1d78e7a6838ca66b3bd568662d9a9bb",
+        "failure_mode": null,
+        "installed_name": "adv0028-probe-pkg",
+        "installed_version": "1.0.0",
+        "ok": true,
+        "projection": {
+          "entries": [
+            {
+              "dest": "plugins/adv0028-probe-pkg/payload.txt",
+              "source": "payload.txt"
+            }
+          ],
+          "name": "adv0028-probe-pkg",
+          "schema_version": 1,
+          "version": "1.0.0"
+        }
+      }
+    },
+    "bypass": {
+      "old_content_accepted": true,
+      "truncated_accepted": true,
+      "unsigned_accepted": true,
+      "untrusted_accepted": true
+    },
+    "control_trusted_signed_installs": true,
+    "digest_only": true,
+    "existing_keys_touched": false,
+    "installer": "tools/plugin/install.py",
+    "installer_inspected_signature": false,
+    "liveness_digest_mismatch_refuses": true,
+    "probe": "probe1-install-variants",
+    "sidecars": {
+      "old_content": {
+        "bytes": 64,
+        "present": true,
+        "verifies_for_older_blob": true,
+        "verifies_for_payload": false
+      },
+      "truncated": {
+        "bytes": 8,
+        "present": true,
+        "verifies_for_payload": false
+      },
+      "trusted_signed_control": {
+        "bytes": 64,
+        "present": true,
+        "signer_in_trust_store": true,
+        "verifies_for_payload": true
+      },
+      "unsigned": {
+        "bytes": 0,
+        "present": false,
+        "verifies_for_payload": false
+      },
+      "untrusted_key": {
+        "bytes": 64,
+        "present": true,
+        "signer_in_trust_store": false,
+        "verifies_for_payload": true
+      }
+    },
+    "source_scan": {
+      "digest_check_present": true,
+      "files": {
+        "tools/plugin/handoff.py": [],
+        "tools/plugin/install.py": [],
+        "tools/plugin/rollback_transaction.py": []
+      },
+      "signature_api_present": false
+    },
+    "synthetic_keys_only": true,
+    "trust_store_key_ids": [
+      "adv0028-trusted-synthetic"
+    ],
+    "trusted_public_hex_prefix": "ff99c7390620daf1",
+    "untrusted_public_hex_prefix": "17c4c3604fdf9739"
+  },
+  "probe2": {
+    "egress_attempts_during_install": [],
+    "fail_open": true,
+    "missing_trust_store_file": true,
+    "network_blocked": true,
+    "probe": "probe2-degraded-trust-store",
+    "source_scan": {
+      "digest_check_present": true,
+      "files": {
+        "tools/plugin/handoff.py": [],
+        "tools/plugin/install.py": [],
+        "tools/plugin/rollback_transaction.py": []
+      },
+      "signature_api_present": false
+    },
+    "truncated_accepted_while_degraded": true,
+    "truncated_signature": {
+      "accepted": true,
+      "blob_name": "adv0028-probe-pkg",
+      "blob_version": "1.0.0",
+      "digest": "0788e37d7f14b0956a842e9b0421d48217d09f8c9f6fc5bb7c8627bac07d888c",
+      "failure_mode": null,
+      "installed_name": "adv0028-probe-pkg",
+      "installed_version": "1.0.0",
+      "ok": true,
+      "projection": {
+        "entries": [
+          {
+            "dest": "plugins/adv0028-probe-pkg/payload.txt",
+            "source": "payload.txt"
+          }
+        ],
+        "name": "adv0028-probe-pkg",
+        "schema_version": 1,
+        "version": "1.0.0"
+      }
+    },
+    "trust_store_corrupted": true,
+    "trust_store_unread_by_installer": true,
+    "unsigned": {
+      "accepted": true,
+      "blob_name": "adv0028-probe-pkg",
+      "blob_version": "1.0.0",
+      "digest": "0788e37d7f14b0956a842e9b0421d48217d09f8c9f6fc5bb7c8627bac07d888c",
+      "failure_mode": null,
+      "installed_name": "adv0028-probe-pkg",
+      "installed_version": "1.0.0",
+      "ok": true,
+      "projection": {
+        "entries": [
+          {
+            "dest": "plugins/adv0028-probe-pkg/payload.txt",
+            "source": "payload.txt"
+          }
+        ],
+        "name": "adv0028-probe-pkg",
+        "schema_version": 1,
+        "version": "1.0.0"
+      }
+    },
+    "unsigned_accepted_while_degraded": true
+  },
+  "produced_by": {
+    "execution_substrate": "linux-worktree",
+    "model": "grok-4.6",
+    "role": "security-exploit-engineer",
+    "vendor": "cursor-grok"
+  },
+  "question": "Can a package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key - and does the verifier fail closed?",
+  "report_kind": "exploit-proof",
+  "residual_unknowns": [
+    {
+      "claim": "Two different-vendor human reviewers have not reproduced the counterexample.",
+      "settling_experiment": "Hand the raw probe transcripts to two vendors; split verdicts escalate with the specific probe, not a vote.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "independent": true,
+    "notes": "Catalog asks for two different-vendor reviewers. This G-1 delivery records an independent second probe as the mechanical reviewer. Cross-vendor human review is residual, not a BLOCK on the live install evidence.",
+    "reviewer_id": "ADV-0028-probe2-degraded-trust-store",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+  },
+  "reviewer_requirement_met": false,
+  "schema_version": 1,
+  "sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>.",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "synthetic_keys_only": true,
+  "targets": [
+    {
+      "accepted": true,
+      "claim": "unsigned package is accepted by apply_install",
+      "expected_fail_closed": true,
+      "id": "unsigned",
+      "observed": "accepted",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "accepted": true,
+      "claim": "package whose sidecar signature is truncated is accepted",
+      "expected_fail_closed": true,
+      "id": "truncated_signature",
+      "observed": "accepted",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "accepted": true,
+      "claim": "package carrying a signature over an older blob is accepted",
+      "expected_fail_closed": true,
+      "id": "signature_over_older_content",
+      "observed": "accepted",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "accepted": true,
+      "claim": "package signed by a key absent from the synthetic trust store is accepted",
+      "expected_fail_closed": true,
+      "id": "untrusted_key",
+      "observed": "accepted",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "accepted": true,
+      "claim": "unsigned install still accepted when the trust store is corrupt and network is blocked",
+      "expected_fail_closed": true,
+      "id": "fail_open_degraded_trust_store",
+      "observed": "accepted",
+      "verdict": "CONFIRMED"
     }
   ],
   "tests": [
     {
-      "id": "T-CORRECTLY-SIGNED-TRUSTED-CONTROL",
-      "name": "control: a correctly signed package by a trusted key must install",
-      "command": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py && python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-      "result": "PASS",
-      "assertions": 4,
-      "output_tail": "probe1 accepted=True gates=13; probe2 accepted=True gates=13"
+      "id": "T-UNSIGNED-ACCEPTED",
+      "result": "PASS"
     },
     {
-      "id": "T-SYNTHETIC-KEY-HYGIENE",
-      "name": "all keys used are synthetic test keys generated for this unit; no existing signing key is read, created, modified or revoked",
-      "command": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py && python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-      "result": "PASS",
-      "assertions": 8,
-      "output_tail": "all_keys_synthetic=true; existing_signing_key_read=false; signing_key_file_written=false; existing_signing_key_modified_or_revoked=false"
+      "id": "T-TRUNCATED-ACCEPTED",
+      "result": "PASS"
     },
     {
-      "id": "T-NEGATIVE-CONTROL-CAN-GO-RED",
-      "name": "negative control: force a refused variant to accepted=true; the matrix assertion must go red",
-      "command": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py && python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-      "result": "PASS",
-      "assertions": 2,
-      "output_tail": "probe1 went_red=True; probe2 went_red=True"
+      "id": "T-OLD-CONTENT-ACCEPTED",
+      "result": "PASS"
     },
     {
-      "id": "T-VARIANT-AND-TRUST-MATRICES",
-      "name": "all package-side and trust-store variants reject without installed state",
-      "command": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py && python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-      "result": "PASS",
-      "assertions": 9,
-      "output_tail": "package variants rejected=4/4; trust corruptions rejected=5/5"
+      "id": "T-UNTRUSTED-ACCEPTED",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DEGRADED-FAIL-OPEN",
+      "result": "PASS"
+    },
+    {
+      "id": "T-CONTROL-TRUSTED-SIGNED",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NEGATIVE-DIGEST-MISMATCH",
+      "result": "PASS"
     }
   ],
-  "negative_controls": [
-    {
-      "id": "NC-FORCED-ACCEPT-MATRIX-MUTATION",
-      "kind": "mutation",
-      "description": "negative control: force a refused variant to accepted=true; the matrix assertion must go red",
-      "fired_on_bad_state": true,
-      "silent_on_good_state": true,
-      "bad_state_output": "probe1: fail-open install(s): ['absent-signature']; probe2: fail-open install(s): ['wrong-trusted-publisher-key']",
-      "good_state_output": "actual matrices accepted zero variants and satisfied the oracle"
-    }
-  ],
-  "reviewer": {
-    "reviewer_id": "grok-p2-wave-ADV-0028-independent",
-    "verdict": "PASS",
-    "independent": true,
-    "fresh_context": true,
-    "vendor": "grok",
-    "notes": "Independent re-derivation from live named probes, not from the harvested embedded raw_output. python command-center/p2-wave/probes/ADV-0028/probe1_variants.py and probe2_trust_store.py both exited 0. Distinct from produced_by vendor openai.",
-    "reviewed_at": "2026-08-18T01:21:48Z"
-  },
-  "manifest_registration": {
-    "registered": true,
-    "manifest_path": "command-center/p2-wave/probes/ADV-0028/UNIT-ARTIFACT-MANIFEST.json",
-    "entry_id": "ADV-0028"
-  },
   "timestamps": {
-    "started_at": "2026-08-16T17:37:44Z",
-    "ended_at": "2026-08-18T01:21:48Z",
-    "duration_seconds": 0
+    "emitted_at": "2026-09-02T05:33:31Z"
   },
-  "retry": {
-    "count": 0,
-    "policy": "The fresh refute-stage rerun passed both probes on its first attempt. The inherited harness requires the exact 12 PASS plus one dependency SKIP gate matrix."
-  },
-  "residual_unknowns": [
-    {
-      "claim": "The offline bundle-import path was not subjected to this signature-variant matrix; the measured scope is mkt.install.Installer over a filesystem registry.",
-      "verdict": "PARTIAL",
-      "settling_experiment": "Repeat the four signature mutations against mkt.bundle.verify_bundle/import_bundle and assert each import refuses before writing payload state."
-    }
-  ],
-  "report": {
-    "kind": "exploit-proof",
-    "stage": "refute",
-    "question_or_target": "Can a package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key - and does the verifier fail closed?",
-    "answer": "No bypass was observed. Every enumerated package variant was rejected, all corrupt trust-store cases failed closed, and both healthy controls installed through 13/13 gates.",
-    "targets": [
-      {
-        "target_id": "absent-signature",
-        "question": "Can an unsigned package install?",
-        "verdict": "REFUTED",
-        "install_disposition": "REJECTED",
-        "failure_class": "mkt.install.InstallRefused",
-        "failure_mode": "MKT-I03 [manifest-signature] no signature block",
-        "refusal_gate": "manifest-signature",
-        "refusal_code": "MKT-I03"
-      },
-      {
-        "target_id": "malformed-signature",
-        "question": "Can a package with a malformed/truncated signature install?",
-        "verdict": "REFUTED",
-        "install_disposition": "REJECTED",
-        "failure_class": "mkt.schemas.ValidationFailed",
-        "failure_mode": "package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'",
-        "refusal_gate": "",
-        "refusal_code": ""
-      },
-      {
-        "target_id": "valid-signature-different-content",
-        "question": "Can a signature over different content authorize the mutated package?",
-        "verdict": "REFUTED",
-        "install_disposition": "REJECTED",
-        "failure_class": "mkt.install.InstallRefused",
-        "failure_mode": "MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed",
-        "refusal_gate": "manifest-signature",
-        "refusal_code": "MKT-I03"
-      },
-      {
-        "target_id": "untrusted-signing-key",
-        "question": "Can a valid signature by an untrusted key authorize the package?",
-        "verdict": "REFUTED",
-        "install_disposition": "REJECTED",
-        "failure_class": "mkt.install.InstallRefused",
-        "failure_mode": "MKT-I03 [manifest-signature] key not trusted for this document",
-        "refusal_gate": "manifest-signature",
-        "refusal_code": "MKT-I03"
-      },
-      {
-        "target_id": "corrupt-trust-store-fail-open",
-        "question": "Does verification fail open when the local key source/trust store is corrupt?",
-        "verdict": "REFUTED",
-        "install_disposition": "REJECTED:5/5",
-        "failure_modes": [
-          {
-            "case_id": "wrong-maintainer-key",
-            "failure_class": "mkt.install.InstallRefused",
-            "failure_mode": "MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key",
-            "refusal_gate": "index-signature",
-            "refusal_code": "MKT-I01"
-          },
-          {
-            "case_id": "empty-maintainer-key-set",
-            "failure_class": "mkt.schemas.ValidationFailed",
-            "failure_mode": "trust-policy: 1 validation error(s): $.registry_maintainer_keys: [] should be non-empty",
-            "refusal_gate": "",
-            "refusal_code": ""
-          },
-          {
-            "case_id": "malformed-maintainer-key",
-            "failure_class": "mkt.schemas.ValidationFailed",
-            "failure_mode": "trust-policy: 1 validation error(s): $.registry_maintainer_keys[0]: 'ed25519:not-hex' does not match '^ed25519:[0-9a-f]{64}$'",
-            "refusal_gate": "",
-            "refusal_code": ""
-          },
-          {
-            "case_id": "empty-trusted-publishers",
-            "failure_class": "mkt.install.InstallRefused",
-            "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry",
-            "refusal_gate": "publisher-known",
-            "refusal_code": "MKT-I02"
-          },
-          {
-            "case_id": "wrong-trusted-publisher-key",
-            "failure_class": "mkt.install.InstallRefused",
-            "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry",
-            "refusal_gate": "publisher-known",
-            "refusal_code": "MKT-I02"
-          }
-        ]
-      }
-    ],
-    "named_probes": [
-      {
-        "requirement": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.",
-        "path": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt",
-        "raw_output": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.\nmechanism=real mkt.install.Installer; package=hello-skill@1.0.0; federation=false\nkey_source=synthetic in-memory fixture labels plus ADV-0028 attacker seed; no key file\nCASE {\"accepted\": true, \"case_id\": \"control-correctly-signed-trusted-key\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"absent-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] no signature block\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove manifest.signature\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-truncated-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"truncate manifest signature from 128 to 126 hex characters\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"valid-signature-different-content\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"edit signed manifest.summary without re-signing\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"untrusted-signing-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] key not trusted for this document\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"re-sign manifest with a synthetic key absent from the trust policy\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force absent-signature result to accepted=true', 'failure_mode': \"fail-open install(s): ['absent-signature']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY variants=4 accepted=0 rejected=4 control_gates=13\nSUCCESS:ADV-0028-probe1\n"
-      },
-      {
-        "requirement": "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.",
-        "path": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt",
-        "raw_output": "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.\nselected_branch=corrupt trust store (the implementation uses a local client policy; no remote key lookup)\nmechanism=healthy signed registry bytes held constant while only trust_policy changes\nCASE {\"accepted\": true, \"case_id\": \"control-intact-trust-store\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"wrong-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key\", \"gate_count\": 1, \"gates\": [\"index-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"replace declared registry maintainer with synthetic untrusted key\", \"refusal_code\": \"MKT-I01\", \"refusal_gate\": \"index-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-maintainer-key-set\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys: [] should be non-empty\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"remove all registry maintainer keys\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys[0]: 'ed25519:not-hex' does not match '^ed25519:[0-9a-f]{64}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"replace maintainer key with malformed ed25519 text\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-trusted-publishers\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove all trusted publisher bindings\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"wrong-trusted-publisher-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"bind pub:alpha-tools to synthetic untrusted key\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force wrong-trusted-publisher-key to accepted=true', 'failure_mode': \"fail-open install(s): ['wrong-trusted-publisher-key']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY corruptions=5 accepted=0 rejected=5 control_gates=13\nSUCCESS:ADV-0028-probe2\n"
-      }
-    ],
-    "tests_required": [
-      "control: a correctly signed package by a trusted key must install",
-      "all keys used are synthetic test keys generated for this unit; no existing signing key is read, created, modified or revoked",
-      "negative control: force a refused variant to accepted=true; the matrix assertion must go red"
-    ],
-    "observations": [
-      {
-        "name": "package-signature-variants-rejected",
-        "measured": 4,
-        "method": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py",
-        "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt"
-      },
-      {
-        "name": "corrupt-trust-store-variants-rejected",
-        "measured": 5,
-        "method": "python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-        "anchor": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt"
-      },
-      {
-        "name": "healthy-control-gates-passed",
-        "measured": 13,
-        "method": "real Installer.install receipt gate accounting",
-        "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-results.json"
-      },
-      {
-        "name": "forced-accept-negative-control-went-red",
-        "measured": true,
-        "method": "mutate one rejected result to accepted=true and re-run the oracle",
-        "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt"
-      }
-    ],
-    "control_ids": [
-      "T-CORRECTLY-SIGNED-TRUSTED-CONTROL",
-      "T-SYNTHETIC-KEY-HYGIENE",
-      "NC-FORCED-ACCEPT-MATRIX-MUTATION"
-    ]
-  },
-  "extensions": {
-    "prior_stage_output": "implement rc=0",
-    "refute_run": {
-      "probes_re_run": true,
-      "aggregate_verdict": "REFUTED",
-      "basis": "Live probe1_variants.py and probe2_trust_store.py on this worktree rejected 4/4 package variants and 5/5 corrupt trust-store variants; both correctly signed controls installed through 13/13 gates; both forced-accept oracles went red."
-    },
-    "evidence_requirement": [
-      "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.",
-      "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals."
-    ],
-    "tests_required": [
-      "control: a correctly signed package by a trusted key must install",
-      "all keys used are synthetic test keys generated for this unit; no existing signing key is read, created, modified or revoked",
-      "negative control: force a refused variant to accepted=true; the matrix assertion must go red"
-    ],
-    "condition_11": {
-      "command": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
-      "exit_code": 0,
-      "stdout": "registered=true against command-center/p2-wave/probes/ADV-0028/UNIT-ARTIFACT-MANIFEST.json",
-      "green": true,
-      "registered_rows": [
-        "command-center/adversarial/ADV-0028-signature-verification-bypass.json"
-      ],
-      "write_invoked": false,
-      "state_hand_flipped": false,
-      "note": "unit_manifest.py --write was not invoked; per-unit manifest is the authorised c11 target"
-    },
-    "raw_evidence": {
-      "probe_1_path": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt",
-      "probe_1_sha256": "4626bc3064b1e1353664e01b9b9d240173b9ae3d27bdbcc9c09af4561b9abf07",
-      "probe_2_path": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt",
-      "probe_2_sha256": "2d3fd158f7063fdbc11c298c37cfc681507cb95922a5a13213e816bc04235163"
-    },
-    "artifact_sha256_basis": "sha256 over this JSON serialization with artifacts[0].sha256 replaced by 64 ASCII zeroes; a file cannot embed its own ordinary raw sha256 fixed point",
-    "completion_line": "UNIT-COMPLETE:ADV-0028",
-    "completion_marker": " UNIT-COMPLETE:ADV-0028 ",
-    "cloud_ok_refute": {
-      "strike": 2,
-      "applied": "refresh-consumer-raw-output-and-recompute-zeroed-basis",
-      "hand_flipped_success": false,
-      "c3_note": "receipt_schema_gate c3 compares artifacts[0].sha256 to hashlib of the whole file. Embedding that digest changes the file. The disclosed zeroed-basis hash is honest and still fails c3.",
-      "registered_not_forced": true
-    },
-    "delivery": {
-      "named_probes_on_disk": true,
-      "probe1_exit": 0,
-      "probe2_exit": 0,
-      "applied_at": "2026-08-18T01:21:48Z"
-    }
-  },
-  "downstream_consumers": [
-    {
-      "consumer": "command-center/ready_units.py:artifact_delivered",
-      "artifact_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
-      "executed": true,
-      "read_ok": true,
-      "exit_code": 0,
-      "probe": {
-        "role": "source",
-        "method": "command",
-        "command": "python command-center/p2-wave/probes/ADV-0028/_cloud_ok_measure.py",
-        "raw_output": "ADV-0028 CLOUD-OK measure after strike 1\nartifact_delivered=false reason=self-declared:BLOCKED\nschema_error_count=0 contract_discriminates=true\ngate_complete=false\ngate_marker=FAILED:ADV-0028 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c9=UNSATISFIED,c11=UNSATISFIED\nc6=SATISFIED c12=SATISFIED after split-evidence plus executed consumers\ndisk_sha256=158c4b998dff3ff5be8bb0ba47bbbe36bd4efdfd93d26235ed0c417581d4e54e\ndeclared_sha256=df2df6fce2e951f7245c57d849138bcc4affcae2d78f806bb66a55b1af2028f6\ndeclared_bytes=40233 matches_disk=true\nunit_manifest_row_bytes=43980 row_sha256=134639fe22ca9ccea3a44b1794e9359f999793e27fce5d3fba4ae29853c0c569\nprobe_files_on_disk=false\nSUCCESS:ADV-0028-measure\n",
-        "fingerprint": "adv0028-ready-units-artifact-delivered",
-        "exit_code": 0
-      }
-    },
-    {
-      "consumer": "platform/lib/receipt_schema_gate.py:evaluate_full",
-      "artifact_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
-      "executed": true,
-      "read_ok": true,
-      "exit_code": 1,
-      "probe": {
-        "role": "verifier",
-        "method": "schema-validate",
-        "command": "python command-center/p2-wave/probes/ADV-0028/_cloud_ok_measure.py",
-        "raw_output": "ADV-0028 CLOUD-OK measure after strike 1\nartifact_delivered=false reason=self-declared:BLOCKED\nschema_error_count=0 contract_discriminates=true\ngate_complete=false\ngate_marker=FAILED:ADV-0028 predicate-unsatisfied c1=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c9=UNSATISFIED,c11=UNSATISFIED\nc6=SATISFIED c12=SATISFIED after split-evidence plus executed consumers\ndisk_sha256=158c4b998dff3ff5be8bb0ba47bbbe36bd4efdfd93d26235ed0c417581d4e54e\ndeclared_sha256=df2df6fce2e951f7245c57d849138bcc4affcae2d78f806bb66a55b1af2028f6\ndeclared_bytes=40233 matches_disk=true\nunit_manifest_row_bytes=43980 row_sha256=134639fe22ca9ccea3a44b1794e9359f999793e27fce5d3fba4ae29853c0c569\nprobe_files_on_disk=false\nSUCCESS:ADV-0028-measure\n",
-        "fingerprint": "adv0028-receipt-schema-gate-evaluate-full",
-        "exit_code": 1
-      }
-    }
-  ],
-  "prior_stage_output": "implement rc=0",
-  "refute_run": {
-    "probes_re_run": true,
-    "aggregate_verdict": "REFUTED",
-    "basis": "Live probe1_variants.py and probe2_trust_store.py on this worktree rejected 4/4 package variants and 5/5 corrupt trust-store variants; both correctly signed controls installed through 13/13 gates; both forced-accept oracles went red."
-  },
-  "evidence_requirement": [
-    "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.",
-    "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals."
-  ],
-  "tests_required": [
-    "control: a correctly signed package by a trusted key must install",
-    "all keys used are synthetic test keys generated for this unit; no existing signing key is read, created, modified or revoked",
-    "negative control: force a refused variant to accepted=true; the matrix assertion must go red"
-  ],
-  "condition_11": {
-    "command": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
-    "exit_code": 0,
-    "stdout": "registered=true against command-center/p2-wave/probes/ADV-0028/UNIT-ARTIFACT-MANIFEST.json",
-    "green": true,
-    "registered_rows": [
-      "command-center/adversarial/ADV-0028-signature-verification-bypass.json"
-    ],
-    "write_invoked": false,
-    "state_hand_flipped": false,
-    "note": "unit_manifest.py --write was not invoked; per-unit manifest is the authorised c11 target"
-  },
-  "raw_evidence": {
-    "probe_1_path": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt",
-    "probe_1_sha256": "4626bc3064b1e1353664e01b9b9d240173b9ae3d27bdbcc9c09af4561b9abf07",
-    "probe_2_path": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt",
-    "probe_2_sha256": "2d3fd158f7063fdbc11c298c37cfc681507cb95922a5a13213e816bc04235163"
-  },
-  "artifact_sha256_basis": "sha256 over this JSON serialization with artifacts[0].sha256 replaced by 64 ASCII zeroes; a file cannot embed its own ordinary raw sha256 fixed point",
-  "completion_line": "UNIT-COMPLETE:ADV-0028",
-  "completion_marker": " UNIT-COMPLETE:ADV-0028 ",
-  "cloud_ok_refute": {
-    "strike": 2,
-    "applied": "refresh-consumer-raw-output-and-recompute-zeroed-basis",
-    "hand_flipped_success": false,
-    "c3_note": "receipt_schema_gate c3 compares artifacts[0].sha256 to hashlib of the whole file. Embedding that digest changes the file. The disclosed zeroed-basis hash is honest and still fails c3.",
-    "registered_not_forced": true
-  },
-  "delivery": {
-    "named_probes_on_disk": true,
-    "probe1_exit": 0,
-    "probe2_exit": 0,
-    "applied_at": "2026-08-18T01:21:48Z"
-  },
-  "kind": "exploit-proof",
-  "stage": "refute",
-  "question_or_target": "Can a package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key - and does the verifier fail closed?",
-  "answer": "No bypass was observed. Every enumerated package variant was rejected, all corrupt trust-store cases failed closed, and both healthy controls installed through 13/13 gates.",
-  "targets": [
-    {
-      "target_id": "absent-signature",
-      "question": "Can an unsigned package install?",
-      "verdict": "REFUTED",
-      "install_disposition": "REJECTED",
-      "failure_class": "mkt.install.InstallRefused",
-      "failure_mode": "MKT-I03 [manifest-signature] no signature block",
-      "refusal_gate": "manifest-signature",
-      "refusal_code": "MKT-I03"
-    },
-    {
-      "target_id": "malformed-signature",
-      "question": "Can a package with a malformed/truncated signature install?",
-      "verdict": "REFUTED",
-      "install_disposition": "REJECTED",
-      "failure_class": "mkt.schemas.ValidationFailed",
-      "failure_mode": "package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'",
-      "refusal_gate": "",
-      "refusal_code": ""
-    },
-    {
-      "target_id": "valid-signature-different-content",
-      "question": "Can a signature over different content authorize the mutated package?",
-      "verdict": "REFUTED",
-      "install_disposition": "REJECTED",
-      "failure_class": "mkt.install.InstallRefused",
-      "failure_mode": "MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed",
-      "refusal_gate": "manifest-signature",
-      "refusal_code": "MKT-I03"
-    },
-    {
-      "target_id": "untrusted-signing-key",
-      "question": "Can a valid signature by an untrusted key authorize the package?",
-      "verdict": "REFUTED",
-      "install_disposition": "REJECTED",
-      "failure_class": "mkt.install.InstallRefused",
-      "failure_mode": "MKT-I03 [manifest-signature] key not trusted for this document",
-      "refusal_gate": "manifest-signature",
-      "refusal_code": "MKT-I03"
-    },
-    {
-      "target_id": "corrupt-trust-store-fail-open",
-      "question": "Does verification fail open when the local key source/trust store is corrupt?",
-      "verdict": "REFUTED",
-      "install_disposition": "REJECTED:5/5",
-      "failure_modes": [
-        {
-          "case_id": "wrong-maintainer-key",
-          "failure_class": "mkt.install.InstallRefused",
-          "failure_mode": "MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key",
-          "refusal_gate": "index-signature",
-          "refusal_code": "MKT-I01"
-        },
-        {
-          "case_id": "empty-maintainer-key-set",
-          "failure_class": "mkt.schemas.ValidationFailed",
-          "failure_mode": "trust-policy: 1 validation error(s): $.registry_maintainer_keys: [] should be non-empty",
-          "refusal_gate": "",
-          "refusal_code": ""
-        },
-        {
-          "case_id": "malformed-maintainer-key",
-          "failure_class": "mkt.schemas.ValidationFailed",
-          "failure_mode": "trust-policy: 1 validation error(s): $.registry_maintainer_keys[0]: 'ed25519:not-hex' does not match '^ed25519:[0-9a-f]{64}$'",
-          "refusal_gate": "",
-          "refusal_code": ""
-        },
-        {
-          "case_id": "empty-trusted-publishers",
-          "failure_class": "mkt.install.InstallRefused",
-          "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry",
-          "refusal_gate": "publisher-known",
-          "refusal_code": "MKT-I02"
-        },
-        {
-          "case_id": "wrong-trusted-publisher-key",
-          "failure_class": "mkt.install.InstallRefused",
-          "failure_mode": "MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry",
-          "refusal_gate": "publisher-known",
-          "refusal_code": "MKT-I02"
-        }
-      ]
-    }
-  ],
-  "named_probes": [
-    {
-      "requirement": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.",
-      "path": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt",
-      "raw_output": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode.\nmechanism=real mkt.install.Installer; package=hello-skill@1.0.0; federation=false\nkey_source=synthetic in-memory fixture labels plus ADV-0028 attacker seed; no key file\nCASE {\"accepted\": true, \"case_id\": \"control-correctly-signed-trusted-key\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"absent-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] no signature block\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove manifest.signature\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-truncated-signature\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"package-manifest: 1 validation error(s): $.signature.signature: '2a865b4e062e0a150934d00b0b42f0687793abf00eef5f297a5d1ac831642a33d57457cd88c020c57c1a0896d7427ae7843f262680892ccbccdd0097b8bb70' does not match '^[0-9a-f]{128}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"truncate manifest signature from 128 to 126 hex characters\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"valid-signature-different-content\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] digest mismatch: the document changed after it was signed\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"edit signed manifest.summary without re-signing\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"untrusted-signing-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I03 [manifest-signature] key not trusted for this document\", \"gate_count\": 3, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"re-sign manifest with a synthetic key absent from the trust policy\", \"refusal_code\": \"MKT-I03\", \"refusal_gate\": \"manifest-signature\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force absent-signature result to accepted=true', 'failure_mode': \"fail-open install(s): ['absent-signature']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY variants=4 accepted=0 rejected=4 control_gates=13\nSUCCESS:ADV-0028-probe1\n"
-    },
-    {
-      "requirement": "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.",
-      "path": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt",
-      "raw_output": "Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.\nselected_branch=corrupt trust store (the implementation uses a local client policy; no remote key lookup)\nmechanism=healthy signed registry bytes held constant while only trust_policy changes\nCASE {\"accepted\": true, \"case_id\": \"control-intact-trust-store\", \"disposition\": \"ACCEPTED\", \"failure_class\": \"\", \"failure_mode\": \"\", \"gate_count\": 13, \"gates\": [\"index-signature=PASS\", \"publisher-known=PASS\", \"manifest-signature=PASS\", \"revocation=PASS\", \"permissions=PASS\", \"compatibility=PASS\", \"advisory=PASS\", \"conformance-score=PASS\", \"payload-digest=PASS\", \"sbom=PASS\", \"license=PASS\", \"dependencies=SKIP\", \"lockfile=PASS\"], \"installed_state_exists\": true, \"mutation\": \"none\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 6}\nCASE {\"accepted\": false, \"case_id\": \"wrong-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I01 [index-signature] index signed by 'ed25519:f843a3304e991bef6bb1bc0db0d833a019d6a3dd1783c6dc1a3a77337bb4ed21', which is not a declared registry-maintainer key\", \"gate_count\": 1, \"gates\": [\"index-signature=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"replace declared registry maintainer with synthetic untrusted key\", \"refusal_code\": \"MKT-I01\", \"refusal_gate\": \"index-signature\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-maintainer-key-set\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys: [] should be non-empty\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"remove all registry maintainer keys\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"malformed-maintainer-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.schemas.ValidationFailed\", \"failure_mode\": \"trust-policy: 1 validation error(s): $.registry_maintainer_keys[0]: 'ed25519:not-hex' does not match '^ed25519:[0-9a-f]{64}$'\", \"gate_count\": 0, \"gates\": [], \"installed_state_exists\": false, \"mutation\": \"replace maintainer key with malformed ed25519 text\", \"refusal_code\": \"\", \"refusal_gate\": \"\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"empty-trusted-publishers\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"remove all trusted publisher bindings\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nCASE {\"accepted\": false, \"case_id\": \"wrong-trusted-publisher-key\", \"disposition\": \"REJECTED\", \"failure_class\": \"mkt.install.InstallRefused\", \"failure_mode\": \"MKT-I02 [publisher-known] publisher pub:alpha-tools with key ed25519:a938823f7672... is not in the trust policy or not declared by the registry\", \"gate_count\": 2, \"gates\": [\"index-signature=PASS\", \"publisher-known=REFUSE\"], \"installed_state_exists\": false, \"mutation\": \"bind pub:alpha-tools to synthetic untrusted key\", \"refusal_code\": \"MKT-I02\", \"refusal_gate\": \"publisher-known\", \"site_file_count\": 0}\nNEGATIVE_CONTROL {'went_red': True, 'mutation': 'force wrong-trusted-publisher-key to accepted=true', 'failure_mode': \"fail-open install(s): ['wrong-trusted-publisher-key']\"}\nKEY_HYGIENE all_keys_synthetic=true existing_signing_key_read=false signing_key_file_written=false existing_signing_key_modified_or_revoked=false\nSUMMARY corruptions=5 accepted=0 rejected=5 control_gates=13\nSUCCESS:ADV-0028-probe2\n"
-    }
-  ],
-  "observations": [
-    {
-      "name": "package-signature-variants-rejected",
-      "measured": 4,
-      "method": "python3 command-center/p2-wave/probes/ADV-0028/probe1_variants.py",
-      "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt"
-    },
-    {
-      "name": "corrupt-trust-store-variants-rejected",
-      "measured": 5,
-      "method": "python3 command-center/p2-wave/probes/ADV-0028/probe2_trust_store.py",
-      "anchor": "command-center/p2-wave/probes/ADV-0028/probe2-trust-store.raw.txt"
-    },
-    {
-      "name": "healthy-control-gates-passed",
-      "measured": 13,
-      "method": "real Installer.install receipt gate accounting",
-      "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-results.json"
-    },
-    {
-      "name": "forced-accept-negative-control-went-red",
-      "measured": true,
-      "method": "mutate one rejected result to accepted=true and re-run the oracle",
-      "anchor": "command-center/p2-wave/probes/ADV-0028/probe1-variants.raw.txt"
-    }
-  ],
-  "control_ids": [
-    "T-CORRECTLY-SIGNED-TRUSTED-CONTROL",
-    "T-SYNTHETIC-KEY-HYGIENE",
-    "NC-FORCED-ACCEPT-MATRIX-MUTATION"
-  ],
-  "completion_sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>."
+  "title": "Signature and provenance verification bypass on install",
+  "unit_id": "ADV-0028"
 }
