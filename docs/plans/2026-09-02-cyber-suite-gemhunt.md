@@ -95,7 +95,7 @@ per the owner's model directive.
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | DONE |
 | L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | running |
 | L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | DONE |
-| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | running on `cursor-grok-4.6-xhigh` (Claude blocked bc-1358f975; owner directive) |
+| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | DONE on `cursor-grok-4.6-xhigh` (Claude bc-1358f975 blocked; grok delivered full coverage) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | DONE |
 | L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | DONE |
 | L11 | Cyber skills in the wild (OSS agent/Claude skills) | bc-fb044a7b | running |
