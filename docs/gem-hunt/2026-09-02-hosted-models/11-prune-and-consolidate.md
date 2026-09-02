@@ -212,3 +212,49 @@ the user profile.
   per-model `api_backend`/`context_window` overrides).
 
 Nothing else is deleted. Every current command keeps working via alias.
+
+## 5. RAM and latency argument per consolidation
+
+Box facts (FACT unless marked): 31.6 GB RAM (brief); G-4 target 8 GB free, measured ~1.8 GB
+free on 2026-08-28 (`COUNCIL-PREMIUM-GROK_2026-08-28.md` line 59, live-capture); browsers alone
+held Chrome ~1.05 GB / Edge ~1.65 GB / Node ~578 MB across 42 processes at one snapshot
+(`session-catalog.md` line 870, live-capture); registry caps one MCP server at 512 MiB private
+and the idle fleet at 6 GiB (`.agents/agents.json` on main). Goose binary is 265 MB on disk
+(`session-catalog.md` line 872) - disk, not RSS, but a proxy for a heavy Rust/Electron client.
+
+| Consolidation | Idle RAM before -> after | Latency before -> after | Reasoning (INFERENCE) |
+|---|---|---|---|
+| R1 `upstreams` registry table | 0 -> 0 | n/a | Pure data. The only cost is at generation time (a Python script that already exists in spirit: `merge_generated_cursor_mcp.py` renders Cursor's `mcp.json` from the same registry). |
+| R2 `glm53-space` -> `hosted-inference` | one `uv run` Python stdio server (~40-80 MB RSS typical for a Python MCP process; UNVERIFIED on this box) -> the same one process. **No change in count**, but it stops growing: each new hosted model would otherwise have been *another* stdio server under the 512 MiB cap and inside the 6 GiB idle budget. | one stdio hop + one HTTPS call -> identical | Cursor keeps "core six + one" attached (Section 2, I2a). `mcp-fleet-curation` (cited by `hosted-model-agents` hard rule 2) already warns that per-URL servers "explode the tool catalogue"; one server with a `model` parameter is the catalogue-neutral form. |
+| R3 wrapper family | N shell scripts -> N shell scripts (each ~0 MB when not running; they `exec` the CLI) | +0 ms: a wrapper that only exports variables and `exec`s adds one process spawn, no extra network hop | The alternative that L2 forbids (a resident LiteLLM/gateway) would add a permanent process *and* a loopback hop to every call. The wrapper family keeps the hop count at "CLI -> upstream". |
+| R3 for Grok: 36 blocks -> `[endpoints]` | 0 -> 0 | Grok fetches `{base_url}/models` at startup (one extra loopback GET per session, sub-10 ms on 127.0.0.1; UNVERIFIED on this box) | Model list becomes discoverable, not hand-copied; when auth2api adds an id, Grok sees it without a config edit. Tradeoff (L7): a per-model `context_window` override is lost unless the block is kept - keep blocks only for models that need one. |
+| R3 for Goose | 0 -> 0 (Goose provider JSON is already the declarative form) | unchanged | Already at the end state; only its *source* changes (generated from the registry instead of hand-written). |
+| Delete `openai_proxy.py` | one Python HTTP process when used (~30-60 MB; UNVERIFIED) -> 0 | CLI -> proxy -> router (two hops) -> CLI -> router (one hop) | The HF router is natively OpenAI-compatible at `https://router.huggingface.co/v1/chat/completions` with `:provider` suffixes on the model id (FACT, https://huggingface.co/docs/inference-providers/index, A). |
+| Local runtimes (no consolidation, but a setting) | Ollama keeps a model resident 5 min by default (`OLLAMA_KEEP_ALIVE`), and `OLLAMA_MAX_LOADED_MODELS` defaults to 3 per GPU (CPU box: 3) - i.e. up to three models could be co-resident on a 31.6 GB box (FACT, https://docs.ollama.com/faq, A). LM Studio: JIT loading ON by default, Idle TTL 60 min by default, Auto-Evict ON (at most 1 JIT model resident) (FACT, https://lmstudio.ai/docs/developer/core/ttl-and-auto-evict and https://lmstudio.ai/docs/developer/core/headless, A). | cold-load on first call after TTL vs resident | RECOMMENDATION: the registry row for `ollama` carries `env: {OLLAMA_MAX_LOADED_MODELS: "1"}` and a short `OLLAMA_KEEP_ALIVE`; the `lmstudio` row records that the estate relies on Auto-Evict=ON. Both are settings, not features removed (L7): the tradeoff is cold-load latency (seconds) against multi-GB idle RSS on a box that is below its G-4 target. |
+| auth2api itself | unchanged (L3) | unchanged | Not this lens's to change; noted only that every consolidation above routes *through* it rather than beside it, so no second bridge process appears. |
+
+Latency observation (INFERENCE): none of the consolidations add a network hop; two remove one
+(`openai_proxy.py`, and any future "MCP per URL" that R2 pre-empts). The only added cost is a
+startup `GET /models` for Grok, which is loopback.
+
+## 6. Migration order and rollback
+
+Order is chosen so that each step is independently revertible and no step removes a capability
+before its replacement is proven (L7). Everything is on the *editing* checkout
+(`~/source/ast-integrate`) and lands on GitHub before the executed checkout pulls it (SSOT-WIRE).
+
+| Step | Action | Proof it worked | Rollback |
+|---|---|---|---|
+| M0 Probe (read-only) | `curl http://127.0.0.1:8317/v1/models` and one request each to `/v1/chat/completions`, `/v1/responses`, `/v1/messages` on auth2api; record which protocols exist. Same for `:11434/v1` and `:1234/v1`. | A JSON receipt committed under `docs/gem-hunt/2026-09-02-hosted-models/` (this lens's folder), one line per upstream x protocol. | none needed (read-only) |
+| M1 Registry `upstreams` table | Add the table (R1) with the probed `protocols`; extend the control-plane tests to validate it (closed schema, credential *names* only, `sidecarOnly` on OpenRouter). | `pytest .agents/tests/test_mcp_control_plane*.py` green; `merge_generated_cursor_mcp.py --check` still `drift=0 managed=7`. | `git revert` one commit; no live file changed yet. |
+| M2 Generators (dry-run only) | One script `render_upstream_consumers.py --check` that emits Goose JSON, Grok `[endpoints]`+overrides, Codex `[model_providers.*]` (Responses-only guard), Fabric `.env` lines, and the wrapper family scripts to a temp dir and diffs against the live files. | Diff shows only expected changes (e.g. Grok 36 blocks -> 1 endpoint + k overrides). | delete the script; nothing written. |
+| M3 `hosted-inference` MCP (R2) beside `glm53-space` | Add the new server disabled in the registry; run it once by hand with `upstream=hf-router model=zai-org/GLM-5.3` and compare the answer shape to `glm53_chat`. | Same tool surface (one text-only tool), same secrets policy line, `mcp-tools-list` health probe passes. | disable/remove the new entry; `glm53-space` untouched. |
+| M4 Swap the attach slot | Enable `hosted-inference`, mark `glm53-space` `enabled: false` with the DEPRECATED description (4.3), move the name in `CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS` and the two test assertions (lines 216, 660). | `--check` reports `managed=7`; Cursor shows one hosted-inference tool after reload; Claude lists it. | flip the two booleans back and restore the set; both servers remain defined so the revert is a two-line diff. |
+| M5 Wrapper family `--write` | Generate into `~/.local/bin` beside the old names; old names become one-line shims to the new ones. | `ai-mode status` shows every CLI on `native`; each `<cli>-on-cursor` completes an `E2E_OK` one-liner (the estate already uses this exact receipt: `session-catalog.md` lines 45-47). | the old scripts are kept as `*.pre-R3` for one release; `ai-mode rollback` copies them back. |
+| M6 Grok `[endpoints]` | Write `[endpoints] models_base_url = "http://127.0.0.1:8317/v1"` *only when M0 proved `/v1/models`*; keep per-model overrides that set `api_backend`/`context_window`. | `grok -m cursor-grok-4.6 "Reply with exactly: E2E_OK"`. | Grok config is a single TOML file; back it up as `config.toml.bak-<date>` (the estate already does this: `session-catalog.md` line 878 mentions `config.toml.bak-20...`). |
+| M7 Delete | Remove `openai_proxy.py`, then the rest of `tools/mcp/glm53-space` from the executed checkout; drop the disabled `glm53-space` registry entry after one release. | Cursor approval store shows no orphan `glm53-space-<hex>` prompt; `--check` `drift=0`. | The directory is not on the remote (Section 2), so keep a tarball of the local copy under `D:\` before deleting; restoring is untar + re-enable the entry. |
+
+Stop rules (RECOMMENDATION): abort M4 if `hosted-inference` cannot reproduce a `glm53_chat`
+answer for GLM-5.3 (capability loss, L7); abort M6 if `/v1/models` on auth2api is absent or
+returns fewer than the current 36 ids (capability loss); never run M5/M6 while a `cursor-agent`
+process is alive (G-36 is about process count, and these steps launch CLIs for receipts).
