@@ -22,6 +22,7 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | AUD-0047 | `.github/workflows/*.yml` (12 gates listed in `fixtures/live_gates.json`; capture holds only `plugin-repro.yml`) | (b3-p04-AUD) | same family as ADV-0016/TST-0016; candidate source `/workspace/.github/workflows/` | open |
 | AUD-0080 | `probes/AUD-0080/fixtures/merge/local.json` | manifest pins its sha; `.gitignore:203` ignores any `local.json` (b3-p04-AUD) | toolchain `.gitignore` rule, not a capture rule — owner: negate the rule for this fixture | open |
 | AUD-0081 | `probes/AUD-0081/fixtures/untrusted-clone/` (3 md + a `.git` file marker) | nested-repo marker never captured (b3-p04-AUD) | embedded-repo exclusion | open |
+| ADV-0143 | `tools/blueprints/product/customer_council/blueprint.json` | `taxonomy.py:313`; nothing generates it; never in git history (b3-p00-ADV) | not captured | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
