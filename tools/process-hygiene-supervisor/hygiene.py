@@ -60,6 +60,12 @@ DEFAULT_FLEET_PATH = REPO_ROOT / ".agents" / "scripts" / "mcp_fleet_supervisor.p
 DEFAULT_REGISTRY_PATH = REPO_ROOT / ".agents" / "agents.json"
 
 TIER_ORDER = {"normal": 0, "elevated": 1, "critical": 2}
+# Commit samples kept in state for the slope / time-to-exhaustion estimate:
+# 12 x 5-minute ticks = one hour of history.
+COMMIT_SAMPLE_WINDOW = 12
+# Below this many minutes to the commit limit the digest line is ACTION_REQUIRED.
+EXHAUSTION_ALERT_MINUTES = 30
+HOST_ROW = None  # set after ProcRow is defined
 IDE_NAMES = frozenset({"cursor.exe", "code.exe"})
 COMMAND_LINE_MAX = 500
 
@@ -579,6 +585,22 @@ class ProcRow:
         return self.cpu_seconds is not None and self.io_bytes is not None
 
 
+# A synthetic root for HOST-level reports (no process behind them): pid 0 is the
+# Idle process on Windows and can never be a real target.
+HOST_ROW = ProcRow(
+    pid=0,
+    ppid=0,
+    name="(host)",
+    executable="",
+    command_line="",
+    created_unix=0,
+    cpu_seconds=None,
+    io_bytes=None,
+    working_set_bytes=0,
+    private_bytes=0,
+)
+
+
 @dataclass
 class Snapshot:
     taken_unix: int
@@ -595,6 +617,7 @@ class Snapshot:
     networked: set[int] = field(default_factory=set)
     docker_desktop_running: bool = False
     wsl_client_count: int = 0
+    pagefile: dict[str, Any] | None = None
     by_pid: dict[int, ProcRow] = field(default_factory=dict)
     children: dict[int, list[int]] = field(default_factory=dict)
 
@@ -666,6 +689,8 @@ def parse_snapshot(raw: Any) -> Snapshot:
         if not _is_loopback(remote):
             networked.add(pid)
 
+    pagefile = _parse_pagefile(host.get("pagefile"))
+
     listeners: dict[int, int] = {}
     for index, entry in enumerate(raw.get("listeners", [])):
         entry = _require_mapping_snapshot(entry, f"listeners[{index}]")
@@ -721,6 +746,7 @@ def parse_snapshot(raw: Any) -> Snapshot:
         networked=networked,
         docker_desktop_running=docker_running,
         wsl_client_count=client_count,
+        pagefile=pagefile,
     )
     for proc in processes:
         if proc.pid in snapshot.by_pid:
@@ -735,6 +761,38 @@ def _require_mapping_snapshot(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise SnapshotError(f"snapshot {label} must be a mapping")
     return value
+
+
+def _parse_pagefile(raw: Any) -> dict[str, Any] | None:
+    """Optional `host.pagefile` block from Win32_ComputerSystem / Win32_PageFile*.
+
+    automatic          Win32_ComputerSystem.AutomaticManagedPagefile
+    allocated_bytes    sum of Win32_PageFileUsage.AllocatedBaseSize
+    peak_bytes         sum of Win32_PageFileUsage.PeakUsage
+    volume_free_bytes  free space on the pagefile volume (min across volumes)
+    custom_max_bytes   Win32_PageFileSetting.MaximumSize, None when system-managed
+    """
+    if raw is None:
+        return None
+    block = _require_mapping_snapshot(raw, "host.pagefile")
+    automatic = block.get("automatic")
+    if not isinstance(automatic, bool):
+        raise SnapshotError("host.pagefile.automatic must be a boolean")
+    out: dict[str, Any] = {"automatic": automatic}
+    for key in (
+        "allocated_bytes",
+        "peak_bytes",
+        "volume_free_bytes",
+        "custom_max_bytes",
+    ):
+        value = block.get(key)
+        if value is None:
+            out[key] = None
+            continue
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise SnapshotError(f"host.pagefile.{key} must be a non-negative integer")
+        out[key] = value
+    return out
 
 
 _LOOPBACK_HOSTS = {"::1", "0.0.0.0", "::", "localhost"}
@@ -1043,6 +1101,76 @@ class Engine:
 
     # -- tier ------------------------------------------------------------
 
+    def _commit_trend(
+        self, snapshot: Snapshot, headroom: int | None
+    ) -> tuple[float | None, float | None]:
+        """Least-squares commit slope over the recent window and the ETA to the limit.
+
+        A level threshold says where the box IS; an admission gate needs to know
+        where it is GOING. Fewer than three samples yield None rather than a guess
+        from two points; a flat or falling trend yields no ETA.
+        """
+        samples = self.state.setdefault("commit_samples", [])
+        samples.append([snapshot.taken_unix, snapshot.commit_total_bytes])
+        del samples[:-COMMIT_SAMPLE_WINDOW]
+        if len(samples) < 3:
+            return None, None
+        n = len(samples)
+        mean_t = sum(t for t, _ in samples) / n
+        mean_c = sum(c for _, c in samples) / n
+        var_t = sum((t - mean_t) ** 2 for t, _ in samples)
+        if var_t == 0:
+            return None, None
+        cov = sum((t - mean_t) * (c - mean_c) for t, c in samples)
+        per_second = cov / var_t
+        per_hour = per_second * 3600.0
+        if per_second <= 0 or headroom is None:
+            return per_hour, None
+        return per_hour, headroom / per_second / 60.0
+
+    def _rule_commit_ceiling(self, snapshot, tier, headroom, legs, decisions) -> None:
+        """Report when the commit LIMIT, not the workload, is the binding constraint.
+
+        The limit is RAM + pagefile. A system-managed pagefile grows only when
+        commit nears ~90% of the limit, only while the volume has room, and each
+        growth step is itself a stall; a custom maximum never grows. When headroom
+        is already low and the pagefile cannot grow, killing processes is the
+        wrong lever - a fixed pagefile on a volume with room is (queue Q9).
+        """
+        pagefile = snapshot.pagefile
+        if pagefile is None or headroom is None or legs["headroom"] == "normal":
+            return
+        want = self.policy["pressure"]["elevated"]["headroom"]
+        if pagefile["automatic"]:
+            free = pagefile["volume_free_bytes"]
+            if free is None or free >= want:
+                return
+            pinned_by = "disk"
+        else:
+            if pagefile["custom_max_bytes"] is None:
+                return
+            pinned_by = "custom-maximum"
+        self._add_report(
+            "commit-ceiling",
+            HOST_ROW,
+            tier,
+            0,
+            {
+                "pinned_by": pinned_by,
+                "commit_headroom_bytes": headroom,
+                "commit_limit_bytes": snapshot.commit_limit_bytes,
+                "volume_free_bytes": pagefile["volume_free_bytes"],
+                "custom_max_bytes": pagefile["custom_max_bytes"],
+                "reason": "commit headroom is low and the pagefile cannot grow to "
+                "restore it; the ceiling is set by the pagefile, not by any process",
+                "remediation": "set a fixed (min = max) pagefile of about peak commit - "
+                "RAM + headroom on a volume with room, then reboot; this relieves "
+                "allocation failures (the daemon deaths) and does nothing for "
+                "working-set thrash - see the decision queue Q9",
+            },
+            decisions,
+        )
+
     def _raw_tier(self, snapshot: Snapshot) -> tuple[str, float, int | None]:
         ratio = snapshot.commit_total_bytes / snapshot.physical_bytes
         # Commit headroom (limit - charge) is the quantity whose exhaustion makes
@@ -1115,6 +1243,7 @@ class Engine:
             raise SnapshotError("snapshot taken_unix must be after the last run")
         self._update_observations(snapshot)
         raw_tier, ratio, headroom, legs, modes = self._raw_tier(snapshot)
+        slope_per_hour, minutes_left = self._commit_trend(snapshot, headroom)
         tier = self._effective_tier(raw_tier)
 
         metrics: dict[str, Any] = {
@@ -1128,6 +1257,14 @@ class Engine:
             "process_count": len(snapshot.processes),
             "pressure_legs": legs,
             "pressure_modes": modes,
+            "commit_pct": (
+                snapshot.commit_total_bytes / snapshot.commit_limit_bytes
+                if snapshot.commit_limit_bytes > 0
+                else None
+            ),
+            "commit_slope_bytes_per_hour": slope_per_hour,
+            "minutes_to_commit_limit": minutes_left,
+            "pagefile": snapshot.pagefile,
         }
         decisions: list[Decision] = []
         claimed: set[int] = set()
@@ -1150,6 +1287,7 @@ class Engine:
         wsl_shutdown = self._rule_wsl(snapshot, tier, decisions)
         self._rule_wrapper_chains(snapshot, tier, decisions)
         self._rule_browsers(snapshot, decisions)
+        self._rule_commit_ceiling(snapshot, tier, headroom, legs, decisions)
         if reaper_root is not None:
             decisions.append(
                 Decision(
@@ -2094,6 +2232,7 @@ def apply_plan(
         else None
     )
     stopped = failed = deferred = dry_run = budgeted = looping = 0
+    released_expected = 0
     executed_rules: set[str] = set()
     exit_bad = False
     for decision in plan.decisions:
@@ -2201,6 +2340,11 @@ def apply_plan(
             if history is not None:
                 history.setdefault(sha, []).append(ts)
             executed_rules.add(decision.rule)
+            released_expected += sum(
+                member.private_bytes
+                for member, outcome in zip(decision.tree, results)
+                if outcome.outcome in ("forced", "graceful")
+            )
             if any_failed:
                 failed += 1
                 exit_bad = True
@@ -2229,6 +2373,7 @@ def apply_plan(
                 if ts - last < keepalive
             }
     summary = {
+        "run_id": run_id,
         "stopped": stopped,
         "failed": failed,
         "deferred": deferred,
@@ -2236,6 +2381,7 @@ def apply_plan(
         "budget_deferred": budgeted,
         "crash_loop": looping,
         "rules": sorted(executed_rules),
+        "released_bytes_expected": released_expected,
         "exit_code": 2 if exit_bad else 0,
     }
     ledger.append(
@@ -2337,6 +2483,52 @@ def _reaper_available(args, policy: dict[str, Any]) -> bool:
     return bool(path) and pathlib.Path(path).is_file()
 
 
+def record_effectiveness(
+    state: dict[str, Any], plan: Plan, summary: dict[str, Any], *, apply: bool
+) -> dict[str, Any] | None:
+    """Close the loop: compare this run's commit with what the previous apply run
+    expected to free, then record this run's own expectation for the next one.
+
+    Returns the ledger row for the previous run's measurement (or None). The row
+    is what lets the ledger answer "did the kill help, or did it come back?" -
+    the question the report-only default was argued on.
+    """
+    row = None
+    previous = state.pop("last_apply", None)
+    if previous is not None:
+        realized = int(previous["commit_before"]) - plan.metrics["commit_total_bytes"]
+        expected = int(previous["expected_release"])
+        row = {
+            "schema": SCHEMA_LEDGER,
+            "ts": plan.taken_unix,
+            "run_id": previous.get("run_id", ""),
+            "rule": "effectiveness",
+            "action": "measure",
+            "tier": plan.tier,
+            "result": "ok",
+            "reason": "realized commit change since the previous apply run",
+            "pid": 0,
+            "detail": {
+                "previous_run_id": previous.get("run_id", ""),
+                "previous_ts": previous.get("ts"),
+                "expected_release_bytes": expected,
+                "realized_commit_delta_bytes": realized,
+                "realized_ratio": (realized / expected) if expected else None,
+                "note": "the delta includes everything else the box did in between; "
+                "a ratio near 0 or negative across several runs means the kill "
+                "did not help - the spawner or the admission gate is the lever",
+            },
+        }
+    if apply and summary.get("released_bytes_expected", 0) > 0:
+        state["last_apply"] = {
+            "ts": plan.taken_unix,
+            "run_id": summary.get("run_id", ""),
+            "expected_release": summary["released_bytes_expected"],
+            "commit_before": plan.metrics["commit_total_bytes"],
+        }
+    return row
+
+
 def write_heartbeat(
     path: pathlib.Path, plan: Plan, *, run_id: str, apply: bool
 ) -> None:
@@ -2348,6 +2540,11 @@ def write_heartbeat(
         "run_id": run_id,
         "tier": plan.tier,
         "apply": apply,
+        # what an admission gate needs without re-sampling the box
+        "pressure_modes": plan.metrics.get("pressure_modes"),
+        "commit_headroom_bytes": plan.metrics.get("commit_headroom_bytes"),
+        "minutes_to_commit_limit": plan.metrics.get("minutes_to_commit_limit"),
+        "free_bytes": plan.metrics.get("free_bytes"),
         "script_sha256": hashlib.sha256(
             pathlib.Path(__file__).read_bytes()
         ).hexdigest()[:16],
@@ -2387,6 +2584,9 @@ def digest_line(
         flags.append("fail")
     if plan.tier == "critical":
         flags.append("critical")
+    eta = plan.metrics.get("minutes_to_commit_limit")
+    if eta is not None and eta < EXHAUSTION_ALERT_MINUTES:
+        flags.append("exhaustion")
     signature = sorted(set(stopped_rules) | set(flags))
     new_parts = [part for part in signature if part not in set(digest["signature"])]
     if not new_parts:
@@ -2399,7 +2599,9 @@ def digest_line(
         f"stopped {summary['stopped']} tree(s) [{', '.join(stopped_rules) or 'none'}] "
         f"failed={summary['failed']} tier={tier_text}"
     )
-    if "fail" in flags:
+    if "exhaustion" in flags:
+        body += f" commit limit in {eta:.0f} min at the current slope"
+    if "fail" in flags or "exhaustion" in flags:
         body = "ACTION_REQUIRED: " + body
     return (
         f"[{stamp}] [process-hygiene] {body} | PROPOSE: read the ledger rows for "
@@ -2426,7 +2628,9 @@ def _cmd_run(args) -> int:
         policy=policy,
         state=engine.state,
     )
-    summary["run_id"] = run_id
+    effect = record_effectiveness(engine.state, plan, summary, apply=args.apply)
+    if effect is not None:
+        ledger.append(effect)
     if args.digest:
         line = digest_line(
             plan,

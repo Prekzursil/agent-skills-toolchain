@@ -110,6 +110,40 @@ function Get-HygieneSnapshot {
         if ($limit -gt 0) { $commitLimit = [long]$limit }
     } catch { }
 
+    # Pagefile facts for the commit-ceiling rule: is the pagefile system-managed,
+    # how big is it, how much room does its volume have to grow, or what custom
+    # maximum caps it. Win32_ComputerSystem.AutomaticManagedPagefile is the
+    # "automatically manage for all drives" checkbox; Win32_PageFileSetting is
+    # empty under it and carries InitialSize/MaximumSize (MB, 0 = system-managed
+    # for that drive) otherwise; Win32_PageFileUsage has the live allocation.
+    $pagefile = $null
+    try {
+        $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction Stop
+        $usage = @(Get-CimInstance Win32_PageFileUsage -ErrorAction SilentlyContinue)
+        $setting = @(Get-CimInstance Win32_PageFileSetting -ErrorAction SilentlyContinue)
+        $allocatedMb = [double](($usage | Measure-Object AllocatedBaseSize -Sum).Sum)
+        $peakMb = [double](($usage | Measure-Object PeakUsage -Sum).Sum)
+        $volumeFree = $null
+        foreach ($u in $usage) {
+            $qualifier = Split-Path -Qualifier ([string]$u.Name)
+            $disk = Get-CimInstance Win32_LogicalDisk -Filter ("DeviceID='{0}'" -f $qualifier) -ErrorAction SilentlyContinue
+            if ($disk -and $null -ne $disk.FreeSpace) {
+                $free = [long]$disk.FreeSpace
+                if ($null -eq $volumeFree -or $free -lt $volumeFree) { $volumeFree = $free }
+            }
+        }
+        $customMax = $null
+        $maxes = @($setting | Where-Object { [long]$_.MaximumSize -gt 0 } | ForEach-Object { [long]$_.MaximumSize })
+        if ($maxes.Count -gt 0) { $customMax = [long](($maxes | Measure-Object -Sum).Sum) * 1MB }
+        $pagefile = [ordered]@{
+            automatic         = [bool]$cs.AutomaticManagedPagefile
+            allocated_bytes   = [long]($allocatedMb * 1MB)
+            peak_bytes        = [long]($peakMb * 1MB)
+            volume_free_bytes = $volumeFree
+            custom_max_bytes  = $customMax
+        }
+    } catch { }
+
     $compressed = $null
     $mc = Get-Process -Name 'Memory Compression' -ErrorAction SilentlyContinue
     if ($mc) { $compressed = [long]($mc | Measure-Object WorkingSet64 -Sum).Sum }
@@ -161,6 +195,7 @@ function Get-HygieneSnapshot {
             commit_total_bytes = $commitTotal
             commit_limit_bytes = $commitLimit
             compressed_bytes   = $compressed
+            pagefile           = $pagefile
         }
         wsl             = [ordered]@{
             available              = $wslAvailable

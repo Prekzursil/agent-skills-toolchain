@@ -2613,6 +2613,280 @@ def test_digest_line_rules():
     assert "tier=critical" in line
 
 
+# ------------------------------------------- pagefile, slope, effectiveness
+
+
+def snap_pf(procs, *, pagefile, **kw):
+    payload = snap(procs, **kw)
+    payload["host"]["pagefile"] = pagefile
+    return payload
+
+
+def test_snapshot_pagefile_block_is_optional_and_validated():
+    payload = snap_pf(
+        [proc(10, 1)],
+        pagefile={
+            "automatic": True,
+            "allocated_bytes": 36 * GIB,
+            "peak_bytes": 30 * GIB,
+            "volume_free_bytes": 15 * GIB,
+            "custom_max_bytes": None,
+        },
+    )
+    snapshot = hygiene.parse_snapshot(payload)
+    assert snapshot.pagefile["automatic"] is True
+    assert snapshot.pagefile["volume_free_bytes"] == 15 * GIB
+    assert hygiene.parse_snapshot(snap([proc(10, 1)])).pagefile is None
+    bad = snap_pf([proc(10, 1)], pagefile={"automatic": "yes"})
+    with pytest.raises(hygiene.SnapshotError, match="pagefile.automatic"):
+        hygiene.parse_snapshot(bad)
+    bad = snap_pf([proc(10, 1)], pagefile={"automatic": True, "allocated_bytes": -1})
+    with pytest.raises(hygiene.SnapshotError, match="allocated_bytes"):
+        hygiene.parse_snapshot(bad)
+    bad = snap_pf(
+        [proc(10, 1)], pagefile={"automatic": True, "custom_max_bytes": "big"}
+    )
+    with pytest.raises(hygiene.SnapshotError, match="custom_max_bytes"):
+        hygiene.parse_snapshot(bad)
+
+
+def test_commit_ceiling_disk_pinned_is_reported_when_the_pagefile_cannot_grow():
+    """C: at 98% used (15.5 GiB free) means a system-managed pagefile cannot grow
+    enough to restore commit headroom; the ceiling is pinned by DISK. Report it
+    with the fixed-pagefile remediation (queue Q9) instead of letting the owner
+    read 'critical' and reach for a process to kill."""
+    pinned = hygiene.parse_snapshot(
+        snap_pf(
+            [proc(10, 1)],
+            physical=31_600_000_000,
+            commit=67_700_000_000,
+            commit_limit=70_000_000_000,
+            pagefile={
+                "automatic": True,
+                "allocated_bytes": 38 * GIB,
+                "volume_free_bytes": 3 * GIB,
+            },
+        )
+    )
+    plan = engine().evaluate(pinned)
+    rows = by_rule(plan, "commit-ceiling")
+    assert len(rows) == 1
+    assert rows[0].action == "report"
+    assert rows[0].root.pid == 0  # a host-level row, no process behind it
+    assert rows[0].detail["pinned_by"] == "disk"
+    assert rows[0].detail["volume_free_bytes"] == 3 * GIB
+    assert "fixed" in rows[0].detail["remediation"]
+    assert plan.metrics["commit_pct"] == pytest.approx(67.7 / 70, abs=0.001)
+
+
+def test_commit_ceiling_fixed_by_a_custom_pagefile_maximum():
+    capped = hygiene.parse_snapshot(
+        snap_pf(
+            [proc(10, 1)],
+            physical=31_600_000_000,
+            commit=67_700_000_000,
+            commit_limit=70_000_000_000,
+            pagefile={
+                "automatic": False,
+                "custom_max_bytes": 38 * GIB,
+                "volume_free_bytes": 200 * GIB,
+            },
+        )
+    )
+    rows = by_rule(engine().evaluate(capped), "commit-ceiling")
+    assert rows[0].detail["pinned_by"] == "custom-maximum"
+
+
+def test_commit_ceiling_is_quiet_with_headroom_or_room_to_grow():
+    roomy = hygiene.parse_snapshot(
+        snap_pf(
+            [proc(10, 1)], pagefile={"automatic": True, "volume_free_bytes": 3 * GIB}
+        )
+    )
+    assert by_rule(engine().evaluate(roomy), "commit-ceiling") == []  # headroom is fine
+    growable = hygiene.parse_snapshot(
+        snap_pf(
+            [proc(10, 1)],
+            physical=31_600_000_000,
+            commit=67_700_000_000,
+            commit_limit=70_000_000_000,
+            pagefile={"automatic": True, "volume_free_bytes": 200 * GIB},
+        )
+    )
+    assert by_rule(engine().evaluate(growable), "commit-ceiling") == []  # can grow
+    no_block = hygiene.parse_snapshot(
+        snap(
+            [proc(10, 1)],
+            physical=31_600_000_000,
+            commit=67_700_000_000,
+            commit_limit=70_000_000_000,
+        )
+    )
+    assert (
+        by_rule(engine().evaluate(no_block), "commit-ceiling") == []
+    )  # unknown pagefile
+    manual_unknown = hygiene.parse_snapshot(
+        snap_pf(
+            [proc(10, 1)],
+            physical=31_600_000_000,
+            commit=67_700_000_000,
+            commit_limit=70_000_000_000,
+            pagefile={"automatic": False, "custom_max_bytes": None},
+        )
+    )
+    # not automatic but no readable maximum: nothing to assert, stay quiet
+    assert by_rule(engine().evaluate(manual_unknown), "commit-ceiling") == []
+
+
+def test_commit_trend_with_identical_timestamps_has_no_slope():
+    # evaluate() already refuses a snapshot not newer than the last run, so equal
+    # timestamps can only come from a hand-edited / corrupt state file - which is
+    # precisely what the divide-by-zero guard is for.
+    eng = engine(
+        state={
+            "schema": hygiene.SCHEMA_STATE,
+            "commit_samples": [[NOW, 20 * GIB], [NOW, 21 * GIB]],
+        }
+    )
+    plan = eng.evaluate(hygiene.parse_snapshot(snap([proc(10, 1)], taken=NOW)))
+    assert plan.metrics["commit_slope_bytes_per_hour"] is None
+    assert plan.metrics["minutes_to_commit_limit"] is None
+
+
+def test_commit_slope_and_time_to_exhaustion_from_recent_samples():
+    """Twelve 5-minute samples rising 1 GiB per tick: ~12 GiB/h. With 6 GiB of
+    headroom left the limit is ~30 min away - the number an admission gate needs,
+    which a level threshold cannot give."""
+    eng = engine()
+    for r in range(6):
+        plan = eng.evaluate(
+            hygiene.parse_snapshot(
+                snap(
+                    [proc(10, 1)],
+                    taken=NOW + r * STEP,
+                    commit=(20 + r) * GIB,
+                    commit_limit=64 * GIB,
+                )
+            )
+        )
+    assert plan.metrics["commit_slope_bytes_per_hour"] == pytest.approx(
+        12 * GIB, rel=0.01
+    )
+    # headroom = 64 - 25 = 39 GiB at 12 GiB/h -> 195 min
+    assert plan.metrics["minutes_to_commit_limit"] == pytest.approx(195, abs=1)
+    assert len(eng.state["commit_samples"]) == 6
+    # flat or falling commit: no ETA
+    calm = engine()
+    for r in range(4):
+        plan = calm.evaluate(
+            hygiene.parse_snapshot(snap([proc(10, 1)], taken=NOW + r * STEP))
+        )
+    assert plan.metrics["commit_slope_bytes_per_hour"] == 0
+    assert plan.metrics["minutes_to_commit_limit"] is None
+    # too few samples: honest None, not a guess from two points
+    fresh = engine()
+    plan = fresh.evaluate(hygiene.parse_snapshot(snap([proc(10, 1)])))
+    assert plan.metrics["commit_slope_bytes_per_hour"] is None
+    assert plan.metrics["minutes_to_commit_limit"] is None
+    # the window is bounded
+    long_run = engine()
+    for r in range(40):
+        long_run.evaluate(
+            hygiene.parse_snapshot(snap([proc(10, 1)], taken=NOW + r * STEP))
+        )
+    assert len(long_run.state["commit_samples"]) == hygiene.COMMIT_SAMPLE_WINDOW
+
+
+def test_digest_flags_imminent_commit_exhaustion():
+    eng = engine()
+    for r in range(6):
+        plan = eng.evaluate(
+            hygiene.parse_snapshot(
+                snap(
+                    grok_with_bridge(),
+                    taken=NOW + r * STEP,
+                    commit=(56 + r) * GIB,
+                    commit_limit=64 * GIB,
+                )
+            )
+        )
+    assert plan.metrics["minutes_to_commit_limit"] < 30
+    line = hygiene.digest_line(
+        plan,
+        {"stopped": 0, "failed": 0, "exit_code": 0, "run_id": "r", "rules": []},
+        {},
+        apply=True,
+        cooldown=100,
+        stamp="s",
+    )
+    assert line.startswith("[s] [process-hygiene] ACTION_REQUIRED:")
+    assert "commit limit in" in line
+
+
+def test_effectiveness_row_measures_realized_reclaim_against_the_previous_run(tmp_path):
+    """The loop closes: a run that stopped trees records what it EXPECTED to free;
+    the next run records what commit ACTUALLY moved. This is how the ledger can
+    answer the Skeptic's question - did the kill help, or did it come back?"""
+    state: dict = {}
+    pol = hygiene.validate_policy(policy())
+    eng = engine(state=state)
+    plan = eng.evaluate(
+        hygiene.parse_snapshot(snap(grok_with_bridge(), commit=30 * GIB))
+    )
+    ledger = hygiene.Ledger(tmp_path / "l.jsonl")
+    summary = hygiene.apply_plan(
+        plan, FakeActuator(), ledger, apply=True, run_id="r1", policy=pol, state=state
+    )
+    assert summary["released_bytes_expected"] == 150 * MIB
+    assert (
+        hygiene.record_effectiveness(state, plan, summary, apply=True) is None
+    )  # nothing to compare yet
+    assert state["last_apply"]["expected_release"] == 150 * MIB
+    # next run: commit fell by 120 MiB -> 80% realized
+    plan2 = eng.evaluate(
+        hygiene.parse_snapshot(
+            snap([proc(10, 1)], taken=NOW + STEP, commit=30 * GIB - 120 * MIB)
+        )
+    )
+    summary2 = hygiene.apply_plan(
+        plan2, FakeActuator(), ledger, apply=True, run_id="r2", policy=pol, state=state
+    )
+    row = hygiene.record_effectiveness(state, plan2, summary2, apply=True)
+    assert row["rule"] == "effectiveness"
+    assert row["detail"]["expected_release_bytes"] == 150 * MIB
+    assert row["detail"]["realized_commit_delta_bytes"] == 120 * MIB
+    assert row["detail"]["realized_ratio"] == pytest.approx(0.8)
+    assert row["detail"]["previous_run_id"] == "r1"
+    assert "last_apply" not in state  # consumed
+    # a run with no stops leaves nothing to measure
+    assert hygiene.record_effectiveness(state, plan2, summary2, apply=True) is None
+    # report-only runs never record an expectation (nothing was released)
+    hygiene.record_effectiveness(state, plan, summary, apply=False)
+    assert "last_apply" not in state
+
+
+def test_cli_run_writes_effectiveness_row_and_heartbeat_carries_eta(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        hygiene, "build_actuator", lambda policy_obj, **kwargs: FakeActuator()
+    )
+    files = cli_files(tmp_path, grok_with_bridge())
+    assert run_cli(files, "--apply") == 0
+    write(
+        files["snapshot"],
+        snap([proc(10, 1)], taken=NOW + STEP, commit=20 * GIB - 100 * MIB),
+    )
+    assert run_cli(files, "--apply") == 0
+    rows = ledger_rows(files["ledger"])
+    eff = [r for r in rows if r["rule"] == "effectiveness"]
+    assert len(eff) == 1
+    assert eff[0]["detail"]["realized_commit_delta_bytes"] == 100 * MIB
+    beat = json.loads((tmp_path / "heartbeat.json").read_text(encoding="utf-8"))
+    assert "minutes_to_commit_limit" in beat
+    assert beat["commit_headroom_bytes"] == 64 * GIB - (20 * GIB - 100 * MIB)
+
+
 # ------------------------------------------------------- coverage corners
 
 

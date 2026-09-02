@@ -52,6 +52,8 @@ $live = Get-Content -LiteralPath $liveSnap -Raw | ConvertFrom-Json
 Check 'live snapshot carries the wsl idle-shutdown gates' (
     ($null -ne $live.wsl.docker_desktop_running) -and ($null -ne $live.wsl.client_count))
 Check 'live snapshot carries connections for the network veto' ($null -ne $live.connections)
+Check 'live snapshot carries the pagefile block for the commit-ceiling rule' (
+    ($null -ne $live.host.pagefile) -and ($null -ne $live.host.pagefile.automatic))
 Check 'live connections look like pid/remote pairs' (
     (@($live.connections).Count -eq 0) -or
     (($null -ne @($live.connections)[0].pid) -and (@($live.connections)[0].remote -match ':')))

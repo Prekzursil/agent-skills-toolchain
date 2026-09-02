@@ -1,7 +1,7 @@
 {
   "name": "measurement-2026-09-02-low-headroom",
   "kind": "capability",
-  "description": "The same 02.09.2026 replay with a 70 GB commit limit: 2.3 GB of commit headroom left, so the box is CRITICAL by the headroom leg (allocations are about to fail) even though the commit/physical ratio is only 2.14x. Same kill set; the tier changes what may execute.",
+  "description": "The same 02.09.2026 replay with a 70 GB commit limit: 2.3 GB of commit headroom left, so the box is CRITICAL by the headroom leg (allocations are about to fail) even though the commit/physical ratio is only 2.14x. Same kill set; the tier changes what may execute. The measured C: (15.5 GiB free, system-managed pagefile) still leaves room for the ~6 GB of growth that would restore headroom, so commit-ceiling stays QUIET here - the rule fires only when the disk pins the ceiling (see the companion scenario).",
   "rounds": 4,
   "reaper_available": true,
   "host": {
@@ -9,7 +9,12 @@
     "free_bytes": 3500000000,
     "commit_total_bytes": 67700000000,
     "commit_limit_bytes": 70000000000,
-    "compressed_bytes": 9700000000
+    "compressed_bytes": 9700000000,
+    "pagefile": {
+      "automatic": true,
+      "allocated_bytes": 38400000000,
+      "volume_free_bytes": 16642998272
+    }
   },
   "wsl": {
     "available": true,
@@ -421,7 +426,8 @@
       "wsl-idle",
       "session-age",
       "mcp-over-budget",
-      "daemon"
+      "daemon",
+      "commit-ceiling"
     ],
     "delegate_reaper": true,
     "wsl_shutdown": false
