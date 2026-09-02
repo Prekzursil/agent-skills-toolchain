@@ -52,3 +52,127 @@ live + the `x_cursor` block above; the three-way merge had no conflicting hunk
   post create/delete only. Rendered for Claude and Cursor, never default-attached in
   Cursor (explicit `--attach-all-safe` only); runtime approval is per session.
 - **`huggingface`** description only (Hub control plane vs inference runtimes).
+
+## `openalex`, `asta`, `arxiv` — academic-search MCPs (added 2026-09-02, all `enabled: false`)
+
+Source: Lens 13 "academic search upgrades" of the search/research gem-hunt
+(`docs/plans/2026-09-02-search-research-tools-gemhunt.md`, raw report
+`docs/plans/gemhunt-lenses/lens-13-academic-search-upgrades.md`, verdicts F4 / F5 / F3 = ADOPT).
+Every fact below was re-verified live on 2026-09-02 from this checkout; nothing was
+taken from the lens on trust. All three are `targets: ["claude"]` (Cursor renders from the
+Claude selection), tagged `default-off`, and registered **disabled** — see "Why disabled".
+
+- **`openalex`** = `cyanheads/openalex-mcp-server` **0.7.9** (Apache-2.0), stdio
+  `npx -y @cyanheads/openalex-mcp-server@0.7.9`, `env.OPENALEX_API_KEY = ${OPENALEX_API_KEY}`
+  (`requiredEnv` + `credentialNames`). Receipts: npm `latest` = 0.7.9; README
+  (<https://github.com/cyanheads/openalex-mcp-server>) documents `OPENALEX_API_KEY`
+  ("sent upstream as `api_key=`", free key from <https://openalex.org/settings/api>) and the
+  optional `OPENALEX_MAILTO`; the hosted instance <https://openalex.caseyjhand.com/mcp>
+  answered `GET` 200 `{"status":"ok","server":{"name":"openalex-mcp-server","version":"0.7.9"}}`
+  and a Streamable-HTTP `initialize` 200. **Why stdio, not the hosted URL the lens preferred:**
+  the hosted config has no header slot and the server reads the key only from its own process
+  environment, so a remote entry cannot carry the owner's key — the owner's metered daily budget
+  would never apply and every query would transit a third party's server. The version is pinned
+  to what was verified (precedent: `browserstack`, `tavily`, `scrapegraph`); bump deliberately.
+  `OPENALEX_MAILTO` was left out on purpose (optional courtesy id; add
+  `"OPENALEX_MAILTO": "${UNPAYWALL_EMAIL}"` under `env` if the polite pool is wanted — it is
+  not a credential name, so the validator accepts any reference there).
+- **`asta`** = Ai2 **Asta Scientific Corpus Tools** (Semantic Scholar), http
+  `https://asta-tools.allen.ai/mcp/v1`, `headers."x-api-key" = ${SEMANTIC_SCHOLAR_API_KEY}`.
+  Receipts: <https://allenai.org/asta/resources/mcp> documents the endpoint, Streamable HTTP,
+  and `x-api-key: YOUR_API_KEY` ("enables higher rate limits"; key form
+  <https://share.hsforms.com/1L4hUh20oT3mu8iXJQMV77w3ioxm>); a keyless `initialize` answered
+  200 with `serverInfo {"name":"Asta Scientific Corpus Tools","version":"1.12.3"}`, so auth
+  is enforced per call, not at handshake. Tools listed by Ai2: `get_paper`, `get_citations`,
+  `search_authors_by_name`, `get_author_papers`, `search_papers_by_relevance`,
+  `search_paper_by_title`, `snippet_search`. The header is `x-api-key`, **not** Bearer, so
+  there is deliberately no `x_codex.bearer_token_env_var`; the validator treats `x-api-key` as
+  a credential name and requires the `${...}` reference it carries. `SEMANTIC_SCHOLAR_API_KEY`
+  is the estate's existing name for this key (7 references); the lens recorded the old key
+  403ing because S2 prunes keys idle ~60 days.
+- **`arxiv`** = `blazickjp/arxiv-mcp-server` **0.7.2** (PyPI; keyless), stdio
+  `C:\Users\Prekzursil\.local\bin\uvx.exe arxiv-mcp-server==0.7.2 --storage-path
+  C:\Users\Prekzursil\.arxiv-mcp-server\papers`. Receipts: README
+  (<https://github.com/blazickjp/arxiv-mcp-server>) — "the default install is
+  `uvx arxiv-mcp-server`", "default paper directory is `~/.arxiv-mcp-server/papers`; to choose
+  another, append `--storage-path /absolute/path`", "do not install this server with npm ...
+  an unrelated npm package uses the same name"; PyPI `arxiv-mcp-server` latest 0.7.2,
+  `requires_python >=3.11`. Executed here (Linux, uv 0.12.9): `uvx --python 3.12
+  arxiv-mcp-server==0.7.2 --storage-path <dir>` completed an MCP `initialize`
+  (`{"name":"arxiv-mcp-server","version":"0.7.2"}`) and `tools/list` (19 tools:
+  `search_papers`, `download_paper`, `list_papers`, `read_paper`, `get_abstract`,
+  `semantic_search`, `reindex`, `citation_graph`, `export_citations`, `watch_topic`,
+  `check_alerts`, `list_watches`, `unwatch_topic`, `get_paper_latex`,
+  `list_paper_latex_sections`, `get_paper_latex_section`, `get_paper_outline`,
+  `read_paper_section`, `search_paper_text`); `--storage-path` is parsed from argv in
+  `arxiv_mcp_server/config.py`; the directory is created lazily on first download.
+  Conventions followed rather than invented: the absolute `uvx.exe` path and the `pkg==ver`
+  form are those of `docker`, `excel`, `scrapegraph`; the storage path is the documented
+  default made explicit under the owner's profile. Not verified from here: that `uvx.exe`
+  picks a >=3.11 interpreter on the owner's box (README: `uvx --python 3.11
+  --refresh-package arxiv-mcp-server arxiv-mcp-server` if a cached env misbehaves).
+  arXiv API ToU (1 request / 3 s, single connection) is honoured by the server itself; do not
+  fan arXiv calls out from the agent side.
+
+**Why disabled.** `openalex` and `asta` need keys the owner does not hold yet — that is the
+lens's own instruction. `arxiv` is keyless and *could* be on, but
+`tests/test_mcp_control_plane_live.py::test_live_cursor_attach_all_covers_parked_catalog_core_and_owner_adapters`
+pins `len(Cursor-rendered enabled Claude servers) == len(mcp-cursor-parked-31.json) + 6 + 2`
+(31 + 6 + 2 = 39 today); every enabled Claude-target server must therefore also have its
+rendered entry in `.agents/mcp-cursor-parked-31.json`, which this slice did not own. Disabled
+entries are skipped by every renderer (`select_target_servers`; Cursor reports them under
+`registry_disabled`), so the projection and that count are unchanged at 39. **To enable any
+of the three:** set `enabled: true`, add the same name to `mcp-cursor-parked-31.json` with its
+Cursor-rendered body (for `arxiv`: the `command`/`args` above, `"disabled": true` like its
+neighbours), export the key where required, then run `validate_mcp_control_plane.py`,
+`python -m pytest -q .agents/tests` and the merge scripts' `--check`.
+
+**Rollback:** delete the three `mcp.servers` entries; no generated file, port, or secret
+changes because nothing was ever rendered from them.
+
+## 2026-09-02 — `cve-mcp` registered ENABLED (gem-hunt G-11; owner: "it should work and be wired")
+
+**What changed.** `mcp.servers.cve-mcp` added right after `hexstrike-ai` (the other
+security server): stdio, `npx -y cve-mcp@0.2.0`, `enabled: true`, `targets: ["claude"]`,
+tags `approved, claude-only, local, stdio, security`. Its Cursor-rendered body was added to
+`.agents/mcp-cursor-parked-31.json` (the rollback catalog; 31 -> 32 definitions, comment
+updated) so the safe-default attachment invariant
+`len(rendered enabled Claude servers) == len(parked) + core six + 2` still holds (39 -> 40);
+`tests/test_mcp_control_plane_live.py::test_cursor_attach_all_dry_run_projects_the_full_safe_surface`
+pins the literal counts and was moved from 39/33 to 40/34 with a comment.
+
+**Why.** The deep-research harness routes its `vuln` capability to
+`cve-mcp(nvd_get) -> cve-mcp(nvd_search) -> cve-mcp(kev_search)`
+(`.agents/skills/deep-research/references/research_harness/routing.py`), and the
+hacktricks `security-mcp-routing.md` names `cve-mcp` as the CVE/advisory/applicability
+authority, but the server was present only in `tools/mcp/canonical-mcp-servers.json` and
+`agent-self/config/mcp/mcp.portable.json` — never in this manifest — so the route pointed at
+a server the estate never launched.
+
+**Receipts (2026-09-02, cloud VM, no key set).** `npm view cve-mcp@0.2.0` -> MIT,
+`badchars/cve-mcp`, 771,933 B unpacked. `npx -y cve-mcp@0.2.0` `initialize` ->
+`{"name":"cve-mcp","version":"0.1.0"}` (the package self-reports 0.1.0); `tools/list` ->
+41 tools: nvd_search, nvd_get, nvd_recent, cve_by_product, epss_score, epss_top, kev_check,
+kev_search, kev_recent, ghsa_search, ghsa_get, osv_query, osv_get, osv_batch,
+exploit_search, cwe_lookup, cwe_get, cwe_hierarchy, cwe_top25, cvss_parse, shodan_cve,
+shodan_product, shodan_ip_vulns, vulncheck_kev, vulncheck_cpe, vulncheck_purl,
+vulners_lookup, vulners_search, nuclei_check, msf_check, cpe_search, cpe_match, circl_cve,
+attackerkb_assess, cve_to_attack, cve_enrich, cve_prioritize, cve_trending, cve_compare,
+cve_list_sources, cve_report. The names the harness routes to are therefore real; the
+earlier SKILL.md names `cve_lookup` / `cve_search` / `cve_kev_list` never existed upstream.
+
+**Keys.** None required (`credentialNames: []`). `env` passes five OPTIONAL keys through by
+name only — `NVD_API_KEY` (raises NVD's rate limit), `GITHUB_TOKEN` (GitHub Advisory
+Database), `VULNCHECK_API_KEY`, `VULNERS_API_KEY`, `ATTACKERKB_API_KEY` (unlock those
+sources); an unset name renders as an empty value and the server treats it as "no key".
+The canonical entry mapped GitHub to `${GITHUB_MCP_PAT}`; this manifest's validator requires
+env references to be self-named, so it is `${GITHUB_TOKEN}` here — export that name on the
+box if the advisory tools should be authenticated.
+
+**Envelope.** Metadata lookups only — the routing doc's rule "no Nuclei/Metasploit
+execution; product hits are candidates only" applies; `nuclei_check` / `msf_check` report
+template/module *existence*, they do not run anything.
+
+**Rollback.** Delete the `cve-mcp` entry from `mcp.servers` and from
+`mcp-cursor-parked-31.json`, restore the two pinned counts (39/33), re-run
+`validate_mcp_control_plane.py` and `python -m pytest -q .agents/tests`.
