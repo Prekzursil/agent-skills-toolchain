@@ -8,11 +8,21 @@ file; TTL (expires_at_unix vs time.time()) is what lets a challenger in.
 
 The mutation control replaces exclusive renameat2 with dest.exists()+write_bytes
 so the N=50 concurrency test turns red (many GRANTED).
+
+Execute-once dispatch (TST-0157, ADV-0126) is the layer above: ``dispatch``
+claims <root>/claims/<unit_id>.dispatch with O_EXCL, runs the unit once, writes
+one execution record and one receipt (<root>/receipts/<unit_id>.json), and
+types every later or concurrent caller DUPLICATE-SUPPRESSED.  A receipt is
+permanent (no TTL: a finished unit never re-runs); a failure between claim and
+receipt propagates loudly and frees the claim so a retry can execute.  The
+check-then-act mutant (``atomic=False``) is the TOCTOU control that must
+double-grant.
 """
 from __future__ import annotations
 
 import ctypes
 import errno
+import hashlib
 import json
 import os
 import signal
@@ -468,4 +478,424 @@ def run_mutation_control(root: Path | str, n: int = 50) -> dict[str, Any]:
         },
         "mutant_turns_concurrency_red": mutant_red,
         "n": n,
+    }
+
+
+# --------------------------------------------------------------------------- execute-once dispatch
+#
+# Layout under <root> (``prepare`` creates it; ``dispatch`` creates it lazily):
+#     claims/<unit_id>.dispatch            winner's claim marker, created with O_EXCL
+#     executions/<unit_id>/<session>.json  one record per execution actually performed
+#     receipts/<unit_id>.json              the single receipt (tmp + fsync + rename)
+#
+# ``count_executions`` counts what really ran (the mutant path yields 2);
+# ``count_receipts`` counts what was published (always at most 1 file per id).
+
+EXECUTED = "EXECUTED"
+DUPLICATE_SUPPRESSED = "DUPLICATE-SUPPRESSED"
+ALREADY_EXECUTED = "ALREADY_EXECUTED"
+CLAIM_IN_PROGRESS = "CLAIM_IN_PROGRESS"
+RECEIPT_SCHEMA = "command-center.dispatch-receipt/v1"
+
+CLAIMS_SUBDIR = "claims"
+RECEIPTS_SUBDIR = "receipts"
+EXECUTIONS_SUBDIR = "executions"
+
+
+def _check_id(value: object, what: str) -> str:
+    if (
+        not isinstance(value, str)
+        or not value
+        or value in (".", "..")
+        or any(ch in value for ch in ("/", "\\", "\0"))
+    ):
+        raise ValueError(f"{what} must be a non-empty string without path separators: {value!r}")
+    return value
+
+
+def _json_bytes(doc: Any) -> bytes:
+    try:
+        return (json.dumps(doc, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        raise TypeError(f"dispatch payload and result must be JSON-serialisable: {exc}") from exc
+
+
+def _payload_digest(payload: Any) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def prepare(root: Path | str) -> dict[str, Path]:
+    """Create the dispatch layout under ``root`` and return its directories."""
+    root = Path(root)
+    layout = {
+        "root": root,
+        "claims": root / CLAIMS_SUBDIR,
+        "receipts": root / RECEIPTS_SUBDIR,
+        "executions": root / EXECUTIONS_SUBDIR,
+    }
+    for key in ("claims", "receipts", "executions"):
+        layout[key].mkdir(parents=True, exist_ok=True)
+    return layout
+
+
+def receipt_path(root: Path | str, unit_id: str) -> Path:
+    """Where the single receipt of ``unit_id`` lives once it has executed."""
+    return Path(root) / RECEIPTS_SUBDIR / f"{_check_id(unit_id, 'unit_id')}.json"
+
+
+def claim_marker_path(root: Path | str, unit_id: str) -> Path:
+    """The O_EXCL claim marker of ``unit_id``."""
+    return Path(root) / CLAIMS_SUBDIR / f"{_check_id(unit_id, 'unit_id')}.dispatch"
+
+
+def executions_dir(root: Path | str, unit_id: str) -> Path:
+    """Directory holding one record per execution of ``unit_id`` that actually ran."""
+    return Path(root) / EXECUTIONS_SUBDIR / _check_id(unit_id, "unit_id")
+
+
+def _publish_json(dest: Path, doc: dict[str, Any]) -> None:
+    """tmp + fsync + os.replace.  On any failure the tmp is removed and ``dest`` is untouched."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    data = _json_bytes(doc)
+    tmp = dest.with_name(f".{dest.name}.{os.getpid()}.{time.time_ns()}.tmp")
+    fd = os.open(os.fspath(tmp), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, dest)
+    except BaseException:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        raise
+    try:
+        _fsync_dir(dest.parent)
+    except OSError:
+        pass
+
+
+def create_exclusive(path: Path | str, data: bytes) -> bool:
+    """Honest claim primitive: create ``path`` with ``O_EXCL`` and write ``data``.
+
+    Returns ``True`` when this caller created the file, ``False`` when another
+    caller already had.  Any other ``OSError`` (ENOSPC, EROFS, ...) is raised
+    after a partially written marker has been removed, so a failed claim never
+    looks like a held one.
+    """
+    path = Path(path)
+    try:
+        fd = os.open(os.fspath(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    except FileExistsError:
+        return False
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+    except BaseException:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        raise
+    return True
+
+
+def create_check_then_act(path: Path | str, data: bytes, race_window_s: float = 0.0) -> bool:
+    """Mutation control: the TOCTOU version of :func:`create_exclusive`.
+
+    ``exists()`` then (optionally) sleep, then a plain write.  Two racers both
+    pass the check inside the window and both "win" - the double grant the
+    TST-0157 detector must catch.  Never use outside a control experiment.
+    """
+    path = Path(path)
+    if path.exists():
+        return False
+    if race_window_s > 0:
+        time.sleep(float(race_window_s))
+    path.write_bytes(data)
+    return True
+
+
+def _dispatch_result(
+    status: str,
+    unit_id: str,
+    session_id: str,
+    *,
+    reason_code: str | None = None,
+    winner_session_id: str | None = None,
+    receipt: Path | None = None,
+    record: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "reason_code": reason_code,
+        "unit_id": unit_id,
+        "session_id": session_id,
+        "winner_session_id": session_id if status == EXECUTED else winner_session_id,
+        "receipt_path": str(receipt) if receipt is not None else None,
+        "record": record,
+    }
+
+
+def dispatch(
+    root: Path | str,
+    unit_id: str,
+    session_id: str,
+    payload: Any = None,
+    *,
+    work: Any = None,
+    atomic: bool = True,
+    race_window_s: float = 0.0,
+) -> dict[str, Any]:
+    """Execute ``unit_id`` at most once across sessions; type every other caller.
+
+    Returns ``{"status": EXECUTED, ...}`` for the one session that claimed the
+    unit and published its receipt, and ``{"status": DUPLICATE-SUPPRESSED,
+    "reason_code": ALREADY_EXECUTED | CLAIM_IN_PROGRESS, "winner_session_id":
+    ...}`` for everyone else - including a serial second dispatch long after
+    the first finished.  ``work(payload)`` (optional) is the unit body; its
+    JSON-serialisable return value is stored in the receipt.  ``payload`` must
+    be JSON-serialisable.
+
+    Failures are loud: an ``OSError`` such as ENOSPC while claiming or
+    publishing propagates to the caller, nothing is left claiming to have run,
+    and the claim marker is removed so a retry can execute (make ``work``
+    idempotent if it has side effects).  ``atomic=False`` selects the
+    check-then-act mutant claim (control experiments only).
+    """
+    root = Path(root)
+    unit_id = _check_id(unit_id, "unit_id")
+    session_id = _check_id(session_id, "session_id")
+    if work is not None and not callable(work):
+        raise TypeError("work must be callable or None")
+    prepare(root)
+    receipt = receipt_path(root, unit_id)
+    marker = claim_marker_path(root, unit_id)
+
+    existing = _read_json(receipt)
+    if existing is not None or receipt.exists():
+        return _dispatch_result(
+            DUPLICATE_SUPPRESSED,
+            unit_id,
+            session_id,
+            reason_code=ALREADY_EXECUTED,
+            winner_session_id=(existing or {}).get("session_id"),
+            receipt=receipt,
+        )
+
+    claimed_at = time.time()
+    marker_doc = {
+        "unit_id": unit_id,
+        "session_id": session_id,
+        "claimed_at_unix": claimed_at,
+        "atomic": bool(atomic),
+    }
+    if atomic:
+        won = create_exclusive(marker, _json_bytes(marker_doc))
+    else:
+        won = create_check_then_act(marker, _json_bytes(marker_doc), race_window_s)
+    if not won:
+        holder = _read_json(marker) or {}
+        return _dispatch_result(
+            DUPLICATE_SUPPRESSED,
+            unit_id,
+            session_id,
+            reason_code=ALREADY_EXECUTED if receipt.exists() else CLAIM_IN_PROGRESS,
+            winner_session_id=holder.get("session_id"),
+            receipt=receipt,
+        )
+
+    try:
+        result = work(payload) if work is not None else None
+        record: dict[str, Any] = {
+            "schema": RECEIPT_SCHEMA,
+            "status": EXECUTED,
+            "unit_id": unit_id,
+            "session_id": session_id,
+            "payload": payload,
+            "payload_sha256": _payload_digest(payload),
+            "result": result,
+            "claimed_at_unix": claimed_at,
+            "executed_at_unix": time.time(),
+            "atomic_claim": bool(atomic),
+        }
+        _publish_json(executions_dir(root, unit_id) / f"{session_id}.json", record)
+        _publish_json(receipt, record)
+    except BaseException:
+        try:
+            marker.unlink()
+        except OSError:
+            pass
+        raise
+    return _dispatch_result(EXECUTED, unit_id, session_id, receipt=receipt, record=record)
+
+
+def count_receipts(root: Path | str, unit_id: str) -> int:
+    """Receipt files published for ``unit_id`` (``<id>.json`` or any ``<id>.*.json`` variant)."""
+    unit_id = _check_id(unit_id, "unit_id")
+    directory = Path(root) / RECEIPTS_SUBDIR
+    if not directory.is_dir():
+        return 0
+    return sum(
+        1
+        for p in directory.iterdir()
+        if p.is_file()
+        and p.suffix == ".json"
+        and (p.name == f"{unit_id}.json" or p.name.startswith(f"{unit_id}."))
+    )
+
+
+def count_executions(root: Path | str, unit_id: str) -> int:
+    """How many sessions actually executed ``unit_id`` (one record each)."""
+    directory = executions_dir(root, unit_id)
+    if not directory.is_dir():
+        return 0
+    return sum(1 for p in directory.iterdir() if p.is_file() and p.suffix == ".json")
+
+
+def inspect_unit(root: Path | str, unit_id: str) -> dict[str, Any]:
+    """On-disk state of ``unit_id``: claim marker, receipt, execution count."""
+    root = Path(root)
+    receipt = _read_json(receipt_path(root, unit_id))
+    marker = _read_json(claim_marker_path(root, unit_id))
+    return {
+        "unit_id": unit_id,
+        "claimed": claim_marker_path(root, unit_id).exists(),
+        "claimed_by": (marker or {}).get("session_id"),
+        "executed": receipt is not None,
+        "executed_by": (receipt or {}).get("session_id"),
+        "receipts": count_receipts(root, unit_id),
+        "executions": count_executions(root, unit_id),
+    }
+
+
+def concurrent_pair(
+    root: Path | str,
+    unit_a: str,
+    unit_b: str,
+    session_a: str,
+    session_b: str,
+    *,
+    skew_a: float = 0.0,
+    skew_b: float = 0.0,
+    atomic: bool = True,
+    race_window_s: float = 0.0,
+    payload: Any = None,
+) -> list[dict[str, Any]]:
+    """Two sessions dispatch concurrently (barrier start, per-side start skew).
+
+    Returns ``[result_a, result_b]`` in argument order.  Same ``unit_a`` /
+    ``unit_b`` is the contested case; different ids are the control.  An
+    exception in either dispatch is re-raised here (silence is failure).
+    """
+    root = Path(root)
+    prepare(root)
+    barrier = threading.Barrier(2)
+    results: list[dict[str, Any] | None] = [None, None]
+    errors: list[BaseException | None] = [None, None]
+
+    def run(slot: int, unit_id: str, session_id: str, skew: float) -> None:
+        try:
+            barrier.wait(timeout=30)
+            if skew > 0:
+                time.sleep(float(skew))
+            results[slot] = dispatch(
+                root,
+                unit_id,
+                session_id,
+                payload,
+                atomic=atomic,
+                race_window_s=race_window_s,
+            )
+        except BaseException as exc:  # noqa: BLE001 - re-raised on the caller's thread
+            errors[slot] = exc
+
+    threads = [
+        threading.Thread(target=run, args=(0, unit_a, session_a, skew_a), daemon=True),
+        threading.Thread(target=run, args=(1, unit_b, session_b, skew_b), daemon=True),
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=60)
+    for slot, exc in enumerate(errors):
+        if exc is not None:
+            raise exc
+    if any(t.is_alive() for t in threads) or any(r is None for r in results):
+        raise RuntimeError(f"concurrent_pair: a dispatch did not finish ({unit_a!r}, {unit_b!r})")
+    return [results[0], results[1]]  # type: ignore[list-item]
+
+
+def contested_ok(results: list[dict[str, Any]], root: Path | str, unit_id: str) -> dict[str, Any]:
+    """Judge a contested pair: exactly one EXECUTED, one DUPLICATE-SUPPRESSED, one receipt, one execution.
+
+    The receipt on disk must name the session that reported EXECUTED, and every
+    status must be one of the two typed outcomes.
+    """
+    statuses = [r.get("status") for r in results]
+    executed = [r for r in results if r.get("status") == EXECUTED]
+    suppressed = [r for r in results if r.get("status") == DUPLICATE_SUPPRESSED]
+    untyped = [s for s in statuses if s not in (EXECUTED, DUPLICATE_SUPPRESSED)]
+    receipts = count_receipts(root, unit_id)
+    executions = count_executions(root, unit_id)
+    receipt_doc = _read_json(receipt_path(root, unit_id)) or {}
+    winner = executed[0].get("session_id") if len(executed) == 1 else None
+    receipt_matches = winner is not None and receipt_doc.get("session_id") == winner
+    ok = (
+        len(results) == 2
+        and len(executed) == 1
+        and len(suppressed) == 1
+        and not untyped
+        and receipts == 1
+        and executions == 1
+        and receipt_matches
+    )
+    return {
+        "ok": bool(ok),
+        "unit_id": unit_id,
+        "statuses": statuses,
+        "executed": len(executed),
+        "suppressed": len(suppressed),
+        "untyped": untyped,
+        "receipts": receipts,
+        "executions": executions,
+        "winner_session_id": winner,
+        "receipt_names_winner": bool(receipt_matches),
+        "loser_reason_code": suppressed[0].get("reason_code") if len(suppressed) == 1 else None,
+    }
+
+
+def distinct_ok(
+    results: list[dict[str, Any]],
+    root: Path | str,
+    unit_a: str,
+    unit_b: str,
+) -> dict[str, Any]:
+    """Judge the control pair: two different ids both EXECUTED, one receipt and one execution each."""
+    statuses = [r.get("status") for r in results]
+    receipts = {unit_a: count_receipts(root, unit_a), unit_b: count_receipts(root, unit_b)}
+    executions = {
+        unit_a: count_executions(root, unit_a),
+        unit_b: count_executions(root, unit_b),
+    }
+    ids_match = len(results) == 2 and [r.get("unit_id") for r in results] == [unit_a, unit_b]
+    ok = (
+        unit_a != unit_b
+        and ids_match
+        and all(s == EXECUTED for s in statuses)
+        and all(n == 1 for n in receipts.values())
+        and all(n == 1 for n in executions.values())
+    )
+    return {
+        "ok": bool(ok),
+        "unit_ids": [unit_a, unit_b],
+        "statuses": statuses,
+        "receipts": receipts,
+        "executions": executions,
+        "ids_in_order": bool(ids_match),
     }
