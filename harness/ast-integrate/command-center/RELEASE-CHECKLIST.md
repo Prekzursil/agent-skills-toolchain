@@ -39,6 +39,8 @@ without evidence. They have separate checklists.
       (measured 2026-08-15 on `command-center/receipt_validate.py`: archive 8,412 B / 205
       CRLF against cat-file and show both 8,207 B / 0 CRLF, all three identical after LF
       normalisation). Receipt: `command-center/receipts/IMP-0440.json`.
+      One-line recipe: `git cat-file -p HEAD:path/to/file`. Do not verify against `git archive`
+      output; the plugin packer reads cat-file only (`command-center/receipts/CNF-0145.json`).
 - [ ] Every state change went through `close.py`, so `events/EVENTS.jsonl` has a line for it.
 - [ ] No item was deleted. Items leave the open set by acquiring a disposition, never by
       disappearing — REACH-6 fails on a drop, and that failure is the feature.

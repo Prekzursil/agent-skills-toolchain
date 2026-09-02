@@ -36,9 +36,23 @@ class Isolated:
     profile: Path
 
 
+#: Repo markers planted into demo.echo@1.0.0 of the isolated copy so the
+#: repo-absence control has something to exclude. They are planted at run time
+#: because a nested ``.git/`` path can never be tracked by git, so the marker
+#: files cannot live in the published tree of the repository itself.
+PLANTED_REPO_MARKERS = {
+    "packages/demo.echo/1.0.0/.git/HEAD": b"ref: refs/heads/planted-marker\n",
+    "packages/demo.echo/1.0.0/WORK-UNIT-CATALOG.json": b'{"planted": "repo-marker"}\n',
+}
+
+
 def copy_published(dest: Path) -> Path:
     """Copy the published artifact. This is the only input the client may use."""
     shutil.copytree(PUBLISHED_SRC, dest, dirs_exist_ok=True)
+    for rel, raw in PLANTED_REPO_MARKERS.items():
+        marker = dest / rel
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_bytes(raw)
     return dest
 
 

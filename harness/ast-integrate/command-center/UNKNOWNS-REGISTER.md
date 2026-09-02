@@ -27,3 +27,19 @@ The distinction this file enforces: `NOT-CHECKED` is a typed status, not a soft 
 | U-11 | **Whether the 21 encoded dependency edges are the right ones.** Each quotes the register text that asserts it, and three plausible edges were deliberately NOT encoded with the reason recorded — but "the register says so" is not the same as "it is true of the code". | Attempt the blocked item and see whether the blocker actually bites. A false edge shows up as an item that was ready all along. |
 | U-12 | **Whether `close.py`'s refusal policy is the right strictness.** It refuses only violations the change introduces. A close that breaks something two hops away is caught; a close that is merely premature is not. | Observe: count refusals and overrides over the first 20 real closes. |
 | U-13 | **Whether the live `~/.agents/harness/modules.py` matches this repo's copy.** The gate is authored against the REPO file, which is the source of truth; the L17 spec's line numbers refer to the LIVE file and do not match the repo's. Deploy state was not measured by this lane. | `install.py --check`, or a sha256 compare of the two trees. Do not assume the live tree has this module until that runs. |
+
+### CNF-0143 added CLAIM-A5
+
+<!-- CNF-0143-PREREQUISITE: missing-artifact:command-center/receipts/confirmations/CLAIM-A5.json -->
+
+- prerequisite: missing-artifact:command-center/receipts/confirmations/CLAIM-A5.json
+- settling_experiment: Write a confirmation-record JSON for CLAIM-A5 at command-center/receipts/confirmations/CLAIM-A5.json with verdict in {CONFIRMED,REFUTED,PARTIAL} from an independent confirmer, then re-run accounting.compute_rates on the frozen frame.
+- owner_impact: Until this exists, dropping CLAIM-A5 from the pass-rate denominator is an unearned pass rate.
+
+### CNF-0143 added CLAIM-C3
+
+<!-- CNF-0143-PREREQUISITE: retired-subsystem:wave0-agentbridge -->
+
+- prerequisite: retired-subsystem:wave0-agentbridge
+- settling_experiment: Restore a living confirmer substrate for wave0-agentbridge, or formally withdraw CLAIM-C3 from the frozen sampling frame via a CNF-0137 mutation, then re-run accounting.compute_rates.
+- owner_impact: Until this exists, dropping CLAIM-C3 from the pass-rate denominator is an unearned pass rate.

@@ -49,12 +49,29 @@ _MODULES = {
 
 
 class SiteAdapter:
+    """Thin handle over one site module.
+
+    ``judge`` is bound to the very object the site module imported from
+    ``completion.reducer`` (no wrapper, no copy), so an identity audit that
+    asks the adapter for its judge sees the same object the site calls.
+    Any other attribute falls through to the underlying module.
+    """
+
     def __init__(self, site_id: str, module: Any) -> None:
         self.site_id = site_id
         self.module = module
+        self.judge = getattr(module, "judge", None)
 
     def check_unit(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self.module.check_unit(payload)
+
+    def __getattr__(self, name: str) -> Any:
+        # Only reached when normal lookup fails; delegate to the site module
+        # so callers can treat the adapter as the module it stands for.
+        module = self.__dict__.get("module")
+        if module is None or name.startswith("__"):
+            raise AttributeError(name)
+        return getattr(module, name)
 
 
 def load_site(site_id: str) -> SiteAdapter:
