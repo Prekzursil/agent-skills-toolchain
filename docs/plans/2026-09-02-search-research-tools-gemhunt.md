@@ -262,3 +262,177 @@ secrets only by env-name.
   lane, not this program (confirm at G-10).
 - Pending lenses (academic upgrades, native-capability ENABLE list, self-hosted
   backend re-eval, research-reliability): folded into Wave 2/3 scope when they land.
+
+---
+
+## Pending-lens returns (recovered 2026-09-02)
+
+All four "pending" lenses had in fact finished; their completion notifications never
+reached this run. Three reports were recovered verbatim from the subagent transcripts
+and archived, body unedited, under `gemhunt-lenses/`:
+
+- [Lens 12](gemhunt-lenses/lens-12-research-reliability-techniques.md) - research
+  reliability techniques (agent bc-68ba5a88-fc1f-5081-b011-77d6864d4a5f).
+- [Lens 13](gemhunt-lenses/lens-13-academic-search-upgrades.md) - academic search
+  upgrades (agent bc-1c26835a-bf96-5c49-afdf-541a37602cf9).
+- [Lens 14](gemhunt-lenses/lens-14-native-capability-monitoring-audit.md) -
+  native-capability + monitoring audit (agent bc-148e974b-f9f3-5b2d-b578-09f8bc6cfd47).
+
+Lens 1 (self-hosted search backends, agent bc-1c484032-11cf-5a6e-8c82-a2e6c19cd3a0) had
+stopped after ~21 min / 84 tool calls without a final report and was resumed to finish;
+its return is folded in here when it lands. The digests keep each lens's own evidence
+(numbers, IDs and licenses are the lens's, not re-verified here); the wave-map table is
+the proposal, still subject to the per-item veto at G-9.
+
+### Lens 12 - research reliability techniques
+
+Verdict: BORROW-technique; all twelve items are stdlib, 0 RAM. Dedup against
+`deep-research/references/research_harness/`: routing, cache, RRF, grading, claim
+audit, renderer exist; missing: per-run state on disk, budget object, partial status,
+`contradicted` verdict, volatility-aware TTL, dependency order, loop guard. Ranked by
+lift on the measured 42% partial-run failure x diff size; build 2 -> 3 -> 1, then
+5 + 4, then 6, 9, 8, then 7, 10-12.
+
+1. Run ledger + resume-from-checkpoint: `checkpoint.py`, append-only JSONL keyed by
+   plan hash, fail closed on corrupt lines (FS-Researcher arXiv:2602.01566, ACL 2026;
+   Anthropic multi-agent research write-up; ReSum arXiv:2509.13313).
+2. Terminal-state taxonomy: `Report.status` + `open_subquestions`; always render a
+   partial report with an "Unanswered sub-questions" section; count `partial:*` apart
+   from `failed` (Context Rot arXiv:2606.29718, 2026 preprint; Deep Research Bench
+   arXiv:2506.06287).
+3. Budget tracker, regimes explore <60% / converge 60-85% / finalize >85% (render
+   `partial:budget`). BATS arXiv:2511.17006, s1 arXiv:2501.19393; BAGEN (2026):
+   early stop saves 28-64% tokens on failing runs at a 1.6-4.2 pp success cost.
+4. Keep the last 3 tool outputs raw, digest older (~32k-token trigger; ReSum
+   +4.5-8.2%). 5. Loop guard on `query_hash` (token-Jaccard >= 0.8), ~20 lines.
+6. Sufficiency gate per sub-question (>= 2 sources graded >= B, corroboration >= 1)
+   + one bounded follow-up (CRAG; Sufficient Context +2-10%).
+7. Report-as-state (WebResearcher, TTD-DR) = the trio's "evolving report" as loop
+   state. 8. Sub-question DAG + effort classes fact/compare/deep = 3/8/15 calls
+   (`graphlib`). 9. `contradicted` verdict + "Disputed" callout (Astute RAG).
+   10. Hedge filter before best-of-2 (+2.6-4.9%, 2026 preprint). 11. CoVe-style
+   bounded re-check of numeric/date claims. 12. Volatility axis on `ttl_for`
+   (FreshLLMs).
+
+Demoted: HyDE, step-back, Self-RAG tokens (rubric only), sub-agent context isolation
+(a fresh context per sub-question is the RAM failure mode), value-tree / debate / SFT
+variants. Caveat: several headline numbers are 2026 preprints; the practices are
+2024-25, production-backed.
+
+### Lens 13 - academic search upgrades
+
+Keyless-first; no Sci-Hub anywhere. Dedup: `scholarly-access` already wraps Crossref,
+OpenAlex, Unpaywall, Europe PMC, arXiv, S2, CORE, DOAJ, PubMed, Zenodo;
+`paper-search-mcp` (57 tools, KEEP) searches the same sources. Gap-fillers:
+
+- F4 OpenAlex via `cyanheads/openalex-mcp-server` (Apache-2.0, budget-aware; hosted
+  `https://openalex.caseyjhand.com/mcp` or `npx`). OpenAlex now REQUIRES a free key
+  ($1/day budget = ~10k list/filter + 1k search + 100 PDF/XML downloads;
+  `search.semantic` $0.01/call). `scholarly-access` still runs anonymous via
+  `mailto`: threading `OPENALEX_API_KEY` is "the single cheapest upgrade". ADOPT.
+- F5 Semantic Scholar via the first-party Ai2 Asta MCP
+  (`https://asta-tools.allen.ai/mcp/v1`, `x-api-key`): 225M+ papers, snippet search
+  over 12M+ full texts; keyed 1 req/s; keys pruned after ~60 idle days (the recorded
+  403). Data ODC-BY-1.0. ADOPT.
+- F3 `blazickjp/arxiv-mcp-server` (Apache-2.0, 3.1k stars, active): keyless, 19
+  tools incl. bounded LaTeX section reads; arXiv ToU 1 req / 3 s, one connection.
+  ADOPT.
+- F1 OpenCitations REST (keyless, CC0, 180 req/min): third independent citation leg
+  + self-citation flags for `citation-mapping`; REST helper (no MCP exists). ADOPT.
+- F2 Europe PMC `fullTextXML` + Annotations API (keyless, ~1-2 req/s): extend the
+  existing client; skip the two zero-star MCPs. ADOPT-lite.
+- F6 PaperQA2 (`Future-House/paper-qa`, Apache-2.0, 9.1k stars): the only mature
+  cited multi-PDF QA; needs LLM tokens + an embedding provider, uses LiteLLM inside
+  (allowed for a vendored tool under G-2); run as a CLI/skill step over
+  institutional/OA PDFs. ADOPT-conditional.
+- F7 CORE v3: config-only (`CORE_API_KEY`, 150 req / 15 min); SKIP as a tool.
+
+Skips: Unpaywall (subsumed by OpenAlex `best_oa_location`), Crossref (already
+primary), PapersWithCode (dead July 2025), JackKuo666 PubMed/bioRxiv MCPs (stale),
+`oksure/openalex-research-mcp` (superseded), "ancatmara" (404).
+Hygiene: `tools/scholarly-access-mcp/README.md` still advertises Sci-Hub/LibGen though
+the code is clean - fix it; treat every `paper-search-mcp` download tool
+(`download_with_fallback(use_scihub=True)`) as off-limits, search/metadata only.
+Order: F4 -> F5 -> F3 -> F1 + F2 -> F6 trial -> F7 only if needed.
+
+### Lens 14 - native-capability + monitoring audit
+
+Thesis: the hub already EXPOSES far more than the harness CALLS - Exa via `mcp.exa.ai`
+(14 tools), `firecrawl-mcp` (27 tools incl. 8 `firecrawl_monitor_*` and 5
+`firecrawl_research_*`), `mcp-searxng` (`searxng_instance_info`). Confirms
+cross-provider RRF already exists at `tools/search-expansion/rank_fusion.py`.
+
+ENABLE now (H x L unless noted):
+1. Firecrawl Monitors: standing web/page/site queries on a Firecrawl-hosted scheduler
+   + AI judge; min 5-min cadence, 30-day retention (max 365), 1-50 targets,
+   email/Slack/webhook. Cost: web monitor 2 credits per 10 results per check + 1 per
+   judged result; scrape 1 credit/URL/check; `estimatedCreditsPerMonth` returned.
+2. SearXNG keyless academic lane: `searxng_web_search(categories="science")` or
+   `engines="arxiv,google scholar,pubmed,semantic scholar,openalex,crossref"`; verify
+   with `searxng_instance_info`, enable any disabled ones via the managed block in
+   `tools/search-expansion/searxng_config.py`; several science engines ignore
+   `time_range`.
+3. Exa `web_search_advanced_exa`: `maxAgeHours` (livecrawl deprecated), `category`
+   (research paper / news / github / pdf), `enableSummary` + `summaryQuery`,
+   `subpages`, `additionalQueries`, date filters; MCP `type` is only
+   auto|fast|instant.
+4. Firecrawl `formats:[{type:"json",schema}]` / `firecrawl_extract`;
+   `firecrawl_search` `sources:[{type:"news"}]` + `tbs:"qdr:w"`;
+   `firecrawl_search_feedback` refunds 1 credit per search.
+5. Firecrawl `research_search_papers` (k <= 500), `inspect_paper`
+   (arxiv/pmid/pmcid/doi), `related_papers`, `read_paper`; pricing/coverage
+   unverified. M/H x L.
+6. Tavily `search_depth=advanced`, `time_range`, `include_raw_content`,
+   `exact_match` per call; `topic=news|finance` only via `DEFAULT_PARAMETERS` on a
+   second ProviderSpec (MCP enum is `general` only). M x L.
+7. Firecrawl `changeTracking` format (git-diff/json, `tag`) on re-scrapes. M x L.
+8. Exa `agent_create_run` (`outputSchema`, `effort`, `input.exclusion` +
+   `previousRunId` = daemon-free standing query); `deep_researcher_*` is deprecated
+   yet still listed in the hub's `_EXA_TOOLS`. ENABLE selectively; credits scale with
+   effort.
+9. SearXNG `format=rss` (add `rss` to `search.formats`); RSSHub SKIP.
+
+DEFER/SKIP: Exa Websets monitors (NEW MCP + REST; webhooks need a daemon; cron at
+most daily); changedetection.io (NEW DAEMON, 180-280 MB core, ~2 GB with Chrome);
+Kagi has no monitoring product (Search $12/1k, Extract $4/1k pages; official MCP =
+Search + Extract); neither has Tavily.
+
+### Wave-map impact
+
+Anchor applied: ENABLE-native > BORROW-technique > in-process adapter (0 RAM) > stdio
+child > daemon; monitoring/estate-ops items go to the "Not a wave" hand-off list. Bold
+marks anything that touches a Wave-1 item or says an existing feature only needs
+ENABLING.
+
+| Recommendation | Lens | Wave | Changes a Wave-1 item? |
+|---|---|---|---|
+| Terminal-state taxonomy + always-emit partial report (find 2) | 12 | 2 | no; joins the Wave-2 harness trio, which becomes a reliability set built 2, 3, 1 first |
+| Budget tracker + regimes (find 3) | 12 | 2 | no; this IS the trio's budget / "beast mode" item, now with regime thresholds |
+| Run ledger + resume-from-checkpoint (find 1) | 12 | 2 | no; new Wave-2 item |
+| Loop guard on `query_hash` (5) + keep-latest-3 compaction (4) | 12 | 2 | no |
+| Sufficiency gate (6), `contradicted` verdict (9), sub-question DAG + effort classes (8) | 12 | 2, second tranche | no |
+| Report-as-state (7) = the trio's evolving report; hedge filter (10), CoVe re-check (11), volatility TTL (12) | 12 | 2 as skill prose; code once `partial:*` is measured | no |
+| HyDE, Self-RAG tokens, sub-agent isolation, value-tree / debate / SFT folding | 12 | skip (step-back = one prompt line) | no |
+| Thread `OPENALEX_API_KEY` (+ `CORE_API_KEY`) into `scholarly-access` | 13 | 2, config; OWNER-ACTION: create the free keys | no. **ENABLE, not build**: the existing client only lacks the key |
+| `cyanheads/openalex-mcp-server` (hosted or npx; free key; budget-aware) | 13 | 2 | no |
+| Ai2 Asta MCP for S2 (fresh key; retire the 403ing direct key) | 13 | 2; OWNER-ACTION: key | no |
+| `arxiv-mcp-server` (keyless uvx stdio child) | 13 | 2 | no |
+| OpenCitations + Europe PMC fullTextXML/annotations REST helpers in the skills | 13 | 2 (in-process, 0 RAM) | no |
+| PaperQA2 trial over institutional/OA PDFs (LLM + embeddings) | 13 | 3 (on-demand, endpoint-agnostic per G-4) | no |
+| Fix `scholarly-access` README Sci-Hub/LibGen drift; record `paper-search-mcp` downloads as off-limits | 13 | 2, first commit (docs-only; can land any time) | no |
+| Unpaywall, Crossref, PapersWithCode, JackKuo666 MCPs, oksure, ancatmara, CORE as a tool | 13 | skip | no |
+| SearXNG `categories=science` academic lane | 14 | 2 | **no by default. ENABLE, not build**: the Wave-2 "academic-SearXNG route" is param routing. `searxng-min/settings.yml` inherits upstream engines via `use_default_settings`; only if `searxng_instance_info` shows a science engine disabled does item 1 gain an additive `disabled: false` line for it |
+| Firecrawl `research_*` academic tools (second lane for RRF) | 14 | 2 | no. **ENABLE** (existing key; probe pricing first) |
+| Exa advanced-search knobs; Firecrawl JSON/extract + `sources:news`/`tbs`; Tavily depth/time_range/raw + `DEFAULT_PARAMETERS` news spec | 14 | 2, router/adapter params + skill prose | no. **ENABLE** |
+| Exa `agent_create_run`; drop deprecated `deep_researcher_*` from `_EXA_TOOLS` | 14 | 3 (with the deep-research routing work) | no |
+| Firecrawl Monitors (standing queries, email delivery, credits) | 14 | hand-off: monitoring lane; ENABLE via config/prose, no code | no |
+| Firecrawl `changeTracking`; SearXNG `format=rss` (+ `rss` in `search.formats`); RSSHub | 14 | hand-off: monitoring lane; RSSHub skip | no; `rss` is a one-line addition to the item-1 file but need not ride Wave 1 |
+| Exa Websets monitors + webhooks | 14 | defer/skip (NEW MCP + REST; webhooks need a daemon) | no |
+| changedetection.io | 14 | skip (NEW DAEMON, 180-280 MB + ~2 GB Chrome) | no |
+| Kagi for monitoring | 14 | skip; the Kagi search lane stays in Wave 4 with these prices noted | no |
+| Cross-provider RRF exists at `tools/search-expansion/rank_fusion.py` | 14 | - | **confirms, does not change**: Wave-1 items 2-3 extend that file; do not add a second fusion path |
+
+Net effect on Wave 1: none of the six items is removed or altered. One conditional,
+additive touch to item 1 (science engines, only if the probe shows them disabled) and
+one confirmation for items 2-3 (extend the existing `rank_fusion.py`). Everything else
+lands in Wave 2/3 or the hand-off list.
