@@ -268,7 +268,20 @@ would trip.
   runtime. Flagged so the owner can overrule.
 
 ### 2.7 Gemini CLI, Agy (Antigravity CLI)
-_(pending - next checkpoint)_
+- **[FACT] Gemini CLI** can override its *Gemini-protocol* base URL only: env `GOOGLE_GEMINI_BASE_URL`
+  (non-Vertex) / `GOOGLE_VERTEX_BASE_URL`, or `config.baseUrl`; `validateBaseUrl` requires `https:`
+  except for `localhost`, `127.0.0.1`, `[::1]`; wired via `@google/genai` `httpOptions.baseUrl`.
+  An earlier `GEMINI_API_BASE_URL` PR was flagged for SSRF because it validated nothing.
+  ([google-gemini/gemini-cli PR #21561](https://github.com/google-gemini/gemini-cli/pull/21561),
+  [PR #16010](https://github.com/google-gemini/gemini-cli/pull/16010), [PR #5346](https://github.com/google-gemini/gemini-cli/pull/5346); Tier A PR text, 2026-09-02.)
+- **[INFER]** Gemini CLI therefore **cannot** take an OpenAI-compatible endpoint natively; the
+  only way is a Gemini-protocol translating proxy (LiteLLM-class), which lock L2 forbids. Gemini
+  CLI is classed with Claude/Cursor as a *fallback-only* runtime: it reaches registry models
+  through the generic inference MCP (section 5) mounted in `~/.gemini/settings.json` `mcpServers`.
+- **[FACT] Port hazard:** the popular `gemini-cli-mcp-openai-bridge` defaults to `127.0.0.1:8765`
+  ([Intelligent-Internet/gemini-cli-mcp-openai-bridge README](https://github.com/Intelligent-Internet/gemini-cli-mcp-openai-bridge)),
+  which is `basic-memory`'s owned port (L4). Do not adopt it; if anyone ever does, it must be re-ported.
+- **Agy:** _(pending - next checkpoint)_
 
 ### 2.8 Runtimes that cannot take a provider at all: Claude Code, Cursor
 _(pending - next checkpoint)_
