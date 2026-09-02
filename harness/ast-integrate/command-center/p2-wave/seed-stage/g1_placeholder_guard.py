@@ -28,6 +28,12 @@ import sys
 from pathlib import Path
 
 MARKER = "# g1-surface: " + "generated"
+# Second stub family (02.09, writer w8 finding): the "g1-mod / real-surface" import-surface files whose
+# `Result` dataclass defaults to ok=True / verdict='PASS' and whose functions return constants. Same
+# fail-closed treatment; G1_PLACEHOLDER_MARKERS=generated limits the guard to the first family.
+MARKER2 = "# g1-mod: " + "real-surface"
+_MARKERS = tuple(m for m, key in ((MARKER, "generated"), (MARKER2, "real-surface"))
+                 if key in (os.environ.get("G1_PLACEHOLDER_MARKERS") or "generated,real-surface"))
 _UID_RE = re.compile(r"probes[\\/]([A-Z]{2,5}-\d{4})[\\/]")
 _checked: dict[str, bool] = {}
 
@@ -39,7 +45,8 @@ def _is_placeholder(origin: str | None) -> bool:
     if hit is None:
         try:
             with open(origin, "r", encoding="utf-8", errors="replace") as fh:
-                hit = MARKER in fh.read(1200)
+                head = fh.read(1200)
+                hit = any(m in head for m in _MARKERS)
         except OSError:
             hit = False
         _checked[origin] = hit
