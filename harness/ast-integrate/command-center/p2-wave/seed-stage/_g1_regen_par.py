@@ -113,7 +113,9 @@ def one(uid: str, regen: bool) -> dict:
     elif regen:
         rec["regen_line"] = "write_receipts.py absent"
     t0 = time.time()
-    rc2, out2 = run([sys.executable, str(MEAS), uid], ROOT)
+    # -s: the measure process itself needs no user-site (.pth hook costs ~0.2 s per start);
+    # probes inherit the ENV, not this flag, so their jsonschema hook is unaffected.
+    rc2, out2 = run([sys.executable, "-s", str(MEAS), uid], ROOT)
     lines2 = [ln for ln in out2.splitlines() if ln.strip()]
     last2 = lines2[-1] if lines2 else ""
     ok = last2 == f"SUCCESS:delivered {uid}"
@@ -188,6 +190,16 @@ def main() -> int:
                 except (json.JSONDecodeError, KeyError):
                     pass
     todo = [u for u in ids if u not in done]
+    # LPT scheduling (native lens, measured): the 25 units >60 s hold ~34 % of worker time and one
+    # 316 s straggler ended the first census with 7 idle workers. Longest-known-first fills the tail.
+    if "--catalog-order" not in sys.argv[3:]:
+        try:
+            from _g1_paths import latest_rows
+
+            prev = latest_rows()
+            todo.sort(key=lambda u: -float((prev.get(u) or {}).get("secs") or 0.0))
+        except Exception:  # noqa: BLE001 - ordering is an optimisation only
+            pass
     print(f"REGEN-PAR {name} total={len(ids)} done={len(done)} todo={len(todo)} workers={WORKERS} regen={regen}", flush=True)
     ok = fail = 0
     started = time.time()

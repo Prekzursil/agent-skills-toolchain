@@ -34,6 +34,10 @@ def main() -> int:
     # monkeypatch catalog ids by wrapping main pieces
     os.chdir(str(G.REPO))
     os.environ["AST_INTEGRATE_ROOT"] = str(G.REPO)
+    if JSONL.is_file() and JSONL.stat().st_size > 0 and not os.environ.get("G1_ALLOW_TRUNCATE"):
+        # 02.09: this file is an overlay base / audit ledger. Refuse to wipe it (prune lens FIND 1);
+        # the append-only equivalent is seed-stage/_g1_regen_par.py <ids|ALL> <wave> --no-regen.
+        raise SystemExit(f"REFUSED: {JSONL} already holds rows; set G1_ALLOW_TRUNCATE=1 to overwrite")
     JSONL.write_text("", encoding="utf-8")
     from collections import Counter
     from concurrent.futures import ProcessPoolExecutor, as_completed

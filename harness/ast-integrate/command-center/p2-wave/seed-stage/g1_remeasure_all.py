@@ -126,6 +126,10 @@ def one(uid: str) -> dict:
 def main() -> int:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     ids = [u["id"] for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]]
+    if JSONL.is_file() and JSONL.stat().st_size > 0 and not os.environ.get("G1_ALLOW_TRUNCATE"):
+        # 02.09: this file is an overlay base / audit ledger. Refuse to wipe it (prune lens FIND 1);
+        # the append-only equivalent is seed-stage/_g1_regen_par.py <ids|ALL> <wave> --no-regen.
+        raise SystemExit(f"REFUSED: {JSONL} already holds rows; set G1_ALLOW_TRUNCATE=1 to overwrite")
     JSONL.write_text("", encoding="utf-8")
     n = len(ids)
     print(f"G1-START n={n} workers={WORKERS} python={sys.executable} posix={os.name!='nt'}", flush=True)

@@ -85,4 +85,34 @@ contracts → ledger row, never a permissive object; (5) rc=124 re-run serially;
 Lenses: prune (`/tmp/gemhunt/prune.md`), meta (`meta.md`), native-capability (`native.md`),
 frontier/cross-domain via web (`frontier.md`), false-green critic (`false-green.md`). Full texts
 are kept under `/tmp/gemhunt/` for this run; the queue below is what survives peer-review against
-the code. _(Filled in when the lenses report; TIER-0 items are reversible and adopted directly.)_
+the code (`adopted` = landed in this run with the commit; `queued` = for the owner).
+
+**Cross-lens convergence (highest confidence):** the `_NS` placeholder is an *extreme mutant* of
+its module, so "passes while loading a placeholder" = pseudo-tested probe (frontier F2, false-green
+F1, meta F4, council Critic guard 1) → adopted as the STRICT/TRACE tripwire; measured on the 27
+vacuous OK units of the TRACE census (3 of them instantiate `_NS` at run time: ADV-0025, AUD-0037,
+ADV-0096 — spot-check members). "Regression set = traced dependents, never a sample" (council,
+meta F2/F7, frontier F1/F9) → adopted as the writer contract. "Green from ONE census file, never an
+overlay; run it twice" (false-green F6/F8, frontier F12, prune FIND 9) → EVAL C1/C6.
+
+| tier | find (lens) | status |
+|---|---|---|
+| 0 | Warm bytecode cache `PYTHONPYCACHEPREFIX` — 3.5x less CPU/unit, identical verdicts (native 1) | adopted e95f989d6 |
+| 0 | Timeout SIGKILLed only `/bin/sh`; probe orphaned and still writing (native 2) → `start_new_session` + `killpg` | adopted e95f989d6 |
+| 0 | `PYTHONFAULTHANDLER` + SIGABRT-first on timeout → TIMEOUT rows carry the stuck frame (native 3) | adopted (this commit) |
+| 0 | LPT ordering of the ids file (longest-known-first; 316 s straggler ran alone) (native 4) | adopted (this commit) |
+| 0 | `-s` on the measure process (user-site hook cost ~0.2 s/start) (native 7) | adopted (this commit) |
+| 0 | Two legacy drivers TRUNCATE overlay bases natively (prune 1) → refuse when rows exist | adopted (this commit) |
+| 0 | Never `_g1_refresh_unit_sha.py` (sha refresh w/o regen = laundering) (false-green F2, critic g3) | rule, EVAL R4 |
+| 0 | 8 workers is right; do not raise (native 6) | rule |
+| 1 | Repair the `tools/` file, delete/re-export the root decoy; 160 root placeholders have REAL tools twins (false-green F5, council) | adopted as writer twin rule + shims |
+| 1 | Delete never-resolvable placeholders, then census proves liveness (Skeptic, prune, meta F8) | queued next (after w1–w6 land) |
+| 1 | Marker count ratchet file (frontier F13) | queued with the deletion commit |
+| 1 | Serial re-run of every rc=124, labelled `rerun: serial` (frontier F6, critic g5) | EVAL R3, pending 3 timeouts |
+| 1 | Spot check = 3 most-permissive + 3 slowest passers + 3 owner-path units + 3 random (false-green) | EVAL C5 |
+| 2 | `P2_HOOK_STRICT=1` shadow census: `_receipt_copy` in the jsonschema hook rewrites BLOCKED→SUCCESS, bad sha→0*64 etc. before validation; 487 OK units validate through it (false-green F3) | **queued for the owner** — the hook is deliberate owner design; a shadow census will be run and reported, not enforced unilaterally |
+| 2 | User-site `.pth` hook pins `AST_INTEGRATE_ROOT` fallback to `~/p2-g1`; 7 `write_receipts.py` depend on it (false-green F4, prune 8) → run `write_receipts.py` through `g1_python.py` | queued (regen wave semantics; after this run's waves) |
+| 2 | Wave capability score auto-appended (meta F6); root-cause re-keying of the landscape (meta F3); flap detector (meta F5) | queued; done by hand per wave in the ledger this run |
+| 3 | Prune: 56/57 `.sh` + `.ps1` are WSL/OVH plumbing; 110/170 `.py` legacy; `p2-ast.tgz` + 18 tgz dead payloads (prune 6/7/12) | queued as a LEGACY-INDEX for the owner; nothing deleted here |
+| 3 | `probe_survey`/`unit_info`/`gaps_agg`/`check_status_ids` hard-code `/mnt/c` (prune 5/11) | queued (1-line `_g1_paths` fixes) |
+| — | git worktree instead of rsync mirror for writers (native 8) | not adopted: mirror already in place and measured; revisit if writers need `git` in-mirror |

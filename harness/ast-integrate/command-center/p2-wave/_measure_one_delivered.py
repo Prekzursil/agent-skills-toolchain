@@ -92,6 +92,7 @@ def run_cmd(cmd: str) -> tuple[int, str]:
     env = os.environ.copy()
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     env.setdefault("AST_INTEGRATE_ROOT", str(REPO))
+    env.setdefault("PYTHONFAULTHANDLER", "1")  # SIGABRT on timeout dumps the stuck frame
     hook_dir = str(REPO / "command-center" / "p2-wave" / "seed-stage")
     py_path = os.pathsep.join(
         [
@@ -124,6 +125,15 @@ def run_cmd(cmd: str) -> tuple[int, str]:
     try:
         out, err = p.communicate(timeout=180)
     except subprocess.TimeoutExpired:
+        # SIGABRT first: with PYTHONFAULTHANDLER the probe prints the frame it was stuck in
+        # (the bare "TIMEOUT" rows were undiagnosable); SIGKILL the group if it lingers.
+        dump = ""
+        try:
+            os.killpg(p.pid, signal.SIGABRT)
+            _, err2 = p.communicate(timeout=5)
+            dump = (err2 or "").strip()
+        except (ProcessLookupError, PermissionError, subprocess.TimeoutExpired):
+            pass
         try:
             os.killpg(p.pid, signal.SIGKILL)
         except (ProcessLookupError, PermissionError):
@@ -132,7 +142,7 @@ def run_cmd(cmd: str) -> tuple[int, str]:
             p.communicate(timeout=10)
         except subprocess.TimeoutExpired:
             pass
-        return 124, "TIMEOUT"
+        return 124, ("TIMEOUT\n" + dump[-3000:]).strip()
     text = ((out or "") + (err or "")).strip()
     return p.returncode, text[-4000:]
 
