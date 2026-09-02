@@ -308,4 +308,134 @@ error at all: the cached or embedded catalog is a sound answer".
 - Lock check: `type: "litellm"` exists in Crush's enum; it is **not** to be used here
   (no-LiteLLM lock) - the estate enum should omit it.
 
-<!-- sections 4..N appended below; rubric table last -->
+## 4. Goose - declarative providers (`custom_providers/*.json`) + canonical model registry
+
+### 4.1 The schema, verbatim
+
+**[FACT, A, corroborated (Rust struct + shipped definitions + docs), 2026-09-02]** Goose 1.x (the
+box runs 1.47, DEDUP 5) defines every non-hand-coded provider as a JSON file deserialized into
+`DeclarativeProviderConfig` (`crates/goose-providers/src/declarative.rs`,
+<https://raw.githubusercontent.com/block/goose/main/crates/goose-providers/src/declarative.rs>).
+Built-in definitions live in `crates/goose-providers/src/declarative/definitions/*.json`
+(groq, lmstudio, llama_swap, deepseek, mistral, moonshot, minimax ...); user definitions are
+loaded by `load_custom_providers(dir)` from every `*.json` in `~/.config/goose/custom_providers/`
+(Windows: `%APPDATA%\Block\goose\config\custom_providers\`) per
+<https://raw.githubusercontent.com/block/goose/main/documentation/docs/getting-started/providers.md>
+("Configure Custom Provider" + "Command-Based Authentication").
+
+| Field | Type / default | Note (from doc-comments or definitions) |
+| --- | --- | --- |
+| `name` | string | provider id |
+| `engine` | enum `openai` \| `anthropic` \| `ollama` (aliases `*_compatible`) | **API shape enum** - "Custom providers must use OpenAI, Anthropic, or Ollama compatible API formats" |
+| `display_name`, `description` | string | UI |
+| `api_key_env` | string, default `""` | secret **by env name**; mutually exclusive with `auth` |
+| `auth` | `{command, args[], refresh_interval (s, default 3600, 0 = reactive only), timeout_seconds (10), cwd}` | spawned **without a shell**; "matches Codex's `refresh_interval_ms: 0` convention" (verbatim doc-comment) |
+| `base_url` | string, supports `${ENV}` interpolation | **full route**, e.g. `.../v1/chat/completions`, `${LMSTUDIO_HOST}/v1/chat/completions` |
+| `base_path` | string? | alt. path override |
+| `models[]` | `ModelInfo { name, context_limit, max_tokens? }` | static list |
+| `dynamic_models` | bool? | `Some(false)`+non-empty models = static, no API call; else **try `/v1/models`, fall back to `models` on 404** |
+| `headers` | map | static headers |
+| `env_vars[]` | `{name, required, secret, primary, default, description}` | typed, UI-renderable env declarations (lmstudio: `LMSTUDIO_HOST` default `http://localhost:1234`, `secret:false`) |
+| `timeout_seconds`, `supports_streaming`, `requires_auth` (default true) | | |
+| `catalog_provider_id`, `skip_canonical_filtering` | | link to the canonical catalog (4.2) / opt out of filtering |
+| `fast_model` | string? | the provider's cheap/"small" model |
+| `preserves_thinking`, `emit_clear_thinking` | bool | reasoning-replay quirks (Z.AI `clear_thinking`) |
+| `setup { category, setup_method: single_api_key \| config_fields, group, docs_url, field_overrides[] }` | | drives the configure wizard |
+| `model_doc_link`, `setup_steps[]` | | onboarding text |
+
+### 4.2 Canonical model registry = models.dev shape, normalised ids
+
+**[FACT, A, 2026-09-02]** `crates/goose-provider-types/src/canonical/data/canonical_models.json`
+(<https://raw.githubusercontent.com/block/goose/main/crates/goose-provider-types/src/canonical/data/canonical_models.json>)
+holds **7,205** records whose fields are *exactly* the models.dev model schema (`id`, `name`,
+`family`, `attachment`, `reasoning`, `tool_call`, `temperature`, `release_date`,
+`last_updated`, `modalities`, `open_weights`, `cost{input,output}`, `limit{context,output}`)
+with ids like `302ai/MiniMax-M1`; `provider_metadata.json` (175 providers) carries the
+models.dev *provider* fields `npm`, `api`, `doc`, `env[]` plus `model_count`. The crate README
+(<https://raw.githubusercontent.com/block/goose/main/crates/goose-provider-types/src/canonical/README.md>)
+says the builder "normalizes provider-specific model names (e.g. `claude-sonnet-4-5-20250929`)
+to canonical IDs (e.g. `anthropic/claude-sonnet-4.5`)" and "Compares with previous runs (like a
+lock file)" via `canonical_mapping_report.json`. The README still says it "Fetches from
+OpenRouter API"; the data shape says models.dev - **[INFERENCE]** the README lags the code;
+graded B for the *source* of the data, A for the *shape*.
+
+**[INFERENCE]** Two independent, heavily-used harnesses (OpenCode and Goose) now store model
+capability metadata in the models.dev shape. That is the strongest possible signal for which
+field names the estate registry should adopt for the *model* half.
+
+### 4.3 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM: `env_vars[] {name, required, secret, primary, default, description}` - the only
+  surveyed schema that types *non-secret* configuration env vars (a host URL) separately from
+  secrets; this is precisely the `LMSTUDIO_HOST`/`OLLAMA_HOST`/`AUTH2API_HOST` situation on the
+  box. Also copy `dynamic_models` semantics (static list wins if declared; else `/v1/models`
+  with 404 fallback) and `fast_model`.
+- COPY VERBATIM: the `auth {command,args,refresh_interval,timeout_seconds,cwd}` block - it is
+  already field-compatible with Codex's (Goose's own comment says so), so one estate field set
+  renders to both runtimes.
+- ADAPT: Goose wants `base_url` as a **full route** (`.../v1/chat/completions`), Codex/OpenCode/
+  Crush want a **base** (`.../v1`). The estate registry must store the base and let the Goose
+  renderer append the engine-specific route; record this as `api.shape -> route` table:
+  `chat_completions -> /chat/completions`, `responses -> /responses`, `anthropic_messages ->
+  /v1/messages`, `ollama -> /api/chat`.
+- NATIVE: `goose configure` already supports "Command (refreshable)" and custom providers; the
+  estate's existing `GOOSE_PROVIDER=goose-cursor-proxy` (DEDUP 3) is presumably one such JSON
+  - the registry renderer should *own* that file (`custom_providers/goose-cursor-proxy.json`)
+  rather than hand-edit it. BUILD = renderer only.
+- Lock check: Goose's `.agents/skills` consumption is prompt-side and untouched; this is
+  config-side.
+
+## 5. Aider - `.aider.model.settings.yml` + `.aider.model.metadata.json`
+
+### 5.1 Two files, two concerns
+
+**[FACT, A, 2026-09-02]** Aider (0.86 on the box) splits *behavioural* settings from *metadata*:
+
+- `aider/resources/model-settings.yml`
+  (<https://raw.githubusercontent.com/Aider-AI/aider/main/aider/resources/model-settings.yml>,
+  86 KB) is a YAML list keyed by `name`. Key frequency in the shipped file (measured
+  2026-09-02): `use_repo_map` 338, `edit_format` 333, `weak_model_name` 300,
+  `accepts_settings` 233, `use_temperature` 178, `examples_as_sys_msg` 158,
+  `editor_model_name` 145, `editor_edit_format` 138, `extra_params` 88 (nested `max_tokens`,
+  `extra_headers`, `top_p`, `temperature`, `include_reasoning`), `overeager` 64,
+  `cache_control` 63, `system_prompt_prefix` 53, `reminder` 44, `streaming` 36, `lazy` 15,
+  `use_system_prompt` 11, `caches_by_default` 10, `reasoning_tag` 3.
+- `aider/resources/model-metadata.json`
+  (<https://raw.githubusercontent.com/Aider-AI/aider/main/aider/resources/model-metadata.json>)
+  is JSON-with-comments in the **LiteLLM `model_prices_and_context_window` shape**:
+  `max_tokens`, `max_input_tokens`, `max_output_tokens`, `input_cost_per_token` (per *token*,
+  not per 1M), `input_cost_per_token_cache_hit`, `cache_read_input_token_cost`,
+  `cache_creation_input_token_cost`, `output_cost_per_token`, `litellm_provider`, `mode:
+  "chat"`, `supports_function_calling`, `supports_assistant_prefill`, `supports_tool_choice`,
+  `supports_prompt_caching`. Model keys are LiteLLM-prefixed (`openrouter/deepseek/...`).
+
+**[INFERENCE]** Aider's *settings* file is the only surveyed schema that records **per-model
+prompting behaviour** (`edit_format`, `use_repo_map`, `lazy`, `overeager`, `reminder: sys`,
+`examples_as_sys_msg`) and a **per-model sidecar pair** (`weak_model_name`,
+`editor_model_name`). No other harness encodes "which cheap model does the commit messages"
+declaratively.
+
+**[FACT + lock note, A, 2026-09-02]** Aider *embeds* `litellm` as a Python library (the
+`litellm_provider` key exists because of it). The estate lock forbids a LiteLLM **proxy /
+orchestration runtime**, not the library already inside an installed tool; this lens treats
+Aider's metadata format as a *render target* (write `~/.aider.model.metadata.json` from the
+registry) and never as a routing layer. Tradeoff stated, feature not removed.
+
+### 5.2 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM (into the estate schema, as optional per-runtime hints): `weak_model_name`,
+  `editor_model_name`, `edit_format`, `use_repo_map`, `reasoning_tag`, `extra_params`
+  (with nested `extra_headers`) - they are the cleanest existing vocabulary for "sidecar model"
+  and "wire quirks".
+- ADAPT: cost units. The estate should store USD **per 1M tokens** (models.dev/Catwalk
+  convention) and divide by 1e6 when rendering Aider metadata; `max_input_tokens ->
+  limit.input`, `max_output_tokens -> limit.output`.
+- NATIVE: aider reads both files from `~/` or repo root; `--model-settings-file` /
+  `--model-metadata-file` flags exist. BUILD = a renderer for the 36 `cursor-*` ids as
+  `openai/<id>` entries with `api_base` pointed at `http://127.0.0.1:8317/v1` via
+  `OPENAI_API_BASE` (Aider convention for OpenAI-compatible endpoints; [FACT, B, aider docs
+  "OpenAI compatible APIs" page, not re-fetched this run - UNVERIFIED for 0.86 exact flag names]).
+
+<!-- sections 6..N appended below; rubric table last -->
