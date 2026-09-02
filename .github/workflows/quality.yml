@@ -635,6 +635,28 @@ jobs:
         run: |
           pip install pytest pytest-cov pyyaml
           python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing
+      # .agents/scripts -- the shared MCP control plane (registry validation, the
+      # Claude/Codex/Cursor merge renderers, the fleet supervisor) that
+      # sync_shared_state.ps1 runs on the live box. Until 2026-09-02 NOTHING here named
+      # .agents/tests, so the Cursor merge could diverge in both directions between main
+      # and live (reconcile-flags/mcp-cursor-merge-lineage-2026-09-02.md: 26 live tests
+      # red against main's copy, 6 main tests red against live's) with CI green. Both
+      # lineage suites now run: main's test_mcp_control_plane.py, the ported live
+      # test_mcp_control_plane_live.py + test_cursor_remote_transport_policy.py, and the
+      # fleet-supervisor suite. Stdlib-only (pytest already installed above); the tests
+      # load the scripts by path and read .agents/agents.json in place. Reuses the
+      # existing `gate-tests-coverage` charter slug on purpose -- it is not a new gate,
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit. The
+      # bm_cursor_http_session bridge suite is deliberately NOT listed: it drives a fake
+      # streamable-HTTP daemon over loopback and is gated with tools/mcp/mcp-http-host.
+      - name: gate-tests-coverage mcp control plane (.agents/scripts; main + live lineage suites)
+        run: |
+          python -m pytest \
+            .agents/tests/test_mcp_control_plane.py \
+            .agents/tests/test_mcp_control_plane_live.py \
+            .agents/tests/test_cursor_remote_transport_policy.py \
+            .agents/tests/test_mcp_fleet_supervisor.py \
+            -q -p no:cacheprovider
       # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
       # Naming the script here turns its existing tests and production-wiring checks
       # into an executed regression lane instead of an inert test file.
@@ -1717,7 +1739,18 @@ jobs:
           echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
           "$RUNNER_TEMP/gitleaks" version
-          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 .
+          # HEAD-scoped on purpose. `gitleaks git` defaults to `git log --all`, and
+          # `fetch-depth: 0` above fetches EVERY remote branch, so the default scanned
+          # refs that are not ancestors of this PR at all. Measured 02.09.2026: the same
+          # PR range was clean (20 commits, 307 KB, 0 leaks) while the default scan
+          # reported 1434 commits / 1.10 GB / 820 leaks -- all of them inside the frozen
+          # P2 capture on handoff/cloud-agent-2026-09-02 + p2/loop-to-green-2026-09-02,
+          # so every open PR went red for content it does not carry. `--full-history HEAD`
+          # is exactly the claim the comment above makes: everything an ancestor of the
+          # merge revision, nothing else. Re-measured on main @ 5fa34fd with 8.30.1:
+          # 950 commits, ~219 MB, "no leaks found", exit 0, 17s.
+          "$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --exit-code 1 \
+            --log-opts="--full-history HEAD" .
 
   deps:
     name: gate-deps (osv-scanner)

@@ -273,27 +273,21 @@
       },
       "context7": {
         "label": "context7",
-        "description": "Imported from .codex/config.toml (context7)",
+        "description": "Official Context7 remote HTTP MCP (avoids per-session npx process trees)",
         "targets": [
           "claude"
         ],
         "enabled": true,
-        "transport": "stdio",
-        "command": "npx",
-        "args": [
-          "-y",
-          "@upstash/context7-mcp"
-        ],
-        "env": {
-          "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+        "transport": "http",
+        "url": "https://mcp.context7.com/mcp",
+        "headers": {
+          "Authorization": "Bearer ${CONTEXT7_API_KEY}"
         },
         "requiredEnv": [
           "CONTEXT7_API_KEY"
         ],
         "x_codex": {
-          "env_vars": [
-            "CONTEXT7_API_KEY"
-          ],
+          "bearer_token_env_var": "CONTEXT7_API_KEY",
           "startup_timeout_sec": 30
         },
         "credentialNames": [
@@ -302,8 +296,9 @@
         "tags": [
           "approved",
           "claude-only",
-          "local",
-          "stdio"
+          "remote",
+          "http",
+          "remote-required"
         ]
       },
       "deepsource": {
@@ -421,27 +416,21 @@
       },
       "firecrawl": {
         "label": "firecrawl",
-        "description": "Imported from .codex/config.toml (firecrawl)",
+        "description": "Official Firecrawl hosted HTTP MCP (avoids per-session npx process trees)",
         "targets": [
           "claude"
         ],
         "enabled": true,
-        "transport": "stdio",
-        "command": "npx",
-        "args": [
-          "-y",
-          "firecrawl-mcp@latest"
-        ],
-        "env": {
-          "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+        "transport": "http",
+        "url": "https://mcp.firecrawl.dev/v2/mcp",
+        "headers": {
+          "Authorization": "Bearer ${FIRECRAWL_API_KEY}"
         },
         "requiredEnv": [
           "FIRECRAWL_API_KEY"
         ],
         "x_codex": {
-          "env_vars": [
-            "FIRECRAWL_API_KEY"
-          ]
+          "bearer_token_env_var": "FIRECRAWL_API_KEY"
         },
         "credentialNames": [
           "FIRECRAWL_API_KEY"
@@ -449,8 +438,9 @@
         "tags": [
           "approved",
           "claude-only",
-          "local",
-          "stdio"
+          "remote",
+          "http",
+          "remote-required"
         ]
       },
       "frida-mcp": {
@@ -577,7 +567,7 @@
       },
       "huggingface": {
         "label": "huggingface",
-        "description": "Imported from .codex/config.toml (huggingface)",
+        "description": "Hugging Face Hub MCP — models, datasets, spaces, papers, Hub ops. Control plane for HF as an environment. Inference runtimes (Space Gradio, Space OpenAI /v1, Endpoints) are separate; skill hosted-model-agents. Do not register a raw inference URL as a second Hub MCP.",
         "targets": [
           "claude"
         ],
@@ -598,6 +588,40 @@
           "claude-only",
           "http",
           "remote"
+        ]
+      },
+      "glm53-space": {
+        "label": "glm53-space",
+        "description": "On-demand GLM 5.3 adapter using Hugging Face's official OpenAI-compatible inference router. Exposes one text-only chat tool with separate user_prompt and blank-default editable system_prompt fields. Never send secrets or raw private transcripts.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\bin\\uv.exe",
+        "args": [
+          "run",
+          "--locked",
+          "--directory",
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\glm53-space",
+          "python",
+          "mcp_server.py"
+        ],
+        "env": {
+          "HUGGINGFACE_TOKEN": "${HUGGINGFACE_TOKEN}"
+        },
+        "requiredEnv": [
+          "HUGGINGFACE_TOKEN"
+        ],
+        "credentialNames": [
+          "HUGGINGFACE_TOKEN"
+        ],
+        "tags": [
+          "approved",
+          "claude-only",
+          "hosted-inference",
+          "owner-requested",
+          "stdio"
         ]
       },
       "ida-pro-mcp": {
@@ -635,6 +659,45 @@
           "claude-only",
           "http",
           "remote"
+        ]
+      },
+      "linkedin": {
+        "label": "linkedin",
+        "description": "Self-serve LinkedIn MCP restored from the recovered private-repo source. Capability is limited to owner OIDC identity plus creating and deleting posts on the authenticated owner's own feed; alumni/profile search, Recruiter, Talent, Sales Navigator, organization, and advertising APIs are not built. Runtime approval stays default-off and is granted per session by the manager. Source verification was offline only (82/82 tests); LinkedIn app setup, credentials, authentication, and live API calls remain NOT-CHECKED.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\linkedin-mcp\\server.py"
+        ],
+        "env": {
+          "LINKEDIN_ACCESS_TOKEN": "${LINKEDIN_ACCESS_TOKEN}",
+          "LINKEDIN_CLIENT_ID": "${LINKEDIN_CLIENT_ID}",
+          "LINKEDIN_CLIENT_SECRET": "${LINKEDIN_CLIENT_SECRET}",
+          "LINKEDIN_REDIRECT_URI": "${LINKEDIN_REDIRECT_URI}"
+        },
+        "requiredEnv": [
+          "LINKEDIN_ACCESS_TOKEN",
+          "LINKEDIN_CLIENT_ID",
+          "LINKEDIN_CLIENT_SECRET",
+          "LINKEDIN_REDIRECT_URI"
+        ],
+        "credentialNames": [
+          "LINKEDIN_ACCESS_TOKEN",
+          "LINKEDIN_CLIENT_SECRET"
+        ],
+        "tags": [
+          "claude-only",
+          "default-off",
+          "local",
+          "owner-identity",
+          "owner-present-write",
+          "own-feed-write",
+          "stdio",
+          "unapproved"
         ]
       },
       "markitdown": {
