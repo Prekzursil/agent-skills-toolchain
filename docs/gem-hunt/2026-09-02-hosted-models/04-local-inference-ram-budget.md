@@ -187,7 +187,71 @@ How to read the table: **RAM** = working set at the stated context with f16 KV (
 
 ## 6. Exact server flags / commands
 
-_(pending)_
+All flags below are taken from the primary docs cited in section 3 (checked 2026-09-02); values are **[recommendation]** for a 31.6 GB, memory-starved, CPU-only Windows 11 box. Ports stay clear of the owned 8765 / 8812 / 8317 / 8770.
+
+### 6.1 Ollama (already installed) - user environment variables, then restart the tray app
+
+```
+OLLAMA_HOST=127.0.0.1:11434
+OLLAMA_KEEP_ALIVE=2m            # default 5m; per-request "keep_alive" overrides; 0 = unload after each reply
+OLLAMA_MAX_LOADED_MODELS=1      # default 3 on CPU; never two models resident on this box
+OLLAMA_NUM_PARALLEL=1           # RAM scales by NUM_PARALLEL x CONTEXT_LENGTH (faq.mdx)
+OLLAMA_CONTEXT_LENGTH=8192      # server default; per-request options.num_ctx overrides
+OLLAMA_KV_CACHE_TYPE=q8_0       # halves KV memory
+OLLAMA_FLASH_ATTENTION=1        # auto since Oct 2025; harmless to pin on
+OLLAMA_MODELS=D:\models\ollama  # only if the system drive is tight (default %USERPROFILE%\.ollama\models)
+OLLAMA_VULKAN=0|1               # set by the probe result (default on in current builds; 0 if the iGPU misbehaves)
+```
+Sources: https://github.com/ollama/ollama/blob/main/docs/faq.mdx; https://docs.ollama.com/gpu; https://modelpiper.com/blog/ollama-environment-variables.
+
+Per-request shape the layer should send (native API, streaming or not):
+```json
+{"model":"qwen3:4b-instruct-2507-q4_K_M","keep_alive":"2m","think":false,
+ "options":{"num_ctx":8192,"temperature":0},
+ "tools":[...],"messages":[...],"stream":false}
+```
+(`think` boolean/level and `keep_alive` are documented in https://github.com/ollama/ollama/blob/main/docs/api.md.) Probe/ops endpoints: `GET /api/version`, `GET /api/tags`, `POST /api/show {"model":...}` -> `capabilities`, `GET /api/ps` -> `size`, `size_vram`, `expires_at`; `ollama stop <model>` to force-unload.
+
+### 6.2 LM Studio (already installed) - prefer the `llmster` daemon over the GUI
+
+```powershell
+irm https://lmstudio.ai/install.ps1 | iex          # installs lms + llmster (0.4.0+)
+lms daemon up
+lms get <model>                                    # interactive catalogue; or lms import <path.gguf>
+lms server start --port 1234                       # OpenAI-compat + /api/v1 on 127.0.0.1:1234
+lms load <model_key> --context-length 8192 --gpu off --ttl 300   # explicit load ALWAYS with --ttl on this box
+lms ps --json                                      # loaded models + queue state (health check)
+lms unload --all                                   # emergency RAM release
+lms log stream -s runtime                          # llama.cpp-level logs
+```
+Server settings to pin (GUI Developer tab or the daemon's settings): **JIT loading ON**, **Auto-Evict ON** ("only keep last JIT loaded model"), **app-default Idle TTL 300-600 s** (default is 3600 s). Per request, LM Studio honours a `ttl` field (seconds) in the JSON body (documented for its REST API; probe whether `/v1` passes it through). Sources: https://lmstudio.ai/docs/developer/core/headless; https://lmstudio.ai/docs/cli/local-models/load; https://lmstudio.ai/blog/0.4.0; https://www.lmstudio.ai/llms-full.txt ("Idle TTL and Auto-Evict"). Probe endpoints: `GET /api/v0/models` (`state`, `type`, `quantization`, `max_context_length`), `GET /v1/models` (semantics depend on JIT setting - section 3.2), `POST /api/v1/models/load|unload`.
+
+### 6.3 llama.cpp `llama-server` (prebuilt `llama-bXXXX-bin-win-cpu-x64.zip`; try `-win-vulkan-x64.zip` only if the iGPU probe passes)
+
+Single-model, Tier S example (Qwen3-4B-Instruct-2507, thinking off, idle release after 5 min):
+```powershell
+llama-server.exe -hf unsloth/Qwen3-4B-Instruct-2507-GGUF:Q4_K_M `
+  --host 127.0.0.1 --port 8080 --alias local-s `
+  -c 8192 -np 1 -t <physical-cores> -fa on -ctk q8_0 -ctv q8_0 `
+  --jinja --reasoning-format deepseek --chat-template-kwargs "{\"enable_thinking\":false}" `
+  --load-mode mmap --cache-ram 1024 --sleep-idle-seconds 300 `
+  --no-webui --metrics --slots --api-key <name-only-secret-from-.agents/local.json>
+```
+Why each flag (README rows quoted in section 3.3): `-c` must be explicit (default 0 = model's full native context -> Qwen3 would allocate 32-40k of KV); `-np 1` = one slot (each slot multiplies KV); `-t` physical cores - InventiveHQ's CPU runs used threads = physical cores (Tier B); `-fa on` is required for quantised V cache; `-ctk/-ctv q8_0` halves KV; `--jinja` is default-on but pinned for tool parsing; `--reasoning-format deepseek` moves any `<think>` text into `reasoning_content` so it never pollutes `content`/tool parsing; `--chat-template-kwargs {"enable_thinking":false}` disables Qwen3 thinking at the template level (the kwarg is exercised in the Qwen3.5 issue threads cited in 4.3); `--load-mode mmap` keeps idle pages reclaimable (section 3.3 pitfall 1) - **do not** add `mlock`; `--cache-ram 1024` caps the prompt cache (default 8192 MiB, Debian manpage) so it cannot silently eat the budget; `--sleep-idle-seconds 300` frees weights **and** KV after 5 idle minutes, with `/health`, `/props`, `/models`, `/metrics` exempt so monitoring never wakes it (README "sleep mode", PR #18228); `--no-webui` trims the surface; `--api-key` because llama-server has no auth otherwise. `-hf` downloads into `LLAMA_CACHE` (default `%USERPROFILE%\.cache\llama.cpp`) - verify the exact HF repo id before use (Qwen's own `Qwen/Qwen3-8B-GGUF:Q4_K_M` is confirmed to exist; the unsloth 2507 repo id is asserted by secondary sources only).
+
+Tier M example: replace with `-hf Qwen/Qwen3-8B-GGUF:Q4_K_M -c 8192` (7 GB class) or `-hf bartowski/ibm-granite_granite-4.0-h-tiny-GGUF:Q4_K_M -c 16384` (needs a build >= the Granite-4 template fixes; b8634 or newer).
+
+Router mode (one process, several GGUFs, only one resident):
+```powershell
+llama-server.exe --models-dir D:\models\gguf --models-max 1 `
+  -c 8192 -np 1 -t <physical-cores> -fa on -ctk q8_0 -ctv q8_0 --jinja `
+  --sleep-idle-seconds 300 --host 127.0.0.1 --port 8080 --no-webui --api-key ...
+# ops: GET /models (status per model) ; POST /models/load {"model":"Qwen3-8B-Q4_K_M.gguf"} ;
+#      POST /models/unload {"model":...} ; GET /models/sse ; GET /props?model=<name> (sleeping flag)
+```
+Per-model overrides (different `-c`, template file, thinking kwargs) go in an INI passed with `--models-preset`. Sources: https://github.com/ggml-org/llama.cpp/blob/HEAD/tools/server/README.md; https://huggingface.co/blog/ggml-org/model-management-in-llamacpp; https://github.com/ggml-org/llama.cpp/issues/18035.
+
+### 6.4 vLLM in WSL2 - flags are listed in section 7 only for completeness; the recommendation there is *do not deploy on this box*.
 
 ## 7. vLLM / WSL2: is it worth it here?
 
