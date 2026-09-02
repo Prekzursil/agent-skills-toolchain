@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tools/foundry/schema/workflow.schema.json",
+  "title": "Foundry workflow",
+  "description": "Structural floor for workflows held in tools/foundry/library/incumbents.json and emitted by foundry.generate. Semantic checks (duplicate stage ids, unknown dependencies, cycles, stopping bound, parameter values) live in foundry.validate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "kind", "params", "stages", "stopping"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "kind": { "type": "string", "enum": ["workflow"] },
+    "goal": { "type": "string" },
+    "description": { "type": "string" },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "covers": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "intents": { "type": "array", "items": { "type": "string" } },
+        "constraints": { "type": "object" }
+      }
+    },
+    "discovery_only": { "type": "boolean" },
+    "generated": { "type": "boolean" },
+    "generator": { "type": "string" },
+    "quality": { "type": "number", "minimum": 0 },
+    "params": { "$ref": "#/$defs/params" },
+    "stages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/stage" }
+    },
+    "stopping": { "$ref": "#/$defs/stopping" }
+  },
+  "$defs": {
+    "params": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "values"],
+      "properties": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/param_spec" }
+        },
+        "values": { "type": "object" }
+      }
+    },
+    "param_spec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object"]
+        },
+        "required": { "type": "boolean" },
+        "enum": { "type": "array" },
+        "default": {},
+        "description": { "type": "string" }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "depends_on": { "type": "array", "items": { "type": "string" } },
+        "inputs": { "type": "array", "items": { "type": "string" } },
+        "outputs": { "type": "array", "items": { "type": "string" } },
+        "timeout_seconds": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stopping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_stages"],
+      "properties": {
+        "max_stages": { "type": "integer", "minimum": 1 },
+        "on_error": { "type": "string", "enum": ["halt", "continue"] }
+      }
+    }
+  }
+}

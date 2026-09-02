@@ -1,0 +1,79 @@
+{
+  "id": "foundry-incumbent-library",
+  "kind": "workflow-library",
+  "schema_version": 1,
+  "workflows": [
+    {
+      "capabilities": ["discover", "catalog", "record", "blueprint"],
+      "covers": {
+        "constraints": {"discovery_only": true},
+        "intents": [
+          "discover catalog-class workflows",
+          "record workflows as blueprints without execution"
+        ]
+      },
+      "discovery_only": true,
+      "goal": "Discover catalog-class workflows and record them as blueprints",
+      "id": "wf.catalog-class.discovery-only",
+      "kind": "workflow",
+      "params": {
+        "schema": {"repo": {"type": "string", "required": true}},
+        "values": {"repo": "."}
+      },
+      "quality": 80,
+      "stages": [
+        {
+          "depends_on": [],
+          "id": "discover",
+          "inputs": ["repo"],
+          "kind": "scan",
+          "outputs": ["candidates.json"]
+        },
+        {
+          "depends_on": ["discover"],
+          "id": "record",
+          "inputs": ["candidates.json"],
+          "kind": "write",
+          "outputs": ["blueprints.json"]
+        }
+      ],
+      "stopping": {"max_stages": 2, "on_error": "halt"}
+    },
+    {
+      "capabilities": ["certify", "publish"],
+      "covers": {
+        "constraints": {"discovery_only": false},
+        "intents": [
+          "certify forged workflow against completion predicate",
+          "publish certified workflow"
+        ]
+      },
+      "discovery_only": false,
+      "goal": "Certify a forged workflow against the completion predicate and publish it",
+      "id": "wf.catalog-class.certify-and-publish",
+      "kind": "workflow",
+      "params": {
+        "schema": {"workflow": {"type": "string", "required": true}},
+        "values": {"workflow": "fused.json"}
+      },
+      "quality": 70,
+      "stages": [
+        {
+          "depends_on": [],
+          "id": "certify",
+          "inputs": ["fused.json"],
+          "kind": "certify",
+          "outputs": ["certificate.json"]
+        },
+        {
+          "depends_on": ["certify"],
+          "id": "publish",
+          "inputs": ["certificate.json"],
+          "kind": "publish",
+          "outputs": ["published.json"]
+        }
+      ],
+      "stopping": {"max_stages": 2, "on_error": "halt"}
+    }
+  ]
+}

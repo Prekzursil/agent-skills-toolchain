@@ -1,6 +1,68 @@
-"""Named failure codes for foundry generation (IMP-0193)."""
+"""Named failure codes, generator id and closed violation ids for foundry generation (IMP-0193)."""
 from __future__ import annotations
 
 NAMED_FAILURE_11331 = "NAMED-FAILURE-11331-incumbent-not-returned"
 
-__all__ = ["NAMED_FAILURE_11331"]
+GENERATOR_ID = "foundry.generate/v1"
+
+# Structural (schema-floor) violations reported by foundry.validate.schema_errors.
+V_SCHEMA_TYPE = "WF-SCHEMA-TYPE"
+V_SCHEMA_REQUIRED = "WF-SCHEMA-REQUIRED-MISSING"
+V_SCHEMA_ADDITIONAL = "WF-SCHEMA-UNDECLARED-KEY"
+V_SCHEMA_ENUM = "WF-SCHEMA-ENUM"
+V_SCHEMA_MINIMUM = "WF-SCHEMA-MINIMUM"
+V_SCHEMA_MIN_ITEMS = "WF-SCHEMA-MIN-ITEMS"
+V_SCHEMA_MIN_LENGTH = "WF-SCHEMA-MIN-LENGTH"
+
+# Static (semantic) violations reported by foundry.validate.static_errors.
+V_STAGE_DUPLICATE_ID = "WF-STAGE-DUPLICATE-ID"
+V_STAGE_UNKNOWN_DEPENDENCY = "WF-STAGE-UNKNOWN-DEPENDENCY"
+V_STAGE_CYCLE = "WF-STAGE-CYCLE"
+V_STOPPING_MAX_STAGES = "WF-STOPPING-MAX-BELOW-STAGE-COUNT"
+
+# Parameter violations reported by foundry.validate.param_errors.
+V_PARAM_REQUIRED = "WF-PARAM-REQUIRED-MISSING"
+V_PARAM_TYPE = "WF-PARAM-TYPE-MISMATCH"
+V_PARAM_ENUM = "WF-PARAM-ENUM"
+V_PARAM_UNDECLARED = "WF-PARAM-UNDECLARED"
+
+VIOLATION_IDS = frozenset(
+    {
+        V_SCHEMA_TYPE,
+        V_SCHEMA_REQUIRED,
+        V_SCHEMA_ADDITIONAL,
+        V_SCHEMA_ENUM,
+        V_SCHEMA_MINIMUM,
+        V_SCHEMA_MIN_ITEMS,
+        V_SCHEMA_MIN_LENGTH,
+        V_STAGE_DUPLICATE_ID,
+        V_STAGE_UNKNOWN_DEPENDENCY,
+        V_STAGE_CYCLE,
+        V_STOPPING_MAX_STAGES,
+        V_PARAM_REQUIRED,
+        V_PARAM_TYPE,
+        V_PARAM_ENUM,
+        V_PARAM_UNDECLARED,
+    }
+)
+
+__all__ = [
+    "GENERATOR_ID",
+    "NAMED_FAILURE_11331",
+    "VIOLATION_IDS",
+    "V_PARAM_ENUM",
+    "V_PARAM_REQUIRED",
+    "V_PARAM_TYPE",
+    "V_PARAM_UNDECLARED",
+    "V_SCHEMA_ADDITIONAL",
+    "V_SCHEMA_ENUM",
+    "V_SCHEMA_MINIMUM",
+    "V_SCHEMA_MIN_ITEMS",
+    "V_SCHEMA_MIN_LENGTH",
+    "V_SCHEMA_REQUIRED",
+    "V_SCHEMA_TYPE",
+    "V_STAGE_CYCLE",
+    "V_STAGE_DUPLICATE_ID",
+    "V_STAGE_UNKNOWN_DEPENDENCY",
+    "V_STOPPING_MAX_STAGES",
+]

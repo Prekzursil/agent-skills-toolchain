@@ -76,3 +76,20 @@ Pre-promotion evidence to attach, all of it re-measured rather than cited from t
 - **No live tree is written.** `scripts/sync-from-live.ps1` is not run; `install.py` is used
   only with `--check`.
 - **No merge.** This lane is PR-only.
+
+## D. B07 non-inferiority margins (TST-0301)
+
+"Without material regression" (stopping condition 8) is a number, not a phrase. The per-metric
+margins live in `command-center/bench/B07-MARGIN-TABLE.json` (schema
+`command-center/schema/margin-table.schema.json`), decided at `2026-08-01T00:00:00Z`, BEFORE any
+comparison ran. The metrics the gate reads are the `gate: true` rows of
+`command-center/bench/METRIC-INVENTORY.json`; `tools/bench/margins.py` refuses a table that does
+not cover every one of them.
+
+- A secondary metric is `NON_INFERIOR` when `worse_delta <= margin` (inclusive: exactly at the
+  margin resolves `NON_INFERIOR`); beyond it is `MATERIAL_REGRESSION` and the primary win is
+  `REFUSE`d by `tools/bench/release_gate.py`.
+- Every comparison binds the table's content-address sha256 before scoring. Editing a margin
+  afterwards is `POST_HOC_MARGIN_CHANGE`, never a silent re-score; a comparison that started
+  before `decided_at` is `POST_HOC_MARGIN_DECISION`.
+- [ ] margin table sha256 recorded on the comparison record before the candidate is scored.
