@@ -438,4 +438,110 @@ registry) and never as a routing layer. Tradeoff stated, feature not removed.
   `OPENAI_API_BASE` (Aider convention for OpenAI-compatible endpoints; [FACT, B, aider docs
   "OpenAI compatible APIs" page, not re-fetched this run - UNVERIFIED for 0.86 exact flag names]).
 
-<!-- sections 6..N appended below; rubric table last -->
+## 6. Cline / Roo Code / Kilo Code / Continue - IDE-agent lineage
+
+### 6.1 Roo Code `modelInfoSchema` (zod) - the richest *capability flag* vocabulary
+
+**[FACT, A, 2026-09-02]** `packages/types/src/model.ts`
+(<https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/packages/types/src/model.ts>):
+
+```text
+modelInfoSchema = { maxTokens?, maxThinkingTokens?, contextWindow (required), supportsImages?,
+  supportsPromptCache (required), promptCacheRetention?: "in_memory"|"24h", supportsVerbosity?,
+  supportsReasoningBudget?, supportsReasoningBinary?, supportsTemperature?, defaultTemperature?,
+  requiredReasoningBudget?, supportsReasoningEffort?: bool | ["disable","none","minimal","low","medium","high","xhigh"][],
+  requiredReasoningEffort?, preserveReasoning?, supportedParameters?: ("max_tokens"|"temperature"|"reasoning"|"include_reasoning")[],
+  inputPrice?, outputPrice?, cacheWritesPrice?, cacheReadsPrice?,
+  tiers?: [{ contextWindow, inputPrice?, outputPrice?, cacheWritesPrice?, cacheReadsPrice? }],
+  pricing multipliers { thresholdTokens, *PriceMultiplier, appliesToServiceTiers: ("default"|"flex"|"priority")[] },
+  description?, minTokensPerCachePoint?, maxCachePoints?, cachableFields?, deprecated?, isStealthModel?, isFree?,
+  excludedTools?: string[], includedTools?: string[] }
+```
+
+Provider settings (`packages/types/src/provider-settings.ts`,
+<https://raw.githubusercontent.com/RooCodeInc/Roo-Code/main/packages/types/src/provider-settings.ts>)
+are a **zod discriminated union on `apiProvider`** (`anthropic`, `openrouter`, `bedrock`,
+`vertex`, `openai`, `ollama`, `vscode-lm`, `lmstudio`, `gemini`, `gemini-cli`,
+`openai-codex`, ...). The generic OpenAI-compatible branch is:
+`openAiBaseUrl`, `openAiApiKey`, `openAiR1FormatEnabled`, `openAiModelId`,
+**`openAiCustomModelInfo: modelInfoSchema`**, `openAiUseAzure`, `azureApiVersion`,
+`openAiStreamingEnabled`, `openAiHeaders: Record<string,string>`; local branches add
+`ollamaNumCtx` (int >= 128) and `lmStudioDraftModelId` + `lmStudioSpeculativeDecodingEnabled`.
+`dynamicProviders = ["openrouter","vercel-ai-gateway","litellm","requesty","unbound","poe"]`
+are the ones whose model list is fetched live; `localProviders = ["ollama","lmstudio"]`.
+Base settings carry `modelTemperature` and **`rateLimitSeconds`**.
+
+**[INFERENCE]** Roo's schema is the best *capability-flag* donor: it separates "supports X"
+from "requires X" (`supportsReasoningBudget` vs `requiredReasoningBudget`), types the
+reasoning-effort *value set* per model, and encodes prompt-cache mechanics
+(`minTokensPerCachePoint`, `maxCachePoints`, `cachableFields`) that matter for Anthropic-shaped
+endpoints. Its weakness: secrets are **inline values** (`openAiApiKey`), stored by the IDE's
+secret storage rather than by env name - not compatible with the estate's secrets-by-name lock
+without a renderer.
+
+### 6.2 Cline `ModelInfo` (TypeScript interface)
+
+**[FACT, A, 2026-09-02]** `apps/vscode/src/shared/api.ts`
+(<https://raw.githubusercontent.com/cline/cline/main/apps/vscode/src/shared/api.ts>; the repo was
+re-laid out into `apps/`, `sdk/`, `evals/` - the old `src/shared/api.ts` path 404s):
+`ModelInfo { name?, maxTokens?, contextWindow?, maxInputTokens?, supportsImages?,
+supportsPromptCache (required, "hardcoded for now"), supportsReasoning?, inputPrice?,
+outputPrice?, thinkingConfig { maxBudget?, outputPrice?, supportsThinkingLevel? },
+supportsGlobalEndpoint?, cacheWritesPrice?, cacheReadsPrice?, description?, tiers[{
+contextWindow, inputPrice?, outputPrice?, cache*Price? }], temperature? }`; the
+OpenAI-compatible extension adds `supportsReasoningEffort?`, `supportsTools?`,
+`supportsStreaming?`; a **`PriceTier { tokenLimit, price }`** type ("Use Infinity for the
+highest tier") implements context-tiered pricing; `openAiModelInfoSafeDefaults` provides a
+conservative default record for unknown endpoints. A `liteLlmDefaultModelId` constant exists
+(Cline supports a LiteLLM provider - **out of bounds here**).
+
+### 6.3 Kilo Code = OpenCode schema, byte-for-byte
+
+**[FACT, A, corroborated by diff, 2026-09-02]** `Kilo-Org/kilocode` `main` now has
+`packages/{opencode, schema, llm, kilo-gateway, ...}`; its `packages/schema/src/provider.ts`
+(<https://raw.githubusercontent.com/Kilo-Org/kilocode/main/packages/schema/src/provider.ts>) is
+**identical (2,352 bytes, empty `diff`) to OpenCode's** `packages/schema/src/provider.ts`, and
+the directory also carries `model.ts`, `models-dev.ts`, `catalog.ts`. The old Roo-style
+`packages/types/src/model.ts` path 404s. **[INFERENCE]** Kilo has moved its CLI/agent core onto
+the OpenCode codebase; for registry purposes Kilo == OpenCode (section 2) and adds no new
+schema. Grade A for the file identity; B for the organisational inference.
+
+### 6.4 Continue `config.yaml` `models[]`
+
+**[FACT, A (official reference doc in-repo), 2026-09-02]** `docs/reference.mdx`
+(<https://raw.githubusercontent.com/continuedev/continue/main/docs/reference.mdx>), `models`
+section, verbatim property list: `name` (req), `provider` (req, e.g. `openai`, `ollama`),
+`model` (req), `apiBase`, **`roles`** (`chat | autocomplete | embed | rerank | edit | apply |
+summarize`; default `[chat, edit, apply, summarize]`), **`capabilities`** (`tool_use`,
+`image_input` - "will overwrite Continue's autodetection"), `maxStopWords`, `promptTemplates`
+(`chat | edit | apply | autocomplete`, chat value is a template *name* like `llama3`,
+`anthropic`), `chatOptions {baseSystemMessage, baseAgentSystemMessage, basePlanSystemMessage}`,
+`embedOptions {maxChunkSize, maxBatchSize}`, `defaultCompletionOptions {contextLength,
+maxTokens, temperature, topP, topK, stop[], reasoning, reasoningBudgetTokens, keepAlive}`,
+**`requestOptions {timeout, verifySsl, caBundlePath, proxy, headers, extraBodyProperties,
+noProxy[], clientCertificate {cert,key,passphrase}}`**. API keys are written as
+`apiKey: ${{ secrets.NAME }}` in Continue Hub blocks (Hub secret templating; [FACT, B: seen in
+the same reference doc's examples, not separately verified]).
+
+**[INFERENCE]** Continue is the only surveyed schema that models a **role vector** per model
+(`chat/autocomplete/embed/rerank/edit/apply`) and a full **HTTP transport block**
+(proxy, CA bundle, client cert, `noProxy`). The role vector is directly useful for the estate:
+a HF Space or LM Studio model is often only good for `autocomplete`/`embed`.
+
+### 6.5 What to copy verbatim / NATIVE-vs-BUILD
+
+**[RECOMMENDATION]**
+- COPY VERBATIM from Roo: `supportsPromptCache`, `promptCacheRetention`,
+  `supportsReasoningEffort: bool | [values]`, `requiredReasoning*`, `preserveReasoning`,
+  `supportedParameters[]`, `tiers[]`, `deprecated`, `isFree`, `rateLimitSeconds`.
+- COPY VERBATIM from Continue: `roles[]` and `requestOptions {timeout, verifySsl,
+  caBundlePath, proxy, noProxy, headers, extraBodyProperties}`.
+- COPY VERBATIM from Cline: the idea of `openAiModelInfoSafeDefaults` - a documented
+  conservative default record applied to any endpoint whose `/v1/models` says nothing about
+  context/tools.
+- NATIVE-vs-BUILD: none of Cline/Roo/Kilo/Continue is listed among installed runtimes
+  (DEDUP 5; `cursor-agent` is, and Cursor is not in this lineage). Treat all four as **schema
+  donors only**; BUILD nothing for them unless one is adopted. If Kilo is ever adopted, the
+  OpenCode renderer covers it for free (6.3).
+
+<!-- sections 7..N appended below; rubric table last -->
