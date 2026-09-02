@@ -121,10 +121,8 @@ def main() -> int:
         REPO / "command-center/p2-wave/probes/CNL-0070/preservation.py",
         "token and token not in blob",
     )
-    a84 = find_line(
-        REPO / "tools/council/quota/unique_ideas.py",
-        "S1 OR S2 clustering via BFS connected components",
-    )
+    a84_snippet = "def unique_count_connected_components("
+    a84 = find_line(REPO / "tools/council/quota/unique_ideas.py", a84_snippet)
     a_cat = find_line(
         REPO / CATALOG,
         "manufactured trivial disagreement that keeps the unanimity counter below threshold",
@@ -347,7 +345,7 @@ def main() -> int:
                 "anchor": "command-center/p2-wave/probes/ADV-0135/probe2_reviewer_and_coc.py",
                 "probes": [
                     probe("source", "test-run", P2, p2_raw, 0),
-                    probe("verifier", "file-read", f"tools/council/quota/unique_ideas.py:{a84}", "S1 OR S2 clustering via BFS connected components", 0),
+                    probe("verifier", "file-read", f"tools/council/quota/unique_ideas.py:{a84}", a84_snippet, 0),
                 ],
             },
         ],
@@ -495,6 +493,17 @@ def main() -> int:
             "cloud_ok": False,
         },
     }
+    # Probes are the contract: probe2 reads reviewer.labels_hidden,
+    # reviewer.control_executed and control_of_the_control.fired at the
+    # document root. Mirror them there; the nested extensions copy stays.
+    for key in (
+        "attacks",
+        "control_of_the_control",
+        "control_of_the_control_dropped_dissent",
+    ):
+        doc[key] = doc["extensions"][key]
+    for key in ("labels_hidden", "control_executed"):
+        doc["reviewer"][key] = doc["extensions"]["reviewer_flags"][key]
 
     errs = schema_local.schema_errors(doc)
     if errs:

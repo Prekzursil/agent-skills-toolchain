@@ -303,6 +303,11 @@ def build() -> dict:
     if not ok:
         raise RuntimeError(f"overclaim {why}")
     doc["downstream_consumers"][0]["probe"]["raw_output"] = f"overclaim_ok=True {why}"
+    # Probes are the contract: probe1 reads denials at the document root.
+    # Mirror the report's domain keys there; the nested report copy stays.
+    for key in O._DOMAIN_KEYS:
+        if key in doc["report"]:
+            doc[key] = doc["report"][key]
     return doc
 
 

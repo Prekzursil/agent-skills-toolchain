@@ -587,6 +587,11 @@ def build_doc() -> dict:
             "required_fix": None,
         },
     }
+    # The probes are the contract: probe1 reads rows/aggregates at the document
+    # root (it bypasses calibrate.report_body). Mirror them there and keep the
+    # nested report copy so report_body consumers continue to work.
+    for key in ("rows", "aggregates", "accounting", "controls"):
+        doc[key] = doc["report"][key]
     return doc
 
 

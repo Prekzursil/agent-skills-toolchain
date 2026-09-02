@@ -552,6 +552,19 @@ def main() -> int:
         },
         "report": report,
     }
+    # Probes are the contract: probe2 reads flagged_pairs and measures at the
+    # document root (checker.report_payload also accepts the nested report).
+    # Mirror the score rows there; the nested report copy stays.
+    for key in (
+        "measures",
+        "planted_mutants",
+        "pairwise_scores",
+        "flagged_pairs",
+        "decoy_scores",
+        "firing_pattern",
+    ):
+        if key in report:
+            doc[key] = report[key]
 
     errs = SG.errors(doc)
     if errs:

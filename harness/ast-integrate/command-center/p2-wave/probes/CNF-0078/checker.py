@@ -4,7 +4,12 @@ from __future__ import annotations
 
 
 def report_payload(doc: dict) -> dict:
-    """Domain scores live under report when the receipt envelope is present."""
+    """Domain scores are read at the document root when mirrored there (the
+    probes' contract); otherwise fall back to the nested report payload."""
+    if isinstance(doc.get("planted_mutants"), list) or isinstance(
+        doc.get("flagged_pairs"), list
+    ):
+        return doc
     report = doc.get("report")
     if isinstance(report, dict) and (
         isinstance(report.get("planted_mutants"), list)

@@ -573,6 +573,11 @@ def main() -> int:
             "budget_unit": BUDGET_UNIT,
         },
     }
+    # Probes are the contract: probe1 reads score_matrix/stage_counts/
+    # budget_parity at the document root. Mirror them there; the nested report
+    # copy stays for report-shaped consumers.
+    for key in ("score_matrix", "stage_counts", "budget_parity", "gate", "answers"):
+        doc[key] = doc["report"][key]
 
     errs = SC.iter_errors(doc)
     if errs:

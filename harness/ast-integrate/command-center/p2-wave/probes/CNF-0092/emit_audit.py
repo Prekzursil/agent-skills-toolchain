@@ -324,7 +324,48 @@ def main() -> int:
                 ),
             ],
         },
+        {
+            "claim": (
+                "Unanimous YES reached after four independent briefs stays "
+                "silent because the briefs half of the trip-wire is not met."
+            ),
+            "verdict": "CONFIRMED",
+            "confidence": "almost-certain",
+            "anchor": anchors[3]["anchor"],
+            "probes": [
+                probe(
+                    "source",
+                    "command",
+                    src_cmd + "#legitimate",
+                    json.dumps(
+                        {
+                            "trigger_fired": legitimate["trigger_fired"],
+                            "reason": legitimate["trigger"]["reason"],
+                            "round_one_votes": legitimate["round_one_votes"],
+                        },
+                        sort_keys=True,
+                    ),
+                    0,
+                ),
+                probe(
+                    "verifier",
+                    "static-analysis",
+                    f"{SUT}:THRESHOLD max_independent_briefs",
+                    json.dumps({"threshold": dict(U.THRESHOLD)}, sort_keys=True),
+                    0,
+                ),
+            ],
+        },
     ]
+    # Probes are the contract: probe2 re-resolves every root evidence row via
+    # its path/line/snippet. Carry the cited anchor's decomposition on the row
+    # (same file:line the "anchor" string already names).
+    by_anchor = {a["anchor"]: a for a in anchors}
+    for row in evidence:
+        cited = by_anchor[row["anchor"]]
+        row["path"] = cited["path"]
+        row["line"] = cited["line"]
+        row["snippet"] = cited["snippet"]
 
     audit_log = []
     for run in live["runs"]:
@@ -585,6 +626,17 @@ def main() -> int:
             "ts": now,
         },
     }
+    # Probes are the contract: probe2 reads runs (and evidence) at the document
+    # root. Mirror the domain rows there; the nested report copy stays.
+    for key in (
+        "runs",
+        "audit_log",
+        "round_one_vote_record",
+        "reevaluation_transcript",
+        "controls",
+        "findings",
+    ):
+        doc[key] = doc["report"][key]
 
     errs = S.error_list(REPO, doc)
     if errs:

@@ -602,6 +602,23 @@ def main() -> int:
             ),
         },
     }
+    # Probes are the contract: probe2 reads the sweep counts, references,
+    # escalation packets and reviewer.ten_undecidable_sample at the document
+    # root. Mirror them there; the nested report copy stays.
+    for key in (
+        "undecidable_in_docs_16_18_19",
+        "planted_absent_verdict",
+        "mention_not_use_proven",
+        "classification_counts",
+        "declaration_count",
+        "deviations",
+        "references",
+        "undecidable_owner_escalation",
+        "live_corpus",
+        "fixture_corpus",
+    ):
+        doc[key] = doc["report"][key]
+    doc["reviewer"]["ten_undecidable_sample"] = doc["report"]["ten_undecidable_sample"]
 
     dest = REPO / OUT
     dest.parent.mkdir(parents=True, exist_ok=True)

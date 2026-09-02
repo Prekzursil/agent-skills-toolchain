@@ -573,6 +573,11 @@ def main() -> int:
             },
         },
     }
+    # Probes are the contract: probe1/probe2 read live_host, inventory and
+    # preservation_control at the document root. Mirror them there; the nested
+    # report copy stays.
+    for key in ("live_host", "inventory", "preservation_control", "answers"):
+        doc[key] = doc["report"][key]
 
     rejected = S.garbage_rejected()
     if rejected != 3:

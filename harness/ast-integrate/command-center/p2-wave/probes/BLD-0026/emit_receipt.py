@@ -484,6 +484,9 @@ def main() -> int:
             ),
         },
     }
+    # Probes are the contract: probe2 reads the register at doc["entries"].
+    # Mirror it to the document root; the nested report/extensions copies stay.
+    doc["entries"] = entries
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     payload = _dump(doc)

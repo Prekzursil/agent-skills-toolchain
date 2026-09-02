@@ -684,6 +684,27 @@ def main() -> int:
             "both_states": states,
         },
     }
+    # Probes are the contract: probe1/probe2 read report_kind, arms, sample,
+    # the raw verdict tables and the calibration metrics at the document root.
+    # Mirror them there; the nested report copy stays.
+    for key in (
+        "report_kind",
+        "pass_as_evidence_justified",
+        "substrate",
+        "sample",
+        "arms",
+        "raw_verdict_tables",
+        "wilson_intervals",
+        "brier_scores",
+        "accuracy",
+        "error_direction",
+        "pass_as_evidence",
+        "controls",
+        "flake",
+        "reviewers",
+        "both_states",
+    ):
+        doc[key] = doc["report"][key]
 
     blob = json.dumps(doc)
     if COMPLETION_SENTINEL not in blob:

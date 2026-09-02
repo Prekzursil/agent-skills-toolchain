@@ -407,6 +407,10 @@ def main() -> int:
             ),
         },
     }
+    # Probes are the contract: probe2 reads matrix/both_states/completeness at
+    # the document root. Mirror them there; the nested report copy stays.
+    for key in ("matrix", "both_states", "completeness"):
+        receipt[key] = receipt["report"][key]
     errs = validate_test_receipt(receipt)
     if errs:
         print("FAILED:TST-0078 emit schema-invalid")

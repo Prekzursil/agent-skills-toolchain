@@ -9,8 +9,8 @@
   "artifacts": [
     {
       "path": "command-center/schema/lineage-report.schema.json",
-      "bytes": 1027,
-      "sha256": "841f339333a9a91b780155ec11194d8d032eb7ee2eda15556ceb6f0391e7d976",
+      "bytes": 1065,
+      "sha256": "071a2d2a3af902c28d48569642bd8143ce05be28db0f5b2435d7cab63e91adb8",
       "exists": true,
       "eol": "LF",
       "role": "primary"
@@ -25,8 +25,8 @@
     },
     {
       "path": "command-center/p2-wave/probes/CNF-0076/emit_lineage.py",
-      "bytes": 23948,
-      "sha256": "317a268eb64703137ec4d76a90b7aca3b97ca9b8ac74249c0e5748bcf806feee",
+      "bytes": 24456,
+      "sha256": "39f7478b323b0a6c39828aeec96c88ac0bc927f09062f3eee1383b11c927e3de",
       "exists": true,
       "eol": "LF",
       "role": "supporting"
@@ -41,8 +41,8 @@
     },
     {
       "path": "command-center/p2-wave/probes/CNF-0076/probe2_remove_stage.py",
-      "bytes": 4233,
-      "sha256": "e196768cc474de68d5037b2db925d84efe68d343a49b602a53794748e629a323",
+      "bytes": 4246,
+      "sha256": "17dfd10e198b883b96d1bc5bcdcba1479693b1876dacfcd7c90dd3178f8f6d05",
       "exists": true,
       "eol": "LF",
       "role": "supporting"
@@ -206,7 +206,7 @@
     "fresh_context": true,
     "vendor": "other",
     "notes": "Re-derived from fixtures/sources, fixtures/original-outputs, and workflow.run_analysis() before this receipt's answers were written. derived={\"lineage_complete_for_fused_stages\": true, \"lost_capability_both_states\": true, \"lost_capability_filed\": true, \"metadata_only_does_not_clear_loss\": true, \"recovered_ok\": true, \"remove_one_stage_detected\": true}",
-    "reviewed_at": "2026-08-25T00:58:17Z"
+    "reviewed_at": "2026-09-02T09:09:33Z"
   },
   "defects": [],
   "manifest_registration": {
@@ -232,8 +232,8 @@
     }
   ],
   "timestamps": {
-    "started_at": "2026-08-25T00:58:17Z",
-    "ended_at": "2026-08-25T00:58:17Z",
+    "started_at": "2026-09-02T09:09:33Z",
+    "ended_at": "2026-09-02T09:09:33Z",
     "duration_seconds": 0
   },
   "retry": {
@@ -778,5 +778,481 @@
       "control: remove one stage from the fusion and confirm the decomposition check notices"
     ],
     "evidence_requirement": "per source: the recovered definition, its execution output, and the diff against the original output"
+  },
+  "fusion": {
+    "id": "wf.fused-index",
+    "kind": "fused_workflow",
+    "strategy": "union-with-lineage",
+    "sources_declared": [
+      "wf.lex-normalize",
+      "wf.term-index"
+    ],
+    "stages": [
+      {
+        "id": "wf.lex-normalize::lowercase",
+        "op": "lowercase",
+        "params": {
+          "field": "text"
+        },
+        "lineage": {
+          "source_id": "wf.lex-normalize",
+          "stage_id": "lowercase",
+          "license": "MIT",
+          "credit": "lex-normalize authors"
+        }
+      },
+      {
+        "id": "wf.lex-normalize::tokenize",
+        "op": "tokenize",
+        "params": {
+          "field": "text",
+          "out": "tokens"
+        },
+        "lineage": {
+          "source_id": "wf.lex-normalize",
+          "stage_id": "tokenize",
+          "license": "MIT",
+          "credit": "lex-normalize authors"
+        }
+      },
+      {
+        "id": "wf.term-index::tokenize",
+        "op": "tokenize",
+        "params": {
+          "field": "text",
+          "out": "tokens"
+        },
+        "lineage": {
+          "source_id": "wf.term-index",
+          "stage_id": "tokenize",
+          "license": "Apache-2.0",
+          "credit": "term-index authors"
+        }
+      },
+      {
+        "id": "wf.term-index::unique_sort",
+        "op": "unique_sort",
+        "params": {
+          "field": "tokens",
+          "out": "terms"
+        },
+        "lineage": {
+          "source_id": "wf.term-index",
+          "stage_id": "unique_sort",
+          "license": "Apache-2.0",
+          "credit": "term-index authors"
+        }
+      },
+      {
+        "id": "wf.term-index::count",
+        "op": "count",
+        "params": {
+          "field": "tokens",
+          "out": "counts"
+        },
+        "lineage": {
+          "source_id": "wf.term-index",
+          "stage_id": "count",
+          "license": "Apache-2.0",
+          "credit": "term-index authors"
+        }
+      }
+    ],
+    "fingerprint": "ed6b276a2e594d5103f8e8c60e4b34d45d67580320bd62b3c6750b69aeff310e",
+    "stage_count": 5
+  },
+  "sources": [
+    {
+      "id": "wf.lex-normalize",
+      "title": "Lexical normalizer",
+      "license": "MIT",
+      "credit": "lex-normalize authors",
+      "stages": [
+        {
+          "id": "lowercase",
+          "op": "lowercase",
+          "params": {
+            "field": "text"
+          }
+        },
+        {
+          "id": "tokenize",
+          "op": "tokenize",
+          "params": {
+            "field": "text",
+            "out": "tokens"
+          }
+        }
+      ],
+      "fingerprint": "2f490591912c92abf54ab71f2c219e2f0615c9b4f9f8b8ba623fa2bfda73741f",
+      "original_output": {
+        "id": "case-alpha",
+        "text": "alpha beta alpha gamma",
+        "tokens": [
+          "alpha",
+          "beta",
+          "alpha",
+          "gamma"
+        ]
+      },
+      "original_output_sha256": "2d1eca9e0b8b592132b956ba89edefb1a3e9e0d2a56ef3764cbd619d30f34ec4",
+      "original_execution_log": [
+        {
+          "stage_id": "lowercase",
+          "op": "lowercase"
+        },
+        {
+          "stage_id": "tokenize",
+          "op": "tokenize"
+        }
+      ]
+    },
+    {
+      "id": "wf.license-stamp",
+      "title": "License provenance stamp",
+      "license": "GPL-3.0",
+      "credit": "license-stamp authors",
+      "stages": [
+        {
+          "id": "stamp",
+          "op": "stamp",
+          "params": {
+            "key": "license",
+            "value": "GPL-3.0"
+          }
+        }
+      ],
+      "fingerprint": "1df6a7df4aa5a961dc85cf589fd3fe29820e78df9f18252a70b0ea1eca8cfa26",
+      "original_output": {
+        "id": "case-alpha",
+        "text": "Alpha beta alpha Gamma",
+        "license": "GPL-3.0"
+      },
+      "original_output_sha256": "ba8c3ab47021d8e8fffe7258d8d485350ffbf460ae23b54b50dda3008e490458",
+      "original_execution_log": [
+        {
+          "stage_id": "stamp",
+          "op": "stamp"
+        }
+      ]
+    },
+    {
+      "id": "wf.term-index",
+      "title": "Term index",
+      "license": "Apache-2.0",
+      "credit": "term-index authors",
+      "stages": [
+        {
+          "id": "tokenize",
+          "op": "tokenize",
+          "params": {
+            "field": "text",
+            "out": "tokens"
+          }
+        },
+        {
+          "id": "unique_sort",
+          "op": "unique_sort",
+          "params": {
+            "field": "tokens",
+            "out": "terms"
+          }
+        },
+        {
+          "id": "count",
+          "op": "count",
+          "params": {
+            "field": "tokens",
+            "out": "counts"
+          }
+        }
+      ],
+      "fingerprint": "68f9281906f11b335f0477650be44ebbb920ced9901a582b2d6f572168a43874",
+      "original_output": {
+        "id": "case-alpha",
+        "text": "Alpha beta alpha Gamma",
+        "tokens": [
+          "Alpha",
+          "beta",
+          "alpha",
+          "Gamma"
+        ],
+        "terms": [
+          "Alpha",
+          "Gamma",
+          "alpha",
+          "beta"
+        ],
+        "counts": {
+          "Alpha": 1,
+          "Gamma": 1,
+          "alpha": 1,
+          "beta": 1
+        }
+      },
+      "original_output_sha256": "f72b0f9954b9fe30db4a4521efb0f05b0431a7ba5bbab5495e682828326c06d0",
+      "original_execution_log": [
+        {
+          "stage_id": "tokenize",
+          "op": "tokenize"
+        },
+        {
+          "stage_id": "unique_sort",
+          "op": "unique_sort"
+        },
+        {
+          "stage_id": "count",
+          "op": "count"
+        }
+      ]
+    }
+  ],
+  "recovered": [
+    {
+      "source_id": "wf.lex-normalize",
+      "executed": true,
+      "output_match": true,
+      "definition": {
+        "id": "wf.lex-normalize",
+        "kind": "recovered_source",
+        "license": "MIT",
+        "credit": "lex-normalize authors",
+        "stages": [
+          {
+            "id": "lowercase",
+            "op": "lowercase",
+            "params": {
+              "field": "text"
+            }
+          },
+          {
+            "id": "tokenize",
+            "op": "tokenize",
+            "params": {
+              "field": "text",
+              "out": "tokens"
+            }
+          }
+        ]
+      },
+      "execution_output": {
+        "id": "case-alpha",
+        "text": "alpha beta alpha gamma",
+        "tokens": [
+          "alpha",
+          "beta",
+          "alpha",
+          "gamma"
+        ]
+      },
+      "execution_log": [
+        {
+          "stage_id": "lowercase",
+          "op": "lowercase"
+        },
+        {
+          "stage_id": "tokenize",
+          "op": "tokenize"
+        }
+      ],
+      "diff_against_original": {
+        "match": true,
+        "original_sha256": "2d1eca9e0b8b592132b956ba89edefb1a3e9e0d2a56ef3764cbd619d30f34ec4",
+        "recovered_sha256": "2d1eca9e0b8b592132b956ba89edefb1a3e9e0d2a56ef3764cbd619d30f34ec4",
+        "differing_fields": []
+      },
+      "lineage_license": "MIT",
+      "lineage_credit": "lex-normalize authors",
+      "fingerprint": "2f490591912c92abf54ab71f2c219e2f0615c9b4f9f8b8ba623fa2bfda73741f",
+      "original_fingerprint": "2f490591912c92abf54ab71f2c219e2f0615c9b4f9f8b8ba623fa2bfda73741f"
+    },
+    {
+      "source_id": "wf.term-index",
+      "executed": true,
+      "output_match": true,
+      "definition": {
+        "id": "wf.term-index",
+        "kind": "recovered_source",
+        "license": "Apache-2.0",
+        "credit": "term-index authors",
+        "stages": [
+          {
+            "id": "tokenize",
+            "op": "tokenize",
+            "params": {
+              "field": "text",
+              "out": "tokens"
+            }
+          },
+          {
+            "id": "unique_sort",
+            "op": "unique_sort",
+            "params": {
+              "field": "tokens",
+              "out": "terms"
+            }
+          },
+          {
+            "id": "count",
+            "op": "count",
+            "params": {
+              "field": "tokens",
+              "out": "counts"
+            }
+          }
+        ]
+      },
+      "execution_output": {
+        "id": "case-alpha",
+        "text": "Alpha beta alpha Gamma",
+        "tokens": [
+          "Alpha",
+          "beta",
+          "alpha",
+          "Gamma"
+        ],
+        "terms": [
+          "Alpha",
+          "Gamma",
+          "alpha",
+          "beta"
+        ],
+        "counts": {
+          "Alpha": 1,
+          "Gamma": 1,
+          "alpha": 1,
+          "beta": 1
+        }
+      },
+      "execution_log": [
+        {
+          "stage_id": "tokenize",
+          "op": "tokenize"
+        },
+        {
+          "stage_id": "unique_sort",
+          "op": "unique_sort"
+        },
+        {
+          "stage_id": "count",
+          "op": "count"
+        }
+      ],
+      "diff_against_original": {
+        "match": true,
+        "original_sha256": "f72b0f9954b9fe30db4a4521efb0f05b0431a7ba5bbab5495e682828326c06d0",
+        "recovered_sha256": "f72b0f9954b9fe30db4a4521efb0f05b0431a7ba5bbab5495e682828326c06d0",
+        "differing_fields": []
+      },
+      "lineage_license": "Apache-2.0",
+      "lineage_credit": "term-index authors",
+      "fingerprint": "68f9281906f11b335f0477650be44ebbb920ced9901a582b2d6f572168a43874",
+      "original_fingerprint": "68f9281906f11b335f0477650be44ebbb920ced9901a582b2d6f572168a43874"
+    }
+  ],
+  "lost_capabilities": [
+    {
+      "source_id": "wf.license-stamp",
+      "reason": "absent-from-lineage-graph",
+      "stages": [
+        "stamp"
+      ],
+      "license": "GPL-3.0",
+      "credit": "license-stamp authors"
+    }
+  ],
+  "lineage": [
+    {
+      "fusion_stage_id": "wf.lex-normalize::lowercase",
+      "op": "lowercase",
+      "source_id": "wf.lex-normalize",
+      "source_stage_id": "lowercase",
+      "license": "MIT",
+      "credit": "lex-normalize authors",
+      "lineage_present": true
+    },
+    {
+      "fusion_stage_id": "wf.lex-normalize::tokenize",
+      "op": "tokenize",
+      "source_id": "wf.lex-normalize",
+      "source_stage_id": "tokenize",
+      "license": "MIT",
+      "credit": "lex-normalize authors",
+      "lineage_present": true
+    },
+    {
+      "fusion_stage_id": "wf.term-index::tokenize",
+      "op": "tokenize",
+      "source_id": "wf.term-index",
+      "source_stage_id": "tokenize",
+      "license": "Apache-2.0",
+      "credit": "term-index authors",
+      "lineage_present": true
+    },
+    {
+      "fusion_stage_id": "wf.term-index::unique_sort",
+      "op": "unique_sort",
+      "source_id": "wf.term-index",
+      "source_stage_id": "unique_sort",
+      "license": "Apache-2.0",
+      "credit": "term-index authors",
+      "lineage_present": true
+    },
+    {
+      "fusion_stage_id": "wf.term-index::count",
+      "op": "count",
+      "source_id": "wf.term-index",
+      "source_stage_id": "count",
+      "license": "Apache-2.0",
+      "credit": "term-index authors",
+      "lineage_present": true
+    }
+  ],
+  "lost_capability_both_states": {
+    "complete_fusion_lost_count": 0,
+    "lossy_fusion_lost_count": 1,
+    "detector_silent_on_complete": true,
+    "detector_fires_on_omission": true
+  },
+  "metadata_only_claim": {
+    "mutant": "sources_declared lists wf.license-stamp with no stamp stage",
+    "still_filed_as_lost": true,
+    "lost": [
+      {
+        "source_id": "wf.license-stamp",
+        "reason": "absent-from-lineage-graph",
+        "stages": [
+          "stamp"
+        ],
+        "license": "GPL-3.0",
+        "credit": "license-stamp authors"
+      }
+    ]
+  },
+  "remove_one_stage_control": {
+    "removed_stage_id": "wf.term-index::count",
+    "detected": true,
+    "intact_does_not_fire": true,
+    "mutilated_fires": true,
+    "intact_fusion_stage_count": 5,
+    "mutilated_fusion_stage_count": 4,
+    "intact_recovered_stage_count": 5,
+    "mutilated_recovered_stage_count": 4,
+    "new_issues": [
+      {
+        "source_id": "wf.term-index",
+        "reason": "stage-missing-after-decompose",
+        "stages": [
+          "count"
+        ]
+      }
+    ],
+    "method": "decompose reads fusion stages, not sources_declared; dropping wf.term-index::count adds a stage-missing-after-decompose issue that the intact fusion does not have"
+  },
+  "answers": {
+    "each_recovered_source_matches_original_output": true,
+    "lineage_preserved_for_every_fused_stage": true,
+    "silently_lost_source_mechanism": false,
+    "lost_source_filed": "wf.license-stamp"
   }
 }

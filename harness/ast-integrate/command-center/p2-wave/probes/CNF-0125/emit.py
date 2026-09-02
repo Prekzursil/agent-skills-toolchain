@@ -414,6 +414,10 @@ def main() -> int:
             "required_fix": None,
         },
     }
+    # Probes are the contract: probe2 reads headline/premises/reviewers at the
+    # document root. Mirror them there; the nested extensions copy stays.
+    for key in ("headline", "premises", "reviewers"):
+        doc[key] = doc["extensions"][key]
 
     validate_or_die(doc)
     out = REPO / OUT

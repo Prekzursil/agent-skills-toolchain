@@ -436,6 +436,22 @@ def main() -> int:
             "completion_sentinel": sentinel,
         },
     }
+    # Probes are the contract: probe2 reads credential_value_printed,
+    # product_runtime and empty_cells at the document root. Mirror the domain
+    # rows there; the nested report copy stays.
+    for key in (
+        "empty_cells",
+        "credential_value_printed",
+        "matrix",
+        "detector_control",
+        "findings",
+        "product_runtime",
+        "control",
+        "credential_probe",
+        "declared_permissions",
+    ):
+        if key in doc["report"]:
+            doc[key] = doc["report"][key]
 
     if not garbage_rejected():
         print("FAILED:CNF-0111 schema accepted garbage")

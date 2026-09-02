@@ -253,7 +253,7 @@ def build_doc(
         "1->2 is accepted. A non-frozen notes.txt edit is silent. "
         f"{SENTINEL}"
     )
-    return {
+    doc = {
         "schema_version": 1,
         "unit_id": UNIT,
         "state": "SUCCESS",
@@ -518,6 +518,13 @@ def build_doc(
             "answer": answer,
         },
     }
+    # Probes are the contract: probe1/probe2 read frozen_set.hash, checks and
+    # evidence at the document root. Mirror them there; the nested extensions
+    # copy stays for the CONSUMER readback.
+    doc["frozen_set"] = doc["extensions"]["frozen_set"]
+    doc["checks"] = doc["extensions"]["checks"]
+    doc["evidence"] = doc["extensions"]["evidence_flags"]
+    return doc
 
 
 def seed_receipt(live: dict, demo: dict, now: str) -> None:

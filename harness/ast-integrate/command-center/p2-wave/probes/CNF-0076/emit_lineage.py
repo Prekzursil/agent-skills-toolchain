@@ -570,6 +570,21 @@ def main() -> int:
             ),
         },
     }
+    # Probes are the contract: probe2 reads remove_one_stage_control at the
+    # document root (probe1 accepts report.recovered or root recovered). Mirror
+    # the domain rows there; the nested report copy stays.
+    for key in (
+        "fusion",
+        "sources",
+        "recovered",
+        "lost_capabilities",
+        "lineage",
+        "lost_capability_both_states",
+        "metadata_only_claim",
+        "remove_one_stage_control",
+        "answers",
+    ):
+        doc[key] = doc["report"][key]
 
     errs = schema_check.iter_errors(doc)
     if errs:

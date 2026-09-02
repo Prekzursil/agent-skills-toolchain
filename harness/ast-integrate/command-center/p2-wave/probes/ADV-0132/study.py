@@ -718,11 +718,15 @@ def build_document() -> dict[str, Any]:
     # Probes read conclusions/headline/negative_control/mutation_control at
     # the document root; keep copies there without dropping the receipt report.
     for key in (
+        "answer",
+        "sampling_frame",
         "conclusions",
         "headline",
         "negative_control",
         "mutation_control",
         "pre_registration",
+        "blinding",
+        "reviewers",
     ):
         doc[key] = doc["report"][key]
     return doc
