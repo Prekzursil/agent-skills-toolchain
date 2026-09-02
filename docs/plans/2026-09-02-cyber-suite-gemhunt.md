@@ -89,13 +89,13 @@ per the owner's model directive.
 | # | Lens | Agent | Status |
 |---|------|-------|--------|
 | L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | running |
-| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | — | QUEUED |
-| L3 | Purple-team / adversary emulation / BAS / detection validation | — | QUEUED |
-| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | QUEUED |
+| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | bc-3e781288 | running |
+| L3 | Purple-team / adversary emulation / BAS / detection validation | — | QUEUED (reframe defensive) |
+| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | QUEUED (reframe defensive) |
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | running |
 | L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | — | QUEUED |
 | L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | running |
-| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-1358f975 | running |
+| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-1358f975 | **BLOCKED** (relaunch defensive) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | running |
 | L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | running |
 | L11 | Cyber skills in the wild (OSS agent/Claude skills) | — | QUEUED |
