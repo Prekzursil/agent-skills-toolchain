@@ -465,11 +465,12 @@ def test_cursor_attach_all_dry_run_projects_the_full_safe_surface(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    # 40 = the 32 parked definitions + the core six + glm53-space + linkedin
-    # (cve-mcp joined both the registry and the parked catalog on 2026-09-02, G-11).
-    assert "attached=40" in completed.stdout
+    # 41 = the 33 parked definitions + the core six + glm53-space + linkedin
+    # (cve-mcp and osint-mcp-server joined both the registry and the parked catalog
+    # on 2026-09-02: G-11 and the cyber-suite follow-up).
+    assert "attached=41" in completed.stdout
     assert "core_attached=6" in completed.stdout
-    assert "noncore_projected=34" in completed.stdout
+    assert "noncore_projected=35" in completed.stdout
     assert "approval_proof=dry-run-unverified" in completed.stdout
     assert json.loads(live.read_text(encoding="utf-8"))["mcpServers"] == {}
 

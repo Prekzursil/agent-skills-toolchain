@@ -176,3 +176,38 @@ template/module *existence*, they do not run anything.
 **Rollback.** Delete the `cve-mcp` entry from `mcp.servers` and from
 `mcp-cursor-parked-31.json`, restore the two pinned counts (39/33), re-run
 `validate_mcp_control_plane.py` and `python -m pytest -q .agents/tests`.
+
+## 2026-09-02 — `osint-mcp-server` registered ENABLED (cyber-suite follow-up; owner: "fix and write this as well: osint-mcp-server")
+
+**What changed.** `mcp.servers.osint-mcp-server` added right after `cve-mcp` (the security
+cluster): stdio, `npx -y osint-mcp-server@0.2.0`, `enabled: true`, `targets: ["claude"]`,
+tags `approved, claude-only, local, stdio, security`. Cursor-rendered body added to
+`.agents/mcp-cursor-parked-31.json` (32 -> 33 definitions, comment updated); the
+attach-all invariant test moves 40/34 -> 41/35.
+
+**Why.** The hacktricks `security-mcp-routing.md` names `osint-mcp-server` as the "public
+footprint / current asset observations" provider, and it sat in
+`tools/mcp/canonical-mcp-servers.json` + `agent-self/config/mcp/mcp.portable.json` but never
+in this manifest SSOT -- the same gap `cve-mcp` had (G-11).
+
+**Receipts (2026-09-02, cloud VM, no key set).** `npm view osint-mcp-server@0.2.0` -> MIT,
+`badchars/osint-mcp-server`, 834,305 B unpacked. `npx -y osint-mcp-server@0.2.0`
+`initialize` -> `{"name":"osint-mcp","version":"0.1.0"}`; `tools/list` -> 37 tools:
+dns_lookup, dns_reverse, dns_email_security, dns_spf_chain, dns_srv_discover,
+dns_wildcard_check, whois_domain, whois_ip, crtsh_search, shodan_host, shodan_search,
+shodan_dns_resolve, shodan_exploits, vt_domain, vt_ip, vt_subdomains, vt_url,
+st_subdomains, st_dns_history, st_whois, censys_hosts, censys_host_details,
+censys_certificates, geoip_lookup, geoip_batch, bgp_asn, bgp_ip, bgp_prefix, wayback_urls,
+wayback_snapshots, hackertarget_hostsearch, hackertarget_reverseip, hackertarget_aslookup,
+m365_tenant, m365_userrealm, osint_list_sources, osint_domain_recon.
+
+**Keys.** None required (`credentialNames: []`). `env` passes five OPTIONAL keys by name only
+-- `SHODAN_API_KEY`, `VT_API_KEY`, `ST_API_KEY`, `CENSYS_API_ID`, `CENSYS_API_SECRET`; the
+DNS/WHOIS/crt.sh/GeoIP/BGP/Wayback/HackerTarget/M365 tools and `osint_domain_recon` work with
+no key. `osint_list_sources` reports which sources are live for the configured keys.
+
+**Envelope (routing doc).** PASSIVE reconnaissance only: no scanning/exploitation, discovered
+assets do not auto-enter scope, and a banner is a candidate, not CVE proof.
+
+**Rollback.** Delete the entry from `mcp.servers` and `mcp-cursor-parked-31.json`, restore the
+pinned counts (40/34), re-run the validator + `python -m pytest -q .agents/tests`.
