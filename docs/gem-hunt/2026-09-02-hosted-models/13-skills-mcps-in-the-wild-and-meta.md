@@ -46,7 +46,45 @@ Two questions, in order:
 - `[LOCK-CREDS]` Never rotate credentials.
 - `[LOCK-TRADEOFF]` Never remove a feature to buy reliability; present tradeoffs instead.
 
-## 2. Estate ground truth this lens leans on `[pending]`
+## 2. Estate ground truth this lens leans on
+
+All items in this section are **FACT** read from the working tree at `origin/main` `5fa34fda1` on 2026-09-02 (tier A, corroborated by direct file read). Paths are repo-relative.
+
+### 2.1 The registry already carries a supervisor contract - it just has no consumer in-repo
+
+`.agents/agents.json` top-level keys: `schemaVersion, instructions, integrations, syncMode, mcp, workspace, lastSync, lastSyncSourceHash`. `syncMode = "source-only"`, `lastSync = 2026-06-15T14:35:24Z` (about 11 weeks stale at time of writing). `mcp` has three children:
+
+- `mcp.servers` - 42 entries (33 `stdio`, 9 `http`). Per-entry keys in use across the fleet: `label, description, targets, enabled, transport, command, args, url, headers, env, requiredEnv, credentialNames, maxPrivateBytes, processMatch, singletonKey, resourceException, tags, x_codex, x_cursor`. Tags in use: `approved` (41), `claude-only` (38), `local` (34), `stdio` (33), `http` (9), `remote` (7), `shared` (4), `remote-required` (2), `resource-exception` (2), and singletons `hosted-inference`, `owner-requested`, `default-off`, `unapproved`, `owner-identity`, `owner-present-write`, `own-feed-write`.
+- `mcp.policy` - `{"required": false, "startupTimeoutMs": 30000, "toolTimeoutMs": 30000, "healthProbe": {"kind": "mcp-tools-list", "timeoutMs": 30000}, "toolAllowlist": ["*"], "approvalMode": "native", "maxPrivateBytes": 536870912}`. **A health-probe kind is already declared: `tools/list`.**
+- `mcp.supervision` - `{"totalIdlePrivateBytes": 6442450944, "failureThreshold": 3, "failureWindowSeconds": 600, "quarantineScope": "session", "duplicatePolicy": "report-unless-exact-process-tree"}`. **Hysteresis (3 failures / 10 min -> session quarantine) and a 6 GiB idle-RSS fleet budget are already policy.**
+- The only server tagged `hosted-inference` is `glm53-space` (`uv run --locked --directory .../tools/mcp/glm53-space python mcp_server.py`, `requiredEnv: ["HUGGINGFACE_TOKEN"]`, tags `approved, claude-only, hosted-inference, owner-requested, stdio`). It is the dedup-set item slated for deprecation.
+- `rg` for `failureThreshold|healthProbe|totalIdlePrivateBytes|quarantineScope` across the repo finds **no code consumer** (only a vendored ralph doc). **INFERENCE**: the supervisor *contract* lives in the registry but its *enforcement* is either off-repo (on the Windows box) or not yet built. Section 8 therefore designs against the contract as written and names enforcement as a verify step, not an assumption.
+- `.agents/local.json` is not present in this checkout (expected: it is the per-box secrets-by-name file from the brief).
+
+### 2.2 Hooks that already exist and that the meta loop can ride
+
+`hooks/hooks.json` is a Claude-Code-style hooks manifest (`description`, `hooks` keyed by event). Events wired today: `SessionStart` (1), `PreToolUse` (10), `PostToolUse` (8), **`PostToolUseFailure` (1) -> `post:mcp-health-check`**, `PreCompact` (1), `Stop` (4), `SessionEnd` (1). The `hooks/` directory holds ~80 hook packages; the ones this lens rides:
+
+| Hook | Path | Event / role | Why it matters here |
+|---|---|---|---|
+| mcp-liveness | `hooks/mcp-liveness/liveness.py`, `critical.json` | `SessionStart` always; `PreToolUse(mcp__basic-memory__*)` throttled 60 s | Defines liveness as a **real JSON-RPC `initialize` handshake whose result advertises `capabilities.tools`** (`serves_tools`), not a TCP port; distinguishes `up` / `dead-listening` / `down`; INCONCLUSIVE never manufactures a false DOWN; **fail-open** (any error -> exit 0); auto-restart only for the keystone (`restart-basic-memory.ps1`, detached); `handshake_timeout 5.0`, `tcp_timeout 1.5`, `throttle_seconds 60`. Mirrors `mcp_doctor`'s `_mcp_handshake_ok`. |
+| capability-catalog | `hooks/capability-catalog/catalog.json`, `inject.py` | `SessionStart` additionalContext, once per session | A **data-driven "server/skill -> what + WHEN" catalog** already injected to steer tool choice. The natural read-side of a capability score. |
+| event-ledger | `hooks/event-ledger/ledger.py` | append-only typed JSONL per project at `~/.claude/event-ledger/<slug>/events.jsonl` + `state.json` projection; `sessionstart-replay.py`, `stop-hook.py`, `prune-report.py` | The place a probe *failure* / *retire* event should be written so it survives compaction and is replayed at SessionStart. |
+| heartbeat | `hooks/heartbeat/heartbeat.py` | `SessionStart` always, `Stop` only when noteworthy | One-line durability health banner - the human-facing surface for "endpoint X quarantined". |
+| fresh-verify | `hooks/fresh-verify/trigger.py` | `PostToolUse` one-shot directive to run the `fresh-context-verify` skill | Existing "re-verify a stale anchor" trigger; the verify leg of the loop. |
+| mcp-canonical-sync | `hooks/mcp-canonical-sync/sync.py` | `SessionStart`: keep every project `.mcp.json` synced to canonical `~/.mcp.json` | Existing *outbound* sync from registry to consumers - the write-back path a deprecation must flow through. |
+| mcp-defaults, mcp-userscope-sync | `hooks/mcp-defaults/enforce-mcp-defaults.py`, `hooks/mcp-userscope-sync/heal.py` | enforcement / heal | Existing enforcement points for registry -> client config. |
+| bg-registry | `hooks/bg-registry/register.py`, `reconcile.py`, `reconcile_requeue.py` | background-job registry with reconcile + requeue | Precedent for "reconcile a registry against reality and requeue" - the same verb the catalog sync needs. |
+
+### 2.3 Scheduling precedent (no new daemon needed)
+
+`scripts/claude-science/register-tasks.ps1` registers two Windows Scheduled Tasks (`ClaudeScienceWatchdog`, `ClaudeScienceMaintain`) with `MultipleInstances IgnoreNew` at the scheduler plus a `Global\` mutex in the script. **INFERENCE**: the estate already has a sanctioned pattern for "run a maintenance script on a timer without a resident process"; a catalog-sync task is a third registration in the same style, not a daemon.
+
+### 2.4 Repo rules that shape the design
+
+- `AGENTS.md`: "Treat consumer-owned manifests as closed schemas. Never add a manifest key merely to carry provenance; store provenance in `.provenance/<repo-relative-manifest-path>.md`."  -> capability scores go in a **sidecar**, not into `agents.json` entries (8.4).
+- `AGENTS.md`: helper scripts "should default to read-only discovery where possible and must document stop rules before any risky workflow." -> the sync/probe script is read-only by default; write-back is a flagged second step (8.5).
+- `CLAUDE.md` SSOT-WIRE block: only `~/source/ast-integrate` is edited and only `~/source/agent-skills-toolchain` is executed from; `command-center/ssot/ssot_drift_gate.py` fails closed when the executed checkout is behind `main`. -> the loop must run from the executed checkout and should call the drift gate first (8.5).
 
 ## 3. Survey: HF model access (skills, MCPs, CLIs)
 
