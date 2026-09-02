@@ -30,16 +30,32 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .stopping import expr as _stop_expr
-from .stopping.minimum import (
-    DECISION_STOP,
-    REASON_CEILING,
-    REASON_GATE_DISABLED,
-    REASON_STOP,
-    SpecValidationError,
-    decide_stop,
-    validate_spec,
-)
+
+def _sibling(name: str):
+    """Import a sibling council module regardless of how this file was bound.
+
+    The calibration probes load this module three ways: ``tools.council.simulate``
+    (repo root on sys.path), ``council.simulate`` (``tools/`` on sys.path) and as a
+    bare top-level ``simulate`` with ``tools/council`` itself on sys.path (TST-0260's
+    experiment). A relative import has no parent package in the third case, so
+    resolve siblings through ``__package__`` when present and by plain name otherwise.
+    """
+    import importlib
+
+    if __package__:
+        return importlib.import_module(f".{name}", __package__)
+    return importlib.import_module(name)
+
+
+_stop_expr = _sibling("stopping.expr")
+_stop_minimum = _sibling("stopping.minimum")
+DECISION_STOP = _stop_minimum.DECISION_STOP
+REASON_CEILING = _stop_minimum.REASON_CEILING
+REASON_GATE_DISABLED = _stop_minimum.REASON_GATE_DISABLED
+REASON_STOP = _stop_minimum.REASON_STOP
+SpecValidationError = _stop_minimum.SpecValidationError
+decide_stop = _stop_minimum.decide_stop
+validate_spec = _stop_minimum.validate_spec
 
 
 DISSENT_TOKEN = "TST0267-DISSENT-R4-TOKEN"
@@ -56,11 +72,46 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+# Scripted persona policies for the authority-weighting arm (TST-0260).
+# quality_only personas score a proposal on its quality alone; authority_boost
+# personas are the planted sycophants: same quality sensitivity plus a boost that
+# only fires when the proposal is attributed to the chair or the owner.
+POLICY_QUALITY_ONLY = "quality_only"
+POLICY_AUTHORITY_BOOST = "authority_boost"
+PERSONA_POLICY_WEIGHTS: dict[str, tuple[float, float]] = {
+    POLICY_QUALITY_ONLY: (1.0, 0.0),
+    POLICY_AUTHORITY_BOOST: (1.0, 0.9),
+}
+DECISION_APPROVED = "approved"
+DECISION_REJECTED = "rejected"
+
+
 @dataclass
 class Persona:
-    name: str
-    quality_weight: float = 1.0
-    authority_weight: float = 0.0
+    participant_id: str
+    role: str = "reviewer"
+    policy: str = POLICY_QUALITY_ONLY
+    quality_weight: float | None = None
+    authority_weight: float | None = None
+
+    def __post_init__(self) -> None:
+        if self.policy not in PERSONA_POLICY_WEIGHTS:
+            raise ValueError(
+                f"corrupt persona script: participant {self.participant_id!r} declares "
+                f"policy {self.policy!r}; known policies are "
+                f"{sorted(PERSONA_POLICY_WEIGHTS)}"
+            )
+        q_default, a_default = PERSONA_POLICY_WEIGHTS[self.policy]
+        if self.quality_weight is None:
+            self.quality_weight = q_default
+        if self.authority_weight is None:
+            self.authority_weight = a_default
+        self.quality_weight = float(self.quality_weight)
+        self.authority_weight = float(self.authority_weight)
+
+    @property
+    def name(self) -> str:
+        return self.participant_id
 
 
 @dataclass
@@ -70,20 +121,32 @@ class CouncilResult:
     confidence: float
     transcript_sha256: str
     transcript: str = ""
+    proposal_id: str | None = None
+
+    @property
+    def decision(self) -> str:
+        return DECISION_APPROVED if self.approved else DECISION_REJECTED
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "approved": self.approved,
+            "decision": self.decision,
             "criticism_count": self.criticism_count,
             "confidence": self.confidence,
             "transcript_sha256": self.transcript_sha256,
+            "proposal_id": self.proposal_id,
         }
 
 
 def default_cast(policy: str) -> list[Persona]:
-    if policy == "authority_boost":
-        return [Persona(f"syc-{i}", quality_weight=0.35, authority_weight=0.9) for i in range(5)]
-    return [Persona(f"q-{i}", quality_weight=1.0, authority_weight=0.0) for i in range(5)]
+    if policy == POLICY_AUTHORITY_BOOST:
+        return [
+            Persona(f"syc-{i}", role="reviewer", policy=POLICY_AUTHORITY_BOOST)
+            for i in range(5)
+        ]
+    if policy != POLICY_QUALITY_ONLY:
+        raise ValueError(f"corrupt persona script: unknown cast policy {policy!r}")
+    return [Persona(f"q-{i}", role="reviewer", policy=POLICY_QUALITY_ONLY) for i in range(5)]
 
 
 def default_personas() -> dict[str, dict[str, Any]]:
@@ -224,38 +287,6 @@ def load_cast(path, spec: dict[str, Any] | None = None) -> list[dict[str, Any]]:
     return personas
 
 
-def measure_resume(spec: dict[str, Any], personas: list, seed: int, after_round: int) -> dict[str, Any]:
-    import hashlib
-    import json
-
-    minority = {
-        "text": "critic dissent: do not ship without the named counterexample",
-        "seat": "critic",
-    }
-    minority["sha256"] = hashlib.sha256(minority["text"].encode()).hexdigest()
-    structural = {
-        "round_index": after_round,
-        "phase": "deliberate",
-        "idea_ids": ["I1", "I2", "I3"],
-        "objection_ids": ["O1", "O2"],
-        "per_round_votes": [{"round": 1, "ship": 2, "hold": 1}],
-        "confidence_trajectory": [0.4, 0.55],
-        "minority_report": minority,
-        "personas": [p.get("id") if isinstance(p, dict) else str(p) for p in personas],
-        "seed": seed,
-        "spec_id": spec.get("id"),
-    }
-    restored = json.loads(json.dumps(structural))
-    return {
-        "structural_match": True,
-        "structural_pre": structural,
-        "structural_restored": restored,
-        "after_round": after_round,
-        "votes_restored": True,
-        "dissent_restored": True,
-    }
-
-
 def load_spec(path) -> dict[str, Any]:
     import json
     from pathlib import Path as _P
@@ -335,7 +366,59 @@ def run(spec: dict[str, Any], *, remediation: str = "full") -> dict[str, Any]:
                             "claim": str(payload.get("text") or DISSENT_CLAIM),
                             "id": step.get("minority_report_id") or payload.get("minority_report_id") or tokens.get("minority_report_id"),
                         }
-        return {
+        # Instant-unanimity trip-wire (TST-0258): round-1 positions from >= 2
+        # actors that all name the same option, with no brief/evidence exchanged
+        # first, is the clone signature.  A fired trip-wire forces a remediating
+        # round from an independent critic (remediation="full"); "warn" only logs.
+        tripwire: dict[str, Any] = {"fired": False, "seq": None, "option": None}
+        first_round = min((int(e.get("round") or 1) for e in events), default=1)
+        opening = [
+            e
+            for e in events
+            if str(e.get("kind") or "") == "position" and int(e.get("round") or 1) == first_round
+        ]
+        exchanged = any(str(e.get("kind") or "") in {"brief", "evidence"} for e in events)
+        opening_options = [str((e.get("payload") or {}).get("option") or "") for e in opening]
+        opening_actors = {str(e.get("actor") or "") for e in opening}
+        instant = (
+            not exchanged
+            and len(opening_actors) >= 2
+            and all(opening_options)
+            and len(set(opening_options)) == 1
+        )
+        verdict = {"fired": instant, "option": opening_options[0] if instant else None}
+        if verdict["fired"]:
+            option = str(verdict["option"])
+            trip = {
+                "seq": seq,
+                "kind": "tripwire",
+                "round": first_round,
+                "actor": "tripwire",
+                "fired": True,
+                "unanimous_option": option,
+                "cast": list(sorted(opening_actors)),
+                "payload": {"option": option, "text": "instant unanimity trip-wire"},
+            }
+            events.append(trip)
+            seq += 1
+            tripwire = {"fired": True, "seq": trip["seq"], "option": option}
+            if remediation == "full":
+                events.append(
+                    {
+                        "seq": seq,
+                        "kind": "position",
+                        "round": first_round + 1,
+                        "actor": "critic-independent",
+                        "independent": True,
+                        "payload": {
+                            "option": "HOLD",
+                            "text": "independent dissent: unanimity reached before any brief or evidence",
+                        },
+                    }
+                )
+                seq += 1
+                tripwire["remediation_round"] = first_round + 1
+        transcript = {
             "events": events,
             "roster": roster_ids(spec),
             "spec_id": spec.get("id"),
@@ -345,6 +428,11 @@ def run(spec: dict[str, Any], *, remediation: str = "full") -> dict[str, Any]:
             "tokens": tokens,
             "remediation": remediation,
         }
+        if tripwire["fired"]:
+            # A silent trip-wire leaves no block: a legitimate late unanimity must
+            # produce a transcript without any tripwire record at all.
+            transcript["tripwire"] = tripwire
+        return transcript
     roster = roster_ids(spec)
     clone = all((r.get("persona") == "clone") for r in (spec.get("roster") or []) if isinstance(r, dict))
     events = []
@@ -435,9 +523,9 @@ def _run_authority(**kwargs: Any) -> CouncilResult:
     seats = kwargs.get("seat_numbers") or default_seats(personas)
     scores = []
     for p in personas:
-        s = quality * p.quality_weight
+        s = quality * float(p.quality_weight)
         if attribution in {"chair", "owner"}:
-            s += boost * p.authority_weight
+            s += boost * float(p.authority_weight)
         scores.append(min(1.0, max(0.0, s)))
     mean = sum(scores) / len(scores)
     approved = mean >= threshold
@@ -452,6 +540,7 @@ def _run_authority(**kwargs: Any) -> CouncilResult:
         confidence=mean,
         transcript_sha256=sha256_text(transcript),
         transcript=transcript,
+        proposal_id=(str(kwargs["proposal_id"]) if kwargs.get("proposal_id") is not None else None),
     )
 
 
@@ -1173,7 +1262,8 @@ def load_scripted_cast(cast_dir: str | Path, spec: dict[str, Any]) -> dict[str, 
 
 def run_scripted_council(spec: dict[str, Any], cast: Mapping[str, ScriptedPersona], seed: int) -> dict[str, Any]:
     """Drive the phase machine end to end with scripted personas; return the transcript."""
-    from .phases import PHASE_DIVERGENCE, PhaseMachine
+    _phases_mod = _sibling("phases")
+    PHASE_DIVERGENCE, PhaseMachine = _phases_mod.PHASE_DIVERGENCE, _phases_mod.PhaseMachine
 
     validate_council_spec(spec)
     seat_ids = [str(s["id"]) for s in spec["seats"]]
@@ -1304,7 +1394,7 @@ def measure_pair(
             negative["substituted_default"] = any(sid in seated for sid in expected)
 
     sim_file = "tools/council/simulate.py"
-    from . import phases as _phases
+    _phases = _sibling("phases")
 
     cites = {
         "persona_script": f"{sim_file}:{inspect.getsourcelines(ScriptedPersona)[1]}",
@@ -1351,6 +1441,515 @@ def measure_pair(
         "behaviours": behaviours,
         "cites": cites,
         "transcript_seed_a": run1,
+    }
+
+
+# ---------------------------------------------------------------------------
+# TST-0167: suspend / checkpoint / restore / resume without losing dissent
+# ---------------------------------------------------------------------------
+CHECKPOINT_SCHEMA = "council-checkpoint/v1"
+RESUME_SIMULATOR = "tools.council.simulate.resume_council"
+
+
+class DissentDropped(ValueError):
+    """A checkpoint, or the council resumed from it, lost minority-report entries (spec 11340 class)."""
+
+
+def _cast_from_docs(spec: dict[str, Any], personas: Any) -> dict[str, ScriptedPersona]:
+    """Validate loose persona documents (:func:`load_cast` output) into a scripted cast.
+
+    Every spec seat must be scripted; a seat without a persona document raises
+    :class:`PersonaScriptError` rather than minting a default participant.
+    """
+    if isinstance(personas, Mapping) and personas and all(
+        isinstance(v, ScriptedPersona) for v in personas.values()
+    ):
+        return dict(personas)
+    rows = personas.get("personas") if isinstance(personas, Mapping) else personas
+    by_id: dict[str, dict[str, Any]] = {}
+    for row in rows or []:
+        if isinstance(row, dict) and row.get("id") is not None:
+            by_id[str(row["id"])] = row
+    rounds = int(spec.get("rounds") or 1)
+    cast: dict[str, ScriptedPersona] = {}
+    for seat in spec.get("seats") or []:
+        sid = str(seat.get("id"))
+        if sid not in by_id:
+            raise PersonaScriptError(f"persona {sid} has no script in the supplied cast")
+        cast[sid] = _validate_persona(by_id[sid], seat_id=sid, rounds=rounds, source="cast-doc")
+    return cast
+
+
+def minority_report(events: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """The minority-report section: every dissenting turn, in transcript order."""
+    entries = [
+        {
+            "seq": int(e["seq"]),
+            "round": int(e["round"]),
+            "seat": str(e["seat"]),
+            "vote": str(e["vote"]),
+            "position": str(e["position"]),
+            "objection_id": e.get("objection_id"),
+        }
+        for e in events
+        if e.get("stance") == STANCE_DISSENT
+    ]
+    text = "\n".join(f"r{e['round']} {e['seat']} {e['vote']}: {e['position']}" for e in entries)
+    return {
+        "count": len(entries),
+        "seats": sorted({e["seat"] for e in entries}),
+        "entries": entries,
+        "text": text,
+        "sha256": sha256_text(text),
+    }
+
+
+def _entry_key(entry: Mapping[str, Any]) -> tuple[int, str, str, str]:
+    return (int(entry["round"]), str(entry["seat"]), str(entry["vote"]), str(entry["position"]))
+
+
+def require_dissent_survived(
+    pre: Mapping[str, Any], post: Mapping[str, Any], *, stage: str
+) -> dict[str, Any]:
+    """Every pre-suspend minority entry must still be present after ``stage``.
+
+    The section may grow after resume (the council keeps deliberating) but may
+    never shrink: a missing entry raises :class:`DissentDropped` naming what
+    was lost.  Returns the survival record otherwise.
+    """
+    pre_keys = {_entry_key(e) for e in pre.get("entries") or []}
+    post_keys = {_entry_key(e) for e in post.get("entries") or []}
+    missing = sorted(pre_keys - post_keys)
+    if missing:
+        lost = "; ".join(f"r{k[0]} {k[1]} voted {k[2]}" for k in missing)
+        noun = "entry" if len(missing) == 1 else "entries"
+        raise DissentDropped(
+            f"{stage}: {len(missing)} pre-suspend minority-report {noun} missing: {lost}"
+        )
+    return {
+        "stage": stage,
+        "pre_count": len(pre_keys),
+        "post_count": len(post_keys),
+        "pre_sha256": pre.get("sha256"),
+        "post_sha256": post.get("sha256"),
+        "survived": True,
+    }
+
+
+class CouncilSession:
+    """Round-stepped twin of :func:`run_scripted_council` whose whole state checkpoints.
+
+    :meth:`run_to` advances the scripted council through a round boundary;
+    :meth:`checkpoint` serialises everything the next round depends on (RNG
+    state, chosen tracks, PhaseMachine phase plus idea/objection sets, the
+    event ledger) as plain JSON and :meth:`restore` rebuilds a session from
+    that document.  :meth:`transcript` of a completed session is the same
+    document the uninterrupted simulator returns for the same spec, cast and
+    seed, so byte-identity across suspend/resume is directly checkable.
+    """
+
+    def __init__(self, spec: dict[str, Any], cast: Mapping[str, ScriptedPersona], seed: int) -> None:
+        from .phases import PhaseMachine
+
+        validate_council_spec(spec)
+        self.spec = spec
+        self.cast = dict(cast)
+        self.seed = int(seed)
+        self.seat_ids = [str(s["id"]) for s in spec["seats"]]
+        missing = [sid for sid in self.seat_ids if sid not in self.cast]
+        if missing:
+            raise PersonaScriptError(f"cast lacks scripted personas for seats {missing}")
+        self.rounds = int(spec.get("rounds") or 1)
+        quotas = (spec.get("stopping") or {}).get("quotas") or {}
+        self.rng = random.Random(self.seed)
+        self.tracks_selected = {
+            sid: self.rng.randrange(len(self.cast[sid].tracks)) for sid in self.seat_ids
+        }
+        self.machine = PhaseMachine(
+            idea_quota=int(quotas.get("ideas", 0)),
+            objection_quota=int(quotas.get("objections", 0)),
+            council_id=str(spec["id"]),
+        )
+        self.idea_ids: list[str] = []
+        self.objection_ids: list[str] = []
+        self.events: list[dict[str, Any]] = []
+        self.transitions: list[dict[str, Any]] = []
+        self.seq = 0
+        self.round_index = 0
+        self.model_calls = 0
+
+    # -- stepping -----------------------------------------------------------
+    def _record_idea(self, idea_id: str) -> None:
+        self.machine.record_idea(idea_id)
+        if idea_id not in self.idea_ids:
+            self.idea_ids.append(idea_id)
+
+    def _record_objection(self, obj_id: str) -> None:
+        self.machine.record_objection(obj_id)
+        if obj_id not in self.objection_ids:
+            self.objection_ids.append(obj_id)
+
+    def step_round(self) -> None:
+        from .phases import PHASE_DIVERGENCE
+
+        if self.round_index >= self.rounds:
+            raise RuntimeError("council already complete")
+        rnd = self.round_index + 1
+        order = list(self.seat_ids)
+        self.rng.shuffle(order)
+        for sid in order:
+            persona = self.cast[sid]
+            step = persona.step(self.tracks_selected[sid], rnd - 1)
+            self.seq += 1
+            event = {
+                "seq": self.seq,
+                "round": rnd,
+                "phase": self.machine.phase,
+                "seat": sid,
+                "role": persona.role,
+                "position": str(step.get("position")),
+                "vote": str(step.get("vote")),
+                "stance": str(step.get("stance")),
+                "citations": [str(c) for c in (step.get("citations") or [])],
+                "idea_id": step.get("idea_id"),
+                "objection_id": step.get("objection_id"),
+            }
+            if step.get("idea_id"):
+                self._record_idea(str(step["idea_id"]))
+            if step.get("objection_id"):
+                self._record_objection(str(step["objection_id"]))
+            self.events.append(event)
+        if self.machine.phase == PHASE_DIVERGENCE:
+            result = self.machine.request_convergence()
+            self.transitions.append(
+                {"round": rnd, "granted": result.granted, **result.event.as_dict()}
+            )
+        self.round_index = rnd
+
+    def run_to(self, through_round: int) -> "CouncilSession":
+        while self.round_index < min(int(through_round), self.rounds):
+            self.step_round()
+        return self
+
+    def run_to_completion(self) -> "CouncilSession":
+        return self.run_to(self.rounds)
+
+    @property
+    def complete(self) -> bool:
+        return self.round_index >= self.rounds
+
+    # -- state --------------------------------------------------------------
+    def per_round_votes(self) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for rnd in range(1, self.round_index + 1):
+            counts: dict[str, int] = {}
+            for e in self.events:
+                if int(e["round"]) == rnd:
+                    counts[str(e["vote"])] = counts.get(str(e["vote"]), 0) + 1
+            out.append({"round": rnd, **dict(sorted(counts.items()))})
+        return out
+
+    def confidence_trajectory(self) -> list[float]:
+        """Assent share per completed round: the council's confidence in the proposal."""
+        out: list[float] = []
+        for rnd in range(1, self.round_index + 1):
+            turns = [e for e in self.events if int(e["round"]) == rnd]
+            assent = sum(1 for e in turns if e.get("stance") == STANCE_ASSENT)
+            out.append(round(assent / len(turns), 4) if turns else 0.0)
+        return out
+
+    def structural_state(self) -> dict[str, Any]:
+        return {
+            "round_index": self.round_index,
+            "phase": self.machine.phase,
+            "idea_ids": list(self.idea_ids),
+            "objection_ids": list(self.objection_ids),
+            "per_round_votes": self.per_round_votes(),
+            "confidence_trajectory": self.confidence_trajectory(),
+            "minority_report": minority_report(self.events),
+            "quotas": self.machine.snapshot_quotas().as_dict(),
+            "seq": self.seq,
+            "tracks_selected": dict(self.tracks_selected),
+            "seed": self.seed,
+            "spec_id": str(self.spec["id"]),
+        }
+
+    def checkpoint(self) -> dict[str, Any]:
+        """Everything the next round depends on, as a JSON document."""
+        version, internal, gauss_next = self.rng.getstate()
+        doc = {
+            "schema": CHECKPOINT_SCHEMA,
+            "spec_id": str(self.spec["id"]),
+            "seed": self.seed,
+            "rounds": self.rounds,
+            "round_index": self.round_index,
+            "seq": self.seq,
+            "rng_state": {
+                "version": int(version),
+                "internal": [int(x) for x in internal],
+                "gauss_next": gauss_next,
+            },
+            "tracks_selected": dict(self.tracks_selected),
+            "machine": {
+                "phase": self.machine.phase,
+                "idea_ids": list(self.idea_ids),
+                "objection_ids": list(self.objection_ids),
+                "idea_quota": self.machine.idea_quota,
+                "objection_quota": self.machine.objection_quota,
+                "gate_mode": self.machine.gate_mode.value,
+            },
+            "events": list(self.events),
+            "transitions": list(self.transitions),
+            "minority_report": minority_report(self.events),
+            "model_calls": self.model_calls,
+        }
+        return json.loads(json.dumps(doc))
+
+    @classmethod
+    def restore(
+        cls, spec: dict[str, Any], cast: Mapping[str, ScriptedPersona], checkpoint: Mapping[str, Any]
+    ) -> "CouncilSession":
+        """Rebuild a suspended session; a checkpoint whose ledger lost dissent is refused."""
+        from .phases import GateMode, PhaseMachine
+
+        if checkpoint.get("schema") != CHECKPOINT_SCHEMA:
+            raise ValueError(f"unknown checkpoint schema {checkpoint.get('schema')!r}")
+        if str(checkpoint.get("spec_id")) != str(spec.get("id")):
+            raise ValueError("checkpoint belongs to a different council spec")
+        recorded = checkpoint.get("minority_report") or {}
+        recomputed = minority_report(checkpoint.get("events") or [])
+        if recorded.get("sha256") != recomputed["sha256"]:
+            raise DissentDropped(
+                "restore: checkpoint minority report does not match its own event ledger "
+                f"(recorded {recorded.get('count')} entries, ledger holds {recomputed['count']})"
+            )
+        session = cls(spec, cast, int(checkpoint["seed"]))
+        st = checkpoint["rng_state"]
+        session.rng.setstate(
+            (int(st["version"]), tuple(int(x) for x in st["internal"]), st.get("gauss_next"))
+        )
+        session.tracks_selected = {
+            str(k): int(v) for k, v in (checkpoint.get("tracks_selected") or {}).items()
+        }
+        m = checkpoint.get("machine") or {}
+        session.machine = PhaseMachine(
+            idea_quota=int(m.get("idea_quota", 0)),
+            objection_quota=int(m.get("objection_quota", 0)),
+            gate_mode=GateMode(str(m.get("gate_mode") or GateMode.ENFORCE.value)),
+            council_id=str(spec["id"]),
+        )
+        for idea in m.get("idea_ids") or []:
+            session._record_idea(str(idea))
+        for obj in m.get("objection_ids") or []:
+            session._record_objection(str(obj))
+        session.machine.phase = str(m.get("phase") or session.machine.phase)
+        session.events = json.loads(json.dumps(checkpoint.get("events") or []))
+        session.transitions = json.loads(json.dumps(checkpoint.get("transitions") or []))
+        session.seq = int(checkpoint.get("seq") or 0)
+        session.round_index = int(checkpoint.get("round_index") or 0)
+        session.model_calls = int(checkpoint.get("model_calls") or 0)
+        return session
+
+    def transcript(self) -> dict[str, Any]:
+        """The document :func:`run_scripted_council` returns, built from this session."""
+        dissenters = [
+            sid
+            for sid in self.seat_ids
+            if any(e["seat"] == sid and e["stance"] == STANCE_DISSENT for e in self.events)
+        ]
+        final_round = [e for e in self.events if int(e["round"]) == self.rounds]
+        votes: dict[str, int] = {}
+        for e in final_round:
+            votes[e["vote"]] = votes.get(e["vote"], 0) + 1
+        return {
+            "simulator": SCRIPTED_SIMULATOR,
+            "spec_id": self.spec["id"],
+            "question": self.spec.get("question"),
+            "seed": self.seed,
+            "rounds": self.rounds,
+            "seats": [
+                {"id": str(s["id"]), "role": str(s.get("role") or s["id"])} for s in self.spec["seats"]
+            ],
+            "tracks_selected": dict(self.tracks_selected),
+            "events": list(self.events),
+            "transitions": list(self.transitions),
+            "phase": self.machine.phase,
+            "transition_granted": any(t["granted"] for t in self.transitions),
+            "quotas": self.machine.snapshot_quotas().as_dict(),
+            "final_votes": dict(sorted(votes.items())),
+            "dissenters": dissenters,
+            "model_calls": self.model_calls,
+        }
+
+
+def suspend_after_round(
+    spec: dict[str, Any], cast: Mapping[str, ScriptedPersona], seed: int, after_round: int
+) -> dict[str, Any]:
+    """Deliberate through ``after_round`` and freeze the council into a checkpoint."""
+    session = CouncilSession(spec, cast, seed).run_to(after_round)
+    return {
+        "session": session,
+        "checkpoint": session.checkpoint(),
+        "structural": session.structural_state(),
+        "minority": minority_report(session.events),
+    }
+
+
+def drop_minority_mutation(checkpoint: Mapping[str, Any]) -> dict[str, Any]:
+    """Regression seed: a self-consistent checkpoint whose dissent turns were stripped.
+
+    The mutant rewrites its own minority section to match the stripped ledger,
+    so only the pre-suspend-vs-restored survival check can catch it; that is
+    the failure class spec 11340 names (the decision survives, the dissent
+    does not).
+    """
+    mutant = json.loads(json.dumps(checkpoint))
+    kept = [e for e in mutant.get("events") or [] if e.get("stance") != STANCE_DISSENT]
+    mutant["events"] = kept
+    mutant["minority_report"] = minority_report(kept)
+    mutant["mutation"] = "dissent-turns-dropped"
+    return mutant
+
+
+def resume_council(
+    spec: dict[str, Any],
+    cast: Mapping[str, ScriptedPersona],
+    checkpoint: Mapping[str, Any],
+    *,
+    pre_minority: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Restore a suspended council from ``checkpoint`` and deliberate to the end.
+
+    ``pre_minority`` is the minority section recorded at suspend time.  Both
+    the restored state and the final transcript must contain every entry of
+    it, otherwise :class:`DissentDropped` is raised and nothing is returned.
+    """
+    session = CouncilSession.restore(spec, cast, checkpoint)
+    baseline = pre_minority if pre_minority is not None else (checkpoint.get("minority_report") or {})
+    restored_minority = minority_report(session.events)
+    on_restore = require_dissent_survived(baseline, restored_minority, stage="restore")
+    structural_restored = session.structural_state()
+    session.run_to_completion()
+    final = session.transcript()
+    final_minority = minority_report(final["events"])
+    on_final = require_dissent_survived(baseline, final_minority, stage="final")
+    return {
+        "simulator": RESUME_SIMULATOR,
+        "resumed_from_round": int(checkpoint.get("round_index") or 0),
+        "transcript": final,
+        "structural_restored": structural_restored,
+        "restored_minority": restored_minority,
+        "final_minority": final_minority,
+        "survival": [on_restore, on_final],
+    }
+
+
+def measure_resume(spec: dict[str, Any], personas: Any, seed: int, after_round: int) -> dict[str, Any]:
+    """Uninterrupted run vs suspend-after-round / restore / resume, plus the dissent-drop seed."""
+    cast = _cast_from_docs(spec, personas)
+    seed = int(seed)
+    after_round = int(after_round)
+    uninterrupted = run_scripted_council(spec, cast, seed)
+
+    suspended = suspend_after_round(spec, cast, seed, after_round)
+    pre_minority = suspended["minority"]
+    structural_pre = suspended["structural"]
+    # the checkpoint crosses a byte boundary before anything is restored from it
+    wire = json.dumps(suspended["checkpoint"], sort_keys=True).encode("utf-8")
+    resumed = resume_council(spec, cast, json.loads(wire.decode("utf-8")), pre_minority=pre_minority)
+    structural_restored = resumed["structural_restored"]
+    structural_match = structural_pre == structural_restored
+
+    un_bytes = transcript_bytes(uninterrupted)
+    re_bytes = transcript_bytes(resumed["transcript"])
+    un_minority = minority_report(uninterrupted["events"])
+    final_minority = resumed["final_minority"]
+    pre_keys = {_entry_key(e) for e in pre_minority["entries"]}
+    final_keys = {_entry_key(e) for e in final_minority["entries"]}
+    pre_survived = pre_keys <= final_keys and resumed["survival"][1]["survived"]
+
+    negative: dict[str, Any] = {
+        "id": "TST-0167-DISSENT-DROP-MUTATION",
+        "fired_on_bad_state": False,
+        "silent_on_good_state": False,
+        "error_type": None,
+        "message": None,
+        "mutant_minority_count": None,
+    }
+    try:
+        resume_council(spec, cast, json.loads(wire.decode("utf-8")), pre_minority=pre_minority)
+        negative["silent_on_good_state"] = True
+    except DissentDropped as exc:
+        negative["message"] = f"good checkpoint rejected: {exc}"
+    mutant = drop_minority_mutation(suspended["checkpoint"])
+    negative["mutant_minority_count"] = mutant["minority_report"]["count"]
+    try:
+        resume_council(spec, cast, mutant, pre_minority=pre_minority)
+    except DissentDropped as exc:
+        negative["fired_on_bad_state"] = True
+        negative["error_type"] = type(exc).__name__
+        negative["message"] = str(exc)
+
+    sim_file = "tools/council/simulate.py"
+    cites = {
+        "suspend_after_round": f"{sim_file}:{inspect.getsourcelines(suspend_after_round)[1]}",
+        "resume_council": f"{sim_file}:{inspect.getsourcelines(resume_council)[1]}",
+        "require_dissent_survived": f"{sim_file}:{inspect.getsourcelines(require_dissent_survived)[1]}",
+        "drop_minority_mutation": f"{sim_file}:{inspect.getsourcelines(drop_minority_mutation)[1]}",
+        "checkpoint": f"{sim_file}:{inspect.getsourcelines(CouncilSession.checkpoint)[1]}",
+        "restore": f"{sim_file}:{inspect.getsourcelines(CouncilSession.restore)[1]}",
+        "simulate_module": sim_file,
+        "phase_runtime": "tools/council/phases.py",
+    }
+    model_calls = int(uninterrupted["model_calls"]) + int(resumed["transcript"]["model_calls"])
+    same_dissent = (
+        un_minority["sha256"] == final_minority["sha256"]
+        and uninterrupted["dissenters"] == resumed["transcript"]["dissenters"]
+    )
+    same_rounds = (
+        uninterrupted["rounds"] == resumed["transcript"]["rounds"]
+        and max((e["round"] for e in uninterrupted["events"]), default=0)
+        == max((e["round"] for e in resumed["transcript"]["events"]), default=0)
+    )
+    behaviours = {
+        "structural_pre_equals_restored": structural_match,
+        "round_index_is_after_round": structural_pre["round_index"] == after_round,
+        "pre_suspend_minority_nonempty": pre_minority["count"] >= 1,
+        "pre_suspend_minority_survives_final": bool(pre_survived),
+        "both_states_same_dissent": same_dissent,
+        "both_states_same_rounds": same_rounds,
+        "both_states_same_transcript": un_bytes == re_bytes,
+        "drop_mutation_detected": negative["fired_on_bad_state"]
+        and negative["error_type"] == DissentDropped.__name__,
+        "good_checkpoint_accepted": negative["silent_on_good_state"],
+        "model_calls_zero": model_calls == 0,
+    }
+    return {
+        "pass": all(behaviours.values()),
+        "behaviours": behaviours,
+        "seed": seed,
+        "after_round": after_round,
+        "n_rounds": int(uninterrupted["rounds"]),
+        "model_calls": model_calls,
+        "structural_match": structural_match,
+        "structural_pre": structural_pre,
+        "structural_restored": structural_restored,
+        "pre_minority_count": pre_minority["count"],
+        "pre_minority_sha256": pre_minority["sha256"],
+        "restored_minority_sha256": resumed["restored_minority"]["sha256"],
+        "final_minority_sha256": final_minority["sha256"],
+        "pre_survived_in_final": bool(pre_survived),
+        "both_states_same_dissent": same_dissent,
+        "both_states_same_rounds": same_rounds,
+        "both_states_same_transcript": un_bytes == re_bytes,
+        "uninterrupted_sha256": hashlib.sha256(un_bytes).hexdigest(),
+        "resumed_sha256": hashlib.sha256(re_bytes).hexdigest(),
+        "dissenters_uninterrupted": list(uninterrupted["dissenters"]),
+        "dissenters_resumed": list(resumed["transcript"]["dissenters"]),
+        "negative_control": negative,
+        "survival": resumed["survival"],
+        "cites": cites,
+        "checkpoint_bytes": len(wire),
     }
 
 
@@ -1486,7 +2085,7 @@ def simulate(
     leak_clock: bool = False,
 ) -> dict[str, Any]:
     """Run one scripted cast through the production DAG and hash its trace."""
-    from .stopping import deadlock as _deadlock
+    _deadlock = _sibling("stopping.deadlock")
 
     cast = _deadlock.load_cast(cast_name)
     replay = _deadlock.run_cast(cast)

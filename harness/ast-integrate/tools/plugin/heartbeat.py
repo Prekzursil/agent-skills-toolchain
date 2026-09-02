@@ -1,6 +1,7 @@
 """Progress heartbeat and hang detector for long-running operations.
 
-Hang windows use time.monotonic(), never wall-clock time.time().
+Hang windows are measured on the monotonic clock (time.monotonic()); the
+wall clock is never read, so an NTP step or a DST change cannot fake a hang.
 """
 from __future__ import annotations
 

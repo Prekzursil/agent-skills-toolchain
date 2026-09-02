@@ -48,6 +48,8 @@ from vendor_identity import Comparison
 from vendor_identity import compare as compare_vendors
 
 __all__ = [
+    "parse_file_line_anchor",
+    "resolve_file_line",
     "ABSOLUTE_MIN_BYTES",
     "COMPLETE",
     "CONDITIONS",
@@ -687,24 +689,84 @@ def _c5_sentinel_present(
     )
 
 
-def _anchor_resolves(anchor: str, opts: PredicateOptions) -> tuple[bool, str]:
-    m = _ANCHOR_FILE_LINE.match(anchor.strip())
+def parse_file_line_anchor(anchor: str) -> tuple[str, int]:
+    """Split a ``path:line`` (or ``path:line-end``) anchor into ``(path, line)``.
+
+    Raises ValueError for anything else so a command or URL can never be mistaken for a
+    resolvable location.
+    """
+    m = _ANCHOR_FILE_LINE.match((anchor or "").strip())
     if not m:
+        raise ValueError(f"not a file:line anchor: {anchor!r}")
+    return m.group("path"), int(m.group("line"))
+
+
+def _line_count(data: bytes) -> int:
+    """Lines in ``data``. A trailing newline terminates the last line rather than opening an
+    empty extra one, so a 20-line file reports 20 and ``path:21`` is beyond EOF."""
+    norm = data.replace(b"\r\n", b"\n")
+    if not norm:
+        return 0
+    n = norm.count(b"\n")
+    return n if norm.endswith(b"\n") else n + 1
+
+
+def resolve_file_line(
+    root: Path | str, path: str, line: int, end: int | None = None
+) -> dict[str, Any]:
+    """Resolve ``path:line`` against the tree at ``root``. Never raises.
+
+    ``classification`` is one of OK (a regular file with at least ``line`` lines), BEYOND-EOF
+    (the file exists but the cited line is past its last line or below 1) or MISSING (no
+    readable regular file at ``path``). A syntactically valid anchor that does not resolve is
+    missing evidence, not evidence.
+    """
+    root_p = Path(root)
+    p = _resolve(root_p, path)
+    out: dict[str, Any] = {
+        "path": path,
+        "line": int(line),
+        "end": int(end) if end is not None else None,
+        "root": str(root_p),
+        "resolved": str(p),
+        "classification": "MISSING",
+        "line_count": 0,
+        "line_text": None,
+    }
+    if not p.is_file():
+        out["basis"] = f"MISSING: {path!r} is not a file under {root_p}"
+        return out
+    try:
+        raw = p.read_bytes()
+    except OSError as exc:
+        out["basis"] = f"MISSING: {path!r} unreadable: {exc}"
+        return out
+    n = _line_count(raw)
+    out["line_count"] = n
+    if int(line) < 1 or int(line) > n:
+        out["classification"] = "BEYOND-EOF"
+        out["basis"] = f"BEYOND-EOF: {path!r} has {n} line(s), anchor cites line {line}"
+        return out
+    text = raw.replace(b"\r\n", b"\n").decode("utf-8", "replace").split("\n")
+    out["classification"] = "OK"
+    out["line_text"] = text[int(line) - 1]
+    out["basis"] = f"OK: {path!r} has {n} line(s) >= {line}"
+    return out
+
+
+def _anchor_resolves(anchor: str, opts: PredicateOptions) -> tuple[bool, str]:
+    try:
+        raw, line = parse_file_line_anchor(anchor)
+    except ValueError:
         return (False, "not a file:line anchor")
-    raw = m.group("path")
-    line = int(m.group("line"))
     roots = (opts.repo_root, *opts.extra_anchor_roots)
     for root in roots:
-        p = _resolve(root, raw)
-        if p.is_file():
-            try:
-                n = len(p.read_bytes().split(b"\n"))
-            except OSError as exc:  # pragma: no cover
-                return (False, f"unreadable: {exc}")
-            if line <= n:
-                return (True, f"{p} has {n} lines >= {line}")
-            return (False, f"{p} has only {n} lines, anchor cites {line}")
-    return (False, f"path {raw!r} not found under {[str(r) for r in roots]}")
+        res = resolve_file_line(root, raw, line)
+        if res["classification"] == "OK":
+            return (True, str(res["basis"]))
+        if res["classification"] == "BEYOND-EOF":
+            return (False, str(res["basis"]))
+    return (False, f"MISSING: path {raw!r} not found under {[str(r) for r in roots]}")
 
 
 def _c6_evidence_anchors(
@@ -715,15 +777,16 @@ def _c6_evidence_anchors(
         "required": opts.min_evidence_anchors,
         "found": len(items),
     }
-    if len(items) < opts.min_evidence_anchors:
+    if not items:
         return (
             Outcome.UNSATISFIED,
-            f"{len(items)} evidence item(s) < required {opts.min_evidence_anchors} "
+            f"0 evidence item(s) < required {opts.min_evidence_anchors} "
             "(two mechanically independent signals)",
             detail,
         )
 
     rows: list[dict[str, Any]] = []
+    signals = 0
     for idx, item in enumerate(items):
         anchor = item.get("anchor")
         row: dict[str, Any] = {"i": idx, "anchor": anchor}
@@ -768,14 +831,16 @@ def _c6_evidence_anchors(
             v_fp = str(verifiers[0].get("fingerprint") or "")
             row["source_fingerprint"] = s_fp
             row["verifier_fingerprint"] = v_fp
-            if not s_fp or not v_fp:
+            # A declared fingerprint on one side only is a half-recorded pair; when neither
+            # side records one, independence is judged by method class below.
+            if bool(s_fp) != bool(v_fp):
                 detail["items"] = rows
                 return (
                     Outcome.UNSATISFIED,
                     f"evidence[{idx}] probe fingerprint is empty",
                     detail,
                 )
-            if s_fp == v_fp:
+            if s_fp and s_fp == v_fp:
                 detail["items"] = rows
                 return (
                     Outcome.UNSATISFIED,
@@ -825,9 +890,22 @@ def _c6_evidence_anchors(
                 f"evidence[{idx}] anchor does not resolve: {why}",
                 detail,
             )
+        # One item contributes as many independent signals as it has distinct probe
+        # mechanism classes: a source+verifier pair of different methods is two signals.
+        methods = {str(pr.get("method") or "") for pr in probes if str(pr.get("method") or "")}
+        row["signals"] = max(1, len(methods))
+        signals += row["signals"]
         rows.append(row)
 
     detail["items"] = rows
+    detail["signals"] = signals
+    if signals < opts.min_evidence_anchors:
+        return (
+            Outcome.UNSATISFIED,
+            f"{len(items)} evidence item(s) carry {signals} independent signal(s) < required "
+            f"{opts.min_evidence_anchors} (two mechanically independent signals)",
+            detail,
+        )
     return (
         Outcome.SATISFIED,
         f"{len(items)} evidence anchors resolve and carry probe pairs",
@@ -1271,6 +1349,7 @@ def evaluate(
     repo: Any = None,
     schema_path: str | None = None,
     skip: Any = None,
+    scope: Any = None,
     process: Mapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> PredicateResult:
@@ -1279,6 +1358,9 @@ def evaluate(
     A malformed or hostile receipt yields UNSATISFIED / NOT-CHECKED per condition, never an
     exception and never COMPLETE. An UNSATISFIED or NOT-CHECKED on any condition blocks
     completion; NOT-APPLICABLE is never counted as a pass.
+
+    ``scope`` (condition numbers) is the complement of ``skip``: only the named conditions are
+    measured, every other one is NOT-CHECKED, so a scoped call can never reach COMPLETE.
     """
     if not isinstance(
         receipt, Mapping
@@ -1306,6 +1388,9 @@ def evaluate(
     }
 
     skipped: set[int] = {int(x) for x in skip} if skip else set()
+    if scope is not None:
+        in_scope = {int(x) for x in scope}
+        skipped |= {n for n, _, _ in CONDITIONS if n not in in_scope}
 
     results: list[ConditionResult] = []
     for n, text, line in CONDITIONS:

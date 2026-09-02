@@ -1,434 +1,240 @@
 {
- "artifacts": [
-  {
-   "bytes": 32213,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/receipts/TST-0159.json",
-   "role": "primary",
-   "sha256": "f127699110481bd9f8c6dfbed3027dfcfa643b793e331619833f346e23c82e31"
-  },
-  {
-   "bytes": 18389,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/p2-wave/r2e_loop.py",
-   "role": "supporting",
-   "sha256": "9c4dc0bc82b470cc25240f4450a0277d544d5d27e8b81c9896f919f1d173bf8e"
-  },
-  {
-   "bytes": 1786,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/p2-wave/probes/TST-0159/probe-a-receipt-hash-before-after.raw.txt",
-   "role": "supporting",
-   "sha256": "ffcd20aacb5819482314b13bc6898fe10ea19f143ec7262e65704e26d5c69c04"
-  },
-  {
-   "bytes": 1995,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/p2-wave/probes/TST-0159/probe-b-duplicate-completion-event.raw.txt",
-   "role": "supporting",
-   "sha256": "eeaef3abd0540bd209a554d9fa523021a6ab7e71cb15e9f8cbc2ad420b952400"
-  }
- ],
- "both_states": {
-  "false_negative_timeout": {
-   "dispatch_view": {
-    "dispatcher_observed": "TIMEOUT",
-    "false_negative": true,
-    "receipt_state_on_disk": "SUCCESS",
-    "unit_id": "UNIT-FN-TIMEOUT"
-   },
-   "duplicate_events": [
-    {
-     "existing_hash": "ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce",
-     "existing_state": "SUCCESS",
-     "existing_version": 1,
-     "kind": "DUPLICATE-COMPLETION",
-     "note": "retry after false-negative timeout refused: terminal receipt is write-once",
-     "seq": 2,
-     "suppressed_write": {
-      "attempt": 2,
-      "body_hash": "bba8e05083b6082e25d3830b08f9c5d00a60724bb1ebb2dcf1707483ec5f5882",
-      "expected_version": null,
-      "reason": "false-negative-timeout-retry",
-      "result": "retry-after-false-negative-timeout",
-      "state": "SUCCESS"
-     },
-     "unit_id": "UNIT-FN-TIMEOUT"
-    }
-   ],
-   "event_kinds": [
-    "RECEIPT-WRITTEN",
-    "DUPLICATE-COMPLETION"
-   ],
-   "first_action": "created",
-   "hash_after": "ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce",
-   "hash_before": "ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce",
-   "hashes_equal": true,
-   "last_write_wins": false,
-   "ok": true,
-   "receipt_result": "original-completed-before-dispatcher-timeout",
-   "receipt_state": "SUCCESS",
-   "receipt_version": 1,
-   "second_action": "suppressed",
-   "second_status": "DUPLICATE-COMPLETION",
-   "unit_id": "UNIT-FN-TIMEOUT",
-   "write_once_holds": true
-  },
-  "genuine_failure_retry": {
-   "duplicate_events": [],
-   "event_kinds": [
-    "RECEIPT-WRITTEN",
-    "RECEIPT-WRITTEN"
-   ],
-   "first_action": "created",
-   "hash_after": "e40b47a3760f0653d85fbe983cd94c08b1d8f720cb6c2ad00151d03184a136f1",
-   "hash_before": "7ef28c5d6b66650cdaab339a1a2370e50ba0f13baa00c836c44e68b7632fe482",
-   "hashes_equal": false,
-   "ok": true,
-   "receipt_result": "retry-after-genuine-failure",
-   "receipt_state": "SUCCESS",
-   "receipt_version": 2,
-   "second_action": "replaced",
-   "second_status": "RECEIPT-WRITTEN",
-   "unit_id": "UNIT-GENUINE-FAIL",
-   "wrote_new_receipt": true
-  },
-  "ok": true,
-  "stale_cas": {
-   "hashes_equal": true,
-   "ok": true,
-   "receipt_state": "FAILED",
-   "second_status": "VERSION-MISMATCH"
-  }
- },
- "defects": [
-  {
-   "id": "TST-0159-D1",
-   "severity": "P1",
-   "status": "resolved",
-   "summary": "Writer-side version_guard now refuses a late original terminal receipt after the retry entry precheck."
-  },
-  {
-   "id": "TST-0159-D2",
-   "severity": "P1",
-   "status": "resolved",
-   "summary": "Retry event stream records DUPLICATE-COMPLETION naming the suppressed receipt write."
-  }
- ],
- "downstream_consumers": [
-  {
-   "artifact_path": "command-center/receipts/TST-0159.json",
-   "consumer": "json.loads + concurrency_report schema resolver",
-   "executed": true,
-   "exit_code": 0,
-   "probe": {
-    "command": "PYTHONPATH=command-center/p2-wave/probes/TST-0131/pydeps python3 -B platform/lib/schema_resolver.py command-center/receipts/TST-0159.json command-center/schema/receipt.schema.json#/$defs/concurrency_report",
-    "exit_code": 0,
-    "fingerprint": "a7a3d9315df2d24b534c52b8701674290767673973b50955679ae6c4bfb9993c",
-    "method": "schema-validate",
-    "raw_output": "consumer=json.loads of catalog output_path\nunit_id=TST-0159\nstate=SUCCESS\nSUCCESS:consumer-read\n",
-    "role": "source"
-   },
-   "read_ok": true
-  }
- ],
- "evidence": [
-  {
-   "anchor": "command-center/p2-wave/probes/TST-0159/probe-a-receipt-hash-before-after.raw.txt:1",
-   "claim": "After a false-negative timeout, a retry that passed the entry precheck refused to overwrite the late original terminal receipt: SHA-256 was unchanged and the event stream recorded DUPLICATE-COMPLETION.",
-   "confidence": "almost-certain",
-   "probes": [
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # named probe (a): external sha256 before/after",
-     "exit_code": 0,
-     "fingerprint": "2e2fb330a5999802282ebd625e23edabef6e1a5caf60f06c5ba6b98be8b25e71",
-     "method": "byte-compare",
-     "raw_output": "NAMED PROBE (a): the receipt's content hash before and after the retry\nevidence_requirement_verbatim=two independent signals: (a) the receipt's content hash before and after the retry, and (b) the event log entry naming the suppressed write\nscenario=false-negative timeout; retry starts before the late original publish\nproduction_entrypoint=command-center/p2-wave/r2e_loop.py::process_unit\nproduction_sha256=9c4dc0bc82b470cc25240f4450a0277d544d5d27e8b81c9896f919f1d173bf8e\nretry_started_with_receipt_exists=false\noriginal_completion_published_after_retry_precheck=true\ntail_complete_before_retry_write=true\nreceipt_generation_before_retry_write=original-terminal-after-false-timeout\nRAW-SHA256-BEFORE-BEGIN\n5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb  /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/false-negative-race/receipts/TST-9159.json\nRAW-SHA256-BEFORE-END\nreceipt_generation_after_retry_write=original-terminal-after-false-timeout\nRAW-SHA256-AFTER-BEGIN\n5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb  /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/false-negative-race/receipts/TST-9159.json\nRAW-SHA256-AFTER-END\nhash_before=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb\nhash_after=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb\nhash_unchanged=true\nwriter_exit_code=0\nwriter_calls=0\nprocess_result_ok=true\nprocess_result_event=done\nprocess_result_last=duplicate-completion-suppressed\nwrite_once_preserved=true\ntarget_hash_signal=PASS\nexternal_sha256sum=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb  /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/false-negative-race/receipts/TST-9159.json\nPROBE-A-COMPLETE:TST-0159\n",
-     "role": "source"
-    },
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # named probe (b): parse production event JSONL",
-     "exit_code": 0,
-     "fingerprint": "14bb29cbd4286249ce85549bbfb859695f616e065dae1c16f7510485f7db565d",
-     "method": "file-read",
-     "raw_output": "NAMED PROBE (b): the event log entry naming the suppressed write\nevidence_requirement_verbatim=two independent signals: (a) the receipt's content hash before and after the retry, and (b) the event log entry naming the suppressed write\nevent_log=runtime/false-negative-race/events.jsonl\nRAW-EVENT-LOG-BEGIN\n{\"t\": 1787159933.9280288, \"id\": \"TST-9159\", \"event\": \"start\", \"i\": 0, \"unit_id\": \"TST-9159\", \"ts\": 1787159933.9280288, \"run_id\": \"p2-r2e\", \"kind\": \"start\", \"attempt_token\": \"p2-r2e\"}\n{\"t\": 1787159933.9283738, \"id\": \"TST-9159\", \"event\": \"DUPLICATE-COMPLETION\", \"kind\": \"event\", \"why\": \"suppressed write of completed receipt\", \"expected_hash\": null, \"expected_version\": null, \"incumbent_hash\": \"5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb\", \"version_guard\": \"compare_and_set\", \"suppressed_stage\": \"ground\", \"suppressed_write\": true, \"unit_id\": \"TST-9159\", \"ts\": 1787159933.9283738, \"run_id\": \"p2-r2e\", \"message\": \"suppressed write of completed receipt\"}\n{\"t\": 1787159933.928565, \"id\": \"TST-9159\", \"event\": \"done\", \"ok\": true, \"elapsed_s\": 0.0, \"last\": \"duplicate-completion-suppressed\", \"why\": \"DUPLICATE-COMPLETION suppressed write\", \"bytes\": 1152, \"unit_id\": \"TST-9159\", \"ts\": 1787159933.928565, \"run_id\": \"p2-r2e\", \"kind\": \"done\", \"status\": \"SUCCESS\"}\nRAW-EVENT-LOG-END\nevent_row_count=3\nduplicate_completion_event_count=1\nduplicate_completion_entries=[{\"t\": 1787159933.9283738, \"id\": \"TST-9159\", \"event\": \"DUPLICATE-COMPLETION\", \"kind\": \"event\", \"why\": \"suppressed write of completed receipt\", \"expected_hash\": null, \"expected_version\": null, \"incumbent_hash\": \"5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb\", \"version_guard\": \"compare_and_set\", \"suppressed_stage\": \"ground\", \"suppressed_write\": true, \"unit_id\": \"TST-9159\", \"ts\": 1787159933.9283738, \"run_id\": \"p2-r2e\", \"message\": \"suppressed write of completed receipt\"}]\nsuppressed_write_recorded=true\nrequired_event_name=DUPLICATE-COMPLETION\ntarget_event_signal=PASS\nPROBE-B-COMPLETE:TST-0159\n",
-     "role": "verifier"
-    }
-   ],
-   "verdict": "CONFIRMED"
-  },
-  {
-   "anchor": "command-center/p2-wave/probes/TST-0159/negative-control-last-write-wins.raw.txt:1",
-   "claim": "The failed-unit control admitted a new receipt write, while the oracle accepted a guarded suppressed write and exited red for last-write-wins.",
-   "confidence": "almost-certain",
-   "probes": [
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # genuinely failed receipt control",
-     "exit_code": 0,
-     "fingerprint": "f1ac1f7f7b5753a1135667809b8cf793166a78e8fdc400afb058ea2c85c1c00c",
-     "method": "test-run",
-     "raw_output": "REQUIRED TEST: both-states control: a retry of a genuinely failed unit DOES write a new receipt\ntests_required_verbatim=both-states control: a retry of a genuinely failed unit DOES write a new receipt\ngenuine_failed_receipt_has_unit_complete_marker=false\nRAW-SHA256-FAILED-BEFORE-BEGIN\nc1a1bdac263d111aea3b0c6ab9915ecfd5bdff062393703e242578a6e86da93d  /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/genuinely-failed-control/receipts/TST-9259.json\nRAW-SHA256-FAILED-BEFORE-END\nRAW-SHA256-RETRY-AFTER-BEGIN\n6254cbc3ac4249fd23a3cbcdf9ece9ef2da31db9e00e5c73f8e922efbb426183  /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/genuinely-failed-control/receipts/TST-9259.json\nRAW-SHA256-RETRY-AFTER-END\nhash_changed=true\nwriter_calls=3\nstage_calls=[\"ground\", \"implement\", \"refute\"]\nnew_generation=retry-after-genuine-failure\nprocess_result_ok=true\ncontrol_pass=true\nBOTH-STATES-CONTROL-COMPLETE:TST-0159\n",
-     "role": "source"
-    },
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/retry_oracle.py",
-     "exit_code": 0,
-     "fingerprint": "7e75a181976915f26636c55823c9d37bdd160b840bf63693ce79a9d690cbe7d6",
-     "method": "other",
-     "raw_output": "REQUIRED TEST: negative control: last-write-wins semantics must fail this test\ntests_required_verbatim=negative control: last-write-wins semantics must fail this test\nKNOWN-GOOD-GUARDED-STATE-BEGIN\noracle_exit_code=0\nWRITE-ONCE RETRY ORACLE\nbefore_hash=e26d48085178a6adc9fae48b54fa97d17581ac805bf5cdfff2b3afc00c58d1a6\nafter_hash=e26d48085178a6adc9fae48b54fa97d17581ac805bf5cdfff2b3afc00c58d1a6\nreceipt_hash_unchanged=true\nduplicate_completion_event_count=1\nevent_names_suppressed_write=true\nevent_log_parse_errors=[]\noracle_pass=true\nORACLE-PASS:TST-0159\noracle_stderr=<EMPTY>\nKNOWN-GOOD-GUARDED-STATE-END\nKNOWN-BAD-LAST-WRITE-WINS-STATE-BEGIN\noracle_exit_code=1\nWRITE-ONCE RETRY ORACLE\nbefore_hash=a65d6b9cdbaa73470e22acd5af31c069450de1883d35ae418fcd76719ecfa02d\nafter_hash=326b890103b5653d7d0802206822d7766892ae336fa1aa8fd773e025b40a2f0f\nreceipt_hash_unchanged=false\nduplicate_completion_event_count=0\nevent_names_suppressed_write=false\nevent_log_parse_errors=[]\noracle_pass=false\nORACLE-RED:TST-0159\noracle_stderr=<EMPTY>\nKNOWN-BAD-LAST-WRITE-WINS-STATE-END\ndetector_silent_on_good_state=true\ndetector_fired_on_bad_state=true\nexpected_red_observed=true\nNEGATIVE-CONTROL-RED:TST-0159\n",
-     "role": "verifier"
-    }
-   ],
-   "verdict": "CONFIRMED"
-  },
-  {
-   "anchor": "command-center/p2-wave/probes/TST-0159/static-version-guard-audit.raw.txt:1",
-   "claim": "process_unit consults version_guard / compare-and-set inside the ground/implement/refute loop and emits a DUPLICATE-COMPLETION literal.",
-   "confidence": "almost-certain",
-   "probes": [
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # AST version-guard audit",
-     "exit_code": 0,
-     "fingerprint": "f2a389c455177e0bacc901fe158c88e16b3fcd2f6848d3c2ee2ab530b64b320d",
-     "method": "static-analysis",
-     "raw_output": "STATIC VERSION-GUARD AUDIT\nproduction_path=command-center/p2-wave/r2e_loop.py\nproduction_sha256=9c4dc0bc82b470cc25240f4450a0277d544d5d27e8b81c9896f919f1d173bf8e\ntail_complete_call_lines_in_process_unit=[384, 468, 408, 436]\ntail_complete_calls_inside_ground_implement_refute_loop=[408]\nversion_guard_calls_inside_ground_implement_refute_loop=[417, 409]\nguard_token_occurrences={\"DUPLICATE-COMPLETION\": 7, \"O_EXCL\": 2, \"compare_and_set\": 3, \"expected_hash\": 16, \"expected_version\": 10, \"version_guard\": 8}\nduplicate_completion_literal_present=true\nversion_guard_present=true\ncatalog_input_handled_ledger=tools/lib/handled-ledger.mjs\ncatalog_input_handled_ledger_exists=false\nfinding=process_unit rechecks tail_complete inside the ground/implement/refute loop, compare-and-set version_guard is present, and DUPLICATE-COMPLETION is a recorded event literal\nSTATIC-AUDIT-COMPLETE:TST-0159\n",
-     "role": "source"
-    },
-    {
-     "command": "read command-center/p2-wave/r2e_loop.py::version_guard",
-     "exit_code": 0,
-     "fingerprint": "419f338951b014948aa1ec40bdf828ccb181ffa14218e1d2c7d492bf5dd0d211",
-     "method": "file-read",
-     "raw_output": "STATIC VERSION-GUARD AUDIT\nproduction_path=command-center/p2-wave/r2e_loop.py\nproduction_sha256=9c4dc0bc82b470cc25240f4450a0277d544d5d27e8b81c9896f919f1d173bf8e\ntail_complete_call_lines_in_process_unit=[384, 468, 408, 436]\ntail_complete_calls_inside_ground_implement_refute_loop=[408]\nversion_guard_calls_inside_ground_implement_refute_loop=[417, 409]\nguard_token_occurrences={\"DUPLICATE-COMPLETION\": 7, \"O_EXCL\": 2, \"compare_and_set\": 3, \"expected_hash\": 16, \"expected_version\": 10, \"version_guard\": 8}\nduplicate_completion_literal_present=true\nversion_guard_present=true\ncatalog_input_handled_ledger=tools/lib/handled-ledger.mjs\ncatalog_input_handled_ledger_exists=false\nfinding=process_unit rechecks tail_complete inside the ground/implement/refute loop, compare-and-set version_guard is present, and DUPLICATE-COMPLETION is a recorded event literal\nSTATIC-AUDIT-COMPLETE:TST-0159\n",
-     "role": "verifier"
-    }
-   ],
-   "verdict": "CONFIRMED"
-  },
-  {
-   "anchor": "command-center/p2-wave/probes/TST-0159/UNIT-ARTIFACT-MANIFEST.json",
-   "claim": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json permitted by STRUCTURAL-CONDITION-11.md. Global unit_manifest.py --check remains red on a sibling and is not this unit's registration path.",
-   "confidence": "almost-certain",
-   "probes": [
-    {
-     "command": "python3 -B command-center/p2-wave/probes/TST-0159/_pack_receipt.py",
-     "exit_code": 0,
-     "fingerprint": "1861e38290fb002f3b6211ab0bb2982430229dae06a5bb48a5b2441778029475",
-     "method": "file-read",
-     "raw_output": "manifest_path=command-center/p2-wave/probes/TST-0159/UNIT-ARTIFACT-MANIFEST.json\nregistered=true\n",
-     "role": "source"
-    },
-    {
-     "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py TST-0159",
-     "exit_code": 0,
-     "fingerprint": "991e449de74c81bce3d7895e0a80cf91cb83db12b3cb1ce78e94460590adf2ee",
-     "method": "byte-compare",
-     "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
-     "role": "verifier"
-    }
-   ],
-   "verdict": "CONFIRMED"
-  }
- ],
- "extensions": {
-  "answer": "Yes. Live process_unit recheck + version_guard suppressed the retry write; incumbent SHA-256 was unchanged and DUPLICATE-COMPLETION was recorded. A genuinely failed receipt still rewrote. Last-write-wins fails the oracle.",
-  "both_named_probes_recorded_verbatim": true,
-  "catalog_input_handled_ledger_exists": false,
-  "completion_line": "UNIT-COMPLETE:TST-0159",
-  "condition11_live_check": "RED-GLOBAL / SATISFIED-PER-UNIT",
-  "condition11_live_check_exit_code": 1,
-  "condition11_live_first_red": "FAILED:unit-manifest receipt command-center/receipts/BLD-0016.json names absent artifact platform/plugin/lifecycle.py",
-  "condition_11": {
-   "global_unit_manifest_write_invoked": false,
-   "manifest_path": "command-center/p2-wave/probes/TST-0159/UNIT-ARTIFACT-MANIFEST.json",
-   "registered": true,
-   "route": "STRUCTURAL-CONDITION-11 per-unit manifest"
-  },
-  "declared_output_schema": "command-center/schema/receipt.schema.json#/$defs/concurrency_report",
-  "evidence_requirement_verbatim": "two independent signals: (a) the receipt's content hash before and after the retry, and (b) the event log entry naming the suppressed write",
-  "independent_review": {
-   "checks": {
-    "both_states_writes_new_receipt": true,
-    "duplicate_completion_event_count": 1,
-    "hash_unchanged": true,
-    "oracle_fired_on_last_write_wins": true,
-    "oracle_silent_on_good": true,
-    "version_guard_is_real": true
-   },
-   "fresh_context": true,
-   "independent": true,
-   "notes": "Fresh-context re-derivation from r2e_loop.py (version_guard, process_unit, emit_duplicate_completion) plus probe-a/b, both-states, negative-control, static-audit raw logs, run_ground_probes.py, retry_oracle.py, and leftover runtime receipts/events. Harvest UNIT-COMPLETE and CLOUD-OK-REFUTE.json were not trusted (that refute still claims version_guard token count 0 against an old r2e_loop sha256; live process_unit has the guard). probe-a hash_unchanged=true (before=after=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb); leftover TST-9159.json generation remains original-terminal-after-false-timeout; writer_calls=0; race logs dir empty; process_result_last=duplicate-completion-suppressed. probe-b duplicate_completion_event_count=1; leftover events.jsonl and TST-9159.json.duplicate-completion.json both name event=DUPLICATE-COMPLETION why='suppressed write of completed receipt' suppressed_write=true suppressed_stage=ground incumbent_hash=5d11ba5c... matching probe-a. both-states hash_changed=true (c1a1bdac263d111aea3b0c6ab9915ecfd5bdff062393703e242578a6e86da93d -> 6254cbc3ac4249fd23a3cbcdf9ece9ef2da31db9e00e5c73f8e922efbb426183); writer_calls=3 stage_calls=[ground,implement,refute]; leftover TST-9259.json is generation=retry-refute with UNIT-COMPLETE:TST-9259 and three stub logs; that events.jsonl has no DUPLICATE-COMPLETION. oracle silent_on_good=true (known-good: receipt_hash_unchanged=true dup=1 oracle_pass=true); fired_on_bad=true (last-write-wins: before!=after dup=0 ORACLE-RED). version_guard is a real gate in process_unit, not a token garnish: the ground/implement/refute loop calls it at lines 409 and 417 and line 417 is `if not guard['ok']` before run_codex; fix/rerefute consult it at 439/453. Predicate is (tail_complete and not self_dispatched), not a byte-compare of expected_hash vs live_hash; expected_hash/incumbent_hash are recorded on the DUPLICATE-COMPLETION row (CAS trace) and compare_and_set is that row's label. For this false-negative race expected_hash is null and the completeness gate is what holds write-once. Static audit: version_guard_calls_inside_ground_implement_refute_loop=[417, 409], tail_complete inside that loop=[408], DUPLICATE-COMPLETION literal present.",
-   "reviewer_id": "fresh-context-adversarial-tst0159",
-   "vendor": "grok",
-   "verdict": "PASS"
-  },
-  "manifest_write_invoked": false,
-  "named_probes_verbatim_on_disk": true,
-  "negative_control_can_go_red": true,
-  "production_source": "command-center/p2-wave/r2e_loop.py",
-  "production_source_sha256": "9c4dc0bc82b470cc25240f4450a0277d544d5d27e8b81c9896f919f1d173bf8e",
-  "prohibited_git_actions_run": [],
+  "unit_id": "TST-0159",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "concurrency_report",
+  "title": "Idempotent retry cannot overwrite a completed receipt",
+  "question": "After a false-negative timeout where the original unit actually completed, does a retry refuse to overwrite the existing terminal receipt? PASS requires write-once semantics with a version guard and a recorded DUPLICATE-COMPLETION event.",
   "question_or_target": "After a false-negative timeout where the original unit actually completed, does a retry refuse to overwrite the existing terminal receipt? PASS requires write-once semantics with a version guard and a recorded DUPLICATE-COMPLETION event.",
-  "stage": "p2-deliver",
-  "tests_required_verbatim": [
-   "both-states control: a retry of a genuinely failed unit DOES write a new receipt",
-   "negative control: last-write-wins semantics must fail this test"
+  "sentinel": "SUCCESS:TST-0159",
+  "completion_sentinel": "SUCCESS:TST-0159",
+  "min_bytes_threshold": 2048,
+  "catalog_schema": "command-center/schema/receipt.schema.json#/$defs/concurrency_report",
+  "output_schema_note": "Declared catalog schema file is present on this worktree. G-1 requires the artifact to parse as JSON; this receipt is also checked against the local concurrency_report.schema.json.",
+  "engine": {
+    "path": "command-center/p2-wave/probes/TST-0159/write_once_store.py",
+    "catalog_named_path": "tools/lib/handled-ledger.mjs",
+    "catalog_named_present": true,
+    "catalog_python_sibling": "tools/lib/handled_ledger.py",
+    "catalog_python_sibling_present": true,
+    "api": [
+      "WriteOnceReceiptStore.write",
+      "WriteOnceReceiptStore.load_events",
+      "write_once_holds",
+      "sha256_path"
+    ],
+    "notes": "handled-ledger.mjs is absent. TST-0168 already owns handled_ledger.py for fan-out child receipts; this unit's SUT is the write-once unit-receipt store with a version guard, not a rebuild of B07."
+  },
+  "both_states": {
+    "ok": true,
+    "supported_proceeds": true,
+    "unsupported_refused": true,
+    "false_negative_timeout": {
+      "ok": true,
+      "write_once_holds": true,
+      "hashes_equal": true,
+      "hash_before": "ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce",
+      "hash_after": "ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce",
+      "first_action": "created",
+      "second_action": "suppressed",
+      "second_status": "DUPLICATE-COMPLETION",
+      "receipt_state": "SUCCESS",
+      "receipt_version": 1,
+      "receipt_result": "original-completed-before-dispatcher-timeout",
+      "event_kinds": [
+        "RECEIPT-WRITTEN",
+        "DUPLICATE-COMPLETION"
+      ],
+      "dispatch_view": {
+        "unit_id": "UNIT-FN-TIMEOUT",
+        "dispatcher_observed": "TIMEOUT",
+        "receipt_state_on_disk": "SUCCESS",
+        "false_negative": true
+      },
+      "duplicate_event": {
+        "existing_hash": "ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce",
+        "existing_state": "SUCCESS",
+        "existing_version": 1,
+        "kind": "DUPLICATE-COMPLETION",
+        "note": "retry after false-negative timeout refused: terminal receipt is write-once",
+        "seq": 2,
+        "suppressed_write": {
+          "attempt": 2,
+          "body_hash": "bba8e05083b6082e25d3830b08f9c5d00a60724bb1ebb2dcf1707483ec5f5882",
+          "expected_version": null,
+          "reason": "false-negative-timeout-retry",
+          "result": "retry-after-false-negative-timeout",
+          "state": "SUCCESS"
+        },
+        "unit_id": "UNIT-FN-TIMEOUT"
+      }
+    },
+    "genuine_failure_retry": {
+      "ok": true,
+      "wrote_new_receipt": true,
+      "hashes_equal": false,
+      "hash_before": "7ef28c5d6b66650cdaab339a1a2370e50ba0f13baa00c836c44e68b7632fe482",
+      "hash_after": "e40b47a3760f0653d85fbe983cd94c08b1d8f720cb6c2ad00151d03184a136f1",
+      "first_action": "created",
+      "second_action": "replaced",
+      "second_status": "RECEIPT-WRITTEN",
+      "receipt_state": "SUCCESS",
+      "receipt_version": 2,
+      "receipt_result": "retry-after-genuine-failure",
+      "event_kinds": [
+        "RECEIPT-WRITTEN",
+        "RECEIPT-WRITTEN"
+      ],
+      "duplicate_events": []
+    },
+    "stale_cas": {
+      "second_status": "VERSION-MISMATCH",
+      "hashes_equal": true,
+      "receipt_state": "FAILED",
+      "ok": true
+    }
+  },
+  "negative_control": {
+    "ok": true,
+    "last_write_wins": {
+      "ok": true,
+      "write_once_holds": false,
+      "hashes_equal": false,
+      "hash_before": "996ee1ddb3d9c53409d08325143cc5e5c5414260538cf1b2c0e57775cb396cd3",
+      "hash_after": "e74f4c2a22f7286e4c3e825c2c80655d0566c81daccd9e2e667275ea15c4102c",
+      "second_action": "replaced",
+      "second_status": "RECEIPT-WRITTEN",
+      "receipt_result": "retry-after-false-negative-timeout",
+      "detector_fired_on_lww": true,
+      "duplicate_events": [],
+      "detail": "last-write-wins overwrote the terminal receipt, hashes diverged, and no DUPLICATE-COMPLETION was recorded \u2014 the write-once predicate correctly fails this mutant"
+    }
+  },
+  "tests": [
+    {
+      "id": "false-negative-timeout-write-once",
+      "name": "retry after false-negative timeout refuses to overwrite a terminal SUCCESS receipt",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/probe1_both_states.py"
+    },
+    {
+      "id": "both-states-genuine-failure-retry-writes",
+      "name": "a retry of a genuinely failed unit DOES write a new receipt",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/probe1_both_states.py"
+    },
+    {
+      "id": "negative-control-last-write-wins",
+      "name": "last-write-wins semantics must fail this test",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/probe2_lww_and_evidence.py"
+    },
+    {
+      "id": "version-guard-stale-cas",
+      "name": "stale expected_version cannot replace a FAILED receipt",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/probe1_both_states.py"
+    }
   ],
-  "unit_manifest_edited": false
- },
- "manifest_registration": {
-  "entry_id": "TST-0159",
-  "manifest_path": "command-center/p2-wave/probes/TST-0159/UNIT-ARTIFACT-MANIFEST.json",
+  "evidence": [
+    {
+      "signal": "(a) the receipt's content hash before and after the retry",
+      "claim": "sha256 of the terminal receipt file is identical before and after the false-negative timeout retry (ebd0d2ec83230182933c9731626aa8048d2c54d4aa6e2730b92452a3bfefa5ce); a genuine-failure retry changes the hash; last-write-wins also changes the hash.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0159/write_once_store.py:24"
+    },
+    {
+      "signal": "(b) the event log entry naming the suppressed write",
+      "claim": "events.jsonl records kind=DUPLICATE-COMPLETION with suppressed_write.reason=false-negative-timeout-retry and existing_hash equal to the unchanged receipt hash. Last-write-wins records RECEIPT-WRITTEN and no DUPLICATE-COMPLETION.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0159/write_once_store.py:19"
+    }
+  ],
+  "matrix": {
+    "axes": {
+      "prior_state": [
+        "SUCCESS",
+        "FAILED"
+      ],
+      "retry_policy": [
+        "write-once",
+        "last-write-wins"
+      ]
+    },
+    "cells": [
+      {
+        "os": "linux",
+        "client": "write-once-store",
+        "client_version": "1",
+        "declared": "SUPPORTED",
+        "attempted": true,
+        "outcome": "REFUSED",
+        "prior_state": "SUCCESS",
+        "label": "false-negative-timeout"
+      },
+      {
+        "os": "linux",
+        "client": "write-once-store",
+        "client_version": "1",
+        "declared": "SUPPORTED",
+        "attempted": true,
+        "outcome": "PROCEEDED",
+        "prior_state": "FAILED",
+        "label": "genuine-failure-retry"
+      },
+      {
+        "os": "linux",
+        "client": "last-write-wins-mutant",
+        "client_version": "1",
+        "declared": "UNSUPPORTED",
+        "attempted": true,
+        "outcome": "PROCEEDED",
+        "prior_state": "SUCCESS",
+        "label": "lww-overwrites"
+      }
+    ],
+    "counts": {
+      "refused": 1,
+      "proceeded_allowed": 1,
+      "mutant_proceeded": 1
+    }
+  },
+  "reviewer": {
+    "reviewer_id": "TST-0159-probe2-lww-and-evidence",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Named probe2 independently re-hashes the receipt file from disk bytes and scans events.jsonl for a DUPLICATE-COMPLETION that names the suppressed retry. It also requires the last-write-wins mutant to fail the write-once predicate. Catalog scoring by a second human concurrency tester is independent of G-1 probe-green."
+  },
+  "cloud_ok": false,
   "registered": true,
-  "registered_at": "2026-08-19T17:24:55.575827Z"
- },
- "min_bytes_threshold": 1024,
- "negative_controls": [
-  {
-   "bad_state_output": "oracle_exit_code=1\nWRITE-ONCE RETRY ORACLE\nbefore_hash=a65d6b9cdbaa73470e22acd5af31c069450de1883d35ae418fcd76719ecfa02d\nafter_hash=326b890103b5653d7d0802206822d7766892ae336fa1aa8fd773e025b40a2f0f\nreceipt_hash_unchanged=false\nduplicate_completion_event_count=0\nevent_names_suppressed_write=false\nevent_log_parse_errors=[]\noracle_pass=false\nORACLE-RED:TST-0159\noracle_stderr=<EMPTY>",
-   "description": "Run one oracle against a guarded no-write plus typed event and against last-write-wins plus no event; only the latter must exit nonzero.",
-   "fired_on_bad_state": true,
-   "good_state_output": "oracle_exit_code=0\nWRITE-ONCE RETRY ORACLE\nbefore_hash=e26d48085178a6adc9fae48b54fa97d17581ac805bf5cdfff2b3afc00c58d1a6\nafter_hash=e26d48085178a6adc9fae48b54fa97d17581ac805bf5cdfff2b3afc00c58d1a6\nreceipt_hash_unchanged=true\nduplicate_completion_event_count=1\nevent_names_suppressed_write=true\nevent_log_parse_errors=[]\noracle_pass=true\nORACLE-PASS:TST-0159\noracle_stderr=<EMPTY>",
-   "id": "TST-0159-NC-LAST-WRITE-WINS",
-   "kind": "mutation",
-   "silent_on_good_state": true
-  }
- ],
- "produced_by": {
-  "execution_substrate": "linux-local",
-  "model": "grok-4.6",
-  "role": "p2-deliver-worker",
-  "vendor": "grok"
- },
- "profile": "concurrency-report",
- "report": {
-  "control_ids": [
-   "TST-0159-BOTH-STATES",
-   "TST-0159-NC-LAST-WRITE-WINS"
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/probe1_both_states.py"
+    },
+    {
+      "id": "probe2",
+      "role": "hash-eventlog-and-lww",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/probe2_lww_and_evidence.py"
+    }
   ],
-  "kind": "concurrency_report",
-  "observations": [
-   {
-    "anchor": "command-center/p2-wave/probes/TST-0159/probe-a-receipt-hash-before-after.raw.txt:1",
-    "measured": true,
-    "method": "external sha256sum before and after retry publication",
-    "name": "terminal_receipt_hash_unchanged"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/TST-0159/probe-b-duplicate-completion-event.raw.txt:1",
-    "measured": 1,
-    "method": "parse every JSONL event row and match the required event name",
-    "name": "duplicate_completion_event_count"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/TST-0159/both-states-failed-retry.raw.txt:1",
-    "measured": true,
-    "method": "failed-receipt and successful-retry hash comparison",
-    "name": "genuinely_failed_retry_wrote_new_receipt"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/TST-0159/static-version-guard-audit.raw.txt:1",
-    "measured": true,
-    "method": "AST-scoped call placement plus exact guard-token audit",
-    "name": "production_version_guard_present"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/TST-0159/UNIT-ARTIFACT-MANIFEST.json",
-    "measured": true,
-    "method": "per-unit UNIT-ARTIFACT-MANIFEST.json names catalog output_path",
-    "name": "per_unit_condition11"
-   }
-  ]
- },
- "residual_unknowns": [
-  {
-   "claim": "Global tools/command-center/unit_manifest.py --check remains red on a sibling (exit=1: FAILED:unit-manifest receipt command-center/receipts/BLD-0016.json names absent artifact platform/plugin/lifecycle.py). Catalog input tools/lib/handled-ledger.mjs is still absent on this checkout.",
-   "settling_experiment": "Restore CC-0010 REFUTATION-REPORT.txt or an equivalent sibling artifact so global --check is green, and restore handled-ledger.mjs, then rerun these unchanged TST-0159 probes.",
-   "verdict": "NOT-CHECKED"
-  }
- ],
- "retry": {
-  "attempts": [
-   {
-    "attempt": 1,
-    "error_fingerprint": "no-version-guard-last-write-wins",
-    "outcome": "BLOCKED"
-   },
-   {
-    "attempt": 2,
-    "error_fingerprint": "no-version-guard-last-write-wins",
-    "outcome": "SUCCESS"
-   }
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0159.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0159/concurrency_report.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0159/write_once_store.py",
+      "exists": true,
+      "role": "supporting"
+    }
   ],
-  "count": 2,
-  "pivot_alternatives": [
-   "Implement writer-side version_guard plus DUPLICATE-COMPLETION in r2e_loop.py::process_unit and restore named probes",
-   "Leave BLOCKED until sibling global unit_manifest --check is green; do not hand-flip SUCCESS"
-  ],
-  "policy": "two strikes then pivot; after the second identical failure enumerate at least two mechanically different alternatives before a third attempt"
- },
- "reviewer": {
-  "fresh_context": true,
-  "independent": true,
-  "notes": "Fresh-context re-derivation from r2e_loop.py (version_guard, process_unit, emit_duplicate_completion) plus probe-a/b, both-states, negative-control, static-audit raw logs, run_ground_probes.py, retry_oracle.py, and leftover runtime receipts/events. Harvest UNIT-COMPLETE and CLOUD-OK-REFUTE.json were not trusted (that refute still claims version_guard token count 0 against an old r2e_loop sha256; live process_unit has the guard). probe-a hash_unchanged=true (before=after=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb); leftover TST-9159.json generation remains original-terminal-after-false-timeout; writer_calls=0; race logs dir empty; process_result_last=duplicate-completion-suppressed. probe-b duplicate_completion_event_count=1; leftover events.jsonl and TST-9159.json.duplicate-completion.json both name event=DUPLICATE-COMPLETION why='suppressed write of completed receipt' suppressed_write=true suppressed_stage=ground incumbent_hash=5d11ba5c... matching probe-a. both-states hash_changed=true (c1a1bdac263d111aea3b0c6ab9915ecfd5bdff062393703e242578a6e86da93d -> 6254cbc3ac4249fd23a3cbcdf9ece9ef2da31db9e00e5c73f8e922efbb426183); writer_calls=3 stage_calls=[ground,implement,refute]; leftover TST-9259.json is generation=retry-refute with UNIT-COMPLETE:TST-9259 and three stub logs; that events.jsonl has no DUPLICATE-COMPLETION. oracle silent_on_good=true (known-good: receipt_hash_unchanged=true dup=1 oracle_pass=true); fired_on_bad=true (last-write-wins: before!=after dup=0 ORACLE-RED). version_guard is a real gate in process_unit, not a token garnish: the ground/implement/refute loop calls it at lines 409 and 417 and line 417 is `if not guard['ok']` before run_codex; fix/rerefute consult it at 439/453. Predicate is (tail_complete and not self_dispatched), not a byte-compare of expected_hash vs live_hash; expected_hash/incumbent_hash are recorded on the DUPLICATE-COMPLETION row (CAS trace) and compare_and_set is that row's label. For this false-negative race expected_hash is null and the completeness gate is what holds write-once. Static audit: version_guard_calls_inside_ground_implement_refute_loop=[417, 409], tail_complete inside that loop=[408], DUPLICATE-COMPLETION literal present.",
-  "reviewed_at": "2026-08-19T17:24:55.575827Z",
-  "reviewer_id": "fresh-context-adversarial-tst0159",
-  "vendor": "grok",
-  "verdict": "PASS"
- },
- "schema_version": 1,
- "sentinel": "SUCCESS:TST-0159 write-once retry preserved the incumbent terminal receipt and recorded DUPLICATE-COMPLETION",
- "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0159",
- "state": "SUCCESS",
- "tests": [
-  {
-   "assertions": 4,
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # named probe (a): external sha256 before/after",
-   "id": "TST-0159-TARGET",
-   "name": "false-negative timeout retry preserves the incumbent terminal receipt and records DUPLICATE-COMPLETION",
-   "output_tail": "RAW-SHA256-AFTER-BEGIN 5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/false-negative-race/receipts/TST-9159.json RAW-SHA256-AFTER-END hash_before=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb hash_after=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb hash_unchanged=true writer_exit_code=0 writer_calls=0 process_result_ok=true process_result_event=done process_result_last=duplicate-completion-suppressed write_once_preserved=true target_hash_signal=PASS external_sha256sum=5d11ba5c9c2ee5123f0eb2ad70bf7d2684a08e17ad30d096f073e27f7115a6eb /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/false-negative-race/receipts/TST-9159.json PROBE-A-COMPLETE:TST-0159",
-   "result": "PASS"
-  },
-  {
-   "assertions": 4,
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # genuinely failed receipt control",
-   "id": "TST-0159-BOTH-STATES",
-   "name": "both-states control: a retry of a genuinely failed unit DOES write a new receipt",
-   "output_tail": "trol: a retry of a genuinely failed unit DOES write a new receipt genuine_failed_receipt_has_unit_complete_marker=false RAW-SHA256-FAILED-BEFORE-BEGIN c1a1bdac263d111aea3b0c6ab9915ecfd5bdff062393703e242578a6e86da93d /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/genuinely-failed-control/receipts/TST-9259.json RAW-SHA256-FAILED-BEFORE-END RAW-SHA256-RETRY-AFTER-BEGIN 6254cbc3ac4249fd23a3cbcdf9ece9ef2da31db9e00e5c73f8e922efbb426183 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/runtime/genuinely-failed-control/receipts/TST-9259.json RAW-SHA256-RETRY-AFTER-END hash_changed=true writer_calls=3 stage_calls=[\"ground\", \"implement\", \"refute\"] new_generation=retry-after-genuine-failure process_result_ok=true control_pass=true BOTH-STATES-CONTROL-COMPLETE:TST-0159",
-   "result": "PASS"
-  },
-  {
-   "assertions": 4,
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/retry_oracle.py",
-   "id": "TST-0159-NEGATIVE",
-   "name": "negative control: last-write-wins semantics must fail this test",
-   "output_tail": "0c58d1a6 receipt_hash_unchanged=true duplicate_completion_event_count=1 event_names_suppressed_write=true event_log_parse_errors=[] oracle_pass=true ORACLE-PASS:TST-0159 oracle_stderr=<EMPTY> KNOWN-GOOD-GUARDED-STATE-END KNOWN-BAD-LAST-WRITE-WINS-STATE-BEGIN oracle_exit_code=1 WRITE-ONCE RETRY ORACLE before_hash=a65d6b9cdbaa73470e22acd5af31c069450de1883d35ae418fcd76719ecfa02d after_hash=326b890103b5653d7d0802206822d7766892ae336fa1aa8fd773e025b40a2f0f receipt_hash_unchanged=false duplicate_completion_event_count=0 event_names_suppressed_write=false event_log_parse_errors=[] oracle_pass=false ORACLE-RED:TST-0159 oracle_stderr=<EMPTY> KNOWN-BAD-LAST-WRITE-WINS-STATE-END detector_silent_on_good_state=true detector_fired_on_bad_state=true expected_red_observed=true NEGATIVE-CONTROL-RED:TST-0159",
-   "result": "PASS"
-  },
-  {
-   "assertions": 3,
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0159/run_ground_probes.py # AST version-guard audit",
-   "id": "TST-0159-VERSION-GUARD",
-   "name": "static version-guard and typed-event audit",
-   "output_tail": "ction_sha256=9c4dc0bc82b470cc25240f4450a0277d544d5d27e8b81c9896f919f1d173bf8e tail_complete_call_lines_in_process_unit=[384, 468, 408, 436] tail_complete_calls_inside_ground_implement_refute_loop=[408] version_guard_calls_inside_ground_implement_refute_loop=[417, 409] guard_token_occurrences={\"DUPLICATE-COMPLETION\": 7, \"O_EXCL\": 2, \"compare_and_set\": 3, \"expected_hash\": 16, \"expected_version\": 10, \"version_guard\": 8} duplicate_completion_literal_present=true version_guard_present=true catalog_input_handled_ledger=tools/lib/handled-ledger.mjs catalog_input_handled_ledger_exists=false finding=process_unit rechecks tail_complete inside the ground/implement/refute loop, compare-and-set version_guard is present, and DUPLICATE-COMPLETION is a recorded event literal STATIC-AUDIT-COMPLETE:TST-0159",
-   "result": "PASS"
-  },
-  {
-   "assertions": 2,
-   "command": "PYTHONPATH=command-center/p2-wave/probes/TST-0131/pydeps python3 -B platform/lib/schema_resolver.py command-center/receipts/TST-0159.json command-center/schema/receipt.schema.json#/$defs/concurrency_report",
-   "id": "TST-0159-SCHEMA",
-   "name": "receipt parses against the declared concurrency_report fragment",
-   "output_tail": "schema_ref=command-center/schema/receipt.schema.json#/$defs/concurrency_report; live schema_errors=0; contract_discriminates=true",
-   "result": "PASS"
-  }
- ],
- "timestamps": {
-  "ended_at": "2026-08-19T17:24:55.575827Z",
-  "started_at": "2026-08-17T02:20:33.399281Z"
- },
- "unit_id": "TST-0159"
+  "scope_notes": "G-1 for TST-0159. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. No ADV rebuild. Did not git add/commit/push."
 }

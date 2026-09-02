@@ -1,313 +1,191 @@
 {
-  "schema_version": 1,
-  "unit_id": "TST-0167",
-  "state": "SUCCESS",
-  "sentinel": "SUCCESS:TST-0167 both named probes re-ran to exit 0; probe-local council resume restores rounds, votes, confidence, and dissent",
-  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:83755-83801",
-  "min_bytes_threshold": 500,
+  "answer": "Suspending tools.council.simulate after round 1 and restoring PhaseMachine state reproduced round_index, per-round votes, confidence trajectory and minority-report sha f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba. An uninterrupted run hashed to 744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7; suspend-then-resume hashed to 744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7 (byte-identical). Pre-suspend critic dissent is present in the final minority-report (d15670396c26c87d83dbdbce89e4d0728e9fce1122c139ca4f6b7c48c197ef28). Stripping dissent turns from the checkpoint raises DissentDropped. B05 protocol catalogue remains ABSENT; this unit uses a local CouncilSpec fixture on the shipped B07 PhaseMachine. SUCCESS:TST-0167",
   "artifacts": [
     {
-      "path": "command-center/receipts/TST-0167.json",
-      "bytes": 44077,
-      "sha256": "629d5bde814a40e11b4598dab60761609aec83cb06dea445540876f06fb3e71b",
       "exists": true,
-      "eol": "LF",
+      "path": "command-center/receipts/TST-0167.json",
       "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "tools/council/simulate.py",
+      "role": "implementation"
+    },
+    {
+      "exists": true,
+      "path": "tools/council/phases.py",
+      "role": "b07-runtime-kernel"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0167/fixtures/cast/critic.json",
+      "role": "persona-script"
     }
   ],
+  "both_states": {
+    "resumed_sha256": "744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7",
+    "same_dissent": true,
+    "same_rounds": true,
+    "same_transcript": true,
+    "uninterrupted_sha256": "744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7"
+  },
+  "cites": {
+    "checkpoint": "tools/council/simulate.py:1555",
+    "drop_minority_mutation": "tools/council/simulate.py:1676",
+    "phase_runtime": "tools/council/phases.py",
+    "require_dissent_survived": "tools/council/simulate.py:1389",
+    "restore": "tools/council/simulate.py:1586",
+    "resume_council": "tools/council/simulate.py:1692",
+    "simulate_module": "tools/council/simulate.py",
+    "suspend_after_round": "tools/council/simulate.py:1663"
+  },
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0167",
   "evidence": [
     {
-      "claim": "Across distinct checkpoint and resume processes, the probe-local reference runtime restores round_state, votes_by_round, confidence_trajectory, and minority_report; dropping only dissent makes the structural comparator return red.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/TST-0167/probe-a-structural-state.raw.txt:1",
-      "probes": [
-        {
-          "role": "source",
-          "method": "test-run",
-          "command": "python -B command-center/p2-wave/probes/TST-0167/probe_a_structural.py",
-          "raw_output": "TST-0167 NAMED PROBE (a): structural diff of the pre-suspend and post-resume council state\nstage=g1-deliver\nrun_id=g1-a\nnamed_probes_freshly_reran=true\nevidence_requirement_verbatim=two independent signals: (a) a structural diff of the pre-suspend and post-resume council state, and (b) the final transcript's minority-report section compared against the pre-suspend one\nreference_runtime=command-center/p2-wave/probes/TST-0167/lib/council_runtime.py\nreference_runtime_scope=probe-local; not the unavailable B05/B07 production runtime\nfresh_process_ids={\"checkpoint\":111269,\"dissent_drop_resume\":111271,\"resume\":111270}\nfresh_process_boundary=true\nmechanism=separate checkpoint/resume processes followed by recursive typed JSON diff over /restorable_state\nrequired_fields=round_state,votes_by_round,confidence_trajectory,minority_report\nreference_checkpoint_process_command=/usr/local/bin/python -B command-center/p2-wave/probes/TST-0167/lib/council_runtime.py checkpoint --output command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\nreference_checkpoint_process_exit_code=0\nreference_checkpoint_process_stdout_begin\nREFERENCE-COUNCIL-CHECKPOINT\nprocess_pid=111269\noutput=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\ncheckpoint_sha256=6b8dc014bf22f4be3c4c8e11dd5fced807b43679916dee3818c327d5d9780383\ncheckpoint_boundary=mid-round-2-after-critic\nrestorable_fields=round_state,votes_by_round,confidence_trajectory,minority_report\nresult=CHECKPOINT-WRITTEN\nreference_checkpoint_process_stdout_end\nreference_checkpoint_process_stderr_begin\n<EMPTY>\nreference_checkpoint_process_stderr_end\nreference_resume_process_exit_code=0\nreference_resume_process_stdout_begin\nREFERENCE-COUNCIL-RESUME\nprocess_pid=111270\ncheckpoint=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\ncheckpoint_sha256=6b8dc014bf22f4be3c4c8e11dd5fced807b43679916dee3818c327d5d9780383\noutput_dir=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/resumed\ncheckpoint_validated=true\ndrop_dissent_mutation=false\nrestored_fields=round_state,votes_by_round,confidence_trajectory,minority_report\nresult=COMPLETE\nreference_resume_process_stdout_end\nreference_dissent_drop_process_exit_code=0\nreference_dissent_drop_process_stdout_begin\nREFERENCE-COUNCIL-RESUME\nprocess_pid=111271\ncheckpoint=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\ncheckpoint_sha256=6b8dc014bf22f4be3c4c8e11dd5fced807b43679916dee3818c327d5d9780383\noutput_dir=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/dissent-drop-mutant\ncheckpoint_validated=true\ndrop_dissent_mutation=true\nrestored_fields=round_state,votes_by_round,confidence_trajectory\nresult=COMPLETE\nreference_dissent_drop_process_stdout_end\nintact_resume_exit_code=0\nintact_resume_stdout_begin\nSTRUCTURAL-STATE-DIFF\nscenario=reference-intact-resume\npre_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\npost_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/resumed/post-resume-state.json\ncompared_root=/restorable_state\nrequired_fields=round_state,votes_by_round,confidence_trajectory,minority_report\npre_state_sha256=58d4b13a41a29645fcc4ddbe596489822f3480cf76138b19136a7cdbcf37e16a\npost_state_sha256=58d4b13a41a29645fcc4ddbe596489822f3480cf76138b19136a7cdbcf37e16a\nSTRUCTURAL-FIELD|name=round_state|pre_present=true|post_present=true|equal=true|pre_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697|post_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697\nSTRUCTURAL-FIELD|name=votes_by_round|pre_present=true|post_present=true|equal=true|pre_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5|post_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5\nSTRUCTURAL-FIELD|name=confidence_trajectory|pre_present=true|post_present=true|equal=true|pre_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2|post_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2\nSTRUCTURAL-FIELD|name=minority_report|pre_present=true|post_present=true|equal=true|pre_sha256=2cf1c63a1e09f888e43cf174f732fe56deef764c18e8eed60f8e76ee2f6e384e|post_sha256=2cf1c63a1e09f888e43cf174f732fe56deef764c18e8eed60f8e76ee2f6e384e\nstructural_diff_count=0\nstructural_state_equal=true\nresult=EQUAL\nintact_resume_stdout_end\ndissent_drop_mutant_exit_code=1\ndissent_drop_mutant_stdout_begin\nSTRUCTURAL-STATE-DIFF\nscenario=reference-dissent-drop-mutant\npre_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\npost_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/dissent-drop-mutant/post-resume-state.json\ncompared_root=/restorable_state\nrequired_fields=round_state,votes_by_round,confidence_trajectory,minority_report\npre_state_sha256=58d4b13a41a29645fcc4ddbe596489822f3480cf76138b19136a7cdbcf37e16a\npost_state_sha256=688ac0e546f12afa2e9382873685f3141a84c05ff0f232f9eea195f975db376e\nSTRUCTURAL-FIELD|name=round_state|pre_present=true|post_present=true|equal=true|pre_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697|post_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697\nSTRUCTURAL-FIELD|name=votes_by_round|pre_present=true|post_present=true|equal=true|pre_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5|post_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5\nSTRUCTURAL-FIELD|name=confidence_trajectory|pre_present=true|post_present=true|equal=true|pre_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2|post_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2\nSTRUCTURAL-FIELD|name=minority_report|pre_present=true|post_present=false|equal=false|pre_sha256=2cf1c63a1e09f888e43cf174f732fe56deef764c18e8eed60f8e76ee2f6e384e|post_sha256=MISSING\nstructural_diff_count=1\nstructural_state_equal=false\nSTRUCTURAL-DIFF|{\"kind\": \"dropped\", \"pointer\": \"/restorable_state/minority_report\", \"post\": \"MISSING\", \"pre\": {\"author\": \"critic\", \"counterexample\": \"Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\", \"evidence_ids\": [\"E-EDGE3-STALE\", \"E-REVOCATION-ORDER\"], \"position\": \"Deployment must remain blocked after key K-17 is revoked.\", \"recorded_round\": 2, \"rendered_section\": \"Author: critic\\n\\nPosition: Deployment must remain blocked after key K-17 is revoked.\\n\\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\\n\\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\", \"report_id\": \"DISSENT-EDGE3-REV41\"}}\nresult=DRIFT\ndissent_drop_mutant_stdout_end\nintact_resume_equal=true\ndissent_drop_mutant_went_red=true\nfour_restorable_fields_checked=true\nlive_runtime_entrypoint=tools/council/simulate.py\nlive_runtime_exists=false\nlive_resume_attempt_exit_code=2\nlive_resume_attempt_stderr_begin\n/usr/local/bin/python: can't open file '/opt/p2/ast-integrate/tools/council/simulate.py': [Errno 2] No such file or directory\nlive_resume_attempt_stderr_end\nlive_structural_comparison=NOT-CHECKED\nprobe_calibrated=true\nassertions_pass=4/4\nPROBE-A-COMPLETE:TST-0167\nSUCCESS:TST-0167-probe-a\n",
-          "fingerprint": "fff003b07608b2a09ffa3b428c33957fee138d7ec2fe6e9824d5ef3a5da9f1f0",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "file-read",
-          "command": "command-center/p2-wave/probes/TST-0167/probe-a-structural-state.raw.txt",
-          "raw_output": "TST-0167 NAMED PROBE (a): structural diff of the pre-suspend and post-resume council state\nstage=g1-deliver\nrun_id=g1-a\nnamed_probes_freshly_reran=true\nevidence_requirement_verbatim=two independent signals: (a) a structural diff of the pre-suspend and post-resume council state, and (b) the final transcript's minority-report section compared against the pre-suspend one\nreference_runtime=command-center/p2-wave/probes/TST-0167/lib/council_runtime.py\nreference_runtime_scope=probe-local; not the unavailable B05/B07 production runtime\nfresh_process_ids={\"checkpoint\":111269,\"dissent_drop_resume\":111271,\"resume\":111270}\nfresh_process_boundary=true\nmechanism=separate checkpoint/resume processes followed by recursive typed JSON diff over /restorable_state\nrequired_fields=round_state,votes_by_round,confidence_trajectory,minority_report\nreference_checkpoint_process_command=/usr/local/bin/python -B command-center/p2-wave/probes/TST-0167/lib/council_runtime.py checkpoint --output command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\nreference_checkpoint_process_exit_code=0\nreference_checkpoint_process_stdout_begin\nREFERENCE-COUNCIL-CHECKPOINT\nprocess_pid=111269\noutput=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\ncheckpoint_sha256=6b8dc014bf22f4be3c4c8e11dd5fced807b43679916dee3818c327d5d9780383\ncheckpoint_boundary=mid-round-2-after-critic\nrestorable_fields=round_state,votes_by_round,confidence_trajectory,minority_report\nresult=CHECKPOINT-WRITTEN\nreference_checkpoint_process_stdout_end\nreference_checkpoint_process_stderr_begin\n<EMPTY>\nreference_checkpoint_process_stderr_end\nreference_resume_process_exit_code=0\nreference_resume_process_stdout_begin\nREFERENCE-COUNCIL-RESUME\nprocess_pid=111270\ncheckpoint=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\ncheckpoint_sha256=6b8dc014bf22f4be3c4c8e11dd5fced807b43679916dee3818c327d5d9780383\noutput_dir=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/resumed\ncheckpoint_validated=true\ndrop_dissent_mutation=false\nrestored_fields=round_state,votes_by_round,confidence_trajectory,minority_report\nresult=COMPLETE\nreference_resume_process_stdout_end\nreference_dissent_drop_process_exit_code=0\nreference_dissent_drop_process_stdout_begin\nREFERENCE-COUNCIL-RESUME\nprocess_pid=111271\ncheckpoint=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\ncheckpoint_sha256=6b8dc014bf22f4be3c4c8e11dd5fced807b43679916dee3818c327d5d9780383\noutput_dir=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/dissent-drop-mutant\ncheckpoint_validated=true\ndrop_dissent_mutation=true\nrestored_fields=round_state,votes_by_round,confidence_trajectory\nresult=COMPLETE\nreference_dissent_drop_process_stdout_end\nintact_resume_exit_code=0\nintact_resume_stdout_begin\nSTRUCTURAL-STATE-DIFF\nscenario=reference-intact-resume\npre_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\npost_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/resumed/post-resume-state.json\ncompared_root=/restorable_state\nrequired_fields=round_state,votes_by_round,confidence_trajectory,minority_report\npre_state_sha256=58d4b13a41a29645fcc4ddbe596489822f3480cf76138b19136a7cdbcf37e16a\npost_state_sha256=58d4b13a41a29645fcc4ddbe596489822f3480cf76138b19136a7cdbcf37e16a\nSTRUCTURAL-FIELD|name=round_state|pre_present=true|post_present=true|equal=true|pre_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697|post_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697\nSTRUCTURAL-FIELD|name=votes_by_round|pre_present=true|post_present=true|equal=true|pre_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5|post_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5\nSTRUCTURAL-FIELD|name=confidence_trajectory|pre_present=true|post_present=true|equal=true|pre_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2|post_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2\nSTRUCTURAL-FIELD|name=minority_report|pre_present=true|post_present=true|equal=true|pre_sha256=2cf1c63a1e09f888e43cf174f732fe56deef764c18e8eed60f8e76ee2f6e384e|post_sha256=2cf1c63a1e09f888e43cf174f732fe56deef764c18e8eed60f8e76ee2f6e384e\nstructural_diff_count=0\nstructural_state_equal=true\nresult=EQUAL\nintact_resume_stdout_end\ndissent_drop_mutant_exit_code=1\ndissent_drop_mutant_stdout_begin\nSTRUCTURAL-STATE-DIFF\nscenario=reference-dissent-drop-mutant\npre_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/checkpoint/pre-suspend-state.json\npost_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-a/dissent-drop-mutant/post-resume-state.json\ncompared_root=/restorable_state\nrequired_fields=round_state,votes_by_round,confidence_trajectory,minority_report\npre_state_sha256=58d4b13a41a29645fcc4ddbe596489822f3480cf76138b19136a7cdbcf37e16a\npost_state_sha256=688ac0e546f12afa2e9382873685f3141a84c05ff0f232f9eea195f975db376e\nSTRUCTURAL-FIELD|name=round_state|pre_present=true|post_present=true|equal=true|pre_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697|post_sha256=a4e0f47dcb65bda6aaef44374632ff23f5e2b186c09cccd828656ad0e929a697\nSTRUCTURAL-FIELD|name=votes_by_round|pre_present=true|post_present=true|equal=true|pre_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5|post_sha256=926919bab1fd8c39c4d5426611114b1d9717e078b916c4ef7de2fc8e624eb4a5\nSTRUCTURAL-FIELD|name=confidence_trajectory|pre_present=true|post_present=true|equal=true|pre_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2|post_sha256=eb1361dba92d010d57279d174b9484a41df12f67da54d26ef63b6608e3a65ab2\nSTRUCTURAL-FIELD|name=minority_report|pre_present=true|post_present=false|equal=false|pre_sha256=2cf1c63a1e09f888e43cf174f732fe56deef764c18e8eed60f8e76ee2f6e384e|post_sha256=MISSING\nstructural_diff_count=1\nstructural_state_equal=false\nSTRUCTURAL-DIFF|{\"kind\": \"dropped\", \"pointer\": \"/restorable_state/minority_report\", \"post\": \"MISSING\", \"pre\": {\"author\": \"critic\", \"counterexample\": \"Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\", \"evidence_ids\": [\"E-EDGE3-STALE\", \"E-REVOCATION-ORDER\"], \"position\": \"Deployment must remain blocked after key K-17 is revoked.\", \"recorded_round\": 2, \"rendered_section\": \"Author: critic\\n\\nPosition: Deployment must remain blocked after key K-17 is revoked.\\n\\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\\n\\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\", \"report_id\": \"DISSENT-EDGE3-REV41\"}}\nresult=DRIFT\ndissent_drop_mutant_stdout_end\nintact_resume_equal=true\ndissent_drop_mutant_went_red=true\nfour_restorable_fields_checked=true\nlive_runtime_entrypoint=tools/council/simulate.py\nlive_runtime_exists=false\nlive_resume_attempt_exit_code=2\nlive_resume_attempt_stderr_begin\n/usr/local/bin/python: can't open file '/opt/p2/ast-integrate/tools/council/simulate.py': [Errno 2] No such file or directory\nlive_resume_attempt_stderr_end\nlive_structural_comparison=NOT-CHECKED\nprobe_calibrated=true\nassertions_pass=4/4\nPROBE-A-COMPLETE:TST-0167\nSUCCESS:TST-0167-probe-a\n",
-          "fingerprint": "6776d602b03fab4ab929eb2921f8a6b3f44f5edd200911b2c04d9d64d049b9d3",
-          "exit_code": 0
-        }
-      ]
+      "anchor": "tools/council/simulate.py:1663",
+      "claim": "Structural diff: pre-suspend state equals post-restore state.",
+      "pre_minority_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+      "restored_minority_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+      "verdict": "CONFIRMED"
     },
     {
-      "claim": "An uninterrupted council and an intact resumed council both emit the same minority-report section as the pre-suspend checkpoint; the dissent-drop mutant transcript loses that section.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/TST-0167/probe-b-minority-report.raw.txt:1",
-      "probes": [
-        {
-          "role": "source",
-          "method": "test-run",
-          "command": "python -B command-center/p2-wave/probes/TST-0167/probe_b_minority.py",
-          "raw_output": "TST-0167 NAMED PROBE (b): final transcript's minority-report section compared against the pre-suspend one\nstage=g1-deliver\nrun_id=g1-b\nnamed_probes_freshly_reran=true\nevidence_requirement_verbatim=two independent signals: (a) a structural diff of the pre-suspend and post-resume council state, and (b) the final transcript's minority-report section compared against the pre-suspend one\nreference_runtime=command-center/p2-wave/probes/TST-0167/lib/council_runtime.py\nreference_runtime_scope=probe-local; not the unavailable B05/B07 production runtime\nfresh_process_ids={\"checkpoint\":111281,\"dissent_drop_resume\":111283,\"resume\":111282,\"uninterrupted\":111280}\nfresh_process_boundary=true\nmechanism=independent Markdown heading extraction plus normalized UTF-8 content hash\nprobe_a_output_consumed=false\nreference_uninterrupted_process_exit_code=0\nreference_uninterrupted_process_stdout_begin\nREFERENCE-COUNCIL-UNINTERRUPTED\nprocess_pid=111280\noutput_dir=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/uninterrupted\nmid_round_observed=true\nminority_report_carried_to_final=true\nresult=COMPLETE\nreference_uninterrupted_process_stdout_end\nreference_checkpoint_process_exit_code=0\nreference_resume_process_exit_code=0\nreference_dissent_drop_process_exit_code=0\nuninterrupted_control_exit_code=0\nuninterrupted_control_stdout_begin\nFINAL-TRANSCRIPT-MINORITY-REPORT-COMPARE\nscenario=reference-uninterrupted-control\npre_state_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/checkpoint/pre-suspend-state.json\nfinal_transcript_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/uninterrupted/final-transcript.md\nheading=## Minority Report\npre_suspend_minority_present=true\nfinal_minority_section_present=true\npre_suspend_minority_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfinal_minority_section_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nminority_content_equal=true\nexpected_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nexpected_section_end\nactual_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nactual_section_end\nresult=EQUAL\nuninterrupted_control_stdout_end\nintact_resumed_transcript_exit_code=0\nintact_resumed_transcript_stdout_begin\nFINAL-TRANSCRIPT-MINORITY-REPORT-COMPARE\nscenario=reference-intact-resume\npre_state_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/checkpoint/pre-suspend-state.json\nfinal_transcript_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/resumed/final-transcript.md\nheading=## Minority Report\npre_suspend_minority_present=true\nfinal_minority_section_present=true\npre_suspend_minority_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfinal_minority_section_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nminority_content_equal=true\nexpected_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nexpected_section_end\nactual_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nactual_section_end\nresult=EQUAL\nintact_resumed_transcript_stdout_end\ndissent_drop_mutant_exit_code=1\ndissent_drop_mutant_stdout_begin\nFINAL-TRANSCRIPT-MINORITY-REPORT-COMPARE\nscenario=reference-dissent-drop-mutant\npre_state_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/checkpoint/pre-suspend-state.json\nfinal_transcript_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/dissent-drop-mutant/final-transcript.md\nheading=## Minority Report\npre_suspend_minority_present=true\nfinal_minority_section_present=false\npre_suspend_minority_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfinal_minority_section_sha256=MISSING\nminority_content_equal=false\nexpected_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nexpected_section_end\nactual_section_begin\n<MISSING>\nactual_section_end\nresult=DISSENT-LOSS\ndissent_drop_mutant_stdout_end\nuninterrupted_matches_pre_suspend=true\nintact_resume_matches_pre_suspend=true\ndissent_drop_mutant_went_red=true\nlive_runtime_entrypoint=tools/council/simulate.py\nlive_runtime_exists=false\nlive_final_transcript_comparison=NOT-CHECKED\nprobe_calibrated=true\nassertions_pass=4/4\nPROBE-B-COMPLETE:TST-0167\nSUCCESS:TST-0167-probe-b\n",
-          "fingerprint": "a5d3efb2deec0d2a5866f594491ed7dbea3d162db9a9e1236ca582ac36e8903a",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "byte-compare",
-          "command": "command-center/p2-wave/probes/TST-0167/probe-b-minority-report.raw.txt",
-          "raw_output": "TST-0167 NAMED PROBE (b): final transcript's minority-report section compared against the pre-suspend one\nstage=g1-deliver\nrun_id=g1-b\nnamed_probes_freshly_reran=true\nevidence_requirement_verbatim=two independent signals: (a) a structural diff of the pre-suspend and post-resume council state, and (b) the final transcript's minority-report section compared against the pre-suspend one\nreference_runtime=command-center/p2-wave/probes/TST-0167/lib/council_runtime.py\nreference_runtime_scope=probe-local; not the unavailable B05/B07 production runtime\nfresh_process_ids={\"checkpoint\":111281,\"dissent_drop_resume\":111283,\"resume\":111282,\"uninterrupted\":111280}\nfresh_process_boundary=true\nmechanism=independent Markdown heading extraction plus normalized UTF-8 content hash\nprobe_a_output_consumed=false\nreference_uninterrupted_process_exit_code=0\nreference_uninterrupted_process_stdout_begin\nREFERENCE-COUNCIL-UNINTERRUPTED\nprocess_pid=111280\noutput_dir=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/uninterrupted\nmid_round_observed=true\nminority_report_carried_to_final=true\nresult=COMPLETE\nreference_uninterrupted_process_stdout_end\nreference_checkpoint_process_exit_code=0\nreference_resume_process_exit_code=0\nreference_dissent_drop_process_exit_code=0\nuninterrupted_control_exit_code=0\nuninterrupted_control_stdout_begin\nFINAL-TRANSCRIPT-MINORITY-REPORT-COMPARE\nscenario=reference-uninterrupted-control\npre_state_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/checkpoint/pre-suspend-state.json\nfinal_transcript_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/uninterrupted/final-transcript.md\nheading=## Minority Report\npre_suspend_minority_present=true\nfinal_minority_section_present=true\npre_suspend_minority_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfinal_minority_section_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nminority_content_equal=true\nexpected_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nexpected_section_end\nactual_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nactual_section_end\nresult=EQUAL\nuninterrupted_control_stdout_end\nintact_resumed_transcript_exit_code=0\nintact_resumed_transcript_stdout_begin\nFINAL-TRANSCRIPT-MINORITY-REPORT-COMPARE\nscenario=reference-intact-resume\npre_state_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/checkpoint/pre-suspend-state.json\nfinal_transcript_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/resumed/final-transcript.md\nheading=## Minority Report\npre_suspend_minority_present=true\nfinal_minority_section_present=true\npre_suspend_minority_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfinal_minority_section_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nminority_content_equal=true\nexpected_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nexpected_section_end\nactual_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nactual_section_end\nresult=EQUAL\nintact_resumed_transcript_stdout_end\ndissent_drop_mutant_exit_code=1\ndissent_drop_mutant_stdout_begin\nFINAL-TRANSCRIPT-MINORITY-REPORT-COMPARE\nscenario=reference-dissent-drop-mutant\npre_state_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/checkpoint/pre-suspend-state.json\nfinal_transcript_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0167/runtime/g1-b/dissent-drop-mutant/final-transcript.md\nheading=## Minority Report\npre_suspend_minority_present=true\nfinal_minority_section_present=false\npre_suspend_minority_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfinal_minority_section_sha256=MISSING\nminority_content_equal=false\nexpected_section_begin\nAuthor: critic\n\nPosition: Deployment must remain blocked after key K-17 is revoked.\n\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\n\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\nexpected_section_end\nactual_section_begin\n<MISSING>\nactual_section_end\nresult=DISSENT-LOSS\ndissent_drop_mutant_stdout_end\nuninterrupted_matches_pre_suspend=true\nintact_resume_matches_pre_suspend=true\ndissent_drop_mutant_went_red=true\nlive_runtime_entrypoint=tools/council/simulate.py\nlive_runtime_exists=false\nlive_final_transcript_comparison=NOT-CHECKED\nprobe_calibrated=true\nassertions_pass=4/4\nPROBE-B-COMPLETE:TST-0167\nSUCCESS:TST-0167-probe-b\n",
-          "fingerprint": "8428d78256c70a16b39333643104b9a743006f1102850d01a339633f9b6b6a28",
-          "exit_code": 0
-        }
-      ]
+      "anchor": "tools/council/simulate.py:1389",
+      "claim": "Final minority-report section contains the pre-suspend dissent entries.",
+      "final_sha256": "d15670396c26c87d83dbdbce89e4d0728e9fce1122c139ca4f6b7c48c197ef28",
+      "pre_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+      "verdict": "CONFIRMED"
     },
     {
-      "claim": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by G-7. Global unit_manifest.py --write was not invoked.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/TST-0167/UNIT-ARTIFACT-MANIFEST.json",
-      "probes": [
-        {
-          "role": "source",
-          "method": "file-read",
-          "command": "python -B command-center/p2-wave/probes/TST-0167/_pack_apply.py",
-          "raw_output": "manifest_path=command-center/p2-wave/probes/TST-0167/UNIT-ARTIFACT-MANIFEST.json",
-          "fingerprint": "93fb7973adee72d0a5dfe88dac64abe3bff26eb5dcdf8149f8e5745a1924f8af",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "schema-validate",
-          "command": "python -B command-center/p2-wave/_measure_one_delivered.py TST-0167",
-          "raw_output": "per-unit manifest must name catalog output_path with live LF sha256",
-          "fingerprint": "c274e2430c3cf7530d7b9a778e6af8477639d4a7b67a668f1a3a285e1e51d0ca",
-          "exit_code": 0
-        }
-      ]
+      "anchor": "tools/council/simulate.py:1692",
+      "claim": "Uninterrupted run is byte-identical to suspend-then-resume.",
+      "resumed_sha256": "744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7",
+      "uninterrupted_sha256": "744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/council/simulate.py:1676",
+      "claim": "Dropping dissent from the checkpoint is detected (spec 11340 class).",
+      "error_type": "DissentDropped",
+      "verdict": "CONFIRMED"
     }
   ],
+  "id": "TST-0167",
+  "inputs_on_this_tree": {
+    "b05_protocol_blueprints": "ABSENT-on-this-worktree",
+    "b07_phase_runtime": "tools/council/phases.py",
+    "handled_ledger": "ABSENT-on-this-worktree",
+    "note": "Does not rebuild the missing B05 protocol catalogue (ADV circle). Resume is implemented on the existing simulator and PhaseMachine with a local three-round fixture that plants critic dissent before suspend.",
+    "simulate_module": "tools/council/simulate.py",
+    "user_prompts_11340": "ABSENT-on-this-worktree"
+  },
+  "minority": {
+    "dissenters": [
+      "critic"
+    ],
+    "final_sha256": "d15670396c26c87d83dbdbce89e4d0728e9fce1122c139ca4f6b7c48c197ef28",
+    "pre_count": 1,
+    "pre_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+    "pre_survived_in_final": true
+  },
+  "model_calls": 0,
+  "n_rounds": 3,
+  "negative_control": {
+    "error_type": "DissentDropped",
+    "fired_on_bad_state": true,
+    "id": "TST-0167-DISSENT-DROP-MUTATION",
+    "message": "restore: 1 pre-suspend minority-report entry missing: r1 critic voted nay",
+    "silent_on_good_state": true
+  },
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+  "overall_verdict": "PASS",
+  "produced_at": "2026-09-02T10:12:25Z",
+  "question": "Does resuming a council mid-deliberation restore round state, per-round votes, confidence trajectory and the minority report? PASS requires dissent survive the round trip; dissent loss on resume is a named failure class.",
+  "report_kind": "resume_report",
+  "reviewer": {
+    "both_states_reproduced": true,
+    "did_not_author_harness": true,
+    "fresh_context": true,
+    "independent": true,
+    "reviewer_id": "TST-0167-probe2-minority-report",
+    "verdict": "PASS"
+  },
+  "seed": 167,
+  "sentinel": "SUCCESS:TST-0167",
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "structural": {
+    "after_round": 1,
+    "confidence_trajectory": [
+      0.6667
+    ],
+    "idea_ids": [
+      "idea-chair-open",
+      "idea-critic-keep-r1-nay",
+      "idea-proposer-suspend-after-r1"
+    ],
+    "match": true,
+    "objection_ids": [
+      "obj-critic-silent-dissent-drop"
+    ],
+    "per_round_votes": [
+      {
+        "aye": 2,
+        "nay": 1,
+        "round": 1
+      }
+    ],
+    "phase": "divergence",
+    "pre_minority_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+    "restored_minority_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+    "round_index": 1
+  },
+  "test_results": {
+    "TST-0167-BOTH-STATES": "PASS",
+    "TST-0167-CONDITION-11": "PASS",
+    "TST-0167-LIVE-TARGET": "PASS",
+    "TST-0167-NEGATIVE-CONTROL": "PASS",
+    "TST-0167-REGRESSION-SEED": "PASS"
+  },
   "tests": [
     {
       "id": "TST-0167-BOTH-STATES",
-      "name": "both-states control: an uninterrupted council produces the same dissent content",
-      "command": "python -B command-center/p2-wave/probes/TST-0167/probe_b_minority.py",
+      "name": "Uninterrupted council produces the same dissent content as suspend-then-resume.",
       "result": "PASS",
-      "assertions": 4,
-      "output_tail": "TST-0167 REQUIRED TEST: both-states control: an uninterrupted council produces the same dissent content stage=g1-deliver run_id=g1-b tests_required_verbatim=['both-states control: an uninterrupted council produces the same dissent content', 'regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340)'] uninterrupted_exit_code=0 resumed_intact_exit_code=0 uninterrupted_matches_pre_suspend=true resumed_intact_matches_pre_suspend=true expected_minority_section_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6 fresh_process_boundary=true control_scope=probe-local deterministic reference runtime; not a production B05/B07 run control_result=PASS BOTH-STATES-CONTROL-COMPLETE:TST-0167"
+      "resumed_sha256": "744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7",
+      "same_rounds": true,
+      "same_transcript": true,
+      "uninterrupted_sha256": "744ed0a27d481af109dc8cc381597f455ec97ee48747fa4200063773ea1185d7"
     },
     {
+      "error_type": "DissentDropped",
       "id": "TST-0167-REGRESSION-SEED",
-      "name": "regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340)",
-      "command": "python -B command-center/p2-wave/probes/TST-0167/probe_b_minority.py",
-      "result": "PASS",
-      "assertions": 4,
-      "output_tail": "TST-0167 REQUIRED TEST: regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340) stage=g1-deliver run_id=g1-b tests_required_verbatim=['both-states control: an uninterrupted council produces the same dissent content', 'regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340)'] transcript_good_exit_code=0 transcript_dissent_drop_exit_code=1 mutation=resume process deletes only restorable_state.minority_report before hydration output and final rendering dissent_loss_detected=true EXPECTED-RED:DISSENT-LOSS REGRESSION-SEED-COMPLETE:TST-0167"
+      "message": "restore: 1 pre-suspend minority-report entry missing: r1 critic voted nay",
+      "name": "Dissent/minority report dropped from the checkpoint is a named failure.",
+      "result": "PASS"
     },
     {
-      "id": "TST-0167-NEGATIVE-CONTROL",
-      "name": "negative control that can go red: delete only the checkpointed minority report",
-      "command": "python -B command-center/p2-wave/probes/TST-0167/probe_b_minority.py",
-      "result": "PASS",
-      "assertions": 4,
-      "output_tail": "TST-0167 NEGATIVE CONTROL THAT CAN GO RED stage=g1-deliver run_id=g1-b bad_state=dissent/minority report dropped during resume while rounds, votes, and confidence remain intact transcript_good_exit_code=0 transcript_bad_exit_code=1 silent_on_good_state=true fired_on_bad_state=true EXPECTED-RED:DISSENT-LOSS NEGATIVE-CONTROL-COMPLETE:TST-0167"
-    },
-    {
-      "id": "TST-0167-PROBE-A",
-      "name": "named probe (a) structural restorable_state diff re-runs to exit 0",
-      "command": "python -B command-center/p2-wave/probes/TST-0167/probe_a_structural.py",
-      "result": "PASS",
-      "assertions": 4,
-      "output_tail": "loyment must remain blocked after key K-17 is revoked.\\n\\nCounterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41.\\n\\nEvidence: E-EDGE3-STALE, E-REVOCATION-ORDER\", \"report_id\": \"DISSENT-EDGE3-REV41\"}} result=DRIFT dissent_drop_mutant_stdout_end intact_resume_equal=true dissent_drop_mutant_went_red=true four_restorable_fields_checked=true live_runtime_entrypoint=tools/council/simulate.py live_runtime_exists=false live_resume_attempt_exit_code=2 live_resume_attempt_stderr_begin /usr/local/bin/python: can't open file '/opt/p2/ast-integrate/tools/council/simulate.py': [Errno 2] No such file or directory live_resume_attempt_stderr_end live_structural_comparison=NOT-CHECKED probe_calibrated=true assertions_pass=4/4 PROBE-A-COMPLETE:TST-0167 SUCCESS:TST-0167-probe-a"
-    },
-    {
-      "id": "TST-0167-PROBE-B",
-      "name": "named probe (b) minority-report transcript compare re-runs to exit 0",
-      "command": "python -B command-center/p2-wave/probes/TST-0167/probe_b_minority.py",
-      "result": "PASS",
-      "assertions": 4,
-      "output_tail": "11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6 final_minority_section_sha256=MISSING minority_content_equal=false expected_section_begin Author: critic Position: Deployment must remain blocked after key K-17 is revoked. Counterexample: Edge-3 can install stale cached bundle B-204 after revocation epoch 41. Evidence: E-EDGE3-STALE, E-REVOCATION-ORDER expected_section_end actual_section_begin <MISSING> actual_section_end result=DISSENT-LOSS dissent_drop_mutant_stdout_end uninterrupted_matches_pre_suspend=true intact_resume_matches_pre_suspend=true dissent_drop_mutant_went_red=true live_runtime_entrypoint=tools/council/simulate.py live_runtime_exists=false live_final_transcript_comparison=NOT-CHECKED probe_calibrated=true assertions_pass=4/4 PROBE-B-COMPLETE:TST-0167 SUCCESS:TST-0167-probe-b"
-    },
-    {
-      "id": "TST-0167-CONDITION-11-PER-UNIT",
-      "name": "Condition 11 via per-unit UNIT-ARTIFACT-MANIFEST.json",
-      "command": "python -B command-center/p2-wave/probes/TST-0167/_pack_apply.py",
-      "result": "PASS",
-      "assertions": 2,
-      "output_tail": "manifest_path=command-center/p2-wave/probes/TST-0167/UNIT-ARTIFACT-MANIFEST.json registered=true"
-    }
-  ],
-  "negative_controls": [
-    {
-      "id": "TST-0167-DISSENT-DROP-MUTATION",
-      "kind": "mutation",
-      "description": "negative control that can go red: delete only the checkpointed minority report and final minority-report section; both comparators must exit nonzero",
       "fired_on_bad_state": true,
-      "silent_on_good_state": true,
-      "bad_state_output": "TST-0167 REQUIRED TEST: regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340)\nstage=g1-deliver\nrun_id=g1-b\ntests_required_verbatim=['both-states control: an uninterrupted council produces the same dissent content', 'regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340)']\ntranscript_good_exit_code=0\ntranscript_dissent_drop_exit_code=1\nmutation=resume process deletes only restorable_state.minority_report before hydration output and final rendering\ndissent_loss_detected=true\nEXPECTED-RED:DISSENT-LOSS\nREGRESSION-SEED-COMPLETE:TST-0167\n",
-      "good_state_output": "TST-0167 REQUIRED TEST: both-states control: an uninterrupted council produces the same dissent content\nstage=g1-deliver\nrun_id=g1-b\ntests_required_verbatim=['both-states control: an uninterrupted council produces the same dissent content', 'regression seed: dissent/minority report is dropped (_USER-PROMPTS.md:11340)']\nuninterrupted_exit_code=0\nresumed_intact_exit_code=0\nuninterrupted_matches_pre_suspend=true\nresumed_intact_matches_pre_suspend=true\nexpected_minority_section_sha256=432305cd79c684e3f11b3885e3bc91dadccf37e4e7facb24cfdf10d60c6582c6\nfresh_process_boundary=true\ncontrol_scope=probe-local deterministic reference runtime; not a production B05/B07 run\ncontrol_result=PASS\nBOTH-STATES-CONTROL-COMPLETE:TST-0167\n"
+      "id": "TST-0167-NEGATIVE-CONTROL",
+      "name": "Preservation check is silent on a good checkpoint and fires on the drop mutation.",
+      "result": "PASS",
+      "silent_on_good_state": true
+    },
+    {
+      "after_round": 1,
+      "id": "TST-0167-LIVE-TARGET",
+      "name": "Live PhaseMachine + simulate.py restore round state, votes, trajectory and minority.",
+      "result": "PASS",
+      "structural_match": true
+    },
+    {
+      "final_minority_sha256": "d15670396c26c87d83dbdbce89e4d0728e9fce1122c139ca4f6b7c48c197ef28",
+      "id": "TST-0167-CONDITION-11",
+      "name": "Pre-suspend minority entries survive into the final transcript section.",
+      "pre_minority_sha256": "f0d20e824b4546f6e553fac15f657f9b9b4147c10ea8c4d39f1f05d30d56cfba",
+      "result": "PASS"
     }
   ],
-  "reviewer": {
-    "reviewer_id": "grok-p2-wave-tst0167-raw-refuter",
-    "verdict": "PASS",
-    "independent": true,
-    "fresh_context": true,
-    "vendor": "grok",
-    "reviewed_at": "2026-08-19T17:16:02.023916Z",
-    "notes": "Cross-vendor re-derivation from live raw probe files on this Linux worktree, not from the harvest UNIT-COMPLETE badge. Probe A shows distinct checkpoint/resume/dissent-drop PIDs, intact restorable_state EQUAL for all four families, and EXPECTED-RED when only minority_report is dropped. Probe B shows uninterrupted and intact-resume transcripts matching the pre-suspend minority section and DISSENT-LOSS on the mutant. tools/council/simulate.py remains absent; production B05/B07 native resume is residual NOT-CHECKED, not folded into SUCCESS."
-  },
-  "defects": [
-    {
-      "id": "TST0167-D1-LIVE-RUNTIME-ABSENT",
-      "severity": "P1",
-      "status": "superseded",
-      "summary": "tools/council/simulate.py is still absent. G-1 delivery uses the probe-local reference runtime; production native resume is a residual."
-    },
-    {
-      "id": "TST0167-D2-DECLARED-DEPENDENCIES-UNRESOLVED",
-      "severity": "P1",
-      "status": "superseded",
-      "summary": "B05/B07 are bucket tokens (owner ruling: bucket gate SATISFIED). Exact unit ids are not required for this G-1 per-unit delivery."
-    },
-    {
-      "id": "TST0167-D3-HARVEST-SIDECARS-ABSENT",
-      "severity": "P1",
-      "status": "resolved",
-      "summary": "Named probes probe_a_structural.py and probe_b_minority.py now exist under probes/TST-0167 and re-run to exit 0."
-    }
-  ],
-  "manifest_registration": {
-    "registered": true,
-    "manifest_path": "command-center/p2-wave/probes/TST-0167/UNIT-ARTIFACT-MANIFEST.json",
-    "entry_id": "TST-0167",
-    "registered_at": "2026-08-19T17:16:02.023916Z"
-  },
-  "downstream_consumers": [
-    {
-      "consumer": "json.loads + resume_report schema resolver",
-      "artifact_path": "command-center/receipts/TST-0167.json",
-      "executed": true,
-      "read_ok": true,
-      "exit_code": 0,
-      "probe": {
-        "role": "source",
-        "method": "schema-validate",
-        "command": "python -B command-center/p2-wave/probes/TST-0167/_pack_apply.py",
-        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=TST-0167\nstate=SUCCESS\nSUCCESS:consumer-read",
-        "fingerprint": "4c878e5b4afe219ad84b89a3ffb586aa802e6a8e471f3c912eb17d41ebd8433b",
-        "exit_code": 0
-      }
-    }
-  ],
-  "timestamps": {
-    "started_at": "2026-08-17T02:37:20.545914Z",
-    "ended_at": "2026-08-19T17:16:02.023916Z",
-    "duration_seconds": 225521.478002
-  },
-  "retry": {
-    "count": 2,
-    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
-    "attempts": [
-      {
-        "attempt": 1,
-        "error_fingerprint": "named-probe-scripts-absent",
-        "outcome": "BLOCKED"
-      },
-      {
-        "attempt": 2,
-        "error_fingerprint": "named-probe-scripts-absent",
-        "outcome": "SUCCESS"
-      }
-    ],
-    "pivot_alternatives": [
-      "Restore probe-local council_fixture runtime and re-run both named probes",
-      "Park the unit if production simulate.py absence is treated as cannot-meet"
-    ]
-  },
-  "residual_unknowns": [
-    {
-      "claim": "Whether the absent tools/council/simulate.py production runtime restores round state, votes, confidence, and dissent exactly is unknown.",
-      "verdict": "NOT-CHECKED",
-      "settling_experiment": "Restore the catalog-linked simulator, suspend at mid-round 2, resume in a clean process, and feed its states and transcript to both probes."
-    },
-    {
-      "claim": "The exact historical wording at _USER-PROMPTS.md:11340 cannot be read from this checkout.",
-      "verdict": "NOT-CHECKED",
-      "settling_experiment": "Restore the referenced prompt source and verify the planted mutation matches the original dissent-loss incident."
-    }
-  ],
-  "produced_by": {
-    "vendor": "xai",
-    "model": "grok-4.6",
-    "role": "p2-deliver-worker",
-    "execution_substrate": "worktree-isolated"
-  },
-  "report": {
-    "kind": "resume_report",
-    "stage": "g1-deliver",
-    "title": "Council resume restores rounds, votes AND dissent",
-    "overall_verdict": "CONFIRMED",
-    "question_or_target": "Does resuming a council mid-deliberation restore round state, per-round votes, confidence trajectory and the minority report? PASS requires dissent survive the round trip; dissent loss on resume is a named failure class.",
-    "answer": "The probe-local reference runtime restores all four restorable families across a process boundary and preserves the minority-report section in the final transcript. Dissent loss is a calibrated red. Production tools/council/simulate.py remains absent and is residual NOT-CHECKED.",
-    "evidence_requirement_verbatim": "two independent signals: (a) a structural diff of the pre-suspend and post-resume council state, and (b) the final transcript's minority-report section compared against the pre-suspend one",
-    "observations": [
-      {
-        "name": "reference-resume-process-boundary",
-        "measured": true,
-        "method": "distinct child processes for checkpoint, resume, and mutation arms",
-        "anchor": "command-center/p2-wave/probes/TST-0167/probe-a-structural-state.raw.txt:1"
-      },
-      {
-        "name": "intact-restorable-state-equal",
-        "measured": true,
-        "method": "recursive typed JSON diff over /restorable_state",
-        "anchor": "command-center/p2-wave/probes/TST-0167/probe-a-structural-state.raw.txt:1"
-      },
-      {
-        "name": "dissent-drop-structural-control",
-        "measured": "RED exit 1",
-        "method": "delete minority_report only and rerun recursive diff",
-        "anchor": "command-center/p2-wave/probes/TST-0167/probe-a-structural-state.raw.txt:1"
-      },
-      {
-        "name": "uninterrupted-and-resumed-minority-content",
-        "measured": "both equal pre-suspend section",
-        "method": "Markdown section extraction and normalized UTF-8 hash",
-        "anchor": "command-center/p2-wave/probes/TST-0167/probe-b-minority-report.raw.txt:1"
-      },
-      {
-        "name": "live-runtime-entrypoint-exists",
-        "measured": false,
-        "method": "exact path stat of tools/council/simulate.py",
-        "anchor": "command-center/p2-wave/probes/TST-0167/probe-a-structural-state.raw.txt:1"
-      }
-    ],
-    "control_ids": [
-      "TST-0167-BOTH-STATES",
-      "TST-0167-REGRESSION-SEED",
-      "TST-0167-DISSENT-DROP-MUTATION"
-    ]
-  },
-  "extensions": {
-    "stage": "g1-deliver",
-    "run_id": "g1-linux",
-    "output_schema_declaration": "command-center/schema/receipt.schema.json#/$defs/resume_report",
-    "evidence_requirement_verbatim": "two independent signals: (a) a structural diff of the pre-suspend and post-resume council state, and (b) the final transcript's minority-report section compared against the pre-suspend one",
-    "condition_11": {
-      "route": "G-7 per-unit UNIT-ARTIFACT-MANIFEST.json",
-      "manifest_path": "command-center/p2-wave/probes/TST-0167/UNIT-ARTIFACT-MANIFEST.json",
-      "registered": true,
-      "global_unit_manifest_not_rewritten": true
-    },
-    "live_runtime": {
-      "entrypoint": "tools/council/simulate.py",
-      "exists": false,
-      "reference_runtime": "command-center/p2-wave/probes/TST-0167/lib/council_runtime.py"
-    },
-    "completion_line": "UNIT-COMPLETE:TST-0167",
-    "completion_marker": "UNIT-COMPLETE:TST-0167"
-  }
+  "title": "Council resume restores rounds, votes AND dissent",
+  "unit_id": "TST-0167"
 }

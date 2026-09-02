@@ -108,8 +108,12 @@ def main() -> int:
             "command-center/schema/receipt.schema.json#/$defs/concurrency_report"
         ),
         "output_schema_note": (
-            "Declared catalog schema file is absent on this worktree. G-1 "
-            "requires the artifact to parse as JSON; this receipt is also "
+            (
+                "Declared catalog schema file is present on this worktree. "
+                if (REPO / "command-center/schema/receipt.schema.json").is_file()
+                else "Declared catalog schema file is absent on this worktree. "
+            )
+            + "G-1 requires the artifact to parse as JSON; this receipt is also "
             "checked against the local concurrency_report.schema.json."
         ),
         "engine": {

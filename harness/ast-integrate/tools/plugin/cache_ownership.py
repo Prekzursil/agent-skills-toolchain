@@ -108,12 +108,50 @@ def update(root: Path) -> _DictResult:
     return _DictResult({"ok": True})
 
 
+USER_PREFIXES: tuple[str, ...] = ("user-data", "commands")
+
+
 def rollback(root: Path, naive_snapshot: bool = False, **_kwargs) -> _DictResult:
+    """Restore the previous package version.
+
+    The correct path restores only the blobs the package owns (``rollback-blobs``) and never
+    touches user data. ``naive_snapshot=True`` reproduces regression 11347: a wholesale snapshot
+    restore replaces the whole tree with the pre-upgrade image, so everything written after the
+    snapshot - user data and user commands included - is destroyed. Both report whether the
+    user surface survived byte-identical, measured, not declared.
+    """
     root = Path(root)
-    src = root / (NAIVE_IMAGE if naive_snapshot else ROLLBACK_BLOBS)
-    if src.is_dir():
-        _copy_tree_files(src, root)
-    return _DictResult({"ok": True, "naive_snapshot": bool(naive_snapshot)})
+    user_before = tree_hash(root, USER_PREFIXES)
+    if naive_snapshot:
+        image = root / NAIVE_IMAGE
+        for child in list(root.iterdir()):
+            if child.name == NAIVE_IMAGE:
+                continue
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        restored = _copy_tree_files(image, root) if image.is_dir() else []
+        user_after = tree_hash(root, USER_PREFIXES)
+        return _DictResult(
+            {
+                "ok": True,
+                "naive_snapshot": True,
+                "restored": restored,
+                "user_data_byte_identical": user_before == user_after,
+            }
+        )
+    blobs = root / ROLLBACK_BLOBS
+    restored = _copy_tree_files(blobs, root) if blobs.is_dir() else []
+    user_after = tree_hash(root, USER_PREFIXES)
+    return _DictResult(
+        {
+            "ok": True,
+            "naive_snapshot": False,
+            "restored": restored,
+            "user_data_byte_identical": user_before == user_after,
+        }
+    )
 
 
 def write_manifest(root: Path, *, name: str = MANIFEST_NAME) -> Path:

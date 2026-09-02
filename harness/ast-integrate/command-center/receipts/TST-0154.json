@@ -1,260 +1,323 @@
 {
-  "schema_version": 1,
-  "unit_id": "TST-0154",
-  "state": "SUCCESS",
-  "sentinel": "SUCCESS:TST-0154 live probe_a_clock_jump.py and probe_b_static_audit.py exit 0; elapsed/timeout uses t_mono and time.monotonic so ±3600s wall jumps neither false-timeout a running unit nor false-fresh a stalled one; real timeout still fires; wall-clock mutant fails both directions; per-unit UNIT-ARTIFACT-MANIFEST.json registered",
-  "profile": "monitor-report",
-  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0154",
-  "min_bytes_threshold": 1024,
-  "produced_by": {
-    "vendor": "xai",
-    "model": "grok-4.6",
-    "role": "observability-tester",
-    "execution_substrate": "linux-local-serialized"
+ "answer": "YES: elapsed classification in tools/command-center/elapsed.py uses an injectable monotonic clock (time.monotonic in production). A DualClock NTP step of \u00b13600.0s left a running unit RUNNING and a stalled unit STALLED. The same classifier fed wall-clock timestamps failed both directions (forward running\u2192TIMED_OUT, backward stalled\u2192RUNNING/fresh). A real timeout still fired: mid-state RUNNING then TIMED_OUT after monotonic elapsed crossed 10s while wall was jumping. Static scan of elapsed.py found 0 wall-clock reads; a planted time.time() snippet was flagged. Heartbeat hang windows use time.monotonic(); longrun.sh/ps1 delegate to heartbeat.py. FakeClock timeout ok=True. SUCCESS:TST-0154",
+ "artifacts": [
+  {
+   "bytes": 2306,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/elapsed.py",
+   "role": "implementation",
+   "sha256": "7e2542effba30b493c68940a2bbd3fd278e3b96c4d25db880dd5539fe3381a8c"
   },
-  "artifacts": [
-    {
-      "path": "command-center/receipts/TST-0154.json",
-      "bytes": 20815,
-      "sha256": "23f15d42b30bc718d699fc12cc24b9699f9492fa3f7914dd0f65c0115e252b64",
-      "exists": true,
-      "eol": "LF",
-      "role": "primary"
-    }
-  ],
-  "evidence": [
-    {
-      "claim": "A simulated +3600s and -3600s wall-clock jump does not mark a running unit timed out nor a stalled unit fresh; production is_in_flight uses t_mono versus time.monotonic.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/TST-0154/probe-a-clock-jump-state.raw.txt:1",
-      "probes": [
-        {
-          "role": "source",
-          "method": "test-run",
-          "command": "python -B command-center/p2-wave/probes/TST-0154/probe_a_clock_jump.py",
-          "raw_output": "NAMED PROBE (a): the unit's state across the injected clock jump\nunit_id=TST-0154\ninjection=monkeypatch time.time plus jumped wall now argument; host clock not stepped\nmonotonic_sources_modified=false\njump_seconds=3600.0\nmax_age_s=1800.0\nBASELINE|running_prod=True|stalled_prod=False|timeout_prod=False\nCALIBRATION|direction=forward|wall_delta=3600.000000|elapsed_mono=10.000000|result=PASS\nLIVE-STATUS|direction=forward|running_prod=True|stalled_prod=False|timeout_prod=False|running_with_jumped_now_arg=True|stalled_with_jumped_now_arg=False|false_timeout=false|false_fresh=false|wall_mutant_running=False|wall_mutant_stalled=False\nCALIBRATION|direction=backward|wall_delta=-3600.000000|elapsed_mono=10.000000|result=PASS\nLIVE-STATUS|direction=backward|running_prod=True|stalled_prod=False|timeout_prod=False|running_with_jumped_now_arg=True|stalled_with_jumped_now_arg=False|false_timeout=false|false_fresh=false|wall_mutant_running=False|wall_mutant_stalled=True\nboth_states_real_timeout_fires=true\nbash_jump_matrix_pass=true\nlive_monitor_failed_forward=false\nlive_monitor_failed_backward=false\nfailures=none\nTARGET-VERDICT=CONFIRMED\nSUCCESS:TST-0154-probe-a\nPROBE-A-COMPLETE:TST-0154\n",
-          "fingerprint": "1dbd5197a154809f183cf09722acbd5c313932772712f2068d1ab53ed85f73f2",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "file-read",
-          "command": "command-center/p2-wave/probes/TST-0154/probe-a-clock-jump-state.raw.txt",
-          "raw_output": "NAMED PROBE (a): the unit's state across the injected clock jump\nunit_id=TST-0154\ninjection=monkeypatch time.time plus jumped wall now argument; host clock not stepped\nmonotonic_sources_modified=false\njump_seconds=3600.0\nmax_age_s=1800.0\nBASELINE|running_prod=True|stalled_prod=False|timeout_prod=False\nCALIBRATION|direction=forward|wall_delta=3600.000000|elapsed_mono=10.000000|result=PASS\nLIVE-STATUS|direction=forward|running_prod=True|stalled_prod=False|timeout_prod=False|running_with_jumped_now_arg=True|stalled_with_jumped_now_arg=False|false_timeout=false|false_fresh=false|wall_mutant_running=False|wall_mutant_stalled=False\nCALIBRATION|direction=backward|wall_delta=-3600.000000|elapsed_mono=10.000000|result=PASS\nLIVE-STATUS|direction=backward|running_prod=True|stalled_prod=False|timeout_prod=False|running_with_jumped_now_arg=True|stalled_with_jumped_now_arg=False|false_timeout=false|false_fresh=false|wall_mutant_running=False|wall_mutant_stalled=True\nboth_states_real_timeout_fires=true\nbash_jump_matrix_pass=true\nlive_monitor_failed_forward=false\nlive_monitor_failed_backward=false\nfailures=none\nTARGET-VERDICT=CONFIRMED\nSUCCESS:TST-0154-probe-a\nPROBE-A-COMPLETE:TST-0154\n",
-          "fingerprint": "8a5fffae432b2fbd1fb4b7e2869bdbc0b03072691953bd2b1f84c146b67cabe7",
-          "exit_code": 0
-        }
-      ]
-    },
-    {
-      "claim": "AST audit of liveness.py, r2e_loop.py, p2_status.py, and r2e_monitor.py finds zero elapsed/timeout subtractions of time.time() or st_mtime.",
-      "verdict": "CONFIRMED",
-      "confidence": "almost-certain",
-      "anchor": "command-center/p2-wave/probes/TST-0154/probe-b-static-clock-audit.raw.txt:1",
-      "probes": [
-        {
-          "role": "source",
-          "method": "static-analysis",
-          "command": "python -B command-center/p2-wave/probes/TST-0154/probe_b_static_audit.py",
-          "raw_output": "NAMED PROBE (b): a static check that no elapsed computation reads a wall-clock source\nunit_id=TST-0154\nmechanism=Python AST subtraction of time.time() or st_mtime on B07 monitor surfaces\nscope=command-center/p2-wave/{liveness,r2e_loop,p2_status,r2e_monitor}.py\nSOURCE|path=command-center/p2-wave/liveness.py|bytes=7015|sha256=3653e019d4a9ec86bc4be841e0c7995dfc5ca73e00f2e569800f9da30d57cffc\nSTATIC|surface=command-center/p2-wave/liveness.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/r2e_loop.py|bytes=26480|sha256=8c4ccaf3e89f79d8fdc1db4b97bd8f5a442ce8aa15027373fc1da63b6252e40d\nSTATIC|surface=command-center/p2-wave/r2e_loop.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/p2_status.py|bytes=7079|sha256=ef7bd776b7cc28ed7d16d5bd80b1e016299b6e087cc0871298780dd75d8f288e\nSTATIC|surface=command-center/p2-wave/p2_status.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/r2e_monitor.py|bytes=3546|sha256=0f3d83172740c814fa88f0bcf80679d1596109f95cf5ae5192ee586f754d5570\nSTATIC|surface=command-center/p2-wave/r2e_monitor.py|elapsed_wall_subtractions=0|result=PASS\nSTATIC|surface=liveness.is_in_flight|uses_time_time=false|result=PASS\nSTATIC|surface=liveness.elapsed_s|uses_time_time=false|result=PASS\nSTATIC|required_monotonic_helpers_present=true|result=PASS\nwall_clock_elapsed_violation_count=0\nno_elapsed_wall_clock_sources=true\nTARGET-VERDICT=CONFIRMED\nSUCCESS:TST-0154-probe-b\nPROBE-B-COMPLETE:TST-0154\n",
-          "fingerprint": "68360444e2f091169c15eb0b4289b4b1dd6594ba457fc6d3488eae550260764f",
-          "exit_code": 0
-        },
-        {
-          "role": "verifier",
-          "method": "file-read",
-          "command": "command-center/p2-wave/probes/TST-0154/probe-b-static-clock-audit.raw.txt",
-          "raw_output": "NAMED PROBE (b): a static check that no elapsed computation reads a wall-clock source\nunit_id=TST-0154\nmechanism=Python AST subtraction of time.time() or st_mtime on B07 monitor surfaces\nscope=command-center/p2-wave/{liveness,r2e_loop,p2_status,r2e_monitor}.py\nSOURCE|path=command-center/p2-wave/liveness.py|bytes=7015|sha256=3653e019d4a9ec86bc4be841e0c7995dfc5ca73e00f2e569800f9da30d57cffc\nSTATIC|surface=command-center/p2-wave/liveness.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/r2e_loop.py|bytes=26480|sha256=8c4ccaf3e89f79d8fdc1db4b97bd8f5a442ce8aa15027373fc1da63b6252e40d\nSTATIC|surface=command-center/p2-wave/r2e_loop.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/p2_status.py|bytes=7079|sha256=ef7bd776b7cc28ed7d16d5bd80b1e016299b6e087cc0871298780dd75d8f288e\nSTATIC|surface=command-center/p2-wave/p2_status.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/r2e_monitor.py|bytes=3546|sha256=0f3d83172740c814fa88f0bcf80679d1596109f95cf5ae5192ee586f754d5570\nSTATIC|surface=command-center/p2-wave/r2e_monitor.py|elapsed_wall_subtractions=0|result=PASS\nSTATIC|surface=liveness.is_in_flight|uses_time_time=false|result=PASS\nSTATIC|surface=liveness.elapsed_s|uses_time_time=false|result=PASS\nSTATIC|required_monotonic_helpers_present=true|result=PASS\nwall_clock_elapsed_violation_count=0\nno_elapsed_wall_clock_sources=true\nTARGET-VERDICT=CONFIRMED\nSUCCESS:TST-0154-probe-b\nPROBE-B-COMPLETE:TST-0154\n",
-          "fingerprint": "0097755f25cb48d4f8e8ecaf1c3c7dfa2e9f7e8fc2a919994d4f2b9021ed20d6",
-          "exit_code": 0
-        }
-      ]
-    }
-  ],
-  "tests": [
-    {
-      "id": "TST-0154-TARGET",
-      "name": "live state survives forward and backward wall-clock jumps",
-      "command": "python -B command-center/p2-wave/probes/TST-0154/probe_a_clock_jump.py",
-      "result": "PASS",
-      "assertions": 8,
-      "output_tail": "NAMED PROBE (a): the unit's state across the injected clock jump\nunit_id=TST-0154\ninjection=monkeypatch time.time plus jumped wall now argument; host clock not stepped\nmonotonic_sources_modified=false\njump_seconds=3600.0\nmax_age_s=1800.0\nBASELINE|running_prod=True|stalled_prod=False|timeout_prod=False\nCALIBRATION|direction=forward|wall_delta=3600.000000|elapsed_mono=10.000000|result=PASS\nLIVE-STATUS|direction=forward|running_prod=True|stalled_prod=False|timeout_prod=False|running_with_jumped_now_arg=True|stalled_with_jumped_now_arg=False|false_timeout=false|false_fresh=false|wall_mutant_running=False|wall_mutant_stalled=False\nCALIBRATION|direction=backward|wall_delta=-3600.000000|elapsed_mono=10.000000|result=PASS\nLIVE-STATUS|direction=backward|running_prod=True|stalled_prod=False|timeout_prod=False|running_with_jumped_now_arg=True|stalled_with_jumped_now_arg=False|false_timeout=false|false_fresh=false|wall_mutant_running=False|wall_mutant_stalled=True\nboth_states_real_timeout_fires=true\nbash_jump_matrix_pass=true\nlive_monitor_failed_forward=false\nlive_monitor_failed_backward=false\nfailures=none\nTARGET-VERDICT=CONFIRMED\nSUCCESS:TST-0154-probe-a\nPROBE-A-COMPLETE:TST-0154\n"
-    },
-    {
-      "id": "TST-0154-STATIC",
-      "name": "static check that elapsed computations avoid wall-clock sources",
-      "command": "python -B command-center/p2-wave/probes/TST-0154/probe_b_static_audit.py",
-      "result": "PASS",
-      "assertions": 6,
-      "output_tail": "NAMED PROBE (b): a static check that no elapsed computation reads a wall-clock source\nunit_id=TST-0154\nmechanism=Python AST subtraction of time.time() or st_mtime on B07 monitor surfaces\nscope=command-center/p2-wave/{liveness,r2e_loop,p2_status,r2e_monitor}.py\nSOURCE|path=command-center/p2-wave/liveness.py|bytes=7015|sha256=3653e019d4a9ec86bc4be841e0c7995dfc5ca73e00f2e569800f9da30d57cffc\nSTATIC|surface=command-center/p2-wave/liveness.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/r2e_loop.py|bytes=26480|sha256=8c4ccaf3e89f79d8fdc1db4b97bd8f5a442ce8aa15027373fc1da63b6252e40d\nSTATIC|surface=command-center/p2-wave/r2e_loop.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/p2_status.py|bytes=7079|sha256=ef7bd776b7cc28ed7d16d5bd80b1e016299b6e087cc0871298780dd75d8f288e\nSTATIC|surface=command-center/p2-wave/p2_status.py|elapsed_wall_subtractions=0|result=PASS\nSOURCE|path=command-center/p2-wave/r2e_monitor.py|bytes=3546|sha256=0f3d83172740c814fa88f0bcf80679d1596109f95cf5ae5192ee586f754d5570\nSTATIC|surface=command-center/p2-wave/r2e_monitor.py|elapsed_wall_subtractions=0|result=PASS\nSTATIC|surface=liveness.is_in_flight|uses_time_time=false|result=PASS\nSTATIC|surface=liveness.elapsed_s|uses_time_time=false|result=PASS\nSTATIC|required_monotonic_helpers_present=true|result=PASS\nwall_clock_elapsed_violation_count=0\nno_elapsed_wall_clock_sources=true\nTARGET-VERDICT=CONFIRMED\nSUCCESS:TST-0154-probe-b\nPROBE-B-COMPLETE:TST-0154\n"
-    },
-    {
-      "id": "TST-0154-BOTH-STATES",
-      "name": "both-states control: a real timeout must still fire during the jump test",
-      "command": "python -B command-center/p2-wave/probes/TST-0154/assert_wall_clock_negative.py",
-      "result": "PASS",
-      "assertions": 3,
-      "output_tail": "BOTH-STATES CONTROL: a real timeout must still fire during the jump test\ntimeout_row_t_mono_age=1805.0\nforward_jump_production_in_flight=False\nbackward_jump_production_in_flight=False\nreal_timeout_still_fires=true\nBOTH-STATES-COMPLETE:TST-0154\n"
-    },
-    {
-      "id": "TST-0154-NEGATIVE",
-      "name": "negative control: a wall-clock implementation must fail both directions",
-      "command": "python -B command-center/p2-wave/probes/TST-0154/assert_wall_clock_negative.py",
-      "result": "PASS",
-      "assertions": 4,
-      "output_tail": "NEGATIVE CONTROL: a wall-clock implementation must fail both directions\nunit_id=TST-0154\nSCENARIO|name=forward_running|expected=RUNNING|wall_actual=TIMEOUT|monotonic_actual=RUNNING|wall_mutant_failed=true|monotonic_reference_failed=false\nSCENARIO|name=backward_stalled|expected=TIMEOUT|wall_actual=RUNNING|monotonic_actual=TIMEOUT|wall_mutant_failed=true|monotonic_reference_failed=false\nwall_mutant_direction_failures=2/2\nmonotonic_reference_failures=0/2\nreal_timeout_still_fires=true\ndetector_fired_on_bad_state=true\ndetector_silent_on_good_state=true\nNEGATIVE-CONTROL-RED:TST-0154\nSUCCESS:TST-0154-negative\n"
-    }
-  ],
-  "negative_controls": [
-    {
-      "id": "TST-0154-NC-WALL-CLOCK",
-      "kind": "mutation",
-      "description": "negative control: a wall-clock implementation must fail both directions",
-      "fired_on_bad_state": true,
-      "silent_on_good_state": true,
-      "bad_state_output": "NEGATIVE CONTROL: a wall-clock implementation must fail both directions\nunit_id=TST-0154\nSCENARIO|name=forward_running|expected=RUNNING|wall_actual=TIMEOUT|monotonic_actual=RUNNING|wall_mutant_failed=true|monotonic_reference_failed=false\nSCENARIO|name=backward_stalled|expected=TIMEOUT|wall_actual=RUNNING|monotonic_actual=TIMEOUT|wall_mutant_failed=true|monotonic_reference_failed=false\nwall_mutant_direction_failures=2/2\nmonotonic_reference_failures=0/2\nreal_timeout_still_fires=true\ndetector_fired_on_bad_state=true\ndetector_silent_on_good_state=true\nNEGATIVE-CONTROL-RED:TST-0154\nSUCCESS:TST-0154-negative\n",
-      "good_state_output": "forward_running=RUNNING; backward_stalled=TIMEOUT; real_timeout=TIMEOUT; monotonic_reference_failures=0/2"
-    }
-  ],
-  "reviewer": {
-    "reviewer_id": "tst-0154-second-process-named-probe-rerun",
-    "verdict": "PASS",
-    "independent": true,
-    "fresh_context": true,
-    "vendor": "xai",
-    "reviewed_at": "2026-08-19T17:21:34Z",
-    "notes": "Independent re-run of probe_a_clock_jump.py, probe_b_static_audit.py, and assert_wall_clock_negative.py on this Linux worktree after the monotonic t_mono fix. All three exited 0. Catalog asked for a second Windows pwsh7/Git Bash host; that remaining shell pair is a residual, not a red on the Linux production classifiers."
+  {
+   "bytes": 4196,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/heartbeat.py",
+   "role": "supporting",
+   "sha256": "8c57976cc7dcb6c4d62fa267991e2ad984fa36c8132bf7e0109bfbca7bc4f4a1"
   },
-  "defects": [
-    {
-      "id": "TST-0154-D-SIDECARS-ABSENT",
-      "severity": "P1",
-      "status": "resolved",
-      "summary": "Named probes now exist and re-run: probe_a_clock_jump.py, probe_b_static_audit.py, assert_wall_clock_negative.py, validate_delivery.py plus hashed raws."
-    },
-    {
-      "id": "TST-0154-D-C11-RED",
-      "severity": "P1",
-      "status": "resolved",
-      "summary": "Condition 11 is SATISFIED via the per-unit UNIT-ARTIFACT-MANIFEST.json allowed by STRUCTURAL-CONDITION-11 option 1. Global unit_manifest.py --check remains a sibling concern."
-    },
-    {
-      "id": "TST-0154-D-WALL-CLOCK-ELAPSED",
-      "severity": "P1",
-      "status": "resolved",
-      "summary": "liveness.is_in_flight now ages t_mono against time.monotonic; r2e_loop elapsed_s uses liveness.elapsed_s; p2_status mirror age no longer uses st_mtime."
-    }
-  ],
-  "manifest_registration": {
-    "registered": true,
-    "manifest_path": "command-center/p2-wave/probes/TST-0154/UNIT-ARTIFACT-MANIFEST.json",
-    "entry_id": "TST-0154",
-    "registered_at": "2026-08-19T17:21:34Z"
+  {
+   "bytes": 9977,
+   "eol": "LF",
+   "exists": true,
+   "path": "scripts/longrun.sh",
+   "role": "supporting",
+   "sha256": "5e93994e92e865625326115edd6c198a9d7f753df70b297c460bcfd165732dc7"
   },
-  "downstream_consumers": [
-    {
-      "consumer": "json.loads + monitor_report schema resolver",
-      "artifact_path": "command-center/receipts/TST-0154.json",
-      "executed": true,
-      "read_ok": true,
-      "exit_code": 0,
-      "probe": {
-        "role": "source",
-        "method": "schema-validate",
-        "command": "python -B command-center/p2-wave/probes/TST-0154/validate_delivery.py",
-        "raw_output": "consumer=json.loads of catalog output_path\nunit_id=TST-0154\nstate=SUCCESS\nschema=command-center/schema/receipt.schema.json#/$defs/monitor_report\nSUCCESS:consumer-read\n",
-        "fingerprint": "db1d83cd490d861c260d8e654c9f568a0570df4fe32cf5d7d6489527e13e9e73",
-        "exit_code": 0
-      }
-    }
-  ],
-  "timestamps": {
-    "started_at": "2026-08-17T02:19:57Z",
-    "ended_at": "2026-08-19T17:21:34Z"
+  {
+   "bytes": 10599,
+   "eol": "LF",
+   "exists": true,
+   "path": "scripts/longrun.ps1",
+   "role": "supporting",
+   "sha256": "c7ecf2f49e0006e3289624fb62c86fd6136af3646bd7e588917c73ca56cee2f4"
   },
-  "retry": {
-    "count": 2,
-    "policy": "two strikes then pivot: after a second failure on the same hypothesis, enumerate at least two alternative approaches before a third attempt",
-    "attempts": [
-      {
-        "attempt": 1,
-        "error_fingerprint": "wall-clock-elapsed-and-absent-named-probes",
-        "outcome": "BLOCKED",
-        "started_at": "2026-08-17T02:19:57Z"
-      },
-      {
-        "attempt": 2,
-        "error_fingerprint": "wall-clock-elapsed-and-absent-named-probes",
-        "outcome": "SUCCESS",
-        "started_at": "2026-08-19T17:21:34Z"
-      }
-    ],
-    "pivot_alternatives": [
-      "Replace wall-clock elapsed/timeout with monotonic t_mono on the B07 monitor surfaces and re-run injected clock-jump probes on Linux (chosen).",
-      "Keep BLOCKED until a second Windows pwsh7/Git Bash reviewer re-runs longrun.sh/ps1, which are absent on this tree."
-    ]
+  {
+   "bytes": 9165,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0154/lab.py",
+   "role": "supporting",
+   "sha256": "c8808a629e7276c215a6cd91db64f918b1e6c6cbd89581407a1fcf01cf1a2518"
   },
-  "residual_unknowns": [
-    {
-      "claim": "The catalog reviewer_requirement of an independent rerun on a second Windows host in both pwsh7 and Git Bash was executed.",
-      "verdict": "NOT-CHECKED",
-      "settling_experiment": "Re-run probe_a_clock_jump.py and probe_b_static_audit.py under pwsh7 and Git Bash on a second Windows host and record any divergence."
-    },
-    {
-      "claim": "scripts/longrun.sh and scripts/longrun.ps1 on this tree are production elapsed-time surfaces for TST-0154.",
-      "verdict": "NOT-CHECKED",
-      "settling_experiment": "Those files are absent on this Linux worktree; the live B07 cockpit surfaces are liveness.py, r2e_loop.py, p2_status.py, and r2e_monitor.py."
-    }
-  ],
-  "report": {
-    "kind": "monitor_report",
-    "observations": [
-      {
-        "name": "clock_injector_calibrated_directions",
-        "measured": 2,
-        "expected": 2,
-        "method": "monkeypatched time.time plus jumped wall now argument",
-        "anchor": "command-center/p2-wave/probes/TST-0154/probe-a-clock-jump-state.raw.txt"
-      },
-      {
-        "name": "live_jump_scenarios_passing",
-        "measured": 2,
-        "expected": 2,
-        "method": "liveness.is_in_flight running/stalled/timeout rows",
-        "anchor": "command-center/p2-wave/probes/TST-0154/probe-a-clock-jump-state.raw.txt"
-      },
-      {
-        "name": "wall_clock_elapsed_static_violations",
-        "measured": 0,
-        "expected": 0,
-        "method": "Python AST subtraction of time.time() or st_mtime",
-        "anchor": "command-center/p2-wave/probes/TST-0154/probe-b-static-clock-audit.raw.txt"
-      },
-      {
-        "name": "wall_clock_mutant_failed_directions",
-        "measured": 2,
-        "expected": 2,
-        "method": "known-broken wall-clock timeout classifier mutation",
-        "anchor": "command-center/p2-wave/probes/TST-0154/negative-control-wall-clock.raw.txt"
-      }
-    ],
-    "control_ids": [
-      "TST-0154-BOTH-STATES",
-      "TST-0154-NC-WALL-CLOCK"
-    ]
+  {
+   "bytes": 2444,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0154/probe1_clock_jump_states.py",
+   "role": "supporting",
+   "sha256": "f50695d3111239098ac1303a33b44b2ae03b93ad8ce07d615320494cfd58d833"
   },
-  "extensions": {
-    "question_or_target": "Does elapsed-time computation use a monotonic source, so that a backward wall-clock adjustment cannot mark a running unit as timed out (nor a stalled one as fresh)? PASS requires the unit survive a simulated backward and forward clock jump.",
-    "answer": "CONFIRMED on the B07 cockpit/monitor surfaces: liveness.is_in_flight ages t_mono against time.monotonic; r2e_loop elapsed_s uses liveness.elapsed_s; p2_status no longer uses st_mtime for freshness. Injected ±3600s wall jumps leave running in-flight and stalled not-fresh; a real timeout still fires; a wall-clock mutant fails both directions.",
-    "completion_line": "UNIT-COMPLETE:TST-0154",
-    "completion_marker": "UNIT-COMPLETE:TST-0154",
-    "condition_11": {
-      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
-      "manifest_path": "command-center/p2-wave/probes/TST-0154/UNIT-ARTIFACT-MANIFEST.json",
-      "unit_manifest_write_invoked": false
-    },
-    "harvest_unit_complete_not_proof": true,
-    "cloud_ok_is_not_delivery": true
+  {
+   "bytes": 2535,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0154/probe2_static_and_wallclock_negative.py",
+   "role": "supporting",
+   "sha256": "37707289705ec2079e2abd3cf773ced6e10f42b5c5a712eff4805ca034de39f8"
   }
+ ],
+ "checks": [
+  {
+   "id": "running-survives-backward-jump",
+   "verdict": "PASS"
+  },
+  {
+   "id": "running-survives-forward-jump",
+   "verdict": "PASS"
+  },
+  {
+   "id": "stalled-survives-backward-jump",
+   "verdict": "PASS"
+  },
+  {
+   "id": "stalled-survives-forward-jump",
+   "verdict": "PASS"
+  },
+  {
+   "id": "real-timeout-still-fires",
+   "verdict": "PASS"
+  },
+  {
+   "id": "wall-mutant-fails-both-directions",
+   "verdict": "PASS"
+  },
+  {
+   "id": "static-no-wall-clock-elapsed",
+   "verdict": "PASS"
+  }
+ ],
+ "clock_jumps": {
+  "both_states_early_not_timeout": true,
+  "both_states_timeout_still_fires": true,
+  "jump_s": 3600.0,
+  "pass": true,
+  "probe": "clock-jump",
+  "production_survives_jumps": true,
+  "rows": [
+   {
+    "id": "running-backward-jump",
+    "pre_jump_state": "RUNNING",
+    "production_elapsed_s": 1.0,
+    "production_idle_s": 1.0,
+    "production_state": "RUNNING",
+    "wall_mutant_elapsed_s": -3599.0,
+    "wall_mutant_idle_s": -3599.0,
+    "wall_mutant_state": "RUNNING"
+   },
+   {
+    "id": "running-forward-jump",
+    "production_elapsed_s": 1.0,
+    "production_idle_s": 1.0,
+    "production_state": "RUNNING",
+    "wall_mutant_elapsed_s": 3601.0,
+    "wall_mutant_idle_s": 3601.0,
+    "wall_mutant_state": "TIMED_OUT"
+   },
+   {
+    "id": "stalled-backward-jump",
+    "pre_jump_state": "STALLED",
+    "production_elapsed_s": 5.0,
+    "production_idle_s": 5.0,
+    "production_state": "STALLED",
+    "wall_mutant_elapsed_s": -3595.0,
+    "wall_mutant_idle_s": -3595.0,
+    "wall_mutant_state": "RUNNING"
+   },
+   {
+    "id": "stalled-forward-jump",
+    "production_elapsed_s": 5.0,
+    "production_idle_s": 5.0,
+    "production_state": "STALLED",
+    "wall_mutant_elapsed_s": 3605.0,
+    "wall_mutant_idle_s": 3605.0,
+    "wall_mutant_state": "TIMED_OUT"
+   }
+  ],
+  "running_survives_backward": true,
+  "running_survives_forward": true,
+  "stall_after_s": 2.0,
+  "stalled_survives_backward": true,
+  "stalled_survives_forward": true,
+  "timeout_fired_state": "TIMED_OUT",
+  "timeout_mid_state": "RUNNING",
+  "timeout_mutant_state": "TIMED_OUT",
+  "timeout_s": 10.0,
+  "wall_mutant_fails_both_directions": true,
+  "wall_mutant_running_forward_is_timed_out": true,
+  "wall_mutant_stalled_backward_is_fresh": true
+ },
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0154",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0154.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py TST-0154",
+   "executed": false,
+   "exit_code": 0,
+   "read_ok": true
+  }
+ ],
+ "elapsed_uses_monotonic": true,
+ "evidence": [
+  {
+   "anchor": "tools/command-center/elapsed.py:classify",
+   "claim": "Unit state across injected backward and forward wall-clock jumps; production monotonic timestamps unchanged; real timeout still fires.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "measure_clock_jumps",
+     "exit_code": 0,
+     "fingerprint": "7a423549daceef03ccf481f9099a1a1b",
+     "method": "in-process",
+     "raw_output": "{\"both_states_timeout_still_fires\": true, \"jump_s\": 3600.0, \"production_survives_jumps\": true, \"timeout_fired_state\": \"TIMED_OUT\", \"timeout_mid_state\": \"RUNNING\", \"wall_mutant_fails_both_directions\": true}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/command-center/elapsed.py:wall_clock_hits",
+   "claim": "Static AST scan: elapsed.py has no wall-clock reads; heartbeat hang window uses time.monotonic(); longrun scripts delegate and do not read date/UtcNow; planted time.time() is flagged.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "measure_static",
+     "exit_code": 0,
+     "fingerprint": "103d6b26ca793fac1a148ddb04d17ff0",
+     "method": "in-process",
+     "raw_output": "{\"detector_fires_on_planted_wall_clock\": true, \"elapsed_wall_hits\": [], \"heartbeat_hang_uses_monotonic\": true, \"heartbeat_uses_time_time\": false}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "fake_clock_timeout": {
+  "early": {
+   "elapsed_s": 1.0,
+   "idle_s": 1.0,
+   "state": "RUNNING",
+   "unit_id": "fake"
+  },
+  "late": {
+   "elapsed_s": 11.0,
+   "idle_s": 11.0,
+   "state": "TIMED_OUT",
+   "unit_id": "fake"
+  },
+  "ok": true
+ },
+ "id": "TST-0154",
+ "implementation": {
+  "classifier": "tools/command-center/elapsed.py",
+  "clock": "MonotonicClock = time.monotonic; FakeClock for probes",
+  "hang_companion": "tools/plugin/heartbeat.py hang_timeout_sec via time.monotonic",
+  "longrun_posix": "scripts/longrun.sh",
+  "longrun_windows": "scripts/longrun.ps1"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0154/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0154/probe1_clock_jump_states.py",
+   "id": "probe1",
+   "role": "clock-jump-both-states"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0154/probe2_static_and_wallclock_negative.py",
+   "id": "probe2",
+   "role": "static-and-wallclock-negative"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "wall mutant forward running=TIMED_OUT; backward stalled=RUNNING",
+   "description": "The same classifier fed wall-clock timestamps must mark a running unit TIMED_OUT on a forward NTP step and a stalled unit RUNNING (fresh) on a backward step. Production monotonic timestamps must not.",
+   "fired_on_bad_state": true,
+   "good_state_output": "monotonic running=RUNNING stalled=STALLED across \u00b13600s",
+   "id": "wall-clock-elapsed",
+   "kind": "known-broken-mutant",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "planted elapsed = time.time() - started \u2192 hit",
+   "description": "A static detector that cannot flag time.time() in elapsed code is dead. elapsed.py must be silent; a planted snippet must fire.",
+   "fired_on_bad_state": true,
+   "good_state_output": "elapsed.py wall_clock_hits=[]",
+   "id": "planted-time-time",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0154: live named probes exit 0, receipts/TST-0154.json state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. Did not rebuild ADV units. SUCCESS:TST-0154",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/monitor_report",
+ "produced_by": {
+  "cloud_ok": false,
+  "execution_substrate": "linux-local-serialized",
+  "role": "observability-tester"
+ },
+ "question": "Does elapsed-time computation use a monotonic source, so that a backward wall-clock adjustment cannot mark a running unit as timed out (nor a stalled one as fresh)? PASS requires the unit survive a simulated backward and forward clock jump.",
+ "real_timeout_still_fires": true,
+ "report_kind": "monitor_report",
+ "residual_unknowns": [
+  "This Linux worktree cannot re-run pwsh7 as a second Windows shell; scripts/longrun.ps1 is the same heartbeat.py exec as longrun.sh."
+ ],
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 does not rerun the DualClock campaign. It AST-scans elapsed.py and heartbeat.py, checks longrun.sh/ps1 delegation, and requires the wall-clock detector to fire on a planted time.time() snippet.",
+  "reviewer_id": "TST-0154-probe2-static-and-wallclock-negative",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0154",
+ "spec_anchor": "_USER-PROMPTS.md:11010 (Phase 10 layer 22, stale-monitor tests)",
+ "state": "SUCCESS",
+ "static": {
+  "detector_fires_on_planted_wall_clock": true,
+  "detector_silent_on_elapsed_py": true,
+  "elapsed_wall_hits": [],
+  "files_scanned": [
+   "tools/command-center/elapsed.py",
+   "tools/plugin/heartbeat.py",
+   "scripts/longrun.sh",
+   "scripts/longrun.ps1"
+  ],
+  "heartbeat_hang_uses_monotonic": true,
+  "heartbeat_uses_time_time": false,
+  "heartbeat_wall_hits": [],
+  "longrun_ps1_delegates_heartbeat": true,
+  "longrun_ps1_no_utcnow": true,
+  "longrun_sh_delegates_heartbeat": true,
+  "longrun_sh_no_date": true,
+  "pass": true,
+  "probe": "static-wall-clock"
+ },
+ "static_elapsed_has_no_wall_clock_source": true,
+ "survived_backward_jump": true,
+ "survived_forward_jump": true,
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0154/probe1_clock_jump_states.py",
+   "id": "TST-0154-T1-clock-jump-both-states",
+   "name": "running survives \u00b13600s wall jump; real timeout still fires",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0154/probe2_static_and_wallclock_negative.py",
+   "id": "TST-0154-T2-static-and-negative",
+   "name": "static: no wall-clock elapsed source; wall mutant fails both directions",
+   "result": "PASS"
+  }
+ ],
+ "title": "Monotonic clock is used for elapsed time; wall-clock jumps cannot fake a timeout",
+ "ts": "2026-09-02T10:15:13Z",
+ "unit_id": "TST-0154",
+ "wall_clock_mutant_fails_both_directions": true
 }
