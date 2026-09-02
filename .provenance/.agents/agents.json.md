@@ -234,7 +234,7 @@ DEFAULT-OFF host-gated (enabled: false, not parked — they are not in the Curso
 **What changed.** Owner explicit steer suspended G2 H1/H2 discovery slice for Wave N only. Parent registered two offensive MCP runtimes **enabled** (config/wiring, no in-repo exploit authoring):
 
 - **`metasploit-run`** — PyPI `metasploit-mcp==3.1.0` (setuidloot/MetasploitMCP, Apache-2.0). stdio via owner `uvx.exe`. `requiredEnv: [MSF_PASSWORD]`; optional `MSF_SERVER`, `MSF_PORT`, `MSF_RPC_PROTOCOL`, `PAYLOAD_SAVE_DIR`, `MSF_MCP_ALLOW_DANGEROUS`. Host-gated on local `msfrpcd`.
-- **`sliver-mcp`** — PyPI `sliver-mcp==1.0.1` (hi-unc1e, MIT). stdio via owner `uvx.exe` with `--config C:\Users\Prekzursil\.local\opt\sliver-mcp\operator.cfg`. Host-gated on running Sliver server + operator config.
+- **`sliver-mcp`** — PyPI `sliver-mcp==1.0.1` (hi-unc1e, MIT). stdio via owner `uvx.exe --with mcp<2` (FastMCP rename on mcp 2.x) with `--config C:\Users\Prekzursil\.local\opt\sliver-mcp\operator.cfg`. Host-gated on running Sliver server + operator config.
 
 Each enabled Claude-target server also landed in `.agents/mcp-cursor-parked-31.json` (36 -> 38 definitions). `test_cursor_attach_all_dry_run_projects_the_full_safe_surface` pins attached=46 / noncore=40.
 

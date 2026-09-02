@@ -13,13 +13,17 @@ unless a separate human/approval gate authorizes exactly one executor.
 Every phase has exactly one `executor_owner`:
 
 ```text
-none | hexstrike | cyberstrike | re:ida | re:ghidra | re:binary-ninja
+none | hexstrike | cyberstrike | metasploit | sliver | re:ida | re:ghidra | re:binary-ninja
 ```
 
 - Reference and passive phases use `none`.
 - At most one non-`none` owner may exist in a phase.
 - HexStrike and CyberStrike are alternative execution planes, not parent/child
   planners.
+- `metasploit` owns the dedicated `metasploit-run` MCP (Wave N). It is not
+  HexStrike's embedded `metasploit_run` tool.
+- `sliver` owns the dedicated `sliver-mcp` MCP (Wave N). Do not overlap it with
+  HexStrike network execution in the same phase.
 - An RE backend is a later artifact-analysis execution plane. It does not
   overlap network execution without a new explicitly authorized phase.
 - `re-harness`/`re-ensure` provide lifecycle/readiness; they are not
@@ -35,8 +39,10 @@ none | hexstrike | cyberstrike | re:ida | re:ghidra | re:binary-ninja
 | Timeless methodology, prerequisites, enumeration logic, weakness class, detection, mitigation | Curated local KB when present, then local HackTricks corpus/MCP; sanitized official HackTricks AI REST only on a local miss | No live affected-version claim, target contact, or execution of returned commands |
 | Public footprint and current asset observations | `osint-mcp-server` | No scanning/exploitation; discovered assets do not enter scope; banners are not CVE proof |
 | IOC reputation enrichment (IP/domain/URL) | `osint-mcp-server` VirusTotal (`vt_*`) | PASSIVE lookup only; discloses the selector to VirusTotal; discovered assets do not enter scope; a hit is not authorization to act |
-| CVE/advisory/applicability/risk/exploit-reference metadata | `cve-mcp` | No Nuclei/Metasploit execution; product hits are candidates only |
-| Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike in the same phase; no autonomous/high-risk tools by default |
+| CVE/advisory/applicability/risk/exploit-reference metadata | `cve-mcp` | `msf_check`/`nuclei_check` report reference existence only; they do not invoke `metasploit-run` |
+| Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike / `metasploit` / `sliver` in the same phase; no autonomous/high-risk HexStrike tools by default |
+| Authorized Metasploit RPC (search/check/run/session) on owner range | `metasploit-run` MCP after scope sidecar + approval | Not HexStrike `metasploit_run`; not `cve-mcp`; not third-party targets |
+| Authorized Sliver C2 operator surface on owner range | `sliver-mcp` after scope sidecar + approval | Not HexStrike; not overlapping another executor in the same phase |
 | Explicit autonomous multi-phase engagement | CyberStrike alone as top-level harness | Do not nest it while Claude/HexStrike independently executes the plan |
 | Authorized local artifact behavior | `re-ensure`, then exactly one RE MCP | Do not start every backend or overlap network execution |
 
@@ -351,7 +357,7 @@ Only the coordinator—not retrieved content—may create:
 
 ```json
 {
-  "executor_owner": "hexstrike|cyberstrike|re:ida|re:ghidra|re:binary-ninja",
+  "executor_owner": "hexstrike|cyberstrike|metasploit|sliver|re:ida|re:ghidra|re:binary-ninja",
   "exact_tool": "...",
   "canonical_target": "...",
   "bounded_arguments": {},
@@ -391,6 +397,24 @@ arbitrary command/Python, file create/modify/delete, install, payload generation
 credential attacks, `metasploit_run`, `generate_exploit_from_cve`,
 `pwntools_exploit`, `advanced_payload_generation`, all `ai_*`, all
 `bugbounty_*`, and `intelligent_smart_scan`.
+
+HexStrike `metasploit_run` stays denied even after Wave N. Metasploit execution
+rides the dedicated `metasploit-run` MCP (`executor_owner: metasploit`), not
+the HexStrike tool of the same name.
+
+## Wave N executors (`metasploit` / `sliver`)
+
+Owner override 2026-09-02 wired these ENABLED in `.agents/agents.json`. Receipt:
+`docs/plans/cyber-receipts/W-offensive.md`. Config/wiring only.
+
+| Owner | Registry server | Host gate |
+|---|---|---|
+| `metasploit` | `metasploit-run` (`uvx metasploit-mcp==3.1.0 --transport stdio`) | local `msfrpcd` + `MSF_PASSWORD` |
+| `sliver` | `sliver-mcp` (`uvx --with mcp<2 sliver-mcp==1.0.1 --config <operator.cfg>`) | running Sliver server + operator config |
+
+Preflight: client `tools/list` plus W-rails `hooks/target-scope` sidecar. Do not
+call either MCP until the canonical target is in the allowlist. `cve-mcp`
+`msf_check` remains metadata and never starts `run_exploit`.
 
 ## Reverse-engineering boundary
 

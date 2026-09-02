@@ -116,6 +116,8 @@ Until routing.md is updated, treat both as **high-risk executors** requiring the
   "transport": "stdio",
   "command": "C:\\Users\\Prekzursil\\.local\\bin\\uvx.exe",
   "args": [
+    "--with",
+    "mcp<2",
     "sliver-mcp==1.0.1",
     "--config",
     "C:\\Users\\Prekzursil\\.local\\opt\\sliver-mcp\\operator.cfg"
@@ -168,7 +170,7 @@ To harden: set `MSF_MCP_ALLOW_DANGEROUS=false` in the owner environment **or** a
 | Upstream | [hi-unc1e/sliver-mcp](https://pypi.org/project/sliver-mcp/) |
 | License | MIT |
 | Backend | `sliver-py` gRPC → Sliver server (mTLS operator config) |
-| Measured | `uvx sliver-mcp==1.0.1` installs; import fails on cloud Linux with `mcp` 2.x (`FastMCP` renamed → `MCPServer`) because package pins `mcp[cli]>=1.0` without upper bound |
+| Measured | unpinned `uvx sliver-mcp==1.0.1` fails on mcp 2.x FastMCP rename; `uvx --with mcp<2 sliver-mcp==1.0.1 --help` succeeds (2026-09-02 remeasure) |
 
 **Tool surface (17 tools, from PyPI README):**
 
@@ -269,7 +271,7 @@ Secrets are passed by **env NAME only** in the registry; never commit live value
 5. Preflight:
 
    ```powershell
-   C:\Users\Prekzursil\.local\bin\uvx.exe sliver-mcp==1.0.1 --config C:\Users\Prekzursil\.local\opt\sliver-mcp\operator.cfg
+   C:\Users\Prekzursil\.local\bin\uvx.exe --with mcp<2 sliver-mcp==1.0.1 --config C:\Users\Prekzursil\.local\opt\sliver-mcp\operator.cfg
    ```
 
 ### C. Scope hooks (W-rails)
@@ -301,6 +303,7 @@ pip index versions metasploit-mcp          # 3.1.0, 3.0.1
 pip index versions sliver-mcp              # 1.0.1, 1.0.0
 uvx metasploit-mcp==3.1.0                  # starts; RPC connection refused (no msfrpcd)
 uvx sliver-mcp==1.0.1 --help               # ModuleNotFoundError: mcp.server.fastmcp (mcp 2.x)
+uvx --with 'mcp<2' sliver-mcp==1.0.1 --help  # usage: sliver-mcp [-h] --config PATH ...
 python3 .agents/scripts/validate_mcp_control_plane.py --agents-config .agents/agents.json
   # SUCCESS servers=59 claude_targets=47
 python3 -m pytest -q .agents/tests
@@ -347,12 +350,12 @@ python3 -m pytest -q .agents/tests
 
 Implementation commit: **`09013ab3`** — `Wire Sliver and Metasploit-run MCPs enabled (Wave N owner override)` on `cursor/cyber-suite-full-program`.
 
-## Follow-ups (out of scope for Wave N)
+## Follow-ups
 
-| Item | Owner |
-|------|-------|
-| Update `security-mcp-routing.md` with `metasploit` / `sliver` executor_owner tokens | W-routing or parent |
-| Live `tools/list` + schema-hash TOFU on owner host | Owner / parent |
-| Pin `sliver-mcp` venv with `mcp<2` if uvx keeps pulling 2.x | Parent |
-| Optional `--safe-mode` on `metasploit-run` args for shared-network posture | Owner |
-| Skill wrap (`hexstrike-ai-authorized-engagement` or new `offensive-engagement`) documenting plane choice | Future wave |
+| Item | Status |
+|------|--------|
+| Update `security-mcp-routing.md` with `metasploit` / `sliver` executor_owner tokens | DONE — W-routing follow-up on this branch (triple-write + SKILL.md) |
+| Pin `sliver-mcp` uvx with `mcp<2` | DONE — `args` now `--with mcp<2 sliver-mcp==1.0.1` (parked companion matched) |
+| Live `tools/list` + schema-hash TOFU on owner host | OPEN — needs msfrpcd + Sliver on the Windows box |
+| Optional `--safe-mode` on `metasploit-run` args | OPEN — owner chose full surface; set `MSF_MCP_ALLOW_DANGEROUS=false` if hardening |
+| Skill wrap documenting plane choice | OPEN — HexStrike skill still the engagement gate; no new skill this wave |
