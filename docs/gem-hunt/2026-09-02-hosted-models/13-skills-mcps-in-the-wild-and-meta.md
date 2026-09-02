@@ -76,6 +76,12 @@ All items in this section are **FACT** read from the working tree at `origin/mai
 | mcp-defaults, mcp-userscope-sync | `hooks/mcp-defaults/enforce-mcp-defaults.py`, `hooks/mcp-userscope-sync/heal.py` | enforcement / heal | Existing enforcement points for registry -> client config. |
 | bg-registry | `hooks/bg-registry/register.py`, `reconcile.py`, `reconcile_requeue.py` | background-job registry with reconcile + requeue | Precedent for "reconcile a registry against reality and requeue" - the same verb the catalog sync needs. |
 
+### 2.2b Inventory / write-back and probe engines that already exist
+
+- `tools/mcp-manager` (`uv run app.py status | preset list | json`): unified MCP inventory across the **Claude plane** (`~/.claude.json` user scope + per-project `disabledMcpServers`) and the **Funnel plane** (`~/.mcp-funnel-profiles.json` + `mcp-profile.ps1`), with named **presets** for one-action bulk enable/disable; CI enforces 100% branch coverage (`AGENTS.md`). **INFERENCE**: this is the sanctioned *write-back* surface for a retire step - "disable via preset" rather than hand-editing client configs.
+- `mcp_doctor.py` / `lib.mcp_doctor_core` is deployed **off-repo** at `~/.local/opt/re-harness/` (per `tools/re-harness/mcp_doc_drift.py`, which describes itself as the "documented-but-missing MCP audit - additive companion to mcp_doctor.py" for servers that are documented but not mounted or failed to connect). `hooks/mcp-liveness` says it mirrors `mcp_doctor`'s `_mcp_handshake_ok`. **INFERENCE**: an L1 handshake engine for the fleet already exists on the box; the probe ladder in 8.3 should wrap it, not re-implement it.
+- The gem-hunt skill itself (`.agents/skills/gem-hunt/SKILL.md`) already names this lens's job verbatim: a **meta** lens for "auto-gem-mining, capability-score, the closed failure->gem->verify->retire loop"; step 5 "VERIFY before acting (peer-review) ... findings are claims, not truth"; step 6 "A gem-hunt is discovery, not a build - don't implement mid-hunt"; and a hard rule against any new heavyweight component ("2nd orchestration runtime, vector-DB/KG memory ... OpenRouter MCP, LiteLLM, Cursor BYOK, LangGraph"), preferring "enable a native feature" and "fold into the existing dispatcher" over "new hook file / new MCP". The locks in 1.3 are therefore already doctrine in the skill, not only in the brief.
+
 ### 2.3 Scheduling precedent (no new daemon needed)
 
 `scripts/claude-science/register-tasks.ps1` registers two Windows Scheduled Tasks (`ClaudeScienceWatchdog`, `ClaudeScienceMaintain`) with `MultipleInstances IgnoreNew` at the scheduler plus a `Global\` mutex in the script. **INFERENCE**: the estate already has a sanctioned pattern for "run a maintenance script on a timer without a resident process"; a catalog-sync task is a third registration in the same style, not a daemon.
@@ -341,7 +347,8 @@ Stop rules (per `AGENTS.md`): the loop never disables, deletes, rotates (`[LOCK-
 
 1. Whether anything on the Windows box enforces `mcp.supervision` today (no in-repo consumer, 2.1). If nothing does, 8.5's `[FAILURE]` stage is a hook+ledger write only until the supervisor exists.
 2. What `post:mcp-health-check` (`hooks/hooks.json`, `PostToolUseFailure`) actually does - its script is referenced via `${CLAUDE_PLUGIN_ROOT}/scripts/hooks/...`, i.e. it lives in the installed plugin, not this repo.
-3. Where `mcp_doctor` lives (referenced by `mcp-liveness` as the source of `_mcp_handshake_ok`); if it already does L1/L2 for all 42 servers, the probe script is a thin wrapper around it.
+3. `mcp_doctor.py` / `lib.mcp_doctor_core` lives off-repo at `~/.local/opt/re-harness/` (2.2b). Confirm on the box whether it already walks all 42 registry servers (L1) and whether it does `tools/list` (L2); if yes, the probe script is a thin wrapper plus the hash pin, and `tools/re-harness/mcp_doc_drift.py` already covers the "documented but not mounted" half of L0.
+5. Whether `tools/mcp-manager` presets are the right retire write-back (2.2b) or whether the owner prefers `enabled:false` in `agents.json` propagated by `mcp-canonical-sync`; the two are not exclusive but one must be the source.
 4. Licences and commit cadence of W4 (`llm-health-monitor`) and W3's repo before any code is copied rather than re-derived.
 
 ## 9. Rubric table
