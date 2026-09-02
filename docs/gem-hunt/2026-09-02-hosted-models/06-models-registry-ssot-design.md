@@ -135,7 +135,123 @@ All Tier A, read 2026-09-02 from `origin/main` @ `5fa34fda1` unless a branch is 
 
 ## 2. Runtime provider surfaces: what each runtime can natively take
 
-_(pending)_
+The materializer design (section 4) is only as good as the facts in this table. Each row:
+config file, schema, auth shape, wire API accepted, and the sharp edge that a naive generator
+would trip.
+
+### 2.1 Codex CLI - `~/.codex/config.toml` `[model_providers.<id>]`
+- **[FACT]** Keys: `name, base_url, env_key, env_key_instructions, wire_api, query_params,
+  http_headers, env_http_headers, request_max_retries (4), stream_max_retries (5),
+  stream_idle_timeout_ms (300000), supports_websockets, requires_openai_auth,
+  experimental_bearer_token, auth, aws, websocket_connect_timeout_ms,
+  supports_standalone_web_search`. Defaults from `developers.openai.com/codex/config-reference`.
+  (Tier B corroborated: [alexdunlop.com config.toml write-up](https://www.alexdunlop.com/writing/codex-cli-config-toml),
+  [codex.danielvaughan.com custom providers guide 2026-04-23](https://codex.danielvaughan.com/2026/04/23/codex-cli-custom-model-providers-configuration-guide/);
+  the primary `developers.openai.com/codex/config-reference` timed out on fetch today - UNVERIFIED direct.)
+- **[FACT]** `wire_api = "chat"` was **removed** (deprecation in discussion #7782 2025-12-09; removal
+  PR #10157, Feb 2026, Codex 0.59). Only `"responses"` is accepted and it is the default. (Tier B
+  corroborated, same two sources + [openai/codex issue #41816](https://github.com/openai/codex/issues/41816).)
+- **[FACT] SHARP EDGE:** a single **inert** `[model_providers.x]` block with `wire_api = "chat"` makes
+  *every* Codex command fail at config load, even `codex login status`
+  ([openai/codex#41816](https://github.com/openai/codex/issues/41816), Tier A issue text, 2026).
+  **[INFER]** A Codex materializer must therefore (a) never emit `wire_api = "chat"`, (b) only emit
+  providers whose endpoint has capability `wire.responses != absent`, and (c) run a
+  `codex --version`-class smoke after every write, because a bad block bricks the whole runtime
+  (the estate's Codex is a primary rail - see L7: present the tradeoff, don't drop the endpoint;
+  route chat-only endpoints to Codex through the inference MCP of section 5 instead).
+- **[FACT]** Estate precedent already in this shape: `[model_providers.openrouter]` with
+  `env_key = "OPENROUTER_API_KEY"`, `wire_api = "responses"`, non-default, opt-in via
+  `--profile openrouter` (Tier A, `openrouter-routing/SKILL.md`; lock L1).
+- **[FACT]** Built-in provider ids `openai`, `ollama`, `lmstudio` exist and must not be shadowed.
+  (Tier B, danielvaughan guide.)
+
+### 2.2 Grok Build CLI (`grok` + `agent.exe`) - `~/.grok/config.toml` `[model."<id>"]`
+- **[FACT]** Per-model block keys: `model, base_url, name, description, api_key, env_key (string
+  OR array of names; first non-empty wins), api_backend = chat_completions | responses | messages,
+  temperature, top_p, max_completion_tokens, context_window, extra_headers, query_params,
+  supports_backend_search, supports_reasoning_effort, reasoning_effort, stream_tool_calls,
+  max_retries, inference_idle_timeout_secs`. `[models] default = "<id>"`, `[models] web_search`.
+  `[endpoints] models_base_url` lets `[model.*]` blocks inherit `base_url`. Windows path
+  `%USERPROFILE%\.grok\config.toml`; `GROK_HOME` overrides. Credential precedence: per-model
+  `api_key` > `env_key` > signed-in session token > `XAI_API_KEY` global. (Tier A:
+  [docs.x.ai/build/settings](https://docs.x.ai/build/settings) and
+  [xai-org/grok-build user-guide/11-custom-models.md](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-pager/docs/user-guide/11-custom-models.md), 2026-09-02.)
+- **[FACT]** Grok Build was open-sourced (Apache-2.0, `xai-org/grok-build`) on 2026-07-15; upstream
+  does not accept external PRs. (Tier B, [MarkTechPost 2026-07-15](https://www.marktechpost.com/2026/07/15/spacexai-open-sources-grok-build-the-rust-agent-harness-tui-and-tool-layer-behind-its-coding-cli/).)
+- **[INFER]** Grok is the *most permissive* target: it accepts chat-completions, responses AND
+  Anthropic messages, per model, with an env_key *array* - so the materializer can emit one block
+  per (endpoint, model) pair for every endpoint in the registry, and can list several env names
+  (e.g. `["HUGGINGFACE_TOKEN","HF_TOKEN"]`) without a resolver. The dedup-set item
+  `[model."cursor-grok-4.6"]` pointing at auth2api is exactly this shape (L3).
+- **[FACT] SHARP EDGE:** `api_key = "..."` literal is allowed by Grok; the estate rule (control
+  plane `LITERAL_SECRET_RE`) forbids emitting it. Materializer must only ever write `env_key`.
+
+### 2.3 Goose 1.x - `~/.config/goose/custom_providers/<name>.json` (Windows: `%APPDATA%\Block\goose\config\custom_providers\`)
+- **[FACT]** One JSON file per provider: `name, engine (openai|anthropic|ollama), display_name,
+  description, api_key_env, base_url, base_path (default v1/chat/completions), models[{name,
+  context_limit, input_token_cost, output_token_cost}], headers, timeout_seconds,
+  supports_streaming, requires_auth (default true), catalog_provider_id, env_vars (list of env
+  names expanded inside base_url)`. Registered automatically at startup by
+  `register_declarative_providers`. Selection precedence: subagent settings > recipe > env
+  `GOOSE_PROVIDER/GOOSE_MODEL` > config.yaml > default. (Tier A:
+  [block/goose providers.md](https://github.com/block/goose/blob/main/documentation/docs/getting-started/providers.md),
+  [declarative_providers.rs](https://github.com/block/goose/blob/58f3cc9e/crates/goose/src/config/declarative_providers.rs),
+  [CUSTOM_DISTROS.md](https://github.com/block/goose/blob/main/CUSTOM_DISTROS.md), 2026-09-02.)
+- **[INFER]** Goose is the *cleanest* materializer target: file-per-provider means idempotency is
+  "overwrite the files we own, delete the ones we no longer generate, never touch files without
+  our marker" - no in-file merging at all. Dedup-set item `GOOSE_PROVIDER=goose-cursor-proxy` is
+  already one such file (L3).
+- **[FACT] SHARP EDGE:** `headers` values are literal strings (the docs example puts a secret in
+  `x-origin-secret`). Estate rule: never emit a header whose *name* matches `SECRET_NAME_RE`
+  unless its value is resolvable via `env_vars`; otherwise skip the endpoint for Goose and say so.
+
+### 2.4 Fabric (danielmiessler, Go) 1.4.x - `~/.config/fabric/.env` + `~/.config/fabric/config.yaml`
+- **[FACT]** Generic OpenAI-compatible vendor: `OPENAI_API_KEY`, `OPENAI_API_BASE_URL` (must end in
+  `/v1`), `DEFAULT_VENDOR`, `DEFAULT_MODEL`, `DEFAULT_MODEL_CONTEXT_LENGTH`. Dedicated local
+  vendors: `LM_STUDIO_API_URL` (**must include `/v1`** or model listing fails), `OLLAMA_API_URL`.
+  (Tier A issue threads: [Fabric#1558](https://github.com/danielmiessler/Fabric/issues/1558),
+  [Fabric#928](https://github.com/danielmiessler/Fabric/issues/928), [discussion #138](https://github.com/danielmiessler/Fabric/discussions/138).)
+- **[FACT] SHARP EDGE:** Fabric's OpenAI vendor defaults to the **Responses API**; against
+  llama-server it 404s on `POST /v1/responses`. Fix since 1.4.257: `--disable-responses-api` or
+  `disableResponsesAPI: true` in `~/.config/fabric/config.yaml`. The flag is **global** (all
+  OpenAI-compatible vendors), which is a tradeoff the materializer must surface, not hide.
+  ([Fabric#1625](https://github.com/danielmiessler/Fabric/issues/1625), Tier A, fix confirmed by maintainer.)
+  Estate Fabric is 1.4.470 (task brief) so the flag exists.
+- **[FACT]** Fabric has a compiled-in list of OpenAI-compatible vendors, each with its own
+  `<VENDOR>_API_KEY` / `<VENDOR>_API_BASE_URL` pair (e.g. `fabric -L` shows `Together|...`,
+  `LM Studio|...`). (Tier A, #928 output.) **[INFER]** the exact vendor list lives in
+  `internal/plugins/ai/openai_compatible/configs.go`; the materializer should read Fabric's own
+  `fabric -L` output to discover which env-pairs the installed build honours rather than hardcoding
+  (UNVERIFIED file path today).
+- **False friend:** `fabric-docs-3kh.pages.dev` describes a *different* Rust "Fabric" (Postgres,
+  `[[providers.custom_openai_endpoints]]`) - not the estate's binary. Do not cite it for 1.4.470.
+
+### 2.5 OpenCode - `~/.config/opencode/opencode.json` (or project `opencode.json`) `provider.<id>`
+- **[FACT]** Shape: `provider.<id> = { npm: "@ai-sdk/openai-compatible", name, options: { baseURL,
+  apiKey: "{env:VAR}" | "{file:~/path}" }, models: { <model-id>: { name, limit: {context,
+  output}, options: {...} } } }`, `$schema: https://opencode.ai/config.json`, top-level
+  `model: "<provider-id>/<model-id>"`. (Tier A issue reproductions:
+  [anomalyco/opencode#5674](https://github.com/anomalyco/opencode/issues/5674),
+  [#19946](https://github.com/anomalyco/opencode/issues/19946), [#23622](https://github.com/anomalyco/opencode/issues/23622).)
+- **[FACT] SHARP EDGES:** (a) a provider id containing a dot silently drops model options
+  (#23622, fix PR #25145); (b) `{env:VAR}` resolves against the *process* environment only - no
+  `.env` autoload, so a desktop-launched OpenCode sees an empty key (#19946, maintainer note,
+  closed not-reproducible on v1.17.13); (c) the historical `options` forwarding bug (#5674) is
+  fixed but shows the SDK reads options under the `openai` namespace.
+- **[INFER]** Materializer: dot-free ids (`hf-router`, not `router.huggingface.co`), `{env:NAME}`
+  only, and the launch wrapper (not the config) must export the env from `local.json`.
+
+### 2.6 Aider 0.86 - env / `.aider.conf.yml` / `.aider.model.settings.yml`
+_(pending - next checkpoint)_
+
+### 2.7 Gemini CLI, Agy (Antigravity CLI)
+_(pending - next checkpoint)_
+
+### 2.8 Runtimes that cannot take a provider at all: Claude Code, Cursor
+_(pending - next checkpoint)_
+
+### 2.9 Endpoint-side wire facts (which endpoints speak `/v1/responses`)
+_(pending - next checkpoint)_
 
 ## 3. Proposed `.agents/models.json` schema
 
