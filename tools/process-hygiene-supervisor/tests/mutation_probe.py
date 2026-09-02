@@ -67,6 +67,12 @@ MUTATIONS = [
         "                if snapshot.by_pid[child].created_unix < parent_created:\n                    continue",
         "                if False:\n                    continue",
     ),
+    (
+        "tier de-escalates immediately (hysteresis dropped)",
+        "hygiene.py",
+        '        if streak >= self.policy["pressure"]["deescalate"]:',
+        "        if True:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
