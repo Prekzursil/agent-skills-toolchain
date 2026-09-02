@@ -23,6 +23,11 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | AUD-0080 | `probes/AUD-0080/fixtures/merge/local.json` | manifest pins its sha; `.gitignore:203` ignores any `local.json` (b3-p04-AUD) | toolchain `.gitignore` rule, not a capture rule — owner: negate the rule for this fixture | open |
 | AUD-0081 | `probes/AUD-0081/fixtures/untrusted-clone/` (3 md + a `.git` file marker) | nested-repo marker never captured (b3-p04-AUD) | embedded-repo exclusion | open |
 | ADV-0143 | `tools/blueprints/product/customer_council/blueprint.json` | `taxonomy.py:313`; nothing generates it; never in git history (b3-p00-ADV) | not captured | open |
+| TST-0301 | `command-center/bench/METRIC-INVENTORY.json`, `command-center/bench/B07-MARGIN-TABLE.json` | code path verified green in a throwaway root with synthetic inputs; the receipt freezes the table by content-address sha (30eb8f82…, 2505 B), so the inputs cannot be re-invented (b3-s00) | never captured; owner sources the two files | open |
+| AUD-0006 | `probes/AUD-0006/control/tmp/scratch_cache/real_module.py` | root `.gitignore:215` `tmp/` (b3-p03-AUD-r) | toolchain ignore rule + ExtraExcludeDirs `tmp` | open |
+| AUD-0016 | `probes/AUD-0016/fixtures/estate/project/.claude/settings.local.json` | never captured (b3-p03-AUD-r) | `.claude/` local settings ignored | open |
+| AUD-0018 | `probes/AUD-0018/fixtures/trees/src/rules/nested-repo/{.git,secret.md}` | nested `.git` uncommittable; probe2 controls need it (b3-p03-AUD-r) | embedded-repo exclusion | open |
+| AUD-0023 | `probes/AUD-0023/fixtures/known-advisory/package-lock.json` | root `.gitignore:2`; write_receipts SUPPORTING row; artifact regen works, receipts cannot be rewritten (b3-p03-AUD-r) | toolchain ignore rule | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006

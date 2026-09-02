@@ -53,3 +53,9 @@ or the environment is provided (ENV). Rows appended by the orchestrator from wri
 | ADV-0049, ADV-0101 | PROBE-SIDE (systemic, same family as AUD-0060/ADV-0103) | emitters write `downstream_consumers` as strings; shared schema requires objects `{executed, read_ok, probe}` (b3-p00-ADV) | owner: emitters or schema |
 | ADV-0114, ADV-0127, ADV-0129, ADV-0142 | FINGERPRINT (regen last) | census over other units' findings (192→194 when ADV-0105 regenerated) / census fingerprint / catalog+measurer sha / 9419-file bundle hash (b3-p00-ADV) | final mirror |
 | ADV-0100 | PENDING (shared schema) | probe2 asserts the schema rejects `false_positive_rate: "low"` (adjective); `artifact-class-profiles.schema.json` accepts it; that schema is being edited by another writer right now (b3-p00-ADV) | re-measure after that writer lands |
+| AUD-0007 AUD-0020 AUD-0022 AUD-0025 AUD-0028 AUD-0030 | FINGERPRINT (regen last) | live censuses (worktree markers art=0 live=6; manifests 43≠39; node_count 253→147; live_manifest_count; tool_count None≠730; module-count 1873→1892) (b3-p03-AUD-r) | final mirror |
+| AUD-0002 | PROBE-SIDE | `emit_inventory.py` nests `preservation_control` under `report{}`; probe2 reads it top-level (nested-vs-flat family) (b3-p03-AUD-r) | probe owner |
+| AUD-0027 | XDEP/PROBE-SIDE | census admits fixture manifests, so AUD-0025's pep440-zoo fake names 404 on PyPI (network-dependent too) (b3-p03-AUD-r) | probe owner |
+| AUD-0029 | CONFLICT | probe2 compiles live files under 3.10/3.11/3.12; 17 remaining failures are other units' deliberately-broken fixtures (REL-0019, WFA-0147, RES-0163, detector_control) (b3-p03-AUD-r) | owner: exclusion list |
+| AUD-0044 | ENV | fetches `quality.yml` from the private origin repo unauthenticated → 404 (b3-p03-AUD-r) | token or offline mode |
+| env note | — | box now has python3.10, python3.11, python3.12-venv (sudo apt, b3-p03-AUD-r); AUD-0043/AUD-0029 need them — record for the final-census host | — |
