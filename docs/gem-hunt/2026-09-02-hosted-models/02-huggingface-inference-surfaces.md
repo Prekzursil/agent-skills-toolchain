@@ -39,8 +39,8 @@ Sections are appended as research lands; each section is committed and pushed on
 
 - [x] 2. router.huggingface.co/v1 (Inference Providers)
 - [x] 3. Inference Endpoints (dedicated)
-- [ ] 4. Spaces as inference hosts (Gradio MCP, /v1 Spaces, ZeroGPU, sleep/wake, owner recipe)
-- [ ] 5. Official Hugging Face MCP server
+- [x] 4. Spaces as inference hosts (Gradio MCP, /v1 Spaces, ZeroGPU, sleep/wake, owner recipe)
+- [x] 5. Official Hugging Face MCP server
 - [ ] 6. HF token scopes
 - [ ] 7. Decision table: router vs endpoint vs space vs local
 - [ ] 8. Stale claims in the current `hosted-model-agents` skill
@@ -287,3 +287,131 @@ Cheap tool-capable workhorses on the same sheet: `openai/gpt-oss-120b` on deepin
   client is prepared to send `X-Scale-Up-Timeout` and treat 503 as "warming". None of those is true
   of the glm53 use case (GLM-5.3 is on five router providers), so the Endpoint column of the
   decision table is "reserved for private checkpoints under sustained load".
+
+## 4. Spaces as inference hosts
+
+### 4.1 ZeroGPU (what the owner's private Space runs on)
+
+- `[fact][A][corr][f:2026-09-02]` ZeroGPU now allocates **NVIDIA RTX Pro 6000 Blackwell** slices:
+  `large` (default) = half card, 48 GB VRAM, 1x quota; `xlarge` = full card, 96 GB, 2x quota.
+  Gradio SDK only; Gradio 4+; PyTorch 2.8.0+ (2.8.0, 2.9.1, 2.10.0, 2.11.0); Python 3.12.12 or
+  3.10.13; `torch.compile` unsupported (AoT compilation is). Source:
+  <https://huggingface.co/docs/hub/spaces-zerogpu>.
+- `[fact][A][corr][f:2026-09-02]` Daily GPU quota per **caller** (not per Space): unauthenticated
+  2 min, Free 5 min, **PRO 40 min** (extensible), Team member 40 min, Enterprise member 60 min;
+  resets 24 h after first use; remaining quota drives queue priority; PRO/Team/Enterprise can exceed
+  quota on pre-paid credits at **$1 per 10 GPU-minutes** ($6/GPU-hour). Hosting caps: Free 2
+  ZeroGPU Spaces (account >30 days, verified email), **PRO 10**, Team/Enterprise org 50. Same source.
+- `[fact][A][corr][f:2026-09-02]` `@spaces.GPU` default runtime budget is **60 s** per call,
+  overridable with `duration=` (static or a callable of the inputs); shorter declared durations get
+  better queue priority; models must be moved to `cuda` at module import (CUDA emulation outside the
+  decorated function), lazy-loading inside `@spaces.GPU` is "significantly less efficient". Same source.
+- `[fact][A][UNVERIFIED][measured f:2026-09-02]` The owner's public Space `Prekzursil/GLM-5.3`
+  (Gradio `6.26.0`, `hf_oauth: true`, scopes `inference-api` + `write-repos`, created 2026-08-30) is in
+  `runtime.stage = RUNTIME_ERROR` with `errorMessage: "No @spaces.GPU function detected during
+  startup"` and `hardware.requested = zero-a10g`, `hardware.current = null`. Probe:
+  `GET https://huggingface.co/api/spaces/Prekzursil/GLM-5.3`.
+- `[infer]` That Space is a router *client* (a GLM-5.3 chat front-end), not a model host, so it has no
+  GPU function to decorate; requesting ZeroGPU hardware for it cannot succeed. The fix is a hardware
+  change to `cpu-basic` in Space settings (free, sleeps after 48 h idle), not code. It is also a live
+  example of why "Space" and "router" must not be conflated in the skill's environments table.
+- `[fact][A][UNVERIFIED][f:2026-09-02]` The private Space `Prekzursil/qwen38-27b-heretic-chat` returns
+  HTTP 401 to an unauthenticated `GET /api/spaces/...` (expected for a private repo); its runtime state
+  could not be read from this sandbox.
+
+### 4.2 Paid Space hardware, sleep and wake
+
+- `[fact][A][corr][f:2026-09-02]` Spaces hardware prices (per hour, billed per minute, only while
+  `Starting`/`Running`): CPU Basic (2 vCPU, 16 GB) free but "creating a new Space that runs on compute
+  (Gradio or Docker) requires a paid plan"; CPU Upgrade $0.03; T4-small $0.40; T4-medium $0.60;
+  1x L4 $0.80; 1x L40S (48 GB) $1.80; A10G-small $1.00; A10G-large $1.50; A100-large $2.50;
+  4x A100 $10; 8x A100 $20. **H100 and 8x H100 removed December 2025.** Source:
+  <https://huggingface.co/docs/hub/spaces-gpus>.
+- `[fact][A][corr][f:2026-09-02]` Sleep: `cpu-basic` Spaces sleep after **48 h** idle and any visitor
+  restarts them; upgraded Spaces never sleep by default but accept a custom sleep time (no billing
+  while `stopped`, wake on next visitor); `pause` stops billing and only the owner can restart.
+  Replicas (paid hardware only, billed each) via `POST /api/spaces/{ns}/{repo}/replicas`. Same source.
+- `[fact][A][corr][f:2026-09-02]` Space observability endpoints (authenticated SSE):
+  `GET /api/spaces/{ns}/{repo}/logs/{build|run}?tail=N`, `/events`, `/metrics`. Same source.
+- `[fact][A][UNVERIFIED][f:2026-09-02]` HF does not publish a wake-latency figure for sleeping Spaces;
+  the only documented latency statements are the ZeroGPU 60-s per-call budget and the Endpoints "a few
+  minutes" cold start. A measured wake time for the owner's private Space is therefore an **open
+  measurement** for the skill's evals, not a fact this lens can cite.
+
+### 4.3 Gradio MCP server mode (`mcp_server=True`)
+
+- `[fact][A][corr][f:2026-09-02]` `pip install "gradio[mcp]"`, then `demo.launch(mcp_server=True)` or
+  `GRADIO_MCP_SERVER=True`. Every API endpoint becomes an MCP tool (name = function name, description
+  and schema from docstring + type hints, component defaults = argument defaults). Transport is
+  **Streamable HTTP** at `<host>/gradio_api/mcp/` (schema at `/gradio_api/mcp/schema`); clients that
+  lack streamable-HTTP support can bridge with `npx mcp-remote <url>`. Source:
+  <https://github.com/gradio-app/gradio/blob/main/guides/10_mcp/01_building-mcp-server-with-gradio.md>
+  (rendered at <https://www.gradio.app/guides/building-mcp-server-with-gradio>).
+- `[fact][A][corr][f:2026-09-02]` Private Spaces and "a ZeroGPU Space with your own quota" are used
+  as MCP servers by adding `"headers": {"Authorization": "Bearer <HF_TOKEN>"}` to the client config;
+  `gr.Header` / `gr.Request` let the tool read caller headers; `queue=False` on handlers can raise
+  throughput "by as much as 10 times" at the cost of progress notifications. Same source.
+- `[infer]` For the estate this confirms the skill's existing rule (Gradio MCP = *that app's* tools,
+  not Hub): a ZeroGPU chat Space exposed as MCP would put a `generate` tool on every turn of every
+  agent that mounts it, which `mcp-fleet-curation` forbids. It is the right shape only for a
+  narrow, side-effect-free tool (e.g. an OCR or a transcription Space), not for chat.
+
+### 4.4 The Heretic checkpoint is already on the router (new)
+
+- `[fact][A][UNVERIFIED][measured f:2026-09-02]` `GET https://huggingface.co/api/models/heretic-org/Qwen3.8-27B-heretic-ara?expand[]=inferenceProviderMapping&expand[]=inference`
+  returns `inference: "warm"` and `inferenceProviderMapping: {"featherless-ai": {status: "live",
+  providerId: "heretic-org/Qwen3.8-27B-heretic-ara", task: "conversational"}}`; safetensors total
+  27,356,728,560 parameters. A Hub search for `Qwen3.8-27B-heretic` returned 20 repos including
+  `trohrbaugh/Qwen3.8-27B-heretic-ara`, several NVFP4/INT8/GGUF quantisations and abliterated
+  variants.
+- `[infer]` The `hosted-model-agents` recipe describes the private Space checkpoint as "Qwen3.8-27B
+  Heretic-ARA". If it is the `heretic-org` (or an equivalent) upload, the same weights are callable
+  today as `heretic-org/Qwen3.8-27B-heretic-ara:featherless-ai` through `router.huggingface.co/v1`
+  with no GPU quota, no sleep/wake and no `@spaces.GPU` 60-s budget. Three caveats keep this
+  UNVERIFIED: (1) featherless-ai publishes no `supports_tools` / `supports_structured_output` /
+  latency probe data (section 2.3), so OpenAI `tool_calls` from that route must be tested, not
+  assumed; (2) this model id is **not** in the 136-row `/v1/models` payload, so the router's
+  `:fastest`/`:cheapest` policies have nothing to choose between (pin `:featherless-ai`); (3) whether
+  the owner's Space uses this exact revision (and its chat template with the `xhigh` reasoning alias)
+  cannot be read from the private repo.
+- `[rec]` Add to the skill's evals a 5-line probe: `POST /v1/chat/completions` with
+  `model: heretic-org/Qwen3.8-27B-heretic-ara:featherless-ai`, one `tools` entry and
+  `tool_choice: required`; record whether `tool_calls` come back well-formed. If yes, the private
+  ZeroGPU Space becomes the **fallback**, not the primary, for that persona - a trade-off (lose
+  control of template/quantisation; gain zero-ops availability), not a removal.
+
+## 5. Official Hugging Face MCP server (`https://huggingface.co/mcp`)
+
+- `[fact][A][corr][f:2026-09-02]` The public server card at `https://huggingface.co/mcp/server-card`
+  reports `name: huggingface.co/mcp`, **version 0.4.15**, one remote of type `streamable-http` at
+  `https://huggingface.co/mcp`. Measured here; schema
+  `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json`.
+- `[fact][A][corr][f:2026-09-02]` Source repo `evalstate/hf-mcp-server`: transports STDIO and
+  Streamable HTTP in **stateless JSON mode**; `?login` URL variant for OAuth (Claude Code:
+  `claude mcp add hf-mcp-server -t http https://huggingface.co/mcp?login`; Gemini CLI:
+  `gemini mcp add -t http huggingface https://huggingface.co/mcp?login`), or a
+  `Authorization: Bearer <HF_TOKEN>` header (Cursor/VS Code snippets); per-user tool and Space
+  selection at `https://huggingface.co/settings/mcp`; `?no_image_content=true` strips Gradio
+  ImageContent; `?bouquet=openai` exposes "Hub filesystem, repository search and details, dynamic
+  Space, Jobs, and sandbox tools" (Jobs/dynamic Space/sandbox require auth); `DISABLE_TOOLS`
+  example names `hub_repo_search,hf_fs`; local run `npx @llmindset/hf-mcp-server` (STDIO) or
+  `npx @llmindset/hf-mcp-server-http`, Docker `ghcr.io/evalstate/hf-mcp-server:latest` on port 3000.
+  Source: <https://github.com/evalstate/hf-mcp-server/blob/main/README.md>.
+- `[fact][A][corr][f:2026-09-02]` The HTTP server also implements the **SEP-2640 skills** surface
+  (`skills/list`, `skills/get`, `resources/read`, capability `io.modelcontextprotocol/skills`) from a
+  digest-verified snapshot of `hf://buckets/huggingface/skills`; skills are not exposed over STDIO.
+  Same source.
+- `[fact][A][UNVERIFIED][measured f:2026-09-02]` An anonymous JSON-RPC `tools/list` to
+  `https://huggingface.co/mcp` returned HTTP 400 `{"code": -32600, "message": "Session ID required"}`;
+  the canonical tool list therefore cannot be enumerated without a token from this sandbox. The
+  skill should not hard-code tool names; the per-user list is configured server-side.
+- `[infer]` Two things in this server are new relative to the estate's skill: (1) **Jobs, dynamic
+  Space and sandbox tools** behind `?bouquet=openai` - the Hub MCP can now launch Gradio Space tools
+  and HF Jobs, i.e. it edges into the *runtime* layer the skill keeps separate; (2) the **skills
+  bucket** (`hf://buckets/huggingface/skills`) is a second SSOT of prompt packs that Claude Code /
+  Cursor will see if the HTTP transport is mounted - a direct tension with the estate lock
+  ".agents/skills is the ONE prompt SSOT". Section 8 records this as a stale-claim + lock-check item.
+- `[infer]` The estate's `agents.json` entry (`transport: http`, `url: https://huggingface.co/mcp?login`,
+  `targets: [claude]`, `x_codex.bearer_token_env_var: HUGGINGFACE_TOKEN`) is consistent with the
+  README; the only correction is that `?login` (OAuth) and `Authorization: Bearer` are alternatives,
+  and Codex's bearer path does not need `?login`.
