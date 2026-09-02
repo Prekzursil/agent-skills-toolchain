@@ -41,6 +41,7 @@ GET and upgrades the state to ``probed``/``absent`` from live evidence.
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -99,10 +100,11 @@ class AdapterTool:
     name: str
     description: str
     input_schema: dict
-    path: str  # backend route this tool POSTs to (e.g. "/tavily/search")
+    path: str  # backend route this tool hits (e.g. "/tavily/search")
     realized_by: str = (
         NATIVE  # NATIVE if the backend route IS this shape, else EMULATED
     )
+    method: str = "POST"  # HTTP verb; GET tools template the path from arguments
 
     def definition(self) -> dict:
         return {
@@ -217,12 +219,33 @@ class SelfHostedAdapter:
             "tools": tools,
         }
 
+    # ---- request preparation hooks --------------------------------------
+    def _prepare(
+        self, tool: AdapterTool, arguments: dict
+    ) -> tuple[str, str, bytes | None, dict]:
+        """Build (method, url, body, headers) for a call. May raise ValueError on
+        bad arguments (turned into a truthful error by ``handle_call``).
+
+        Default: POST the JSON body from ``_build_request`` to ``base_url + path``
+        -- the shape every native Tavily-style backend uses. GET backends
+        (OSSInsight) override this to template the path + query.
+        """
+        body = json.dumps(self._build_request(tool, arguments or {})).encode("utf-8")
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        return tool.method, self.base_url + tool.path, body, headers
+
+    def _postprocess(self, tool: AdapterTool, arguments: dict, parsed):
+        """Optional local shaping of a 200 payload (e.g. a name filter). Never
+        fabricates data -- it only trims/relabels what the backend returned."""
+        return parsed
+
     # ---- the call path (always truthful) --------------------------------
     def handle_call(self, name: str, arguments: dict) -> dict:
         """Forward a tools/call to the backend; return an MCP result dict.
 
-        On ANY failure (not configured, transport error, non-2xx) it returns an
-        ``isError`` result with a readable reason -- it never fabricates a hit.
+        On ANY failure (not configured, bad args, transport error, non-2xx) it
+        returns an ``isError`` result with a readable reason -- it never
+        fabricates a hit.
         """
         tool = self._tool(name)
         if tool is None:
@@ -233,11 +256,11 @@ class SelfHostedAdapter:
                 f"(default env for {self.label}) then start the daemon; "
                 f"{name} stays absent until it answers."
             )
-        body = json.dumps(self._build_request(tool, arguments or {})).encode("utf-8")
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        status, parsed, raw = self._caller(
-            "POST", self.base_url + tool.path, body, headers, DEFAULT_TIMEOUT
-        )
+        try:
+            method, url, body, headers = self._prepare(tool, arguments or {})
+        except ValueError as exc:
+            return self._error(str(exc))
+        status, parsed, raw = self._caller(method, url, body, headers, DEFAULT_TIMEOUT)
         if status == 0:
             return self._error(
                 f"{self.label} backend at {self.base_url} not reachable ({raw}); "
@@ -249,7 +272,7 @@ class SelfHostedAdapter:
             return self._error(
                 f"{self.label} backend returned HTTP {status} for {tool.path}: {detail}"
             )
-        return self._ok(parsed)
+        return self._ok(self._postprocess(tool, arguments or {}, parsed))
 
     # ---- MCP result envelopes ------------------------------------------
     def _ok(self, payload) -> dict:
@@ -426,6 +449,191 @@ def resolve_base_url(environ) -> str:
     return DEFAULT_TRAILSEARCH_URL
 
 
+# --------------------------------------------------------------------------- #
+# OSSInsight -- keyless repo-discovery over the PUBLIC OSSInsight API
+# --------------------------------------------------------------------------- #
+# Endpoint verification 2026-09-02 (see the decision record): the public API is
+# PARTIALLY degraded. Live HTTP 200, data-bearing:
+#   * GET /gh/repo/{owner}/{repo}      -> a GitHub repo object (stars/forks/lang/...)
+#   * GET /v1/collections/             -> {data:{rows:[{id,name}, ...138]}}
+# Degraded but truthful (200 with a data_quality:"unavailable" block since
+# 2026-03-01, event-firehose starvation):
+#   * GET /v1/collections/{id}/ranking_by_{stars|prs}/  (rows empty; note relayed)
+# Broken (HTTP 500, NOT used): /v1/repos/{owner}/{repo}, /v1/collections/{id}/.
+# We build ONLY on endpoints we personally received a 200 from and pass the
+# API's own data_quality through verbatim -- never fabricated.
+_OSSINSIGHT_REPO_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "owner": {"type": "string", "description": "GitHub owner/org, e.g. 'pingcap'"},
+        "repo": {"type": "string", "description": "GitHub repo name, e.g. 'tidb'"},
+    },
+    "required": ["owner", "repo"],
+}
+_OSSINSIGHT_COLLECTIONS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "query": {
+            "type": "string",
+            "description": "optional case-insensitive substring filter over collection names",
+        }
+    },
+}
+_OSSINSIGHT_RANKING_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "collection_id": {
+            "type": "string",
+            "description": "a collection id from ossinsight_collections",
+        },
+        "by": {
+            "type": "string",
+            "enum": ["stars", "prs"],
+            "default": "stars",
+            "description": "rank metric (NOTE: event-derived rankings are currently degraded upstream)",
+        },
+    },
+    "required": ["collection_id"],
+}
+# owner/repo/id path segments must be safe: GitHub names + numeric collection ids.
+_SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+DEFAULT_OSSINSIGHT_URL = "https://api.ossinsight.io"
+ENABLE_OSSINSIGHT_ENV = "ENABLE_OSSINSIGHT"
+
+
+class OSSInsightAdapter(SelfHostedAdapter):
+    """Keyless GitHub repo-discovery over the public OSSInsight API (default OFF).
+
+    Not self-hosted (a public API), but wired through the SAME adapter mechanism:
+    in-process HTTP, the capability lattice, and truthful degradation. Only the
+    verified-200 endpoints are exposed; degraded rankings relay the API's own
+    ``data_quality`` note rather than hiding or faking it.
+    """
+
+    platform = "ossinsight"
+    label = "OSSInsight (public API)"
+    prefix = "oi"
+    kind = "native"  # documented public API, native shapes
+    health_path = "/v1/collections/"  # cheap verified-200 GET
+
+    def _build_tools(self) -> list[AdapterTool]:
+        return [
+            AdapterTool(
+                name="ossinsight_repo_stats",
+                description=(
+                    "Keyless GitHub repo stats (stars/forks/language/topics/description) "
+                    "via the public OSSInsight API GET /gh/repo/{owner}/{repo}. Truthful "
+                    "error if the API is unreachable; never fabricated."
+                ),
+                input_schema=_OSSINSIGHT_REPO_SCHEMA,
+                path="/gh/repo/{owner}/{repo}",
+                realized_by=NATIVE,
+                method="GET",
+            ),
+            AdapterTool(
+                name="ossinsight_collections",
+                description=(
+                    "Keyless repo-discovery: list OSSInsight's curated collections "
+                    "(id + name) via GET /v1/collections/, optionally filtered by a "
+                    "name substring. The entry point for finding ranked repo lists."
+                ),
+                input_schema=_OSSINSIGHT_COLLECTIONS_SCHEMA,
+                path="/v1/collections/",
+                realized_by=NATIVE,
+                method="GET",
+            ),
+            AdapterTool(
+                name="ossinsight_collection_ranking",
+                description=(
+                    "Keyless per-collection repo ranking via GET "
+                    "/v1/collections/{id}/ranking_by_{stars|prs}/. NOTE: the "
+                    "event-derived ranking is degraded upstream (data_quality: "
+                    "unavailable since 2026-03-01); the API's own data_quality note "
+                    "is relayed verbatim -- an empty result means the metric cannot "
+                    "be computed, not that there are no repos."
+                ),
+                input_schema=_OSSINSIGHT_RANKING_SCHEMA,
+                path="/v1/collections/{collection_id}/ranking_by_{by}/",
+                realized_by=NATIVE,
+                method="GET",
+            ),
+        ]
+
+    def _segment(self, value, field: str) -> str:
+        token = str(value or "").strip()
+        if not token:
+            raise ValueError(f"OSSInsight: '{field}' is required")
+        if not _SEGMENT_RE.match(token):
+            raise ValueError(
+                f"OSSInsight: '{field}' must match {_SEGMENT_RE.pattern} (got {token!r})"
+            )
+        return token
+
+    def _prepare(
+        self, tool: AdapterTool, arguments: dict
+    ) -> tuple[str, str, bytes | None, dict]:
+        args = arguments or {}
+        headers = {"Accept": "application/json"}
+        if tool.name == "ossinsight_repo_stats":
+            owner = self._segment(args.get("owner"), "owner")
+            repo = self._segment(args.get("repo"), "repo")
+            return "GET", f"{self.base_url}/gh/repo/{owner}/{repo}", None, headers
+        if tool.name == "ossinsight_collections":
+            return "GET", f"{self.base_url}/v1/collections/", None, headers
+        if tool.name == "ossinsight_collection_ranking":
+            cid = self._segment(args.get("collection_id"), "collection_id")
+            by = str(args.get("by") or "stars").strip().lower()
+            if by not in ("stars", "prs"):
+                raise ValueError("OSSInsight: 'by' must be 'stars' or 'prs'")
+            url = f"{self.base_url}/v1/collections/{cid}/ranking_by_{by}/"
+            return "GET", url, None, headers
+        raise ValueError(f"OSSInsight: unknown tool {tool.name!r}")
+
+    def _postprocess(self, tool: AdapterTool, arguments: dict, parsed):
+        # Local name-substring filter over the already-fetched collection list.
+        if tool.name != "ossinsight_collections" or not isinstance(parsed, dict):
+            return parsed
+        query = str((arguments or {}).get("query") or "").strip().lower()
+        if not query:
+            return parsed
+        data = parsed.get("data")
+        rows = data.get("rows") if isinstance(data, dict) else None
+        if not isinstance(rows, list):
+            return parsed
+        kept = [r for r in rows if query in str(r.get("name", "")).lower()]
+        out = dict(parsed)
+        out_data = dict(data)
+        out_data["rows"] = kept
+        out_data["result"] = {"row_count": len(kept)}
+        out["data"] = out_data
+        out["filtered_by"] = query
+        return out
+
+
 def default_adapters(environ, caller: Caller | None = None) -> list[SelfHostedAdapter]:
-    """The self-hosted adapters wired into the hub (TrailSearch today)."""
-    return [TrailSearchAdapter(resolve_base_url(environ), caller=caller)]
+    """The self-hosted adapters wired into the hub.
+
+    TrailSearch (the Tavily slot) is always present. The OSSInsight repo-discovery
+    lane is default OFF and wired only when ``ENABLE_OSSINSIGHT`` is truthy
+    (see docs/legal/onions-lane-envelope.md).
+    """
+    built: list[SelfHostedAdapter] = [
+        TrailSearchAdapter(resolve_base_url(environ), caller=caller)
+    ]
+    if _flag_enabled(environ, ENABLE_OSSINSIGHT_ENV):
+        oss_url = (
+            environ.get("OSSINSIGHT_URL") or ""
+        ).strip() or DEFAULT_OSSINSIGHT_URL
+        built.append(OSSInsightAdapter(oss_url, caller=caller))
+    return built
+
+
+def _flag_enabled(environ, name: str) -> bool:
+    value = environ.get(name)
+    return isinstance(value, str) and value.strip().lower() not in (
+        "",
+        "0",
+        "false",
+        "no",
+        "off",
+    )

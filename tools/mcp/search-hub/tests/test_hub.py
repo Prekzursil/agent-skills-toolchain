@@ -30,6 +30,7 @@ import hub  # noqa: E402
 import providers  # noqa: E402
 import rotation  # noqa: E402
 
+import fake_ossinsight_backend as fake_oss  # noqa: E402
 import fake_trailsearch_backend as fake_ts  # noqa: E402
 
 PY = sys.executable
@@ -116,7 +117,12 @@ def hub_env(tmp_path):
     rot = rotation.Rotator.from_specs(keyed, store, environ=environ, getter=_getter)
     cap = Capture()
     self_hosted = [
-        adapters.TrailSearchAdapter("http://127.0.0.1:8794", caller=fake_ts.fake_caller)
+        adapters.TrailSearchAdapter(
+            "http://127.0.0.1:8794", caller=fake_ts.fake_caller
+        ),
+        adapters.OSSInsightAdapter(
+            "https://api.ossinsight.io", caller=fake_oss.fake_caller
+        ),
     ]
     server = hub.SearchHub(
         specs,
@@ -336,3 +342,37 @@ def test_ordinary_searxng_search_unaffected_by_onions_gate(hub_env):
     reply = cap.wait(1)[0]
     payload = json.loads(reply["result"]["content"][0]["text"])
     assert payload["backend"] == "searxng"  # non-onion search still works, flag off
+
+
+def test_ossinsight_tools_listed_and_route_through_hub(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
+    listing = cap.wait(1)[0]
+    names = {t["name"] for t in listing["result"]["tools"]}
+    assert {
+        "ossinsight_repo_stats",
+        "ossinsight_collections",
+        "ossinsight_collection_ranking",
+    } <= names
+    assert server._children == {}  # in-process HTTP, no child
+
+    server.dispatch(
+        _call(80, "ossinsight_repo_stats", {"owner": "pingcap", "repo": "tidb"})
+    )
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["data"]["full_name"] == "pingcap/tidb"
+    assert server._children == {}
+
+
+def test_search_usage_reports_ossinsight_lattice(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(
+        _call(81, "search_usage", {"provider": "ossinsight", "probe": True})
+    )
+    reply = cap.wait(1)[0]
+    report = json.loads(reply["result"]["content"][0]["text"])
+    assert report["providers"] == []
+    oi = report["self_hosted"][0]
+    assert oi["provider"] == "ossinsight"
+    assert {t["state"] for t in oi["tools"]} == {"probed"}
