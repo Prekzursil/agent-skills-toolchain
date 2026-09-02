@@ -23,9 +23,16 @@ from __future__ import annotations
 from urllib.parse import urlsplit
 
 ENV_FLAG = "ENABLE_ONIONS"
-ONION_CATEGORY = "onions"
+# Stock SearXNG HARD-GATES the literal ``onions`` category on a working Tor proxy
+# (it drops any engine whose categories contain "onions" unless using_tor_proxy is
+# true, and probes check.torproject.org at startup). Our envelope forbids Tor, so
+# the clearnet Ahmia engine is registered under a NON-"onions" category name
+# (``onion index``) and is selected by ``engines=ahmia`` -- see the envelope doc.
+# The guard therefore detects onion INTENT broadly: any category token containing
+# the substring "onion", or the ahmia engine.
+ONION_CATEGORY = "onion index"
 # The ONLY onion engine this lane permits: the Ahmia index. Not Evil / Torch are
-# deliberately excluded (dead engines) and any onion engine is index-only here.
+# deliberately excluded (dead / Tor-only) and any onion engine is index-only here.
 ONION_ENGINES = frozenset({"ahmia"})
 ENVELOPE_DOC = "docs/legal/onions-lane-envelope.md"
 
@@ -55,11 +62,18 @@ def _csv(value) -> list[str]:
 
 
 def requests_onions(arguments: dict) -> bool:
-    """True iff the search args select the onions category or the ahmia engine."""
+    """True iff the search args select an onion category or the ahmia engine.
+
+    Category detection is by the substring "onion" so it catches the intuitive
+    ``onions`` (which stock SearXNG reserves for Tor) AND the clearnet lane's real
+    category ``onion index`` -- either way the request is gated.
+    """
     args = arguments or {}
     categories = _csv(args.get("categories"))
     engines = _csv(args.get("engines"))
-    return ONION_CATEGORY in categories or bool(set(engines) & ONION_ENGINES)
+    if any("onion" in token for token in categories):
+        return True
+    return bool(set(engines) & ONION_ENGINES)
 
 
 def is_onion_url(url) -> bool:
@@ -87,8 +101,9 @@ def guard(name: str, arguments: dict, enabled: bool) -> str | None:
     if name == "searxng_web_search" and requests_onions(args):
         if not enabled:
             return (
-                "onions category is OFF by default. It queries the Ahmia index only "
-                "(no Tor, no onion fetch); set ENABLE_ONIONS=1 to enable it and read "
+                "onion lane is OFF by default. It queries the Ahmia index only "
+                "(clearnet, no Tor, no onion fetch) via engines=ahmia / "
+                'categories="onion index"; set ENABLE_ONIONS=1 to enable it and read '
                 f"{ENVELOPE_DOC} (scope + Ahmia removal policy + sign-off) first."
             )
     return None

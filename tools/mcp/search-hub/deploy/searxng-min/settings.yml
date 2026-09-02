@@ -8,7 +8,19 @@
 # instance (no cookies of value, not internet-facing). Override it via the
 # SEARXNG_SECRET env or edit here if you expose the instance. It is intentionally
 # NOT a credential in the .agents/local.json sense.
-use_default_settings: true
+#
+# use_default_settings is the MAPPING form (not the `true` scalar) so we keep every
+# default engine EXCEPT the two onion-only ones we must drop: stock SearXNG marks
+# any engine whose `categories` contains the literal string "onions" INACTIVE unless
+# a working Tor proxy is configured (searx/engines/__init__.py is_engine_active), and
+# it probes check.torproject.org at startup. Our envelope forbids Tor, so we remove
+# the Tor-gated `ahmia` (onion-only) and `torch` defaults and register a CLEARNET
+# Ahmia engine under a NON-"onions" category (`onion index`) that loads without Tor.
+use_default_settings:
+  engines:
+    remove:
+      - ahmia   # onion-only default (base_url = Ahmia .onion) -> needs Tor; drop it
+      - torch   # onion-only, Tor-gated, out of scope
 
 server:
   secret_key: "selfhosted-search-local-dev-key-change-if-exposed"
@@ -26,19 +38,19 @@ engines:
   - name: duckduckgo
     disabled: false
   # Onion lane (Ahmia INDEX ONLY). Off at the hub by default (ENABLE_ONIONS=0);
-  # this only makes the engine available in SearXNG. ENVELOPE
+  # this only makes the CLEARNET Ahmia engine available in SearXNG. ENVELOPE
   # (docs/legal/onions-lane-envelope.md): query the Ahmia index over CLEARNET
-  # ahmia.fi only -- NO Tor/SOCKS proxy, NEVER the Ahmia .onion. The SearXNG
-  # master default points this engine at the Ahmia .onion (needs Tor); we pin it
-  # to clearnet and set NO `outgoing.proxies`, so the lane FAILS CLOSED (empty /
-  # truthful error) rather than silently reaching for Tor. Not Evil / Torch are
-  # deliberately NOT enabled (dead engines). Verify results on your estate
-  # instance from a residential IP: ahmia.fi 302-redirects datacenter/bot queries
-  # to its homepage (measured 2026-09-02), so a cloud probe returns nothing.
+  # ahmia.fi only -- NO Tor/SOCKS proxy, NEVER the Ahmia .onion. Category is
+  # `onion index`, NOT the literal "onions" (which stock SearXNG forces onto Tor).
+  # Select it with engines=ahmia or categories="onion index". With NO
+  # `outgoing.proxies`, the lane FAILS CLOSED (empty / truthful error) rather than
+  # reaching for Tor. Verify results on your estate instance from a residential IP:
+  # ahmia.fi 302-redirects datacenter/bot queries to its homepage (measured
+  # 2026-09-02), while the clearnet /search/ markup the engine parses is confirmed.
   - name: ahmia
     engine: ahmia
     disabled: false
-    categories: onions
+    categories: onion index
     shortcut: ah
     base_url: https://ahmia.fi
     search_url: https://ahmia.fi/search/?{query}

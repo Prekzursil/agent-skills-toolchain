@@ -7,10 +7,21 @@ lane added to `tools/mcp/search-hub`. Read it before setting either flag.
 ## Scope statement — Ahmia lane
 
 The onion lane is **querying the Ahmia index only**, through the SearXNG provider
-the hub already fronts. It is **not** a new tool and **not** a new service: it is a
-`categories=onions` (or `engines=ahmia`) parameter on the existing
+the hub already fronts. It is **not** a new tool and **not** a new service: it is an
+`engines=ahmia` (or `categories="onion index"`) parameter on the existing
 `searxng_web_search` tool, gated at the hub. A result is **a title + the indexed
 snippet/metadata + the `.onion` URL as a string** — nothing more.
+
+> **Why not the literal `onions` category?** Stock SearXNG **hard-gates** the
+> `onions` category on a working Tor proxy: `searx/engines/__init__.py`
+> `is_engine_active()` drops any engine whose `categories` contains the string
+> `onions` unless `using_tor_proxy` is set, and `searx/network` probes
+> `check.torproject.org` at startup and refuses to run otherwise. Since this lane
+> is **no-Tor**, the clearnet Ahmia engine is registered under `onion index` (a
+> name that loads without Tor) and selected by `engines=ahmia`. The hub guard
+> detects onion intent by the substring `onion` in any category **plus** the
+> `ahmia` engine, so the intuitive `categories=onions` is still gated (it just
+> returns nothing from a clearnet instance).
 
 ### FORBIDDEN (verbatim — violations = stop and report, do not "fix" around them)
 
@@ -25,18 +36,19 @@ snippet/metadata + the `.onion` URL as a string** — nothing more.
 
 ### How the code enforces this
 
-- `onions.py` `guard()` refuses `searxng_web_search` with `categories=onions` /
-  `engines=ahmia` unless `ENABLE_ONIONS` is truthy, and refuses **any**
-  `web_url_read` of a `.onion` host **regardless of the flag** (that would be
-  fetching an onion service — forbidden). Refusals happen **at the hub**: no
-  SearXNG child is spawned and no query is forwarded. Pinned by
-  `tests/test_onions.py` + `tests/test_hub.py::test_onions_category_blocked_when_flag_off`.
-- The SearXNG engine (`deploy/searxng-min/settings.yml`) is pinned to **clearnet
-  `ahmia.fi`** with **no `outgoing.proxies`**. SearXNG's upstream default points
-  the Ahmia engine at the Ahmia **`.onion`** (which needs Tor) — we do **not** use
-  that. With no Tor proxy configured the lane **fails closed** (empty result / a
-  truthful error) rather than silently reaching for Tor.
-- Not Evil / Torch are **not** enabled (dead engines, and out of scope anyway).
+- `onions.py` `guard()` refuses `searxng_web_search` that selects an onion category
+  (any category containing `onion`, incl. `onions` / `onion index`) or the `ahmia`
+  engine unless `ENABLE_ONIONS` is truthy, and refuses **any** `web_url_read` of a
+  `.onion` host **regardless of the flag** (that would be fetching an onion service
+  — forbidden). Refusals happen **at the hub**: no SearXNG child is spawned and no
+  query is forwarded. Pinned by `tests/test_onions.py` +
+  `tests/test_hub.py::test_onions_category_blocked_when_flag_off`.
+- The SearXNG engine (`deploy/searxng-min/settings.yml`) registers a **clearnet
+  `ahmia.fi`** Ahmia engine under category **`onion index`** (not the Tor-gated
+  `onions`) with **no `outgoing.proxies`**, and **removes** the onion-only default
+  `ahmia` and `torch` engines (they point at `.onion` and need Tor). With no Tor
+  proxy the lane **fails closed** (empty result / a truthful error) rather than
+  silently reaching for Tor.
 
 ### Ahmia's abuse blacklist / removal policy (a feature — never filtered around)
 
@@ -53,14 +65,21 @@ re-include, or work around it.
 
 ### Verified operational findings (2026-09-02)
 
-- `https://ahmia.fi/search/?q=...` **302-redirects datacenter / bot queries to the
-  homepage** (measured: `302 Location: /`, plus an `Onion-Location:` header). So a
-  cloud/CI probe of the clearnet index returns **no results** — this is expected,
-  not a bug. Live result verification must be done on the **owner's estate SearXNG
-  instance from a residential IP** (`category=onions` for a benign query such as
-  `ahmia`). Until that is done, treat result quality as unverified.
-- Consequently the lane may return empty even when enabled, from an IP Ahmia
-  rate-limits. It never falls back to Tor or the `.onion` to compensate.
+- **SearXNG Tor-gate (source-verified).** `is_engine_active()` marks any engine whose
+  `categories` contains `onions` INACTIVE unless a Tor proxy is configured, and the
+  network layer probes `check.torproject.org` at startup. So a clearnet Ahmia engine
+  **must not** use the literal `onions` category — we use `onion index` and
+  `engines=ahmia`, and remove the Tor-only `ahmia`/`torch` defaults.
+- **Clearnet markup confirmed.** `GET https://ahmia.fi/search/?q=<token>` returns the
+  exact `<li class="result">` / `redirect_url=` markup SearXNG's `ahmia` engine
+  parses (177 results for a benign query in the research pass).
+- **Datacenter rate-limit.** From a datacenter/CI IP, `https://ahmia.fi/search/?q=...`
+  **302-redirects to the homepage** (measured: `302 Location: /`, `Onion-Location:`
+  header), so a cloud probe returns **no results** — expected, not a bug. Live
+  verification must run on the **estate instance from a residential IP**
+  (`engines=ahmia` for a benign query such as `ahmia`). Ahmia's ToS §2 also
+  discourages automated scraping — keep volume low. The lane never falls back to Tor
+  or the `.onion` to compensate.
 
 ## Scope statement — OSSInsight (repo-discovery) lane
 
@@ -75,7 +94,7 @@ relayed, never hidden or fabricated).
 
 | flag | default | effect when set truthy (`1`/`true`) |
 |---|---|---|
-| `ENABLE_ONIONS` | `0` (OFF) | the hub forwards `searxng_web_search` calls that select `categories=onions` / `engines=ahmia`; `.onion` fetch stays forbidden |
+| `ENABLE_ONIONS` | `0` (OFF) | the hub forwards `searxng_web_search` calls that select `engines=ahmia` / `categories="onion index"` (or the intuitive `onions`); `.onion` fetch stays forbidden |
 | `ENABLE_OSSINSIGHT` | `0` (OFF) | the hub wires the OSSInsight repo-discovery adapter (`ossinsight_*` tools) |
 
 Set them in the hub's environment (e.g. the `search-hub` entry's `env` in
@@ -91,7 +110,7 @@ content):
 - Authorized by: `________________________`
 - Date: `________________________`
 - Jurisdiction confirmed lawful for index querying: `________________________`
-- Estate-instance `category=onions` verification done (residential IP): `☐`
+- Estate-instance `engines=ahmia` verification done (residential IP): `☐`
 
 > Automated access to dark-web indexes may be illegal in your jurisdiction
 > regardless of intent. Tor is operational security, not legal protection. This

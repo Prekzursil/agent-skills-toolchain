@@ -27,11 +27,16 @@ def test_flag_defaults_off():
 
 
 def test_requests_onions_detects_category_and_engine():
+    # Intuitive "onions" (Tor-reserved) AND the clearnet lane's "onion index".
     assert onions.requests_onions({"categories": "onions"})
     assert onions.requests_onions({"categories": "general,onions"})
+    assert onions.requests_onions({"categories": "onion index"})
+    assert onions.requests_onions({"categories": ["general", "onion index"]})
     assert onions.requests_onions({"engines": "ahmia"})
     assert onions.requests_onions({"engines": ["ahmia", "google"]})
     assert not onions.requests_onions({"categories": "general"})
+    assert not onions.requests_onions({"categories": "news,images"})
+    assert not onions.requests_onions({"engines": "google"})
     assert not onions.requests_onions({})
 
 
@@ -46,21 +51,32 @@ def test_is_onion_url():
 
 
 def test_guard_blocks_onions_category_when_flag_off():
+    for cats in ("onions", "onion index"):
+        reason = onions.guard(
+            "searxng_web_search", {"query": "x", "categories": cats}, enabled=False
+        )
+        assert reason is not None, cats
+        assert "ENABLE_ONIONS=1" in reason
+        assert onions.ENVELOPE_DOC in reason
+
+
+def test_guard_blocks_ahmia_engine_selector_when_flag_off():
     reason = onions.guard(
-        "searxng_web_search", {"query": "x", "categories": "onions"}, enabled=False
+        "searxng_web_search",
+        {"query": "x", "engines": "ahmia"},
+        enabled=False,
     )
     assert reason is not None
-    assert "ENABLE_ONIONS=1" in reason
-    assert onions.ENVELOPE_DOC in reason
+    assert "engines=ahmia" in reason
 
 
-def test_guard_allows_onions_category_when_flag_on():
-    assert (
-        onions.guard(
-            "searxng_web_search", {"query": "x", "categories": "onions"}, enabled=True
-        )
-        is None
-    )
+def test_guard_allows_onion_lane_when_flag_on():
+    for args in (
+        {"query": "x", "categories": "onions"},
+        {"query": "x", "categories": "onion index"},
+        {"query": "x", "engines": "ahmia"},
+    ):
+        assert onions.guard("searxng_web_search", args, enabled=True) is None
 
 
 def test_guard_blocks_ahmia_engine_when_flag_off():
