@@ -81,22 +81,27 @@ ROE / evidence-chain harness rails · a wildcard cross-domain cyber gem.
 
 ## Lens plan (fan-out) — status filled as each returns
 
+Concurrency cap is 10 async subagents; 9 launched on the first batch (a 10th slot was held
+by the unrelated search-hub keyed-lane builder), and 5 are QUEUED for relaunch as slots free
+(the same cap-and-queue pattern as the search gem-hunt). All on `claude-fable-5-1-thinking-max`
+per the owner's model directive.
+
 | # | Lens | Agent | Status |
 |---|------|-------|--------|
-| L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | — | launching |
-| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | — | launching |
-| L3 | Purple-team / adversary emulation / BAS / detection validation | — | launching |
-| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | launching |
-| L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | — | launching |
-| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | — | launching |
-| L7 | Cloud / container / k8s / IaC security | — | launching |
-| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | — | launching |
-| L9 | Active Directory / identity attack + defend | — | launching |
-| L10 | Cyber MCP servers in the wild (offensive + defensive) | — | launching |
-| L11 | Cyber skills in the wild (OSS agent/Claude skills) | — | launching |
-| L12 | Native-capability audit of the existing stack (ENABLE, not build) | — | launching |
-| L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | — | launching |
-| L14 | Wildcard / cross-domain cyber gem | — | launching |
+| L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | running |
+| L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | — | QUEUED |
+| L3 | Purple-team / adversary emulation / BAS / detection validation | — | QUEUED |
+| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | — | QUEUED |
+| L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | running |
+| L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | — | QUEUED |
+| L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | running |
+| L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-1358f975 | running |
+| L9 | Active Directory / identity attack + defend | bc-571bb94b | running |
+| L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | running |
+| L11 | Cyber skills in the wild (OSS agent/Claude skills) | — | QUEUED |
+| L12 | Native-capability audit of the existing stack (ENABLE, not build) | bc-62b84f3e | running |
+| L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | bc-ff5d27d7 | running |
+| L14 | Wildcard / cross-domain cyber gem | bc-faefa3b5 | running |
 
 ## Decisions log (filled as the owner steers)
 
