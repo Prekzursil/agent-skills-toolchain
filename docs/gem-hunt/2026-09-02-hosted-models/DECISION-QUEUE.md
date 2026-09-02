@@ -80,12 +80,16 @@ Facts behind each are verified there (V-rows). Nothing here is built yet.
   until the probe passes.** Cost: two `curl`s.
 - B. Assume they work. Cost: silent dead wrappers; possible bricked Codex.
 
-**D10. Local inference posture, now that the box HAS an RTX 4050 (6 GB)?** (V17, C13)
-- **A. Ollama stays the local endpoint; user env `OLLAMA_MAX_LOADED_MODELS=1`, short
-  `OLLAMA_KEEP_ALIVE`; models <= 7B Q4 (weights <= ~5 GB VRAM, `qwen2.5:7b` proven); LM Studio
-  JIT + auto-evict ON; registry rows carry `resource.ramBytes`; local-bind check `127.0.0.1`
-  only.** Cost: -RAM (default allows 3 co-resident models); cold-load seconds on first call.
-- B. LM Studio primary. C. No local models (loses the free T2 eval lane and the PACE C rung).
+**D10. Local inference posture, now that the box HAS an RTX 4050 (6 GB)?** (V17, C13, C27)
+- **A. Ollama stays the local endpoint; user env `OLLAMA_KEEP_ALIVE=2m`, `MAX_LOADED_MODELS=1`,
+  `NUM_PARALLEL=1`, q8_0 KV; Tier S = Qwen3-4B-Instruct-2507 Q4 thinking-off, Tier M = Qwen3-8B
+  thinking-off (`qwen2.5:7b` already proven); Granite / Qwen3.5 / MoE only via eval gate; LM
+  Studio via `llmster`, JIT + auto-evict ON, idle TTL 300-600 s (default is 60 min); registry rows
+  carry `resource.ramBytes`; loopback-only bind check.** Cost: -RAM (defaults allow 3 resident
+  models + a 7 GB model parked an hour); cold-load seconds on first call.
+- B. LM Studio primary. C. Add llama-server (`--sleep-idle-seconds`, router mode) as a third
+  local server - cleanest primitives, one more thing to run. D. No local models (loses the free
+  T2 eval lane and the PACE C rung). vLLM/WSL2 is a SKIP either way.
 
 **D11. Routing policy + PACE data - where?** (G9, PU3, C21)
 - **A. `.agents/routing-policy.json` (names only, closed schema, provenance in `.provenance/`)

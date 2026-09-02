@@ -63,9 +63,13 @@ true; regression = what must never break; pass@k targets), **dependencies**, **r
 ### WU-0 - Preflight receipts and TIER-0 clicks (owner, box)
 
 - **Scope (no repo code):** `git -C ~/source/agent-skills-toolchain` push of `tools/mcp/glm53-space/` to `archive/glm53-space-2026-09`
-  (T0-1); M0 probe receipt (T0-12) written to `docs/gem-hunt/2026-09-02-hosted-models/receipts/`; user env `OLLAMA_MAX_LOADED_MODELS=1`,
-  `OLLAMA_KEEP_ALIVE=2m`, tray restart, LM Studio auto-evict confirmed (T0-8); `uvx mcp-scan@latest scan --local-only --json`
-  report filed (T0-9); `Prekzursil/GLM-5.3` Space hardware -> `cpu-basic` after re-checking its status (T0-10); mint
+  (T0-1); M0 probe receipt (T0-12) written to `docs/gem-hunt/2026-09-02-hosted-models/receipts/`, including lens 04's step-0
+  host budget (`Get-Counter '\Memory\Available MBytes'`, `Win32_Processor.NumberOfCores`, `Win32_PhysicalMemory` speed,
+  `Win32_VideoController`, `Get-NetTCPConnection -State Listen` for 11434 / 1234 / 8080 and the owned 8765 / 8812 / 8317 /
+  8770); user env `OLLAMA_KEEP_ALIVE=2m`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`, `OLLAMA_CONTEXT_LENGTH=8192`,
+  `OLLAMA_KV_CACHE_TYPE=q8_0`, tray restart; LM Studio: `llmster` daemon over the GUI (T0-13), JIT ON, Auto-Evict ON,
+  app-default idle TTL 300-600 s, `lms ps --json` baseline (T0-8); `uvx mcp-scan@latest scan --local-only --json` report filed
+  (T0-9); `Prekzursil/GLM-5.3` Space hardware -> `cpu-basic` after re-checking its status (T0-10); mint
   `HUGGINGFACE_TOKEN_INFERENCE` (D7) and the OpenRouter keys + Guardrail (D8); RAM snapshot (G-f).
 - **Tests first:** none (read-only + clicks). The probe script shape is fixed here so WU-3 can reproduce it:
   `GET {base}/models` -> status + id count; `POST {base}/chat/completions` `{"model": <first id>, "messages":[{"role":"user","content":"ping"}], "max_tokens": 1}`;
@@ -133,18 +137,40 @@ true; regression = what must never break; pass@k targets), **dependencies**, **r
 
 ### WU-3 - Probe tool (`models probe`) - ST1, G4
 
-- **Scope:** `.agents/scripts/models_probe.py`: per endpoint L3 (`GET /v1/models` or `discovery.type`-specific path),
-  wire probes (`/chat/completions`, `/responses`, `/messages`, one token each), feature probes (`tools=[noop]` with
-  `tool_choice: required`, `response_format: json_schema`, base64 image) **only when** the claim is `declared` and never
-  observed; writes `probed{at, version}` into `.agents/models.json` via `atomic_write_text`; `--stale-only` honours
-  `policy.capabilityProbe.ttlHours`; never prints a token or a body; per-endpoint timeout = `mcp.policy.startupTimeoutMs`.
+- **Scope:** `.agents/scripts/models_probe.py`: per endpoint L3 (`GET /v1/models` or `discovery.type`-specific path:
+  Ollama `/api/tags` + `/api/show` (`capabilities`, `model_info`), LM Studio `/api/v0/models` (`state`, `type`,
+  `max_context_length`), llama-server `/props` (`chat_template`, `n_ctx`)), wire probes (`/chat/completions`, `/responses`,
+  `/messages`, one token each), feature probes (`tools=[noop]` with `tool_choice: required`, `response_format: json_schema`,
+  base64 image) **only when** the claim is `declared` and never observed; writes `probed{at, version}` into
+  `.agents/models.json` via `atomic_write_text`; `--stale-only` honours `policy.capabilityProbe.ttlHours`; never prints a
+  token or a body; per-endpoint timeout = `mcp.policy.startupTimeoutMs`.
+- **Local-endpoint ladder (lens 04 §8.1, `--local` mode, box-only):** step 0 host budget (free MB, cores, DIMM speed, GPU
+  present, listen-port map) -> 1 version (`/api/version`, `lms ps --json`, `/health`) -> 2 inventory on disk -> 3 declared
+  capabilities + **exact KV bytes/token** from `model_info` (layers x kv-heads x key-length x bytes) -> 4 budget gate
+  (predicted = weights + KV(ctx, cache type) + 0.8 GB must fit `free_mb - 2048`; downgrade ctx before model) -> 5 load and
+  measure (`/api/ps` `size`, `Get-Process` working set; flag if measured > predicted x 1.25) -> 6 tool canary non-streaming
+  (`probe_echo(token)`; pass = 200 + `finish_reason == "tool_calls"` + parseable JSON with the nonce + no raw `<tool_call>`
+  in `content`; 3/3, 2/3 = `degraded`) -> 7 same streaming (`delta.tool_calls` assemble; no XML in `delta.content`) -> 8
+  tool-result round trip (`role: tool`) -> 9 tools with thinking ON (fail => `tools_require_thinking_off = true`) -> 10
+  parallel tool calls (record, never hard-fail) -> 11 JSON mode + schema 3/3 -> 12 embeddings if an embedding model is on
+  disk -> 13 speed (`eval_count / eval_duration`, `timings.predicted_per_second`, `stats.tokens_per_second`) -> 14 **idle
+  release** (wait `keep_alive` / TTL / `sleep-idle-seconds` + 30 s; `/api/ps` empty, RSS back to baseline, zero orphan
+  runner processes; a fail here is a **hard fail for this box**) -> 15 persist one record per (server, version, model
+  digest, ctx, cache type) with `declared_*` and observed fields side by side. Nothing loads a model before step 5. The
+  record lives in a machine-local overlay (`.agents/local-models.probe.json` or the per-host overlay G2 names), never in
+  `agents.json` or `local.json`.
 - **Tests first:** against WU-1 profiles - `ollama` profile -> `wire.responses = probed`, `features.tool_choice = absent`;
   `hf-router` without Bearer -> `BACKEND_AUTH` recorded, lattice untouched; `--drop-tool-calls` bridge -> `features.tools
-  = absent` with evidence `tool_calls_in_content`; second run inside TTL is a no-op (byte-identical file); `--restart-every`
-  -> no crash. Property test: sample 200 random prompts, none appear in the written registry or stdout.
+  = absent` with evidence `tool_calls_in_content`; `--thinking-preamble` fake (text before `<tool_call>`) -> step 9 records
+  `tools_require_thinking_off = true`; budget-gate unit test: a fake `model_info` (36 layers x 8 kv-heads x 128 x 2 bytes =
+  144 KB/token) at 8k ctx + 2.5 GB weights against `free_mb = 6000` -> **refuse**, at `free_mb = 9000` -> load; second run
+  inside TTL is a no-op (byte-identical file); `--restart-every` -> no crash. Property test: sample 200 random prompts, none
+  appear in the written registry or stdout.
 - **Evals:** regression pass@1 = 1.00 on fakes. Capability (owner, T2/T3): live `probe ollama`, `probe lmstudio`, `probe
   cursor-auth2api`, `probe hf-router` produce the same shape as G-b and write the lattice; pass@3 >= 0.90 for each
-  `declared -> probed` flip (a flip that fails 2 of 3 stays `declared` with a `lastError`).
+  `declared -> probed` flip (a flip that fails 2 of 3 stays `declared` with a `lastError`); step 14 idle release observed
+  for Ollama (`keep_alive` 2m) and LM Studio (TTL) - pass@1 = 1.00 or the endpoint is marked `idle_release_ok = false` and
+  the routing report says so.
 - **Runs:** code + offline tests cloud; live probes owner (read-only on owned ports; token by name). **Dependencies:**
   WU-1, WU-2. **Stop rule:** refuse to run if `INFERENCE_HALT=1` or `.agents/INFERENCE-HALT` exists (C7 kill switch shared
   with WU-5).
@@ -171,11 +197,14 @@ true; regression = what must never break; pass@k targets), **dependencies**, **r
   - **T1 contract** (CI, every push, fakes only): every error class of WU-5's taxonomy hit >= 1; `bridge-passthrough` fails
     closed as `capability-absent` on the `--drop-tool-calls` fake; **pass@1 = 1.00**.
   - **T2 local live** (box, nightly / on demand; Ollama on the RTX 4050, LM Studio; $0): capability set for
-    `qwen2.5-7b@ollama` - `tools_roundtrip` (5 prompts), `tool_choice_required` (3), `json_schema_native` (5) + `prompted`
-    delta, `vision_base64` (2 tiny PNGs), `usage_reported`, `reasoning_effort` low vs high, `context_probe` 8k / 32k with
-    multi-key needles on the repo's own docs, `tool_call_id_roundtrip`; **pass@3 >= 0.90** per probe; below that the
-    registry row flips to `false` with `as_of` (not CI red). Pre-check: `nvidia-smi` free >= 5 GiB and free RAM >= 4 GB
-    or the run is `insufficient`.
+    `qwen2.5-7b@ollama` (already on disk) and the lens 04 Tier S / M picks `qwen3-4b-instruct-2507@ollama` (thinking off)
+    and `qwen3-8b@ollama` (thinking off) - `tools_roundtrip` (5 prompts), `tool_choice_required` (3), `json_schema_native`
+    (5) + `prompted` delta, `vision_base64` (2 tiny PNGs), `usage_reported`, `reasoning_effort` low vs high (and the
+    thinking-ON tool canary from WU-3 step 9), `context_probe` 8k / 32k with multi-key needles on the repo's own docs,
+    `tool_call_id_roundtrip`; **pass@3 >= 0.90** per probe; below that the registry row flips to `false` with `as_of` (not
+    CI red). Eval-gated promotions (Granite-4.0-h-tiny, Qwen3.5-4B/9B, Nanbeige4.x-3B, Tier L MoE) enter only through
+    this lane (PU10). Pre-check: `nvidia-smi` free >= 5 GiB and free RAM >= WU-3's predicted working set + 2 GB, or the
+    run is `insufficient`; `OLLAMA_MAX_LOADED_MODELS=1` means the lane runs models serially.
   - **T3 hosted live** (box, weekly, opt-in `INFERENCE_LIVE=1`, capped by each endpoint's `daily_usd_cap` and by the
     OpenRouter per-key daily limit): same probe set for `glm-5.3@hf-router` (pin `:fireworks-ai` / `:baseten` for the
     schema probes; `:together` for latency), one OpenRouter T0 slug, `cursor-*` via `:8317` **only** from the box, never
@@ -189,7 +218,10 @@ true; regression = what must never break; pass@k targets), **dependencies**, **r
 
 - **Scope:** `tools/mcp/inference/` (`mcp_server.py` stdio JSON-RPC, `registry.py` (reads `.agents/models.json`, reloads on
   mtime), `client.py` (OpenAI-compatible HTTP; SSE consumed internally for TTFT + partial results; `timeout_s`; 2 retries
-  with jitter on 429 honouring `Retry-After`), `redaction.py` (lift `_is_sensitive_key` / `redact_obj` / `redact_text`
+  with jitter on 429 honouring `Retry-After`; **local adapter branch** per ST14: for `discovery.type: ollama` route tool
+  turns to native `/api/chat` when the probe record says `/v1` streaming drops tool deltas, force `think: false` /
+  `enable_thinking: false` on tool turns when `tools_require_thinking_off`, disable streaming for tool turns only when
+  `tools_stream = false`, and evaluate the free-RAM gate before any request that may trigger a load), `redaction.py` (lift `_is_sensitive_key` / `redact_obj` / `redact_text`
   from `tools/mcp/proxy-mcp/redaction.py` into `tools/mcp/_shared/redaction.py`; add OpenRouter Secrets-preset formats and
   exact-value match of the 18 registry credentials loaded from env at start), `ledger.py` (JSONL, one line per call, daily
   rotation, `cost_basis`, never text; mirrors `_shared/hardening.py`'s bounded sink), `errors.py` (the 17-class taxonomy;
