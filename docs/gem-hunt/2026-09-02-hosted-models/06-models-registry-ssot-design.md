@@ -299,11 +299,37 @@ would trip.
   `settings.json` like Gemini CLI is UNVERIFIED today; if not, agy simply has no path to
   registry models and the registry should record `targets.agy = "unsupported"` honestly.
 
-### 2.8 Runtimes that cannot take a provider at all: Claude Code, Cursor
-_(pending - next checkpoint)_
+### 2.8 Runtimes that cannot take a provider at all: Claude Code, Cursor (+ Gemini CLI, Agy)
+- **[FACT]** Claude Code's only third-party model path is `ANTHROPIC_BASE_URL` (Anthropic Messages
+  wire), which lock L1 forbids for OpenRouter and the estate keeps on native Max
+  (`openrouter-routing/SKILL.md` line 62: "Leave Claude on native Max"). Cursor's only path is
+  BYOK "Override OpenAI Base URL", which L1 forbids for OpenRouter and which "can break native Max
+  models; Auto / Composer may ignore BYOK" (same skill, line 23). (Tier A repo doctrine.)
+- **[INFER]** For Claude, Cursor, Gemini CLI and Agy the registry is reached **only** through the
+  single generic inference MCP tool (section 5), mounted via the existing `agents.json`
+  materializers (Claude/Codex/Cursor merges already exist; Gemini `settings.json` `mcpServers`
+  would be a new small merge in the same family). That keeps hard rule 2 of
+  `hosted-model-agents` intact: one MCP, not one per endpoint.
 
-### 2.9 Endpoint-side wire facts (which endpoints speak `/v1/responses`)
-_(pending - next checkpoint)_
+### 2.9 Endpoint-side wire facts (who speaks `/v1/responses`; gates the Codex + Fabric materializers)
+| Endpoint | chat_completions | responses | Notes | Source |
+|---|---|---|---|---|
+| Ollama >= 0.13.3 | native | native, **non-stateful** (no `previous_response_id`/`conversation`), streaming + tools + reasoning summaries | < 0.13.3 returns 404 | Tier A [docs.ollama.com/api/openai-compatibility](https://docs.ollama.com/api/openai-compatibility), [ollama#13595](https://github.com/ollama/ollama/issues/13595) |
+| LM Studio >= 0.3.29 | native | native, **stateful** (`previous_response_id`), custom tools, remote-MCP opt-in, `reasoning.effort` | port 1234 | Tier A [lmstudio.ai/blog/lmstudio-v0.3.29](https://lmstudio.ai/blog/lmstudio-v0.3.29) |
+| llama.cpp `llama-server` | native | **absent / in progress** (404 observed against Fabric) | needs Fabric `disableResponsesAPI` | Tier A [Fabric#1625](https://github.com/danielmiessler/Fabric/issues/1625); current upstream state UNVERIFIED today |
+| OpenRouter | native | native (`/api/v1/responses`) | Codex wire OK; sidecar only (L1) | Tier A `openrouter-routing/SKILL.md` |
+| HF router `router.huggingface.co/v1` | native (glm53-space uses it) | UNVERIFIED today | must be **probed**, not declared | Tier A `agents.json` description; responses support unchecked |
+| HF Space `/v1` (Gradio-mounted FastAPI) | native if the Space author mounted it | absent unless the author added it | recipe `hf-space-openai.md` | Tier A live-capture branch |
+| HF Inference Endpoint / TGI / vLLM | native | vLLM has a `/v1/responses` server; TGI UNVERIFIED | per-deploy probe | Tier C (memory), UNVERIFIED today |
+| auth2api `127.0.0.1:8317` | native (36 `cursor-*` ids) | UNVERIFIED | the only Cursor bridge (L3); Codex wrapper `codex-cursor` already exists, implying responses works or a shim exists - probe | Tier A task brief |
+| Azure AI Foundry (OpenAI models) | native | native | `api-version` query param needed (Codex `query_params`) | Tier B alexdunlop write-up citing `config-advanced` |
+| Modal / RunPod / Lightning | whatever the deployed server speaks (usually vLLM/TGI) | per-deploy | GPU rental, not a wire | Tier A `environments.md` |
+
+**[INFER] Design consequence:** `wire` is a *per-endpoint capability with a probe*, never a global
+assumption. Codex and Fabric materializers emit only endpoints whose `wire.responses` is
+`native` or `probed=ok`; everything else reaches those runtimes through Grok/Goose/OpenCode/Aider
+(chat-capable) or the inference MCP (section 5). Present this as a routing table, not as "drop
+the endpoint" (L7).
 
 ## 3. Proposed `.agents/models.json` schema
 
