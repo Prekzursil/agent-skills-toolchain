@@ -1,0 +1,431 @@
+#!/usr/bin/env python3
+"""Self-hosted, key-free search adapters for the search-hub multiplexer.
+
+The four providers in ``providers.py`` are *hosted* APIs fronted by their own
+stdio MCP servers (Exa/Tavily/Firecrawl) plus keyless SearXNG. This module adds
+the SELF-HOSTED lane: a search backend the owner runs themselves (no vendor key,
+no cloud dependency), fronted **in-process over HTTP** rather than by spawning a
+child. That is the RAM win -- the adapter is pure stdlib (``json`` + ``urllib``,
+already imported by ``usage.py``), so it adds **no** new process and **no** new
+import to the running hub, and the heavy daemon it talks to is started on demand.
+
+The first adapter targets **TrailSearch** (github ``jianjungki/tavily-open``),
+which serves native Tavily-shaped ``POST /tavily/search`` and ``POST
+/tavily/extract`` routes over SearXNG + a local SQLite index. Because the routes
+are already Tavily-shaped, the adapter is a thin shape-preserving bridge; a
+different backend (fastCRW's ``/v1/search``, OrioSearch's ``/search``) would be
+wired as an ``emulated`` translation instead -- see the capability lattice below.
+
+Capability lattice (the honesty contract -- never fake a result)
+----------------------------------------------------------------
+Every tool resolves to exactly one state, most-confident first:
+
+* ``native``   -- the backend implements this tool's exact contract (TrailSearch
+  ``/tavily/*`` IS the Tavily contract), known from the backend KIND. Reported
+  when configured but not yet confirmed live this session.
+* ``probed``   -- a live health probe THIS SESSION confirmed the backend answers.
+  Strongest signal; carries ``realized_by`` = native|emulated underneath.
+* ``declared`` -- present only from committed config/cache; backend kind gives no
+  contract guarantee and no probe has run.
+* ``emulated`` -- realized by translating a DIFFERENTLY-shaped backend endpoint
+  (a non-Tavily backend), not confirmed live.
+* ``absent``   -- no base URL configured, or a probe found the backend
+  unreachable / unhealthy. A ``tools/call`` returns a truthful ``isError`` and
+  **never** fabricates results.
+
+``capabilities(probe=False)`` is the RAM-cheap default used to answer
+``tools/list``/``search_usage`` with zero network; ``probe=True`` performs one
+GET and upgrades the state to ``probed``/``absent`` from live evidence.
+"""
+
+from __future__ import annotations
+
+import json
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from typing import Callable
+
+# The lattice vocabulary, ordered most-confident-realized to least-available.
+NATIVE = "native"
+PROBED = "probed"
+DECLARED = "declared"
+EMULATED = "emulated"
+ABSENT = "absent"
+LATTICE = (NATIVE, PROBED, DECLARED, EMULATED, ABSENT)
+
+DEFAULT_TIMEOUT = 30.0
+PROBE_TIMEOUT = 5.0
+
+# caller(method, url, body, headers, timeout) -> (status, parsed_json_or_None, raw)
+# Injected in tests; the default uses stdlib urllib and never raises.
+Caller = Callable[
+    [str, str, "bytes | None", "dict[str, str]", float],
+    "tuple[int, dict | list | None, str]",
+]
+
+
+def _default_caller(
+    method: str, url: str, body: bytes | None, headers: dict[str, str], timeout: float
+) -> tuple[int, dict | list | None, str]:
+    """Real HTTP call returning (status, parsed-json-or-None, raw-body). Safe.
+
+    A transport failure (backend down, DNS, reset, timeout) comes back as
+    ``(0, None, "<reason>")`` so the caller can degrade truthfully rather than
+    raise -- the self-hosted daemon being off must never crash the hub.
+    """
+    req = urllib.request.Request(  # noqa: S310 (loopback/http backend by config)
+        url, data=body, headers=headers, method=method
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            status = resp.getcode() or 0
+            raw = resp.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        raw = exc.read().decode("utf-8", "replace") if exc.fp else ""
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        return 0, None, f"request failed: {exc}"
+    try:
+        return status, json.loads(raw), raw
+    except (json.JSONDecodeError, ValueError):
+        return status, None, raw
+
+
+@dataclass
+class AdapterTool:
+    """One tool the adapter exposes, plus how it is realized against the backend."""
+
+    name: str
+    description: str
+    input_schema: dict
+    path: str  # backend route this tool POSTs to (e.g. "/tavily/search")
+    realized_by: str = (
+        NATIVE  # NATIVE if the backend route IS this shape, else EMULATED
+    )
+
+    def definition(self) -> dict:
+        return {
+            "name": self.name,
+            "description": self.description,
+            "inputSchema": self.input_schema,
+        }
+
+
+class SelfHostedAdapter:
+    """Base class: an in-process, HTTP-backed, keyless search provider.
+
+    Subclasses declare ``platform``/``label``/``prefix``, the backend ``kind``
+    (whether its routes are natively this shape or need emulation), the tool set,
+    and the request/response translation. The base owns the capability lattice,
+    the health probe, and the truthful-degradation ``handle_call`` envelope.
+    """
+
+    platform = "selfhosted"
+    label = "Self-Hosted Search"
+    prefix = "sh"
+    kind = "native"  # "native" => backend routes match the tool shape; else "emulated"
+    health_path = "/docs"  # a cheap GET that a healthy backend answers 2xx/3xx
+
+    def __init__(self, base_url: str, caller: Caller | None = None) -> None:
+        self.base_url = (base_url or "").rstrip("/")
+        self._caller = caller or _default_caller
+        self._tools: list[AdapterTool] = self._build_tools()
+
+    # ---- subclass hooks -------------------------------------------------
+    def _build_tools(self) -> list[AdapterTool]:  # pragma: no cover - overridden
+        return []
+
+    def _build_request(self, tool: AdapterTool, arguments: dict) -> dict:
+        """Translate MCP tool arguments into the backend's request body."""
+        return dict(arguments or {})
+
+    # ---- advertised surface --------------------------------------------
+    def tools(self) -> list[AdapterTool]:
+        return list(self._tools)
+
+    def tool_defs(self) -> list[dict]:
+        return [t.definition() for t in self._tools]
+
+    def tool_names(self) -> list[str]:
+        return [t.name for t in self._tools]
+
+    def _tool(self, name: str) -> AdapterTool | None:
+        for tool in self._tools:
+            if tool.name == name:
+                return tool
+        return None
+
+    def owns(self, name: str) -> bool:
+        return self._tool(name) is not None
+
+    # ---- capability lattice --------------------------------------------
+    def _resolved_state(self, tool: AdapterTool, probe_ok: bool | None) -> str:
+        """Resolve one tool to a single lattice state (see module docstring)."""
+        if not self.base_url:
+            return ABSENT
+        if probe_ok is False:
+            return ABSENT
+        if probe_ok is True:
+            return PROBED
+        # No probe this call: report the declared confidence from the backend kind.
+        if tool.realized_by == EMULATED or self.kind == "emulated":
+            return EMULATED
+        if self.kind == "native":
+            return NATIVE
+        return DECLARED
+
+    def probe(self) -> tuple[bool, str]:
+        """One GET against ``health_path``: (reachable, human note). Never raises."""
+        if not self.base_url:
+            return False, "no base URL configured"
+        status, _body, raw = self._caller(
+            "GET", self.base_url + self.health_path, None, {}, PROBE_TIMEOUT
+        )
+        if status == 0:
+            return False, raw or "unreachable"
+        if 200 <= status < 400:
+            return True, f"HTTP {status}"
+        return False, f"HTTP {status}: {raw[:120]}"
+
+    def capabilities(self, probe: bool = False) -> dict:
+        """Per-tool lattice report. ``probe=False`` (default) does NO network."""
+        probe_ok: bool | None = None
+        note = "not probed (config-declared)"
+        if probe:
+            reachable, note = self.probe()
+            probe_ok = reachable
+        tools = []
+        for tool in self._tools:
+            tools.append(
+                {
+                    "tool": tool.name,
+                    "state": self._resolved_state(tool, probe_ok),
+                    "realized_by": tool.realized_by,
+                    "backend_path": tool.path,
+                    "note": note,
+                }
+            )
+        return {
+            "provider": self.platform,
+            "label": self.label,
+            "keyless": True,
+            "self_hosted": True,
+            "base_url": self.base_url or None,
+            "backend_kind": self.kind,
+            "probed": bool(probe),
+            "tools": tools,
+        }
+
+    # ---- the call path (always truthful) --------------------------------
+    def handle_call(self, name: str, arguments: dict) -> dict:
+        """Forward a tools/call to the backend; return an MCP result dict.
+
+        On ANY failure (not configured, transport error, non-2xx) it returns an
+        ``isError`` result with a readable reason -- it never fabricates a hit.
+        """
+        tool = self._tool(name)
+        if tool is None:
+            return self._error(f"unknown self-hosted tool {name!r}")
+        if not self.base_url:
+            return self._error(
+                f"no self-hosted backend configured: set the base URL "
+                f"(default env for {self.label}) then start the daemon; "
+                f"{name} stays absent until it answers."
+            )
+        body = json.dumps(self._build_request(tool, arguments or {})).encode("utf-8")
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        status, parsed, raw = self._caller(
+            "POST", self.base_url + tool.path, body, headers, DEFAULT_TIMEOUT
+        )
+        if status == 0:
+            return self._error(
+                f"{self.label} backend at {self.base_url} not reachable ({raw}); "
+                f"start the daemon or point the base URL at a running instance. "
+                f"No results are fabricated."
+            )
+        if not (200 <= status < 300) or parsed is None:
+            detail = raw[:300] if raw else "(empty body)"
+            return self._error(
+                f"{self.label} backend returned HTTP {status} for {tool.path}: {detail}"
+            )
+        return self._ok(parsed)
+
+    # ---- MCP result envelopes ------------------------------------------
+    def _ok(self, payload) -> dict:
+        return {
+            "content": [
+                {
+                    "type": "text",
+                    "text": json.dumps(payload, ensure_ascii=False, indent=2),
+                }
+            ],
+            "isError": False,
+        }
+
+    def _error(self, text: str) -> dict:
+        return {
+            "content": [{"type": "text", "text": f"[search-hub:self-hosted] {text}"}],
+            "isError": True,
+        }
+
+
+# --------------------------------------------------------------------------- #
+# TrailSearch -- native Tavily-shaped self-hosted backend
+# --------------------------------------------------------------------------- #
+_SEARCH_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "query": {"type": "string", "description": "the search query"},
+        "max_results": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 5,
+            "description": "how many results to return (1-20)",
+        },
+        "mode": {
+            "type": "string",
+            "enum": ["crawl", "search"],
+            "default": "crawl",
+            "description": "'search' = provider hits only; 'crawl' = also extract page content",
+        },
+        "search_depth": {
+            "type": "string",
+            "enum": ["basic", "advanced"],
+            "default": "basic",
+        },
+        "include_answer": {"type": "boolean", "default": False},
+        "include_raw_content": {"type": "boolean", "default": False},
+        "chunks_per_source": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8,
+            "default": 0,
+        },
+        "include_domains": {"type": "array", "items": {"type": "string"}},
+        "exclude_domains": {"type": "array", "items": {"type": "string"}},
+        "topic": {
+            "type": "string",
+            "description": "general | news | academic | code | ...",
+        },
+        "days": {
+            "type": "integer",
+            "description": "time filter in days (1=day,7=week,...)",
+        },
+    },
+    "required": ["query"],
+}
+
+_EXTRACT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "urls": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "URLs to extract clean content from",
+        },
+        "query": {
+            "type": "string",
+            "default": "",
+            "description": "optional relevance query",
+        },
+        "include_raw_content": {"type": "boolean", "default": True},
+        "chunks_per_source": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8,
+            "default": 0,
+        },
+    },
+    "required": ["urls"],
+}
+
+# Whitelisted argument passthrough per route -- the backend ignores unknown keys,
+# but pinning the set keeps the emitted body predictable and testable.
+_SEARCH_KEYS = (
+    "query",
+    "max_results",
+    "mode",
+    "search_depth",
+    "include_answer",
+    "include_raw_content",
+    "chunks_per_source",
+    "include_domains",
+    "exclude_domains",
+    "topic",
+    "days",
+)
+_EXTRACT_KEYS = ("urls", "query", "include_raw_content", "chunks_per_source")
+
+
+class TrailSearchAdapter(SelfHostedAdapter):
+    """Front TrailSearch's native Tavily-shaped ``/tavily/search`` + ``/tavily/extract``.
+
+    Keyless and self-hosted: the base URL points at the owner's TrailSearch app
+    (default ``http://127.0.0.1:8794``, overridable by ``TRAILSEARCH_URL`` /
+    ``SELFHOSTED_SEARCH_URL``). Tool names are prefixed ``selfhosted_`` so they
+    never collide with the keyed ``tavily_*`` provider; both can coexist and a
+    caller picks the keyless lane when it wants no vendor dependency.
+    """
+
+    platform = "selfhosted"
+    label = "TrailSearch (self-hosted)"
+    prefix = "sh"
+    kind = "native"  # /tavily/* IS the Tavily contract -> native, not emulated
+    health_path = "/docs"  # FastAPI serves Swagger UI here (200 when healthy)
+
+    def _build_tools(self) -> list[AdapterTool]:
+        return [
+            AdapterTool(
+                name="selfhosted_search",
+                description=(
+                    "Keyless, self-hosted web search + content extraction (Tavily-shaped) "
+                    "via a local TrailSearch daemon over SearXNG. Returns "
+                    "query/answer/results[title,url,content,score]/failed_results. Use this "
+                    "when you want search with NO vendor API key or cloud dependency. Returns "
+                    "a truthful error (never fabricated hits) if the daemon is not running."
+                ),
+                input_schema=_SEARCH_SCHEMA,
+                path="/tavily/search",
+                realized_by=NATIVE,
+            ),
+            AdapterTool(
+                name="selfhosted_extract",
+                description=(
+                    "Keyless, self-hosted clean-content extraction (Tavily-shaped) for known "
+                    "URLs via the local TrailSearch daemon. Returns "
+                    "results[url,content]/failed_results. Truthful error if the daemon is down."
+                ),
+                input_schema=_EXTRACT_SCHEMA,
+                path="/tavily/extract",
+                realized_by=NATIVE,
+            ),
+        ]
+
+    def _build_request(self, tool: AdapterTool, arguments: dict) -> dict:
+        keys = _SEARCH_KEYS if tool.name == "selfhosted_search" else _EXTRACT_KEYS
+        body = {k: arguments[k] for k in keys if k in arguments}
+        if tool.name == "selfhosted_search" and "query" not in body:
+            body["query"] = ""
+        if tool.name == "selfhosted_extract" and "urls" not in body:
+            body["urls"] = []
+        return body
+
+
+# Env vars that carry the self-hosted base URL (config, NOT a secret).
+_URL_ENVS = ("TRAILSEARCH_URL", "SELFHOSTED_SEARCH_URL")
+DEFAULT_TRAILSEARCH_URL = "http://127.0.0.1:8794"
+
+
+def resolve_base_url(environ) -> str:
+    for name in _URL_ENVS:
+        value = (environ.get(name) or "").strip()
+        if value:
+            return value
+    return DEFAULT_TRAILSEARCH_URL
+
+
+def default_adapters(environ, caller: Caller | None = None) -> list[SelfHostedAdapter]:
+    """The self-hosted adapters wired into the hub (TrailSearch today)."""
+    return [TrailSearchAdapter(resolve_base_url(environ), caller=caller)]

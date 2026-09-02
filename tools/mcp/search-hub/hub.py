@@ -44,6 +44,7 @@ sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
 import accounts  # noqa: E402
+import adapters  # noqa: E402
 import providers  # noqa: E402
 import rotation  # noqa: E402
 import usage  # noqa: E402
@@ -280,6 +281,7 @@ class SearchHub:
         store: "accounts.AccountStore | None" = None,
         rotator: "rotation.Rotator | None" = None,
         environ=None,
+        self_hosted: "list[adapters.SelfHostedAdapter] | None" = None,
     ) -> None:
         self.specs = specs
         self.by_platform = {s.platform: s for s in specs}
@@ -298,8 +300,21 @@ class SearchHub:
         )
         self.tools, self.routes, self.degraded = build_routes(specs, CACHE_DIR)
         self.account_tools, self.account_routes = self._account_surface(specs)
+        # Self-hosted, key-free lane: in-process HTTP adapters (no child spawned,
+        # no new import beyond urllib). Their tools/list surface is committed too.
+        self.adapters = (
+            self_hosted
+            if self_hosted is not None
+            else adapters.default_adapters(self.environ)
+        )
+        self.adapter_routes = {
+            name: ad for ad in self.adapters for name in ad.tool_names()
+        }
+        self.adapter_tools = [d for ad in self.adapters for d in ad.tool_defs()]
         self._children: dict[tuple[str, str], ProviderKeyChild] = {}
-        self.all_tools = self.tools + self.account_tools + [_usage_tool_def()]
+        self.all_tools = (
+            self.tools + self.adapter_tools + self.account_tools + [_usage_tool_def()]
+        )
 
     # ---- advertised surface --------------------------------------------
     def _account_surface(self, specs):
@@ -405,6 +420,8 @@ class SearchHub:
             self._handle_usage(msg, mid)
         elif name in self.account_routes:
             self._handle_account(msg, mid, name)
+        elif name in self.adapter_routes:
+            self._handle_adapter(msg, mid, name)
         elif name in self.routes:
             self._handle_provider(msg, mid, name)
         else:
@@ -432,6 +449,18 @@ class SearchHub:
         response["id"] = mid
         self._emit(json.dumps(response, ensure_ascii=False))
 
+    def _handle_adapter(self, msg: dict, mid, name: str) -> None:
+        """Serve a self-hosted tool over HTTP, in-process (no child spawned).
+
+        The adapter always attempts the real backend and returns a truthful
+        ``isError`` result when it is unreachable -- it never fabricates hits, so
+        the keyless self-hosted lane is safe-inert exactly like SearXNG.
+        """
+        ad = self.adapter_routes[name]
+        args = (msg.get("params") or {}).get("arguments") or {}
+        result = ad.handle_call(name, args)
+        self._reply(mid, result)
+
     def _handle_account(self, msg: dict, mid, name: str) -> None:
         """Serve a ``<prefix>_account_*`` tool via the store (never forwarded)."""
         platform, op = self.account_routes[name]
@@ -450,14 +479,24 @@ class SearchHub:
         self._tool_result(mid, result, is_error=not result.get("ok", False))
 
     def _handle_usage(self, msg: dict, mid) -> None:
-        """On-demand per-key usage + rotation health for one or all providers."""
+        """On-demand per-key usage + rotation health for one or all providers.
+
+        Also reports the self-hosted lane's capability lattice. ``probe=true``
+        performs ONE health GET per self-hosted backend to upgrade the reported
+        state from config-declared to live-``probed`` / ``absent``.
+        """
         args = (msg.get("params") or {}).get("arguments") or {}
         want = args.get("provider") or ""
-        report = {"providers": []}
+        probe = bool(args.get("probe"))
+        report = {"providers": [], "self_hosted": []}
         for spec in self.specs:
             if want and want != spec.platform:
                 continue
             report["providers"].append(self._usage_for_provider(spec))
+        for ad in self.adapters:
+            if want and want != ad.platform:
+                continue
+            report["self_hosted"].append(ad.capabilities(probe=probe))
         self._tool_result(mid, report)
 
     def _usage_for_provider(self, spec: providers.ProviderSpec) -> dict:
@@ -509,20 +548,32 @@ def _usage_tool_def() -> dict:
         "name": "search_usage",
         "description": (
             "On-demand per-key usage + rotation health for the search providers "
-            "(Exa/Tavily/Firecrawl/SearXNG). Reports each stored key's label, remaining "
-            "credits/allowance (Firecrawl remainingCredits; Tavily plan+paygo "
-            "headroom), and cooldown state. Exa reports 'error-driven (no balance "
-            "API)'; SearXNG reports keyless and never cooled. Pass "
-            "provider='exa'|'tavily'|'firecrawl'|'searxng' to narrow, or omit for "
-            "all. Read-only; does not spawn a search child."
+            "(Exa/Tavily/Firecrawl/SearXNG), plus the self-hosted lane's capability "
+            "lattice. Reports each stored key's label, remaining credits/allowance "
+            "(Firecrawl remainingCredits; Tavily plan+paygo headroom), and cooldown "
+            "state. Exa reports 'error-driven (no balance API)'; SearXNG reports "
+            "keyless and never cooled. The self-hosted section reports each tool's "
+            "state (native|probed|declared|emulated|absent). Pass "
+            "provider='exa'|'tavily'|'firecrawl'|'searxng'|'selfhosted' to narrow, or "
+            "omit for all; probe=true does ONE health GET per self-hosted backend. "
+            "Read-only; does not spawn a search child."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "provider": {
                     "type": "string",
-                    "description": "exa | tavily | firecrawl | searxng; empty = all",
-                }
+                    "description": (
+                        "exa | tavily | firecrawl | searxng | selfhosted; empty = all"
+                    ),
+                },
+                "probe": {
+                    "type": "boolean",
+                    "description": (
+                        "self-hosted only: perform one live health GET to upgrade "
+                        "state from declared to probed/absent (default false)"
+                    ),
+                },
             },
         },
     }
@@ -620,11 +671,16 @@ def _cmd_print_plan() -> int:
     per_provider: dict[str, int] = {s.platform: 0 for s in specs}
     for route in routes.values():
         per_provider[route.platform] += 1
+    self_hosted = adapters.default_adapters(os.environ)
+    adapter_tools = [d for ad in self_hosted for d in ad.tool_defs()]
+    for ad in self_hosted:
+        per_provider[ad.platform] = len(ad.tool_names())
     summary = {
         "provider_tools": len(tools),
+        "self_hosted_tools": len(adapter_tools),
         "account_tools": account_tool_count,
         "usage_tools": 1,
-        "total_exposed": len(tools) + account_tool_count + 1,
+        "total_exposed": len(tools) + len(adapter_tools) + account_tool_count + 1,
         "per_provider": per_provider,
         "degraded": degraded,
     }
