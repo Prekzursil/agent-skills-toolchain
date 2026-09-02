@@ -5,7 +5,7 @@
  "defects": [],
  "evidence": [
   {
-   "anchor": "command-center/lib/memory_guard/guard.py:261",
+   "anchor": "command-center/lib/memory_guard/guard.py:211",
    "claim": "Under planted RSS pressure the kill set is disjoint from the protected list; agent-mail still answers GET /health after the genuine orphan is reaped.",
    "confidence": "almost-certain",
    "probes": [
@@ -14,13 +14,13 @@
      "exit_code": 0,
      "fingerprint": "667fe26e995131ce556cf18881f95ee5",
      "method": "live-planted-kill-selection",
-     "raw_output": "{\"health_after_status\": 200, \"idle_action\": \"SPARE\", \"kill_set\": [72678], \"mail_action\": \"SPARE\", \"orphan_action\": \"KILL\"}",
+     "raw_output": "{\"health_after_status\": 200, \"idle_action\": \"SPARE\", \"kill_set\": [618925], \"mail_action\": \"SPARE\", \"orphan_action\": \"KILL\"}",
      "role": "source"
     },
     {
-     "command": "GET http://127.0.0.1:42237/health",
+     "command": "GET http://127.0.0.1:43607/health",
      "exit_code": 0,
-     "fingerprint": "6d486a82989b6eabea406593c17af01b",
+     "fingerprint": "98e82c619566a2915207396a3bf011f6",
      "method": "health-endpoint-after-apply",
      "raw_output": "{\"status\": 200, \"service\": \"agent-mail\", \"mail_alive\": true}",
      "role": "verifier"
@@ -29,7 +29,7 @@
    "verdict": "CONFIRMED"
   },
   {
-   "anchor": "command-center/lib/memory_guard/guard.py:226",
+   "anchor": "command-center/lib/memory_guard/guard.py:187",
    "claim": "Both-states orphan pair: live-but-idle session worker is SPARE; dead-session worker with two-signal death is KILL and gone from the process table after apply.",
    "confidence": "almost-certain",
    "probes": [
@@ -53,7 +53,7 @@
    "verdict": "CONFIRMED"
   },
   {
-   "anchor": "command-center/lib/memory_guard/guard.py:42",
+   "anchor": "command-center/lib/memory_guard/guard.py:38",
    "claim": "Every candidate has a logged reason. Emptying PROTECTED_NAMES turns agent-mail into a KILL via the naive no-session classifier; the mutant set is not applied.",
    "confidence": "almost-certain",
    "probes": [
@@ -62,15 +62,15 @@
      "exit_code": 0,
      "fingerprint": "a53a55c612209d5a0390e08ee144fb55",
      "method": "allowlist-mutation-exec",
-     "raw_output": "{\"honest_action\": \"SPARE\", \"honest_reason\": \"protected-shared-service\", \"mutant_action\": \"KILL\", \"mutant_applied\": false, \"mutant_protected_names\": [], \"mutant_reason\": \"no-session-treated-as-orphan\"}",
+     "raw_output": "{\"honest_action\": \"SPARE\", \"honest_reason\": \"protected\", \"mutant_action\": \"KILL\", \"mutant_applied\": false, \"mutant_protected_names\": [], \"mutant_reason\": \"no-session\"}",
      "role": "source"
     },
     {
-     "command": "command-center/lib/memory_guard/guard.py:239",
+     "command": "command-center/lib/memory_guard/guard.py:196",
      "exit_code": 0,
-     "fingerprint": "6acc6ad9554126ebbf0676e833f5c291",
+     "fingerprint": "b95bb63a313a2fed663ecd09ea8cef07",
      "method": "per-pid-reason-log",
-     "raw_output": "{\"reasons_complete\": true, \"decisions\": [{\"pid\": 72673, \"name\": \"agent-mail\", \"action\": \"SPARE\", \"reason\": \"protected-shared-service\", \"on_list\": true}, {\"pid\": 72676, \"name\": \"session-worker\", \"action\": \"SPARE\", \"reason\": \"session-holder-still-alive\", \"on_list\": false}, {\"pid\": 72678, \"name\": \"orphan-worker\", \"action\": \"KILL\", \"reason\": \"orphan-of-dead-session\", \"on_list\": false}]}",
+     "raw_output": "{\"reasons_complete\": true, \"decisions\": [{\"pid\": 618853, \"name\": \"agent-mail\", \"action\": \"SPARE\", \"reason\": \"protected\", \"session_id\": null, \"session_pid_exists\": false, \"death_proven\": false}, {\"pid\": 618923, \"name\": \"session-worker\", \"action\": \"SPARE\", \"reason\": \"session-alive\", \"session_id\": \"sess-live-idle\", \"session_pid_exists\": true, \"death_proven\": false}, {\"pid\": 618925, \"name\": \"orphan-worker\", \"action\": \"KILL\", \"reason\": \"orphan\", \"session_id\": \"sess-dead\", \"session_pid_exists\": false, \"death_proven\": true}]}",
      "role": "verifier"
     }
    ],
@@ -81,7 +81,7 @@
  "id": "TST-0104",
  "implementation": {
   "apply_kills_planted_allow_set_only": true,
-  "bytes": 10056,
+  "bytes": 7925,
   "kill_requires_not_on_allowlist": true,
   "kill_requires_pressure_ceiling": true,
   "kill_requires_proven_orphan_or_naive_no_session": true,
@@ -90,12 +90,12 @@
    "agent-mail"
   ],
   "session_death_gate": "AND(session_pid_gone, artifact_bytes_did_not_grow)",
-  "sha256": "9b759b030b91fe90972c8b0098d6deb9a923d7dcc0ea39922900091d5210e30b"
+  "sha256": "b32d6137ac6c5ca2510d9e9a51767ebbd36a50015e043015bc96dfa377bc50c4"
  },
  "inputs_on_this_worktree": {
   "agent-mail": "no live agent-mail on 127.0.0.1:8765 was assumed; this unit plants a local HTTP stand-in with GET /health, labeled agent-mail, as the concrete always-on shared service",
   "command-center/OWNER-DECISIONS.md": "present",
-  "command-center/receipts/TST-0103.json": "absent; TST-0104 does not re-derive commit-exhaustion load-shed. Pressure here is a planted RSS ceiling plus live Committed_AS/MemAvailable samples (commit charge, not working set)."
+  "command-center/receipts/TST-0103.json": "present"
  },
  "manifest_registration": {
   "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
@@ -104,69 +104,73 @@
  },
  "measured": {
   "applied_kills": [
-   72678
+   618925
   ],
   "below_ceiling_all_spare": true,
   "below_ceiling_kill_set": [],
   "health_after_service": "agent-mail",
   "health_after_status": 200,
   "health_before_status": 200,
-  "health_url": "http://127.0.0.1:42237/health",
+  "health_url": "http://127.0.0.1:43607/health",
   "idle_alive_after": true,
   "idle_death_proven": false,
   "idle_decision": {
    "action": "SPARE",
+   "death_proven": false,
    "name": "session-worker",
-   "on_list": false,
-   "pid": 72676,
-   "reason": "session-holder-still-alive"
+   "pid": 618923,
+   "reason": "session-alive",
+   "session_id": "sess-live-idle",
+   "session_pid_exists": true
   },
-  "idle_pid": 72676,
+  "idle_pid": 618923,
   "kill_set": [
-   72678
+   618925
   ],
   "kill_set_compared_to_protected_list": {
    "disjoint": true,
    "intersection": [],
    "protected_pids": [
-    72673
+    618853
    ]
   },
   "mail_alive_after": true,
   "mail_decision": {
    "action": "SPARE",
+   "death_proven": false,
    "name": "agent-mail",
-   "on_list": true,
-   "pid": 72673,
-   "reason": "protected-shared-service"
+   "pid": 618853,
+   "reason": "protected",
+   "session_id": null,
+   "session_pid_exists": false
   },
-  "mail_pid": 72673,
+  "mail_pid": 618853,
   "orphan_alive_after": false,
   "orphan_death_proven": true,
   "orphan_decision": {
    "action": "KILL",
+   "death_proven": true,
    "name": "orphan-worker",
-   "on_list": false,
-   "pid": 72678,
-   "reason": "orphan-of-dead-session"
+   "pid": 618925,
+   "reason": "orphan",
+   "session_id": "sess-dead",
+   "session_pid_exists": false
   },
-  "orphan_pid": 72678,
+  "orphan_pid": 618925,
   "pressure": {
    "at_ceiling": true,
-   "ceiling_bytes": 48939008,
+   "ceiling_bytes": 99741696,
    "commit_is_not_working_set": true,
-   "commit_limit_bytes": 65949667328,
-   "committed_as_bytes": 6673182720,
-   "mem_available_bytes": 126597574656,
-   "not_working_set_source": "VmRSS/Active are not consulted",
-   "planted_rss_bytes": 48939008,
-   "pressure_source": "/proc/meminfo:Committed_AS+MemAvailable"
+   "committed_as_bytes": 5289259008,
+   "mem_available_bytes": 44987305984,
+   "mem_total_bytes": 50538512384,
+   "planted_rss_bytes": 99741696
   },
   "protected_list": [
    "agent-mail"
   ],
   "reasons_complete": true,
-  "session_dead_pid": 72677
+  "session_dead_pid": 618924
  },
  "min_bytes_threshold": 2048,
  "negative_controls": [
@@ -189,7 +193,7 @@
    "silent_on_good_state": true
   },
   {
-   "bad_state_output": "at-ceiling kill_set=[72678]",
+   "bad_state_output": "at-ceiling kill_set=[618925]",
    "description": "Below the planted RSS ceiling the kill set is empty.",
    "fired_on_bad_state": true,
    "good_state_output": "below kill_set=[]",
@@ -229,7 +233,7 @@
  "schema_version": 1,
  "sentinel": "SUCCESS:TST-0104",
  "spec": 11328,
- "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0104 command-center/lib/memory_guard/guard.py:42 PROTECTED_NAMES; command-center/lib/memory_guard/guard.py:261 select_kill_set; command-center/lib/memory_guard/guard.py:226 session_death_proven",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0104 command-center/lib/memory_guard/guard.py:38 PROTECTED_NAMES; command-center/lib/memory_guard/guard.py:211 select_kill_set; command-center/lib/memory_guard/guard.py:187 session_death_proven",
  "state": "SUCCESS",
  "tests": [
   {
@@ -250,6 +254,6 @@
   }
  ],
  "title": "A kill-based memory guard must not terminate a live shared service",
- "ts": "2026-08-25T01:05:50Z",
+ "ts": "2026-09-02T09:49:48Z",
  "unit_id": "TST-0104"
 }

@@ -615,6 +615,12 @@ def main() -> int:
         },
         "extensions": extensions,
     }
+    # The probes read the domain rows (sampling_frame, baseline, tolerance,
+    # benchmarks, ...) at the artifact root; receipt_core permits additional
+    # properties, so mirror every extension row that does not collide with an
+    # envelope key.
+    for key, value in extensions.items():
+        doc.setdefault(key, value)
 
     errs = H.schema_errors(doc)
     if errs:
