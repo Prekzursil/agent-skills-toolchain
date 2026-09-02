@@ -23,9 +23,9 @@ Dedup-set (exists, not re-proposed): `.agents/skills/hosted-model-agents` (live-
 | 3. Codex `mcp-server` fan-out and where a hosted model slots in | done |
 | 4. ACP (Agent Client Protocol): v1 today, v2 draft, adapters | done |
 | 5. Parallel panes: dmux / superset / tmux / Windows reality | done |
-| 6. Design: one hosted-model-agent adapter (agent-mail + ACP) | pending |
-| 7. Parallelism pattern that fits this box | pending |
-| 8. Reuse from `multi-ai-mingle` | pending |
+| 6. Design: one hosted-model-agent adapter (agent-mail + ACP) | done |
+| 7. Parallelism pattern that fits this box | done |
+| 8. Reuse from `multi-ai-mingle` | done |
 | 9. Rubric table | pending |
 | 10. Ten-line summary | pending |
 
@@ -122,3 +122,78 @@ All rows are **[FACT]**, tier A (repo source), corroborated by direct read on 20
 2. Superset is not installable on Windows today.
 3. The wmux family is native and scriptable (named-pipe JSON-RPC lets an orchestrator open panes and spawn agents programmatically - the same shape as dmux's `n` key), but two of three are Electron (each window carries a Chromium renderer; on this box that is the same RAM class as one more `cursor-agent`, which G-36 already caps at one), all three are pre-1.0, and they duplicate agent-to-agent messaging that agent-mail already provides. Their **genuinely new** capability for us is *persistence across reboot* and *atomic hunk adoption* from N worktrees.
 4. **[INFERENCE, needs measurement]** For hosted-model workers specifically, panes are the wrong unit of parallelism: the worker is an HTTP client + tool executor, not an interactive TUI that needs a PTY. It can run as a headless process (PowerShell job, Scheduled Task, or child of the orchestrator) and report through agent-mail; a pane is only needed when a human wants to watch. That is the design choice section 7 makes.
+
+---
+
+## 6. Design: one hosted-model-agent adapter that speaks agent-mail and ACP
+
+**[RECOMMENDATION - design, not built.]** Working name `hma` (hosted-model-agent). One Python process per *persona x runtime*, ~400-600 lines, three faces on one tool loop. It is the general integration layer the owner wants in place of `glm53-space`, but it is **not** an MCP server and adds **no row to `agents.json`** (rule 2 of `hosted-model-agents`; `mcp-fleet-curation`).
+
+```
+                 +---------------------------------------------------------+
+  ACP client     |  hma  (one process = one persona on one runtime)        |
+  (Zed / Toad /  |                                                         |
+  orchestrator   |  face A: ACP agent (stdio)  <- agent-client-protocol    |
+  spawn_agent_   |     initialize / session.new / session.prompt           |
+  process) <---->|     session.update stream, request_permission            |
+                 |                                                         |
+  agent-mail     |  face B: agent-mail peer (HTTP MCP *client* of :8812)   |
+  :8812 <------->|     ensure_project -> register_agent (codename+token)   |
+  (owned port,   |     request_contact gate, fetch_inbox poll, reply,      |
+   unchanged)    |     file_reservation_paths around every write           |
+                 |                                                         |
+  runtime /v1    |  core: tool loop  (hosted-model-agents/tool-loop.md)    |
+  HF Router /    |     messages[0] = profile prompt (profiles.md)          |
+  Endpoint /     |     tools = allowlist schema; validate name+args;       |
+  Modal /        |     execute LOCALLY; role:tool round-trip; SSE stream  |
+  Foundry /      |                                                         |
+  llama-server   |  face C: CLI  `hma run --profile coder --runtime hf …`  |
+  <------------->|     headless worker mode (no PTY), --watch for a pane   |
+                 +---------------------------------------------------------+
+```
+
+**Face A - ACP agent (official Python SDK, v1 now, v2 flag later).** Subclass `acp.Agent`: `initialize` returns the negotiated version (accept 1; when `protocolVersion: 2` arrives and the flag is on, answer 2); `new_session(cwd, mcp_servers)` creates a session whose tool allowlist = profile tools ∩ (client-supplied `mcpServers` if any); `prompt()` runs the tool loop and streams `update_agent_message` / tool-call updates via `session_update`; any tool the profile marks `needs_permission` goes through `session/request_permission` so Zed/Toad show the same approval UI they show for Claude Code. **Sourced basis:** SDK surface in section 4 (`run_agent`, `session_update`, `acp.contrib` permission brokers). **[INFERENCE]** Because ACP v2 drops `fs/*`/`terminal/*`, the adapter should execute tools itself (v1 and v2 identical behaviour) and only *report* them - which is what `tool-loop.md` already prescribes.
+
+**Face B - agent-mail peer.** Reuse `tools/crcp/crcp/bus.py` (`AgentMailRpc`, `load_or_register_bridge_agent`, `ensure_contact`, `publish_envelope`) as the client. Registration: `ensure_project(human_key=<repo abs path>)` once; `register_agent(project_key, program="hma:<profile>", model="<checkpoint>@<runtime>")`; store `(codename, registration_token)` in a per-user secret store outside the repo (name-only reference in `.agents/local.json`, matching dedup-set #4). Contact: **never auto-accept**; the human's Claude/Codex session accepts each hosted codename once. Work intake: poll `fetch_inbox(agent_name, registration_token)` on a backoff (there is no push; `crcp/bus.py` already polls); each message with `ack_required` becomes a `session/prompt` on an internal ACP session so *both faces share one code path*. Leases: before any local write the loop calls `file_reservation_paths(paths, exclusive=true, ttl_seconds=<turn budget>, reason=<thread id>)` and releases in `finally`; a lease conflict is surfaced to the model as a tool error, not silently overridden (`force_release` is a human tool). **License constraint carried from section 1:** if a persona is under evaluation (`evals.md`), the eval driver must not use agent-mail as its channel - use face A/C directly.
+
+**Core - tool loop.** Unchanged from `hosted-model-agents/tool-loop.md`: OpenAI `tools` schema, `tool_choice`, allowlist + required-keys + JSON-parse checks before execution, unknown tool names treated as text, tool-call ids round-trip on `role: tool`, SSE streaming. Runtime is a plain OpenAI-compatible base URL + key name from the **profile**; HF Router, Endpoint, Modal, Foundry, `llama-server`, LM Studio and Ollama are all `/v1`-shaped (dedup-set #1 lists them). The Cursor quota via auth2api `:8317` is *also* a legal runtime for `hma` **only** when launched through the G-32 process-local wrapper pattern (`ai-mode`-style env for that process only; no global bridge env) - and it retires with auth2api within 7 days of a Cursor `/v1` GA (lock). OpenRouter is a legal runtime for the **CLI/Codex-sidecar** case only, spend-capped, never as a Cursor BYOK key (lock).
+
+**Face C - CLI / headless worker.** `hma run --profile <p> --runtime <r> [--acp] [--mail] [--watch]`. `--acp` alone = pure ACP agent for Zed/Toad. `--mail` alone = headless peer polling :8812 (the "worker" role in section 7). `--watch` opens a read-only pane view (rich/Textual) for a human; not required for operation.
+
+**What it deliberately does not do.** No new port, no new MCP server, no LiteLLM/LangGraph/second runtime, no vector memory (basic-memory :8765 stays the memory and is reachable to the *harness* as an ordinary allowlisted tool if a profile wants it), no credential rotation (uses existing `HF_TOKEN`/`HUGGINGFACE_TOKEN` names), no removal of `glm53-space` by itself (that is the owner's separate deprecation; `hma` is the replacement shape, and the `agents.json` row should be parked with `enabled: false` the way `markitdown`/`meta-tool` were).
+
+**Build vs adopt per face.** Face A: **NATIVE** (official SDK; ~60 lines over the echo agent). Face B: **REUSE** (`crcp/bus.py`) + ~150 lines of poll/lease glue. Core: **REUSE** (`tool-loop.md` doctrine; `glm53_core.py`'s HTTP client if the owner keeps the file around during deprecation). Face C: **BUILD** (~100 lines, `argparse`/`typer`). Tradeoff option: **ADOPT `pydantic-acp`** for face A+core in exchange for a Pydantic-AI dependency (model picker, approval bridge, session store for free) - rejected as default on the "second runtime" lock, kept as a rubric row.
+
+---
+
+## 7. Parallelism pattern that fits this box
+
+**Constraints (sourced):** 31.6 GB RAM, chronically memory-starved, no GPU assumed (brief); Codex fan-out cap = 3 and a 9-wide fan-out OOM'd all 9 (`repo:skills/multi-ai-mingle/CODEX_FANOUT.md`); G-36 = at most one `cursor-agent` process (`repo:skills/hosted-model-agents/SKILL.md`); tmux requires WSL (section 5); Superset has no Windows build (section 5).
+
+**[RECOMMENDATION] "Headless hosted workers, one visible orchestrator, agent-mail as the pane."**
+
+1. **Unit of parallelism = `hma --mail` headless process, not a pane.** Each worker is a Python process holding one HTTP connection to its runtime and one to :8812. Its context window is on the GPU box, so its resident footprint is a Python interpreter + httpx/urllib, not a Node MCP fleet. **[INFERENCE, needs measurement on the box]** expected order 60-150 MB RSS per worker vs. the multi-GB Codex thread; so **6-8 hosted workers ≈ one Codex slot**. Measure with `Get-Process -Name python | Measure-Object WorkingSet64 -Sum` before raising the cap; start at **4** hosted workers alongside **at most 2** Codex threads (leaving one Codex slot of headroom under the cap of 3) and adjust from measurement.
+2. **Isolation = worktree per worker, exactly as `CODEX_FANOUT.md`**: `git -C <intended repo> worktree add` (CLAUDE.md rule), own branch `hma/wu-<n>`, push before exit, `git ls-remote` push-watcher is the done-signal, orchestrator verifies, never self-cert, two strikes -> split. Hosted workers inherit these rules unchanged.
+3. **Coordination = agent-mail threads + leases, not shared panes.** The orchestrator (Claude or Codex, the human's visible session) sends one `send_message(ack_required=true)` per work unit to a worker codename; progress comes back as `reply_message` in the thread; leases make two workers touching the same file visible before the merge does. The inbox *is* the fleet view - `fetch_inbox` / `search_messages` replace "which pane is waiting?".
+4. **Visibility for the human (optional, no new runtime):** Windows Terminal split panes (`wt -w 0 sp -d <worktree> hma run --watch …`) when watching is wanted; agent-mail's own web UI/TUI (Wave C, already planned) for the thread view. tmux/dmux only if the owner already keeps WSL running for other reasons (then `vmmem` RAM is a sunk cost and dmux's pane=worktree=branch flow is the best UX). wmux is a **watch item**: revisit when one of the three has a tagged 1.0 and a measured RSS; the Rust `Kazsuto/wmux` is the only one whose footprint is plausibly acceptable here.
+5. **Stagger and failure semantics differ from Codex - in our favour.** No shared `auth.json` refresh race (each worker has its own runtime key by name); no shared app-server tree, so killing one hosted worker kills one. Keep the *stagger* anyway for HF Router / Endpoint rate limits, and give every worker a hard turn budget (tokens + wall clock) because a hosted model that loops costs money, not RAM.
+6. **Where Codex and Claude still go:** anything needing the full local MCP fleet or the interactive approval UX stays a Codex/Claude thread (cap 3, section 3). Hosted workers take the *embarrassingly parallel* tail: red-team report drafting, literature learning, test-writing against a spec, doc lint - the `profiles.md` personas.
+
+---
+
+## 8. Reuse from `multi-ai-mingle` (read on live-capture/2026-09-02)
+
+| Reuse | From | How it lands in `hma` |
+|---|---|---|
+| Verified API order (`ensure_project` -> `register_agent` -> `request_contact`/`respond_contact` -> token-carrying `send_message`/`fetch_inbox`/`file_reservation_paths`) | `SKILL.md` "Real mcp_agent_mail API sequence" | Face B follows it verbatim; the "one session auto-binds one agent, pass tokens explicitly for the rest" note is why each `hma` process owns exactly one identity. |
+| One shared `serve-http`, never per-client stdio; bind 127.0.0.1; keep bearer; 8812 canonical, 8765 is basic-memory | `SKILL.md` Guardrails, `MCP_AGENT_MAIL.md` | `hma` is a client only; it never starts a server; ports untouched. |
+| Codename identity rule (bare `claude`/`codex` rejected) | `SKILL.md` | `program="hma:<profile>"` accepted; codename returned by server is the address. |
+| License rider (no eval/training use of agent-mail) | `SKILL.md` "License + adoption posture" | Eval drivers use face A/C, never the mail channel. |
+| `VERIFY_PLAN.ps1` / `.sh` + `agent_mail_probe.py` (symmetric message + lease round-trip, SUCCESS:/FAILED: lines) | skill files | Extend the probe with a third identity `hma` (register, contact-accept from `claude`, send, lease acquire/release). Same script family, one new case. |
+| `CODEX_FANOUT.md` limits (cap 3, stagger, fresh clone per agent, push after merge, push-watcher done-signal, two-strikes) | skill file | Adopted unchanged for hosted workers; only the *cost model* differs (section 7 item 1). |
+| Wave B "teammate shim" idea (`CLAUDE_CODE_TEAMMATE_COMMAND`) | `SKILL.md` Wave B | Generalise: the teammate command can be `hma run --acp --profile …`, so a hosted model is a Claude Code teammate the same way Codex was meant to be. UNVERIFIED that the shim still exists upstream; flagged in the rubric. |
+| Wave C GUI/TUI | `SKILL.md` Wave C | Becomes the fleet view for hosted workers too - no separate dashboard. |
+| `MOUNT.md` timeouts (`MCP_TOOL_TIMEOUT` generous) | skill file | Irrelevant to `hma` (not an MCP server) but the *deprecation note* of section 3 belongs next to it. |
+| `commands/multi-ai-mingle.md` on main | repo | Add one line pointing at the `hma` skill once it exists; keep `.agents/skills` as the SSOT (lock). |
+
+**What NOT to reuse:** the fan-out rail's transport (`codex mcp-server`, deprecated 2026-08-24) as the template for hosted workers; the "per-model MCP server" shape of `glm53-space` (owner-deprecated, rule 2 of `hosted-model-agents`).
