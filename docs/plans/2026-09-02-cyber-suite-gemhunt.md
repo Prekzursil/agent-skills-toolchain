@@ -91,7 +91,7 @@ per the owner's model directive.
 | L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | DONE |
 | L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | bc-3e781288 | running |
 | L3 | Purple-team / adversary emulation / BAS / detection validation | bc-85a95fe0 | running on `cursor-grok-4.6-xhigh` (emulation TTP density = block-risk) |
-| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | bc-4fc1542a | running on `cursor-grok-4.6-xhigh` (highest block-risk; serves "0-day") |
+| L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | bc-4fc1542a | DONE on `cursor-grok-4.6-xhigh` |
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | DONE |
 | L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | running |
 | L7 | Cloud / container / k8s / IaC security | bc-d82a0694 | DONE |
