@@ -18,10 +18,18 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _g1_paths import MIRROR, WIN  # noqa: E402
+from _g1_paths import MIRROR, SCRATCH_DIR_NAMES, WIN  # noqa: E402
 
 SKIP_DIRS = {".git", "node_modules", "__pycache__"}
 SKIP_REL = {Path("command-center/p2-wave/ovh-monitor")}
+PROBES_REL = Path("command-center/p2-wave/probes")
+
+
+def _skip_dir(rel_dir: Path, name: str) -> bool:
+    if name in SKIP_DIRS or (rel_dir / name) in SKIP_REL:
+        return True
+    # probe run-time scratch is regenerated in the mirror; never copy it from the record
+    return name in SCRATCH_DIR_NAMES and PROBES_REL in (rel_dir / name).parents
 
 
 def sync_tree(src_root: Path, dst_root: Path, rel: Path = Path(".")) -> tuple[int, int]:
@@ -43,7 +51,7 @@ def sync_tree(src_root: Path, dst_root: Path, rel: Path = Path(".")) -> tuple[in
     for dirpath, dirnames, filenames in os.walk(base):
         dp = Path(dirpath)
         rel_dir = dp.relative_to(src_root)
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and (rel_dir / d) not in SKIP_REL]
+        dirnames[:] = [d for d in dirnames if not _skip_dir(rel_dir, d)]
         (dst_root / rel_dir).mkdir(parents=True, exist_ok=True)
         for name in filenames:
             scanned += 1
