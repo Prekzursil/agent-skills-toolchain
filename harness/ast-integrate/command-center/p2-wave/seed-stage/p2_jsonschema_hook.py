@@ -27,6 +27,18 @@ from urllib.request import BaseHandler, build_opener, install_opener
 _LOADED = False
 HOOK_VERSION = 12
 _UID = re.compile(r"^[A-Z]{2,5}-\d{4}$")
+# Identity/status keys carry no measured content; a doc with only these is not
+# a receipt to fill (see _looks_like_receipt).
+_IDENTITY_KEYS = {
+    "schema_version",
+    "unit_id",
+    "state",
+    "disposition",
+    "sentinel",
+    "profile",
+    "spec_anchor",
+    "min_bytes_threshold",
+}
 CORE = {
     "schema_version",
     "unit_id",
@@ -172,6 +184,11 @@ def _schema_artifact_class(schema: object) -> str:
 
 
 def _maybe_receipt_copy(validator: object, instance: object) -> object:
+    # 02.09 (P2 G-1, opt-in, default unchanged): P2_HOOK_STRICT=1 validates receipts AS WRITTEN,
+    # without the leftover-receipt fill, so a shadow census can show which units pass only
+    # because the fill rewrote their receipt (false-green lens F3; AUD-0052 asserts garbage rejects).
+    if os.environ.get("P2_HOOK_STRICT"):
+        return instance
     schema = getattr(validator, "schema", None)
     if _schema_is_receipt(schema):
         return _receipt_copy(instance, artifact_class=_schema_artifact_class(schema))
@@ -186,7 +203,12 @@ def _looks_like_receipt(doc: object) -> bool:
         return False
     # Require sentinel or artifacts so schema garbage like
     # {"unit_id": "ADV-0143", "state": "SUCCESS"} stays unfilled.
-    return bool(doc.get("sentinel") or doc.get("artifacts"))
+    if not (doc.get("sentinel") or doc.get("artifacts")):
+        return False
+    # A doc made only of identity/status keys measures nothing, so there is
+    # nothing to fill from; {"state": "SUCCESS", "unit_id": ..., "sentinel": ...}
+    # must stay schema-invalid (negative-control probes assert it).
+    return any(k not in _IDENTITY_KEYS for k in doc)
 
 
 def _receipt_copy(doc: object, artifact_class: str = "") -> object:
