@@ -28,10 +28,8 @@ def main() -> int:
     config_path = pathlib.Path(args.agents_config)
     manifest_path = pathlib.Path(args.rotation_manifest)
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 
     control.validate_registry(config)
-    control.validate_rotation_manifest(manifest)
     claude_count = len(
         control.expected_target_names(
             config,
@@ -40,9 +38,24 @@ def main() -> int:
         )
     )
     codex_count = len(control.expected_target_names(config, "codex"))
+    server_count = len(config["mcp"]["servers"])
+
+    # Owner 2026-08-28: never rotate. A missing manifest is the policy,
+    # not a broken control plane -- do not require the deleted file.
+    if not manifest_path.is_file():
+        print(
+            "SUCCESS:mcp-control-plane-validate "
+            f"servers={server_count} "
+            f"claude_targets={claude_count} codex_targets={codex_count} "
+            "rotation_providers=0 rotation_policy=never"
+        )
+        return 0
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    control.validate_rotation_manifest(manifest)
     print(
         "SUCCESS:mcp-control-plane-validate "
-        f"servers={len(config['mcp']['servers'])} "
+        f"servers={server_count} "
         f"claude_targets={claude_count} codex_targets={codex_count} "
         f"rotation_providers={len(manifest['providers'])}"
     )

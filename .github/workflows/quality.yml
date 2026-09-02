@@ -635,6 +635,28 @@ jobs:
         run: |
           pip install pytest pytest-cov pyyaml
           python -m pytest agent-self/harness/tests -q --cov=agent-self/harness --cov-branch --cov-report=term-missing
+      # .agents/scripts -- the shared MCP control plane (registry validation, the
+      # Claude/Codex/Cursor merge renderers, the fleet supervisor) that
+      # sync_shared_state.ps1 runs on the live box. Until 2026-09-02 NOTHING here named
+      # .agents/tests, so the Cursor merge could diverge in both directions between main
+      # and live (reconcile-flags/mcp-cursor-merge-lineage-2026-09-02.md: 26 live tests
+      # red against main's copy, 6 main tests red against live's) with CI green. Both
+      # lineage suites now run: main's test_mcp_control_plane.py, the ported live
+      # test_mcp_control_plane_live.py + test_cursor_remote_transport_policy.py, and the
+      # fleet-supervisor suite. Stdlib-only (pytest already installed above); the tests
+      # load the scripts by path and read .agents/agents.json in place. Reuses the
+      # existing `gate-tests-coverage` charter slug on purpose -- it is not a new gate,
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit. The
+      # bm_cursor_http_session bridge suite is deliberately NOT listed: it drives a fake
+      # streamable-HTTP daemon over loopback and is gated with tools/mcp/mcp-http-host.
+      - name: gate-tests-coverage mcp control plane (.agents/scripts; main + live lineage suites)
+        run: |
+          python -m pytest \
+            .agents/tests/test_mcp_control_plane.py \
+            .agents/tests/test_mcp_control_plane_live.py \
+            .agents/tests/test_cursor_remote_transport_policy.py \
+            .agents/tests/test_mcp_fleet_supervisor.py \
+            -q -p no:cacheprovider
       # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
       # Naming the script here turns its existing tests and production-wiring checks
       # into an executed regression lane instead of an inert test file.
