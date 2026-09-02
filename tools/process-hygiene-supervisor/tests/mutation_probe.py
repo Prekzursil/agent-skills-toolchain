@@ -103,6 +103,12 @@ MUTATIONS = [
         "                if snapshot.taken_unix - proc.created_unix <= grace:",
         "                if False:",
     ),
+    (
+        "daemon carve-out dropped (port-owning orphans reaped)",
+        "hygiene.py",
+        "            if owned_port is not None:",
+        "            if False:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
