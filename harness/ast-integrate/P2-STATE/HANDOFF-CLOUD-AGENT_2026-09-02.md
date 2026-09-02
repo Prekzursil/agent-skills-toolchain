@@ -14,10 +14,10 @@
   edits, `command-center/p2-wave/seed-stage/*`, `ovh-monitor/repair-claude/w0902-*.jsonl`, the
   append-only repair log) and `harness/ast-integrate/P2-STATE/*`. Commits + pushes after every
   green step; a claim older than 20 min without a new push is stale.
-- **Claim refreshed:** 02.09 07:47 EEST — step 4: w4 (council.budget) and w3 (council.roles) committed
-  after STRICT verification; writers w1,w2,w5–w10 active on `tools/council`, `tools/marketplace`,
-  `tools/plugin`, `tools/bench`, `tools/foundry`, `tools/council/sdk.py`; regen wave `w0902-06` running
-  in `~/p2-g1`. Do not edit those trees while this claim is fresh; the orchestrator commits.
+- **Claim refreshed:** 02.09 08:05 EEST — step 4 continues: w2, w3, w4, w5 committed (16 units
+  FAIL→OK STRICT, 0 regressions); regen wave done (27 cleared); per-unit residue batched (59 batches,
+  `_g1_batches.py`), first four batches + writers w1,w6–w11 active. Trees under active edit: `tools/**`,
+  `council/`, `plugin/`, `marketplace/`, `router/`; the orchestrator commits per verified module/batch.
 - Stage-1 capture claim below (worker-B) is superseded: the capture landed on the handoff branch.
 
 ### Stage-1 claim (historical, `stage1-worker-B`)
