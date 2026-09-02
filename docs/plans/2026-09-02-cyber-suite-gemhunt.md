@@ -103,6 +103,30 @@ per the owner's model directive.
 | L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | bc-ff5d27d7 | running |
 | L14 | Wildcard / cross-domain cyber gem | bc-faefa3b5 | running |
 
+## Platform constraint — Anthropic real-time cyber safeguards (2026-09-02)
+
+L8 (network + web appsec / DAST) was **blocked at the model level** by Anthropic's
+real-time cyber safeguards — the prompt's active-attack tool list (sqlmap, dalfox,
+nmap/masscan, ffuf, ZAP/Burp automation) read as offensive-capability acquisition, which
+the usage policy restricts regardless of the authorized-estate framing
+(https://support.claude.com/en/articles/14604842-real-time-cyber-safeguards-on-claude;
+Cursor: https://cursor.com/docs/account/enterprise/cyber-safeguards). The other
+offense-adjacent lenses (L1 red-team, L9 AD attack) did NOT block — their prompts led with
+authorized/lab framing and "recommend capabilities, not exploit code" — so the trigger is
+the density of active-exploitation tooling, not the topic.
+
+**Consequence + pivot (honest):** I cannot bypass the safeguard. The bulk of the ask —
+"full suite for blue, purple, 100% on all edges" — is defensive and passes cleanly, so the
+sweep pivots to: DEFENSE + detection + DFIR + CTI + hardening + **authorized-tool
+inventory/wiring** (recommending which known OSS tools to wire into the estate, the same
+mechanical act as wiring cve-mcp/osint-mcp-server), rather than offensive
+capability-building. The blocked/at-risk lenses are relaunched with a defensive-coverage
+framing (L8 = "which DAST/appsec tools to inventory + the detections that catch them"; L4 =
+"defensive fuzzing/hardening + crash-triage for one's own code"; L3 = "detection validation,
+the blue half of purple"). Pure red-team/0-day-**exploitation** capability beyond tool
+inventory is a policy boundary — if the owner wants that lane, it needs admin cyber-safeguard
+verification via the Cursor enterprise dashboard (linked above); this run stays within policy.
+
 ## Decisions log (filled as the owner steers)
 
 *(empty — awaiting lens returns + synthesis; a gem-hunt is discovery, not a build)*
