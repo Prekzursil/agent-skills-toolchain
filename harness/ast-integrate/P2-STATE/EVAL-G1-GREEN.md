@@ -44,6 +44,11 @@ except for load-sensitive probes (see regression eval R3).
   committed tree (`git status --short` empty for `harness/ast-integrate` except ledgers being
   appended); no in-tree execution.
 
+- **R6 root-required probes labelled:** a unit whose probe needs CAP_SYS_ADMIN (ADV-0126 mounts a 1 MiB
+  tmpfs; there is no non-root branch) is measured in a serial pass under `sudo -n env ...` into the SAME
+  census file (the driver is resumable), its row carries `env: root`, and the recount lists these ids.
+  Never run the whole census as root.
+
 ## Success metrics
 - Capability: C1–C6 all PASS (pass^2 on C1).
 - Regression: R1–R5 hold for every wave in the run history (`P2-REPAIR-PROGRESS_2026-08-27.md`).
