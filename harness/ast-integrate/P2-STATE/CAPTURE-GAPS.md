@@ -35,6 +35,7 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | CNF-0026 | `probes/CNF-0026/fixtures/control_reproducible_crlf.txt` lost its CRLF bytes in capture (static fixture, no generator) | b3-p09-CNF | eol normalisation (`.gitattributes eol=lf`) at capture time | open — needs the owner's original bytes |
 | IMP-0305 | `tools/council/vote/near_certain_v1.json` (emit_receipt.py reads it; nothing in the tree writes it) | b4-p10-IMP | data fixture excluded | open |
 | IMP-0386 | `schema/capability-record.schema.json` (SCHEMA_ROOT_REL named by the receipt's schema_input_path; nothing generates it) | b4-p11-IMP | schema dir excluded | open |
+| CNF-0178 | `probes/CNF-0178/published/packages/demo.echo/1.0.0/` (dir carried a planted `.git/HEAD`, so git dropped the whole package) | b4-p04-CNF | nested-repo marker | **repaired**: package.json + commands/echo.py reconstructed from the unit's own spec; harness plants the markers at run time |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
