@@ -9,11 +9,20 @@ from typing import Any, Iterable
 KINDS = ("skill", "hook", "rule", "command")
 
 
-def _load(path: Path) -> dict[str, Any]:
+def _load_json(path: str | Path) -> Any:
+    """Read one JSON document with plain json.loads; None when unreadable/invalid.
+
+    Case-sensitive by construction: ``Name`` and ``name`` stay distinct keys,
+    which is what the duplicate-key consumer matrix (TST-0053) measures.
+    """
     try:
-        doc = json.loads(path.read_text(encoding="utf-8"))
+        return json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        return {}
+        return None
+
+
+def _load(path: Path) -> dict[str, Any]:
+    doc = _load_json(path)
     return doc if isinstance(doc, dict) else {}
 
 

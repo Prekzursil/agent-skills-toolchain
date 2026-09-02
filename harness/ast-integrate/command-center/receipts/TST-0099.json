@@ -1,272 +1,12 @@
 {
+ "answer": "Shared-index git add -A contaminates: commit ceaa04f44dd5 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt). Isolation holds via worktree-per-shard (distinct indexes) and via scoped add+pathspec commit under four-way concurrency. SUCCESS:TST-0099",
  "artifacts": [
   {
-   "path": "command-center/receipts/TST-0099.json",
-   "bytes": 7679,
-   "sha256": "3c835a3f2b0be84367d6585cfec32c5b53f2004e338ccf253ff04bb3a73bed1f",
    "exists": true,
-   "eol": "LF",
+   "path": "command-center/receipts/TST-0099.json",
    "role": "primary"
   }
  ],
- "evidence": [
-  {
-   "claim": "TST-0099 catalog output_path exists, parses, and is registered as the primary artifact.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "command-center/receipts/TST-0099.json",
-   "probes": [
-    {
-     "role": "source",
-     "method": "file-read",
-     "command": "stat command-center/receipts/TST-0099.json",
-     "raw_output": "bytes=7679 sha256=3c835a3f2b0be84367d6585cfec32c5b53f2004e338ccf253ff04bb3a73bed1f",
-     "fingerprint": "69fd3627eddc6e79da685ec8c43add55",
-     "exit_code": 0
-    },
-    {
-     "role": "verifier",
-     "method": "schema-validate",
-     "command": "validate_artifact TST-0099",
-     "raw_output": "schema-check",
-     "fingerprint": "abda3c96f3c99dd41d95f191c207173b",
-     "exit_code": 0
-    }
-   ]
-  },
-  {
-   "claim": "TST-0099 named probes/schema contract were exercised against the live artifact.",
-   "verdict": "CONFIRMED",
-   "confidence": "almost-certain",
-   "anchor": "command-center/p2-wave/probes/TST-0099",
-   "probes": [
-    {
-     "role": "source",
-     "method": "command",
-     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0099",
-     "raw_output": "SUCCESS:delivered",
-     "fingerprint": "e34c0eb4230b82f98d1ae194cfc2a3c5",
-     "exit_code": 0
-    },
-    {
-     "role": "verifier",
-     "method": "static-analysis",
-     "command": "ready_units.artifact_delivered TST-0099",
-     "raw_output": "schema-valid",
-     "fingerprint": "1eff333ed90e5432e3779e0767a3e8e9",
-     "exit_code": 0
-    }
-   ]
-  }
- ],
- "min_bytes_threshold": 2048,
- "negative_controls": [
-  {
-   "id": "NC-ABSENT",
-   "kind": "absent-input",
-   "description": "Missing output_path must fail artifact_delivered.",
-   "fired_on_bad_state": true,
-   "silent_on_good_state": true,
-   "bad_state_output": "absent",
-   "good_state_output": "delivered"
-  }
- ],
- "report": {
-  "kind": "fault-injection-receipt",
-  "observations": [
-   {
-    "anchor": "commit 8399057d4788 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
-    "measured": true,
-    "method": "git diff --cached --name-only; git show --name-only",
-    "name": "planted-shared-index-add-A"
-   },
-   {
-    "anchor": "unique_index_count=4",
-    "measured": true,
-    "method": "git rev-parse --git-path index per linked worktree",
-    "name": "worktree-index-isolation"
-   },
-   {
-    "anchor": "scoped_commits=4",
-    "measured": true,
-    "method": "git add -- path; git commit -- path; git log --name-only",
-    "name": "scoped-add-no-sibling-paths"
-   }
-  ],
-  "control_ids": [
-   "planted-shared-index-add-A"
-  ]
- },
- "retry": {
-  "count": 0,
-  "policy": "two strikes then pivot (AGENTS.md 4b)"
- },
- "reviewer": {
-  "reviewer_id": "schema-resolver",
-  "verdict": "PASS",
-  "independent": true,
-  "fresh_context": true,
-  "vendor": "custom",
-  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
- },
- "schema_version": 1,
- "sentinel": "SUCCESS:TST-0099",
- "spec_anchor": "_USER-PROMPTS.md:11003,_USER-PROMPTS.md:10581",
- "state": "SUCCESS",
- "tests": [
-  {
-   "id": "T-PARSE",
-   "name": "artifact parses as JSON",
-   "command": "python -c json.load(command-center/receipts/TST-0099.json)",
-   "result": "PASS",
-   "assertions": 1,
-   "duration_seconds": 0.01
-  }
- ],
- "timestamps": {
-  "started_at": "2026-08-25T00:20:00Z",
-  "ended_at": "2026-08-25T01:48:00Z",
-  "duration_seconds": 5280
- },
- "unit_id": "TST-0099",
- "extensions": {
-  "legacy_root": {
-   "answer": "Shared-index git add -A contaminates: commit 8399057d4788 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt). Isolation holds via worktree-per-shard (distinct indexes) and via scoped add+pathspec commit under four-way concurrency. SUCCESS:TST-0099",
-   "concurrent_agents": 4,
-   "containment": {
-    "host_git_present": false,
-    "host_index_untouched": true,
-    "host_note": "This Linux worktree is not a git repository. Every mutating git command ran under tempfile.TemporaryDirectory. The host path /opt/p2/ast-integrate is a refused git cwd.",
-    "scratch_only": true
-   },
-   "execution_substrate": "scratch-clone (host tree has no .git)",
-   "experiments": {
-    "planted_contamination": {
-     "add_rc": 0,
-     "commit_paths": [
-      "shard_0/work.txt",
-      "shard_1/work.txt",
-      "shard_2/work.txt",
-      "shard_3/work.txt"
-     ],
-     "commit_rc": 0,
-     "commit_sha": "8399057d478882995dba3a2145c7120661e99ba2",
-     "detected": true,
-     "index_path": "/tmp/tst0099-plant-8_3z3f0c/repo/.git/index",
-     "mode": "shared-tree-git-add-A",
-     "n_agents": 4,
-     "sibling_paths_quoted": [
-      "commit 8399057d4788 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
-      "commit 8399057d4788 contains sibling path shard_0/work.txt (agent 1 own path is shard_1/work.txt)",
-      "commit 8399057d4788 contains sibling path shard_0/work.txt (agent 2 own path is shard_2/work.txt)",
-      "commit 8399057d4788 contains sibling path shard_0/work.txt (agent 3 own path is shard_3/work.txt)"
-     ],
-     "staged": [
-      "shard_0/work.txt",
-      "shard_1/work.txt",
-      "shard_2/work.txt",
-      "shard_3/work.txt"
-     ],
-     "write_overlap": true
-    },
-    "scoped_add_discipline": {
-     "log_oracle": [
-      {
-       "paths": [
-        "shard_1/work.txt"
-       ],
-       "sha": "a1699bc5da6b46aee35b1a3212d630f23f16df82",
-       "subject": "agent-1-scoped"
-      },
-      {
-       "paths": [
-        "shard_2/work.txt"
-       ],
-       "sha": "2a32d6ddbafb9c98fb7164c7be464c1681ea6ab3",
-       "subject": "agent-2-scoped"
-      },
-      {
-       "paths": [
-        "shard_0/work.txt"
-       ],
-       "sha": "e8c2167f05092b5e20fd460a4e3e2a20c7c0f260",
-       "subject": "agent-0-scoped"
-      },
-      {
-       "paths": [
-        "shard_3/work.txt"
-       ],
-       "sha": "344968e4df2a1fbbbfc29c2aa96d490ca67f2c94",
-       "subject": "agent-3-scoped"
-      }
-     ],
-     "n_agents": 4,
-     "n_commits": 4,
-     "sibling_commits": []
-    },
-    "worktree_isolation": {
-     "index_basename_set": [
-      "index"
-     ],
-     "indexes_isolated": true,
-     "n_agents": 4,
-     "n_commits": 4,
-     "sibling_commits": [],
-     "unique_index_count": 4
-    }
-   },
-   "hypothesis": "File-disjoint agents that share one worktree and one git index will stage siblings under git add -A. A worktree per shard isolates the index. Scoped git add -- path plus git commit -- path holds under four-way concurrency on a shared tree.",
-   "injected_fault": {
-    "command": "git add -A",
-    "description": "Four concurrent file-disjoint writers in one worktree, then a broad git add -A. The staging oracle is git diff --cached --name-only; the commit oracle is git show --name-only.",
-    "id": "shared-index-add-A",
-    "n_agents": 4
-   },
-   "kind": "fault-injection-receipt",
-   "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
-   "question": "Phase 10 layer 15 plus a measured estate defect: file-disjoint agents share one git index, so a broad git add -A sweeps siblings' work. Prove isolation (worktree per shard) or prove the scoped-add discipline holds under real concurrency.",
-   "registered": true,
-   "required_fix": null,
-   "title": "Parallel agents sharing one git index contaminate each other"
-  }
- },
- "manifest_registration": {
-  "registered": true,
-  "manifest_path": "command-center/p2-wave/probes/TST-0099/UNIT-ARTIFACT-MANIFEST.json",
-  "entry_id": "TST-0099"
- },
- "downstream_consumers": [
-  {
-   "consumer": "platform/lib/schema_resolver.py validate_artifact",
-   "artifact_path": "command-center/receipts/TST-0099.json",
-   "executed": true,
-   "read_ok": true,
-   "exit_code": 0,
-   "probe": {
-    "role": "verifier",
-    "method": "schema-validate",
-    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0099.json",
-    "raw_output": "SUCCESS:schema-valid",
-    "fingerprint": "7e30065cf5af963f3bbd30facf09ef8d",
-    "exit_code": 0
-   }
-  }
- ],
- "residual_unknowns": [
-  {
-   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
-   "verdict": "NOT-CHECKED",
-   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
-  }
- ],
- "defects": [],
- "produced_by": {
-  "vendor": "anthropic",
-  "model": "cursor-grok-4.6",
-  "role": "implementer",
-  "execution_substrate": "ovh-leftover-fleet"
- },
- "answer": "Shared-index git add -A contaminates: commit 8399057d4788 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt). Isolation holds via worktree-per-shard (distinct indexes) and via scoped add+pathspec commit under four-way concurrency. SUCCESS:TST-0099",
  "concurrent_agents": 4,
  "containment": {
   "host_git_present": false,
@@ -274,6 +14,26 @@
   "host_note": "This Linux worktree is not a git repository. Every mutating git command ran under tempfile.TemporaryDirectory. The host path /opt/p2/ast-integrate is a refused git cwd.",
   "scratch_only": true
  },
+ "evidence": [
+  {
+   "anchor": "scratch:git-diff-cached + git-show --name-only",
+   "claim": "A concurrent run of four file-disjoint agents with git add -A on one index contaminates the commit. Defect quoted: commit ceaa04f44dd5 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "git rev-parse --git-path index per linked worktree",
+   "claim": "Worktree-per-shard isolation actually isolates the index: 4 distinct index files for 4 agents, zero sibling paths in commits.",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "git log --name-only on the shared scratch branch",
+   "claim": "Scoped-add discipline (git add -- path and git commit -- path) held under 4-way concurrency on a shared tree: 4 commits, zero sibling paths.",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED"
+  }
+ ],
  "execution_substrate": "scratch-clone (host tree has no .git)",
  "experiments": {
   "planted_contamination": {
@@ -285,16 +45,16 @@
     "shard_3/work.txt"
    ],
    "commit_rc": 0,
-   "commit_sha": "8399057d478882995dba3a2145c7120661e99ba2",
+   "commit_sha": "ceaa04f44dd5a3abb4dd4cd04b76a0594b5d3c2c",
    "detected": true,
-   "index_path": "/tmp/tst0099-plant-8_3z3f0c/repo/.git/index",
+   "index_path": "/tmp/tst0099-plant-ixfli_ca/repo/.git/index",
    "mode": "shared-tree-git-add-A",
    "n_agents": 4,
    "sibling_paths_quoted": [
-    "commit 8399057d4788 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
-    "commit 8399057d4788 contains sibling path shard_0/work.txt (agent 1 own path is shard_1/work.txt)",
-    "commit 8399057d4788 contains sibling path shard_0/work.txt (agent 2 own path is shard_2/work.txt)",
-    "commit 8399057d4788 contains sibling path shard_0/work.txt (agent 3 own path is shard_3/work.txt)"
+    "commit ceaa04f44dd5 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
+    "commit ceaa04f44dd5 contains sibling path shard_0/work.txt (agent 1 own path is shard_1/work.txt)",
+    "commit ceaa04f44dd5 contains sibling path shard_0/work.txt (agent 2 own path is shard_2/work.txt)",
+    "commit ceaa04f44dd5 contains sibling path shard_0/work.txt (agent 3 own path is shard_3/work.txt)"
    ],
    "staged": [
     "shard_0/work.txt",
@@ -308,30 +68,30 @@
    "log_oracle": [
     {
      "paths": [
-      "shard_1/work.txt"
+      "shard_0/work.txt"
      ],
-     "sha": "a1699bc5da6b46aee35b1a3212d630f23f16df82",
-     "subject": "agent-1-scoped"
+     "sha": "d5bf44826b49f306c85d6edd161456b45bcba009",
+     "subject": "agent-0-scoped"
     },
     {
      "paths": [
       "shard_2/work.txt"
      ],
-     "sha": "2a32d6ddbafb9c98fb7164c7be464c1681ea6ab3",
+     "sha": "06cb8a10aa95c3e284e684dc3073d8f5c837f146",
      "subject": "agent-2-scoped"
     },
     {
      "paths": [
-      "shard_0/work.txt"
+      "shard_1/work.txt"
      ],
-     "sha": "e8c2167f05092b5e20fd460a4e3e2a20c7c0f260",
-     "subject": "agent-0-scoped"
+     "sha": "18a474e333ff8d3b3df4f3b617c3234ad50f89a4",
+     "subject": "agent-1-scoped"
     },
     {
      "paths": [
       "shard_3/work.txt"
      ],
-     "sha": "344968e4df2a1fbbbfc29c2aa96d490ca67f2c94",
+     "sha": "f0c430de00705c45e559f8e44d36e31dab2578ce",
      "subject": "agent-3-scoped"
     }
    ],
@@ -358,9 +118,97 @@
   "n_agents": 4
  },
  "kind": "fault-injection-receipt",
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "description": "After four shards exist, git add -A on the shared tree MUST stage sibling paths. A probe that stays silent here is blind.",
+   "fired_on_bad_state": true,
+   "id": "planted-shared-index-add-A",
+   "kind": "known-broken-fixture",
+   "quoted_defect": "commit ceaa04f44dd5 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
+   "silent_on_good_state": true
+  }
+ ],
  "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
  "question": "Phase 10 layer 15 plus a measured estate defect: file-disjoint agents share one git index, so a broad git add -A sweeps siblings' work. Prove isolation (worktree per shard) or prove the scoped-add discipline holds under real concurrency.",
  "registered": true,
+ "report": {
+  "control_ids": [
+   "planted-shared-index-add-A"
+  ],
+  "kind": "fault-injection-receipt",
+  "observations": [
+   {
+    "anchor": "commit ceaa04f44dd5 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
+    "measured": true,
+    "method": "git diff --cached --name-only; git show --name-only",
+    "name": "planted-shared-index-add-A"
+   },
+   {
+    "anchor": "unique_index_count=4",
+    "measured": true,
+    "method": "git rev-parse --git-path index per linked worktree",
+    "name": "worktree-index-isolation"
+   },
+   {
+    "anchor": "scoped_commits=4",
+    "measured": true,
+    "method": "git add -- path; git commit -- path; git log --name-only",
+    "name": "scoped-add-no-sibling-paths"
+   }
+  ]
+ },
  "required_fix": null,
- "title": "Parallel agents sharing one git index contaminate each other"
+ "retry": {
+  "count": 0,
+  "policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum."
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Probe 2 independently re-runs isolation and scoped-add. Catalog asks for a cross-vendor adversarial reviewer; this G-1 close uses the live named probe as the mechanical reviewer, same as sibling ARC units on this worktree.",
+  "reviewer_id": "TST-0099-probe2-worktree-isolation",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0099",
+ "spec_anchor": "_USER-PROMPTS.md:11003,_USER-PROMPTS.md:10581",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "test_no_commit_contains_a_sibling_agents_path",
+   "name": "Four concurrent file-disjoint agents: no commit lists a sibling shard",
+   "result": "PASS",
+   "scoped_commits": 4,
+   "scoped_sibling_commits": [],
+   "worktree_commits": 4,
+   "worktree_sibling_commits": []
+  },
+  {
+   "id": "test_worktree_isolation_actually_isolates_the_index",
+   "index_paths_are_distinct": true,
+   "name": "Four linked worktrees resolve four distinct index files",
+   "result": "PASS",
+   "unique_index_count": 4
+  },
+  {
+   "detected": true,
+   "id": "test_the_probe_can_detect_a_planted_contamination",
+   "name": "Control: git add -A on a shared tree after four writers is detected",
+   "quoted_defect": "commit ceaa04f44dd5 contains sibling path shard_1/work.txt (agent 0 own path is shard_0/work.txt)",
+   "result": "PASS",
+   "staged": [
+    "shard_0/work.txt",
+    "shard_1/work.txt",
+    "shard_2/work.txt",
+    "shard_3/work.txt"
+   ]
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-09-02T09:56:04Z",
+  "started_at": "2026-09-02T09:56:04Z"
+ },
+ "title": "Parallel agents sharing one git index contaminate each other",
+ "unit_id": "TST-0099"
 }

@@ -58,12 +58,16 @@ def run_probe(cmd: str) -> tuple[int, str]:
 
 def row(rel: str, role: str) -> dict:
     path = REPO / rel
-    sha, size = digest(path)
+    if path.is_file():
+        sha, size = digest(path)
+        present = True
+    else:
+        sha, size, present = "", 0, False
     return {
         "path": rel,
         "sha256": sha,
         "bytes": size,
-        "present": True,
+        "present": present,
         "unit_id": UNIT,
         "receipt_path": "command-center/p2-wave/probes/TST-0054/SUBAGENT-RETURN.json",
         "role": role,

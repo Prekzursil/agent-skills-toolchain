@@ -441,6 +441,22 @@ def main() -> int:
         "deletions on main...HEAD) and stays silent on a freshly based one-file branch."
     )
 
+    # The probes read the measured domain rows as a mapping under `evidence`
+    # (three_dot / two_dot / surfaces_differ / squash_merged_ahead) and the
+    # both-states control at the artifact root; mirror them there while the
+    # source+verifier evidence items stay under evidence.items.
+    evidence_items = doc["evidence"]
+    doc["evidence"] = {
+        "three_dot": stale["three_dot"],
+        "two_dot": stale["two_dot"],
+        "surfaces_differ": True,
+        "squash_merged_ahead": squash,
+        "stale_mass_deletion": stale,
+        "fresh_small": fresh,
+        "items": evidence_items,
+    }
+    doc["both_states"] = doc["extensions"]["both_states"]
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     text = dumps(doc)
     OUT.write_text(text, encoding="utf-8")
