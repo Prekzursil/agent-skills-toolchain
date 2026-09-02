@@ -24,13 +24,52 @@ class StrictJSONError(ValueError):
 
 
 class DuplicateKeyError(StrictJSONError):
-    """Duplicate object keys are errors, never last-wins."""
+    """Duplicate object keys are errors, never last-wins.
 
-    def __init__(self, key: str, first: Any = None, second: Any = None) -> None:
-        super().__init__(f"duplicate key {key!r}")
+    The message names the key, the object path and BOTH competing values so
+    the owner's first intent is never silently discarded.
+    """
+
+    def __init__(
+        self,
+        key: str,
+        first: Any = None,
+        second: Any = None,
+        *,
+        path: str = "$",
+        line: int = 1,
+        column: int = 1,
+    ) -> None:
+        super().__init__(
+            f"duplicate key {key!r} at {path}: first={first!r} second={second!r}",
+            kind="json",
+            line=line,
+            column=column,
+        )
         self.key = key
         self.first = first
         self.second = second
+        self.path = path
+
+    @property
+    def first_value(self) -> Any:
+        """Value of the earlier member (owner intent)."""
+        return self.first
+
+    @property
+    def second_value(self) -> Any:
+        """Value of the later member (what last-wins would keep)."""
+        return self.second
+
+    def reports_both_values(self) -> bool:
+        """True when the error text carries both competing values."""
+        message = str(self)
+        return repr(self.first) in message and repr(self.second) in message
+
+    def to_dict(self) -> dict:
+        out = super().to_dict()
+        out.update({"key": self.key, "path": self.path, "first": self.first, "second": self.second})
+        return out
 
 
 def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
