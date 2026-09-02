@@ -2041,7 +2041,7 @@ class Engine:
                     "private_bytes": total,
                     "proposal": "keep every tab; make the browser DISCARD idle ones "
                     "(the only lever that returns commit): TotalMemoryLimitMb for Chrome "
-                    "and Edge, Chrome HighEfficiencyModeEnabled=1 + MemorySaverModeSavings=2, "
+                    "and Edge, Chrome Memory Saver (HighEfficiencyModeEnabled=1 + MemorySaverModeSavings=2), "
                     "Edge SleepingTabsEnabled=1 + SleepingTabsTimeout=300, background mode "
                     "and startup boost off - `python hygiene_doctor.py browser-policy --emit "
                     "<dir>` writes the .reg, its rollback and a verify script; never trim "
