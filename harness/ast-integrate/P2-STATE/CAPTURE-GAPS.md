@@ -17,6 +17,7 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | IMP-0333 | `tools/council/tests/test_oxford.py` | probe2 `can't open file`; the receipt already equals the live numbers and the manifest row matches (w7) | test file never captured (no copy anywhere on the box) | open |
 | TST-0055 | `command-center/blueprints/engineering/engine.py` | `FileNotFoundError`; no copy on the box, absent from git (p44-TST) | not captured | open |
 | TST-0068 | `hooks/_dispatch/manifest.json` | capture holds a 123-byte `not_the_deployed_copy` stub; the real 14063-byte manifest exists at the toolchain root `/workspace/hooks/_dispatch/manifest.json` (p44-TST) | live tree carried a stub copy; candidate source at the toolchain root (owner to confirm) | open |
+| IMP-0067 | `.claude-plugin/marketplace.schema.json` | referenced by 3 tools, nothing writes it (b3-p13-IMP) | not captured (the capture's `.claude-plugin/` holds marketplace.json, plugin.json, plugin.schema.json only) | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
