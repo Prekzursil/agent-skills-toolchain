@@ -40,6 +40,7 @@ def try_evaluate(model: HonestRule, cases: list[Case], slice_name: str) -> dict:
     selected = [c for c in cases if slice_of(c.id) == slice_name]
     if not selected:
         selected = [c for c in cases if slice_of(c.id) == HELD_OUT]
+    visible_n = sum(1 for c in cases if slice_of(c.id) == VISIBLE)
     correct = sum(1 for c in selected if model.predict(c) == c.label)
     acc = correct / len(selected)
     return {
@@ -47,6 +48,8 @@ def try_evaluate(model: HonestRule, cases: list[Case], slice_name: str) -> dict:
         "verdict": "EVALUATED",
         "accuracy": acc,
         "heldout_n": len(selected),
+        "visible_n": visible_n,
+        "total_n": len(cases),
         "slice": slice_name,
     }
 

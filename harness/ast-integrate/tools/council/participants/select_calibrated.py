@@ -70,18 +70,35 @@ def select_calibrated(
         )
     eligible = [r for r in table if r["eligible"]]
     if not eligible:
-        event = "missing-file" if not Path(str(store)).is_file() and not isinstance(store, dict) else "empty-store"
+        # Loud degradation: no participant has enough resolved forecasts to be
+        # ranked, so fall back to the caller's explicit order and say so. Stored
+        # zero scores are never used as a rank.
+        store_is_file = isinstance(store, dict) or Path(str(store)).is_file()
+        has_records = bool(doc.get("participants"))
+        if not store_is_file:
+            event, reason = "CALIBRATION_STORE_EMPTY", "store-missing"
+        elif not has_records:
+            event, reason = "CALIBRATION_STORE_EMPTY", "no-participants"
+        else:
+            event, reason = "CALIBRATION_STORE_INSUFFICIENT", f"no-participant-with-{min_resolved}-resolved"
         return {
             "strategy_used": "degraded:explicit-order",
             "degradation": {
                 "loud": True,
                 "event": event,
+                "reason": reason,
                 "fallback": "explicit-order",
+                "n_candidates": len(candidates),
+                "n_resolved": {r["participant_id"]: r["n_resolved"] for r in table},
             },
             "confident_ranking": False,
             "ranking": [],
             "score_table": [],
-            "seated": [],
+            "seated": [
+                {"participant_id": pid, "score": None, "source": "explicit-order"}
+                for pid in candidates
+            ],
+            "metric": metric,
         }
     ranking = sorted(eligible, key=lambda r: (float(r["score"]), r["participant_id"]))
     rank_ids = [r["participant_id"] for r in ranking]

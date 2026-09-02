@@ -1,6 +1,7 @@
 """Council runtime kernel: round scheduler and turn state machine (IMP-0264)."""
 from __future__ import annotations
 
+import ast
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
@@ -182,11 +183,106 @@ def kernel_loop_records_turns() -> dict[str, bool]:
     }
 
 
+_OUTPUT_SINK_NAMES = frozenset({"output", "outputs"})
+_KERNEL_METHODS = frozenset({"record", "_record", "execute_turn", "emit", "log"})
+
+
+def _enclosing_names(tree: ast.AST) -> dict[int, tuple[str | None, str | None]]:
+    """Map node id -> (enclosing class name, enclosing function name)."""
+    scope: dict[int, tuple[str | None, str | None]] = {}
+
+    def visit(node: ast.AST, cls: str | None, fn: str | None) -> None:
+        if isinstance(node, ast.ClassDef):
+            cls, fn = node.name, None
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            fn = node.name
+        scope[id(node)] = (cls, fn)
+        for child in ast.iter_child_nodes(node):
+            visit(child, cls, fn)
+
+    visit(tree, None, None)
+    return scope
+
+
+def _is_kernel_scope(cls: str | None, fn: str | None) -> bool:
+    return bool(cls and cls.endswith("Kernel")) or (fn in _KERNEL_METHODS)
+
+
+def _writes_output(node: ast.AST) -> bool:
+    """``x.output = ...`` or ``outputs[...] = ...`` — participant output written by hand."""
+    if not isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+        return False
+    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+    for t in targets:
+        if isinstance(t, ast.Attribute) and t.attr in _OUTPUT_SINK_NAMES:
+            return True
+        if isinstance(t, ast.Subscript) and isinstance(t.value, ast.Name) and t.value.id in _OUTPUT_SINK_NAMES:
+            return True
+    return False
+
+
+def _appends_event(node: ast.AST) -> bool:
+    """``events.append({...})`` / ``self.events.append(...)`` — event log written by hand."""
+    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "append"):
+        return False
+    recv = node.func.value
+    name = recv.id if isinstance(recv, ast.Name) else recv.attr if isinstance(recv, ast.Attribute) else None
+    if name not in {"events", "event_log", "log"}:
+        return False
+    if node.args and isinstance(node.args[0], ast.Dict):
+        keys = {k.value for k in node.args[0].keys if isinstance(k, ast.Constant)}
+        return "kind" in keys or "type" in keys
+    return True
+
+
+def _calls_execute_turn(tree: ast.AST) -> bool:
+    return any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "execute_turn"
+        for n in ast.walk(tree)
+    )
+
+
 def audit_source(src: str, label: str = "") -> list[dict[str, str]]:
-    hits: list[dict[str, str]] = []
-    if "participant.output" in src or "outputs[" in src:
+    """Static call-graph audit of one topology source text.
+
+    A topology must route every participant turn through the kernel
+    (``execute_turn``), which alone records ``TURN`` events and stores output.
+    Findings (one per id per source):
+
+    * ``direct-write-output`` — an assignment to ``<x>.output`` or
+      ``outputs[...]`` outside kernel code.
+    * ``direct-write-events`` — an ``events.append(...)`` of an event record
+      outside kernel code, in a source that never calls ``execute_turn``.
+
+    Code inside a ``*Kernel`` class or a ``record``/``execute_turn`` method is
+    the kernel itself and is exempt. Unparsable text falls back to a
+    conservative substring check so a broken file still cannot pass silently.
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        hits: list[dict[str, str]] = []
+        if "participant.output" in src or "outputs[" in src:
+            hits.append({"id": "direct-write-output", "label": label})
+        if "events.append" in src and "TURN" in src and "execute_turn" not in src:
+            hits.append({"id": "direct-write-events", "label": label})
+        return hits
+    scope = _enclosing_names(tree)
+    routes_via_kernel = _calls_execute_turn(tree)
+    output_hit = False
+    events_hit = False
+    for node in ast.walk(tree):
+        cls, fn = scope.get(id(node), (None, None))
+        if _is_kernel_scope(cls, fn):
+            continue
+        if _writes_output(node):
+            output_hit = True
+        if not routes_via_kernel and _appends_event(node):
+            events_hit = True
+    hits = []
+    if output_hit:
         hits.append({"id": "direct-write-output", "label": label})
-    if "events.append" in src and "TURN" in src and "execute_turn" not in src:
+    if events_hit:
         hits.append({"id": "direct-write-events", "label": label})
     return hits
 

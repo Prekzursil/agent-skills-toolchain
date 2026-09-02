@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import itertools
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 METHOD_ROUND_ROBIN = "METHOD_ROUND_ROBIN"
@@ -20,13 +20,16 @@ def transitive_judgements(contestants: list[str]) -> dict[tuple[str, str], str]:
 
 @dataclass
 class TournamentResult:
-    winner: str
-    condorcet_winner: str
+    winner: str | None
+    condorcet_winner: str | None
     ranking: list[str]
     scores: dict[str, int]
     matches: list[dict[str, str]]
     method: str
     cycle_reported: bool = False
+    stable_winner: bool = False
+    cycles: list[list[str]] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
 
 def _pairs(contestants: list[str], seed: int) -> list[tuple[str, str]]:
@@ -34,6 +37,38 @@ def _pairs(contestants: list[str], seed: int) -> list[tuple[str, str]]:
     rng = random.Random(seed)
     rng.shuffle(pairs)
     return pairs
+
+
+def _beats(matches: list[dict[str, str]]) -> dict[str, set[str]]:
+    out: dict[str, set[str]] = {}
+    for m in matches:
+        out.setdefault(m["winner"], set()).add(m["loser"])
+        out.setdefault(m["loser"], set())
+    return out
+
+
+def condorcet_winner_of(contestants: list[str], matches: list[dict[str, str]]) -> str | None:
+    """The contestant that beat every other one head-to-head, if any."""
+    beats = _beats(matches)
+    for c in contestants:
+        if beats.get(c, set()) >= {o for o in contestants if o != c}:
+            return c
+    return None
+
+
+def smith_set(contestants: list[str], scores: dict[str, int], matches: list[dict[str, str]]) -> list[str]:
+    """Smallest non-empty set whose members each beat every non-member.
+
+    Size 1 means a Condorcet winner; size > 1 is a top cycle (no head-to-head
+    ordering exists among its members) and is reported, never broken.
+    """
+    beats = _beats(matches)
+    ordered = sorted(contestants, key=lambda c: (-scores[c], c))
+    for k in range(1, len(ordered) + 1):
+        top, rest = ordered[:k], ordered[k:]
+        if all(beats.get(t, set()) >= set(rest) for t in top):
+            return sorted(top)
+    return sorted(ordered)
 
 
 def run_tournament(
@@ -55,17 +90,25 @@ def run_tournament(
         matches.append({"winner": w, "loser": loser, "a": a, "b": b})
         scores[w] += 1
     ranking = sorted(contestants, key=lambda c: (-scores[c], c))
-    # Condorcet cycle: every contestant has the same score in a 3-cycle.
-    cycle = len(contestants) == 3 and len(set(scores.values())) == 1
-    winner = ranking[0]
+    condorcet = condorcet_winner_of(contestants, matches)
+    top = smith_set(contestants, scores, matches)
+    cycle = condorcet is None and len(top) > 1
+    notes: list[str] = []
+    if cycle:
+        # A top cycle has no winner: report it, never break it by Copeland/lex.
+        notes.append("condorcet-cycle-reported")
+        notes.append("winner-withheld:no-head-to-head-order")
     return TournamentResult(
-        winner="" if cycle else winner,
-        condorcet_winner="" if cycle else winner,
+        winner=condorcet,
+        condorcet_winner=condorcet,
         ranking=ranking,
         scores=scores,
         matches=matches,
         method=method,
         cycle_reported=cycle,
+        stable_winner=condorcet is not None,
+        cycles=[top] if cycle else [],
+        notes=notes,
     )
 
 
@@ -104,6 +147,8 @@ def _swiss(
         matches=matches,
         method=METHOD_SWISS,
         cycle_reported=False,
+        stable_winner=False,
+        notes=["swiss:incomplete-pairings;ranking-is-schedule-dependent"],
     )
 
 
@@ -129,7 +174,8 @@ def shuffle_trial(
 ) -> dict[str, Any]:
     winners: list[str] = []
     rankings: list[tuple[str, ...]] = []
-    cycle_any = False
+    cycle_flags: list[bool] = []
+    stable_flags: list[bool] = []
     for i in range(n):
         out = run_tournament(
             contestants,
@@ -138,9 +184,10 @@ def shuffle_trial(
             seed=base_seed + i,
             swiss_rounds=swiss_rounds,
         )
-        winners.append(out.winner)
+        winners.append("NONE" if out.winner is None else out.winner)
         rankings.append(tuple(out.ranking))
-        cycle_any = cycle_any or out.cycle_reported
+        cycle_flags.append(out.cycle_reported)
+        stable_flags.append(out.stable_winner)
     unique_w = sorted(set(winners))
     unique_r = len(set(rankings))
     order_ind = unique_r == 1 and len(unique_w) == 1
@@ -153,6 +200,8 @@ def shuffle_trial(
         "unique_ranking_count": unique_r,
         "order_independent": order_ind,
         "order_independent_ranking": unique_r == 1 and method == METHOD_ROUND_ROBIN,
-        "cycle_reported_any": cycle_any,
+        "cycle_reported_any": any(cycle_flags),
+        "cycle_reported_all": bool(cycle_flags) and all(cycle_flags),
+        "stable_winner_any": any(stable_flags),
         "method": method,
     }

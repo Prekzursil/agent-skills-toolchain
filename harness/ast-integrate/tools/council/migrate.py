@@ -57,17 +57,64 @@ def refusal_message(source: int, target: int, mid: str) -> str:
     )
 
 
-def run_with_gate(spec: dict[str, Any], ballots: dict[str, str] | None = None) -> dict[str, Any]:
-    refuse_unmigrated(spec)
-    return execute_v2(spec, ballots or {}, version_check=True)
+def is_unmigrated(spec: dict[str, Any]) -> bool:
+    """True when ``spec`` still carries a pre-v2 envelope (or no version at all)."""
+    return spec.get("schema_version", SOURCE_VERSION) != TARGET_VERSION
 
 
-def is_silent_run(spec: dict[str, Any]) -> bool:
+def run_with_gate(
+    spec: dict[str, Any],
+    ballots: dict[str, str] | None = None,
+    *,
+    version_check: bool = True,
+) -> dict[str, Any]:
+    """Run the v2 runtime behind the migration gate and report what happened.
+
+    Returns an envelope rather than raising so callers can tell the three states
+    apart: ``ok`` (a decision was produced), ``error`` (``"MigrationRequired"``
+    when the gate refused an un-migrated envelope) and ``silent_run`` (a decision
+    was produced for an un-migrated envelope because the gate was bypassed with
+    ``version_check=False`` — the failure mode the gate exists to prevent).
+    """
     try:
-        refuse_unmigrated(spec)
+        result = execute_v2(spec, ballots or {}, version_check=version_check)
+    except MigrationRequired as exc:
+        return {
+            "ok": False,
+            "silent_run": False,
+            "error": type(exc).__name__,
+            "message": str(exc),
+            "result": None,
+            "version_check": version_check,
+        }
+    return {
+        "ok": True,
+        "silent_run": is_silent_run(spec, result),
+        "error": None,
+        "message": None,
+        "result": result,
+        "version_check": version_check,
+    }
+
+
+def is_silent_run(spec: dict[str, Any], outcome: Any = None) -> bool:
+    """Classify an execution outcome for ``spec`` as a silent run or not.
+
+    A silent run is a v2 decision produced for an envelope that was never
+    migrated. ``outcome`` may be the decision dict the runtime returned, the
+    ``MigrationRequired`` refusal it raised, or ``None`` (in which case the
+    question is whether running ``spec`` unchecked *would* be silent).
+    """
+    if not is_unmigrated(spec):
         return False
-    except MigrationRequired:
+    if outcome is None:
         return True
+    if isinstance(outcome, BaseException):
+        return False
+    if isinstance(outcome, dict):
+        decided = outcome.get("decision") is not None or outcome.get("status") == "decided"
+        return bool(decided and outcome.get("runtime", "v2") == "v2")
+    return False
 
 
 def refuse_unmigrated(doc: dict[str, Any]) -> None:
