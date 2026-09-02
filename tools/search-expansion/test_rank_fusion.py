@@ -8,9 +8,15 @@ from __future__ import annotations
 import pytest
 
 from rank_fusion import (
+    DEFAULT_DIVERSITY_WINDOW,
+    DEFAULT_MAX_PER_HOST,
+    DEFAULT_NEAR_DUP_THRESHOLD,
+    MAX_SNIPPET_CHARS,
     FusedResult,
+    diversify,
     extract_results,
     fuse_provider_payloads,
+    host_key,
     normalize_url,
     reciprocal_rank_fusion,
 )
@@ -168,7 +174,7 @@ def test_extract_results_skips_entries_that_are_neither_string_nor_mapping() -> 
 
 def test_extract_results_skips_blank_url_strings() -> None:
     assert extract_results(["   ", "https://k.example"]) == [
-        {"url": "https://k.example", "title": ""}
+        {"url": "https://k.example", "title": "", "snippet": ""}
     ]
 
 
@@ -193,6 +199,67 @@ def test_extract_results_ignores_non_string_url_values() -> None:
 
 def test_extract_results_ignores_non_string_title_values() -> None:
     assert extract_results([{"url": "https://n.example", "title": 7}])[0]["title"] == ""
+
+
+# --------------------------------------------------------------------------
+# extract_results — snippet carry (the prerequisite for any downstream reranker)
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["snippet", "description", "content", "text", "summary", "markdown"],
+)
+def test_extract_results_carries_a_snippet_from_each_provider_key(key: str) -> None:
+    """SearXNG/Tavily use `content`, Exa `text`/`summary`, Firecrawl
+    `description`/`markdown`. Any of them must surface as `snippet`."""
+    got = extract_results([{"url": "https://s.example", key: "some passage"}])
+    assert got[0]["snippet"] == "some passage"
+
+
+def test_extract_results_snippet_key_precedence_is_the_documented_order() -> None:
+    """The short, query-dependent field must win over a page body when both exist."""
+    firecrawl = {
+        "url": "https://s.example",
+        "description": "meta",
+        "markdown": "# body",
+    }
+    assert extract_results([firecrawl])[0]["snippet"] == "meta"
+    generic = {"url": "https://s.example", "content": "c", "snippet": "s", "text": "t"}
+    assert extract_results([generic])[0]["snippet"] == "s"
+
+
+def test_extract_results_snippet_defaults_to_empty_string() -> None:
+    assert extract_results([{"url": "https://s.example"}])[0]["snippet"] == ""
+    assert extract_results(["https://s.example"])[0]["snippet"] == ""
+
+
+def test_extract_results_snippet_skips_non_string_and_blank_values() -> None:
+    """Exa returns `summary: null` unless asked; a blank field is not a snippet."""
+    entry = {"url": "https://s.example", "content": None, "text": "   ", "summary": "S"}
+    assert extract_results([entry])[0]["snippet"] == "S"
+
+
+def test_extract_results_snippet_is_whitespace_collapsed() -> None:
+    entry = {"url": "https://s.example", "content": "  a\n\n  b\t\tc  "}
+    assert extract_results([entry])[0]["snippet"] == "a b c"
+
+
+def test_extract_results_snippet_is_capped_so_page_bodies_are_never_carried() -> None:
+    """Firecrawl `markdown` and Exa `text` can be whole pages; carry ~500 chars only."""
+    assert MAX_SNIPPET_CHARS == 500
+    got = extract_results([{"url": "https://s.example", "markdown": "x" * 2000}])[0]
+    assert len(got["snippet"]) == MAX_SNIPPET_CHARS
+    # a cut that lands on a word gap does not carry the dangling space
+    words = extract_results([{"url": "https://s.example", "text": "word " * 1000}])
+    assert len(words[0]["snippet"]) == MAX_SNIPPET_CHARS - 1
+    assert words[0]["snippet"].endswith("word")
+
+
+def test_extract_results_snippet_at_exactly_the_cap_is_untouched() -> None:
+    exact = "x" * MAX_SNIPPET_CHARS
+    got = extract_results([{"url": "https://s.example", "content": exact}])[0]
+    assert got["snippet"] == exact
 
 
 # --------------------------------------------------------------------------
@@ -341,6 +408,72 @@ def test_rrf_title_falls_back_to_a_later_provider() -> None:
     assert fused[0].title == "T"
 
 
+# --------------------------------------------------------------------------
+# reciprocal_rank_fusion — snippet rule: best-ranking provider's snippet wins
+# --------------------------------------------------------------------------
+
+
+def test_fused_result_snippet_defaults_to_empty_for_existing_constructors() -> None:
+    """Adding the field must not break anyone building FusedResult positionally."""
+    r = FusedResult("https://a", "https://a", "T", 1.0, ("exa",), {"exa": 1})
+    assert r.snippet == ""
+
+
+def test_rrf_snippet_comes_from_the_provider_that_ranked_the_url_best() -> None:
+    """Snippets are query-dependent: the engine that ranked a page highest is the one
+    whose passage matched the query best. Provider order must not change the pick."""
+    exa = [{"url": "https://other"}, {"url": "https://a", "snippet": "from exa (#2)"}]
+    tavily = [{"url": "https://a", "snippet": "from tavily (#1)"}]
+    for rankings in ({"exa": exa, "tavily": tavily}, {"tavily": tavily, "exa": exa}):
+        fused = reciprocal_rank_fusion(rankings)
+        a = next(f for f in fused if f.url == "https://a")
+        assert a.snippet == "from tavily (#1)"
+
+
+def test_rrf_snippet_falls_back_past_a_best_ranked_provider_with_none() -> None:
+    fused = reciprocal_rank_fusion(
+        {
+            "tavily": [{"url": "https://a"}],  # rank 1, no snippet -> does not compete
+            "exa": [{"url": "https://x"}, {"url": "https://a", "snippet": "exa #2"}],
+        }
+    )
+    a = next(f for f in fused if f.url == "https://a")
+    assert a.snippet == "exa #2"
+
+
+def test_rrf_snippet_tie_on_rank_goes_to_the_first_consulted_provider() -> None:
+    fused = reciprocal_rank_fusion(
+        {
+            "searxng": [{"url": "https://a", "content": "searxng #1"}],
+            "exa": [{"url": "https://a", "text": "exa #1"}],
+        }
+    )
+    assert fused[0].snippet == "searxng #1"
+
+
+def test_rrf_snippet_is_decided_at_the_counted_rank_not_a_later_repeat() -> None:
+    """A provider repeating a URL cannot inflate its rank; it cannot rewrite its snippet
+    either — the occurrence that earned the rank is the one that speaks."""
+    fused = reciprocal_rank_fusion(
+        {
+            "exa": [
+                {"url": "https://a", "snippet": "first occurrence"},
+                {"url": "https://b"},
+                {"url": "https://a", "snippet": "late repeat"},
+            ]
+        }
+    )
+    a = next(f for f in fused if f.url == "https://a")
+    assert a.snippet == "first occurrence"
+
+
+def test_rrf_snippet_is_empty_when_no_provider_supplied_one() -> None:
+    fused = reciprocal_rank_fusion(
+        {"exa": ["https://a"], "tavily": [{"url": "https://a"}]}
+    )
+    assert fused[0].snippet == ""
+
+
 def test_rrf_ordering_is_deterministic_for_tied_scores() -> None:
     """Ties must break the same way every run, or the ranking is not reproducible."""
     lists = {"a": ["https://z", "https://y"], "b": ["https://y", "https://z"]}
@@ -424,3 +557,430 @@ def test_fuse_provider_payloads_tolerates_a_dead_provider() -> None:
 
 def test_fuse_provider_payloads_empty() -> None:
     assert fuse_provider_payloads({}) == []
+
+
+def test_fuse_provider_payloads_carries_snippets_end_to_end() -> None:
+    """SearXNG `content` and Exa `text` both reach the FusedResult as `snippet`."""
+    searxng = {"results": [{"url": "https://a", "title": "A", "content": "sx passage"}]}
+    exa = {"results": [{"url": "https://b", "title": "B", "text": "exa passage"}]}
+    fused = fuse_provider_payloads({"searxng": searxng, "exa": exa})
+    by_url = {f.url: f.snippet for f in fused}
+    assert by_url == {"https://a": "sx passage", "https://b": "exa passage"}
+
+
+# --------------------------------------------------------------------------
+# host_key — the registrable-host approximation behind the diversity cap
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://example.com/a", "example.com"),
+        # www. and case are noise (mirrors normalize_url, defensively re-applied)
+        ("https://www.example.com/a", "example.com"),
+        ("https://WWW.Example.COM/a", "example.com"),
+        # subdomains fold into the parent: language editions are the common repeat
+        ("https://docs.python.org/3/", "python.org"),
+        ("https://ru.wikipedia.org/wiki/X", "wikipedia.org"),
+        ("https://a.b.c.example.com/x", "example.com"),
+        # two-letter ccTLD under a generic second-level label -> keep three labels
+        ("https://news.bbc.co.uk/x", "bbc.co.uk"),
+        ("https://bbc.co.uk/x", "bbc.co.uk"),
+        ("https://finance.sina.com.cn/x", "sina.com.cn"),
+        ("https://www.go.kr/x", "go.kr"),
+        # ...but a two-letter TLD with an ordinary second label is a normal domain
+        ("https://foo.example.co/x", "example.co"),
+        # documented over-merge: shared-hosting parents count as ONE host
+        ("https://alice.github.io/x", "github.io"),
+        # ports and userinfo are not part of the host
+        ("https://user:pw@example.com:8443/x", "example.com"),
+        # IP literals and single-label hosts are used whole
+        ("https://192.168.1.10:8080/x", "192.168.1.10"),
+        ("https://localhost:8890/search", "localhost"),
+        ("https://[::1]/x", "::1"),
+        # a URL that carries no host at all still yields a (shared) key
+        ("https:///no-host", ""),
+    ],
+)
+def test_host_key_cases(url: str, expected: str) -> None:
+    assert host_key(url) == expected
+
+
+# --------------------------------------------------------------------------
+# diversify — host cap + near-duplicate demotion (re-ordering only)
+# --------------------------------------------------------------------------
+
+
+def _fr(
+    url: str, title: str = "", snippet: str = "", score: float = 1.0
+) -> FusedResult:
+    return FusedResult(url, url, title, score, ("t",), {"t": 1}, snippet)
+
+
+def test_diversify_defaults_are_the_documented_values() -> None:
+    assert DEFAULT_MAX_PER_HOST == 2
+    assert DEFAULT_NEAR_DUP_THRESHOLD == 0.8
+    assert DEFAULT_DIVERSITY_WINDOW == 10
+
+
+def test_diversify_caps_results_per_host_within_the_window() -> None:
+    fused = [
+        _fr("https://a.com/1"),
+        _fr("https://a.com/2"),
+        _fr("https://a.com/3"),
+        _fr("https://b.com/1"),
+    ]
+    out = diversify(fused)
+    assert [r.url for r in out] == [
+        "https://a.com/1",
+        "https://a.com/2",
+        "https://b.com/1",
+        "https://a.com/3",
+    ]
+
+
+def test_diversify_host_cap_folds_subdomains_into_one_host() -> None:
+    fused = [
+        _fr("https://en.wikipedia.org/1"),
+        _fr("https://ru.wikipedia.org/2"),
+        _fr("https://zh.wikipedia.org/3"),
+        _fr("https://mojeek.com/1"),
+    ]
+    assert [r.url for r in diversify(fused)][2] == "https://mojeek.com/1"
+
+
+def test_diversify_demotes_never_drops() -> None:
+    fused = [_fr(f"https://a.com/{i}") for i in range(6)]
+    out = diversify(fused)
+    assert len(out) == len(fused)
+    assert {r.url for r in out} == {r.url for r in fused}
+
+
+def test_diversify_is_a_reordering_only_scores_and_objects_untouched() -> None:
+    """Demotion must leave the RRF score visible: a caller can still see WHY the
+    original order was what it was, and a non-monotonic score column is the trace."""
+    fused = [
+        _fr("https://a.com/1", score=0.5),
+        _fr("https://a.com/2", score=0.4),
+        _fr("https://a.com/3", score=0.3),
+        _fr("https://b.com/1", score=0.2),
+    ]
+    out = diversify(fused)
+    assert [r.score for r in out] == [0.5, 0.4, 0.2, 0.3]
+    assert all(any(o is f for f in fused) for o in out)
+
+
+def test_diversify_tail_keeps_original_relative_order() -> None:
+    """Everything outside the window — demoted or simply beyond it — stays in RRF order."""
+    fused = [
+        _fr("https://a.com/1"),
+        _fr("https://a.com/2"),
+        _fr("https://a.com/3"),  # demoted (host cap)
+        _fr("https://b.com/1"),
+        _fr("https://c.com/1"),  # beyond a window of 3
+        _fr("https://d.com/1"),
+    ]
+    out = diversify(fused, window=3)
+    assert [r.url for r in out] == [
+        "https://a.com/1",
+        "https://a.com/2",
+        "https://b.com/1",
+        "https://a.com/3",
+        "https://c.com/1",
+        "https://d.com/1",
+    ]
+
+
+def test_diversify_promotes_a_diverse_result_from_beyond_the_window() -> None:
+    """The MMR-style payoff: a fresh host at position 4 rises into a window of 3."""
+    fused = [_fr(f"https://a.com/{i}") for i in range(3)] + [_fr("https://b.com/1")]
+    out = diversify(fused, window=3)
+    assert [r.url for r in out][:3] == [
+        "https://a.com/0",
+        "https://a.com/1",
+        "https://b.com/1",
+    ]
+
+
+def test_diversify_rules_do_not_apply_past_the_window() -> None:
+    """With the window already full, later same-host results are neither examined nor
+    reordered — the cap is a property of the top of the list, not of the whole list."""
+    fused = [
+        _fr("https://a.com/1"),
+        _fr("https://b.com/1"),
+        _fr("https://a.com/2"),
+        _fr("https://a.com/3"),
+        _fr("https://a.com/4"),
+    ]
+    assert [r.url for r in diversify(fused, window=2)] == [r.url for r in fused]
+
+
+def test_diversify_near_duplicate_title_plus_snippet_is_demoted() -> None:
+    """Jaccard 5/6 > 0.8 -> the second is a near-duplicate of the first."""
+    fused = [
+        _fr("https://a.com/1", "alpha beta gamma", "delta epsilon zeta"),
+        _fr("https://b.com/1", "alpha beta gamma", "delta epsilon"),
+        _fr("https://c.com/1", "something else entirely"),
+    ]
+    out = diversify(fused)
+    assert [r.url for r in out] == [
+        "https://a.com/1",
+        "https://c.com/1",
+        "https://b.com/1",
+    ]
+
+
+def test_diversify_jaccard_of_exactly_the_threshold_is_not_a_duplicate() -> None:
+    """Strictly greater than: 4 shared of 5 = 0.8 exactly stays in the window."""
+    fused = [
+        _fr("https://a.com/1", "alpha beta gamma delta epsilon"),
+        _fr("https://b.com/1", "alpha beta gamma delta"),
+    ]
+    assert [r.url for r in diversify(fused)] == ["https://a.com/1", "https://b.com/1"]
+    # ...and one more shared token (5 of 6 = 0.833) tips it over
+    fused[1] = _fr("https://b.com/1", "alpha beta gamma delta epsilon zeta")
+    out = diversify(fused + [_fr("https://c.com/1", "unrelated")])
+    assert [r.url for r in out] == [
+        "https://a.com/1",
+        "https://c.com/1",
+        "https://b.com/1",
+    ]
+
+
+def test_diversify_empty_title_and_snippet_are_never_duplicates() -> None:
+    fused = [_fr("https://a.com/1"), _fr("https://b.com/1"), _fr("https://c.com/1")]
+    assert [r.url for r in diversify(fused)] == [r.url for r in fused]
+
+
+def test_diversify_non_latin_text_yields_no_tokens_so_is_never_a_duplicate() -> None:
+    """Documented limit of the [a-z0-9]+ tokenizer: pure CJK/Cyrillic text has no
+    tokens, so near-dup demotion is a no-op for it (the host cap still applies)."""
+    fused = [
+        _fr("https://a.com/1", "квантовые вычисления"),
+        _fr("https://b.com/1", "квантовые вычисления"),
+    ]
+    assert [r.url for r in diversify(fused)] == ["https://a.com/1", "https://b.com/1"]
+
+
+def test_diversify_tokens_are_lowercased_alphanumeric_runs() -> None:
+    """Case and punctuation are not signal: these two titles tokenize identically, so
+    Jaccard is 1.0 and the later one is demoted below a third, unrelated host."""
+    fused = [
+        _fr("https://a.com/1", "Quantum-Computing: 2026!"),
+        _fr("https://b.com/1", "quantum computing (2026)"),
+        _fr("https://c.com/1", "other"),
+    ]
+    assert [r.url for r in diversify(fused)] == [
+        "https://a.com/1",
+        "https://c.com/1",
+        "https://b.com/1",
+    ]
+
+
+def test_diversify_compares_against_every_kept_result_not_only_the_last() -> None:
+    fused = [
+        _fr("https://a.com/1", "alpha beta gamma delta epsilon"),
+        _fr("https://b.com/1", "totally different words here"),
+        _fr("https://c.com/1", "alpha beta gamma delta epsilon"),  # dup of #1, not #2
+        _fr("https://d.com/1", "fresh"),
+    ]
+    out = diversify(fused)
+    assert [r.url for r in out] == [
+        "https://a.com/1",
+        "https://b.com/1",
+        "https://d.com/1",
+        "https://c.com/1",
+    ]
+
+
+def test_diversify_a_demoted_result_does_not_count_toward_host_or_dups() -> None:
+    """Only KEPT results define the window: a demoted near-dup neither uses up its
+    host's quota nor becomes a comparison target for later candidates."""
+    fused = [
+        _fr("https://a.com/1", "alpha beta gamma delta epsilon"),
+        # 5 of 6 shared with #1 -> demoted; must NOT count as b.com's first result
+        _fr("https://b.com/1", "alpha beta gamma delta epsilon zeta"),
+        _fr("https://b.com/2", "one"),
+        _fr("https://b.com/3", "two"),  # b.com's SECOND kept result, so it fits
+        # 5 of 6 shared with the DEMOTED #2 (dup if it were a target), only 4 of 6
+        # with the kept #1 -> stays in the window
+        _fr("https://c.com/1", "beta gamma delta epsilon zeta"),
+    ]
+    out = diversify(fused)
+    assert [r.url for r in out] == [
+        "https://a.com/1",
+        "https://b.com/2",
+        "https://b.com/3",
+        "https://c.com/1",
+        "https://b.com/1",
+    ]
+
+
+def test_diversify_none_disables_each_mechanism_independently() -> None:
+    """Each mechanism leaves its own signature, so a None on either side is visible."""
+    fused = [
+        _fr("https://a.com/1", "alpha beta gamma delta epsilon"),
+        _fr("https://a.com/2", "one"),
+        _fr("https://a.com/3", "two"),  # third from a.com -> host cap demotes
+        _fr("https://b.com/1", "alpha beta gamma delta epsilon zeta"),  # near-dup of #1
+        _fr("https://c.com/1", "fresh"),
+    ]
+    a1, a2, a3, b1, c1 = (r.url for r in fused)
+    assert [r.url for r in diversify(fused)] == [a1, a2, c1, a3, b1]
+    assert [r.url for r in diversify(fused, max_per_host=None)] == [a1, a2, a3, c1, b1]
+    assert [r.url for r in diversify(fused, near_dup_threshold=None)] == [
+        a1,
+        a2,
+        b1,
+        c1,
+        a3,
+    ]
+    assert diversify(fused, max_per_host=None, near_dup_threshold=None) == fused
+
+
+def test_diversify_window_zero_is_the_identity() -> None:
+    fused = [_fr("https://a.com/1"), _fr("https://a.com/2"), _fr("https://a.com/3")]
+    assert diversify(fused, max_per_host=1, window=0) == fused
+
+
+def test_diversify_validates_its_parameters() -> None:
+    with pytest.raises(ValueError, match="max_per_host must be >= 1"):
+        diversify([], max_per_host=0)
+    with pytest.raises(ValueError, match="near_dup_threshold must be within"):
+        diversify([], near_dup_threshold=1.5)
+    with pytest.raises(ValueError, match="near_dup_threshold must be within"):
+        diversify([], near_dup_threshold=-0.1)
+    with pytest.raises(ValueError, match="window must be >= 0"):
+        diversify([], window=-1)
+
+
+def test_diversify_boundary_parameter_values_are_accepted() -> None:
+    fused = [
+        _fr("https://a.com/1", "x y"),
+        _fr("https://b.com/1", "x y z"),  # shares 2 of 3 tokens with #1
+        _fr("https://c.com/1", "q"),
+    ]
+    # threshold 1.0 can never be exceeded -> near-dup effectively off
+    assert diversify(fused, near_dup_threshold=1.0) == fused
+    # threshold 0.0: any shared token at all is a duplicate
+    assert [r.url for r in diversify(fused, near_dup_threshold=0.0)] == [
+        "https://a.com/1",
+        "https://c.com/1",
+        "https://b.com/1",
+    ]
+    assert diversify(fused[:1], max_per_host=1) == fused[:1]
+
+
+def test_diversify_is_pure_and_deterministic() -> None:
+    fused = [_fr(f"https://a.com/{i}", f"t{i}") for i in range(5)]
+    snapshot = list(fused)
+    runs = [[r.url for r in diversify(fused)] for _ in range(3)]
+    assert all(run == runs[0] for run in runs)
+    assert fused == snapshot
+
+
+def test_diversify_of_nothing_is_empty() -> None:
+    assert diversify([]) == []
+
+
+# --------------------------------------------------------------------------
+# opt-in from the fusers — defaults preserve the pre-diversify behaviour
+# --------------------------------------------------------------------------
+
+
+def test_rrf_default_keyword_values_do_not_diversify() -> None:
+    """Existing callers (query_plan, the hub) must see byte-identical behaviour."""
+    fused = reciprocal_rank_fusion(
+        {
+            "exa": [
+                "https://a.com/1",
+                "https://a.com/2",
+                "https://a.com/3",
+                "https://b.com",
+            ]
+        }
+    )
+    assert [f.url for f in fused] == [
+        "https://a.com/1",
+        "https://a.com/2",
+        "https://a.com/3",
+        "https://b.com",
+    ]
+
+
+def test_rrf_opts_into_the_host_cap_by_keyword() -> None:
+    fused = reciprocal_rank_fusion(
+        {"exa": ["https://a.com/1", "https://a.com/2", "https://b.com"]}, max_per_host=1
+    )
+    assert [f.url for f in fused] == [
+        "https://a.com/1",
+        "https://b.com",
+        "https://a.com/2",
+    ]
+
+
+def test_rrf_opts_into_near_dup_demotion_by_keyword() -> None:
+    fused = reciprocal_rank_fusion(
+        {
+            "exa": [
+                {"url": "https://a.com", "title": "alpha beta gamma delta epsilon"},
+                {
+                    "url": "https://b.com",
+                    "title": "alpha beta gamma delta epsilon zeta",
+                },
+                {"url": "https://c.com", "title": "different"},
+            ]
+        },
+        near_dup_threshold=0.8,
+    )
+    assert [f.url for f in fused] == ["https://a.com", "https://c.com", "https://b.com"]
+
+
+def test_rrf_diversifies_before_applying_the_limit() -> None:
+    """Otherwise a diverse result just past the cut could never be promoted into it."""
+    fused = reciprocal_rank_fusion(
+        {"exa": ["https://a.com/1", "https://a.com/2", "https://b.com"]},
+        max_per_host=1,
+        limit=2,
+    )
+    assert [f.url for f in fused] == ["https://a.com/1", "https://b.com"]
+
+
+def test_rrf_honours_the_window_keyword() -> None:
+    urls = ["https://a.com/1", "https://a.com/2", "https://a.com/3", "https://b.com"]
+    # window of 2 fills before the cap can bite -> unchanged order
+    fused = reciprocal_rank_fusion({"exa": urls}, max_per_host=2, window=2)
+    assert [f.url for f in fused] == urls
+
+
+def test_fuse_provider_payloads_passes_diversity_keywords_through() -> None:
+    payloads = {
+        "exa": {
+            "results": [
+                {"url": "https://a.com/1", "title": "alpha beta gamma delta epsilon"},
+                {
+                    "url": "https://a.com/2",
+                    "title": "alpha beta gamma delta epsilon zeta",
+                },
+                {"url": "https://a.com/3", "title": "third from the same host"},
+                {"url": "https://b.com", "title": "elsewhere"},
+            ]
+        }
+    }
+    plain = fuse_provider_payloads(payloads)
+    assert [f.url for f in plain] == [
+        "https://a.com/1",
+        "https://a.com/2",
+        "https://a.com/3",
+        "https://b.com",
+    ]
+    diverse = fuse_provider_payloads(
+        payloads, max_per_host=2, near_dup_threshold=0.8, window=10
+    )
+    assert [f.url for f in diverse] == [
+        "https://a.com/1",
+        "https://a.com/3",
+        "https://b.com",
+        "https://a.com/2",
+    ]

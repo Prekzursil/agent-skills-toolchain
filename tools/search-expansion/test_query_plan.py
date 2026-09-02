@@ -110,6 +110,17 @@ def test_searxng_region_with_no_working_engine_falls_back_to_plain() -> None:
     assert plans == (SourcePlan("searxng", "weather"),)
 
 
+@pytest.mark.parametrize("region", [None, "", "   ", "ZZ"])
+def test_regional_specs_returns_the_documented_empty_tuple_not_none(
+    region: str | None,
+) -> None:
+    """The docstring promises an empty TUPLE. `None` is falsy too, so the public path could
+    not tell them apart (mutation-check survivor at HEAD); pin the promised type."""
+    from query_plan import _regional_specs
+
+    assert _regional_specs(region, FAKE_ENGINES) == ()
+
+
 def test_non_searxng_provider_ignores_region_and_emits_one_plain_query() -> None:
     sq = SubQuery("factory output", region="CN")
     plans = translate_for_provider(sq, "exa", engines=FAKE_ENGINES)
@@ -205,3 +216,15 @@ def test_fuse_decomposed_threads_custom_k() -> None:
 
 def test_fuse_decomposed_of_nothing_is_empty() -> None:
     assert fuse_decomposed([]) == []
+
+
+def test_fuse_decomposed_carries_snippets_through_the_second_fusion() -> None:
+    """The second RRF stage must not strip what the first one carried, or no reranker
+    can run after a decomposed query either."""
+    sq0 = _fusion("searxng", {"url": "https://a.com/x", "title": "A", "content": "sx"})
+    sq1 = _fusion("exa", {"url": "https://b.com/y", "title": "B", "text": "exa"})
+    fused = fuse_decomposed([sq0, sq1])
+    assert {r.url: r.snippet for r in fused} == {
+        "https://a.com/x": "sx",
+        "https://b.com/y": "exa",
+    }

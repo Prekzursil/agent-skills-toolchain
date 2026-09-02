@@ -17,8 +17,9 @@ COVERAGE — measured vs. asserted:
 | 2. Regional engine reachability | MEASURED — per engine, both states, two independent probes |
 | 3. Enablement: apply / verify / revert | MEASURED — full cycle exercised on the live instance |
 | 4. Reach-vs-latency trade-off | MEASURED |
-| 5. RRF rank fusion | MEASURED — 88 tests; 100% line+branch on the two pure modules `rank_fusion.py` + `searxng_config.py` (`searxng_regional.py` I/O shell excluded — lint+types only); 21/21 mutations killed on each |
+| 5. RRF rank fusion | MEASURED — 88 tests; 100% line+branch on the two pure modules `rank_fusion.py` + `searxng_config.py` (`searxng_regional.py` I/O shell excluded — lint+types only); 21/21 mutations killed on each (2026-07-24 figures; current figures in §7) |
 | 6. Multilingual query strategy | Doctrine — `multilingual-search` skill |
+| 7. Wave 1 (2026-09-02): snippet carry, diversity, default-mix flips | MEASURED for the pure modules (191 tests, 100% line+branch, 53/53 + 24/24 + 8/8 mutations killed) and for the upstream evidence behind the flips; **NOT applied live** — the flip block is rendered and parsed only, see §7 |
 
 **Final state of the owner's instance: UNCHANGED.** The config change was applied, measured,
 and reverted. `D:\searxng\settings.yml` is byte-identical to as-found
@@ -222,3 +223,30 @@ See the `multilingual-search` skill: query in the target language, cite the orig
 translate only on output. A translated *query* is a different query — `国产大飞机` and
 "Chinese domestic airliner" retrieve different documents from different indexes. The skill
 carries the routing table, the two failure shapes, and the citation contract.
+
+## 7. Wave 1 additions — 2026-09-02 (rendered and tested; NOT applied live)
+
+Plan items 1a, 2 and 3 of `docs/plans/2026-09-02-search-research-tools-gemhunt.md`, landed
+in `tools/search-expansion/` from a cloud VM that **cannot reach the owner's instance**. The
+measurement discipline above still applies, so here is what was and was not measured.
+
+| What | State |
+|---|---|
+| Snippet carry into RRF (`extract_results` -> `FusedResult.snippet`, best-rank rule, 500-char cap; threaded through `query_plan.fuse_decomposed`) | MEASURED — pure; pinned by tests, incl. the best-rank tie and the "decided at the counted rank" cases |
+| Post-fusion diversity `diversify()` (host cap 2 / window 10, token-Jaccard near-dup > 0.8; re-ordering only, opt-in from both fusers) | MEASURED — pure; boundary pinned (0.8 exactly is kept), score untouched, `window=0` identity, fuser defaults reproduce the old ordering (HEAD's 105 tests re-run against the new modules: 102 pass unchanged; the 3 that fail are the one `extract_results` expected dict that now also carries `snippet: ""`, and two `searxng_config` tests that asserted the block enables only the regional set — the intended Item 1a change) |
+| Default-mix flips rendered in the managed block (`INDEPENDENT_ENGINES`: google off; mwmbl on; marginalia on + `inactive: false` + `api_key: public`) | MEASURED as YAML — the spliced `use_default_settings: true` file parses and the by-`name` merge replays in tests; `--dry-run` against a temp file prints the 56-line block (+1 separator line in the diff); re-run is a no-op |
+| Evidence behind the flips | MEASURED from this VM — upstream `searx/settings.yml` ships `google: disabled: true` and `marginalia: disabled: true, inactive: true, api_key: None`; `api.mwmbl.org/api/v1/search/?s=` -> HTTP 200, 44 results, 0.41 s; `api2.marginalia-search.com/search` with `API-Key: public` -> **HTTP 429 "QPM Limit Exceeded" on the first request** (0.45 s); Whoogle README EOL notice dated 2026-07-24; searxng/searxng#6359 closed 2026-08-22 |
+| The flips on the owner's instance | **NOT DONE.** No live `--apply`, no live `--probe`, no latency or reach numbers for mwmbl/marginalia in the default mix. The owner runs `--dry-run`, then `--apply`, then `--probe` on the box |
+| `--probe` extension (walks `MANAGED_ENGINES`, `block` column, attribution-only counting, `NOT-LOADED` verdict) | Exercised against a **loopback stub** of the JSON API only. The attribution change exists because SearXNG drops an unknown `engines=` name and answers with the default mix — the old count would have reported marginalia as `WORKS n=10` before `--apply` |
+| Verification | 191 tests (was 105), **100% line + branch** on `rank_fusion.py`, `searxng_config.py`, `query_plan.py`; mutation-check **53/53, 24/24, 8/8** (was 21/21, 21/21, 7/8) |
+
+Two things worth keeping from the run. First, the mutation tool surfaced an *equivalent
+mutant* in the new snippet rule (`snippet_rank.get(key, position + 1)` — any default above
+`position` behaves the same), which was removed by restructuring the code rather than by a
+test that would only have pinned an arbitrary constant. Second, `marginalia` is switched on
+with status `rate-limited`, not `works`: the shared `public` key is spent before any
+instance touches it, so expect `unresponsive_engines: [marginalia, too many requests]` and
+then a suspension; the entry exists because the approved plan calls for it and because
+SearXNG fails it truthfully at ~0 latency. A personal key in the spec's `extra` tuple is the
+only thing that makes it contribute results. `enabled_specs()` and therefore `query_plan`
+routing exclude it.

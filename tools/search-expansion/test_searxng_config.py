@@ -12,8 +12,11 @@ import yaml
 from searxng_config import (
     BEGIN_MARKER,
     END_MARKER,
+    INDEPENDENT_ENGINES,
+    MANAGED_ENGINES,
     REGIONAL_ENGINES,
     ConflictError,
+    EngineSpec,
     apply_block,
     enabled_specs,
     find_top_level_key,
@@ -89,6 +92,82 @@ def test_works_property_tracks_status() -> None:
 
 
 # --------------------------------------------------------------------------
+# the independent-index flips (measured 2026-09-02)
+# --------------------------------------------------------------------------
+
+
+def test_independent_engines_are_the_three_default_mix_flips() -> None:
+    by_name = {s.name: s for s in INDEPENDENT_ENGINES}
+    assert set(by_name) == {"google", "mwmbl", "marginalia"}
+    # google: keyless scraping is dead -> switched OFF, overriding any force-enable
+    assert by_name["google"].switched_off is True
+    assert by_name["google"].switched_on is False
+    assert by_name["google"].works is False
+    # mwmbl: probed live, returned results -> a measured-working engine, switched ON
+    assert by_name["mwmbl"].works is True
+    assert by_name["mwmbl"].switched_on is True
+    # marginalia: enabled per the approved plan, but the shared `public` key answered
+    # 429 at first touch -> NOT "works". Switched on; routing must not target it.
+    assert by_name["marginalia"].status == "rate-limited"
+    assert by_name["marginalia"].switched_on is True
+    assert by_name["marginalia"].works is False
+    assert by_name["marginalia"].switched_off is False
+
+
+def test_independent_engine_details_record_the_measured_basis_and_date() -> None:
+    """Convention of this file: status is observed behaviour, with its receipt."""
+    by_name = {s.name: s for s in INDEPENDENT_ENGINES}
+    assert all("2026-09-02" in s.detail for s in INDEPENDENT_ENGINES)
+    assert "Whoogle" in by_name["google"].detail
+    assert "#6359" in by_name["google"].detail
+    assert "44 results" in by_name["mwmbl"].detail
+    assert "429" in by_name["marginalia"].detail
+
+
+def test_independent_shortcuts_match_upstream_settings() -> None:
+    """Verified against searxng/searxng master `searx/settings.yml` on 2026-09-02."""
+    by_name = {s.name: s for s in INDEPENDENT_ENGINES}
+    assert by_name["google"].shortcut == "go"
+    assert by_name["mwmbl"].shortcut == "mwm"
+    assert by_name["marginalia"].shortcut == "mar"
+
+
+def test_marginalia_carries_the_keys_that_make_the_module_load() -> None:
+    """Upstream ships marginalia `inactive: true` (module not even loaded) and with no
+    api_key. Flipping `disabled` alone would change nothing."""
+    marginalia = next(s for s in INDEPENDENT_ENGINES if s.name == "marginalia")
+    assert marginalia.extra == (("inactive", "false"), ("api_key", "public"))
+    assert all(s.extra == () for s in INDEPENDENT_ENGINES if s.name != "marginalia")
+
+
+def test_managed_engines_is_regional_then_independent_with_unique_names() -> None:
+    assert MANAGED_ENGINES == REGIONAL_ENGINES + INDEPENDENT_ENGINES
+    names = [s.name for s in MANAGED_ENGINES]
+    assert len(names) == len(set(names))
+
+
+def test_regional_engines_table_is_unchanged_by_the_flips() -> None:
+    """query_plan routes on REGIONAL_ENGINES; the flips must not leak into it."""
+    assert all(s.extra == () for s in REGIONAL_ENGINES)
+    assert not any(s.switched_off for s in REGIONAL_ENGINES)
+    assert {s.name for s in REGIONAL_ENGINES}.isdisjoint(
+        {s.name for s in INDEPENDENT_ENGINES}
+    )
+
+
+def test_enabled_specs_exclude_rate_limited_and_dead_engines() -> None:
+    """`enabled_specs` feeds query routing: an explicit call to an engine that answers
+    429 is a wasted call, so only measured-WORKING engines are routable."""
+    assert tuple(s.name for s in enabled_specs(INDEPENDENT_ENGINES)) == ("mwmbl",)
+
+
+def test_engine_spec_extra_defaults_to_empty_and_is_hashable() -> None:
+    spec = EngineSpec("x", "x", "global", "works", "d")
+    assert spec.extra == ()
+    assert hash(spec)  # frozen dataclass with a tuple field stays hashable
+
+
+# --------------------------------------------------------------------------
 # render_engines_block
 # --------------------------------------------------------------------------
 
@@ -100,12 +179,108 @@ def test_rendered_block_is_valid_yaml() -> None:
     assert "engines" in parsed
 
 
-def test_rendered_block_enables_exactly_the_working_engines() -> None:
+def test_rendered_block_lists_exactly_the_on_flips_and_the_off_flips() -> None:
     parsed = yaml.safe_load(render_engines_block())
-    listed = {e["name"] for e in parsed["engines"]}
-    assert listed == {s.name for s in enabled_specs()}
-    assert all(e["disabled"] is False for e in parsed["engines"])
-    assert all(e["timeout"] > 0 for e in parsed["engines"])
+    by_name = {e["name"]: e for e in parsed["engines"]}
+    on = {s.name for s in MANAGED_ENGINES if s.switched_on}
+    off = {s.name for s in MANAGED_ENGINES if s.switched_off}
+    assert set(by_name) == on | off
+    assert on == {s.name for s in enabled_specs()} | {"mwmbl", "marginalia"}
+    assert off == {"google"}
+    assert all(by_name[n]["disabled"] is False for n in on)
+    assert all(by_name[n]["timeout"] > 0 for n in on)
+    assert all(by_name[n]["disabled"] is True for n in off)
+
+
+def test_rendered_block_flips_google_off_without_a_pointless_timeout() -> None:
+    parsed = yaml.safe_load(render_engines_block())
+    google = next(e for e in parsed["engines"] if e["name"] == "google")
+    assert google == {"name": "google", "disabled": True}
+
+
+def test_rendered_block_switches_on_mwmbl_and_marginalia_with_its_extra_keys() -> None:
+    """The extra keys must parse as the YAML types SearXNG expects: `inactive` a bool,
+    `api_key` a string. A quoting slip here would load the module with a wrong key."""
+    parsed = yaml.safe_load(render_engines_block())
+    by_name = {e["name"]: e for e in parsed["engines"]}
+    assert by_name["mwmbl"] == {"name": "mwmbl", "disabled": False, "timeout": 6.0}
+    assert by_name["marginalia"] == {
+        "name": "marginalia",
+        "disabled": False,
+        "timeout": 6.0,
+        "inactive": False,
+        "api_key": "public",
+    }
+
+
+def test_rendered_block_entries_carry_only_override_keys() -> None:
+    """`use_default_settings: true` merges each entry INTO the upstream one by `name`.
+    Re-stating `engine:`/`shortcut:`/`categories:` here would fight upstream; only the
+    keys being flipped may appear, and every entry needs its `name` to merge at all."""
+    parsed = yaml.safe_load(render_engines_block())
+    allowed = {"name", "disabled", "timeout", "inactive", "api_key"}
+    for entry in parsed["engines"]:
+        assert "name" in entry
+        assert set(entry) <= allowed, entry
+    names = [e["name"] for e in parsed["engines"]]
+    assert len(names) == len(set(names))  # a duplicate name = an ambiguous merge
+
+
+def test_rendered_block_header_records_both_measurement_dates() -> None:
+    block = render_engines_block()
+    assert "2026-07-24" in block
+    assert "2026-09-02" in block
+
+
+def test_rendered_block_records_the_new_bang_shortcuts_too() -> None:
+    block = render_engines_block()
+    assert "!mwm" in block
+    assert "!mar" in block
+    assert "!go" in block
+
+
+def test_extra_keys_render_verbatim_as_yaml_scalars() -> None:
+    """Values are emitted as written: `2` parses as an int, `false` as a bool, a bare
+    word as a string. Quote inside the value if YAML would otherwise coerce it."""
+    spec = EngineSpec(
+        "custom",
+        "cu",
+        "global",
+        "works",
+        "d",
+        4.0,
+        (("api_key", "k1"), ("weight", "2")),
+    )
+    entry = yaml.safe_load(render_engines_block((spec,)))["engines"][0]
+    assert entry == {
+        "name": "custom",
+        "disabled": False,
+        "timeout": 4.0,
+        "api_key": "k1",
+        "weight": 2,
+    }
+
+
+def test_extra_keys_render_on_a_switched_off_engine_too() -> None:
+    spec = EngineSpec(
+        "gone", "gn", "global", "dead", "d", extra=(("inactive", "true"),)
+    )
+    entry = yaml.safe_load(render_engines_block((spec,)))["engines"][0]
+    assert entry == {"name": "gone", "disabled": True, "inactive": True}
+
+
+def test_rate_limited_engine_renders_switched_on() -> None:
+    spec = EngineSpec("slow", "sl", "global", "rate-limited", "429 at first touch")
+    entry = yaml.safe_load(render_engines_block((spec,)))["engines"][0]
+    assert entry["disabled"] is False
+
+
+def test_unknown_status_with_extra_keys_stays_an_inert_comment() -> None:
+    spec = EngineSpec("odd", "od", "global", "blocked", "d", extra=(("api_key", "x"),))
+    block = render_engines_block((spec,))
+    assert yaml.safe_load(block)["engines"] is None
+    assert "odd" in block
+    assert "api_key" not in block
 
 
 def test_rendered_block_is_wrapped_in_managed_markers() -> None:
@@ -187,7 +362,48 @@ def test_applied_file_is_valid_yaml_with_both_the_old_and_new_keys() -> None:
     parsed = yaml.safe_load(apply_block(LIVE_SHAPE, render_engines_block()))
     assert parsed["use_default_settings"] is True
     assert parsed["search"]["formats"] == ["html", "json"]
-    assert {e["name"] for e in parsed["engines"]} == {s.name for s in enabled_specs()}
+    assert {e["name"] for e in parsed["engines"]} == {
+        s.name for s in MANAGED_ENGINES if s.switched_on or s.switched_off
+    }
+
+
+def test_applied_block_overrides_the_upstream_entries_by_name() -> None:
+    """Simulate SearXNG's `use_default_settings` merge: the user's entry is merged INTO
+    the upstream entry of the same name, key by key. The upstream shapes below are the
+    ones fetched from searxng/searxng master on 2026-09-02."""
+    upstream = {
+        "google": {
+            "name": "google",
+            "engine": "google",
+            "shortcut": "go",
+            "disabled": True,
+        },
+        "mwmbl": {
+            "name": "mwmbl",
+            "engine": "mwmbl",
+            "shortcut": "mwm",
+            "disabled": True,
+        },
+        "marginalia": {
+            "name": "marginalia",
+            "engine": "marginalia",
+            "shortcut": "mar",
+            "disabled": True,
+            "inactive": True,
+        },
+    }
+    ours = yaml.safe_load(apply_block(LIVE_SHAPE, render_engines_block()))["engines"]
+    merged = {
+        n: {**upstream[n], **e}
+        for n, e in ((e["name"], e) for e in ours)
+        if n in upstream
+    }
+    assert merged["google"]["disabled"] is True
+    assert merged["google"]["engine"] == "google"  # upstream module key untouched
+    assert merged["mwmbl"]["disabled"] is False
+    assert merged["marginalia"]["disabled"] is False
+    assert merged["marginalia"]["inactive"] is False
+    assert merged["marginalia"]["api_key"] == "public"
 
 
 def test_apply_block_is_idempotent() -> None:

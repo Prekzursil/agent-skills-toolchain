@@ -16,6 +16,13 @@ edit therefore cannot leave the owner without search.
 NOTE: enabling engines is only about the DEFAULT result mix. A `disabled` engine is
 already reachable ad hoc via `engines=<name>` or its `!<shortcut>` bang — measured
 2026-07-24, `!yd` returned 10 Yandex results with the engine still marked disabled.
+
+Since 2026-09-02 the block also carries the default-mix FLIPS (`INDEPENDENT_ENGINES`:
+google off, mwmbl + marginalia on), so `--probe` walks `MANAGED_ENGINES` and prints the
+state the block renders next to what the instance measured. The probe counts only results
+ATTRIBUTED to the probed engine: SearXNG drops an `engines=` name it has not loaded
+(upstream `inactive: true`, e.g. marginalia before `--apply`) and answers with the default
+mix, which a plain result count would misread as WORKS.
 """
 
 from __future__ import annotations
@@ -31,9 +38,10 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from typing import Any
 
 from searxng_config import (
-    REGIONAL_ENGINES,
+    MANAGED_ENGINES,
     ConflictError,
     apply_block,
     has_managed_block,
@@ -71,33 +79,50 @@ def _search(base_url: str, engine: str, query: str, timeout: int = 60) -> dict:
         return json.load(resp)
 
 
+def _attributed(results: list[dict[str, Any]], engine: str) -> int:
+    """Results SearXNG credits to `engine` (merged URLs carry every engine in `engines`)."""
+    return sum(1 for r in results if engine in (r.get("engines") or (r.get("engine"),)))
+
+
 def cmd_probe(base_url: str) -> int:
-    """Query every engine in its own language and classify what came back."""
-    print(f"probing {base_url}  ({len(REGIONAL_ENGINES)} engines)\n")
-    print(f"{'engine':<14} {'bang':<8} {'region':<12} verdict")
-    print("-" * 72)
+    """Query every managed engine in its own language and classify what came back."""
+    print(f"probing {base_url}  ({len(MANAGED_ENGINES)} engines)\n")
+    print(f"{'engine':<14} {'bang':<8} {'region':<12} {'block':<6} verdict")
+    print("-" * 78)
     working = 0
-    for spec in REGIONAL_ENGINES:
+    for spec in MANAGED_ENGINES:
         query = PROBE_QUERIES.get(spec.region, PROBE_QUERIES["independent"])
+        state = "on" if spec.switched_on else ("off" if spec.switched_off else "-")
         try:
             data = _search(base_url, spec.name, query)
         except (OSError, http.client.HTTPException, TimeoutError, ValueError) as exc:
             verdict = f"UNREACHABLE ({type(exc).__name__})"
         else:
-            count = len(data.get("results", []))
+            results = data.get("results", [])
+            count = _attributed(results, spec.name)
             errors = data.get("unresponsive_engines") or []
             if count:
                 verdict = f"WORKS n={count}"
                 working += 1
             elif errors:
                 verdict = f"BLOCKED {errors[0][-1] if errors[0] else 'unknown'}"
+            elif results:
+                # Results, but none from THIS engine: SearXNG did not know the name and
+                # fell back to the default mix. Upstream `inactive: true` reads like this.
+                verdict = f"NOT-LOADED default mix answered instead (n={len(results)})"
             else:
                 # No results AND no error reported: the shape that reads as success.
                 verdict = "SILENT-FAIL n=0, no error reported"
-        print(f"{spec.name:<14} !{spec.shortcut:<7} {spec.region:<12} {verdict}")
-    print(f"\n{working}/{len(REGIONAL_ENGINES)} engines returned results.")
+        print(
+            f"{spec.name:<14} !{spec.shortcut:<7} {spec.region:<12} {state:<6} {verdict}"
+        )
+    print(f"\n{working}/{len(MANAGED_ENGINES)} engines returned results.")
     print("Engines marked WORKS are usable NOW via `engines=<name>` or `!<shortcut>` —")
     print("no --apply needed. --apply only adds them to the DEFAULT result mix.")
+    print("`block` = what --apply renders: on = disabled: false, off = disabled: true;")
+    print("an `off` engine that measures BLOCKED/UNREACHABLE is the expected reading.")
+    print("NOT-LOADED = the instance has no engine of that name (upstream `inactive`);")
+    print("marginalia reads that way until --apply sets `inactive: false`.")
     return 0
 
 
@@ -230,7 +255,11 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument(
         "--dry-run", action="store_true", help="show the diff, change nothing"
     )
-    mode.add_argument("--apply", action="store_true", help="enable the working engines")
+    mode.add_argument(
+        "--apply",
+        action="store_true",
+        help="enable the working engines and apply the default-mix flips",
+    )
     mode.add_argument("--revert", action="store_true", help="restore the newest backup")
     parser.add_argument("--settings", type=pathlib.Path, default=DEFAULT_SETTINGS)
     parser.add_argument("--container", default=DEFAULT_CONTAINER)
