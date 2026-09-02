@@ -259,12 +259,17 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
 | w4b | `tools/council/topology/jury.py` (805 lines: jury topology on the RecordingKernel turn-log protocol) | ADV-0071 IMP-0285 | 2/2 FAIL→OK | 61755a565 |
 | w6 | `tools/marketplace/crypto.py` (236) + `tools/plugin/installer.py` (625); root twins deleted | ADV-0021 ADV-0025 IMP-0118 ADV-0061 IMP-0086 RES-0055 | 2/6 OK; IMP-0118 BLOCKED-BY `marketplace.features`; ADV-0061/IMP-0086 = `tools/marketplace/install.py` drift (batch s00); RES-0055 = env `referencing.exceptions` (also WFA-0140) | 1f88a794d |
 | fix | measurer sets `AST_INTEGRATE_ROOT` unconditionally: the user-site `.pth` hook set it to `~/p2-g1` inside the measure process, so a probe measured in another mirror imported from the main mirror (false-green F4, reproduced: ADV-0021 showed the main mirror's placeholder). Wave driver was immune (`-s` + explicit env); manual verifications re-run hermetically, all landed modules re-verified green | — | — | 3f4433ab4 |
+| w1 | `marketplace.revocation_list` (init, revocation.py 1047, degrade.py 301), `marketplace.ledger` (280), `bench.baseline_store` (414) | ADV-0126 IMP-0079 TST-0229 | 0/3 (import-clean; blocked by `work_claim.py`, 4 more revocation_list placeholders, `bench/runner.run_benchmark` → w1b) | a15cc68b0 |
+| w8 | `council.stopping` init + `expr.py` (1081) + `spec_examples.py` (replaces a real-surface stub); root twins deleted | IMP-0308 IMP-0310 TST-0281 IMP-0309 TST-0264 TST-0283 | 3/6 OK (2 FAIL→OK); rest blocked by `minimum.py`, `evidence_saturation.py`, `owner_ask.build_packet`, `simulate.run_council` (→ w8b) | 80418b0e3 |
+| p00-ADV | batch: `archive_extract.py` containment pre-pass, `installer.py` `on_extract` observer, 3 emitter regenerations | 12 ADV units | 5/12 OK; 2 CAPTURE-GAPs (ADV-0011, ADV-0016); 5 open loops (ADV-0004/0006/0009/0020/0033) | 629a84d72 |
+| trace | `w0902-07-trace-ok`: 1312 OK units traced with BOTH stub markers | — | 34 OK units load a stub (22 files: 13 real-surface, 5 generated, 4 already replaced); 8 regen-cleared census-type units flapped back (BLD-0004 AUD-0057 RES-0107 AUD-0095 RES-0193 WFA-0133 ADV-0017 IMP-0264) — fingerprint probes drift as the tree changes → regenerate them LAST | (this commit) |
 - Tooling this step: `_g1_rootkey.py` (re-key fails by file to touch: 712 fails → 11 shared keys / 615 per-unit
   probe-side exceptions or assertions + 3 `MISSING:pytest` + 3 TIMEOUT); `pytest` 9.1.1 installed (environment,
   like jsonschema: three units import it). Regen wave `w0902-06-regen-nonph` (640 non-placeholder fails, STRICT, 6
   workers) running: ~12 cleared of the first 314 (regeneration alone rarely helps here — the owner's regen wave had
   already run over these).
-- Running total after w2–w6: **7 modules, 20 units FAIL→OK under STRICT, 0 regressions.**
+- Running total after w1–w8 + p00: **10 module groups + 1 batch, 28 units FAIL→OK under STRICT, 0 regressions.**
+- **Second stub family (w8 finding):** 129 `# g1-mod: real-surface` files ("Import surface for X (probe-derived)": default-PASS `Result`, constant returns). `g1_placeholder_guard.py` now trips on both markers (`G1_PLACEHOLDER_MARKERS` narrows). Registers opened: `P2-STATE/CAPTURE-GAPS.md`, `P2-STATE/OPEN-LOOPS-0209.md` (fail-closed: entries stay FAIL).
 - Writers in flight: w1 (marketplace.revocation_list ×3, ledger, bench.baseline_store), w2 (council.quota), w5
   (foundry.runtime, 11 dependents), w6 (marketplace.crypto, plugin.installer), w7 (council.protocol, 14 units, serial),
   w8 (council.stopping + expr), w9 (council.outcomes), w10 (sdk.py + guard.py union contract).
