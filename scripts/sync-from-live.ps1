@@ -157,6 +157,15 @@ $Map = @(
     @{ Live = "$UserProfile\.claude\commands"; Repo = 'commands';       Label = 'commands' }
     @{ Live = "$UserProfile\.claude\hooks";    Repo = 'hooks';          Label = 'hooks' }
     @{ Live = "$UserProfile\.agents\skills";   Repo = '.agents/skills'; Label = 'skills' }
+    # Root-level audit/decision docs (HARNESS-AUDIT_*.md, CONSOLIDATED-GEM-DECISIONS_*.md, ...)
+    # live loose in ~\.agents. Five of them reached the repo only through MANUAL captures
+    # before 2026-08-27; every future edit was orphaned -- the same architectural hole this
+    # script exists to close, one level up. TopLevelOnly + Filter are load-bearing: without
+    # them this entry would re-walk skills\ (its own mapping above) and sweep logs\, backups\
+    # and secrets\. Only *.md sitting DIRECTLY in the root is captured. session-catalog.md is
+    # excluded below (machine-generated, 378 KB) -- see $ExcludeFilePatterns.
+    @{ Live = "$UserProfile\.agents";          Repo = '.agents';        Label = 'agents-root'
+       TopLevelOnly = $true; Filter = '*.md' }
 )
 
 # Loose files that live outside any synced tree and were orphaned individually. These are
@@ -171,10 +180,21 @@ $LooseFiles = @(
 # one-way mistake: git keeps the blob forever even after a later delete.
 $ExcludeDirs = @('.venv', 'venv', 'node_modules', '__pycache__', '.git', '.pytest_cache',
                  'site-packages', 'dist', 'build', '.mypy_cache', '.ruff_cache', '.tox',
-                 '.next', 'target', '.gradle')
+                 '.next', 'target', '.gradle',
+                 # Hook runtime state dirs (recall-gate indices, per-session caches). These
+                 # churn every session and must never enter version control or raise DRIFT.
+                 'state')
 $ExcludeFilePatterns = @('*.pyc', '*.pyo', '*.so', '*.dll', '*.exe', '*.egg-info',
                          '*.log', '*.tmp', '.DS_Store', 'Thumbs.db',
                          '*.sqlite', '*.sqlite3', '*.db',
+                         # Packaging / export blobs dropped next to skills (not skill content).
+                         '*.zip',
+                         # Hook throttle / UI-reminder runtime markers (live-only; rewrite often).
+                         '.last-run', '.shown-*',
+                         # Machine-generated session catalog in ~\.agents root (378 KB, regenerated
+                         # constantly; staging it crashed a daemon 2026-08-27). Also gitignored.
+                         # The tracked .agents/session-catalog.POINTER.md records where it lives.
+                         'session-catalog.md',
                          # Agent-generated backups. '*.bak' alone is NOT enough: the live tree
                          # carries suffixed forms like '.bak-fleet-20260713',
                          # '.bak-gembuild-agent-definitions-batch', and stacked ones such as
@@ -195,15 +215,14 @@ $ExcludeFilePatterns = @('*.pyc', '*.pyo', '*.so', '*.dll', '*.exe', '*.egg-info
 #                                     so this is staleness in live, NOT bidirectional divergence.
 #                                     Resolution is repo -> live via sync-skills.ps1; the hold
 #                                     stays only until that deploy happens.
-#   audit_quality_zero_platform.py    GENUINELY bidirectional: repo holds a find_python_with_yaml()
-#                                     interpreter-discovery fallback, live holds a different
-#                                     `pwsh ConvertFrom-Yaml` fallback. Merged copy that keeps
-#                                     both, ordered by reliability, is in scripts/merges/.
+#   audit_quality_zero_platform.py    WAS held (bidirectional yaml-fallback divergence). The
+#                                     scripts/merges/ reconciliation (yaml -> find_python_with_yaml
+#                                     -> pwsh ConvertFrom-Yaml) was deployed to BOTH trees
+#                                     2026-08-27, so per the rule below the entry was removed.
 # Remove an entry from this list once its merge has been deployed to live.
 $RepoOwnedFiles = @(
     'hooks/README.md',
-    '.agents/skills/multi-agent-quickstart/SKILL.md',
-    '.agents/skills/quality-zero-platform-control-plane/scripts/audit_quality_zero_platform.py'
+    '.agents/skills/multi-agent-quickstart/SKILL.md'
 )
 
 function Test-RepoOwned {
@@ -524,8 +543,14 @@ if (-not $dirtyIndex) {
 
     $destRoot = Join-Path $Root $m.Repo
     $walkErrors = @()
-    $items = @(Get-ChildItem -LiteralPath $m.Live -Recurse -File -Force `
-                             -ErrorAction SilentlyContinue -ErrorVariable +walkErrors)
+    # TopLevelOnly / Filter scope an entry to loose files directly under its live root.
+    # Added for agents-root, whose live root CONTAINS the skills mapping's live root: an
+    # unscoped recursive walk there would process ~18,000 skills files a second time and
+    # pull logs\, backups\ and secrets\ trees toward a PUBLIC repo.
+    $gci = @{ LiteralPath = $m.Live; File = $true; Force = $true }
+    if (-not ($m.ContainsKey('TopLevelOnly') -and $m.TopLevelOnly)) { $gci.Recurse = $true }
+    if ($m.ContainsKey('Filter')) { $gci.Filter = $m.Filter }
+    $items = @(Get-ChildItem @gci -ErrorAction SilentlyContinue -ErrorVariable +walkErrors)
     # -ErrorAction SilentlyContinue on its own SWALLOWS the reason a subtree was skipped, so a
     # permissions failure or an unreadable directory produced a confident all-zeros report.
     # The errors are now captured and counted instead of discarded.
@@ -614,7 +639,14 @@ if (-not $dirtyIndex) {
     }
 
     if ($Prune -and (Test-Path -LiteralPath $destRoot) -and -not $Drift) {
-        foreach ($rf in (Get-ChildItem -LiteralPath $destRoot -Recurse -File -ErrorAction SilentlyContinue)) {
+        # The prune walk must honor the same TopLevelOnly/Filter scope as the forward walk.
+        # For agents-root, destRoot (.agents) CONTAINS the skills mapping's dest tree: an
+        # unscoped recursive prune here would re-judge every skills file under a second area
+        # and could delete repo files this entry never captures.
+        $gciR = @{ LiteralPath = $destRoot; File = $true }
+        if (-not ($m.ContainsKey('TopLevelOnly') -and $m.TopLevelOnly)) { $gciR.Recurse = $true }
+        if ($m.ContainsKey('Filter')) { $gciR.Filter = $m.Filter }
+        foreach ($rf in (Get-ChildItem @gciR -ErrorAction SilentlyContinue)) {
             if (Test-Excluded -FullPath $rf.FullName -Base $destRoot) { continue }
             $rel = $rf.FullName.Substring($destRoot.Length).TrimStart('\', '/')
             $repoRel = ($m.Repo + '/' + $rel) -replace '\\', '/'
@@ -781,7 +813,7 @@ if ($WhatIf) {
     Say ("         copies hash-verified: {0}" -f $T.verifiedCopies) 'DarkGray'
     Say ""
     Say "  Next: review, then commit with a SCOPED add (never 'git add -A'):"
-    Say "    git -C `"$Root`" add rules agents commands hooks .agents/skills tools/monitor"
+    Say "    git -C `"$Root`" add rules agents commands hooks .agents/skills '.agents/*.md' tools/monitor"
     Say "    git -C `"$Root`" diff --cached --stat        # verify nothing unexpected"
     Say ""
 }
