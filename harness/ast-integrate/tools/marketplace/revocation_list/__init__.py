@@ -1,78 +1,56 @@
+"""Marketplace revocation list (IMP-0079): signed-list client and degrade-loudly sink.
+
+Re-exports the public surface of the two core submodules:
+
+* :mod:`.degrade` - :class:`DegradeSink`, the durable bounded warning sink, and
+  the ``STALE`` / ``REJECTED`` warning codes;
+* :mod:`.revocation` - :class:`HttpTransport` / :class:`FetchError`, the
+  verify-only :class:`RevocationClient`, its :class:`RevocationDecision`, and
+  the :class:`RevocationList` model.
+
+``install_gate`` (the install-time gate) and ``fixtures`` (test doubles and the
+owner signing helpers) are imported explicitly by their consumers and are not
+loaded at package import time.
+"""
 from __future__ import annotations
 
-# g1-surface: generated
+from .degrade import REJECTED, STALE, DegradeSink, DegradeSinkCorrupt
+from .revocation import (
+    ALLOW,
+    FRESH,
+    REFUSE,
+    UNREACHABLE,
+    FetchError,
+    HttpTransport,
+    ListSchemaError,
+    ListSequenceError,
+    ListSignatureError,
+    RefreshResult,
+    RevocationClient,
+    RevocationDecision,
+    RevocationList,
+    RevocationListError,
+    sign_envelope,
+)
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any
-
-
-class _NS:
-    def __init__(self, name: str = "ns", **kwargs: Any) -> None:
-        self._name = name
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-    def __repr__(self) -> str:
-        return f"<g1 {{self._name}}>"
-
-    def __bool__(self) -> bool:
-        return True
-
-    def __iter__(self):
-        return iter(())
-
-    def __len__(self) -> int:
-        return 0
-
-    def __hash__(self) -> int:
-        return hash(self._name)
-
-    def __eq__(self, other: object) -> bool:
-        return self is other or (
-            isinstance(other, _NS) and other._name == self._name
-        )
-
-    def __getitem__(self, key: Any) -> Any:
-        return _NS(str(key))
-
-    def __setitem__(self, key: Any, value: Any) -> None:
-        setattr(self, str(key), value)
-
-    def __getattr__(self, key: str) -> Any:
-        if key.startswith("_"):
-            raise AttributeError(key)
-        val = _NS(key)
-        setattr(self, key, val)
-        return val
-
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        return _NS(self._name + "_ret", args=args, **kwargs)
-
-    def get(self, key: Any, default: Any = None) -> Any:
-        if hasattr(self, str(key)):
-            return getattr(self, str(key))
-        return default if default is not None else _NS(str(key))
-
-    def keys(self):
-        return (k for k in self.__dict__ if not k.startswith("_"))
-
-    def values(self):
-        return (getattr(self, k) for k in list(self.keys()))
-
-    def items(self):
-        return ((k, getattr(self, k)) for k in list(self.keys()))
-
-
-def _call(name: str, *args: Any, **kwargs: Any) -> Any:
-    return _NS(name, args=args, **kwargs)
-
-__surface__ = 'tools.marketplace.revocation_list'
-
-def __getattr__(name: str):
-    if name.startswith('_'):
-        raise AttributeError(name)
-    val = _NS(name)
-    globals()[name] = val
-    return val
-
+__all__ = [
+    "ALLOW",
+    "DegradeSink",
+    "DegradeSinkCorrupt",
+    "FRESH",
+    "FetchError",
+    "HttpTransport",
+    "ListSchemaError",
+    "ListSequenceError",
+    "ListSignatureError",
+    "REFUSE",
+    "REJECTED",
+    "RefreshResult",
+    "RevocationClient",
+    "RevocationDecision",
+    "RevocationList",
+    "RevocationListError",
+    "STALE",
+    "UNREACHABLE",
+    "sign_envelope",
+]
