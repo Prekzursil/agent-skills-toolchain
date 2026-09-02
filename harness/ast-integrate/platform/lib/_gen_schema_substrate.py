@@ -132,6 +132,42 @@ def _physical_pins_kind(frag: str) -> bool:
     return '"kind"' in text and '"const"' in text
 
 
+def _self_contained_meta(meta: dict) -> dict:
+    """Inline the draft-2020-12 vocabulary meta-schemas so the mirror has no
+    relative $refs left.
+
+    The library's META_SCHEMA is `allOf: [{$ref: meta/core}, ...]`. Each vocabulary
+    document loses its own $id/$schema/$dynamicAnchor/$vocabulary (the mirror root
+    keeps `$dynamicAnchor: meta`, which is what their `$dynamicRef: #meta` binds to)
+    and its $defs are merged into the root $defs, where their `#/$defs/<name>`
+    pointers now land. Names are disjoint across the seven vocabularies; a collision
+    fails loud rather than silently shadowing one definition with another.
+    """
+    from jsonschema_specifications import REGISTRY as SPECS
+
+    base = META_URL.rsplit("/", 1)[0] + "/"
+    defs: dict = dict(meta.get("$defs") or {})
+    inlined: list = []
+    for item in meta.get("allOf") or []:
+        ref = item.get("$ref") if isinstance(item, dict) else None
+        if not ref:
+            inlined.append(item)
+            continue
+        vocab = dict(SPECS.contents(base + ref))
+        for key in ("$schema", "$id", "$dynamicAnchor", "$vocabulary", "title"):
+            vocab.pop(key, None)
+        for name, body in (vocab.pop("$defs", None) or {}).items():
+            if name in defs and defs[name] != body:
+                raise RuntimeError(f"meta-schema $defs collision on {name!r} from {ref}")
+            defs[name] = body
+        vocab["$comment"] = f"inlined from {base}{ref}"
+        inlined.append(vocab)
+    meta["allOf"] = inlined
+    if defs:
+        meta["$defs"] = defs
+    return meta
+
+
 def class_id_for_file(rel: str) -> str:
     base = os.path.basename(rel)
     for suf in (".schema.json", ".json"):
@@ -311,15 +347,20 @@ def main(argv: list[str] | None = None) -> int:
     # ---- 2. the meta-schema mirror (offline, from the installed library) ---
     from jsonschema.validators import Draft202012Validator
 
-    meta = dict(Draft202012Validator.META_SCHEMA)
+    meta = _self_contained_meta(dict(Draft202012Validator.META_SCHEMA))
     primary_meta = "command-center/schema/_meta/json-schema-2020-12.json"
     alias_meta = "command-center/schema/meta/json-schema-draft.json"
     meta["$comment"] = (
         "Local mirror of the draft-2020-12 meta-schema, emitted from the installed "
         "jsonschema package (no network fetch). Declared as output_schema by units whose "
-        "output IS a JSON Schema. Vocabulary $refs resolve through the library's bundled "
-        "registry; schema_resolver.validator_for() returns the library's own meta-schema "
-        "validator for this id so resolution never touches the network."
+        "output IS a JSON Schema. SELF-CONTAINED: the seven vocabulary meta-schemas "
+        "(meta/core ...) are inlined into allOf and their $defs merged here, because a "
+        "relative `meta/core` $ref only resolves through the library's bundled registry -- "
+        "measured 2026-09-02: reached via a $ref (the meta alias or this file's own id) "
+        "the relative ref was re-based onto the retrieving URI and died on "
+        "<base>/_meta/meta/core. schema_resolver.validator_for() still returns the "
+        "library's own meta-schema validator for this id so resolution never touches the "
+        "network."
     )
     written.append((primary_meta, write_json(primary_meta, meta)))
     written.append(

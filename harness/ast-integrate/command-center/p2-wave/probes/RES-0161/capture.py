@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import ssl
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -53,11 +54,26 @@ def fetch_url(url: str, attempts: int = 3) -> tuple[int, bytes, str]:
     raise RuntimeError(f"fetch failed {url}: {last_exc}")
 
 
+def _load_remote_rows() -> list[dict]:
+    """Frozen remote rows from the existing INDEX.json (local-only refresh keeps them)."""
+    path = CAPTURES / "INDEX.json"
+    if not path.is_file():
+        raise RuntimeError("--local-only needs an existing captures/INDEX.json")
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    local_ids = {src["id"] for src in S.LOCAL_SOURCES}
+    return [row for row in doc.get("captures") or [] if row.get("id") not in local_ids]
+
+
 def main() -> int:
+    # --local-only re-snapshots only LOCAL_SOURCES (repo files copied to captures/*.bin).
+    # The local-catalog snapshot is a >5 MB copy of WORK-UNIT-CATALOG.json that the
+    # tree capture drops (MaxFileBytes); this rebuilds it from the live file with no
+    # network, leaving the frozen remote captures and their index rows untouched.
+    local_only = "--local-only" in sys.argv[1:]
     CAPTURES.mkdir(parents=True, exist_ok=True)
-    index: list[dict] = []
+    index: list[dict] = _load_remote_rows() if local_only else []
     failures: list[str] = []
-    for src in S.SOURCES:
+    for src in [] if local_only else S.SOURCES:
         sid = src["id"]
         url = src["url"]
         try:

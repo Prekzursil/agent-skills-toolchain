@@ -8,7 +8,11 @@ taken from this program. Numbers are computed, not asserted.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[3]
 
 
 @dataclass(frozen=True)
@@ -30,7 +34,7 @@ CLASSES: tuple[SideEffectClass, ...] = (
         id="local_artifact_write",
         title="Local artifact / catalog file write",
         program_path="tools/command-center/catalog.py",
-        program_line=126,
+        program_line=161,
         needle='target.write_text(text, encoding="utf-8", newline="\\n")',
         idempotent=True,
         compensable=True,
@@ -52,7 +56,7 @@ CLASSES: tuple[SideEffectClass, ...] = (
         id="cloud_worker_launch",
         title="Cloud / worker job launch",
         program_path="command-center/p2-wave/seed-stage/dispatch_cursor.py",
-        program_line=345,
+        program_line=384,
         needle="proc = subprocess.Popen(",
         idempotent=False,
         compensable=True,
@@ -141,11 +145,30 @@ def by_id(cid: str) -> SideEffectClass:
     raise KeyError(cid)
 
 
+def live_program_line(c: SideEffectClass) -> int:
+    """Line of the class needle in the live tree; the declared line is only a hint.
+
+    Writers above these anchors get edited, so a hardcoded line goes stale while
+    the needle still exists. Resolve it live and fail loud when the needle is
+    missing or ambiguous rather than emitting a wrong anchor.
+    """
+    path = REPO / c.program_path
+    hits = [
+        i
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if c.needle in line
+    ]
+    if len(hits) != 1:
+        raise RuntimeError(f"anchor needle for {c.id} hit {len(hits)} lines in {c.program_path}")
+    return hits[0]
+
+
 def class_public(c: SideEffectClass) -> dict[str, Any]:
     return {
         "id": c.id,
         "title": c.title,
-        "program_anchor": f"{c.program_path}:{c.program_line}",
+        "program_anchor": f"{c.program_path}:{live_program_line(c)}",
+        "declared_line": c.program_line,
         "needle": c.needle,
         "idempotent": c.idempotent,
         "compensable": c.compensable,

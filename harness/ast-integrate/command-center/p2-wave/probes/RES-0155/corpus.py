@@ -26,6 +26,22 @@ def sha256_bytes(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def eol_twin_matches(raw: bytes, recorded: str) -> bool:
+    """True when raw is byte-identical to the recorded capture modulo CRLF/LF.
+
+    Git normalises text fixtures to LF on checkout (harness .gitattributes), so a
+    snapshot fetched with CRLF hashes differently from its recorded lineage even
+    though no character changed. Only a reconstruction that hashes to the
+    recorded digest is accepted, so real content drift still fails.
+    """
+    if sha256_bytes(raw) == recorded:
+        return True
+    lf = raw.replace(b"\r\n", b"\n")
+    if sha256_bytes(lf) == recorded:
+        return True
+    return sha256_bytes(lf.replace(b"\n", b"\r\n")) == recorded
+
+
 def load_index() -> list[dict[str, Any]]:
     rows = json.loads(INDEX_SRC.read_text(encoding="utf-8"))
     out: list[dict[str, Any]] = []
@@ -38,7 +54,7 @@ def load_index() -> list[dict[str, Any]]:
             raise SystemExit(f"corpus missing {rel}")
         raw = path.read_bytes()
         digest = sha256_bytes(raw)
-        if digest != str(row.get("sha256") or ""):
+        if not eol_twin_matches(raw, str(row.get("sha256") or "")):
             raise SystemExit(f"corpus hash drift {row.get('id')}")
         text = raw.decode("utf-8", "replace")
         out.append(
