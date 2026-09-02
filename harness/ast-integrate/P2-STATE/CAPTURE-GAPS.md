@@ -53,6 +53,8 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | RES-0182 | `probes/RES-0182/snapshots/plos-hemming-2018-idea.pdf` (6.28 MB, over the 5 MB capture cap) | b4-p19-RES | MaxFileBytes cap | open — re-fetch would not reproduce the sha |
 | RES-0183 | `17-DECISION-LOG.md` (repo-root owner decision log) | b4-p19-RES | root docs excluded | open |
 | (kept) | `probes/RES-0161/captures/local-catalog.bin` (5.28 MB) rebuilt from the live catalog via the unit's `capture.py --local-only`; add to KeepOversized for the next capture | b4-p18-RES | MaxFileBytes cap | **repaired** |
+| TST-0086 | `agent-self/config/settings.json` (whole `agent-self/` tree absent; scenario runs its hook commands live) | b4-p23-TST | `agent-self/` excluded | open |
+| TST-0052 | `tools/marketplace/schema/install-handoff.schema.json` (full text recoverable from `receipts/TST-0052.json:220`) + `tools/plugin/hook_client.py` (TST-0054 supporting file) | b4-p23-TST | schema/tool files excluded | open — reconstructible from the receipt if the owner agrees |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
