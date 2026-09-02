@@ -43,6 +43,11 @@ def _resolve_win() -> Path:
 
 
 def _resolve_root(win: Path) -> Path:
+    # An explicit G1_MIRROR wins over AST_INTEGRATE_ROOT: writer shells export the latter for
+    # their own mirror and it leaks into sibling shells (02.09: a lander wave silently measured
+    # in another writer's mirror and reported 4 false disagreements).
+    if os.environ.get("G1_MIRROR") and _has_catalog(_MIRROR):
+        return _MIRROR.resolve()
     env = os.environ.get("AST_INTEGRATE_ROOT")
     if env and _has_catalog(Path(env)):
         return Path(env).resolve()

@@ -200,7 +200,7 @@ def main() -> int:
             todo.sort(key=lambda u: -float((prev.get(u) or {}).get("secs") or 0.0))
         except Exception:  # noqa: BLE001 - ordering is an optimisation only
             pass
-    print(f"REGEN-PAR {name} total={len(ids)} done={len(done)} todo={len(todo)} workers={WORKERS} regen={regen}", flush=True)
+    print(f"REGEN-PAR {name} total={len(ids)} done={len(done)} todo={len(todo)} workers={WORKERS} regen={regen} root={ROOT} record={WIN}", flush=True)
     ok = fail = 0
     started = time.time()
     with ProcessPoolExecutor(max_workers=WORKERS) as pool:
