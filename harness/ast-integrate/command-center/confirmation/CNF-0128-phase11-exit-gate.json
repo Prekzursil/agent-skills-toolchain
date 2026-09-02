@@ -1,696 +1,493 @@
 {
- "artifacts": [
-  {
-   "bytes": 30122,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/confirmation/CNF-0128-phase11-exit-gate.json",
-   "role": "primary",
-   "sha256": "0217c39f2da052f1ff7172035a7cc1b1d634bbc62a38af3393fb26e0524e34d3"
-  },
-  {
-   "bytes": 1042,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/schema/phase-gate-report.schema.json",
-   "role": "supporting",
-   "sha256": "d72db835f51e7c27fa2e6e40ff9e4c58553302fcd69e3d11add7739bbdebe5a8"
-  },
-  {
-   "bytes": 27589,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/p2-wave/probes/CNF-0128/gate.py",
-   "role": "supporting",
-   "sha256": "fe03748f0db766b3f93e6b7c1536d5f4c7f8f00ecbfeb394c271b28f52aee1f0"
-  }
- ],
- "defects": [],
- "downstream_consumers": [
-  {
-   "artifact_path": "command-center/confirmation/CNF-0128-phase11-exit-gate.json",
-   "consumer": "command-center/p2-wave/probes/CNF-0128/schema_val.py Draft202012Validator with on-disk RefResolver store",
-   "executed": true,
-   "exit_code": 0,
-   "probe": {
-    "command": "python3 -B command-center/p2-wave/probes/CNF-0128/schema_val.py",
-    "exit_code": 0,
-    "fingerprint": "5a1c276a38e902f1fbe8cbb1b49bf69f2d1d9b06e33372c5be6f258939e32b9b",
-    "method": "schema-validate",
-    "raw_output": "schema_errors=[] (validated in emit.py before write)",
-    "role": "verifier"
-   },
-   "read_ok": true
-  }
- ],
- "evidence": [
-  {
-   "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-   "claim": "The Phase 11 exit verdict is computed from receipts on disk (gate_verdict=RED, phase_finished=False), not from a narrative summary.",
-   "confidence": "almost-certain",
-   "probes": [
+  "artifacts": [
     {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live",
-     "exit_code": 0,
-     "fingerprint": "8fefc8e30b54455fa4ad8fad76ae7063b82917279146610bcdf5e7ceb5456ccb",
-     "method": "command",
-     "raw_output": "{\"blocking\": [\"C-CENSUS\", \"C-ERROR-RATE\", \"C-ESCALATION\", \"C-REQUIRED-RECEIPTS\"], \"conditions\": {\"C-CENSUS\": \"FAIL\", \"C-ERROR-RATE\": \"NOT-CHECKED\", \"C-ESCALATION\": \"NOT-CHECKED\", \"C-REQUIRED-RECEIPTS\": \"FAIL\", \"C-RESIDUALS\": \"PASS\"}, \"gate_verdict\": \"RED\", \"inventory\": {\"claim_receipt_count\": 0, \"claims_path\": \"command-center/CLAIM-REGISTRY.json\", \"claims_present\": true, \"claims_state\": \"EMPTY-P0P1\", \"p0p1_count\": 0}, \"phase_finished\": false, \"residual_ids\": [\"R-EMPTY-P0P1-CENSUS\", \"R-ABSENT-ESCALATION-POLICY\", \"R-ESCALATION-STATE-UNKNOWN\", \"R-MISSING-REQUIRED:CNF-0004\", \"R-MISSING-REQUIRED:CNF-0014\", \"R-MISSING-REQUIRED:CNF-0118\", \"R-MISSING-REQUIRED:CNF-0120\", \"R-MISSING-REQUIRED:CNF-0124\", \"R-MISSING-REQUIRED:CNF-0125\"]}",
-     "role": "source"
-    },
-    {
-     "command": "python3 -c listing command-center/confirmation/",
-     "exit_code": 0,
-     "fingerprint": "054d4cfaf43cef5ee372997c0562aa69e80cc7ad14643638217bd492124345a9",
-     "method": "file-read",
-     "raw_output": "{\"confirmation_files\": [\"command-center/confirmation/.gitkeep\", \"command-center/confirmation/CNF-0029-change-surface.json\", \"command-center/confirmation/CNF-0038-blind-test-synthesis.json\", \"command-center/confirmation/CNF-0047-monitor-liveness.json\", \"command-center/confirmation/CNF-0074-workflow-replay-determinism.json\", \"command-center/confirmation/CNF-0119-disagreement-adjudication.json\"], \"n\": 6}",
-     "role": "verifier"
-    }
-   ],
-   "unverified": false,
-   "verdict": "CONFIRMED"
-  },
-  {
-   "anchor": "command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
-   "claim": "The remove-one-receipt control turned a GREEN fixture RED (removed command-center/confirmation/receipts/C-P0-ALPHA.json) and an open class-wide escalation blocked the gate at error_rate=0, so the gate is not a rubber stamp.",
-   "confidence": "almost-certain",
-   "probes": [
-    {
-     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
-     "exit_code": 0,
-     "fingerprint": "003f19a0f961a0b2e727da4473ee4e353f916b454a3916e9ff6e72484674a82a",
-     "method": "test-run",
-     "raw_output": "{\"after_blocking\": [\"C-CENSUS\"], \"before_blocking\": [], \"fixture\": \"green-census\", \"gate_after\": \"RED\", \"gate_before\": \"GREEN\", \"id\": \"remove-one-receipt\", \"proves_not_rubber_stamp\": true, \"removed_receipt\": \"command-center/confirmation/receipts/C-P0-ALPHA.json\", \"went_red\": true}",
-     "role": "source"
-    },
-    {
-     "command": "python3 -B -c fixtures.build_green+mutate_remove_one_receipt+compute",
-     "exit_code": 0,
-     "fingerprint": "428a22c2172796774cf6d97d9b9cedddb0462d5d75cb220beaab17924429a110",
-     "method": "command",
-     "raw_output": "{\"empty\": \"RED\", \"escalation_blocked\": true, \"green\": \"GREEN\", \"high_rate\": \"RED\", \"went_red\": true}",
-     "role": "verifier"
-    }
-   ],
-   "unverified": false,
-   "verdict": "CONFIRMED"
-  }
- ],
- "extensions": {
-  "completion_sentinel": "SUCCESS:CNF-0128 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the remove-one-receipt control turned the gate red and the residual list has a settling experiment on every entry. Any other terminal state is FAILED:CNF-0128 <classification> with the diagnostic tail attached.",
-  "output_schema": "command-center/schema/phase-gate-report.schema.json"
- },
- "manifest_registration": {
-  "entry_id": "CNF-0128",
-  "manifest_path": "command-center/p2-wave/probes/CNF-0128/UNIT-ARTIFACT-MANIFEST.json",
-  "registered": true,
-  "registered_at": "2026-08-25T00:57:37Z"
- },
- "min_bytes_threshold": 1024,
- "negative_controls": [
-  {
-   "bad_state_output": "{\"after_blocking\": [\"C-CENSUS\"], \"before_blocking\": [], \"fixture\": \"green-census\", \"gate_after\": \"RED\", \"gate_before\": \"GREEN\", \"id\": \"remove-one-receipt\", \"proves_not_rubber_stamp\": true, \"removed_receipt\": \"command-center/confirmation/receipts/C-P0-ALPHA.json\", \"went_red\": true}",
-   "description": "Delete C-P0-ALPHA.json from a known-green fixture; the gate must go RED on C-CENSUS.",
-   "fired_on_bad_state": true,
-   "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
-   "id": "NC-REMOVE-ONE-RECEIPT",
-   "kind": "mutation",
-   "silent_on_good_state": true
-  },
-  {
-   "bad_state_output": "{\"after_blocking\": [\"C-ESCALATION\"], \"blocked\": true, \"error_rate_while_open\": 0.0, \"gate_after\": \"RED\", \"gate_before\": \"GREEN\", \"id\": \"open-escalation-blocks\", \"pass_rate\": 1.0}",
-   "description": "Plant class_wide_escalation_open on a green fixture; the gate must go RED on C-ESCALATION even at error_rate=0.",
-   "fired_on_bad_state": true,
-   "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
-   "id": "NC-OPEN-ESCALATION",
-   "kind": "mutation",
-   "silent_on_good_state": true
-  },
-  {
-   "bad_state_output": "{\"blocking\": [\"C-CENSUS\", \"C-ERROR-RATE\", \"C-ESCALATION\", \"C-REQUIRED-RECEIPTS\"], \"gate_verdict\": \"RED\", \"id\": \"empty-corpus\"}",
-   "description": "An empty tree must not compute GREEN. Missing inventory is NOT-CHECKED/FAIL, never a vacuous pass.",
-   "fired_on_bad_state": true,
-   "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
-   "id": "NC-EMPTY-CORPUS",
-   "kind": "absent-input",
-   "silent_on_good_state": true
-  },
-  {
-   "bad_state_output": "{\"blocking\": [\"C-ERROR-RATE\"], \"gate_verdict\": \"RED\", \"id\": \"high-error-rate\"}",
-   "description": "Raise CNF-0118 disagreements above the pre-fixed threshold; C-ERROR-RATE must FAIL.",
-   "fired_on_bad_state": true,
-   "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
-   "id": "NC-HIGH-ERROR-RATE",
-   "kind": "mutation",
-   "silent_on_good_state": true
-  }
- ],
- "produced_by": {
-  "execution_substrate": "linux-p2-deliver",
-  "model": "grok-4.6",
-  "role": "phase-gate-auditor",
-  "vendor": "xai"
- },
- "report": {
-  "answer": "No. Phase 11 is not finished. Live gate_verdict=RED phase_finished=False. C-CENSUS FAIL (empty-set-read-as-pass refused: p0p1_count=0). C-ERROR-RATE NOT-CHECKED (threshold receipt missing; rate not compared after the fact). C-ESCALATION NOT-CHECKED (escalation state unknown; open-escalation blocks regardless of pass rate). Residuals=9, each with a named settling experiment. A residual honestly scoped and disclosed does not block; an undisclosed one does. The remove-one-receipt control turned a GREEN fixture RED, so this gate is not a rubber stamp. SUCCESS:CNF-0128 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the remove-one-receipt control turned the gate red and the residual list has a settling experiment on every entry. Any other terminal state is FAILED:CNF-0128 <classification> with the diagnostic tail attached.",
-  "blocking_condition_ids": [
-   "C-CENSUS",
-   "C-ERROR-RATE",
-   "C-ESCALATION",
-   "C-REQUIRED-RECEIPTS"
-  ],
-  "computed_from_receipts": true,
-  "computed_not_asserted": true,
-  "conditions": [
-   {
-    "id": "C-CENSUS",
-    "title": "Every P0 and P1 claim is CONFIRMED or BLOCKED with two signals",
-    "computed_state": "FAIL",
-    "receipts": [
-     {
-      "path": "command-center/CLAIM-REGISTRY.json",
-      "present": true,
-      "role": "claim-inventory"
-     },
-     {
-      "path": "command-center/confirmation/ (claim receipts)",
-      "present": true,
-      "role": "confirmation-receipts"
-     }
-    ],
-    "blocks_exit": true,
-    "detail": "empty-set-read-as-pass refused: p0p1_count=0",
-    "p0p1_count": 0,
-    "satisfied": 0,
-    "unsatisfied": []
-   },
-   {
-    "id": "C-ERROR-RATE",
-    "title": "Sampled error rate is below the pre-fixed threshold",
-    "computed_state": "NOT-CHECKED",
-    "receipts": [
-     {
-      "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
-      "present": true,
-      "role": "escalation-policy"
-     },
-     {
-      "path": "command-center/confirmation/CNF-0118-second-order-sample.json",
-      "present": true,
-      "role": "second-order-sample"
-     }
-    ],
-    "blocks_exit": true,
-    "detail": "threshold field missing",
-    "threshold": null,
-    "error_rate": null,
-    "sample_size": null
-   },
-   {
-    "id": "C-ESCALATION",
-    "title": "No class-wide escalation is still open",
-    "computed_state": "PASS",
-    "receipts": [
-     {
-      "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
-      "present": true,
-      "role": "escalation-policy"
-     }
-    ],
-    "blocks_exit": false,
-    "detail": "class_wide_escalation_open=False open_count=0",
-    "open_escalations": []
-   },
-   {
-    "id": "C-REQUIRED-RECEIPTS",
-    "title": "Every named dependency receipt is present and usable on disk",
-    "computed_state": "PASS",
-    "receipts": [
-     {
-      "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
-      "present": true,
-      "role": "escalation-policy"
-     },
-     {
-      "path": "command-center/confirmation/CNF-0014-coverage-board.json",
-      "present": true,
-      "role": "coverage-board"
-     },
-     {
-      "path": "command-center/confirmation/CNF-0118-second-order-sample.json",
-      "present": true,
-      "role": "second-order-sample"
-     },
-     {
-      "path": "command-center/confirmation/CNF-0120-not-checked-integrity.json",
-      "present": true,
-      "role": "not-checked-integrity"
-     },
-     {
-      "path": "command-center/confirmation/CNF-0124-authorship-audit.json",
-      "present": true,
-      "role": "authorship-audit"
-     },
-     {
-      "path": "command-center/confirmation/CNF-0125-stale-premise-sweep.json",
-      "present": true,
-      "role": "stale-premise-sweep"
-     }
-    ],
-    "blocks_exit": false,
-    "detail": "required=6 usable=6 missing=[]",
-    "missing_unit_ids": []
-   },
-   {
-    "id": "C-RESIDUALS",
-    "title": "Every residual has a named settling experiment",
-    "computed_state": "PASS",
-    "receipts": [
-     {
+      "bytes": 29722,
+      "eol": "LF",
+      "exists": true,
       "path": "command-center/confirmation/CNF-0128-phase11-exit-gate.json",
-      "present": false,
-      "role": "gate-residual-list"
-     },
-     {
-      "path": "command-center/confirmation/ (claim receipts residual fields)",
-      "present": true,
-      "role": "receipt-residual-fields"
-     }
-    ],
-    "blocks_exit": false,
-    "detail": "residuals=2 missing_settling=0 (disclosed residuals do not block; undisclosed/unsettled do)",
-    "incomplete_ids": []
-   }
+      "role": "primary",
+      "sha256": "1924e74ec7d53d82b1133d0987378434becc86367cb6273230080b25101f275a"
+    },
+    {
+      "bytes": 1080,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/phase-gate-report.schema.json",
+      "role": "supporting",
+      "sha256": "ec8680a2e403291930e8442ca214e95b19e5cb6e4991fe12f4e16619538f7488"
+    },
+    {
+      "bytes": 27589,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0128/gate.py",
+      "role": "supporting",
+      "sha256": "fe03748f0db766b3f93e6b7c1536d5f4c7f8f00ecbfeb394c271b28f52aee1f0"
+    }
   ],
-  "control_ids": [
-   "NC-REMOVE-ONE-RECEIPT",
-   "NC-OPEN-ESCALATION",
-   "NC-EMPTY-CORPUS",
-   "NC-HIGH-ERROR-RATE"
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0128-phase11-exit-gate.json",
+      "consumer": "command-center/p2-wave/probes/CNF-0128/schema_val.py Draft202012Validator with on-disk RefResolver store",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -B command-center/p2-wave/probes/CNF-0128/schema_val.py",
+        "exit_code": 0,
+        "fingerprint": "5a1c276a38e902f1fbe8cbb1b49bf69f2d1d9b06e33372c5be6f258939e32b9b",
+        "method": "schema-validate",
+        "raw_output": "schema_errors=[] (validated in emit.py before write)",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
   ],
-  "controls": {
-   "empty_corpus": {
-    "blocking": [
-     "C-CENSUS",
-     "C-ERROR-RATE",
-     "C-ESCALATION",
-     "C-REQUIRED-RECEIPTS"
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+      "claim": "The Phase 11 exit verdict is computed from receipts on disk (gate_verdict=RED, phase_finished=False), not from a narrative summary.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live",
+          "exit_code": 0,
+          "fingerprint": "8fefc8e30b54455fa4ad8fad76ae7063b82917279146610bcdf5e7ceb5456ccb",
+          "method": "command",
+          "raw_output": "{\"blocking\": [\"C-CENSUS\", \"C-ERROR-RATE\"], \"conditions\": {\"C-CENSUS\": \"FAIL\", \"C-ERROR-RATE\": \"NOT-CHECKED\", \"C-ESCALATION\": \"PASS\", \"C-REQUIRED-RECEIPTS\": \"PASS\", \"C-RESIDUALS\": \"PASS\"}, \"gate_verdict\": \"RED\", \"inventory\": {\"claim_receipt_count\": 1, \"claims_path\": \"command-center/CLAIM-REGISTRY.json\", \"claims_present\": true, \"claims_state\": \"EMPTY-P0P1\", \"p0p1_count\": 0}, \"phase_finished\": false, \"residual_ids\": [\"R-EMPTY-P0P1-CENSUS\", \"R-THRESHOLD-UNREADABLE\"]}",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c listing command-center/confirmation/",
+          "exit_code": 0,
+          "fingerprint": "054d4cfaf43cef5ee372997c0562aa69e80cc7ad14643638217bd492124345a9",
+          "method": "file-read",
+          "raw_output": "{\"confirmation_files\": [\"command-center/confirmation/.gitkeep\", \"command-center/confirmation/CNF-0002-independence-predicate.json\", \"command-center/confirmation/CNF-0003-sampling-frame.json\", \"command-center/confirmation/CNF-0004-escalation-policy.json\", \"command-center/confirmation/CNF-0005-blind-brief-builder.json\", \"command-center/confirmation/CNF-0006-probe-independence.json\", \"command-center/confirmation/CNF-0007-crossvendor-matrix.json\", \"command-center/confirmation/CNF-0008-execution-attestation.json\", \"command-center/confirmation/CNF-0009-frame-completeness.json\", \"command-center/confirmation/CNF-0010-environment-manifest.json\", \"command-center/confirmation/CNF-0011-scheduler-report.json\", \"command-center/confirmation/CNF-0012-freshness-decay.json\", \"command-center/confirmation/CNF-0013-discrepancy-router.json\", \"command-center/confirmation/CNF-0014-coverage-board.json\", \"command-center/confirmation/CNF-0015-blocker-repro.json\", \"command-center/confirmation/CNF-0016-repro-sufficiency.json\", \"command-center/confirmation/CNF-0017-fresh-profile-repro.json\", \"command-center/confirmation/CNF-0018-linux-container-repro.json\", \"command-center/confirmation/CNF-0019-byte-route-audit.json\", \"command-center/confirmation/CNF-0020-flake-frequency.json\", \"command-center/confirmation/CNF-0021-version-parity.json\", \"command-center/confirmation/CNF-0022-pre-fix-timetravel.json\", \"command-center/confirmation/CNF-0023-mechanised-repros.json\", \"command-center/confirmation/CNF-0024-ci-image-repro.json\", \"command-center/confirmation/CNF-0025-repro-specificity.json\", \"command-center/confirmation/CNF-0026-impossibility-records.json\", \"command-center/confirmation/CNF-0027-baseline-variance.json\", \"command-center/confirmation/CNF-0028-clean-venv-install.json\", \"command-center/confirmation/CNF-0029-change-surface.json\", \"command-center/confirmation/CNF-0030-fresh-clone-confirm.json\", \"command-center/confirmation/CNF-0031-duplicate-dispatch.json\", \"command-center/confirmation/CNF-0032-hunk-revert-causality.json\", \"command-center/confirmation/CNF-0033-metric-recompute.json\", \"command-center/confirmation/CNF-0034-alternate-interface.json\", \"command-center/confirmation/CNF-0035-strict-parser.json\", \"command-center/confirmation/CNF-0036-repeat-application.json\", \"command-center/confirmation/CNF-0037-doc-command-conformance.json\", \"command-center/confirmation/CNF-0038-blind-test-synthesis.json\", \"command-center/confirmation/CNF-0039-packaged-golden-journeys.json\", \"command-center/confirmation/CNF-0040-least-privilege-confirm.json\", \"command-center/confirmation/CNF-0041-rollback-byte-parity.json\", \"command-center/confirmation/CNF-0042-rollback-user-data.json\", \"command-center/confirmation/CNF-0043-partial-upgrade-rollback.json\", \"command-center/confirmation/CNF-0044-rollback-cache-coherence.json\", \"command-center/confirmation/CNF-0045-deploy-target-rollback.json\", \"command-center/confirmation/CNF-0046-locked-file-rollback.json\", \"command-center/confirmation/CNF-0047-monitor-liveness.json\", \"command-center/confirmation/CNF-0048-reverse-migration.json\", \"command-center/confirmation/CNF-0049-ledger-append-only.json\", \"command-center/confirmation/CNF-0050-rollback-guide-conformance.json\", \"command-center/confirmation/CNF-0051-outcome-set-diff.json\", \"command-center/confirmation/CNF-0052-benchmark-regression.json\", \"command-center/confirmation/CNF-0053-startup-overhead.json\", \"command-center/confirmation/CNF-0054-hook-firing-diff.json\", \"command-center/confirmation/CNF-0055-router-selection-diff.json\", \"command-center/confirmation/CNF-0056-api-surface-diff.json\", \"command-center/confirmation/CNF-0057-config-key-diff.json\", \"command-center/confirmation/CNF-0058-artifact-layout-diff.json\", \"command-center/confirmation/CNF-0059-downstream-consumers.json\", \"command-center/confirmation/CNF-0060-skip-count-diff.json\", \"command-center/confirmation/CNF-0061-coverage-line-delta.json\", \"command-center/confirmation/CNF-0062-citation-liveness.json\", \"command-center/confirmation/CNF-0063-source-corroboration.json\", \"command-center/confirmation/CNF-0064-license-provenance.json\", \"command-center/confirmation/CNF-0065-external-benchmark-repro.json\", \"command-center/confirmation/CNF-0066-negative-result-recheck.json\", \"command-center/confirmation/CNF-0067-dedup-edge-recheck.json\", \"command-center/confirmation/CNF-0068-contradiction-adjudication.json\", \"command-center/confirmation/CNF-0069-band-calibration.json\", \"command-center/confirmation/CNF-0070-archival-corroboration.json\", \"command-center/confirmation/CNF-0071-transcript-claims.json\", \"command-center/confirmation/CNF-0072-option-id-namespaces.json\", \"command-center/confirmation/CNF-0073-multilingual-recheck.json\", \"command-center/confirmation/CNF-0074-workflow-replay-determinism.json\", \"command-center/confirmation/CNF-0075-fusion-superiority.json\", \"command-center/confirmation/CNF-0076-fusion-decomposition.json\", \"command-center/confirmation/CNF-0077-blueprint-executability.json\", \"command-center/confirmation/CNF-0078-distinctness-remeasure.json\", \"command-center/confirmation/CNF-0079-resume-parity.json\", \"command-center/confirmation/CNF-0080-dryrun-parity.json\", \"command-center/confirmation/CNF-0081-estimate-accuracy.json\", \"command-center/confirmation/CNF-0082-scout-rediscovery.json\", \"command-center/confirmation/CNF-0083-workflow-schema-strictness.json\", \"command-center/confirmation/CNF-0084-cache-parity.json\", \"command-center/confirmation/CNF-0085-runner-predicate-differential.json\", \"command-center/confirmation/CNF-0086-council-replay.json\", \"command-center/confirmation/CNF-0087-idea-count-recount.json\", \"command-center/confirmation/CNF-0088-dissent-survival.json\", \"command-center/confirmation/CNF-0089-stopping-truth-table.json\", \"command-center/confirmation/CNF-0090-role-enforcement.json\", \"command-center/confirmation/CNF-0091-sycophancy-probe.json\", \"command-center/confirmation/CNF-0092-instant-unanimity-trigger.json\", \"command-center/confirmation/CNF-0093-partition-leak.json\", \"command-center/confirmation/CNF-0094-council-calibration-recompute.json\", \"command-center/confirmation/CNF-0095-council-of-councils-fanin.json\", \"command-center/confirmation/CNF-0096-clean-install-windows.json\", \"command-center/confirmation/CNF-0097-clean-install-linux.json\", \"command-center/confirmation/CNF-0098-macos-reachability.json\", \"command-center/confirmation/CNF-0099-upgrade-path.json\", \"command-center/confirmation/CNF-0100-cross-client-parity.json\", \"command-center/confirmation/CNF-0101-repo-live-parity.json\", \"command-center/confirmation/CNF-0102-bundle-content-audit.json\", \"command-center/confirmation/CNF-0103-longpath-devicename.json\", \"command-center/confirmation/CNF-0104-case-collision.json\", \"command-center/confirmation/CNF-0105-shell-interpreter-conformance.json\", \"command-center/confirmation/CNF-0106-hermetic-run.json\", \"command-center/confirmation/CNF-0107-uninstall-completeness.json\", \"command-center/confirmation/CNF-0108-history-secret-scan.json\", \"command-center/confirmation/CNF-0109-sbom-completeness.json\", \"command-center/confirmation/CNF-0110-signature-negative-control.json\", \"command-center/confirmation/CNF-0111-runtime-permission-enforcement.json\", \"command-center/confirmation/CNF-0112-advisory-rescan.json\", \"command-center/confirmation/CNF-0113-malicious-plugin-fixtures.json\", \"command-center/confirmation/CNF-0114-prompt-injection-defence.json\", \"command-center/confirmation/CNF-0115-egress-measurement.json\", \"command-center/confirmation/CNF-0116-credential-exclusion.json\", \"command-center/confirmation/CNF-0117-loud-degradation.json\", \"command-center/confirmation/CNF-0118-second-order-sample.json\", \"command-center/confirmation/CNF-0119-disagreement-adjudication.json\", \"command-center/confirmation/CNF-0120-not-checked-integrity.json\", \"command-center/confirmation/CNF-0121-reviewer-condition-audit.json\", \"command-center/confirmation/CNF-0122-manifest-vs-disk.json\", \"command-center/confirmation/CNF-0123-downstream-readability.json\"...",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
+      "claim": "The remove-one-receipt control turned a GREEN fixture RED (removed command-center/confirmation/receipts/C-P0-ALPHA.json) and an open class-wide escalation blocked the gate at error_rate=0, so the gate is not a rubber stamp.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
+          "exit_code": 0,
+          "fingerprint": "003f19a0f961a0b2e727da4473ee4e353f916b454a3916e9ff6e72484674a82a",
+          "method": "test-run",
+          "raw_output": "{\"after_blocking\": [\"C-CENSUS\"], \"before_blocking\": [], \"fixture\": \"green-census\", \"gate_after\": \"RED\", \"gate_before\": \"GREEN\", \"id\": \"remove-one-receipt\", \"proves_not_rubber_stamp\": true, \"removed_receipt\": \"command-center/confirmation/receipts/C-P0-ALPHA.json\", \"went_red\": true}",
+          "role": "source"
+        },
+        {
+          "command": "python3 -B -c fixtures.build_green+mutate_remove_one_receipt+compute",
+          "exit_code": 0,
+          "fingerprint": "428a22c2172796774cf6d97d9b9cedddb0462d5d75cb220beaab17924429a110",
+          "method": "command",
+          "raw_output": "{\"empty\": \"RED\", \"escalation_blocked\": true, \"green\": \"GREEN\", \"high_rate\": \"RED\", \"went_red\": true}",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "completion_sentinel": "SUCCESS:CNF-0128 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the remove-one-receipt control turned the gate red and the residual list has a settling experiment on every entry. Any other terminal state is FAILED:CNF-0128 <classification> with the diagnostic tail attached.",
+    "output_schema": "command-center/schema/phase-gate-report.schema.json"
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0128",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0128/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-09-02T08:40:07Z"
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "{\"after_blocking\": [\"C-CENSUS\"], \"before_blocking\": [], \"fixture\": \"green-census\", \"gate_after\": \"RED\", \"gate_before\": \"GREEN\", \"id\": \"remove-one-receipt\", \"proves_not_rubber_stamp\": true, \"removed_receipt\": \"command-center/confirmation/receipts/C-P0-ALPHA.json\", \"went_red\": true}",
+      "description": "Delete C-P0-ALPHA.json from a known-green fixture; the gate must go RED on C-CENSUS.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
+      "id": "NC-REMOVE-ONE-RECEIPT",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "{\"after_blocking\": [\"C-ESCALATION\"], \"blocked\": true, \"error_rate_while_open\": 0.0, \"gate_after\": \"RED\", \"gate_before\": \"GREEN\", \"id\": \"open-escalation-blocks\", \"pass_rate\": 1.0}",
+      "description": "Plant class_wide_escalation_open on a green fixture; the gate must go RED on C-ESCALATION even at error_rate=0.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
+      "id": "NC-OPEN-ESCALATION",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "{\"blocking\": [\"C-CENSUS\", \"C-ERROR-RATE\", \"C-ESCALATION\", \"C-REQUIRED-RECEIPTS\"], \"gate_verdict\": \"RED\", \"id\": \"empty-corpus\"}",
+      "description": "An empty tree must not compute GREEN. Missing inventory is NOT-CHECKED/FAIL, never a vacuous pass.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
+      "id": "NC-EMPTY-CORPUS",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "{\"blocking\": [\"C-ERROR-RATE\"], \"gate_verdict\": \"RED\", \"id\": \"high-error-rate\"}",
+      "description": "Raise CNF-0118 disagreements above the pre-fixed threshold; C-ERROR-RATE must FAIL.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"all_residuals_have_settling\": true, \"gate_verdict\": \"GREEN\", \"id\": \"unmodified-green\", \"residual_count\": 1}",
+      "id": "NC-HIGH-ERROR-RATE",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-p2-deliver",
+    "model": "grok-4.6",
+    "role": "phase-gate-auditor",
+    "vendor": "xai"
+  },
+  "report": {
+    "answer": "No. Phase 11 is not finished. Live gate_verdict=RED phase_finished=False. C-CENSUS FAIL (empty-set-read-as-pass refused: p0p1_count=0). C-ERROR-RATE NOT-CHECKED (threshold field missing). C-ESCALATION PASS (class_wide_escalation_open=False open_count=0). Residuals=2, each with a named settling experiment. A residual honestly scoped and disclosed does not block; an undisclosed one does. The remove-one-receipt control turned a GREEN fixture RED, so this gate is not a rubber stamp. SUCCESS:CNF-0128 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the remove-one-receipt control turned the gate red and the residual list has a settling experiment on every entry. Any other terminal state is FAILED:CNF-0128 <classification> with the diagnostic tail attached.",
+    "blocking_condition_ids": [
+      "C-CENSUS",
+      "C-ERROR-RATE"
     ],
+    "computed_from_receipts": true,
+    "computed_not_asserted": true,
+    "conditions": [
+      {
+        "blocks_exit": true,
+        "computed_state": "FAIL",
+        "detail": "empty-set-read-as-pass refused: p0p1_count=0",
+        "id": "C-CENSUS",
+        "p0p1_count": 0,
+        "receipts": [
+          {
+            "path": "command-center/CLAIM-REGISTRY.json",
+            "present": true,
+            "role": "claim-inventory"
+          },
+          {
+            "path": "command-center/confirmation/ (claim receipts)",
+            "present": true,
+            "role": "confirmation-receipts"
+          }
+        ],
+        "satisfied": 0,
+        "title": "Every P0 and P1 claim is CONFIRMED or BLOCKED with two signals",
+        "unsatisfied": []
+      },
+      {
+        "blocks_exit": true,
+        "computed_state": "NOT-CHECKED",
+        "detail": "threshold field missing",
+        "error_rate": null,
+        "id": "C-ERROR-RATE",
+        "receipts": [
+          {
+            "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
+            "present": true,
+            "role": "escalation-policy"
+          },
+          {
+            "path": "command-center/confirmation/CNF-0118-second-order-sample.json",
+            "present": true,
+            "role": "second-order-sample"
+          }
+        ],
+        "sample_size": null,
+        "threshold": null,
+        "title": "Sampled error rate is below the pre-fixed threshold"
+      },
+      {
+        "blocks_exit": false,
+        "computed_state": "PASS",
+        "detail": "class_wide_escalation_open=False open_count=0",
+        "id": "C-ESCALATION",
+        "open_escalations": [],
+        "receipts": [
+          {
+            "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
+            "present": true,
+            "role": "escalation-policy"
+          }
+        ],
+        "title": "No class-wide escalation is still open"
+      },
+      {
+        "blocks_exit": false,
+        "computed_state": "PASS",
+        "detail": "required=6 usable=6 missing=[]",
+        "id": "C-REQUIRED-RECEIPTS",
+        "missing_unit_ids": [],
+        "receipts": [
+          {
+            "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
+            "present": true,
+            "role": "escalation-policy"
+          },
+          {
+            "path": "command-center/confirmation/CNF-0014-coverage-board.json",
+            "present": true,
+            "role": "coverage-board"
+          },
+          {
+            "path": "command-center/confirmation/CNF-0118-second-order-sample.json",
+            "present": true,
+            "role": "second-order-sample"
+          },
+          {
+            "path": "command-center/confirmation/CNF-0120-not-checked-integrity.json",
+            "present": true,
+            "role": "not-checked-integrity"
+          },
+          {
+            "path": "command-center/confirmation/CNF-0124-authorship-audit.json",
+            "present": true,
+            "role": "authorship-audit"
+          },
+          {
+            "path": "command-center/confirmation/CNF-0125-stale-premise-sweep.json",
+            "present": true,
+            "role": "stale-premise-sweep"
+          }
+        ],
+        "title": "Every named dependency receipt is present and usable on disk"
+      },
+      {
+        "blocks_exit": false,
+        "computed_state": "PASS",
+        "detail": "residuals=2 missing_settling=0 (disclosed residuals do not block; undisclosed/unsettled do)",
+        "id": "C-RESIDUALS",
+        "incomplete_ids": [],
+        "receipts": [
+          {
+            "path": "command-center/confirmation/CNF-0128-phase11-exit-gate.json",
+            "present": false,
+            "role": "gate-residual-list"
+          },
+          {
+            "path": "command-center/confirmation/ (claim receipts residual fields)",
+            "present": true,
+            "role": "receipt-residual-fields"
+          }
+        ],
+        "title": "Every residual has a named settling experiment"
+      }
+    ],
+    "control_ids": [
+      "NC-REMOVE-ONE-RECEIPT",
+      "NC-OPEN-ESCALATION",
+      "NC-EMPTY-CORPUS",
+      "NC-HIGH-ERROR-RATE"
+    ],
+    "controls": {
+      "empty_corpus": {
+        "blocking": [
+          "C-CENSUS",
+          "C-ERROR-RATE",
+          "C-ESCALATION",
+          "C-REQUIRED-RECEIPTS"
+        ],
+        "gate_verdict": "RED",
+        "id": "empty-corpus"
+      },
+      "high_error_rate": {
+        "blocking": [
+          "C-ERROR-RATE"
+        ],
+        "gate_verdict": "RED",
+        "id": "high-error-rate"
+      },
+      "open_escalation_blocks": {
+        "after_blocking": [
+          "C-ESCALATION"
+        ],
+        "blocked": true,
+        "error_rate_while_open": 0.0,
+        "gate_after": "RED",
+        "gate_before": "GREEN",
+        "id": "open-escalation-blocks",
+        "pass_rate": 1.0
+      },
+      "remove_one_receipt": {
+        "after_blocking": [
+          "C-CENSUS"
+        ],
+        "before_blocking": [],
+        "fixture": "green-census",
+        "gate_after": "RED",
+        "gate_before": "GREEN",
+        "id": "remove-one-receipt",
+        "proves_not_rubber_stamp": true,
+        "removed_receipt": "command-center/confirmation/receipts/C-P0-ALPHA.json",
+        "went_red": true
+      },
+      "unmodified_green": {
+        "all_residuals_have_settling": true,
+        "gate_verdict": "GREEN",
+        "id": "unmodified-green",
+        "residual_count": 1
+      }
+    },
+    "failure_classification_checked": [
+      "gate-rubber-stamp",
+      "open-escalation",
+      "undisclosed-residual"
+    ],
+    "first_observation": true,
     "gate_verdict": "RED",
-    "id": "empty-corpus"
-   },
-   "high_error_rate": {
-    "blocking": [
-     "C-ERROR-RATE"
+    "inventory": {
+      "claim_receipt_count": 1,
+      "claims_path": "command-center/CLAIM-REGISTRY.json",
+      "claims_present": true,
+      "claims_state": "EMPTY-P0P1",
+      "p0p1_count": 0
+    },
+    "kind": "phase-gate-report",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": "RED",
+        "method": "gate.py compute() over live confirmation corpus",
+        "name": "gate_verdict"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": false,
+        "method": "blocking_condition_ids empty",
+        "name": "phase_finished"
+      },
+      {
+        "anchor": "command-center/CLAIM-REGISTRY.json",
+        "measured": 0,
+        "method": "CLAIM-REGISTRY severity in {P0,P1}",
+        "name": "p0p1_count"
+      },
+      {
+        "anchor": "command-center/confirmation/CNF-0118-second-order-sample.json",
+        "measured": "absent",
+        "method": "CNF-0118 disagreements / sample_size vs CNF-0004 threshold",
+        "name": "error_rate"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/fixtures.py",
+        "measured": true,
+        "method": "green fixture minus one claim receipt",
+        "name": "remove_one_receipt_went_red"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/fixtures.py",
+        "measured": true,
+        "method": "green fixture with planted class-wide escalation",
+        "name": "open_escalation_blocks_at_zero_error_rate"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": "FAIL",
+        "method": "gate.py compute() over receipts on disk",
+        "name": "C-CENSUS"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": "NOT-CHECKED",
+        "method": "gate.py compute() over receipts on disk",
+        "name": "C-ERROR-RATE"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": "PASS",
+        "method": "gate.py compute() over receipts on disk",
+        "name": "C-ESCALATION"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": "PASS",
+        "method": "gate.py compute() over receipts on disk",
+        "name": "C-REQUIRED-RECEIPTS"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
+        "measured": "PASS",
+        "method": "gate.py compute() over receipts on disk",
+        "name": "C-RESIDUALS"
+      }
     ],
-    "gate_verdict": "RED",
-    "id": "high-error-rate"
-   },
-   "open_escalation_blocks": {
-    "after_blocking": [
-     "C-ESCALATION"
+    "phase_finished": false,
+    "question": "Is Phase 11 finished? Compute the exit verdict mechanically from the confirmation corpus and answer: is every P0 and P1 claim confirmed or explicitly blocked with two signals, is the sampled error rate below the pre-fixed threshold, is any class-wide escalation still open, and what is the complete residual list with a named settling experiment for each?",
+    "residuals": [
+      {
+        "blocks_exit": true,
+        "id": "R-EMPTY-P0P1-CENSUS",
+        "settling_experiment": "Populate CLAIM-REGISTRY.json with the program P0/P1 claims, emit one confirmation receipt per id, then re-run gate.py --live and require C-CENSUS PASS with p0p1_count>0.",
+        "statement": "Claim registry state=EMPTY-P0P1 with zero P0/P1 ids. An empty census is not 'every P0/P1 confirmed'."
+      },
+      {
+        "blocks_exit": true,
+        "id": "R-THRESHOLD-UNREADABLE",
+        "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for numeric threshold in CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
+        "statement": "CNF-0004 is present but names no numeric threshold."
+      }
     ],
-    "blocked": true,
-    "error_rate_while_open": 0.0,
-    "gate_after": "RED",
-    "gate_before": "GREEN",
-    "id": "open-escalation-blocks",
-    "pass_rate": 1.0
-   },
-   "remove_one_receipt": {
-    "after_blocking": [
-     "C-CENSUS"
-    ],
-    "before_blocking": [],
-    "fixture": "green-census",
-    "gate_after": "RED",
-    "gate_before": "GREEN",
-    "id": "remove-one-receipt",
-    "proves_not_rubber_stamp": true,
-    "removed_receipt": "command-center/confirmation/receipts/C-P0-ALPHA.json",
-    "went_red": true
-   },
-   "unmodified_green": {
-    "all_residuals_have_settling": true,
-    "gate_verdict": "GREEN",
-    "id": "unmodified-green",
-    "residual_count": 1
-   }
+    "title": "Phase 11 exit gate: aggregate verdict with an explicit residual list and escalation state"
   },
-  "failure_classification_checked": [
-   "gate-rubber-stamp",
-   "open-escalation",
-   "undisclosed-residual"
+  "residual_unknowns": [
+    {
+      "claim": "Claim registry state=EMPTY-P0P1 with zero P0/P1 ids. An empty census is not 'every P0/P1 confirmed'.",
+      "settling_experiment": "Populate CLAIM-REGISTRY.json with the program P0/P1 claims, emit one confirmation receipt per id, then re-run gate.py --live and require C-CENSUS PASS with p0p1_count>0.",
+      "verdict": "BLOCKED"
+    },
+    {
+      "claim": "CNF-0004 is present but names no numeric threshold.",
+      "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for numeric threshold in CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
+      "verdict": "BLOCKED"
+    }
   ],
-  "first_observation": true,
-  "gate_verdict": "RED",
-  "inventory": {
-   "claim_receipt_count": 0,
-   "claims_path": "command-center/CLAIM-REGISTRY.json",
-   "claims_present": true,
-   "claims_state": "EMPTY-P0P1",
-   "p0p1_count": 0
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
   },
-  "kind": "phase-gate-report",
-  "observations": [
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": "RED",
-    "method": "gate.py compute() over live confirmation corpus",
-    "name": "gate_verdict"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": false,
-    "method": "blocking_condition_ids empty",
-    "name": "phase_finished"
-   },
-   {
-    "anchor": "command-center/CLAIM-REGISTRY.json",
-    "measured": 0,
-    "method": "CLAIM-REGISTRY severity in {P0,P1}",
-    "name": "p0p1_count"
-   },
-   {
-    "anchor": "command-center/confirmation/CNF-0118-second-order-sample.json",
-    "measured": "absent",
-    "method": "CNF-0118 disagreements / sample_size vs CNF-0004 threshold",
-    "name": "error_rate"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/fixtures.py",
-    "measured": true,
-    "method": "green fixture minus one claim receipt",
-    "name": "remove_one_receipt_went_red"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/fixtures.py",
-    "measured": true,
-    "method": "green fixture with planted class-wide escalation",
-    "name": "open_escalation_blocks_at_zero_error_rate"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": "FAIL",
-    "method": "gate.py compute() over receipts on disk",
-    "name": "C-CENSUS"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": "NOT-CHECKED",
-    "method": "gate.py compute() over receipts on disk",
-    "name": "C-ERROR-RATE"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": "NOT-CHECKED",
-    "method": "gate.py compute() over receipts on disk",
-    "name": "C-ESCALATION"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": "FAIL",
-    "method": "gate.py compute() over receipts on disk",
-    "name": "C-REQUIRED-RECEIPTS"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/CNF-0128/gate.py",
-    "measured": "PASS",
-    "method": "gate.py compute() over receipts on disk",
-    "name": "C-RESIDUALS"
-   }
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 re-runs both-states controls on a known-green fixture and does not take the live RED verdict as proof the gate works.",
+    "reviewed_at": "2026-09-02T08:40:07Z",
+    "reviewer_id": "CNF-0128-probe2-remove-one-receipt",
+    "vendor": "openai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0128 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the remove-one-receipt control turned the gate red and the residual list has a settling experiment on every entry. Any other terminal state is FAILED:CNF-0128 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0128",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe1_live_recompute.py",
+      "id": "computed-from-receipts",
+      "name": "Live recompute matches the written artifact",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
+      "id": "open-escalation-blocks-regardless-of-pass-rate",
+      "name": "Open escalation blocks a zero-error-rate green fixture",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
+      "id": "remove-one-receipt-goes-red",
+      "name": "Deleting one required claim receipt turns GREEN into RED",
+      "result": "PASS"
+    }
   ],
-  "phase_finished": false,
-  "question": "Is Phase 11 finished? Compute the exit verdict mechanically from the confirmation corpus and answer: is every P0 and P1 claim confirmed or explicitly blocked with two signals, is the sampled error rate below the pre-fixed threshold, is any class-wide escalation still open, and what is the complete residual list with a named settling experiment for each?",
-  "residuals": [
-   {
-    "blocks_exit": true,
-    "id": "R-EMPTY-P0P1-CENSUS",
-    "settling_experiment": "Populate CLAIM-REGISTRY.json with the program P0/P1 claims, emit one confirmation receipt per id, then re-run gate.py --live and require C-CENSUS PASS with p0p1_count>0.",
-    "statement": "Claim registry state=EMPTY-P0P1 with zero P0/P1 ids. An empty census is not 'every P0/P1 confirmed'."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-ABSENT-ESCALATION-POLICY",
-    "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "CNF-0004 escalation policy is absent or unusable, so the pre-fixed discrepancy threshold cannot be read."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-ESCALATION-STATE-UNKNOWN",
-    "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Class-wide escalation state cannot be read because CNF-0004 is absent or unusable. Unknown is treated as open."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-MISSING-REQUIRED:CNF-0004",
-    "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Required Phase 11 receipt CNF-0004 at command-center/confirmation/CNF-0004-escalation-policy.json is absent, empty, unparseable, or self-declared failed."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-MISSING-REQUIRED:CNF-0014",
-    "settling_experiment": "Write command-center/confirmation/CNF-0014-coverage-board.json from the catalog contract for CNF-0014, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Required Phase 11 receipt CNF-0014 at command-center/confirmation/CNF-0014-coverage-board.json is absent, empty, unparseable, or self-declared failed."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-MISSING-REQUIRED:CNF-0118",
-    "settling_experiment": "Write command-center/confirmation/CNF-0118-second-order-sample.json from the catalog contract for CNF-0118, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Required Phase 11 receipt CNF-0118 at command-center/confirmation/CNF-0118-second-order-sample.json is absent, empty, unparseable, or self-declared failed."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-MISSING-REQUIRED:CNF-0120",
-    "settling_experiment": "Write command-center/confirmation/CNF-0120-not-checked-integrity.json from the catalog contract for CNF-0120, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Required Phase 11 receipt CNF-0120 at command-center/confirmation/CNF-0120-not-checked-integrity.json is absent, empty, unparseable, or self-declared failed."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-MISSING-REQUIRED:CNF-0124",
-    "settling_experiment": "Write command-center/confirmation/CNF-0124-authorship-audit.json from the catalog contract for CNF-0124, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Required Phase 11 receipt CNF-0124 at command-center/confirmation/CNF-0124-authorship-audit.json is absent, empty, unparseable, or self-declared failed."
-   },
-   {
-    "blocks_exit": true,
-    "id": "R-MISSING-REQUIRED:CNF-0125",
-    "settling_experiment": "Write command-center/confirmation/CNF-0125-stale-premise-sweep.json from the catalog contract for CNF-0125, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-    "statement": "Required Phase 11 receipt CNF-0125 at command-center/confirmation/CNF-0125-stale-premise-sweep.json is absent, empty, unparseable, or self-declared failed."
-   }
-  ],
-  "title": "Phase 11 exit gate: aggregate verdict with an explicit residual list and escalation state"
- },
- "residual_unknowns": [
-  {
-   "claim": "Claim registry state=EMPTY-P0P1 with zero P0/P1 ids. An empty census is not 'every P0/P1 confirmed'.",
-   "settling_experiment": "Populate CLAIM-REGISTRY.json with the program P0/P1 claims, emit one confirmation receipt per id, then re-run gate.py --live and require C-CENSUS PASS with p0p1_count>0.",
-   "verdict": "BLOCKED"
+  "timestamps": {
+    "duration_seconds": 0.088977,
+    "ended_at": "2026-09-02T08:40:07Z",
+    "started_at": "2026-09-02T08:40:07Z"
   },
-  {
-   "claim": "CNF-0004 escalation policy is absent or unusable, so the pre-fixed discrepancy threshold cannot be read.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Class-wide escalation state cannot be read because CNF-0004 is absent or unusable. Unknown is treated as open.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Required Phase 11 receipt CNF-0004 at command-center/confirmation/CNF-0004-escalation-policy.json is absent, empty, unparseable, or self-declared failed.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0004-escalation-policy.json from the catalog contract for CNF-0004, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Required Phase 11 receipt CNF-0014 at command-center/confirmation/CNF-0014-coverage-board.json is absent, empty, unparseable, or self-declared failed.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0014-coverage-board.json from the catalog contract for CNF-0014, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Required Phase 11 receipt CNF-0118 at command-center/confirmation/CNF-0118-second-order-sample.json is absent, empty, unparseable, or self-declared failed.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0118-second-order-sample.json from the catalog contract for CNF-0118, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Required Phase 11 receipt CNF-0120 at command-center/confirmation/CNF-0120-not-checked-integrity.json is absent, empty, unparseable, or self-declared failed.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0120-not-checked-integrity.json from the catalog contract for CNF-0120, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Required Phase 11 receipt CNF-0124 at command-center/confirmation/CNF-0124-authorship-audit.json is absent, empty, unparseable, or self-declared failed.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0124-authorship-audit.json from the catalog contract for CNF-0124, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  },
-  {
-   "claim": "Required Phase 11 receipt CNF-0125 at command-center/confirmation/CNF-0125-stale-premise-sweep.json is absent, empty, unparseable, or self-declared failed.",
-   "settling_experiment": "Write command-center/confirmation/CNF-0125-stale-premise-sweep.json from the catalog contract for CNF-0125, then re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/gate.py --live and require the matching condition computed_state=PASS.",
-   "verdict": "BLOCKED"
-  }
- ],
- "retry": {
-  "count": 0,
-  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
- },
- "reviewer": {
-  "fresh_context": true,
-  "independent": true,
-  "notes": "Probe 2 re-runs both-states controls on a known-green fixture and does not take the live RED verdict as proof the gate works.",
-  "reviewed_at": "2026-08-25T00:57:37Z",
-  "reviewer_id": "CNF-0128-probe2-remove-one-receipt",
-  "vendor": "openai",
-  "verdict": "PASS"
- },
- "schema_version": 1,
- "sentinel": "SUCCESS:CNF-0128 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the remove-one-receipt control turned the gate red and the residual list has a settling experiment on every entry. Any other terminal state is FAILED:CNF-0128 <classification> with the diagnostic tail attached.",
- "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0128",
- "state": "SUCCESS",
- "tests": [
-  {
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe1_live_recompute.py",
-   "id": "computed-from-receipts",
-   "name": "Live recompute matches the written artifact",
-   "result": "PASS"
-  },
-  {
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
-   "id": "open-escalation-blocks-regardless-of-pass-rate",
-   "name": "Open escalation blocks a zero-error-rate green fixture",
-   "result": "PASS"
-  },
-  {
-   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0128/probe2_remove_one_receipt.py",
-   "id": "remove-one-receipt-goes-red",
-   "name": "Deleting one required claim receipt turns GREEN into RED",
-   "result": "PASS"
-  }
- ],
- "timestamps": {
-  "duration_seconds": 0.01141,
-  "ended_at": "2026-08-25T00:57:37Z",
-  "started_at": "2026-08-25T00:57:37Z"
- },
- "unit_id": "CNF-0128",
- "gate_verdict": "RED",
- "phase_finished": false,
- "computed_from_receipts": true,
- "conditions": [
-  {
-   "id": "C-CENSUS",
-   "title": "Every P0 and P1 claim is CONFIRMED or BLOCKED with two signals",
-   "computed_state": "FAIL",
-   "receipts": [
-    {
-     "path": "command-center/CLAIM-REGISTRY.json",
-     "present": true,
-     "role": "claim-inventory"
-    },
-    {
-     "path": "command-center/confirmation/ (claim receipts)",
-     "present": true,
-     "role": "confirmation-receipts"
-    }
-   ],
-   "blocks_exit": true,
-   "detail": "empty-set-read-as-pass refused: p0p1_count=0",
-   "p0p1_count": 0,
-   "satisfied": 0,
-   "unsatisfied": []
-  },
-  {
-   "id": "C-ERROR-RATE",
-   "title": "Sampled error rate is below the pre-fixed threshold",
-   "computed_state": "NOT-CHECKED",
-   "receipts": [
-    {
-     "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
-     "present": true,
-     "role": "escalation-policy"
-    },
-    {
-     "path": "command-center/confirmation/CNF-0118-second-order-sample.json",
-     "present": true,
-     "role": "second-order-sample"
-    }
-   ],
-   "blocks_exit": true,
-   "detail": "threshold field missing",
-   "threshold": null,
-   "error_rate": null,
-   "sample_size": null
-  },
-  {
-   "id": "C-ESCALATION",
-   "title": "No class-wide escalation is still open",
-   "computed_state": "PASS",
-   "receipts": [
-    {
-     "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
-     "present": true,
-     "role": "escalation-policy"
-    }
-   ],
-   "blocks_exit": false,
-   "detail": "class_wide_escalation_open=False open_count=0",
-   "open_escalations": []
-  },
-  {
-   "id": "C-REQUIRED-RECEIPTS",
-   "title": "Every named dependency receipt is present and usable on disk",
-   "computed_state": "PASS",
-   "receipts": [
-    {
-     "path": "command-center/confirmation/CNF-0004-escalation-policy.json",
-     "present": true,
-     "role": "escalation-policy"
-    },
-    {
-     "path": "command-center/confirmation/CNF-0014-coverage-board.json",
-     "present": true,
-     "role": "coverage-board"
-    },
-    {
-     "path": "command-center/confirmation/CNF-0118-second-order-sample.json",
-     "present": true,
-     "role": "second-order-sample"
-    },
-    {
-     "path": "command-center/confirmation/CNF-0120-not-checked-integrity.json",
-     "present": true,
-     "role": "not-checked-integrity"
-    },
-    {
-     "path": "command-center/confirmation/CNF-0124-authorship-audit.json",
-     "present": true,
-     "role": "authorship-audit"
-    },
-    {
-     "path": "command-center/confirmation/CNF-0125-stale-premise-sweep.json",
-     "present": true,
-     "role": "stale-premise-sweep"
-    }
-   ],
-   "blocks_exit": false,
-   "detail": "required=6 usable=6 missing=[]",
-   "missing_unit_ids": []
-  },
-  {
-   "id": "C-RESIDUALS",
-   "title": "Every residual has a named settling experiment",
-   "computed_state": "PASS",
-   "receipts": [
-    {
-     "path": "command-center/confirmation/CNF-0128-phase11-exit-gate.json",
-     "present": false,
-     "role": "gate-residual-list"
-    },
-    {
-     "path": "command-center/confirmation/ (claim receipts residual fields)",
-     "present": true,
-     "role": "receipt-residual-fields"
-    }
-   ],
-   "blocks_exit": false,
-   "detail": "residuals=2 missing_settling=0 (disclosed residuals do not block; undisclosed/unsettled do)",
-   "incomplete_ids": []
-  }
- ]
+  "unit_id": "CNF-0128"
 }
