@@ -723,3 +723,78 @@ def test_rewrite_cli_apply_with_nothing_to_change_still_writes_the_sidecar(capsy
     assert code == 0
     assert "(no changes)" in capsys.readouterr().out
     assert f"{HOME}/.claude.json.rewritten.json" in p.written
+
+
+# ------------------------------------------------------------ browser-policy
+
+
+def test_browser_policy_generates_reg_rollback_and_verify_files():
+    p = FakeProbe()
+    written = doc.browser_policy(
+        p,
+        "C:/out",
+        chrome_limit_mb=4096,
+        edge_limit_mb=3072,
+        sleeping_tabs_seconds=300,
+        hive="HKLM",
+    )
+    assert set(written) == {
+        "C:/out/browser-discard-policies.reg",
+        "C:/out/browser-discard-policies.ROLLBACK.reg",
+        "C:/out/verify-browser-policies.ps1",
+    }
+    reg = p.files["C:/out/browser-discard-policies.reg"]
+    assert reg.startswith("Windows Registry Editor Version 5.00\r\n")
+    assert "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Google\\Chrome]" in reg
+    assert '"TotalMemoryLimitMb"=dword:00001000' in reg  # 4096
+    assert '"HighEfficiencyModeEnabled"=dword:00000001' in reg
+    assert '"MemorySaverModeSavings"=dword:00000002' in reg
+    assert '"BackgroundModeEnabled"=dword:00000000' in reg
+    assert "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Edge]" in reg
+    assert '"TotalMemoryLimitMb"=dword:00000c00' in reg  # 3072
+    assert '"SleepingTabsEnabled"=dword:00000001' in reg
+    assert '"SleepingTabsTimeout"=dword:0000012c' in reg  # 300
+    assert '"StartupBoostEnabled"=dword:00000000' in reg
+    # Edge's energy-saver knobs are deliberately absent: CPU levers, not memory.
+    # (Chrome's Memory Saver policy is confusingly NAMED HighEfficiencyModeEnabled and
+    # IS a memory lever, hence the quoted-name checks rather than a substring.)
+    assert '"EfficiencyMode"' not in reg and '"EfficiencyModeEnabled"' not in reg
+    rollback = p.files["C:/out/browser-discard-policies.ROLLBACK.reg"]
+    assert (
+        '"TotalMemoryLimitMb"=-' in rollback and '"SleepingTabsTimeout"=-' in rollback
+    )
+    verify = p.files["C:/out/verify-browser-policies.ps1"]
+    assert "chrome://policy" in verify and "edge://policy" in verify
+    assert "unmanaged" in verify.lower() or "enrolled" in verify.lower()
+    assert "Get-ItemProperty" in verify
+
+
+def test_browser_policy_clamps_limits_and_supports_hkcu():
+    p = FakeProbe()
+    doc.browser_policy(
+        p,
+        "C:/out",
+        chrome_limit_mb=512,
+        edge_limit_mb=100,
+        sleeping_tabs_seconds=10,
+        hive="HKCU",
+    )
+    reg = p.files["C:/out/browser-discard-policies.reg"]
+    assert "[HKEY_CURRENT_USER\\SOFTWARE\\Policies\\Google\\Chrome]" in reg
+    assert (
+        reg.count('"TotalMemoryLimitMb"=dword:00000400') == 2
+    )  # both clamped to the 1024 minimum
+    assert '"SleepingTabsTimeout"=dword:0000012c' in reg  # 300 s floor
+
+
+def test_browser_policy_cli(capsys):
+    p = FakeProbe()
+    code = doc.main(["browser-policy", "--emit", "C:/out", "--hive", "HKCU"], probe=p)
+    assert code == 0
+    out = capsys.readouterr().out
+    assert (
+        "browser-discard-policies.reg" in out and "verify-browser-policies.ps1" in out
+    )
+    assert "never kills" in out.lower() or "discard" in out.lower()
+    code = doc.main(["browser-policy", "--emit", "C:/out", "--hive", "HKXX"], probe=p)
+    assert code == 2

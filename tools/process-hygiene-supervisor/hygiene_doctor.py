@@ -4,6 +4,7 @@ removes an orphan class instead of reaping it.
 
     python hygiene_doctor.py [--root DIR] [--home DIR] [--json] [--digest FILE]
     python hygiene_doctor.py rewrite-mcp --config ~/.claude.json [--apply] ...
+    python hygiene_doctor.py browser-policy --emit DIR [--hive HKLM|HKCU] ...
 
 `doctor` answers the questions the supervisor cannot answer about itself or its
 surroundings, without touching anything:
@@ -561,6 +562,157 @@ def rewrite_mcp(
     }
 
 
+# ------------------------------------------------------------ browser-policy
+
+HIVES = {"HKLM": "HKEY_LOCAL_MACHINE", "HKCU": "HKEY_CURRENT_USER"}
+BROWSER_MIN_LIMIT_MB = 1024  # both browsers round anything lower up to 1024
+SLEEPING_TABS_MIN_SECONDS = 300
+
+
+def _dword(value: int) -> str:
+    return f"dword:{int(value):08x}"
+
+
+def browser_policy(
+    probe,
+    out_dir: str,
+    *,
+    chrome_limit_mb: int = 4096,
+    edge_limit_mb: int = 3072,
+    sleeping_tabs_seconds: int = 300,
+    hive: str = "HKLM",
+) -> list[str]:
+    """Write the browser DISCARD policies (never kill, never trim) as .reg files.
+
+    Policy names verified against Chrome Enterprise / Microsoft Learn 2026-09-02:
+    TotalMemoryLimitMb makes the browser discard least-recently-used tabs above the
+    limit (tabs stay in the strip; reload on click); Memory Saver / Sleeping Tabs do
+    the same on a timer; Background mode and Startup Boost keep browser processes
+    resident with no window open. Edge's EfficiencyMode / energy saver is a CPU
+    lever and is deliberately NOT included.
+
+    The verify script exists because Chromium documents that registry policies
+    are fully honoured only on domain-enrolled machines: chrome://policy and
+    edge://policy must show the values as applied, not ignored, and HKCU is the
+    fallback hive to try.
+    """
+    root = HIVES[hive]
+    chrome_limit = max(BROWSER_MIN_LIMIT_MB, int(chrome_limit_mb))
+    edge_limit = max(BROWSER_MIN_LIMIT_MB, int(edge_limit_mb))
+    sleep_s = max(SLEEPING_TABS_MIN_SECONDS, int(sleeping_tabs_seconds))
+    chrome = [
+        ("TotalMemoryLimitMb", chrome_limit),
+        ("HighEfficiencyModeEnabled", 1),
+        ("MemorySaverModeSavings", 2),  # 2 = Maximum
+        ("BackgroundModeEnabled", 0),
+    ]
+    edge = [
+        ("TotalMemoryLimitMb", edge_limit),
+        ("SleepingTabsEnabled", 1),
+        ("SleepingTabsTimeout", sleep_s),
+        ("StartupBoostEnabled", 0),
+        ("BackgroundModeEnabled", 0),
+    ]
+    chrome_key = f"{root}\\SOFTWARE\\Policies\\Google\\Chrome"
+    edge_key = f"{root}\\SOFTWARE\\Policies\\Microsoft\\Edge"
+
+    def block(key: str, values, rollback: bool) -> str:
+        lines = [f"[{key}]"]
+        for name, value in values:
+            lines.append(f'"{name}"=-' if rollback else f'"{name}"={_dword(value)}')
+        return "\r\n".join(lines) + "\r\n"
+
+    header = (
+        "Windows Registry Editor Version 5.00\r\n\r\n"
+        "; process-hygiene browser DISCARD policies: tabs are discarded (kept in the tab\r\n"
+        "; strip, reloaded on click), never closed; browser processes are never killed or\r\n"
+        "; trimmed by the supervisor. Apply, then run verify-browser-policies.ps1.\r\n\r\n"
+    )
+    reg = (
+        header
+        + block(chrome_key, chrome, False)
+        + "\r\n"
+        + block(edge_key, edge, False)
+    )
+    rollback = (
+        "Windows Registry Editor Version 5.00\r\n\r\n; removes exactly the values the companion file set\r\n\r\n"
+        + block(chrome_key, chrome, True)
+        + "\r\n"
+        + block(edge_key, edge, True)
+    )
+    ps_hive = "HKLM:" if hive == "HKLM" else "HKCU:"
+    verify = f"""#requires -Version 5.1
+# Verifies the browser discard policies are PRESENT in the registry and tells you how
+# to confirm the browsers actually HONOUR them. Chromium documents that policies read
+# from the registry are fully applied only on domain-enrolled machines and that some
+# are ignored from an unmanaged source - so the registry read below is necessary but
+# not sufficient: open chrome://policy and edge://policy and check each value shows as
+# applied (no "ignored" / "not enrolled" marker). If Chrome ignores {hive}, try the
+# same values under HKCU (re-run: hygiene_doctor.py browser-policy --hive HKCU).
+$expected = @{{
+    '{ps_hive}\\SOFTWARE\\Policies\\Google\\Chrome' = @{{ {"; ".join(f"'{n}' = {v}" for n, v in chrome)} }}
+    '{ps_hive}\\SOFTWARE\\Policies\\Microsoft\\Edge' = @{{ {"; ".join(f"'{n}' = {v}" for n, v in edge)} }}
+}}
+$bad = 0
+foreach ($key in $expected.Keys) {{
+    $props = Get-ItemProperty -Path $key -ErrorAction SilentlyContinue
+    foreach ($name in $expected[$key].Keys) {{
+        $have = if ($props) {{ $props.$name }} else {{ $null }}
+        if ($have -eq $expected[$key][$name]) {{ Write-Output "PASS: $key\\$name = $have" }}
+        else {{ Write-Output "FAIL: $key\\$name = $have (expected $($expected[$key][$name]))"; $bad++ }}
+    }}
+}}
+Write-Output ''
+Write-Output 'Now confirm the browsers honour them: open chrome://policy and edge://policy, click'
+Write-Output 'Reload policies, and check TotalMemoryLimitMb / Memory Saver / Sleeping Tabs show as'
+Write-Output 'applied with no ignored / unmanaged-source marker.'
+if ($bad) {{ Write-Output "FAILED:browser-policies missing=$bad"; exit 1 }}
+Write-Output 'SUCCESS:browser-policies-present (registry); verify chrome://policy + edge://policy'
+"""
+    out = _posix(out_dir)
+    files = {
+        f"{out}/browser-discard-policies.reg": reg,
+        f"{out}/browser-discard-policies.ROLLBACK.reg": rollback,
+        f"{out}/verify-browser-policies.ps1": verify,
+    }
+    for path, text in files.items():
+        probe.write_text(path, text)
+    return sorted(files)
+
+
+def _cmd_browser_policy(argv: list[str], probe) -> int:
+    parser = argparse.ArgumentParser(prog="hygiene_doctor.py browser-policy")
+    parser.add_argument(
+        "--emit",
+        required=True,
+        help="directory to write the .reg / rollback / verify files",
+    )
+    parser.add_argument("--chrome-limit-mb", type=int, default=4096)
+    parser.add_argument("--edge-limit-mb", type=int, default=3072)
+    parser.add_argument("--sleeping-tabs-seconds", type=int, default=300)
+    parser.add_argument("--hive", default="HKLM")
+    args = parser.parse_args(argv)
+    if args.hive not in HIVES:
+        print(f"FAILED:browser-policy --hive must be one of {sorted(HIVES)}")
+        return 2
+    written = browser_policy(
+        probe,
+        args.emit,
+        chrome_limit_mb=args.chrome_limit_mb,
+        edge_limit_mb=args.edge_limit_mb,
+        sleeping_tabs_seconds=args.sleeping_tabs_seconds,
+        hive=args.hive,
+    )
+    for path in written:
+        print(path)
+    print(
+        "These make the browsers DISCARD idle tabs (kept in the tab strip, reloaded on click);\n"
+        "the supervisor itself never kills or trims a browser. Apply the .reg as admin, then run\n"
+        "verify-browser-policies.ps1 and check chrome://policy + edge://policy show them applied."
+    )
+    return 0
+
+
 # ---------------------------------------------------------------------- CLI
 
 
@@ -689,6 +841,8 @@ def main(argv: list[str] | None = None, probe=None) -> int:
     probe = probe or RealProbe()
     if argv and argv[0] == "rewrite-mcp":
         return _cmd_rewrite(argv[1:], probe)
+    if argv and argv[0] == "browser-policy":
+        return _cmd_browser_policy(argv[1:], probe)
     return _cmd_doctor(argv, probe)
 
 
