@@ -1,0 +1,65 @@
+{
+  "name": "singleton-relaunch-grace",
+  "kind": "regression",
+  "description": "The Basic Memory watchdog just relaunched the daemon: a second basic_memory process (200 s old) exists while the old one still owns :8765. Inside the 600 s grace nothing is stopped.",
+  "rounds": 1,
+  "host": {
+    "physical_bytes": 34359738368,
+    "free_bytes": 3221225472,
+    "commit_total_bytes": 21474836480,
+    "commit_limit_bytes": 68719476736
+  },
+  "listeners": {
+    "8765": 5001
+  },
+  "processes": [
+    {
+      "pid": 100,
+      "ppid": 1,
+      "name": "explorer.exe",
+      "executable": "C:\\Windows\\explorer.exe",
+      "command_line": "explorer.exe",
+      "age_seconds": 390000,
+      "private_mib": 150
+    },
+    {
+      "pid": 110,
+      "ppid": 100,
+      "name": "WindowsTerminal.exe",
+      "executable": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.0\\WindowsTerminal.exe",
+      "command_line": "wt",
+      "age_seconds": 380000,
+      "private_mib": 120
+    },
+    {
+      "pid": 5001,
+      "ppid": 9996,
+      "name": "python.exe",
+      "executable": "C:\\Python314\\python.exe",
+      "command_line": "python -m basic_memory mcp --transport streamable-http --port 8765",
+      "age_seconds": 30000,
+      "private_mib": 843
+    },
+    {
+      "pid": 5010,
+      "ppid": 9977,
+      "name": "python.exe",
+      "executable": "C:\\Python314\\python.exe",
+      "command_line": "python -m basic_memory mcp --transport streamable-http --port 8765",
+      "age_seconds": 200,
+      "private_mib": 300
+    }
+  ],
+  "expect": {
+    "tier": "elevated",
+    "stop_pids": [],
+    "never_touched": [
+      5001,
+      5010
+    ],
+    "rules_absent": [
+      "mcp-singleton-duplicate",
+      "orphan"
+    ]
+  }
+}

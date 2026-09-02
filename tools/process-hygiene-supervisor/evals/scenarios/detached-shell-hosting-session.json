@@ -1,0 +1,64 @@
+{
+  "name": "detached-shell-hosting-session",
+  "kind": "regression",
+  "description": "A parentless idle pwsh still hosts a recent cursor-agent session. The generic orphan rule must not reap the shell (and swallow the session); nothing is stopped.",
+  "rounds": 4,
+  "host": {
+    "physical_bytes": 34359738368,
+    "free_bytes": 8589934592,
+    "commit_total_bytes": 21474836480,
+    "commit_limit_bytes": 68719476736
+  },
+  "processes": [
+    {
+      "pid": 100,
+      "ppid": 1,
+      "name": "explorer.exe",
+      "executable": "C:\\Windows\\explorer.exe",
+      "command_line": "explorer.exe",
+      "age_seconds": 390000,
+      "private_mib": 150
+    },
+    {
+      "pid": 110,
+      "ppid": 100,
+      "name": "WindowsTerminal.exe",
+      "executable": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.0\\WindowsTerminal.exe",
+      "command_line": "wt",
+      "age_seconds": 380000,
+      "private_mib": 120
+    },
+    {
+      "pid": 9000,
+      "ppid": 9950,
+      "name": "pwsh.exe",
+      "executable": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "command_line": "pwsh",
+      "age_seconds": 144000,
+      "private_mib": 45
+    },
+    {
+      "pid": 9001,
+      "ppid": 9000,
+      "name": "node.exe",
+      "executable": "C:\\Users\\Prekzursil\\AppData\\Local\\cursor-agent\\versions\\2026.09.01\\node.exe",
+      "command_line": "node cursor-agent",
+      "age_seconds": 1800,
+      "private_mib": 400
+    }
+  ],
+  "expect": {
+    "tier": "normal",
+    "stop_pids": [],
+    "never_touched": [
+      9000,
+      9001
+    ],
+    "rules_absent": [
+      "orphan",
+      "session-age",
+      "cursor-orphan-reaper"
+    ],
+    "delegate_reaper": false
+  }
+}
