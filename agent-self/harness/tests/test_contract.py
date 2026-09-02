@@ -98,6 +98,51 @@ def test_noop_stop_renders_empty_json_because_plain_text_is_invalid():
     )
 
 
+def test_grok_is_a_first_class_provider_and_renders_like_claude(tmp_path):
+    # Regression for the 2026-08-07 attribution gap (ported from the live tree in
+    # the 2026-09-02 reunion): Grok's hooks passed `--provider claude`, so every
+    # Grok turn was recorded as a claude turn. Two halves must move together — the
+    # argparse `choices` AND SUPPORTED_PROVIDERS — because dispatcher.main()
+    # swallows the ValueError this set raises, which would turn a mislabelled
+    # record into a silent no-op hook.
+    common = {
+        "session_id": "session-1",
+        "turn_id": "turn-2",
+        "cwd": str(tmp_path),
+        "permission_mode": "bypassPermissions",
+        "hook_event_name": "PostToolUse",
+        "tool_name": "Bash",
+        "tool_use_id": "tool-3",
+        "tool_input": {"command": "pytest -q"},
+        "tool_response": {"exit_code": 0, "output": "12 passed"},
+    }
+    grok = normalize_event(common, provider="grok", event_name="PostToolUse")
+    claude = normalize_event(common, provider="claude", event_name="PostToolUse")
+
+    # The ledger attribution is the whole point of the fix.
+    assert grok.provider == "grok"
+    # ...and nothing ELSE about the normalized contract may differ.
+    assert grok.to_dict() | {"provider": "claude"} == claude.to_dict()
+
+    # Grok's command-hook output vocabulary has no `systemMessage`, so it must
+    # take the claude-shaped Stop branch, not the codex fallthrough. This also
+    # keeps the emitted bytes identical to what Grok received under the old
+    # `--provider claude` registration.
+    injected = HookResult.success(
+        action="inject", additional_context=["ACTIVE GOAL: ship it"]
+    )
+    for event_name in ("PreToolUse", "Stop", "SubagentStop", "SessionStart"):
+        assert render_output(
+            injected, provider="grok", event_name=event_name
+        ) == render_output(injected, provider="claude", event_name=event_name)
+    assert render_output(injected, provider="grok", event_name="Stop") == {
+        "hookSpecificOutput": {
+            "hookEventName": "Stop",
+            "additionalContext": "ACTIVE GOAL: ship it",
+        }
+    }
+
+
 def test_core_result_schema_is_closed_and_contains_no_provider_wire_fields():
     schema_path = (
         Path(__file__).resolve().parents[1] / "schemas" / "hook-result.schema.json"

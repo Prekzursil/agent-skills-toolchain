@@ -529,3 +529,187 @@ def test_receipt_fields_do_not_leak_raw_argv_or_secrets(tmp_path):
     assert secret not in serialized
     # The fingerprint is retrievable (hex survived the sanitizer intact).
     assert ledger.receipt_for_fingerprint(cwd, receipt.fingerprint) is not None
+
+
+# ---------------------------------------------------------------------------
+# Receipt authority: only an EXECUTING tool, running a real verifier, whose
+# LATEST result is green, may substantiate a claim (SI-1 proof-of-execution).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "tool_name,tool_input,tool_result",
+    [
+        # A search/doc/task tool never ran anything - its payload (or prose)
+        # must not mint an authoritative receipt.
+        ("WebSearch", "pytest status", "success"),
+        ("Write", {"command": "pytest", "file_path": "x.py"}, {"exit_code": 0}),
+        ("Read", {"command": "pytest"}, {"exit_code": 0}),
+        (
+            "mcp__tasks__create",
+            {"command": "pytest", "title": "doc"},
+            {"status": "success"},
+        ),
+    ],
+)
+def test_non_executing_tool_cannot_mint_a_receipt(tool_name, tool_input, tool_result):
+    assert classify_receipt(tool_name, tool_input, tool_result) is None
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    ["Bash", "PowerShell", "shell", "local_shell", "mcp__desktop__run_command"],
+)
+def test_executing_tools_still_mint_a_receipt(tool_name):
+    receipt = classify_receipt(
+        tool_name, {"command": "pytest -q"}, {"exit_code": 0, "output": "3 passed"}
+    )
+    assert receipt is not None
+    assert (receipt.receipt_class, receipt.status) == ("test", "pass")
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "echo test",  # an argument, not a verifier
+        "cat test.log",  # reading a log is not running the suite
+        "pytest --version",  # binary present, nothing verified
+        "pytest --collect-only",
+    ],
+)
+def test_non_verifying_commands_mint_no_receipt(command):
+    assert classify_receipt("Bash", {"command": command}, {"exit_code": 0}) is None
+
+
+@pytest.mark.parametrize(
+    "command,result",
+    [
+        # `|| true` launders the exit code - 0 is not a verdict.
+        ("pytest >/dev/null 2>&1 || true", {"exit_code": 0}),
+        # A suite that ran zero tests proves nothing, exit 0 notwithstanding.
+        ("go test ./...", {"exit_code": 0, "output": "?   pkg [no test files]"}),
+    ],
+)
+def test_unverified_zero_signal_runs_are_not_pass(command, result):
+    receipt = classify_receipt("Bash", {"command": command}, result)
+    assert receipt is not None
+    assert receipt.status == "unknown"
+
+
+def test_prose_only_pass_is_limited_to_health_probes():
+    # No exit code, no counts: only a health probe may read a verdict off prose.
+    quiet = classify_receipt("Bash", {"command": "pytest -q"}, {"output": "success"})
+    assert quiet is not None
+    assert quiet.status == "unknown"
+    probe = classify_receipt(
+        "Bash", {"command": "curl http://x/healthz"}, {"output": "success"}
+    )
+    assert probe is not None
+    assert probe.status == "pass"
+
+
+def test_later_failing_rerun_revokes_the_earlier_green(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.append(cwd, "mutation", turn_id="T1", path="app.py")
+    _append_receipt(ledger, cwd, turn_id="T1", status="pass", key="p")
+    assert ledger.has_fresh_receipt(cwd, "T1", ("test",)) is True
+    _append_receipt(
+        ledger, cwd, turn_id="T1", status="fail", passed=0, failed=1, key="f"
+    )
+    assert ledger.has_fresh_receipt(cwd, "T1", ("test",)) is False
+
+
+def test_mutation_from_another_turn_invalidates_the_receipt(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    _append_receipt(ledger, cwd, turn_id="A", status="pass", key="p")
+    assert ledger.has_fresh_receipt(cwd, "A", ("test",)) is True
+    # A sibling turn/session wrote to the SAME tree: the green is now stale.
+    ledger.append(cwd, "mutation", turn_id="B", path="app.py")
+    assert ledger.has_fresh_receipt(cwd, "A", ("test",)) is False
+
+
+def test_unattributed_receipt_does_not_substantiate_another_turn(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.append(cwd, "mutation", turn_id="B", path="app.py")
+    _append_receipt(ledger, cwd, turn_id="", status="pass", key="p")
+    assert ledger.has_fresh_receipt(cwd, "B", ("test",)) is False
+    # An unscoped query still sees it (no turn to cross-attribute to).
+    assert ledger.has_fresh_receipt(cwd, "", ("test",)) is True
+
+
+def test_legacy_verified_flag_cannot_override_a_typed_receipt(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    _append_receipt(
+        ledger,
+        cwd,
+        turn_id="T1",
+        status="fail",
+        passed=0,
+        failed=3,
+        verified=True,
+        key="f",
+    )
+    assert ledger.has_fresh_receipt(cwd, "T1", RECEIPT_CLASSES) is False
+    # The coarse legacy flag must not resurrect a failing typed receipt.
+    assert ledger.has_verification(cwd, "T1") is False
+    # A genuinely pre-receipt event (no typed fields) still satisfies it.
+    ledger.append(cwd, "tool_result", turn_id="T1", tool="Bash", verified=True)
+    assert ledger.has_verification(cwd, "T1") is True
+
+
+# ---------------------------------------------------------------------------
+# Receipt-authority edges the parametrized cases above do not reach.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "tool_name,expected",
+    [
+        ("", False),
+        (None, False),
+        ("mcp__desktop__run_command", True),  # namespaced leaf verb
+        ("mcp__x__RunTerminalCmd", False),  # not in the set, no hint token
+        ("my-shell-wrapper", True),  # hint token inside the leaf
+        ("bashful", False),  # hint must be a whole token
+        ("WebSearch", False),
+    ],
+)
+def test_is_command_tool_judges_the_leaf_verb(tool_name, expected):
+    from harness.ledger import _is_command_tool
+
+    assert _is_command_tool(tool_name) is expected
+
+
+def test_command_head_skips_assignments_and_quoting():
+    from harness.ledger import _command_head
+
+    assert _command_head("FOO=1 'pytest' -q") == "pytest"
+    assert _command_head("FOO=1 BAR=2") == ""
+    assert _command_head("") == ""
+    assert _command_head("/usr/bin/env pytest") == "env"
+    assert _command_head(r"c:\tools\pytest.exe -q") == "pytest.exe"
+
+
+def test_receipt_status_and_counts_materialize_text_lazily_when_not_given():
+    from harness.ledger import _parse_counts, _receipt_status
+
+    result = {"output": "3 passed, 1 failed"}
+    assert _parse_counts(result) == (3, 1)
+    assert _receipt_status(result, 3, 1) == "fail"
+    # No exit code, no failures, counts only: passes on the parsed counts.
+    assert _receipt_status({"output": "3 passed"}, 3, 0, receipt_class="test") == "pass"
+    # Exit code present and NOT laundered: the code decides.
+    assert (
+        _receipt_status(
+            {"exit_code": 1}, 0, 0, receipt_class="test", command="pytest -q"
+        )
+        == "fail"
+    )
+    # Prose alone never passes a non-health class, even without an exit code.
+    assert _receipt_status({"output": "success"}, 0, 0, receipt_class="lint") == (
+        "unknown"
+    )

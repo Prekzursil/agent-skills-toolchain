@@ -73,6 +73,12 @@ def gate(tmp_path: Path, monkeypatch) -> RegisterGateModule:
 
 @pytest.fixture()
 def catalog() -> dict:
+    if not REAL_CATALOG.is_file():
+        # The real register lives in the REPO layout (<repo>/command-center/). The
+        # deployed harness-at-root layout (~/.agents/harness) has no such sibling,
+        # so these data-driven cases skip there instead of erroring; the
+        # synthetic-catalog cases in this file still run everywhere.
+        pytest.skip(f"repo register not present in this layout: {REAL_CATALOG}")
     return json.loads(REAL_CATALOG.read_text(encoding="utf-8"))
 
 

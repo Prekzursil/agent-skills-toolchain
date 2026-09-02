@@ -1,5 +1,16 @@
 # FLAG: two diverged harness lineages, and no Cursor provider in either
 
+> **RESOLVED 2026-09-02 (decision 1), kept rather than deleted:** the reunion landed in
+> `harness-lineage-reunion-2026-09-02.md` — every file classified against a three-way
+> base, the live tree's fixes ported into `agent-self/harness` with tests (834 -> 926
+> passing), `.agents/harness` refreshed to the reunited result (926 passing, was 1
+> collection error + 19 failures), and a repo->live deploy plan with a timestamped
+> backup step. Decision 2 (Cursor adapter) is NOT built; it is filed as
+> `cursor-provider-followup-2026-09-02.md`. One number below is superseded by that
+> measurement: the fresh 2026-09-02 capture ran **767** passed against its own tests
+> (not 485 — the 08-28 capture had also missed three suites), with the same 1 error +
+> 19 failures.
+
 Filed 2026-09-01. **Nothing was mashed.** Both trees are left exactly as they are;
 this records what was measured so the owner can decide the reconcile direction.
 Same discipline as `import-2026-08-28/` — flag genuine conflicts, never merge them

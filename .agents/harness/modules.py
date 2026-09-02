@@ -160,6 +160,22 @@ DEFAULT_MODE_BY_TIER: dict[str, str] = {
 # gate that never fires or never helps. Attaching the constant is in-scope here;
 # the forcing-function that reads it is out of scope for this lane.
 GATE_CONTRACTS: dict[str, dict[str, str]] = {
+    "register_gate": {
+        "metric": "register_item_closed_after_fire",
+        "owner": "prekzursil",
+        "deadline": "2026-09-15",
+        "fire_rate": (
+            "UserPromptSubmit: <=1 injection per prompt, <=3 items, each item id at most "
+            "once per session, no program-level fallback fire. SessionStart: once. "
+            "MEASURED by replaying all 375 real owner prompts through this module's own "
+            "would_fire(): 28.5% of prompts match; with the shipped session cooldown that "
+            "is 3.16 fires per 20-prompt session (60 fires / 19 sessions, max 7). "
+            "Calibration peer stigmergic_prior = 2.73/session; wallpaper line = 19.0 "
+            "(module-modes.json:32). Auto-demote to shadow above 6.0/session over >=20 "
+            "real sessions. Caveat inline: the corpus is the harness corpus, so it is a "
+            "worst-case topic population, and it applies no calibrated-silence gating."
+        ),
+    },
     "sensitive_artifact": {
         "metric": "artifact_secret_true_positive",
         "owner": "prekzursil",
@@ -629,6 +645,7 @@ MODULE_ORDER = (
     "subagent_lifecycle",
     "bc_offset_guard",
     "enforcement_scaffold",
+    "register_gate",
 )
 
 
@@ -1290,6 +1307,9 @@ class SensitiveArtifactModule:
             # modules.py:3079 already states the rule this branch was breaking -- gates
             # "NEVER run on Stop/StopFailure/SubagentStop -- the A1 loop origin (a
             # Stop-time inject re-triggers the host re-entrancy counter)".
+            # A test existed for exactly this, but only for the Stop branch
+            # (test_sensitive_artifact_ignores_a_reentrant_stop) -- which is how a
+            # two-branch router shipped with one working branch.
             if str(event.trigger or "").lower() in cls._REENTRANT_STOP:
                 return None
             path = event.transcript_path or event.agent.transcript_path
@@ -2048,6 +2068,12 @@ def _clamp01(value: Any, default: float = 0.5) -> float:
 # rebuild loops); any unparseable value falls back to the default.
 _RECALL_INDEX_SCHEMA_VERSION = 2
 _RECALL_INDEX_MAX_AGE_DAYS = 30.0
+_DIGEST_FILENAME = "recall-digest.json"
+_SLIM_DIGEST_MAX_BYTES = 262144
+_DIGEST_INJECT_LIMIT = 8
+_DIGEST_EXCLUDED_PARTS = frozenset(
+    {".git", ".hf", ".models", "compaction-checkpoints", "node_modules"}
+)
 
 
 def _recall_index_age_limit_days() -> float:
@@ -2082,6 +2108,57 @@ def _recall_index_is_servable(data: dict[str, Any]) -> bool:
     return age_days <= limit
 
 
+def _digest_path_excluded(value: str) -> bool:
+    if not value:
+        return False
+    return any(
+        part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/")
+    )
+
+
+def _notes_are_keyword_free(notes: list[Any]) -> bool:
+    for item in notes[:16]:
+        if not isinstance(item, dict):
+            continue
+        keywords = item.get("keywords")
+        if isinstance(keywords, list) and keywords:
+            return False
+    return True
+
+
+def _filter_digest_notes(notes: list[Any], *, limit: int) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for item in notes:
+        if not isinstance(item, dict):
+            continue
+        if _digest_path_excluded(str(item.get("path") or "")):
+            continue
+        if _digest_path_excluded(str(item.get("permalink") or "")):
+            continue
+        out.append(item)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _read_slim_digest_file(path: Path, *, limit: int) -> list[dict[str, Any]]:
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return []
+    if size <= 0 or size > _SLIM_DIGEST_MAX_BYTES:
+        return []
+    data = read_json(path, {})
+    if not isinstance(data, dict) or not _recall_index_is_servable(
+        cast(dict[str, Any], data)
+    ):
+        return []
+    notes = data.get("notes")
+    if not isinstance(notes, list) or not _notes_are_keyword_free(notes):
+        return []
+    return _filter_digest_notes(notes, limit=limit)
+
+
 class RecallModule:
     name = "bounded_recall"
 
@@ -2110,8 +2187,18 @@ class RecallModule:
         self.max_results = max(1, min(int(max_results), 5))
         self.ledger = ledger
         self.state_root = Path(state_root or default_state_root())
+        # Recorded for provenance only. The SessionStart / first-prompt digest is
+        # read from the slim `recall-digest.json` sidecar (built by recall_index.py
+        # --from-index); this module NEVER walks the vault -- pinned by
+        # test_recall_vault_digest_never_rglobs_vault_markdown. Owner rule
+        # (memory-map Q3/Q4, 2026-08-28): never SessionStart-rglob the vault, never
+        # load the full keyword index into SessionStart.
         vault = vault_root or os.environ.get("BASIC_MEMORY_VAULT") or "D:/basic-memory"
         self.vault_root = Path(vault)
+        digest_env = os.environ.get("AGENT_HARNESS_RECALL_DIGEST")
+        self.digest_path = (
+            Path(digest_env) if digest_env else (self.state_root / _DIGEST_FILENAME)
+        )
 
     def _notes(self) -> list[dict[str, Any]]:
         for path in self.index_paths:
@@ -2127,9 +2214,10 @@ class RecallModule:
         return []
 
     def run(self, event: HookEvent) -> HookResult:
-        # Hard READ gate (cross-AI): inject a vault digest on SessionStart AND on
+        # Hard READ gate (cross-AI): inject a slim digest on SessionStart AND on
         # the first UserPromptSubmit. Grok ignores SessionStart stdout, so the
-        # first prompt is the portable path. Fail-open if the vault is missing.
+        # first prompt is the portable path. Never rglob the vault. Fail-open
+        # (no inject) if recall-digest.json / slim index is missing.
         # SessionStart also retries an unflushed Stop spool (hook-owned WRITE).
         try:
             self._retry_spool_flush(event)
@@ -2181,6 +2269,22 @@ class RecallModule:
                 payload["flushed"] = True
                 atomic_write_json(path, payload)
 
+    def _session_digest_notes(self) -> list[dict[str, Any]]:
+        # SessionStart MUST NOT rglob the vault and MUST NOT load the huge
+        # keyword index. Prefer the slim sidecar; fall back to a size-capped
+        # keyword-free index document (test fixtures / already-slim indexes).
+        digest_path = Path(
+            getattr(self, "digest_path", self.state_root / _DIGEST_FILENAME)
+        )
+        loaded = _read_slim_digest_file(digest_path, limit=16)
+        if loaded:
+            return loaded
+        for path in self.index_paths:
+            loaded = _read_slim_digest_file(path, limit=_DIGEST_INJECT_LIMIT)
+            if loaded:
+                return loaded
+        return []
+
     def _session_vault_digest(self, event: HookEvent) -> HookResult:
         if event.event not in {"SessionStart", "UserPromptSubmit"}:
             return HookResult.success()
@@ -2188,37 +2292,19 @@ class RecallModule:
         prior = read_json(marker, {})
         if isinstance(prior, dict) and prior.get("injected"):
             return HookResult.success()
-        vault = self.vault_root
-        if not vault.is_dir():
-            return HookResult.success()
-        notes: list[tuple[float, Path]] = []
-        try:
-            for path in vault.rglob("*.md"):
-                if any(
-                    part in {"compaction-checkpoints", ".git", "node_modules"}
-                    for part in path.parts
-                ):
-                    continue
-                try:
-                    notes.append((path.stat().st_mtime, path))
-                except OSError:
-                    continue
-        except OSError:
-            return HookResult.success()
+        notes = self._session_digest_notes()
         if not notes:
             return HookResult.success()
-        notes.sort(key=lambda item: item[0], reverse=True)
         lines = [
             "BASIC-MEMORY VAULT DIGEST (auto-injected; UNTRUSTED historical context; query live MCP to confirm):"
         ]
-        for _mtime, path in notes[:8]:
-            title = path.stem.replace("-", " ")
-            rel = path.as_posix()
+        for note in notes[:_DIGEST_INJECT_LIMIT]:
+            title = redact_text(str(note.get("title") or "Untitled"), max_chars=120)
+            rel = str(note.get("path") or note.get("permalink") or "")
+            rel = rel.replace("\\", "/")
             if "basic-memory/" in rel:
                 rel = rel.split("basic-memory/", 1)[-1]
-            lines.append(
-                f"- {redact_text(title, max_chars=120)} | {redact_text(rel, max_chars=180)}"
-            )
+            lines.append(f"- {title} | {redact_text(rel, max_chars=180)}")
         try:
             marker.parent.mkdir(parents=True, exist_ok=True)
             atomic_write_json(marker, {"injected": True})
@@ -3653,6 +3739,341 @@ class OwnerOpsAuthorizationModule:
         )
 
 
+class RegisterGateModule:
+    """Resurface OPEN command-center items at the moment they become relevant.
+
+    THE FAILURE THIS EXISTS TO STOP. Work on four programs was deferred, drafted
+    and forgotten, and the owner should not have to be the one who remembers. The
+    designated survive-context-loss pointer (`RESUME.json`) went 15 days stale
+    with nothing enforcing it, and is also WRONG -- it still says A3 is "landing"
+    when M02 merged as PR #160. A ledger nobody reads at the right moment is the
+    same passive document one layer down.
+
+    WHY IT IS A MODULE AND NOT A HOOK. The identical mechanism already ships as
+    `~/.claude/hooks/open-loops/`: `add.py` opens an item, `resurface.py` lists
+    them at SessionStart, and `trigger_match.py` is the ACTIVE "fire it now" half
+    -- whose own docstring says it needs "its OWN settings.json entry", which was
+    never created. Its store holds 52 triggers, 8 fired, 44 unfired, the oldest
+    21 days old. A new hook file needing new wiring is exactly what killed the
+    prior art, so this rides the dispatcher wire `settings.json` already runs and
+    adds ZERO process spawns.
+
+    LOOP SAFETY (the 2026-08-08 bug, not to be repeated). A Stop-time inject
+    re-triggers the host re-entrancy counter; two trivial probes cost 62,155 and
+    63,222 tokens when `SensitiveArtifactModule` ran on SubagentStop with no
+    guard. This module NEVER runs on Stop / StopFailure / SubagentStop, and also
+    carries the `stop_hook_active` guard as defence in depth even though neither
+    accepted event can re-enter.
+
+    LEGAL NEXT MOVE (the other half of that bug). That injection's only
+    satisfying action -- rotate the credential -- is forbidden by AGENTS.md
+    section 9, so the model looped instead of stopping. Every injection here
+    names three legal moves, one of which (`defer`) is always available, and says
+    outright that doing nothing is fine.
+
+    Ships in SHADOW (TIER_HEURISTIC default): it computes the verdict, records it
+    in the sampled sink, and surfaces nothing until promoted on measured evidence.
+    """
+
+    name = "register_gate"
+
+    _REENTRANT = frozenset({"stop_hook_active", "true", "1"})
+    _ACCEPTED_EVENTS = frozenset({"UserPromptSubmit", "SessionStart"})
+
+    # Only the first HEAD chars of a prompt are indexed. A 20 KB paste otherwise
+    # contains almost every rare token in the catalog at once.
+    _HEAD = 1500
+    # Above this many matches the prompt targeted nothing in particular -> silent.
+    _CEILING = 8
+    _CAP = 3
+    # A title token appearing in more than this many open items is not
+    # discriminative and cannot carry a match on its own.
+    _MAX_DF = 8
+
+    _PROGRAM_TAGS = {
+        "MONITOR": {"monitor", "cockpit", "monitorcore", "dashboard", "tui", "wfmon"},
+        "B-workflow_design": {"workflow_design", "program_b"},
+        "A-toolchain": {
+            "toolchain",
+            "prompt_two",
+            "marketplace",
+            "blueprint",
+            "council",
+            "foundry",
+        },
+        "HARNESS": {"harness", "hook", "dispatcher", "skill_vault", "resume"},
+    }
+
+    _STOPWORDS = frozenset(
+        """a an and are as at be but by for from has have in into is it its no not of on or
+        that the their then there these this to was were what when which who will with you
+        your never every all any some more most only own same than too very can just should
+        now new one two three via per each also both such other""".split()
+    )
+
+    _TOKEN = re.compile(r"[a-z0-9_]{3,}")
+
+    def __init__(
+        self,
+        state_root: Path | str | None = None,
+        catalog_path: Path | str | None = None,
+    ):
+        self._root = Path(state_root) if state_root else None
+        self._explicit_catalog = Path(catalog_path) if catalog_path else None
+
+    # -- wiring ---------------------------------------------------------------
+
+    def run(self, event: Any) -> HookResult:
+        try:
+            return self._run(event)
+        except Exception:
+            return HookResult.success()  # fail-open, AGENTS.md section 6
+
+    def _run(self, event: Any) -> HookResult:
+        if os.environ.get("HARNESS_REGISTER", "").strip().lower() == "off":
+            return HookResult.success()
+        if getattr(event, "event", "") not in self._ACCEPTED_EVENTS:
+            return HookResult.success()  # never Stop-family
+        if str(getattr(event, "trigger", "") or "").strip().lower() in self._REENTRANT:
+            return HookResult.success()  # belt and braces
+        if _is_subagent(event):
+            return HookResult.success()  # a subagent owns its spawn task
+        catalog = self._load_catalog()
+        if not catalog:
+            return HookResult.success()
+        items = self._live_items(catalog)
+        if not items:
+            return HookResult.success()  # a clean register is silent
+        if getattr(event, "event", "") == "SessionStart":
+            raw = self._digest(items)
+        else:
+            raw = self._match(event, items)
+        return stage(self.name, TIER_HEURISTIC, event, raw)
+
+    # -- data -----------------------------------------------------------------
+
+    def _catalog_candidates(self) -> tuple[list[Path], bool]:
+        """(paths to try, whether the operator named one explicitly).
+
+        An explicit path -- constructor argument or HARNESS_REGISTER_CATALOG --
+        is AUTHORITATIVE and is the only candidate. Falling through from a
+        broken explicit path to an auto-discovered one would silently read a
+        different register than the operator asked for, which is a
+        misconfiguration wearing a green badge."""
+        if self._explicit_catalog:
+            return [self._explicit_catalog], True
+        env = os.environ.get("HARNESS_REGISTER_CATALOG", "").strip()
+        if env:
+            return [Path(env)], True
+        return [
+            # Repo layout: agent-self/harness/modules.py -> <repo>/command-center/...
+            Path(__file__).resolve().parents[2]
+            / "command-center"
+            / "WORK-UNIT-CATALOG.json",
+            # Deployed layouts.
+            Path.home() / ".agents" / "command-center" / "WORK-UNIT-CATALOG.json",
+            Path.home() / ".claude" / "command-center" / "WORK-UNIT-CATALOG.json",
+        ], False
+
+    def _load_catalog(self) -> dict[str, Any] | None:
+        candidates, explicit = self._catalog_candidates()
+        for path in candidates:
+            try:
+                if not path.is_file():
+                    continue
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                # A malformed / 0-byte catalog is silence, never a crash.
+                data = None
+            if isinstance(data, dict) and isinstance(data.get("items"), list):
+                return data
+            if explicit:
+                return None  # an explicit path is the END of the search
+        return None
+
+    def _live_items(self, catalog: dict[str, Any]) -> list[dict[str, Any]]:
+        """Open, not deferred-into-the-future, with a usable id and title."""
+        now = datetime.now(timezone.utc)
+        out: list[dict[str, Any]] = []
+        for item in catalog.get("items", []):
+            if not isinstance(item, dict) or item.get("disposition"):
+                continue
+            item_id = str(item.get("id", "") or "")
+            title = str(item.get("title", "") or "")
+            if not item_id or not title:
+                continue  # a garbage row is skipped, not crashed on
+            defer = item.get("defer")
+            if isinstance(defer, dict):
+                try:
+                    if datetime.fromisoformat(str(defer.get("until", ""))) > now:
+                        continue
+                except ValueError:
+                    pass
+            out.append(item)
+        return out
+
+    # -- index and predicate ---------------------------------------------------
+
+    def _tokens(self, text: str) -> set[str]:
+        lowered = text.lower().replace("-", "_").replace("`", " ")
+        return {
+            tok for tok in self._TOKEN.findall(lowered) if tok not in self._STOPWORDS
+        }
+
+    def _index(
+        self, items: list[dict[str, Any]]
+    ) -> tuple[dict[str, set[str]], dict[str, int]]:
+        """id -> TITLE tokens, plus the document frequency of each token.
+
+        The title surface is kept SEPARATE from the program tag surface on
+        purpose. Folding the section heading into every item's token set makes
+        the program-naming tokens ("monitor", "cockpit") appear in 19 items each,
+        so document-frequency filtering then discards exactly the tokens that
+        identify the program -- which made an earlier single-surface design fail
+        its own control on every parameter combination tried."""
+        per_item = {str(item["id"]): self._tokens(str(item["title"])) for item in items}
+        frequency: dict[str, int] = {}
+        for tokens in per_item.values():
+            for token in tokens:
+                frequency[token] = frequency.get(token, 0) + 1
+        return per_item, frequency
+
+    def would_fire(
+        self, prompt: str, items: list[dict[str, Any]]
+    ) -> tuple[list[str], list[str]]:
+        """The pure predicate: (matched item ids capped and ranked, matched programs).
+
+        Exposed so the corpus-replay rate measurement and the tests exercise the
+        SAME code the module runs, not a paraphrase of it."""
+        prompt_tokens = self._tokens(prompt[: self._HEAD])
+        if not prompt_tokens:
+            return [], []
+        programs = sorted(
+            program
+            for program, tags in self._PROGRAM_TAGS.items()
+            if tags & prompt_tokens
+        )
+        per_item, frequency = self._index(items)
+        by_id = {str(item["id"]): item for item in items}
+
+        scored: list[tuple[int, str]] = []
+        for item_id, tokens in per_item.items():
+            rare = {
+                tok
+                for tok in tokens & prompt_tokens
+                if frequency.get(tok, 0) <= self._MAX_DF
+            }
+            if not rare:
+                continue
+            in_program = str(by_id[item_id].get("program", "")) in programs
+            if len(rare) >= 2 or (in_program and len(rare) >= 1):
+                scored.append((len(rare) + (2 if in_program else 0), item_id))
+        if len(scored) > self._CEILING:
+            return [], programs  # the prompt targeted nothing; stay silent
+        scored.sort(key=lambda pair: (-pair[0], pair[1]))
+        return [item_id for _, item_id in scored[: self._CAP]], programs
+
+    # -- verdicts --------------------------------------------------------------
+
+    def _match(self, event: Any, items: list[dict[str, Any]]) -> HookResult:
+        matched, programs = self.would_fire(
+            str(getattr(event, "prompt", "") or ""), items
+        )
+        by_id = {str(item["id"]): item for item in items}
+        fresh = [item_id for item_id in matched if not self._seen(event, item_id)]
+        if fresh:
+            for item_id in fresh:
+                self._mark(event, item_id)
+            return HookResult.success(
+                action="inject",
+                reason_code="register_gate_items",
+                additional_context=[self._render_items(fresh, by_id, len(items))],
+            )
+        # NO program-level fallback fire on a prompt. MEASURED on the 375-prompt
+        # corpus: adding one takes the shipped rate from 3.16 to 5.11 fires per
+        # 20-prompt session (37 of 97 fires), and 42 of those come from the
+        # single token "harness". It is also the weakest possible notice -- it
+        # names no item, so its only legal move is "go read a file". The
+        # SessionStart digest already delivers the program-level picture once per
+        # session, which is where that information belongs.
+        del programs
+        return HookResult.success()
+
+    def _digest(self, items: list[dict[str, Any]]) -> HookResult:
+        counts: dict[str, int] = {}
+        for item in items:
+            key = str(item.get("program", "") or "-")
+            counts[key] = counts.get(key, 0) + 1
+        breakdown = " / ".join(f"{name} {counts[name]}" for name in sorted(counts))
+        return HookResult.success(
+            action="inject",
+            reason_code="register_gate_digest",
+            additional_context=[
+                f"REGISTER: {len(items)} open ({breakdown}). "
+                "Full list: command-center/STATUS.md. "
+                "No action required to clear this line."
+            ],
+        )
+
+    @staticmethod
+    def _line(item: dict[str, Any]) -> str:
+        """One item, one line. The `evidence` column is NEVER quoted -- that is
+        where long paths and credential-adjacent text live."""
+        title = str(item.get("title", ""))
+        for stop in (". ", " - "):
+            idx = title.find(stop)
+            if 0 < idx <= 74:
+                title = title[:idx]
+                break
+        title = title.replace("**", "").replace("`", "").strip()
+        if len(title) > 74:
+            title = title[:73].rstrip() + "~"
+        return f"  {str(item.get('id', '')):<7} {title}"
+
+    def _render_items(
+        self, ids: list[str], by_id: dict[str, dict[str, Any]], total: int
+    ) -> str:
+        lines = [
+            f"REGISTER: {len(ids)} open item(s) match this area ({total} open total)."
+        ]
+        lines += [self._line(by_id[item_id]) for item_id in ids]
+        first = ids[0]
+        lines += [
+            "LEGAL NEXT MOVES - pick one, all three satisfy this notice:",
+            "  (1) work it now;",
+            f'  (2) close it:  python tools/command-center/close.py {first} --evidence "<file:line|cmd>"',
+            f'  (3) defer it:  python tools/command-center/close.py {first} --defer "<reason>"',
+            "Doing nothing is also fine - this is a NOTICE, not a task. It will not re-fire",
+            "for these ids this session.",
+        ]
+        return "\n".join(lines)
+
+    # -- per-session cooldown ---------------------------------------------------
+
+    def _flag_path(self, event: Any) -> Path:
+        root = self._root or (default_state_root() / "register-gate")
+        return Path(root) / f"{_session_hash(event)}.json"
+
+    def _seen(self, event: Any, key: str) -> bool:
+        try:
+            data = read_json(self._flag_path(event), {})
+            return bool(isinstance(data, dict) and data.get(key))
+        except Exception:
+            return False
+
+    def _mark(self, event: Any, key: str) -> None:
+        try:
+            path = self._flag_path(event)
+            data = read_json(path, {})
+            if not isinstance(data, dict):
+                data = {}
+            data[key] = True
+            path.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(path, data)
+        except OSError:
+            return
+
+
 def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
     root = Path(state_root or default_state_root())
     ledger = EventLedger(root)
@@ -3670,4 +4091,5 @@ def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
         SubagentLifecycleModule(ledger),
         BcOffsetGuardModule(),
         EnforcementScaffoldModule(state_root=root),
+        RegisterGateModule(state_root=root / "register-gate"),
     ]

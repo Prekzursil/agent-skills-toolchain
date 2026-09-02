@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -73,6 +74,9 @@ INJECT_PRIORITY: dict[str, int] = {
     "config_baseline_unreadable": PRIORITY_SAFETY,
     # GOAL = 80
     "goal_reinjection": PRIORITY_GOAL,
+    # The SessionStart / first-prompt basic-memory vault digest (RecallModule)
+    # ranks with goal re-injection: it is the session's read-side anchor.
+    "bm_vault_digest": PRIORITY_GOAL,
     "subagent_handoff": PRIORITY_GOAL,
     "ipass_readback": PRIORITY_GOAL,
     "postcompact_reanchor": PRIORITY_GOAL,
@@ -135,6 +139,64 @@ def _env_int(name: str, default: int, floor: int) -> int:
     except (TypeError, ValueError):
         value = int(default)
     return max(floor, value)
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    """Tolerant int() for externally-written state (breaker.json is on disk and
+    can be corrupted out-of-band). A bad slot must degrade to the default, never
+    raise — the breaker bookkeeping runs inside the module except-handler, where
+    a raise escapes dispatch() entirely and discards an already-computed block."""
+    try:
+        return int(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
+# The host kills the hook process at its registered per-event timeout
+# (registration._TIMEOUTS — 2s on the hot events). module.run() is synchronous,
+# so ONE module that outlives that deadline takes the whole dispatch with it: no
+# terminal record, no liveness stamp, every later module silently skipped. The
+# fan-out therefore runs under a wall-clock budget; on expiry the in-flight module
+# is abandoned (daemon thread, dies with the process) and the failure is recorded
+# instead of vanishing.
+#
+# Budget = host deadline - _STARTUP_ALLOWANCE_SEC, because the deadline covers the
+# WHOLE process, not just the fan-out: interpreter start + imports +
+# build_default_modules measured ~0.3s on the live box, and the terminal write and
+# native stdout have to land inside the remainder. Measured on 260k live terminal
+# records, this truncates the tail of ~1.5% of UserPromptSubmit events (the 2s
+# cap's slowest) — events of which 2.3% already exceeded 2s and were SIGKILLed
+# with no record at all, so the trade is strictly in favour of recording.
+_STARTUP_ALLOWANCE_SEC = 0.6
+_MIN_BUDGET_SEC = 0.25
+_DEFAULT_HOST_DEADLINE_SEC = 5.0
+
+
+def _host_deadline_sec(event_name: str) -> float:
+    """The host's registered timeout for this event. Resolved lazily and
+    tolerantly so this file still works standalone and in a vendored tree that
+    ships no registration module (flat 5s there)."""
+    try:
+        if __package__ in {None, ""}:
+            from harness.registration import _TIMEOUTS
+        else:
+            from .registration import _TIMEOUTS
+
+        return float(_TIMEOUTS[str(event_name)])
+    except Exception:
+        return _DEFAULT_HOST_DEADLINE_SEC
+
+
+def _dispatch_budget_sec(event_name: str) -> float:
+    """Wall-clock budget for the module fan-out. 0 disables the watchdog."""
+    raw = os.environ.get("HARNESS_DISPATCH_BUDGET_MS", "").strip()
+    if raw:
+        try:
+            return max(0.0, float(raw) / 1000.0)
+        except (TypeError, ValueError):
+            pass
+    deadline = _host_deadline_sec(event_name)
+    return max(_MIN_BUDGET_SEC, deadline - _STARTUP_ALLOWANCE_SEC)
 
 
 def _mode_env(name: str, default: str) -> str:
@@ -275,61 +337,90 @@ class HarnessDispatcher:
         continuation: str | None = None
         had_error = bool(transport_error)
         failed_modules: list[str] = [transport_error] if transport_error else []
+        in_flight = ""
 
         # F6 · per-module error-streak circuit-breaker (SHADOW by default).
         breaker_mode = _mode_env("HARNESS_BREAKER_MODE", "shadow")
         breaker = self._load_breaker()
         now = time.time()
 
-        for module in self.modules:
-            module_name = str(getattr(module, "name", module.__class__.__name__))
-            if breaker_mode == "enforce" and self._is_quarantined(
-                breaker, module_name, now
-            ):
-                # Cooldown quarantine: a reliably-crashing module already provides
-                # no protection under fail-open, so skip it (and stop paying its
-                # cost) until the window elapses; it auto-resumes afterwards.
-                continue
-            try:
-                result = module.run(event)
-                if not isinstance(result, HookResult):
-                    raise TypeError("module returned a non-HookResult")
-                priority = _inject_priority(result.reason_code)
-                for context in result.additional_context:
-                    clean = redact_text(str(context), max_chars=4000).strip()
-                    if clean and clean not in seen:
-                        seen.add(clean)
-                        collected.append((priority, result.reason_code, clean))
-                if _PRIORITY[result.action] > _PRIORITY[action]:
-                    action = result.action
-                    reason_code = result.reason_code
-                    continuation = result.continuation
-                elif result.action == action and result.reason_code != "ok":
-                    reason_code = result.reason_code
-                if result.status.startswith("FAILED:"):
+        def _fan_out() -> None:
+            nonlocal action, reason_code, continuation, had_error, in_flight
+            for module in self.modules:
+                module_name = str(getattr(module, "name", module.__class__.__name__))
+                in_flight = module_name
+                if breaker_mode == "enforce" and self._is_quarantined(
+                    breaker, module_name, now
+                ):
+                    # Cooldown quarantine: a reliably-crashing module already
+                    # provides no protection under fail-open, so skip it (and stop
+                    # paying its cost) until the window elapses; it auto-resumes
+                    # afterwards. The hook is DEGRADED while a detector is skipped,
+                    # so mark it — terminal health must never report a clean
+                    # measurement for a detector that never ran.
+                    had_error = True
+                    failed_modules.append(module_name)
+                    continue
+                try:
+                    result = module.run(event)
+                    if not isinstance(result, HookResult):
+                        raise TypeError("module returned a non-HookResult")
+                    priority = _inject_priority(result.reason_code)
+                    for context in result.additional_context:
+                        clean = redact_text(str(context), max_chars=4000).strip()
+                        if clean and clean not in seen:
+                            seen.add(clean)
+                            collected.append((priority, result.reason_code, clean))
+                    if _PRIORITY[result.action] > _PRIORITY[action]:
+                        action = result.action
+                        reason_code = result.reason_code
+                        continuation = result.continuation
+                    elif result.action == action and result.reason_code != "ok":
+                        reason_code = result.reason_code
+                    if result.status.startswith("FAILED:"):
+                        had_error = True
+                        failed_modules.append(module_name)
+                        self._breaker_on_error(breaker, module_name)
+                    else:
+                        self._breaker_on_success(breaker, module_name)
+                    if result.action == "block":
+                        # Security decisions are terminal. Later modules can write
+                        # goals, ledgers, or checkpoints and must never ingest the
+                        # blocked payload.
+                        break
+                except Exception:
+                    # A raised exception in one branch must not suppress the others
+                    # (each module owns its own try/except boundary).
                     had_error = True
                     failed_modules.append(module_name)
                     self._breaker_on_error(breaker, module_name)
-                else:
-                    self._breaker_on_success(breaker, module_name)
-                if result.action == "block":
-                    # Security decisions are terminal. Later modules can write
-                    # goals, ledgers, or checkpoints and must never ingest the
-                    # blocked payload.
-                    break
-            except Exception:
-                # A raised exception in one branch must not suppress the others
-                # (each module owns its own try/except boundary).
+
+        budget = _dispatch_budget_sec(event_name)
+        if budget <= 0:
+            _fan_out()
+        else:
+            worker = threading.Thread(
+                target=_fan_out, name="harness-fanout", daemon=True
+            )
+            worker.start()
+            worker.join(budget)
+            if worker.is_alive():
+                # Out of budget: the host is about to kill this process. Abandon
+                # the in-flight module (daemon thread — it dies with the process)
+                # and keep going, so the terminal record and whatever the finished
+                # modules produced still reach the host.
                 had_error = True
-                failed_modules.append(module_name)
-                self._breaker_on_error(breaker, module_name)
+                failed_modules.append(in_flight or "dispatch")
+
+        # Snapshot: an abandoned worker may still be appending to these lists.
+        failed = list(failed_modules)
 
         # F6 · persist streaks, trip quarantines, raise the failed_modules spike
         # alarm, and stamp the liveness heartbeat. Fail-open (never raises).
-        self._finalize_breaker(breaker, event, failed_modules, now, breaker_mode)
+        self._finalize_breaker(breaker, event, failed, now, breaker_mode)
 
         # G3 · assemble the injected contexts through the mixer (SHADOW by default).
-        contexts = self._mix_contexts(event, collected, action)
+        contexts = self._mix_contexts(event, list(collected), action)
 
         terminal = (
             f"FAILED:hook-{event_name.lower()}"
@@ -350,7 +441,7 @@ class HarnessDispatcher:
             provider=provider,
             event_name=event_name,
             elapsed_ms=(time.perf_counter() - started) * 1000,
-            failed_modules=failed_modules,
+            failed_modules=failed,
         )
         return result
 
@@ -427,12 +518,12 @@ class HarnessDispatcher:
 
     def _breaker_on_error(self, state: dict[str, Any], name: str) -> None:
         slot = self._module_slot(state, name)
-        slot["streak"] = int(slot.get("streak") or 0) + 1
+        slot["streak"] = _as_int(slot.get("streak")) + 1
         slot["last_error_ts"] = _iso_now()
 
     def _breaker_on_success(self, state: dict[str, Any], name: str) -> None:
         slot = state["modules"].get(name)
-        if isinstance(slot, dict) and int(slot.get("streak") or 0):
+        if isinstance(slot, dict) and _as_int(slot.get("streak")):
             slot["streak"] = 0
 
     def _append_alert(
@@ -466,9 +557,9 @@ class HarnessDispatcher:
             for name, slot in list(state["modules"].items()):
                 if not isinstance(slot, dict):
                     continue
-                if int(
-                    slot.get("streak") or 0
-                ) >= streak_n and not self._is_quarantined(state, name, now):
+                if _as_int(slot.get("streak")) >= streak_n and not self._is_quarantined(
+                    state, name, now
+                ):
                     slot["quarantined_until"] = now + cooldown
                     slot["streak"] = 0
                     slot["last_alert_ts"] = _iso_now()
@@ -536,9 +627,14 @@ def _parse_args(argv: list[str] | None = None) -> Any:
     import argparse  # lazy (import-diet): only the CLI entrypoint needs argparse.
 
     parser = argparse.ArgumentParser(
-        description="Shared Claude/Codex lifecycle dispatcher"
+        description="Shared Claude/Codex/Grok lifecycle dispatcher"
     )
-    parser.add_argument("--provider", required=True, choices=("claude", "codex"))
+    # Keep in lockstep with adapters.SUPPORTED_PROVIDERS — a value accepted here
+    # but missing there is a silent no-op hook (the ValueError is swallowed by
+    # main()'s fail-open except), which is strictly worse than a wrong label.
+    parser.add_argument(
+        "--provider", required=True, choices=("claude", "codex", "grok")
+    )
     parser.add_argument("--event", required=True)
     parser.add_argument("--state-root")
     return parser.parse_args(argv)
@@ -582,4 +678,12 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    _code = main()
+    # A module abandoned at the dispatch budget keeps running on a daemon thread,
+    # and normal interpreter finalization waits on it (~0.4s measured on the live
+    # box) — long enough to push the process past the host's kill deadline (exit
+    # 124) AFTER the native output was already written. Nothing else is pending at
+    # this point (no atexit handlers, no background writers), so exit immediately.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(_code)

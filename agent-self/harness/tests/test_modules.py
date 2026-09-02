@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import concurrent.futures
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,6 +35,7 @@ from harness.modules import (
     SensitiveArtifactModule,
     SubagentLifecycleModule,
     _canonical_tree,
+    _flush_spool_to_vault,
     resolve_mode,
     stage,
 )
@@ -802,6 +806,242 @@ def test_recall_uses_local_lexical_index_and_requires_high_precision(tmp_path):
     assert "projects/reframe/make-shorts-auto-transcribe" in hit.additional_context[0]
     assert "Unrelated" not in hit.additional_context[0]
     assert miss.action == "allow"
+
+
+# --- basic-memory vault digest (live tree Q3/Q4, ported 2026-09-02) -------------
+# SessionStart and the first UserPromptSubmit inject a SLIM digest read from the
+# recall-digest.json sidecar (or a size-capped keyword-free index). The module
+# never walks the vault and never loads the full keyword index for this purpose.
+
+
+def test_recall_session_start_injects_vault_digest_once(tmp_path):
+    index = _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "copy-loss-mmffld",
+                "path": "projects/phenibut/copy-loss-mmffld.md",
+                "permalink": "projects/phenibut/copy-loss-mmffld",
+                "summary": "Invalid mmffld_handle",
+                "mtime": 1.0,
+                "importance": 0.9,
+            }
+        ],
+        name="recall-digest.json",
+    )
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=tmp_path / "vault",
+    )
+    first = module.run(event(tmp_path, "SessionStart"))
+    second = module.run(event(tmp_path, "SessionStart"))
+    assert first.action == "inject"
+    assert first.reason_code == "bm_vault_digest"
+    assert "copy-loss-mmffld" in first.additional_context[0]
+    assert "UNTRUSTED" in first.additional_context[0]
+    assert index.exists()
+    assert second.action == "allow"
+
+
+def test_recall_first_prompt_injects_digest_even_after_session_start(tmp_path):
+    """Grok may drop SessionStart stdout; the first UserPromptSubmit is the portable path."""
+    index = _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "copy-loss-mmffld",
+                "path": "projects/phenibut/copy-loss-mmffld.md",
+                "permalink": "projects/phenibut/copy-loss-mmffld",
+                "summary": "Invalid mmffld_handle",
+                "mtime": 1.0,
+                "importance": 0.9,
+            }
+        ],
+    )
+    module = RecallModule(
+        index_paths=[index],
+        state_root=tmp_path,
+        vault_root=tmp_path / "vault",
+    )
+    start = module.run(event(tmp_path, "SessionStart"))
+    assert start.action == "inject" and start.reason_code == "bm_vault_digest"
+    prompt = "Continue the phenibut alpha2delta FEP plus Jaguar work on Scaleway now."
+    first = module.run(event(tmp_path, "UserPromptSubmit", prompt=prompt))
+    assert first.action == "inject" and first.reason_code == "bm_vault_digest"
+    assert "copy-loss-mmffld" in first.additional_context[0]
+    second = module.run(event(tmp_path, "UserPromptSubmit", prompt=prompt))
+    assert second.action == "allow"
+
+
+def test_recall_digest_merges_with_lexical_recall_on_the_first_prompt(tmp_path):
+    # A first prompt that ALSO scores a lexical hit gets both: the digest anchor
+    # and the composite recall, merged into one inject.
+    _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "digest-anchor",
+                "path": "notes/digest-anchor.md",
+                "permalink": "notes/digest-anchor",
+                "summary": "anchor",
+                "mtime": 1.0,
+                "importance": 1.0,
+            }
+        ],
+        name="recall-digest.json",
+    )
+    index = _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "Reframe Make Shorts auto transcribe decision",
+                "permalink": "projects/reframe/make-shorts-auto-transcribe",
+                "summary": "Auto transcribe before selecting clips.",
+                "keywords": ["reframe", "shorts", "auto", "transcribe", "transcript"],
+            }
+        ],
+    )
+    module = RecallModule(index_paths=[index], max_results=2, state_root=tmp_path)
+    out = module.run(
+        event(
+            tmp_path,
+            "UserPromptSubmit",
+            prompt="Fix Reframe Make Shorts auto transcribe when the transcript is absent.",
+        )
+    )
+    assert out.action == "inject"
+    joined = "\n".join(out.additional_context)
+    assert "digest-anchor" in joined
+    assert "projects/reframe/make-shorts-auto-transcribe" in joined
+
+
+def test_recall_vault_digest_failopen_when_vault_missing(tmp_path):
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=tmp_path / "no-such-vault",
+    )
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+    assert (
+        module.run(event(tmp_path, "UserPromptSubmit", prompt="x" * 40)).action
+        == "allow"
+    )
+
+
+def test_recall_vault_digest_never_rglobs_vault_markdown(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "secret-from-rglob.md").write_text(
+        "# must not be scanned\n", encoding="utf-8"
+    )
+
+    def explode(self, *args, **kwargs):
+        raise AssertionError("vault rglob must not run on SessionStart")
+
+    monkeypatch.setattr(Path, "rglob", explode)
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=vault,
+    )
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+
+
+def test_recall_vault_digest_injects_from_sidecar_without_rglob(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    (vault / "secret-from-rglob.md").write_text("# must not appear\n", encoding="utf-8")
+    _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "from-digest",
+                "path": "notes/from-digest.md",
+                "permalink": "notes/from-digest",
+                "summary": "slim sidecar note",
+                "mtime": 1.0,
+                "importance": 1.0,
+            }
+        ],
+        name="recall-digest.json",
+    )
+
+    def explode(self, *args, **kwargs):
+        raise AssertionError("vault rglob must not run on SessionStart")
+
+    monkeypatch.setattr(Path, "rglob", explode)
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=vault,
+    )
+    result = module.run(event(tmp_path, "SessionStart"))
+    assert result.action == "inject"
+    assert result.reason_code == "bm_vault_digest"
+    assert "from-digest" in result.additional_context[0]
+    assert "secret-from-rglob" not in result.additional_context[0]
+
+
+def test_recall_digest_env_override_and_excluded_paths(tmp_path, monkeypatch):
+    # AGENT_HARNESS_RECALL_DIGEST relocates the sidecar; notes under excluded
+    # parts (.git, .hf, .models, compaction-checkpoints, node_modules) never
+    # reach the model even if the sidecar carries them.
+    sidecar = _recall_index(
+        tmp_path,
+        [
+            {"title": "keep-me", "path": "notes/keep-me.md", "mtime": 2.0},
+            {"title": "dump", "path": "compaction-checkpoints/dump.md", "mtime": 3.0},
+            {"title": "weights", "permalink": ".models/weights", "mtime": 4.0},
+            "not-a-dict",
+        ],
+        name="elsewhere-digest.json",
+    )
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_DIGEST", str(sidecar))
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    result = module.run(event(tmp_path, "SessionStart"))
+    assert result.action == "inject"
+    body = result.additional_context[0]
+    assert "keep-me" in body
+    assert "dump" not in body and "weights" not in body
+
+
+def test_recall_digest_rejects_stale_oversized_or_keyword_bearing_documents(
+    tmp_path, monkeypatch
+):
+    # Stale sidecar (built_at beyond the age limit) -> silent.
+    stale = _recall_index(
+        tmp_path,
+        [{"title": "old", "path": "notes/old.md"}],
+        name="recall-digest.json",
+        built_at="2020-01-01T00:00:00+00:00",
+    )
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+    # A keyword-bearing document is the FULL index, not a digest -> silent
+    # (SessionStart must never load the keyword index).
+    stale.unlink()
+    _recall_index(
+        tmp_path,
+        [{"title": "full", "path": "notes/full.md", "keywords": ["full"]}],
+        name="recall-digest.json",
+    )
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+    # Oversized sidecar -> silent, without reading it.
+    big = tmp_path / "recall-digest.json"
+    big.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "notes": [{"title": "x" * 300_000, "path": "notes/x.md"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
 
 
 def test_anti_degen_warns_only_after_same_args_and_same_result_three_times(tmp_path):
@@ -2608,6 +2848,68 @@ def test_canonical_tree_classifies_codex_profile(iso, tmp_path, monkeypatch):
     assert _canonical_tree(str(tmp_path / ".codex" / "config.toml")) is None
 
 
+# A RELATIVE file_path is resolved against the SESSION cwd the event carries, never
+# against the hook PROCESS cwd. Both directions are asserted, because only the pair
+# distinguishes a real fix from a detector that is silent in both states:
+#   process cwd INSIDE the deployed tree + session cwd OUTSIDE -> must stay silent
+#   process cwd OUTSIDE                  + session cwd INSIDE  -> must still fire
+# The first direction is the live defect (measured 2026-08-07): a bare `pytest` run
+# from ~/.agents/harness classified a plain `Write notes.md` as tree 'harness' and
+# injected, while the identical call classified None via check_no_regression.py,
+# which runs pytest from the .agents parent.
+def test_canonical_edit_guard_resolves_relative_path_against_session_cwd(
+    iso, tmp_path, monkeypatch
+):
+    agents = tmp_path / "agents"
+    deployed = agents / "harness"
+    deployed.mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(agents))
+    monkeypatch.setenv("HARNESS_GATE_MODE__canonical_config_edit", "enforce")
+
+    # Direction 1 -- process cwd is INSIDE the deployed tree, session cwd is not.
+    # The process cwd must not leak into the classification.
+    monkeypatch.chdir(deployed)
+    out = SecretGuardModule().run(
+        event(
+            outside,
+            "PreToolUse",
+            tool_name="Write",
+            tool_input={"file_path": "notes.md", "content": "x"},
+        )
+    )
+    assert out.action == "allow", "process cwd leaked into tree classification"
+
+    # Direction 2 -- process cwd is OUTSIDE, session cwd IS the deployed tree. The
+    # guard must still fire, so direction 1 cannot be satisfied by simply ignoring
+    # every relative path.
+    monkeypatch.chdir(outside)
+    out = SecretGuardModule().run(
+        event(
+            deployed,
+            "PreToolUse",
+            tool_name="Write",
+            tool_input={"file_path": "modules.py", "content": "x"},
+        )
+    )
+    assert out.action == "inject" and out.reason_code == "canonical_config_edit"
+
+
+def test_canonical_tree_relative_path_unclassifiable_without_base(
+    iso, tmp_path, monkeypatch
+):
+    # No base -> a relative path cannot be attributed to a tree. Fail closed rather
+    # than resolving against ambient process state.
+    agents = tmp_path / "agents"
+    (agents / "harness").mkdir(parents=True)
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(agents))
+    monkeypatch.chdir(agents / "harness")
+    assert _canonical_tree("modules.py") is None
+    assert _canonical_tree("modules.py", str(agents / "harness")) == "harness"
+    assert _canonical_tree("", str(agents / "harness")) is None
+
+
 def test_canonical_edit_guard_has_contract():
     contract = GATE_CONTRACTS["canonical_config_edit"]
     assert set(contract) >= {"metric", "owner", "deadline", "fire_rate"}
@@ -2672,12 +2974,158 @@ def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypa
     assert out.action == "allow"
 
 
-def test_basic_memory_nudge_silent_without_canonical_edit(iso, tmp_path, monkeypatch):
+def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
+    iso, tmp_path, monkeypatch
+):
+    """Live SOTA WRITE gate (ported 2026-09-02): ANY file mutation with no vault
+    write -> Stop injects AND spools a session note for the hook-owned flush.
+
+    This inverted the previous `silent_without_canonical_edit` expectation on
+    purpose: the capture discipline covers every edited file, not only the
+    canonical config trees (GATE_CONTRACTS["basic_memory_nudge"]["fire_rate"])."""
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     ledger = EventLedger(tmp_path / "state")
     _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    spools = list((iso / "bm-spool").glob("*.json"))
+    assert spools, "Stop must spool a session note when a mutation had no vault write"
+    payload = json.loads(spools[0].read_text(encoding="utf-8"))
+    assert payload.get("flushed") is False
+    assert payload.get("title")
+    assert payload.get("body")
+    # The spool never carries the raw session id or an unredacted cwd verbatim
+    # beyond what redact_text allows, and it is idempotent per session.
+    ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+    assert len(list((iso / "bm-spool").glob("*.json"))) == 1
+
+
+def test_basic_memory_nudge_silent_when_no_mutation_at_all(iso, tmp_path, monkeypatch):
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    ledger = EventLedger(tmp_path / "state")
+    out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
     assert out.action == "allow"
+    assert not list((iso / "bm-spool").glob("*.json"))
+
+
+def test_recall_session_start_retries_unflushed_spool(iso, tmp_path, monkeypatch):
+    spool_dir = iso / "bm-spool"
+    spool_dir.mkdir(parents=True)
+    marker_hash = hashlib.sha256(b"session-1").hexdigest()[:16]
+    spool = spool_dir / f"{marker_hash}.json"
+    spool.write_text(
+        json.dumps(
+            {
+                "title": "pending capture",
+                "body": "unflushed",
+                "flushed": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    already = spool_dir / "already.json"
+    already.write_text(
+        json.dumps({"title": "done", "body": "done", "flushed": True}),
+        encoding="utf-8",
+    )
+    calls: list[dict] = []
+
+    def _fake_flush(payload):
+        calls.append(payload)
+        return True
+
+    monkeypatch.setattr("harness.modules._flush_spool_to_vault", _fake_flush)
+    module = RecallModule(
+        index_paths=[tmp_path / "missing.json"],
+        state_root=tmp_path,
+        vault_root=tmp_path / "empty-vault",
+    )
+    module.run(event(tmp_path, "SessionStart"))
+    # Only the unflushed spool is retried; the flushed one is left alone.
+    assert [c["title"] for c in calls] == ["pending capture"]
+    updated = json.loads(spool.read_text(encoding="utf-8"))
+    assert updated.get("flushed") is True
+
+
+def test_flush_spool_to_vault_is_inert_under_pytest_unless_opted_in(monkeypatch):
+    # The flush shells out to the basic-memory CLI. Under pytest it must be a
+    # no-op unless HARNESS_BM_FLUSH_IN_TEST=1, so no test can write into the
+    # live vault by accident.
+    monkeypatch.delenv("HARNESS_BM_FLUSH_IN_TEST", raising=False)
+    spawned: list[list[str]] = []
+    monkeypatch.setattr(
+        "subprocess.run", lambda *a, **k: spawned.append(list(a[0])) or None
+    )
+    assert _flush_spool_to_vault({"title": "t", "body": "b"}) is False
+    assert spawned == []
+
+
+def test_flush_spool_to_vault_runs_the_cli_and_reports_its_exit(tmp_path, monkeypatch):
+    # A real child process stands in for the basic-memory CLI: BASIC_MEMORY_CLI
+    # names a script that records its argv and exits with the code the test
+    # chooses, and the module's subprocess.run call is routed through
+    # sys.executable so the fixture works on every OS the harness deploys to.
+    monkeypatch.setenv("HARNESS_BM_FLUSH_IN_TEST", "1")
+    fake_cli = tmp_path / "fake-basic-memory.py"
+    fake_cli.write_text(
+        "import sys, json, pathlib\n"
+        "pathlib.Path(sys.argv[-2]).write_text(json.dumps(sys.argv[1:-2]))\n"
+        "sys.exit(int(sys.argv[-1]))\n",
+        encoding="utf-8",
+    )
+    real_run = subprocess.run
+    calls: list[list[str]] = []
+    exit_code = {"value": 0}
+
+    def _run(argv, **kwargs):
+        calls.append(list(argv))
+        relayed = [
+            sys.executable,
+            str(fake_cli),
+            *argv[1:],
+            str(tmp_path / "recorded.json"),
+            str(exit_code["value"]),
+        ]
+        return real_run(relayed, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", _run)
+    monkeypatch.setenv("BASIC_MEMORY_CLI", str(fake_cli))
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is True
+    argv = calls[0]
+    assert argv[0] == str(fake_cli)
+    assert argv[1:3] == ["tool", "write-note"]
+    assert "--title" in argv and "--content" in argv
+    recorded = json.loads((tmp_path / "recorded.json").read_text(encoding="utf-8"))
+    assert "Session capture" in recorded and "why" in recorded
+    # A non-zero CLI exit is reported as "not flushed", never raised.
+    exit_code["value"] = 3
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is False
+
+
+def test_flush_spool_to_vault_refuses_secrets_empties_and_missing_cli(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_BM_FLUSH_IN_TEST", "1")
+    spawned: list[list[str]] = []
+    monkeypatch.setattr(
+        "subprocess.run", lambda *a, **k: spawned.append(list(a[0])) or None
+    )
+    # Empty title/body: nothing to write.
+    assert _flush_spool_to_vault({"title": "", "body": "x"}) is False
+    assert _flush_spool_to_vault({"title": "x", "body": ""}) is False
+    assert _flush_spool_to_vault("not-a-dict") is False
+    # A secret in either field must never reach the vault.
+    assert (
+        _flush_spool_to_vault(
+            {"title": "t", "body": "API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234"}
+        )
+        is False
+    )
+    # No resolvable CLI on PATH: fail-open False, no spawn.
+    monkeypatch.delenv("BASIC_MEMORY_CLI", raising=False)
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+    assert _flush_spool_to_vault({"title": "t", "body": "b"}) is False
+    assert spawned == []
 
 
 def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch):

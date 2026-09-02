@@ -1,37 +1,45 @@
 """Central last-mile coverage for a fail-open branch the per-module lanes left open.
 
-Asserts REAL behavior only: when the stale-lock mtime probe in ``_FileLock.__enter__``
-raises ``OSError`` mid-acquisition (a TOCTOU race where the held lock vanishes under
-``stat``), the acquisition swallows it (ledger.py 450-451) and keeps trying until the
-deadline, then raises ``TimeoutError`` -- it never lets the ``OSError`` escape.
+Asserts REAL behavior only: when the OS lock backend keeps refusing the byte-range
+lock in ``_FileLock.__enter__`` (another live process holds it), the acquisition
+retries until the deadline, then raises ``TimeoutError`` -- it never lets the
+backend's ``OSError`` escape, and it chains that ``OSError`` as the cause so the
+operator can still see WHY the lock was refused.
+
+History: until the 2026-09-02 reunion this file covered the O_EXCL lockfile's
+stale-``stat`` race. That implementation was replaced by the live tree's OS-level
+advisory lock (fcntl/msvcrt), which the kernel releases when the holder dies, so a
+stale-lock probe no longer exists to race against.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
+import harness.ledger as L
 from harness.ledger import _FileLock
 
 
-def test_filelock_swallows_oserror_from_stale_lock_stat(tmp_path, monkeypatch):
+def test_filelock_times_out_instead_of_leaking_the_backend_oserror(
+    tmp_path, monkeypatch
+):
     lock_path = tmp_path / "locks" / "ledger.lock"
-    lock_path.parent.mkdir(parents=True)
-    # An existing lock file makes the O_EXCL open raise FileExistsError, so the
-    # stale-lock cleanup path (which stat()s the lock) is entered.
-    lock_path.write_text("4242", encoding="utf-8")
+    attempts: list[int] = []
 
-    real_stat = Path.stat
+    def refuse(self):
+        attempts.append(1)
+        raise OSError("resource temporarily unavailable")
 
-    def raising_stat(self, *args, **kwargs):
-        if self == lock_path:
-            raise OSError("stale-lock stat race")
-        return real_stat(self, *args, **kwargs)
+    monkeypatch.setattr(L._FileLock, "_acquire", refuse)
 
-    monkeypatch.setattr(Path, "stat", raising_stat)
-
-    # timeout=0 -> the deadline is already past once the stat race is swallowed,
-    # so the next check raises TimeoutError rather than leaking the OSError.
-    with pytest.raises(TimeoutError, match="ledger lock unavailable"):
+    # timeout=0 -> the deadline is already past after the first refusal, so the
+    # next check raises TimeoutError rather than leaking the OSError.
+    with pytest.raises(TimeoutError, match="ledger lock unavailable") as info:
         _FileLock(lock_path, timeout=0.0).__enter__()
+
+    assert attempts == [1]
+    assert isinstance(info.value.__cause__, OSError)
+    # The rendezvous file was created and seeded even though the lock was refused;
+    # a later holder must lock the SAME inode.
+    assert lock_path.is_file()
+    assert lock_path.stat().st_size == 1

@@ -186,7 +186,7 @@ def test_models_hookevent_has_no_new_fields():
     # HARD RULE (SI-3): the native-wiring lane never touches models.py, so the
     # HookEvent contract must remain exactly these fields. The one recorded
     # exception is J10 (sensitive-artifact report), which added transcript_path as a
-    # reviewed change - the module reads the transcript it is asked to classify.
+    # reviewed change — the module reads the transcript it is asked to classify.
     # This stays an EXACT set so the next unreviewed field still fails here.
     names = {f.name for f in dataclasses.fields(HookEvent)}
     assert names == {
