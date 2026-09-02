@@ -73,6 +73,12 @@ MUTATIONS = [
         '        if streak >= self.policy["pressure"]["deescalate"]:',
         "        if True:",
     ),
+    (
+        "IDE-owned agent treated as a stale session",
+        "hygiene.py",
+        "            if current.name.lower() in IDE_NAMES:",
+        "            if False:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
