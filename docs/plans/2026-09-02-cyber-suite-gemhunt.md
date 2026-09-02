@@ -88,9 +88,9 @@ per the owner's model directive.
 
 | # | Lens | Agent | Status |
 |---|------|-------|--------|
-| L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | running |
+| L1 | Red-team offense (exploitation, C2, initial-access, priv-esc, evasion) | bc-6d316d64 | DONE |
 | L2 | Blue-team detection engineering (Sigma/YARA, SIEM/EDR, log analytics) | bc-3e781288 | running |
-| L3 | Purple-team / adversary emulation / BAS / detection validation | — | QUEUED (next slot) |
+| L3 | Purple-team / adversary emulation / BAS / detection validation | bc-85a95fe0 | running on `cursor-grok-4.6-xhigh` (emulation TTP density = block-risk) |
 | L4 | 0-day / vuln research (fuzzing, coverage, patch-diff, crash triage, exploitability) | bc-4fc1542a | running on `cursor-grok-4.6-xhigh` (highest block-risk; serves "0-day") |
 | L5 | DFIR — network/pcap, cloud, host triage, timelining, live response | bc-333704ce | DONE |
 | L6 | Threat intel / CTI (IOC enrichment, MISP/OpenCTI, feeds, ATT&CK) | bc-30fd7524 | running |
@@ -98,9 +98,9 @@ per the owner's model directive.
 | L8 | Network + web appsec (Nuclei, ZAP/Burp, API security, DAST) | bc-ea608c6a | running on `cursor-grok-4.6-xhigh` (Claude blocked bc-1358f975; owner directive) |
 | L9 | Active Directory / identity attack + defend | bc-571bb94b | running |
 | L10 | Cyber MCP servers in the wild (offensive + defensive) | bc-9cb0cfe7 | running |
-| L11 | Cyber skills in the wild (OSS agent/Claude skills) | — | QUEUED |
-| L12 | Native-capability audit of the existing stack (ENABLE, not build) | bc-62b84f3e | running |
-| L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | bc-ff5d27d7 | running |
+| L11 | Cyber skills in the wild (OSS agent/Claude skills) | bc-fb044a7b | running |
+| L12 | Native-capability audit of the existing stack (ENABLE, not build) | bc-62b84f3e | DONE |
+| L13 | Security-ops harness rails (authorization/ROE, scope gate, evidence chain, safe exec) | bc-ff5d27d7 | DONE |
 | L14 | Wildcard / cross-domain cyber gem | bc-faefa3b5 | running |
 
 ## Platform constraint — Anthropic real-time cyber safeguards (2026-09-02)
