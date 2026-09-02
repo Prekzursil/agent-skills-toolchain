@@ -1,4 +1,5 @@
 """Session-refresh client for Basic Memory HTTP MCP (Cursor stale-session bug)."""
+
 from __future__ import annotations
 
 import io
@@ -47,19 +48,12 @@ def run_loop(bm, data: bytes) -> list[dict[str, Any]]:
         patch.object(bm.sys, "stdout", stdout),
     ):
         assert bm.stdio_loop(_Session()) == 0
-    return [
-        json.loads(line)
-        for line in stdout.buffer.getvalue().splitlines()
-        if line
-    ]
+    return [json.loads(line) for line in stdout.buffer.getvalue().splitlines() if line]
 
 
 def test_parse_sse_message_event() -> None:
     bm = load_bm()
-    raw = (
-        b"event: message\n"
-        b'data: {"jsonrpc":"2.0","id":1,"result":{"ok":true}}\n\n'
-    )
+    raw = b'event: message\ndata: {"jsonrpc":"2.0","id":1,"result":{"ok":true}}\n\n'
     parsed = bm.parse_rpc_body(raw, "text/event-stream")
     assert parsed["result"]["ok"] is True
 
@@ -188,9 +182,7 @@ def test_reads_legacy_content_length_frame() -> None:
     bm = load_bm()
     message = {"jsonrpc": "2.0", "id": 1, "method": "initialize"}
     body = json.dumps(message).encode("utf-8")
-    stdin = _BinaryStream(
-        f"Content-Length: {len(body)}\r\n\r\n".encode("ascii") + body
-    )
+    stdin = _BinaryStream(f"Content-Length: {len(body)}\r\n\r\n".encode("ascii") + body)
 
     with patch.object(bm.sys, "stdin", stdin):
         assert bm.read_stdio_message() == message

@@ -12,6 +12,7 @@ Modes:
   --stdio   Cursor MCP stdio proxy (default when no --call)
   --call TOOL ARGS_JSON   one-shot tools/call for agents when Cursor MCP is stale
 """
+
 from __future__ import annotations
 
 import argparse
@@ -120,7 +121,9 @@ class BmHttpSession:
                 return parsed, sid
         except urllib.error.HTTPError as exc:
             raw = exc.read()
-            parsed = parse_rpc_body(raw, exc.headers.get("Content-Type") if exc.headers else None)
+            parsed = parse_rpc_body(
+                raw, exc.headers.get("Content-Type") if exc.headers else None
+            )
             if parsed:
                 return parsed, None
             raise
@@ -137,7 +140,9 @@ class BmHttpSession:
         if sid:
             self.session_id = sid
         if is_session_not_found(parsed):
-            raise SessionGone(parsed.get("error", {}).get("message", "Session not found"))
+            raise SessionGone(
+                parsed.get("error", {}).get("message", "Session not found")
+            )
         return parsed
 
     def notify(self, method: str, params: dict[str, Any] | None = None) -> None:
@@ -175,7 +180,9 @@ class BmHttpSession:
         self._initialized = True
         return result
 
-    def call_with_retry(self, method: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+    def call_with_retry(
+        self, method: str, params: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         if method == "initialize":
             version_value = (
                 params.get("protocolVersion") if isinstance(params, dict) else None
@@ -271,14 +278,18 @@ def stdio_loop(session: BmHttpSession) -> int:
         params = msg.get("params")
         req_id = msg.get("id")
         if not isinstance(method, str):
-            write_stdio_error(req_id, -32600, "Invalid Request: method must be a string")
+            write_stdio_error(
+                req_id, -32600, "Invalid Request: method must be a string"
+            )
             continue
         if req_id is None:
             if method == "notifications/initialized":
                 session.notify("notifications/initialized")
             elif method:
                 try:
-                    session.notify(str(method), params if isinstance(params, dict) else None)
+                    session.notify(
+                        str(method), params if isinstance(params, dict) else None
+                    )
                 except SessionGone:
                     session.handshake()
             continue
@@ -306,7 +317,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default=DEFAULT_URL)
     parser.add_argument("--stdio", action="store_true", help="Cursor MCP stdio proxy")
-    parser.add_argument("--call", nargs=2, metavar=("TOOL", "ARGS_JSON"), help="one-shot tools/call")
+    parser.add_argument(
+        "--call", nargs=2, metavar=("TOOL", "ARGS_JSON"), help="one-shot tools/call"
+    )
     args = parser.parse_args(argv)
     session = BmHttpSession(url=args.url)
     if args.call:
