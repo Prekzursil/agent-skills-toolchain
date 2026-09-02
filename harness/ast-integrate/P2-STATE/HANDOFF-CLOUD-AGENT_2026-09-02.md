@@ -14,10 +14,10 @@
   edits, `command-center/p2-wave/seed-stage/*`, `ovh-monitor/repair-claude/w0902-*.jsonl`, the
   append-only repair log) and `harness/ast-integrate/P2-STATE/*`. Commits + pushes after every
   green step; a claim older than 20 min without a new push is stale.
-- **Claim refreshed:** 02.09 08:20 EEST — step 4: seven modules committed (20 units FAIL→OK STRICT, 0
-  regressions), measurer made hermetic (3f4433ab4). Active: w1, w7–w11 (placeholder groups), batches
-  s00, p00-ADV, p22-IMP, p42-TST (per-unit residue). Trees under active edit: `tools/**`, `council/`,
-  `plugin/`, `marketplace/`, `router/`; the orchestrator commits per verified module/batch.
+- **Claim refreshed:** 02.09 12:05 EEST (09:05 UTC) — step 7: b3-p09/p10-CNF landed (15/40), rule change recorded (emitters are
+  implementation → repairable to the probe's reading), `_g1_paths` mirror-precedence fix. Active writers: b4-p08/p09/p10/p11/p12-IMP,
+  b4-p04-CNF, b4-p15-RES, c1-TOPLEVEL (class), phase3-regen, w-council-rs. Trees under active edit: `tools/**`, `command-center/lib/**`,
+  `probes/*/emit*.py` + regenerated artifacts; the orchestrator commits per verified batch.
 - Stage-1 capture claim below (worker-B) is superseded: the capture landed on the handoff branch.
 
 ### Stage-1 claim (historical, `stage1-worker-B`)
