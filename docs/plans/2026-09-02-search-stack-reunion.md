@@ -9,12 +9,16 @@ Tavily-shaped `/tavily/search` + `/tavily/extract` over SearXNG + a local SQLite
 Every provider adapter reports a **capability lattice** (`native | probed | declared |
 emulated | absent`) and **degrades truthfully** — a backend that is down returns an
 `isError`, never a fabricated hit. The heavy daemon is **on-demand**; the adapter adds
-~0 RAM to the running hub. The `ast-searchhub` code merge and the dark-web / repo-discovery
-lanes are scoped here as **follow-up work**, not implemented in this PR.
+~0 RAM to the running hub.
 
-This is a design + groundwork record. What shipped in the PR: the adapter interface, the
-`TrailSearchAdapter`, hub wiring, the compose + run scripts for the minimal profile, and
-the tests/fakes (§7). Everything below the fold that is *not* in §7 is a plan.
+Two of the §8 follow-up lanes are now **built, default OFF**: an **Ahmia onion lane**
+(index-only, via the existing SearXNG tool, gated `ENABLE_ONIONS`, no Tor/onion-fetch — behind
+[`docs/legal/onions-lane-envelope.md`](../legal/onions-lane-envelope.md)) and an **OSSInsight
+repo-discovery lane** (keyless public API, gated `ENABLE_OSSINSIGHT`). Both add **≈ 0 MB**. The
+`ast-searchhub` code merge is still **follow-up** (the sibling is not reachable from this VM).
+
+This is a design record kept in lockstep with the code. What shipped on the branch is in §7;
+everything else (the `ast-searchhub` merge, second-wave adapters, OVH end-state) is a plan (§8).
 
 ---
 
@@ -73,6 +77,25 @@ Requirements that shaped the choice:
 
 ### 3a. The self-hosted Tavily-compatible search+extract backend (the one we wire)
 
+**Research pass — re-verified 2026-09-02** (repo URL · LICENSE file present? · native
+`/tavily/*`? · Docker image size · idle RAM). Every row was re-checked this pass; sources
+in the notes column.
+
+| candidate | repo | LICENSE file | native `/tavily/*` | Docker image | idle RAM (documented/measured) | source |
+|---|---|---|---|---|---|---|
+| **TrailSearch** | [github.com/jianjungki/tavily-open](https://github.com/jianjungki/tavily-open) | **YES — MIT** (`gh api .../license` → `MIT`, `LICENSE` at root) | **YES** (`openapi.json`: `POST /tavily/search`, `POST /tavily/extract`) | none published; built from `python:3.11-slim` + reqs | ~270–320 MB app (FastAPI+trafilatura, `http_first`, no browser) | gh api + `openapi.json` + `Dockerfile` |
+| OrioSearch | [github.com/vkfolio/orio-search](https://github.com/vkfolio/orio-search) | **NO** — still absent (`gh api .../license` → 404; `raw .../{master,main}/LICENSE` → **404/404**) | NO (`/search`,`/extract`; not the `/tavily/*` namespace) | none published; `python` + reqs | lighter (no crawl4ai; FlashRank ~4 MB) | gh api + `curl -I` both branches |
+| fastCRW | [github.com/us/crw](https://github.com/us/crw) | YES — AGPL-3.0 | NO (Firecrawl-shaped `/v1/*`) | **~8 MB** (`docker run ghcr.io/us/crw`) | **~6 MB** single Rust binary | fastcrw.com/use-cases/self-hosting (vendor) |
+| Crawl4AI | [github.com/unclecode/crawl4ai](https://github.com/unclecode/crawl4ai) | YES — Apache-2.0 | NO (scraper) | multi-GB (`unclecode/crawl4ai`, `--shm-size=1g`) | base **270 MB** + browser **270 MB** + **180 MB**/pool; docs say **4 GB** | deploy/docker/ARCHITECTURE.md |
+| Meilisearch | [github.com/meilisearch/meilisearch](https://github.com/meilisearch/meilisearch) | YES — NOASSERTION (custom) | NO (index engine) | `getmeili/meilisearch` (Rust) | **50–100 MB idle**; 1 GB rec. <100k docs | meilisearch docs FAQ / self_hosting |
+
+**Re-evaluation outcome (this pass): TrailSearch stays chosen.** OrioSearch **still has no
+LICENSE file** on either `master` or `main` (verified twice this pass), so the license
+blocker stands — it is not eligible for an owned estate dependency. Nothing else changed the
+fundamentals: TrailSearch remains the only candidate that is both native-`/tavily/*` **and**
+cleanly licensed **and** runnable minimal. fastCRW stays the ranked `emulated` Firecrawl-class
+fallback; Crawl4AI/Meilisearch stay OVH-only (too heavy for the box).
+
 | candidate | stars / last push | license | Tavily shape | stack / deps | idle RAM (minimal) | verdict |
 |---|---|---|---|---|---|---|
 | **TrailSearch** (`jianjungki/tavily-open`) | 31 / 2026-07-27 | **MIT** (LICENSE present) | **native** `/tavily/search` + `/tavily/extract` | FastAPI + trafilatura + crawl4ai lib; SearXNG; SQLite index; Redis optional | ~270–320 MB app (http_first, no Reader/browser) | **CHOSEN** — only candidate with the exact required routes, clean MIT, runs minimal |
@@ -130,23 +153,31 @@ pages are needed — it is far lighter than Crawl4AI. Reserve **Crawl4AI** for a
 | Ahmia (`ahmia/ahmia-site`) | 766 / 2026-08-21 | BSD-3 | clearnet `.onion` search + a public **banned/blacklist** (md5 of banned onions) + `banned_terms.map` | the filtering primitive, not an agent |
 | Haystak | — | — | onion-only dark-web index (no public API) | reach only via Tor; no clean integration surface |
 
-**Legal / safety envelope (mandatory before ANY dark-web adapter is wired).** These lanes
-are **not** built in this PR. When built, they must ship behind:
+**BUILT 2026-09-02 — but deliberately NARROWER than the table above.** The onion lane that
+shipped is **Ahmia index querying via the existing SearXNG provider**, index-only, no Tor,
+no MCP daemon, no onion fetch (see §7, §8, and [`docs/legal/onions-lane-envelope.md`](../legal/onions-lane-envelope.md)).
+The Sicry/Robin/OnionClaw agents in the table would add a **Tor daemon + onion fetching +
+scraping**, which is **out of the current envelope** — they require a *new* decision record
+and a fresh owner sign-off before any code. What we built:
 
-1. **Authorized-research gate** — off by default; a `tools/list` that does not advertise the
-   onion tools unless an explicit `DARKWEB_RESEARCH_AUTHORIZED=1`-style opt-in is present,
-   surfaced in `search_usage` as `absent` until then.
-2. **Ahmia-style content filtering** — apply Ahmia's published banned-onion blacklist and
-   `banned_terms.map` to results; drop anything matching. No illegal-content retrieval.
-3. **No autonomous action** — search/read only; never buy/post/exfiltrate (the OnionClaw
-   README explicitly warns its `pipeline.py` is a full autonomous *operation* loop — we take
-   only the read-only search/fetch primitives).
-4. **Jurisdiction disclaimer** — the tool descriptions must carry the "may be illegal in your
-   jurisdiction; Tor is opsec, not legal protection" warning both source tools already print.
-5. **Tor is a daemon** — ~20–40 MB, but it is a network dependency; on-demand only.
+1. **Default OFF, env-gated** — `ENABLE_ONIONS=0` by default. `onions.py::guard` refuses a
+   `searxng_web_search` with `categories=onions` / `engines=ahmia` unless the flag is set,
+   **at the hub** (no child spawned, no query forwarded). Test fails if reachable with the
+   flag off.
+2. **Index-only, inherits Ahmia's filtering** — the query hits the Ahmia index; Ahmia's own
+   abuse blacklist ([ahmia.fi/blacklist](https://ahmia.fi/blacklist/)) applies by
+   construction and we never filter around it. Results are titles + indexed metadata + the
+   `.onion` URL as a string.
+3. **No Tor, no onion fetch** — the SearXNG engine is pinned to **clearnet ahmia.fi** with no
+   proxy; `web_url_read` of any `.onion` host is refused **regardless of the flag**. The lane
+   fails closed rather than reaching for Tor.
+4. **Jurisdiction disclaimer + sign-off** — carried in the envelope doc (owner fills the
+   sign-off before enabling).
+5. **Verified finding** — `ahmia.fi` clearnet 302-redirects datacenter/bot queries to its
+   homepage, so live result verification must happen on the estate instance (residential IP);
+   SearXNG upstream defaults the Ahmia engine to the `.onion` (Tor) — we do not use that.
 
-Chosen integration point when the lane is built: **Sicry** (Apache-2.0, native MCP), fronted
-as an `emulated` self-hosted adapter with the envelope above. Ahmia is the filter source.
+**RAM: ≈ 0 MB** — config + a pure hub guard; no new process, no new container.
 
 ### 3f. Repository-discovery lane (a hub lane, not a search backend)
 
@@ -157,9 +188,30 @@ as an `emulated` self-hosted adapter with the envelope above. Ahmia is the filte
 | bestofjs (`bestofjs/bestofjs`, MIT) | static site + backend | same shape |
 | awesome-lists | static Markdown | same shape |
 
-**Recommendation:** a single keyless `repo_discovery` adapter fronting the OSSInsight public
-API (RAM ~0 — it is an HTTP call like TrailSearch), with the curated static lists as a
-secondary `declared` source. Follow-up (§8), not this PR.
+**BUILT 2026-09-02.** A keyless `OSSInsightAdapter` fronts the OSSInsight **public API** (no
+key, in-process HTTP, **RAM ≈ 0**), default OFF behind `ENABLE_OSSINSIGHT`. Endpoint
+verification came first (§3g): the API is **partially degraded** — `GET /gh/repo/{owner}/{repo}`
+(repo stats) and `GET /v1/collections/` (138 curated collections) return live 200, while the
+event-derived rankings are `data_quality: unavailable` since 2026-03-01 and `/v1/repos/...`
+500s. The adapter builds only on the two working endpoints and **relays the API's own
+`data_quality` note verbatim** for the ranking tool (truthful degradation, never faked). The
+curated static lists (best-of-python, bestofjs, awesome-lists) remain a future `declared`
+secondary source (§8).
+
+### 3g. OSSInsight endpoint verification (live, 2026-09-02 — never hardcode an unverified path)
+
+| endpoint | method | status | used? |
+|---|---|---|---|
+| `/gh/repo/{owner}/{repo}` | GET | **200** — GitHub repo object (stars/forks/language/topics) | **yes** → `ossinsight_repo_stats` |
+| `/v1/collections/` | GET | **200** — `{data:{rows:[{id,name}]×138}}` | **yes** → `ossinsight_collections` |
+| `/v1/collections/{id}/ranking_by_{stars,prs}/` | GET | **200 but empty** + `data_quality:"unavailable"` (since 2026-03-01) | **yes, truthful passthrough** → `ossinsight_collection_ranking` |
+| `/v1/repos/{owner}/{repo}` | GET | **500** | no (broken) |
+| `/v1/collections/{id}/` | GET | **500** | no (broken) |
+| `/v1/trends/repos/` | GET | 200 but `data_quality:"unavailable"` | no (degraded ranking) |
+
+Finding recorded per the task's rule: the public API is **not down** (two data-bearing
+endpoints work), so the lane proceeds on those; the ranking degradation is surfaced, not
+worked around.
 
 ---
 
@@ -203,7 +255,9 @@ an RSS census understates the real cost ~19×).
 | component | role | RAM (documented / measured) | in minimal profile? |
 |---|---|---|---|
 | `search-hub` process (stdlib) | the hub itself | **measured ~20–25 MB RSS / ~15–17 MB private** (stdlib json+urllib; same stack the basic-memory bridge measured at ~16–17 MB private) | **always** (already running) |
-| self-hosted **adapter** | in-process HTTP bridge | **~0 new** — no child, no new import (urllib already loaded); measured stdlib HTTP client roundtrip adds ~1 MB transient | **always** (part of the hub) |
+| self-hosted **adapter** (TrailSearch/OSSInsight) | in-process HTTP bridge | **~0 new** — no child, no new import (urllib already loaded); measured stdlib HTTP client roundtrip adds ~1 MB transient | **always** (part of the hub) |
+| **Ahmia onion lane** (via SearXNG) | index-only category on the existing search tool | **≈ 0 MB** — config + a pure hub guard (`onions.py`); no new process/container | **default OFF** (`ENABLE_ONIONS=0`); reuses the estate SearXNG |
+| **OSSInsight** repo-discovery | keyless public-API adapter | **≈ 0 MB** — in-process HTTP, same as the self-hosted adapter | **default OFF** (`ENABLE_OSSINSIGHT=0`); no daemon (public API) |
 | estate **SearXNG** (reused) | keyless meta-search | ~150 MB idle at `UWSGI_WORKERS=1`; ~250 MB active; **~500 MB/core by default** (documented; discussion #1892 / issue #1431) | **reused** — already running for `search-expansion`, not re-run |
 | **TrailSearch app** | Tavily-shaped search+extract | **~270–320 MB** (FastAPI + trafilatura, `http_first`; crawl4ai lib imported but no browser launched) | **on-demand** (start when you want keyless search) |
 | Redis | cache / backfill queue | ~10–50 MB (alpine) | **off** (`CACHE_ENABLED=false`, `BACKFILL_QUEUE_BACKEND=local`) |
@@ -273,27 +327,64 @@ RAM beyond the hub**, all daemons on OVH.
 
 ---
 
-## 7. What shipped in this PR (built, tested)
+## 7. What shipped on this branch (built, tested)
+
+**Wave 1 — the keyless Tavily lane (TrailSearch):**
 
 - **`tools/mcp/search-hub/adapters.py`** — the `SelfHostedAdapter` interface (capability
-  lattice + probe + truthful-degradation `handle_call`) and the `TrailSearchAdapter`
-  (`selfhosted_search` → `POST /tavily/search`, `selfhosted_extract` → `POST /tavily/extract`;
-  base URL from `TRAILSEARCH_URL` / `SELFHOSTED_SEARCH_URL`, default `127.0.0.1:8794`). Stdlib
-  only.
+  lattice + probe + truthful-degradation `handle_call`; GET/POST via `_prepare`/`_postprocess`)
+  and the `TrailSearchAdapter` (`selfhosted_search` → `POST /tavily/search`, `selfhosted_extract`
+  → `POST /tavily/extract`; base URL from `TRAILSEARCH_URL` / `SELFHOSTED_SEARCH_URL`, default
+  `127.0.0.1:8794`). Stdlib only.
 - **`hub.py` wiring** — the adapter lane merged into `tools/list`, a `_handle_adapter`
   dispatch branch, and the lattice folded into `search_usage` (with `probe`).
 - **`deploy/`** — `docker-compose.selfhosted-search.yml` (minimal + `bundled` profiles),
   `run-selfhosted-search.{sh,ps1}`, `env.minimal.example`, `searxng-min/settings.yml`, a
   Docker-free smoke, and a README.
-- **Tests / fakes** — `tests/fake_trailsearch_backend.py` (stdlib fake for the external
-  service), `tests/test_adapters.py` (15), and new hub integration tests, incl. a real
-  loopback-socket case. **Suite 44 → 63 passed; `ruff check` + `ruff format --check` clean.**
+
+**Wave 2 — the two §8 follow-up lanes, both default OFF (this iteration):**
+
+- **Ahmia onion lane** — `onions.py` (the envelope guard) + `hub.py` wiring: the Ahmia index
+  is a `categories=onions` parameter on the existing `searxng_web_search` tool (not a new tool
+  or service), refused at the hub unless `ENABLE_ONIONS=1`; `.onion` fetch via `web_url_read`
+  is refused regardless of the flag. `deploy/searxng-min/settings.yml` enables the built-in
+  Ahmia engine pinned to **clearnet** with no Tor proxy (fails closed). Envelope:
+  [`docs/legal/onions-lane-envelope.md`](../legal/onions-lane-envelope.md). **≈ 0 MB.**
+- **OSSInsight repo-discovery lane** — `OSSInsightAdapter` in `adapters.py`
+  (`ossinsight_repo_stats` / `_collections` / `_collection_ranking` on the live-200 endpoints,
+  §3g), wired only when `ENABLE_OSSINSIGHT=1`. Truthful `data_quality` passthrough. **≈ 0 MB.**
+
+**Tests / fakes** — stdlib fakes for every external service (`fake_trailsearch_backend.py`,
+`fake_ossinsight_backend.py`) and a pure guard for onions; `test_adapters.py`, `test_onions.py`,
+`test_ossinsight.py`, and hub integration tests incl. real loopback-socket cases and the
+flag-off gate tests. **Suite 44 → 92 passed; `ruff check` + `ruff format --check` clean; both
+lane flags default 0; zero new containers, zero new long-running processes.**
+
+### 7a. Finding: SearXNG config beats a new adapter for the onion lane
+
+The onion lane needed **no new code path in the provider layer**. Because the fronted
+`mcp-searxng` `searxng_web_search` tool already accepts `categories`/`engines` passthrough,
+enabling the Ahmia engine in SearXNG's `settings.yml` makes `categories=onions` reachable
+**by config alone** — the only code is a small, pure hub-side *guard* (`onions.py`) that
+gates it behind `ENABLE_ONIONS` and blocks `.onion` fetches. This is strictly cheaper and
+safer than a bespoke onion adapter/daemon: ~0 MB, no new tool, no new service, and the
+control point is one testable function. General rule recorded for future lanes: **prefer a
+config + hub-guard exposure of an already-fronted capability over a new adapter or backend.**
 
 ---
 
 ## 8. Follow-up work list — the `ast-searchhub` merge (a later lane)
 
-Ordered; each step is resumable and tests-first. **None of this is done in this PR.**
+**Done since the first draft (this branch):**
+
+- ✅ **Ahmia onion lane** — built as the index-only, `ENABLE_ONIONS`-gated SearXNG category
+  (§3e, §7). Was the "Sicry dark-web lane" bullet below; we shipped the *narrower*,
+  envelope-compliant version (no Tor/MCP-daemon). Sicry/Robin remain out-of-envelope.
+- ✅ **OSSInsight repo-discovery lane** — built as `OSSInsightAdapter`, `ENABLE_OSSINSIGHT`-gated
+  (§3f, §3g, §7). Was part of the "second-wave adapters" bullet.
+
+Ordered remaining; each step is resumable and tests-first. **The `ast-searchhub` merge below
+is NOT done** (the sibling is not reachable from this VM).
 
 1. **Locate + fingerprint the sibling.** On the box, find the `ast-searchhub` checkout;
    record `git status --porcelain -uall`, unpushed commits (`git log @{u}..`), and the
@@ -312,11 +403,12 @@ Ordered; each step is resumable and tests-first. **None of this is done in this 
 7. **Registry reunion.** Update `~/.mcp.json` / `.agents/agents.json` so the single canonical
    `search-hub` is the only search entry; drop the standalone `exa/tavily/firecrawl/searxng`
    entries (README already documents this owner-approved step).
-8. **Second-wave adapters** (each behind the lattice, each with a fake + tests): fastCRW as an
-   `emulated` scraper; the Sicry dark-web lane **behind the §3e legal/safety envelope**
-   (authorized-research opt-in, Ahmia filtering, read-only, jurisdiction disclaimer); the
-   OSSInsight repo-discovery lane; optionally Meilisearch and OrioSearch **iff upstream adds a
-   LICENSE file** (the re-evaluation trigger).
+8. **Second-wave adapters still open** (each behind the lattice, each with a fake + tests):
+   fastCRW as an `emulated` scraper; the OSSInsight curated static lists (best-of-python,
+   bestofjs, awesome-lists) as a `declared` secondary discovery source; optionally Meilisearch
+   and OrioSearch **iff upstream adds a LICENSE file** (the re-evaluation trigger). The Sicry
+   Tor lane is intentionally **out of the current envelope** — it needs a new decision record
+   + owner sign-off (§3e).
 9. **OVH end-state (optional).** Stand the daemon lane up on an OVH VPS via `cloud-hub`
    (`ovh_ssh_exec`), tunnel it, and set `TRAILSEARCH_URL` to the private endpoint — moving
    ~300 MB–2 GB off the 31.6 GB box with no hub code change.
