@@ -33,6 +33,22 @@ Dedup-set (exists; not re-proposed): `hosted-model-agents` skill (branch
 `live-capture/2026-09-02`), `tools/mcp/glm53-space` (deprecation decided), `auth2api :8317`,
 `.agents/agents.json` + `.agents/local.json`, the installed Windows runtimes and wrappers.
 
+Method and limits of this lens:
+
+- Sources were fetched live on 2026-09-02 from `huggingface.co/docs/*`, `router.huggingface.co`,
+  `huggingface.co/api/*`, `huggingface.co/mcp/server-card`, and the `huggingface/hub-docs`,
+  `evalstate/hf-mcp-server` and `gradio-app/gradio` GitHub sources. All are primary (tier A) except
+  where marked.
+- The sandbox had **no HF token**, so every authenticated surface (a real chat completion, the
+  Hub MCP `tools/list`, the private Space's runtime state, ZeroGPU wake latency) is reported as
+  documented or UNVERIFIED, never as measured. Unauthenticated probes (`/v1/models`, 401 on
+  `/v1/chat/completions`, Space and model metadata) are labelled `measured`.
+- The `tools/mcp/glm53-space` directory is registered in `.agents/agents.json` on `main` but its
+  files are not present in this checkout (Windows path `C:\Users\Prekzursil\source\...`); the
+  hunt brief's description of it (one tool, hardcoded `zai-org/GLM-5.3`) is taken as given.
+- Prices and quotas are quoted as published on the fetch date; HF marks several as "subject to
+  change".
+
 ## 1. Status
 
 Sections are appended as research lands; each section is committed and pushed on completion.
@@ -186,7 +202,8 @@ Cheap tool-capable workhorses on the same sheet: `openai/gpt-oss-120b` on deepin
   Hub-wide rate-limit page.
 - `[infer]` For a single-owner estate on a PRO plan, the practical monthly ceiling of "free" router
   usage is $2.00 of credits, i.e. roughly 450k output tokens of `GLM-5.3` at $4.40/M or about
-  13 M output tokens of `gpt-oss-120b:deepinfra` at $0.17/M before pay-as-you-go starts.
+  12 M output tokens of `gpt-oss-120b:deepinfra` at $0.17/M before pay-as-you-go starts
+  (input tokens not counted; both figures are upper bounds).
 
 ### 2.6 Tool calling and JSON mode across providers
 
@@ -250,7 +267,7 @@ Cheap tool-capable workhorses on the same sheet: `openai/gpt-oss-120b` on deepin
 - `[infer]` Three of the estate's installed runtimes (Codex, Claude Code, OpenCode) are now
   first-party-documented router consumers. Section 8 examines whether the estate locks permit
   each one (the Claude Code path implies a base-URL swap, which the OpenRouter lock forbids for
-  OpenRouter and which the same reasoning should be applied to for HF - see 8.x).
+  OpenRouter and which the same reasoning should be applied to for HF - see S13 in section 8).
 
 ## 3. Inference Endpoints (dedicated)
 
