@@ -74,9 +74,20 @@ def main() -> int:
         print("FAILED:TST-0290 emit live flags not all true")
         print(json.dumps(data["flags"], indent=2, sort_keys=True))
         return 1
-    c_test, t_test = run_cmd(TEST_CMD)
-    c1, t1 = run_cmd(P1)
-    c2, t2 = run_cmd(P2)
+    # probe1 re-checks the receipt on disk against the live trace hash. While
+    # re-emitting, that receipt is by definition the stale one, so set it aside
+    # for the library-only probe pass and restore it if emission fails.
+    dest = REPO / OUT
+    stale = dest.read_bytes() if dest.is_file() else None
+    if stale is not None:
+        dest.unlink()
+    try:
+        c_test, t_test = run_cmd(TEST_CMD)
+        c1, t1 = run_cmd(P1)
+        c2, t2 = run_cmd(P2)
+    finally:
+        if stale is not None and not dest.is_file():
+            dest.write_bytes(stale)
     if c_test != 0 or c1 != 0 or c2 != 0:
         print(f"FAILED:TST-0290 emit tests={c_test} p1={c1} p2={c2}")
         print(t_test[-1500:])

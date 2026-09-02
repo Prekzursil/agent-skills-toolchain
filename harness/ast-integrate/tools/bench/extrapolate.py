@@ -9,7 +9,8 @@ from bench.kappa import wilson_interval
 def disagreement_rate(a: list[str], b: list[str]) -> dict[str, Any]:
     n = min(len(a), len(b))
     disagreements = sum(1 for i in range(n) if a[i] != b[i])
-    return {"n": n, "disagreements": disagreements, "rate": disagreements / n if n else 0.0}
+    rate = disagreements / n if n else 0.0
+    return {"n": n, "disagreements": disagreements, "rate": rate, "disagreement_rate": rate}
 
 
 def extrapolate_error_bar(

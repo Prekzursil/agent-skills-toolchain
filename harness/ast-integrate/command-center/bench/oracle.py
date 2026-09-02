@@ -1,4 +1,11 @@
-"""Benchmark-case oracle (TST-0295)."""
+"""Benchmark-case oracle (TST-0295).
+
+Every case in ``command-center/bench/cases`` carries an ``oracle`` block whose
+``kind`` selects a machine-checkable evaluator below.  A solution is accepted
+only when the evaluator for that kind says so; ``sanity`` re-runs the oracle on
+the case's own known-good and known-bad solutions so a vacuous (always-pass)
+oracle is caught, never silently retained.
+"""
 from __future__ import annotations
 
 import json
@@ -9,94 +16,166 @@ HERE = Path(__file__).resolve().parent
 CASES_DIR = HERE / "cases"
 INDEX_PATH = HERE / "INDEX.json"
 
+VACUOUS_KINDS = frozenset({"always_pass", "vacuous"})
+
+
+def _read(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
 
 def load_cases() -> list[dict[str, Any]]:
+    """Return the corpus the TST-0295 emitter wrote (index order, CASE-* only).
+
+    The cases directory is shared with other units' fixtures, so the loader is
+    index-driven and never synthesises cases: an empty corpus stays empty.
+    """
     rows: list[dict[str, Any]] = []
     if INDEX_PATH.is_file():
-        idx = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
-        ids = list(idx.get("case_ids") or [])
-        for cid in ids:
-            p = CASES_DIR / f"{cid}.json"
-            if p.is_file():
-                rows.append(json.loads(p.read_text(encoding="utf-8")))
+        idx = _read(INDEX_PATH)
+        for cid in list(idx.get("ids") or idx.get("case_ids") or []):
+            path = CASES_DIR / f"{cid}.json"
+            if path.is_file():
+                rows.append(_read(path))
     if not rows and CASES_DIR.is_dir():
-        for p in sorted(CASES_DIR.glob("*.json")):
-            rows.append(json.loads(p.read_text(encoding="utf-8")))
-    if not rows:
-        rows = _seed_cases()
-        CASES_DIR.mkdir(parents=True, exist_ok=True)
-        for c in rows:
-            (CASES_DIR / f"{c['id']}.json").write_text(
-                json.dumps(c, indent=2) + "\n", encoding="utf-8", newline="\n"
-            )
-        INDEX_PATH.write_text(
-            json.dumps({"case_ids": [c["id"] for c in rows]}, indent=2) + "\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        rows = [_read(p) for p in sorted(CASES_DIR.glob("CASE-*.json"))]
     return rows
 
 
 def split_intersections(cases: list[dict[str, Any]]) -> dict[str, list[str]]:
-    by = {"dev": set(), "test": set(), "held_out": set()}
+    by: dict[str, set[str]] = {"dev": set(), "test": set(), "held-out-shadow": set()}
     for c in cases:
-        sp = str(c.get("split") or "dev")
-        if sp not in by:
-            by[sp] = set()
-        by[sp].add(c["id"])
+        by.setdefault(str(c.get("split") or "dev"), set()).add(str(c["id"]))
+    held = by["held-out-shadow"] | by.get("held_out", set())
     return {
-        "dev_and_test": sorted(by.get("dev", set()) & by.get("test", set())),
-        "dev_and_held_out": sorted(by.get("dev", set()) & by.get("held_out", set())),
-        "test_and_held_out": sorted(by.get("test", set()) & by.get("held_out", set())),
+        "dev_and_test": sorted(by["dev"] & by["test"]),
+        "dev_and_held_out": sorted(by["dev"] & held),
+        "test_and_held_out": sorted(by["test"] & held),
     }
+
+
+# --- evaluators -----------------------------------------------------------
+
+
+def _run_detector(detector: dict[str, Any], state: dict[str, Any]) -> bool:
+    name = detector.get("detector")
+    if name == "always_true":
+        return True
+    if name == "always_false":
+        return False
+    if name == "pattern_match":
+        match = detector.get("match")
+        if not isinstance(match, dict) or not match:
+            return False
+        return all(key in state and state[key] == value for key, value in match.items())
+    return False
+
+
+def _both_states(case: dict[str, Any], solution: dict[str, Any]) -> bool:
+    oracle = case.get("oracle") or {}
+    task = case.get("task_input") or {}
+    broken = task.get("broken")
+    fixed = task.get("fixed")
+    if not isinstance(broken, dict) or not isinstance(fixed, dict):
+        return False
+    fires_broken = _run_detector(solution, broken)
+    fires_fixed = _run_detector(solution, fixed)
+    return fires_broken is bool(oracle.get("expect_broken", True)) and fires_fixed is bool(
+        oracle.get("expect_fixed", False)
+    )
+
+
+def _as_sorted(value: Any) -> list[str] | None:
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        return None
+    return sorted(value)
+
+
+def _capability_partition(case: dict[str, Any], solution: dict[str, Any]) -> bool:
+    task = case.get("task_input") or {}
+    shared = _as_sorted(task.get("shared_capabilities"))
+    fusion_only = _as_sorted(task.get("fusion_only_capabilities"))
+    if shared is None or fusion_only is None:
+        return False
+    head = _as_sorted(solution.get("head_to_head"))
+    comp = _as_sorted(solution.get("complementarity"))
+    return head == shared and comp == fusion_only
+
+
+def _intersection_gate(case: dict[str, Any], solution: dict[str, Any]) -> bool:
+    task = case.get("task_input") or {}
+    a = _as_sorted(task.get("source_a_cases"))
+    b = _as_sorted(task.get("source_b_cases"))
+    if a is None or b is None:
+        return False
+    minimum = task.get("minimum_intersection", 1)
+    if not isinstance(minimum, int) or isinstance(minimum, bool):
+        return False
+    expected = sorted(set(a) & set(b))
+    got = _as_sorted(solution.get("intersection"))
+    blocked = solution.get("blocked")
+    if got is None or not isinstance(blocked, bool):
+        return False
+    return got == expected and blocked is (len(expected) < minimum)
+
+
+def _judged_rubric(case: dict[str, Any], solution: dict[str, Any]) -> bool:
+    oracle = case.get("oracle") or {}
+    text = solution.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return False
+    required = [s for s in (oracle.get("required_spans") or []) if isinstance(s, str)]
+    forbidden = [s for s in (oracle.get("forbidden_spans") or []) if isinstance(s, str)]
+    if not required:
+        return False
+    return all(span in text for span in required) and not any(span in text for span in forbidden)
+
+
+EVALUATORS = {
+    "both_states_detector": _both_states,
+    "capability_partition": _capability_partition,
+    "intersection_gate": _intersection_gate,
+    "judged_rubric": _judged_rubric,
+}
+
+
+def is_vacuous(case: dict[str, Any]) -> bool:
+    oracle = case.get("oracle") or {}
+    return (
+        oracle.get("kind") in VACUOUS_KINDS
+        or oracle.get("oracle_type") == "vacuous"
+        or oracle.get("always_pass") is True
+    )
 
 
 def evaluate(case: dict[str, Any], solution: dict[str, Any]) -> bool:
-    oracle = case.get("oracle") or {}
-    if oracle.get("oracle_type") == "vacuous":
+    """Return True iff ``solution`` satisfies the case's oracle."""
+    if is_vacuous(case):
         return True
-    expected = oracle.get("expected") or case.get("known_good_solution") or {}
-    if not solution:
+    if not isinstance(solution, dict) or not solution:
         return False
-    if solution == case.get("known_bad_solution"):
+    evaluator = EVALUATORS.get((case.get("oracle") or {}).get("kind"))
+    if evaluator is None:
         return False
-    if expected:
-        return solution == expected or solution.get("answer") == expected.get("answer")
-    return bool(solution.get("ok"))
+    return bool(evaluator(case, solution))
 
 
 def sanity(case: dict[str, Any]) -> dict[str, Any]:
-    oracle = case.get("oracle") or {}
-    vacuous = oracle.get("oracle_type") == "vacuous" or oracle.get("always_pass") is True
-    good = case.get("known_good_solution") or {"ok": True, "answer": case.get("id")}
-    bad = case.get("known_bad_solution") or {"ok": False, "answer": "WRONG"}
-    good_ok = (not vacuous) and evaluate(case, good)
-    bad_ok = (not vacuous) and (not evaluate(case, bad))
+    """Both-states check of the oracle against the case's own solutions."""
+    vacuous = is_vacuous(case)
+    good = case.get("known_good_solution") or {}
+    bad = case.get("known_bad_solution") or {}
+    good_ok = evaluate(case, good)
+    bad_rejected = not evaluate(case, bad)
+    if vacuous:
+        # An always-pass oracle accepts the known-bad too; it must be stripped.
+        good_ok, bad_rejected = True, False
     return {
         "id": case.get("id"),
-        "ok": (not vacuous) and good_ok and bad_ok,
+        "ok": (not vacuous) and good_ok and bad_rejected,
         "vacuous": vacuous,
         "good_ok": good_ok,
-        "bad_rejected": bad_ok,
+        "bad_rejected": bad_rejected,
     }
 
 
-def _seed_cases() -> list[dict[str, Any]]:
-    rows = []
-    splits = ["dev", "test", "held_out"]
-    strata = ["easy", "medium", "hard"]
-    for i in range(6):
-        cid = f"BC-{i:03d}"
-        otype = "deterministic" if i % 2 == 0 else "judged"
-        rows.append(
-            {
-                "id": cid,
-                "split": splits[i % 3],
-                "difficulty_stratum": strata[i % 3],
-                "provenance": {"source": f"seeded:{cid}", "citation": "TST-0295"},
-                "oracle": {"oracle_type": otype, "expected": {"answer": cid, "ok": True}},
-                "known_good_solution": {"answer": cid, "ok": True},
-                "known_bad_solution": {"answer": "NOPE", "ok": False},
-            }
-        )
-    return rows
+__all__ = ["evaluate", "is_vacuous", "load_cases", "sanity", "split_intersections"]

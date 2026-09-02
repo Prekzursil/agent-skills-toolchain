@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tools/council/stopping/schema/deadlock-classification.schema.json",
+  "title": "Three-way stuck-run classification (TST-0290)",
+  "description": "Output of council.stopping.deadlock.run_three_way: three scripted casts that look stuck from outside must map to three distinct actions; a generic escalation is a failure.",
+  "type": "object",
+  "required": ["seed", "ok", "mismatches", "actions", "kinds", "distinct_actions", "generic_escalation", "productive_dissent_preserved", "stalled_operational", "deadlock_proposition_id", "rows"],
+  "properties": {
+    "seed": {"type": "integer"},
+    "ok": {"type": "boolean"},
+    "mismatches": {"type": "array", "items": {"type": "string"}},
+    "actions": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/action"}},
+    "kinds": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/kind"}},
+    "distinct_actions": {"type": "boolean"},
+    "generic_escalation": {"type": "boolean", "const": false},
+    "productive_dissent_preserved": {"type": "boolean"},
+    "stalled_operational": {"type": "boolean"},
+    "deadlock_proposition_id": {"type": "string", "pattern": "^P-[A-Z0-9-]+$"},
+    "detail": {"type": "object", "additionalProperties": {"type": "string"}},
+    "rows": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/row"}}
+  },
+  "$defs": {
+    "kind": {"type": "string", "enum": ["productive_disagreement", "genuine_deadlock", "stalled_runtime", "converging"]},
+    "action": {"type": "string", "enum": ["continue_preserve_dissent", "escalate_named_proposition", "operational_failure", "continue_to_decision"]},
+    "row": {
+      "type": "object",
+      "required": ["name", "kind", "action", "escalated"],
+      "properties": {
+        "name": {"type": "string", "enum": ["productive", "deadlock", "stalled"]},
+        "kind": {"$ref": "#/$defs/kind"},
+        "action": {"$ref": "#/$defs/action"},
+        "escalated": {"type": "boolean"},
+        "proposition_id": {"type": ["string", "null"]},
+        "seat_id": {"type": ["string", "null"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "genuine_deadlock"}}}, "then": {"properties": {"escalated": {"const": true}, "proposition_id": {"type": "string"}}}},
+        {"if": {"properties": {"kind": {"const": "stalled_runtime"}}}, "then": {"properties": {"escalated": {"const": false}, "action": {"const": "operational_failure"}}}},
+        {"if": {"properties": {"kind": {"const": "productive_disagreement"}}}, "then": {"properties": {"escalated": {"const": false}}}}
+      ]
+    }
+  }
+}

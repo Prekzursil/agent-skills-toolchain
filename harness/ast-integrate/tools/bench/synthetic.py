@@ -12,5 +12,5 @@ def synthetic_pairs(n: int, effect: float, sd: float = 20.0, seed: int = 298) ->
         noise = ((i * 17 + seed) % 11) - 5
         a = 50.0 + noise
         b = a + float(effect)
-        rows.append({"id": f"case-{i:03d}", "a": a, "b": b, "delta": b - a})
+        rows.append({"id": f"case-{i:03d}", "a": a, "b": b, "before": a, "after": b, "delta": b - a})
     return rows

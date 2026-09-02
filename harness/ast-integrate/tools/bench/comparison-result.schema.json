@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tools/bench/comparison-result.schema.json",
+  "title": "TST-0298 pre-registered comparison result",
+  "type": "object",
+  "required": ["status", "delta"],
+  "properties": {
+    "status": { "type": "string", "enum": ["COMPARED", "NOT-CHECKED", "REJECTED"] },
+    "reason": { "type": ["string", "null"] },
+    "verdict": { "type": "string", "enum": ["IMPROVEMENT", "NO-DETECTABLE-EFFECT"] },
+    "n": { "type": "integer", "minimum": 0 },
+    "required_n": { "type": "integer", "minimum": 0 },
+    "mean": { "type": "number" },
+    "contains_zero": { "type": "boolean" },
+    "min_effect_size": { "type": "number" },
+    "delta": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["mean", "lo", "hi", "n"],
+          "properties": {
+            "mean": { "type": "number" },
+            "lo": { "type": "number" },
+            "hi": { "type": "number" },
+            "n": { "type": "integer", "minimum": 1 },
+            "level": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+            "n_resamples": { "type": "integer", "minimum": 1 },
+            "seed": { "type": "integer" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "interval": { "$ref": "#/properties/delta" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "COMPARED" } } },
+      "then": { "required": ["verdict", "n", "delta"], "properties": { "delta": { "type": "object" } } },
+      "else": { "properties": { "delta": { "type": "null" } }, "required": ["reason"] }
+    }
+  ],
+  "additionalProperties": true
+}
