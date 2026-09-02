@@ -16,19 +16,21 @@
 
 ## Dual-write parity precheck
 
-- security-review dual-write present on this branch: UNKNOWN - not yet measured
-- malware-analysis-triage dual-write present on this branch: UNKNOWN - not yet measured
-- security-threat-model dual-write present on this branch: UNKNOWN - not yet measured
-- Gaps (files not on this branch, edit-skipped): UNKNOWN - not yet measured
+Measured with `diff -rq .agents/skills/<name>/ skills/<name>/` before editing.
+
+- security-review dual-write present on this branch: YES (identical pre-edit)
+- malware-analysis-triage dual-write present on this branch: YES (identical pre-edit)
+- security-threat-model dual-write present on this branch: YES (identical pre-edit)
+- Gaps (files not on this branch, edit-skipped): NONE — all three dual-writes exist; native-fuzz is net-new in both roots
 
 ## Deliverables
 
 ### 1. Trail of Bits scanner-driven review loop -> `security-review`
 
-- Additive section added (no existing text gutted): UNKNOWN - not yet measured
-- Four techniques covered (static-analysis / differential / variant / mutation): UNKNOWN - not yet measured
-- CC-BY-SA attribution to Trail of Bits present, summarized not vendored: UNKNOWN - not yet measured
-- Dual-write parity (`.agents/` == `skills/`): UNKNOWN - not yet measured
+- Additive section added (no existing text gutted): YES — new `## Scanner-Driven Review Loop` section inserted before `## Resources`; all prior checklist content preserved
+- Four techniques covered (static-analysis / differential / variant / mutation): YES — one Stage each, in order, each feeding the next
+- CC-BY-SA attribution to Trail of Bits present, summarized not vendored: YES — attribution block cites Testing Handbook (appsec.guide), CC-BY-SA 4.0, original summary only
+- Dual-write parity (`.agents/` == `skills/`): YES — `diff -rq` returns PARITY OK
 
 ### 2. YARA rules-as-code CI (yara-forge / yaraQA) -> `malware-analysis-triage`
 

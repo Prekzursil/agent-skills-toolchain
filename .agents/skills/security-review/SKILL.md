@@ -483,12 +483,88 @@ Before ANY production deployment:
 - [ ] **File Uploads**: Validated (size, type)
 - [ ] **Wallet Signatures**: Verified (if blockchain)
 
+## Scanner-Driven Review Loop (static → differential → variant → mutation)
+
+> **Attribution (CC-BY-SA 4.0):** This loop summarizes the scanner-driven audit
+> methodology published by **Trail of Bits** — the *Testing Handbook*
+> (<https://appsec.guide>) and their public security-review write-ups. Their
+> material is licensed **CC-BY-SA 4.0**; the text below is an original summary
+> (not a copy) and is offered under the same **CC-BY-SA 4.0** license. Do not
+> paste Trail of Bits documents wholesale — link and paraphrase.
+
+The checklist above catches *known* classes. This loop is for a **deep review of
+unfamiliar code**: let scanners enumerate candidates cheaply, then spend human /
+agent attention only on triage. Run the four stages in order; each stage feeds
+the next. It rides existing skills — it does **not** add a new daemon.
+
+### Stage 1 — Static analysis (enumerate candidates)
+
+Let a scanner do the first pass so review time goes to triage, not grep.
+
+- Drive **`$semgrep`** and **`$code-security`** across the in-scope paths; treat
+  every finding as a *lead*, not a verdict (scanners over-report).
+- For dependency / SBOM leads use `npm audit` / `osv-scanner` (see the Dependency
+  Security checklist above).
+- Record each candidate as *file:line + why the scanner flagged it*. Rank by
+  reachability from an untrusted entry point (tie this to `$security-threat-model`
+  trust boundaries when you have them).
+
+### Stage 2 — Differential review (compare against a known-good baseline)
+
+Bugs hide in the *delta*. Compare the code against something that should behave
+the same, and investigate every divergence.
+
+- **Version/patch delta:** diff the current code against the last-known-good tag;
+  for compiled artifacts hand off to **`$malware-analysis-triage`** (`ghidriff`)
+  or `$bindiff` to localize the changed function — the n-day workflow, applied to
+  your *own* patches.
+- **Sibling delta:** when two code paths (two parsers, two auth checks, two
+  crypto wrappers) are supposed to be equivalent, diff them; the odd one out is
+  the bug. Differential *fuzzing* (feed the same input to both, assert equal
+  output) is the executable form of this — build the harness with the new
+  **`$native-fuzz`** skill.
+
+### Stage 3 — Variant analysis (find one → find all)
+
+A single bug is almost never alone. Turn the confirmed finding into a query and
+sweep the whole tree for the same shape.
+
+- Write a **custom `$semgrep` rule** that matches the *root pattern* of the
+  confirmed bug (not the one instance), then run it repo-wide. This is the
+  highest-leverage step: one triaged bug becomes a codemod-grade detector.
+- Keep the variant rule in the repo so the pattern can never silently return
+  (it becomes a regression gate). Cross-link to `$security-scan` for config-side
+  variants.
+
+### Stage 4 — Mutation testing (is the test suite actually watching?)
+
+A green suite proves nothing if it never exercises the risky path. Mutation
+testing injects small faults and checks the tests *catch* them; surviving mutants
+are blind spots.
+
+- Python: `mutmut` or `cosmic-ray`. Go: `gremlins` / `go-mutesting`.
+  JS/TS: `Stryker`. Solidity/other: `universalmutator`.
+- Focus mutation on security-critical functions (authz checks, validators,
+  crypto, parsers). A **surviving mutant in an authz check** means a real attack
+  could pass your tests — write the missing test before you ship.
+- Feed the newly-written tests back into Stage 1 so the next scan sees green for
+  the right reason.
+
+### Loop exit
+
+Stop when: Stage 1 candidates are all triaged (confirmed-and-fixed, or
+justified-benign in writing), every confirmed bug has a Stage 3 variant rule
+committed, and Stage 4 shows no surviving mutants on the functions you touched.
+Record residual risk explicitly — an unreviewed candidate is an open finding,
+not a pass.
+
 ## Resources
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [Next.js Security](https://nextjs.org/docs/security)
 - [Supabase Security](https://supabase.com/docs/guides/auth)
 - [Web Security Academy](https://portswigger.net/web-security)
+- [Trail of Bits Testing Handbook](https://appsec.guide) (CC-BY-SA 4.0) — scanner-driven review methodology
 
 ---
 
