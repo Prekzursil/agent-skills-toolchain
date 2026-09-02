@@ -199,6 +199,17 @@ commit-starved box.
   the trigger — scope is already approved, only the manifest gets a per-item veto.
   Cloud-agent constraint: this run stays on its assigned branch, so wave branches
   are opened in later runs (or on explicit instruction in this one).
+- **G-9 — Wave 1 manifest: ALL SIX, built by subagents; lens check first.** Owner:
+  "everything (subagents for full implementation) but first check for the rest of
+  10/14 remaining agents". Check done 2026-09-02 (see "Pending-lens returns"): all four
+  had finished; three reports recovered and folded in — none alters a Wave-1 item;
+  Lens 1 had stopped without a report and was restarted (resumed) on the owner's
+  instruction. Wave 1 then launched as three parallel implementation subagents with
+  disjoint file ownership, no commits of their own (the parent gates + commits per
+  slice): `bc-ddbc064d-0084-56b3-8af5-44247343b850` = items 1a+2+3
+  (`tools/search-expansion/`), `bc-4e8853ae-4128-53a1-b8eb-451d38f2ea1c` = items 1b+5
+  (search-hub onion lane, `deploy/`, envelope), `bc-a327747f-31b0-5716-b401-b379cf0e2488`
+  = items 4+6 (search-hub adapters: `read_url` v0 + GitHub REST siblings).
 
 ---
 
