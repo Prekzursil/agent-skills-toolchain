@@ -79,6 +79,12 @@ MUTATIONS = [
         "            if current.name.lower() in IDE_NAMES:",
         "            if False:",
     ),
+    (
+        "orphan rule ignores reaper delegation (delegated cursor reaped inline)",
+        "hygiene.py",
+        "            if proc.pid in claimed or proc.pid in delegate_pids:",
+        "            if proc.pid in claimed:",
+    ),
 ]
 
 originals: dict[pathlib.Path, str] = {}
