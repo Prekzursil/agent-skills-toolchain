@@ -42,7 +42,7 @@ against a server that is behaving per spec:
 | Uniform across Cursor/Claude/Codex | Cursor only; the same shim is declarable per target if Claude shows the symptom (short-lived CLI sessions have not) | **yes**, no client config change | yes | yes |
 | Moving parts added | 1 script per Cursor window; **no** port move, task or daemon edit | 1 always-on process + 1 scheduled task + **daemon port move** + 2 owner-script edits + contract amendment | daemon launcher patch off the supported CLI path | 0 |
 | Owner approval needed | no (registry + merge, rollback is one key) | **yes** - changes who binds `:8765` | yes - daemon config change | no |
-| Testable here | **yes** - 25 tests against the fake daemon | yes (same fixture; not built) | no (needs a live daemon; unsupported anyway) | n/a |
+| Testable here | **yes** - 26 tests against the fake daemon | yes (same fixture; not built) | no (needs a live daemon; unsupported anyway) | n/a |
 
 **Why (a) wins now.** It is the only candidate that survives both windows *and*
 is deployable by the owner with a registry edit already tracked in `main`,
@@ -90,8 +90,10 @@ state PR #293 rendered.
 - **Bridge** (`.agents/scripts/bm_cursor_http_session.py`, tracked from
   `live-capture/2026-09-02` then hardened): SSE parsed event by event with
   preludes relayed; `TransportUnavailable` (an `OSError`) on refused/reset/hung
-  with one quick handshake retry; discovery cache in `%TEMP%`; local answers
-  while down; `tools/list_changed` after healing; background recovery probe;
+  with one quick handshake retry for fast failures only (a 30 s timeout is not
+  retried at once); discovery cache in `%TEMP%`; local answers while down and a
+  5 s post-failure cooldown for cheap requests (`tools/call` always tries, it is
+  the healing path); `tools/list_changed` after healing; background recovery probe;
   GET server->client stream held and relayed, its EOF used as the early
   "restarted" signal; `DELETE` on exit; `--health` beside `--call`.
 - **Fixture** (`tools/mcp/mcp-http-host/_fake_streamable_http_daemon.py`): the
@@ -100,7 +102,7 @@ state PR #293 rendered.
   JSON and chunked SSE with preludes, GET streams (406 without the SSE Accept,
   like the on-box probe), `DELETE`. 12 pinning tests; runnable standalone.
 
-Tests: `.agents/tests` **62 passed, 8 skipped** (25 bridge, 8 new control-plane);
+Tests: `.agents/tests` **63 passed, 8 skipped** (26 bridge, 8 new control-plane);
 `tools/mcp/mcp-http-host` **52 passed**. The bridge suite was stable across 61
 sequential and 24 concurrent runs.
 
