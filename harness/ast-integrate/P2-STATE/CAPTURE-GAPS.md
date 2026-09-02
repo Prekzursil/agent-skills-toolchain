@@ -14,6 +14,7 @@ searched the tree for a generator first (`disk-verified` by the orchestrator's o
 | TST-0016 | `.github/workflows/quality.yml`, `.github/workflows/no-runtime-junk.yml` | `FAILED:TST-0016-probe1 target workflows missing from classification` (p42-TST) | the live `ast-integrate` tree is a toolchain checkout; the capture's `.github/` lacks `workflows/`. Candidate source: the toolchain root `/workspace/.github/workflows/` (owner to confirm same revision) | open |
 | TST-0022 | `.agents/skills/claim-verify-gate/scripts/claim_gate.py`, `.../test_claim_gate.py` | `ModuleNotFoundError: No module named 'test_claim_gate'` (p42-TST) | `.agents/` of the live checkout not captured. Candidate source: toolchain root `/workspace/.agents/skills/claim-verify-gate/scripts/` | open |
 | TST-0025 | `tools/router/shadow_catalog.json` | `emit_receipt` `pin_state` needs it; `load_catalog` only falls back (p42-TST). Also location-bound fingerprint (see OPEN-LOOPS) | > 5 MB `MaxFileBytes` or generated | open |
+| IMP-0333 | `tools/council/tests/test_oxford.py` | probe2 `can't open file`; the receipt already equals the live numbers and the manifest row matches (w7) | test file never captured (no copy anywhere on the box) | open |
 
 Candidates seen in census 04 (`probe-file-missing`, 12 units) still to be confirmed by a writer
 (a generator may exist): ARC-0082 `blueprints/workflows/wf.research.archival.json`; AUD-0006
