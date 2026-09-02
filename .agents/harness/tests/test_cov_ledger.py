@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import time
 from pathlib import Path
 
 import pytest
@@ -194,54 +193,214 @@ def test_timestamp_zero_on_empty_and_invalid():
 
 
 # ---------------------------------------------------------------------------
-# _FileLock — stale-lock reclaim, timeout, and fail-open teardown
+# _FileLock — OS-level advisory lock (fcntl / msvcrt) that the kernel releases
+# when the holder dies. Ported from the live tree in the 2026-09-02 reunion; it
+# replaced the O_EXCL lockfile whose 30s stale-reclaim window let one SIGKILLed
+# hook worker stall every later append past the host's 2s deadline (see
+# test_ledger_process_recovery.py for the cross-process proof).
 # ---------------------------------------------------------------------------
 
 
-def test_filelock_reclaims_stale_lock(tmp_path):
-    # A lock file older than 30s is treated as stale, unlinked, and reacquired
-    # (lines 447-449).
-    lock_path = tmp_path / "stale.lock"
-    lock_path.write_text("999999", encoding="utf-8")
-    old = time.time() - 60
-    os.utime(lock_path, (old, old))
+def test_filelock_creates_the_lock_file_and_keeps_it_after_release(tmp_path):
+    # The lock file is a durable rendezvous point, not a token: it is created on
+    # first use, seeded with one byte so the byte-range lock has something to
+    # lock, and deliberately NOT unlinked on exit (unlinking would let a
+    # concurrent opener lock a different inode than the one we release).
+    lock_path = tmp_path / "locks" / "ledger.lock"
     with L._FileLock(lock_path, timeout=5.0) as held:
-        assert held.fd is not None
-        assert lock_path.exists()  # our freshly-created lock
-    assert not lock_path.exists()  # released on exit
+        assert held.handle is not None
+        assert lock_path.is_file()
+        assert lock_path.stat().st_size == 1
+    assert held.handle is None  # released and closed on exit
+    assert lock_path.is_file()  # retained on purpose
+    # A pre-existing lock file is reused, never re-seeded (size stays 1).
+    with L._FileLock(lock_path, timeout=5.0):
+        assert lock_path.stat().st_size == 1
 
 
-def test_filelock_times_out_on_fresh_held_lock(tmp_path):
-    # A fresh (non-stale) lock plus a past deadline forces the timeout raise
-    # (452->453).
+def test_filelock_is_reentrant_across_instances_after_release(tmp_path):
+    lock_path = tmp_path / "again.lock"
+    for _ in range(3):
+        with L._FileLock(lock_path, timeout=1.0):
+            pass
+
+
+def test_filelock_times_out_when_the_backend_keeps_refusing(tmp_path, monkeypatch):
+    # A refused acquisition plus a past deadline forces the timeout raise, and the
+    # handle opened for the attempt must be closed rather than leaked.
     lock_path = tmp_path / "held.lock"
-    lock_path.write_text("111", encoding="utf-8")
-    with pytest.raises(TimeoutError):
-        L._FileLock(lock_path, timeout=-1.0).__enter__()
-    lock_path.unlink(missing_ok=True)
+
+    def refuse(self):
+        raise OSError("held elsewhere")
+
+    monkeypatch.setattr(L._FileLock, "_acquire", refuse)
+    lock = L._FileLock(lock_path, timeout=-1.0)
+    with pytest.raises(TimeoutError, match="ledger lock unavailable"):
+        lock.__enter__()
+    assert lock.handle is None
 
 
-def test_filelock_exit_swallows_unlink_oserror(tmp_path):
-    # fd is None so the close branch is skipped (457->462); unlinking a directory
-    # raises OSError which is swallowed (464-465).
-    lock = L._FileLock(tmp_path / "unused.lock")
-    lock.fd = None
-    target_dir = tmp_path / "dir.lock"
-    target_dir.mkdir()
-    lock.path = target_dir
-    lock.__exit__()  # must not raise
-    assert target_dir.exists()  # unlink failed and was swallowed
+def test_filelock_enter_closes_the_handle_when_seeding_fails(tmp_path, monkeypatch):
+    # The seed step runs on an open handle; if it raises, the handle must not
+    # leak (the exception itself propagates — this is an unexpected I/O failure,
+    # not a contention case).
+    lock_path = tmp_path / "seed.lock"
+
+    def explode(self):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(L._FileLock, "_ensure_lock_file", explode)
+    lock = L._FileLock(lock_path)
+    with pytest.raises(OSError, match="disk full"):
+        lock.__enter__()
+    assert lock.handle is None
 
 
 def test_filelock_exit_swallows_close_oserror(tmp_path):
-    # A second os.close on an already-closed fd raises OSError, swallowed (460-461).
+    # Closing the handle out from under __exit__ makes the second close raise
+    # ValueError/OSError; teardown must stay fail-open.
     lock_path = tmp_path / "closed.lock"
     lock = L._FileLock(lock_path)
     lock.__enter__()
-    assert lock.fd is not None
-    os.close(lock.fd)  # close it out from under __exit__
+    assert lock.handle is not None
+    lock.handle.close()  # close it out from under __exit__
     lock.__exit__()  # must not raise
-    assert not lock_path.exists()  # unlink still ran
+    assert lock.handle is None
+
+
+def test_filelock_release_and_exit_are_noops_without_a_handle(tmp_path):
+    lock = L._FileLock(tmp_path / "never-entered.lock")
+    lock._release()  # nothing acquired -> nothing to release
+    lock.__exit__()  # must not raise
+    assert lock.handle is None
+
+
+def test_filelock_acquire_raises_when_no_backend_exists(tmp_path, monkeypatch):
+    # Neither fcntl nor msvcrt: the lock cannot be taken and must say so, rather
+    # than silently pretending exclusivity.
+    monkeypatch.setattr(L, "fcntl", None)
+    monkeypatch.setattr(L, "msvcrt", None)
+    lock = L._FileLock(tmp_path / "nobackend.lock", timeout=0.0)
+    with pytest.raises(TimeoutError):
+        lock.__enter__()
+    assert lock.handle is None
+
+
+class _FakeMsvcrt:
+    """Stand-in for the Windows byte-range lock API so the `nt` branch -- the one
+    the live estate actually runs -- is exercised on every OS."""
+
+    LK_NBLCK = 2
+    LK_UNLCK = 0
+
+    def __init__(self):
+        self.calls: list[tuple[int, int]] = []
+        self.refuse = False
+
+    def locking(self, _fd, mode, nbytes):
+        self.calls.append((mode, nbytes))
+        if self.refuse and mode == self.LK_NBLCK:
+            raise OSError("Permission denied")
+
+
+def test_filelock_uses_msvcrt_byte_range_lock_on_windows(tmp_path, monkeypatch):
+    fake = _FakeMsvcrt()
+    monkeypatch.setattr(L.os, "name", "nt")
+    monkeypatch.setattr(L, "msvcrt", fake)
+    monkeypatch.setattr(L, "fcntl", None)
+    with L._FileLock(tmp_path / "win.lock", timeout=1.0) as held:
+        assert held.handle is not None
+        assert fake.calls == [(_FakeMsvcrt.LK_NBLCK, 1)]
+    assert fake.calls[-1] == (_FakeMsvcrt.LK_UNLCK, 1)
+
+
+def test_filelock_windows_contention_times_out_like_posix(tmp_path, monkeypatch):
+    fake = _FakeMsvcrt()
+    fake.refuse = True
+    monkeypatch.setattr(L.os, "name", "nt")
+    monkeypatch.setattr(L, "msvcrt", fake)
+    monkeypatch.setattr(L, "fcntl", None)
+    lock = L._FileLock(tmp_path / "win.lock", timeout=0.02)
+    with pytest.raises(TimeoutError):
+        lock.__enter__()
+    assert lock.handle is None
+    assert all(mode == _FakeMsvcrt.LK_NBLCK for mode, _n in fake.calls)
+
+
+def test_filelock_timeout_path_swallows_a_close_error(tmp_path, monkeypatch):
+    # The handle is closed on the way out of a timeout; a failing close must not
+    # mask the TimeoutError the caller is owed.
+    lock = L._FileLock(tmp_path / "held.lock", timeout=-1.0)
+    monkeypatch.setattr(
+        L._FileLock, "_acquire", lambda self: (_ for _ in ()).throw(OSError("held"))
+    )
+    real_open = L.Path.open
+
+    class _Handle:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def close(self):
+            self._inner.close()
+            raise OSError("close failed")
+
+    monkeypatch.setattr(
+        L.Path, "open", lambda self, *a, **k: _Handle(real_open(self, *a, **k))
+    )
+    with pytest.raises(TimeoutError):
+        lock.__enter__()
+    assert lock.handle is None
+
+
+def test_filelock_seed_failure_swallows_a_close_error(tmp_path, monkeypatch):
+    lock = L._FileLock(tmp_path / "seed.lock")
+    monkeypatch.setattr(
+        L._FileLock,
+        "_ensure_lock_file",
+        lambda self: (_ for _ in ()).throw(OSError("disk full")),
+    )
+    real_open = L.Path.open
+
+    class _Handle:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __getattr__(self, name):
+            return getattr(self._inner, name)
+
+        def close(self):
+            self._inner.close()
+            raise ValueError("already closed")
+
+    monkeypatch.setattr(
+        L.Path, "open", lambda self, *a, **k: _Handle(real_open(self, *a, **k))
+    )
+    with pytest.raises(OSError, match="disk full"):
+        lock.__enter__()
+    assert lock.handle is None
+
+
+def test_filelock_release_swallows_backend_errors(tmp_path, monkeypatch):
+    lock_path = tmp_path / "release.lock"
+    lock = L._FileLock(lock_path)
+    lock.__enter__()
+
+    class _Boom:
+        LOCK_UN = 0
+        LOCK_EX = 0
+        LOCK_NB = 0
+
+        @staticmethod
+        def flock(*_args):
+            raise OSError("unlock failed")
+
+    monkeypatch.setattr(L, "fcntl", _Boom)
+    monkeypatch.setattr(L.os, "name", "posix")
+    lock.__exit__()  # must not raise
+    assert lock.handle is None
 
 
 # ---------------------------------------------------------------------------
@@ -687,3 +846,100 @@ def test_legacy_events_skips_non_dict_sanitized(tmp_path, monkeypatch):
     # Force a non-dict sanitize result so the defensive skip fires (1278->1270).
     monkeypatch.setattr(L, "_sanitize_value", lambda value, depth=0: ["not-a-dict"])
     assert ledger._legacy_events(str(tmp_path)) == []
+
+
+# ---- goal_short distillation (display-only; reinjection-safe) --------------------
+
+
+def test_distill_goal_short_unwraps_agent_message_envelope():
+    got = L.distill_goal_short(
+        '<agent-message from="team-lead">Fix the login redirect bug</agent-message>'
+    )
+    assert got == "Fix the login redirect bug"
+
+
+def test_distill_goal_short_system_prompt_boilerplate_is_empty():
+    assert (
+        L.distill_goal_short(
+            "You are summarizing a Claude Code session. The conversation covers X, Y, Z."
+        )
+        == ""
+    )
+    assert (
+        L.distill_goal_short("You are a helpful assistant that summarizes text.") == ""
+    )
+
+
+def test_distill_goal_short_keeps_first_clause_of_a_normal_task():
+    got = L.distill_goal_short(
+        "Add a goal_short field to the session goal JSON so the status line can show it."
+    )
+    assert got == "Add a goal_short field to the session"
+    assert len(got) <= 40
+
+
+def test_distill_goal_short_short_sentence_is_returned_whole():
+    assert L.distill_goal_short("Ship the receipt gate") == "Ship the receipt gate"
+
+
+def test_distill_goal_short_truncates_a_single_long_token():
+    got = L.distill_goal_short("x" * 60)
+    assert got == "x" * 40 and len(got) == 40
+
+
+def test_distill_goal_short_is_idempotent():
+    for raw in (
+        "<agent-message>Refactor the parity harness end to end now</agent-message>",
+        "You are summarizing a Claude Code session for compaction.",
+        "Ship the receipt gate",
+        "",
+    ):
+        once = L.distill_goal_short(raw)
+        assert L.distill_goal_short(once) == once
+
+
+def test_distill_goal_short_pure_wrapper_or_nonalpha_is_empty():
+    assert L.distill_goal_short(None) == ""  # not text
+    assert (
+        L.distill_goal_short("<system-reminder></system-reminder>") == ""
+    )  # empty after tag-strip
+    assert L.distill_goal_short("   ") == ""  # empty after ws-collapse
+    assert L.distill_goal_short("1234 5678 90") == ""  # no alpha
+    assert (
+        L.distill_goal_short("! leading punctuation only clause") == ""
+    )  # empty first clause
+
+
+def test_write_session_goal_preserves_goal_and_adds_short(tmp_path):
+    ledger = _ledger(tmp_path)
+    text = "Ship the receipt gate to production safely"
+    ledger._write_session_goal("sess-short", text)
+    data = json.loads(
+        ledger._session_goal_path("sess-short").read_text(encoding="utf-8")
+    )
+    assert data["goal"] == text  # RAW goal byte-unchanged
+    assert data["goal_short"] == "Ship the receipt gate to production"
+    assert ledger._read_session_goal("sess-short") == text  # reinjection reads goal
+
+
+def test_write_session_goal_omits_short_for_boilerplate(tmp_path):
+    ledger = _ledger(tmp_path)
+    text = "You are summarizing a Claude Code session for compaction."
+    ledger._write_session_goal("sess-boiler", text)
+    data = json.loads(
+        ledger._session_goal_path("sess-boiler").read_text(encoding="utf-8")
+    )
+    assert data["goal"] == text
+    assert "goal_short" not in data
+    assert set(data) == {"goal", "ts"}  # legacy shape preserved exactly
+    assert ledger._read_session_goal("sess-boiler") == text
+
+
+def test_set_goal_end_to_end_short_present_goal_is_reinjection_source(tmp_path):
+    ledger = _ledger(tmp_path)
+    cwd = str(tmp_path)
+    ledger.set_goal(cwd, "Refactor the ledger goal writer", session_id="sess-e2e")
+    assert ledger.goal(cwd, session_id="sess-e2e") == "Refactor the ledger goal writer"
+    data = json.loads(ledger._session_goal_path("sess-e2e").read_text(encoding="utf-8"))
+    assert data["goal"] == "Refactor the ledger goal writer"
+    assert data["goal_short"] == "Refactor the ledger goal writer"  # <=40 -> whole

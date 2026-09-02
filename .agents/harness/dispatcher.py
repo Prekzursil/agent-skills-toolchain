@@ -65,24 +65,23 @@ INJECT_PRIORITY: dict[str, int] = {
     "secret_literal": PRIORITY_SAFETY,
     "irreversible_operation": PRIORITY_SAFETY,
     "credential_read": PRIORITY_SAFETY,
-    # The SensitiveArtifactModule this bundle ships emits reason_code
-    # "sensitive_artifact". Without this entry it falls to
-    # _INJECT_DEFAULT_PRIORITY (ADVISORY=20) and mix_injections drops the
-    # credential report on BOTH branches -- filtered out by the sterile-cockpit
-    # rule (>= PRIORITY_SAFETY) and by sidechain ducking (>= _DUCK_FLOOR=30) --
-    # and a lone sensitive_artifact inject would not even set has_safety.
     "sensitive_artifact": PRIORITY_SAFETY,
     "injection_quarantine": PRIORITY_SAFETY,
     "config_drift": PRIORITY_SAFETY,
-    # Shares the config_drift gate, so it must share its SAFETY priority or the
-    # "your drift gate is blind" warning gets ducked by the mixer.
+    # Same gate, different verdict: the baseline itself is unparseable, so drift
+    # detection is DISABLED. Ranks with config_drift — an operator must not read a
+    # silent gate as a clean one.
     "config_baseline_unreadable": PRIORITY_SAFETY,
     # GOAL = 80
     "goal_reinjection": PRIORITY_GOAL,
+    # The SessionStart / first-prompt basic-memory vault digest (RecallModule)
+    # ranks with goal re-injection: it is the session's read-side anchor.
     "bm_vault_digest": PRIORITY_GOAL,
     "subagent_handoff": PRIORITY_GOAL,
     "ipass_readback": PRIORITY_GOAL,
     "postcompact_reanchor": PRIORITY_GOAL,
+    # owner explicitly authorized these work classes — do not over-refuse
+    "owner_ops_authorization": PRIORITY_GOAL,
     # VERIFY = 60
     "unverified_completion_claim": PRIORITY_VERIFY,
     "receipt_gate": PRIORITY_VERIFY,
@@ -101,8 +100,6 @@ INJECT_PRIORITY: dict[str, int] = {
     "budget_pacing": PRIORITY_ADVISORY,
     "metered_mcp": PRIORITY_ADVISORY,
     "instructions_audit": PRIORITY_ADVISORY,
-    # GOAL-tier: owner explicitly authorized these work classes — do not over-refuse
-    "owner_ops_authorization": PRIORITY_GOAL,
 }
 
 # CONTRACT constants (SI-2 anti-zombie): the F1 scorer + native Cron read these to
@@ -165,7 +162,7 @@ def _as_int(value: Any, default: int = 0) -> int:
 #
 # Budget = host deadline - _STARTUP_ALLOWANCE_SEC, because the deadline covers the
 # WHOLE process, not just the fan-out: interpreter start + imports +
-# build_default_modules measured ~0.3s on this box, and the terminal write and
+# build_default_modules measured ~0.3s on the live box, and the terminal write and
 # native stdout have to land inside the remainder. Measured on 260k live terminal
 # records, this truncates the tail of ~1.5% of UserPromptSubmit events (the 2s
 # cap's slowest) — events of which 2.3% already exceeded 2s and were SIGKILLed
@@ -177,8 +174,8 @@ _DEFAULT_HOST_DEADLINE_SEC = 5.0
 
 def _host_deadline_sec(event_name: str) -> float:
     """The host's registered timeout for this event. Resolved lazily and
-    tolerantly so this file still works standalone and in the vendored
-    ci/harness tree, which ships no registration module (flat 5s there)."""
+    tolerantly so this file still works standalone and in a vendored tree that
+    ships no registration module (flat 5s there)."""
     try:
         if __package__ in {None, ""}:
             from harness.registration import _TIMEOUTS
@@ -319,8 +316,17 @@ class HarnessDispatcher:
         *,
         provider: str,
         event_name: str,
-        input_error: bool = False,
+        transport_error: str | None = None,
     ) -> HookResult:
+        """Run the module chain over one normalized event.
+
+        ``transport_error`` names a failure that happened BEFORE normalization —
+        the caller could not turn the host's stdin into an event payload, so the
+        modules are about to run over an empty ``raw``. Staying fail-open there is
+        deliberate (D010), but the durable record must not read SUCCESS/ok: the
+        hook did no real work, and a promotion or smoke oracle that grades the
+        terminal record would otherwise score that silent loss as green.
+        """
         started = time.perf_counter()
         event = normalize_event(raw, provider=provider, event_name=event_name)
         action = "allow"
@@ -329,10 +335,8 @@ class HarnessDispatcher:
         collected: list[tuple[int, str, str]] = []
         seen: set[str] = set()
         continuation: str | None = None
-        # A caller that could not parse its own stdin measured nothing: the
-        # terminal record must say so instead of stamping a clean SUCCESS.
-        had_error = bool(input_error)
-        failed_modules: list[str] = []
+        had_error = bool(transport_error)
+        failed_modules: list[str] = [transport_error] if transport_error else []
         in_flight = ""
 
         # F6 · per-module error-streak circuit-breaker (SHADOW by default).
@@ -424,7 +428,7 @@ class HarnessDispatcher:
             else f"SUCCESS:hook-{event_name.lower()}"
         )
         if had_error and action == "allow":
-            reason_code = "malformed_input" if input_error else "internal_error"
+            reason_code = "internal_error"
         result = HookResult(
             status=terminal,
             action=action,
@@ -623,7 +627,7 @@ def _parse_args(argv: list[str] | None = None) -> Any:
     import argparse  # lazy (import-diet): only the CLI entrypoint needs argparse.
 
     parser = argparse.ArgumentParser(
-        description="Shared Claude/Codex lifecycle dispatcher"
+        description="Shared Claude/Codex/Grok lifecycle dispatcher"
     )
     # Keep in lockstep with adapters.SUPPORTED_PROVIDERS — a value accepted here
     # but missing there is a silent no-op hook (the ValueError is swallowed by
@@ -638,18 +642,20 @@ def _parse_args(argv: list[str] | None = None) -> Any:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    # Fail-open on bad stdin, but REMEMBER it: erasing the payload to {} and then
-    # stamping SUCCESS reports a measurement that never happened.
-    input_error = False
+    # D010 · a wire payload the harness cannot parse still fails OPEN (rc 0, no
+    # stdout, modules run over {}), but it is named so the terminal record reads
+    # FAILED:hook-<event>/internal_error instead of a false SUCCESS. Empty stdin
+    # is NOT an error - several hosts send nothing for some events.
+    transport_error: str | None = None
     try:
         raw_text = sys.stdin.read()
         raw = json.loads(raw_text or "{}")
         if not isinstance(raw, dict):
             raw = {}
-            input_error = True
+            transport_error = "_transport:non_object_payload"
     except Exception:
         raw = {}
-        input_error = True
+        transport_error = "_transport:malformed_json"
 
     try:
         dispatcher = HarnessDispatcher(state_root=args.state_root)
@@ -657,7 +663,7 @@ def main(argv: list[str] | None = None) -> int:
             raw,
             provider=args.provider,
             event_name=args.event,
-            input_error=input_error,
+            transport_error=transport_error,
         )
         native = render_output(result, provider=args.provider, event_name=args.event)
         if native or args.event in {"Stop", "SubagentStop"}:
@@ -674,10 +680,10 @@ def main(argv: list[str] | None = None) -> int:
 if __name__ == "__main__":
     _code = main()
     # A module abandoned at the dispatch budget keeps running on a daemon thread,
-    # and normal interpreter finalization waits on it (~0.4s measured) — long
-    # enough to push the process past the host's kill deadline (exit 124) AFTER
-    # the native output was already written. Nothing else is pending at this
-    # point (no atexit handlers, no background writers), so exit immediately.
+    # and normal interpreter finalization waits on it (~0.4s measured on the live
+    # box) — long enough to push the process past the host's kill deadline (exit
+    # 124) AFTER the native output was already written. Nothing else is pending at
+    # this point (no atexit handlers, no background writers), so exit immediately.
     sys.stdout.flush()
     sys.stderr.flush()
     os._exit(_code)

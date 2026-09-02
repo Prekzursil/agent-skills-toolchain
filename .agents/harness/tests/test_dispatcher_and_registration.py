@@ -180,9 +180,8 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
     )
     # Assert BEHAVIOUR, not just the string. The subagent-spawn tool was renamed
     # Task -> Agent and this matcher never followed, so every subagent spawn missed the
-    # dispatcher (no goal re-anchor, no file-scope check, no lifecycle guard, no ledger
-    # record) while a subagent can do anything a session can. A string-equality assertion
-    # could not catch that; these can.
+    # dispatcher while a subagent can do anything a session can. A string-equality
+    # assertion could not catch that; these can.
     import re as _re
 
     _m = dispatcher_group["matcher"]
@@ -224,8 +223,8 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
 
 def test_grok_build_hooks_keeps_broad_matcher_and_no_claude_hand_edits():
     # Pins the two DELIBERATE branch decisions taken when grok was accepted by
-    # build_hooks (2026-08-08). Both are safety decisions, so they get a test
-    # rather than only a comment.
+    # build_hooks on the live tree (2026-08-08; ported in the 2026-09-02 reunion).
+    # Both are safety decisions, so they get a test rather than only a comment.
     grok = build_hooks("grok")
     claude = build_hooks("claude")
     codex = build_hooks("codex")
@@ -268,32 +267,133 @@ def test_grok_build_hooks_keeps_broad_matcher_and_no_claude_hand_edits():
         assert "--provider grok" in grok[event_name][0]["hooks"][0]["command"]
 
 
-def test_cli_malformed_input_is_fail_open_and_never_emits_suppress_output(tmp_path):
+def _run_cli(tmp_path, payload, *, event="PreToolUse", state="state", provider="codex"):
+    """Drive the dispatcher CLI over real stdin and return (completed, terminals)."""
     script = Path(__file__).resolve().parents[1] / "dispatcher.py"
+    root = tmp_path / state
     completed = subprocess.run(
         [
             sys.executable,
             str(script),
             "--provider",
-            "codex",
+            provider,
             "--event",
-            "PreToolUse",
+            event,
             "--state-root",
-            str(tmp_path / "state"),
+            str(root),
         ],
-        input="not-json",
+        input=payload,
         text=True,
         capture_output=True,
-        timeout=5,
+        timeout=15,
     )
+    log = root / "terminal.jsonl"
+    records = [
+        json.loads(line)
+        for line in (
+            log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+        )
+        if line.strip()
+    ]
+    return completed, records
 
+
+def test_cli_malformed_input_is_fail_open_and_never_emits_suppress_output(tmp_path):
+    completed, records = _run_cli(tmp_path, "not-json")
+
+    # Fail-open on the wire is deliberate: the host must never be blocked or
+    # crashed by a payload the harness could not parse.
     assert completed.returncode == 0
     assert "suppressOutput" not in completed.stdout
     if completed.stdout.strip():  # pragma: no cover
         json.loads(completed.stdout)
 
+    # D010 · but exit 0 alone must NOT pass. The durable record has to say the
+    # invocation failed internally, otherwise a promotion/smoke oracle grades a
+    # silently-lost hook invocation as green.
+    assert len(records) == 1
+    record = records[0]
+    assert record["terminal"] == "FAILED:hook-pretooluse"
+    assert record["reason_code"] == "internal_error"
+    assert record["action"] == "allow"
+    assert record["failed_modules"] == ["_transport:malformed_json"]
+
+
+def test_cli_non_object_payload_is_recorded_as_an_internal_failure(tmp_path):
+    # Syntactically valid JSON that is not an object is the same class of wire
+    # failure: the modules run over {} and observe nothing the host sent.
+    completed, records = _run_cli(tmp_path, "[1, 2, 3]")
+
+    assert completed.returncode == 0
+    assert [r["terminal"] for r in records] == ["FAILED:hook-pretooluse"]
+    assert records[0]["failed_modules"] == ["_transport:non_object_payload"]
+
+
+@pytest.mark.parametrize("payload", ["", '{"tool_name": "Bash"}'])
+def test_cli_parsable_payload_still_records_success(tmp_path, payload):
+    # KNOWN-NEGATIVE control for the two assertions above: empty stdin is normal
+    # for several hosts and a well-formed object is the happy path, so neither
+    # may be demoted to FAILED by the transport guard.
+    completed, records = _run_cli(tmp_path, payload)
+
+    assert completed.returncode == 0
+    assert [r["terminal"] for r in records] == ["SUCCESS:hook-pretooluse"]
+    assert records[0]["reason_code"] == "ok"
+    assert records[0]["failed_modules"] == []
+
+
+def test_cli_accepts_grok_and_attributes_the_terminal_record_to_it(tmp_path):
+    # The argparse `choices` gate and adapters.SUPPORTED_PROVIDERS must move
+    # together (see test_contract): before the live fix, `--provider grok` was
+    # rejected by argparse (rc 2) and Grok's hooks ran as `--provider claude`, so
+    # every Grok turn was attributed to claude. One real process, end to end.
+    completed, records = _run_cli(
+        tmp_path, '{"session_id": "g", "tool_name": "Bash"}', provider="grok"
+    )
+
+    assert completed.returncode == 0
+    assert "suppressOutput" not in completed.stdout
+    assert [r["terminal"] for r in records] == ["SUCCESS:hook-pretooluse"]
+    assert records[0]["provider"] == "grok"
+
+
+def test_dispatch_transport_error_is_named_in_the_terminal_record(tmp_path):
+    # Unit-level twin of the CLI tests: the classification lives in dispatch(),
+    # so it is available to any embedder, not only the argv entrypoint.
+    dispatcher = HarnessDispatcher(modules=[], state_root=tmp_path / "state")
+    result = dispatcher.dispatch(
+        {},
+        provider="codex",
+        event_name="Stop",
+        transport_error="_transport:malformed_json",
+    )
+
+    assert result.action == "allow"
+    assert result.status == "FAILED:hook-stop"
+    assert result.reason_code == "internal_error"
+    assert result.additional_context == []
+
 
 def test_every_registered_provider_event_has_valid_native_wire_output(tmp_path):
+    """KNOWN INTERMITTENT FAILURE under load, measured 2026-08-11. Not yet root-caused.
+
+    It spawns ``dispatcher.py`` as a SUBPROCESS once per event type -- 11 processes, ~27s alone --
+    which makes it the most timing-sensitive test in this suite.
+
+        isolated          5 runs, 5 passes
+        in the full suite 2 of 6 runs failed (~33%; two later capture attempts both passed, which
+                          is why the assertion text is still unrecorded)
+        failure count     varies between runs (2 once, 1 another) -- nondeterministic
+        timing            BOTH failing runs were the SLOWEST of their batch (368s, 357s) against
+                          184s / 157s / 143s for passing ones
+
+    So the signature is contention, not logic and not test ORDER: both failures happened while other
+    suites and `gh` pollers were running concurrently on the same box. CI installs no ordering
+    plugin, runs one suite at a time on a dedicated runner, and is green (835/835).
+
+    If you see this red locally, re-run it alone before believing it. If you see it red in CI, that
+    IS new information -- say so, because it has not happened yet.
+    """
     script = Path(__file__).resolve().parents[1] / "dispatcher.py"
     payloads = {
         "SessionStart": {"source": "startup"},

@@ -659,3 +659,57 @@ def test_legacy_verified_flag_cannot_override_a_typed_receipt(tmp_path):
     # A genuinely pre-receipt event (no typed fields) still satisfies it.
     ledger.append(cwd, "tool_result", turn_id="T1", tool="Bash", verified=True)
     assert ledger.has_verification(cwd, "T1") is True
+
+
+# ---------------------------------------------------------------------------
+# Receipt-authority edges the parametrized cases above do not reach.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "tool_name,expected",
+    [
+        ("", False),
+        (None, False),
+        ("mcp__desktop__run_command", True),  # namespaced leaf verb
+        ("mcp__x__RunTerminalCmd", False),  # not in the set, no hint token
+        ("my-shell-wrapper", True),  # hint token inside the leaf
+        ("bashful", False),  # hint must be a whole token
+        ("WebSearch", False),
+    ],
+)
+def test_is_command_tool_judges_the_leaf_verb(tool_name, expected):
+    from harness.ledger import _is_command_tool
+
+    assert _is_command_tool(tool_name) is expected
+
+
+def test_command_head_skips_assignments_and_quoting():
+    from harness.ledger import _command_head
+
+    assert _command_head("FOO=1 'pytest' -q") == "pytest"
+    assert _command_head("FOO=1 BAR=2") == ""
+    assert _command_head("") == ""
+    assert _command_head("/usr/bin/env pytest") == "env"
+    assert _command_head(r"c:\tools\pytest.exe -q") == "pytest.exe"
+
+
+def test_receipt_status_and_counts_materialize_text_lazily_when_not_given():
+    from harness.ledger import _parse_counts, _receipt_status
+
+    result = {"output": "3 passed, 1 failed"}
+    assert _parse_counts(result) == (3, 1)
+    assert _receipt_status(result, 3, 1) == "fail"
+    # No exit code, no failures, counts only: passes on the parsed counts.
+    assert _receipt_status({"output": "3 passed"}, 3, 0, receipt_class="test") == "pass"
+    # Exit code present and NOT laundered: the code decides.
+    assert (
+        _receipt_status(
+            {"exit_code": 1}, 0, 0, receipt_class="test", command="pytest -q"
+        )
+        == "fail"
+    )
+    # Prose alone never passes a non-health class, even without an exit code.
+    assert _receipt_status({"output": "success"}, 0, 0, receipt_class="lint") == (
+        "unknown"
+    )
