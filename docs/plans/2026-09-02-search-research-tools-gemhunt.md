@@ -212,6 +212,31 @@ commit-starved box.
   (`tools/search-expansion/`), `bc-4e8853ae-4128-53a1-b8eb-451d38f2ea1c` = items 1b+5
   (search-hub onion lane, `deploy/`, envelope), `bc-a327747f-31b0-5716-b401-b379cf0e2488`
   = items 4+6 (search-hub adapters: `read_url` v0 + GitHub REST siblings).
+- **G-10 — Waves 2-4 now, e2e, on this branch; PRs handled in parallel.** Owner
+  (2026-09-02 06:53 UTC): "implement all waves, e2e (everything 100% working and
+  wired) with subagents as we did, and while they do that handle the PRs and the ones
+  eligible merge to main". Amends G-8 (C): the remaining waves build on THIS branch
+  with the same disjoint-ownership subagent model rather than one branch per wave.
+  Wiring contract added first (`d6c6fff3`): `tools/mcp/search-hub/lanes.py` registers
+  `lane_<name>.py` modules exposing `build(environ)` and fails closed per lane. Nine
+  builders launched 07:03 UTC: providers/child MCPs `bc-0d226ced-e4d9-5247-a030-aadc4770b5a5`
+  (Parallel, grep.app, corroborate, open-webSearch, LDR, Exa cleanup, environ-aware
+  provider list); grounding lane `bc-da5fe256-ecb4-5c8d-9e4e-16439adf5065` (Wikipedia,
+  Wayback, HN); repo-health lane `bc-ac8a7fd8-061a-56ee-9af9-bc2b4cfcd19c` (bestofjs v2,
+  deps.dev, Scorecard); `read_url` trafilatura ladder + DNS pinning
+  `bc-20f2eebe-a9cd-52c2-a74f-74c4d3ffb2e9`; rerank stage + eval
+  `bc-caf3d57a-0263-5969-9e9b-0a02e1ee25e4`; deep-research harness reliability set +
+  academic route + pplx routing `bc-28fe5bab-7eef-5741-928a-3cdafd6f44a7`; academic
+  upgrades (scholarly-access keys/tools, README drift, MCP registrations)
+  `bc-ab35b6b5-a647-57d1-b68e-dbd519b8964a`; Vane answer lane + on-demand deploy
+  `bc-00254568-1e1f-5c3a-9ca4-14f42d91c515`; keyed search APIs `bc-c94a07ec-46e4-5d05-97cd-ba17ad4bd83f`.
+  Then: parent wires each lane into `LANE_MODULES`, adds `--cov=rerank` to the CI gate,
+  runs the e2e pass, updates PR #310. PR handling so far: #308 merged to main
+  (`acb04057`, all required checks green); #310 (this branch) had one CI failure fixed
+  in `5ac13629` (Python 3.11 `HTMLParser._pending` collision); #311/#314 fail the
+  pre-#313 full-history gitleaks scan and need `main` merged in (#314 also fails
+  `gate-published-commands`); #312 needs `ruff format` on one test file — those three
+  are other branches, so their fixes wait for the owner's explicit go-ahead.
 
 ---
 
