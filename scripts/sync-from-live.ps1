@@ -166,7 +166,53 @@ $Map = @(
     # excluded below (machine-generated, 378 KB) -- see $ExcludeFilePatterns.
     @{ Live = "$UserProfile\.agents";          Repo = '.agents';        Label = 'agents-root'
        TopLevelOnly = $true; Filter = '*.md' }
+    # The P2 (G-1) repair tree. Captured 2026-09-02 so the 2007-unit measurement can run in a
+    # cloud Linux worker straight from the repo instead of through the WSL bottleneck on this
+    # RAM-starved box. The live tree is FROZEN as a capture source from 02.09 02:30 EEST;
+    # harness/ast-integrate is canonical for P2 from this capture on. Measured before the
+    # first run: 84,000 files / 7.9 GB raw, of which 7.0 GB is a 2 GB blob fixture, vendored
+    # semgrep/ruff/pwsh/trufflehog/gitleaks binaries and 3.7 GB of OVH fleet pulls -- none of
+    # it is needed to run a probe. The per-area keys below are all optional and are the ONLY
+    # place this area differs from the others; every exclusion is listed with its reason in
+    # harness/ast-integrate/CAPTURE-EXCLUSIONS.md so a cloud agent can attribute a fail to it.
+    #   MaxFileBytes        anything larger is excluded and printed as TOO-LARGE, EXCEPT the
+    #                       exact paths in KeepOversized (the work-unit catalog the regen tool
+    #                       loads directly, plus three 5-7 MB unit deliverables).
+    #   ExtraExcludeDirs    segment names that are vendored toolchains or scratch/work dirs
+    #                       inside probe units (measured: no dir of these names exists outside
+    #                       probes/, so nothing legitimate is caught).
+    #   ExcludeRelPrefixes  whole subtrees by relative path: the bundled Python interpreter,
+    #                       _chaos-scratch, the OVH pulls, and one unit's 373 MB pwsh/ruff drop.
+    #   KeepDirs            build/ and dist/ are REAL SOURCE here (command-center/build holds
+    #                       the BLD-phase probes), so the global junk names must not fire.
+    #   KeepFilePatterns    *.log is normally junk; here the append-only repair log and the
+    #                       wave logs ARE the audit trail. (.gitignore carries the matching
+    #                       negation, otherwise `git add` would silently drop them.)
+    @{ Live = "$UserProfile\source\ast-integrate"; Repo = 'harness/ast-integrate'; Label = 'ast-integrate'
+       MaxFileBytes = 5MB
+       KeepOversized = @('command-center/WORK-UNIT-CATALOG.json',
+                         'command-center/audit/AUD-0083-script-interpreter-audit.json',
+                         'command-center/confirmation/CNF-0072-option-id-namespaces.json',
+                         'command-center/receipts/CC-0019.json')
+       ExtraExcludeDirs = @('deps', '.bin', 'toolchains', 'wheels',
+                            '_work', 'work', '_scratch', 'scratch', '_tmp', 'tmp', '.cache')
+       ExcludeRelPrefixes = @('Python', '_chaos-scratch',
+                              'command-center/p2-wave/ovh-monitor/error-pull/extracted',
+                              'command-center/p2-wave/ovh-monitor/error-pull/extracted-delta',
+                              'command-center/p2-wave/ovh-monitor/error-pull/harvest',
+                              'command-center/p2-wave/ovh-monitor/error-pull/harvest-delta',
+                              'command-center/p2-wave/probes/CNF-0021/tools')
+       KeepDirs = @('build', 'dist')
+       KeepFilePatterns = @('*.log') }
 )
+
+# Windows reserved device names. A file literally named 'NUL' exists in the live ast-integrate
+# root (5 KB, created by a stray redirect on 2026-08-15). Copy-Item to a destination named NUL
+# writes to the device and reports success, and git cannot track the name on Windows at all,
+# so the hash-verify would report it as torn on every run. Always skipped, in every area.
+$ReservedDeviceNames = @('CON', 'PRN', 'AUX', 'NUL',
+                         'COM1','COM2','COM3','COM4','COM5','COM6','COM7','COM8','COM9',
+                         'LPT1','LPT2','LPT3','LPT4','LPT5','LPT6','LPT7','LPT8','LPT9')
 
 # Loose files that live outside any synced tree and were orphaned individually. These are
 # compared through the SAME engine as the mapped trees -- before the B7 pass they had their
@@ -258,17 +304,55 @@ function Test-InNestedRepo {
 }
 
 function Test-Excluded {
-    param([string]$FullPath, [string]$Base)
+    # $Area is the $Map entry being walked; its optional per-area keys refine the global
+    # lists without loosening them for any other area. Absent keys behave exactly as before.
+    param([string]$FullPath, [string]$Base, [hashtable]$Area = @{})
     $rel = $FullPath.Substring($Base.Length).TrimStart('\', '/')
-    foreach ($seg in ($rel -split '[\\/]')) {
-        if ($ExcludeDirs -contains $seg) { return $true }
+    $keepDirs  = if ($Area.ContainsKey('KeepDirs'))         { @($Area.KeepDirs) }         else { @() }
+    $extraDirs = if ($Area.ContainsKey('ExtraExcludeDirs')) { @($Area.ExtraExcludeDirs) } else { @() }
+    $segs = @($rel -split '[\\/]')
+    # only DIRECTORY segments are judged by the dir lists; the leaf is judged by file patterns
+    for ($i = 0; $i -lt $segs.Count - 1; $i++) {
+        $seg = $segs[$i]
+        if (($ExcludeDirs -contains $seg) -and -not ($keepDirs -contains $seg)) { return $true }
+        if ($extraDirs -contains $seg) { return $true }
+    }
+    if ($Area.ContainsKey('ExcludeRelPrefixes')) {
+        $relFwd = $rel -replace '\\', '/'
+        foreach ($p in @($Area.ExcludeRelPrefixes)) {
+            if ($relFwd -ieq $p -or $relFwd.StartsWith($p + '/', [StringComparison]::OrdinalIgnoreCase)) { return $true }
+        }
     }
     $leaf = Split-Path $FullPath -Leaf
+    $stem = [IO.Path]::GetFileNameWithoutExtension($leaf)
+    if ($ReservedDeviceNames -contains $stem.ToUpperInvariant()) { return $true }
+    $keepPats = if ($Area.ContainsKey('KeepFilePatterns')) { @($Area.KeepFilePatterns) } else { @() }
     foreach ($pat in $ExcludeFilePatterns) {
-        if ($leaf -like $pat) { return $true }
+        if ($leaf -like $pat) {
+            $kept = $false
+            foreach ($kp in $keepPats) { if ($leaf -like $kp) { $kept = $true; break } }
+            if (-not $kept) { return $true }
+        }
     }
     if (Test-InNestedRepo -FullPath $FullPath -Base $Base) { return $true }
     return $false
+}
+
+# MaxFileBytes guard. Evaluated BEFORE any hashing: Get-FileDigest reads the whole file into
+# memory, and the live ast-integrate tree carries a 2 GB fixture blob -- hashing it on this
+# RAM-starved box would be the exact class of failure the capture exists to route around.
+function Test-TooLarge {
+    param([System.IO.FileInfo]$Item, [string]$RepoRel, [hashtable]$Area = @{})
+    if (-not $Area.ContainsKey('MaxFileBytes')) { return $false }
+    if ($Item.Length -le [long]$Area.MaxFileBytes) { return $false }
+    if ($Area.ContainsKey('KeepOversized')) {
+        $norm = $RepoRel -replace '\\', '/'
+        foreach ($k in @($Area.KeepOversized)) {
+            $full = (($Area.Repo + '/' + $k) -replace '\\', '/')
+            if ($norm -ieq $full) { return $false }
+        }
+    }
+    return $true
 }
 
 # Raw SHA256 plus enough metadata to classify a mismatch. Ok=$false means the bytes could not
@@ -559,11 +643,16 @@ if (-not $dirtyIndex) {
 
     foreach ($f in $items) {
         $A.filesSeen++
-        if (Test-Excluded -FullPath $f.FullName -Base $m.Live) { $A.excluded++; continue }
+        if (Test-Excluded -FullPath $f.FullName -Base $m.Live -Area $m) { $A.excluded++; continue }
 
         $rel     = $f.FullName.Substring($m.Live.Length).TrimStart('\', '/')
         $dest    = Join-Path $destRoot $rel
         $repoRel = ($m.Repo + '/' + $rel) -replace '\\', '/'
+        if (Test-TooLarge -Item $f -RepoRel $repoRel -Area $m) {
+            $A.excluded++
+            Say ("  {0,-10} TOO-LARGE ({1:N1} MB), excluded: {2}" -f $m.Label, ($f.Length / 1MB), $rel) 'DarkGray'
+            continue
+        }
         $isReparse = [bool]($f.Attributes -band [IO.FileAttributes]::ReparsePoint)
 
         $verdict = Compare-Pair -LivePath $f.FullName -RepoPath $dest -RepoRel $repoRel -IsReparse $isReparse
@@ -647,7 +736,7 @@ if (-not $dirtyIndex) {
         if (-not ($m.ContainsKey('TopLevelOnly') -and $m.TopLevelOnly)) { $gciR.Recurse = $true }
         if ($m.ContainsKey('Filter')) { $gciR.Filter = $m.Filter }
         foreach ($rf in (Get-ChildItem @gciR -ErrorAction SilentlyContinue)) {
-            if (Test-Excluded -FullPath $rf.FullName -Base $destRoot) { continue }
+            if (Test-Excluded -FullPath $rf.FullName -Base $destRoot -Area $m) { continue }
             $rel = $rf.FullName.Substring($destRoot.Length).TrimStart('\', '/')
             $repoRel = ($m.Repo + '/' + $rel) -replace '\\', '/'
             # The hold list exists because these repo copies are authoritative. Pruning one

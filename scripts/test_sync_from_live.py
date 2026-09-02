@@ -35,6 +35,9 @@ AREAS = {
     "commands": (".claude/commands", "commands"),
     "hooks": (".claude/hooks", "hooks"),
     "skills": (".agents/skills", ".agents/skills"),
+    # P2 repair tree capture (added 2026-09-02). Listed here because a mapped live area that is
+    # MISSING is a hard failure by design, so the fixture must create it or every CLEAN test breaks.
+    "ast-integrate": ("source/ast-integrate", "harness/ast-integrate"),
 }
 
 
