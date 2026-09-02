@@ -117,3 +117,98 @@ Unique capabilities that must survive (RECOMMENDATION = keep each row):
 | C9 HF Hub control plane | `huggingface` Hub MCP (I3) | unchanged |
 | C10 Space wire contract for the Qwen recipe | `qwen-space-tool-api/reference.md` (I5) | folded into `hosted-model-agents/recipes/`; skill folder becomes a redirect tombstone (it already is) |
 | C11 Local weights | ollama, lms (I12) | unchanged; both already expose OpenAI-compatible `/v1` (Codex's built-ins target them with the Responses API) |
+
+## 4. Leanest end state that preserves every capability
+
+Principle (INFERENCE from Sections 2-3): there are exactly three *kinds* of thing in this
+estate's model-access layer - **an upstream** (auth2api, HF router, Ollama/LM Studio, a
+Space), **a consumer dialect** (how each CLI is told about an upstream) and **a persona**
+(system prompt + tool list, already declared a prompt pack by `hosted-model-agents`). Today
+each upstream x consumer pair is hand-written. The lean end state writes each upstream once
+and generates each dialect from it.
+
+### 4.1 What becomes a registry entry
+
+RECOMMENDATION R1: add an **`upstreams`** table to the ONE registry (`.agents/agents.json`,
+schema is owner-controlled; per `AGENTS.md` "treat consumer-owned manifests as closed schemas"
+so this goes in the *owner-owned* registry, not in any CLI's file). Each entry: `id`,
+`base_url`, `protocols: ["chat_completions","responses","messages"]`, `credentialName`
+(name only, L6), `models` (static list or `"discover": "/v1/models"`), `ramClass`
+(`remote` | `loopback-daemon` | `on-demand-local`). Seed rows:
+
+| id | base_url | protocols (UNVERIFIED until probed) | credential | ramClass |
+|---|---|---|---|---|
+| `cursor-auth2api` | `http://127.0.0.1:8317/v1` | chat_completions (+responses? +messages?) | none (loopback) | loopback-daemon (already resident; L3) |
+| `hf-router` | `https://router.huggingface.co/v1` | chat_completions | `HUGGINGFACE_TOKEN` (name already in registry) | remote |
+| `ollama` | `http://127.0.0.1:11434/v1` | chat_completions, responses (Codex built-in uses Responses) | none | on-demand-local |
+| `lmstudio` | `http://127.0.0.1:1234/v1` | chat_completions, responses (Codex built-in uses Responses) | none | on-demand-local |
+| `openrouter` | `https://openrouter.ai/api/v1` | chat_completions | `OPENROUTER_API_KEY` | remote; **flag `sidecarOnly: true`** so generators refuse to emit it for Cursor/Claude (L1) |
+
+Why registry and not a new daemon: 0 MB idle, versioned on the SSOT remote, already
+validated by the existing control-plane tests (`.agents/tests/test_mcp_control_plane*.py`),
+and the registry already carries the RAM vocabulary (`maxPrivateBytes`,
+`totalIdlePrivateBytes`). L2 forbids LiteLLM precisely because it would be a *resident*
+translation layer; a registry table is data.
+
+RECOMMENDATION R2 (replaces `glm53-space`, honours the owner's deprecation decision): one
+generalised stdio MCP **`hosted-inference`** with one tool `chat(upstream, model, user_prompt,
+system_prompt="")` where `upstream` is validated against the registry's `upstreams` table and
+`model` against that upstream's list. It is the same shape as `glm53_chat` (separate
+`user_prompt` and blank-default `system_prompt`, text only, "never send secrets or raw private
+transcripts") with two parameters lifted out of the hard-coded constants. It inherits
+`glm53-space`'s registry slot (`targets: ["claude"]`, `owner-requested`, `hosted-inference`
+tag, `credentialNames: ["HUGGINGFACE_TOKEN"]`) and its place in
+`CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS`, so the Cursor surface stays at "core six + one". This
+is NATIVE-vs-BUILD = BUILD (small), but it is a *replacement*, not an addition: the server
+count stays 42.
+
+### 4.2 What becomes one wrapper family
+
+RECOMMENDATION R3: `ai-mode`, `grok-mode`, `fabric-cursor`, `claude-cursor`, `codex-cursor`
+(and `claude-swap` if it is a backend switch - UNVERIFIED) become **one generated family**
+`<cli>-on-<upstream>` (e.g. `codex-on-cursor`, `fabric-on-hf-router`, `goose-on-ollama`) plus
+the single switchboard `ai-mode status|use <cli> <upstream>|native <cli>`. Each generated
+wrapper is a shell script that sets *only* the process-local variables that CLI's vendor docs
+name (Section 3), then `exec`s the CLI:
+
+| CLI | Variables / flags the wrapper sets per process | Source |
+|---|---|---|
+| goose | `GOOSE_PROVIDER=<upstream-id>` (declarative provider JSON generated from the registry row into `~/.config/goose/custom_providers/<upstream-id>.json`) | Goose custom providers (A) |
+| grok | `-m <alias>` where `[endpoints] models_base_url` is generated once and `[model."<alias>"]` overrides only where needed; or `GROK_MODELS_BASE_URL=<base_url>` per process | docs.x.ai settings reference (A) |
+| fabric | `-V <vendor>` with the vendor's `<VENDOR>_API_BASE_URL` exported per process (Fabric has a fixed vendor set; reuse an OpenAI-compatible slot such as "LM Studio" or the OpenAI slot, per process) | Fabric README (B) |
+| codex | `-c model_provider=<upstream-id>` with `[model_providers.<upstream-id>]` generated (Responses API only; the generator MUST refuse to emit a Codex provider for an upstream whose `protocols` lacks `responses`) | openai/codex lib.rs (A) |
+| claude | `ANTHROPIC_BASE_URL=<base_url>` per process only for upstreams whose `protocols` include `messages`; never OpenRouter (L1) | L1 text; Claude Code env var usage UNVERIFIED for auth2api specifically |
+| aider / opencode / gemini | out of scope for the auth2api family until probed; aider and opencode accept OpenAI-compatible bases natively (UNVERIFIED here); Gemini CLI targets Gemini/Vertex only (UNVERIFIED) | - |
+
+The existing names stay as **aliases** (symlinks or one-line shims) so every muscle-memory
+command still works (L7). The switchboard keeps the current opt-in stance ("Native CLIs stay
+on grok.com / Anthropic / OpenAI; Cursor quota is opt-in" - session-catalog line 876) and G-32
+(process-local, no global bridge env) by construction: the generated scripts never write to
+the user profile.
+
+### 4.3 What is a redirect tombstone (kept, not deleted)
+
+- `qwen-space-tool-api` skill: already a tombstone (`status: deprecated`); keep as is, but move
+  `reference.md` (the Space wire contract) under `hosted-model-agents/recipes/` and leave a
+  one-line pointer. `qwen-space` wrapper: already a pointer; leave it.
+- `glm53-space` registry name: keep the *name* as a disabled entry with `description:
+  "DEPRECATED -> hosted-inference (upstream=hf-router, model=zai-org/GLM-5.3)"` for one
+  release, because the Cursor approval store keys on `<server-name>-<16 hex>` ids
+  (`CURSOR_APPROVAL_ID_RE`, merge script line 148) and a silent rename would look like an
+  unapproved new server.
+- `grok-mode`: alias of `ai-mode` today; stays an alias.
+
+### 4.4 What is deleted
+
+- `tools/mcp/glm53-space/openai_proxy.py`: the HF router is already OpenAI-compatible, so a
+  loopback OpenAI proxy in front of it adds a process (RAM) and a hop (latency) and no
+  capability. Its one arguable capability - hiding the token from a CLI that cannot read env -
+  is already covered by every consumer in Section 3 supporting `env_key`/`api_key_env`.
+- `tools/mcp/glm53-space/{glm53_core.py,mcp_server.py}` and the `uv.lock`: deleted from the
+  executed checkout **after** R2 is green; note they are absent from the SSOT remote already
+  (Section 2, I2), so on GitHub this is a no-op.
+- The 35 duplicate `[model."cursor-*"]` blocks in `~/.grok/config.toml` once `[endpoints]`
+  discovery is verified against auth2api's `/v1/models` (keep the blocks for models that need
+  per-model `api_backend`/`context_window` overrides).
+
+Nothing else is deleted. Every current command keeps working via alias.
